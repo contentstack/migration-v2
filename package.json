@@ -1,0 +1,48 @@
+{
+  "name": "migration-v2-node-server",
+  "version": "1.0.0",
+  "description": "This is the TSO migration V2's node server",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js --env=prod",
+    "dev": "nodemon server.js --env=dev",
+    "prettify": "prettier --write .",
+    "lint:fix": "eslint --fix --ext .js,.jsx,.ts,.tsx . --ignore-pattern './node_modules/' --ignore-pattern './buid/'",
+    "precommit": "npm run prettify && npm run lint:fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://hanoak20@github.com/contentstack-expert-services/migration-v2-node-server.git"
+  },
+  "author": "Contentstack",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/contentstack-expert-services/migration-v2-node-server/issues"
+  },
+  "homepage": "https://github.com/contentstack-expert-services/migration-v2-node-server#readme",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "express": "^4.17.3",
+    "helmet": "^6.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-airbnb": "^19.0.0",
+    "eslint-config-prettier": "^8.3.0",
+    "husky": "^4.3.8",
+    "nodemon": "^3.0.2",
+    "prettier": "^2.4.1",
+    "validate-branch-name": "^1.3.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npx validate-branch-name && npm run precommit"
+    }
+  },
+  "validate-branch-name": {
+    "pattern": "^(feature|bugfix|hotfix)/[a-z0-9-]{5,30}$",
+    "errorMsg": "Please add valid branch name!"
+  }
+}
