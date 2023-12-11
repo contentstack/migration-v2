@@ -1,9 +1,13 @@
+const { parseCLIArgsFromProcess, loadConfigFile } = require("./utils");
+const constants = require("./constants");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const PORT = 5000;
 
 try {
+  loadConfigFile(parseCLIArgsFromProcess(process.argv));
+
   const app = express();
   app.use(
     helmet({
@@ -35,7 +39,11 @@ try {
 
   app.use((error, req, res, next) => {
     console.error(error);
-    res.status(500).json({ message: "Something went wrong!" });
+    res
+      .status(error.statusCode || constants.HTTP_ERROR_CODES.SOMETHING_WRONG)
+      .json({
+        message: error.message || constants.HTTP_ERROR_TEXTS.INTERNAL_ERROR,
+      });
   });
 
   app.listen(PORT, () => {
