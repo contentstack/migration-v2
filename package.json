@@ -2,15 +2,16 @@
   "name": "migration-v2-node-server",
   "version": "1.0.0",
   "description": "This is the TSO migration V2's node server",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js --env=prod",
-    "dev": "nodemon server.js --env=dev",
+    "start": "ts-node server.ts --env=prod",
+    "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts --env=dev",
     "prettify": "prettier --write .",
     "lint:fix": "eslint --fix --ext .js,.jsx,.ts,.tsx . --ignore-pattern './node_modules/' --ignore-pattern './buid/'",
     "precommit": "npm run prettify && npm run lint:fix"
   },
+  "type": "commonjs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/contentstack-expert-services/migration-v2-node-server.git"
@@ -22,18 +23,24 @@
   },
   "homepage": "https://github.com/contentstack-expert-services/migration-v2-node-server#readme",
   "dependencies": {
+    "@types/express": "^4.17.21",
     "axios": "^1.6.2",
     "cors": "^2.8.5",
-    "express": "^4.17.3",
+    "express": "^4.18.2",
     "helmet": "^6.0.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.10.4",
     "eslint": "^7.32.0",
     "eslint-config-airbnb": "^19.0.0",
     "eslint-config-prettier": "^8.3.0",
     "husky": "^4.3.8",
     "nodemon": "^3.0.2",
     "prettier": "^2.4.1",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3",
     "validate-branch-name": "^1.3.0"
   },
   "husky": {
@@ -44,5 +51,6 @@
   "validate-branch-name": {
     "pattern": "^(feature|bugfix|hotfix)/[a-z0-9-]{5,30}$",
     "errorMsg": "Please add valid branch name!"
-  }
+  },
+  "keywords": []
 }
