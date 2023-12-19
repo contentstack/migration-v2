@@ -41,7 +41,8 @@ try {
     console.error(error);
     res
       .status(
-        (error as any).statusCode || constants.HTTP_ERROR_CODES.SOMETHING_WRONG
+        (error as unknown as { statusCode: number }).statusCode ||
+          constants.HTTP_ERROR_CODES.SOMETHING_WRONG
       )
       .json({
         message: error.message || constants.HTTP_ERROR_TEXTS.INTERNAL_ERROR,

@@ -1,11 +1,15 @@
-let env: "dev" | "stage" | "prod";
-let config: any = {};
+let env: string;
+let config: ConfigType = {};
+
+export type ConfigType = {
+  config?: string;
+};
 
 export type ConfigFilePathType = {
   dev: string;
   stage: string;
   prod: string;
-}
+};
 export type HttpErrorCodes = {
   HTTP_OK: number;
   FORBIDDEN: number;
@@ -19,10 +23,10 @@ export type ConstantType = {
   NODE_CLI_ENV_KEY: string;
   NODE_CLI_INVALID_ENV: string;
   CONFIG_FILE_PATHS: ConfigFilePathType;
-  setEnv: (e: "dev" | "stage" | "prod") => void;
-  getEnv: () => "dev" | "stage" | "prod";
-  setConfig: Function;
-  getConfig: Function;
+  setEnv: (e: string) => void;
+  getEnv: () => string;
+  setConfig: (config: ConfigType) => void;
+  getConfig: (key: string) => unknown;
   HTTP_ERROR_CODES: HttpErrorCodes;
   HTTP_ERROR_TEXTS: HttpErrorTexts;
   HTTP_RESPONSE_HEADERS: HttpResponseHeaders;
@@ -49,10 +53,10 @@ export const constants: ConstantType = {
     stage: "../config-stage.json",
     prod: "../config.json",
   },
-  setEnv: (e: any) => (env = e),
+  setEnv: (e: string) => (env = e),
   getEnv: () => env,
-  setConfig: (c: any) => (config = c),
-  getConfig: (key: string) => (key ? config[key] : config) as any,
+  setConfig: (c: ConfigType) => (config = c),
+  getConfig: (key: string) => (key ? config[key as keyof ConfigType] : config),
   HTTP_ERROR_CODES: {
     HTTP_OK: 200,
     FORBIDDEN: 403,

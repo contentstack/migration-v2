@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node server.ts --env=prod",
-    "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts --env=dev",
+    "start": "npx tsc && node dist/server.js --env=prod",
+    "dev": "ts-node-dev --respawn ./src/server.ts --env=dev",
     "prettify": "prettier --write .",
-    "lint:fix": "eslint --fix --ext .js,.jsx,.ts,.tsx . --ignore-pattern './node_modules/' --ignore-pattern './buid/'",
+    "lint:fix": "eslint src/**/*.ts",
     "precommit": "npm run prettify && npm run lint:fix"
   },
   "type": "commonjs",
@@ -32,6 +32,8 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/node": "^20.10.4",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
     "eslint": "^7.32.0",
     "eslint-config-airbnb": "^19.0.0",
     "eslint-config-prettier": "^8.3.0",
