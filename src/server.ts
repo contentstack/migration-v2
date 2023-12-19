@@ -1,9 +1,9 @@
-const { parseCLIArgsFromProcess, loadConfigFile } = require("./utils");
-const constants = require("./constants");
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const PORT = 5000;
+import { parseCLIArgsFromProcess, loadConfigFile } from "./utils";
+import { constants } from "./constants";
+import express, { NextFunction, Request, Response } from "express";
+import cors from "cors";
+import helmet from "helmet";
+const PORT = process.env.PORT || 5000;
 
 try {
   loadConfigFile(parseCLIArgsFromProcess(process.argv));
@@ -19,7 +19,7 @@ try {
   app.use(express.urlencoded({ extended: false, limit: "10mb" }));
   app.use(express.json({ limit: "10mb" }));
 
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader(
       "Access-Control-Allow-Methods",
@@ -29,7 +29,7 @@ try {
       "Access-Control-Allow-Headers",
       "Content-Type, Authorization"
     );
-    res.setHeader("Access-Control-Allow-Credentials", true);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
     next();
   });
 
@@ -37,10 +37,13 @@ try {
     res.status(200).json("Welcome to Migration APIs");
   });
 
-  app.use((error, req, res, next) => {
+  app.use((error: Error, req: Request, res: Response) => {
     console.error(error);
     res
-      .status(error.statusCode || constants.HTTP_ERROR_CODES.SOMETHING_WRONG)
+      .status(
+        (error as unknown as { statusCode: number }).statusCode ||
+          constants.HTTP_ERROR_CODES.SOMETHING_WRONG
+      )
       .json({
         message: error.message || constants.HTTP_ERROR_TEXTS.INTERNAL_ERROR,
       });
