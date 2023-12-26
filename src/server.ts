@@ -4,6 +4,7 @@ import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 const PORT = process.env.PORT || 5000;
+import authRoutes from "./routes/auth.routes";
 
 try {
   loadConfigFile(parseCLIArgsFromProcess(process.argv));
@@ -18,6 +19,9 @@ try {
   app.use(cors({ origin: "*" }));
   app.use(express.urlencoded({ extended: false, limit: "10mb" }));
   app.use(express.json({ limit: "10mb" }));
+
+  // Routes
+  app.use("/api.contentstack-migration/v2/auth", authRoutes);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
