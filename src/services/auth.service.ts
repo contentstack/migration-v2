@@ -1,9 +1,9 @@
-import { Request, Response } from "express";
+import { Request } from "express";
 import axios from "axios";
 import { API_MGMT_URL } from "../config";
 
 const createUserService = () => {
-  const loginUser = async (req: Request, res: Response): Promise<any> => {
+  const loginUser = async (req: Request): Promise<void> => {
     const userData = req.body;
     const apiResponse = await axios({
       method: "POST",
