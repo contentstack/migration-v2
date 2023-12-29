@@ -8,7 +8,6 @@ export const authenticateUser = (
 ): void => {
   // Simulate authentication logic (e.g., check for a token)
   const isAuthenticated = /* Your authentication logic here */ true;
-
   if (isAuthenticated) {
     next(); // User is authenticated, proceed to the next middleware or route handler
   } else {
