@@ -2,12 +2,14 @@ import { parseCLIArgsFromProcess, loadConfigFile } from "./utils";
 import { constants } from "./constants";
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
+import dotenv from "dotenv";
 import helmet from "helmet";
 const PORT = process.env.PORT || 5000;
 import authRoutes from "./routes/auth.routes";
 
 try {
   loadConfigFile(parseCLIArgsFromProcess(process.argv));
+  dotenv.config();
 
   const app = express();
   app.use(
