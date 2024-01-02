@@ -27,6 +27,7 @@
       }
     ],
     "func-names": [0],
-    "no-console": ["error", { "allow": ["warn", "error", "info"] }]
+    "no-console": ["error", { "allow": ["warn", "error", "info"] }],
+    "@typescript-eslint/no-explicit-any": "off"
   }
 }

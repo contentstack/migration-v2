@@ -8,6 +8,7 @@ export type HttpErrorCodes = {
   MOVED_PERMANENTLY: number;
 };
 export type ConstantType = {
+  AXIOS_TIMEOUT: number;
   HTTP_ERROR_CODES: HttpErrorCodes;
   HTTP_ERROR_TEXTS: HttpErrorTexts;
   HTTP_RESPONSE_HEADERS: HttpResponseHeaders;
@@ -26,6 +27,7 @@ export type HttpResponseHeaders = {
 };
 
 export const constants: ConstantType = {
+  AXIOS_TIMEOUT: 60 * 1000,
   HTTP_ERROR_CODES: {
     HTTP_OK: 200,
     FORBIDDEN: 403,
