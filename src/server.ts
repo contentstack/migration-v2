@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 const PORT = process.env.PORT || 5000;
 import authRoutes from "./routes/auth.routes";
+import projectRoutes from "./routes/projects.routes";
 
 try {
   loadConfigFile(parseCLIArgsFromProcess(process.argv));
@@ -24,6 +25,7 @@ try {
 
   // Routes
   app.use("/api.contentstack-migration/v2/auth", authRoutes);
+  app.use("/api.contentstack-migration/v2/org", projectRoutes);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
