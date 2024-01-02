@@ -4,7 +4,7 @@ import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT ?? 5000;
 import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/projects.routes";
 
