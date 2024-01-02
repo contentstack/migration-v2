@@ -6,5 +6,5 @@ const secretKey = process.env.JWT_SECRET_KEY ?? "default_secret_key";
 
 // @typescript-eslint/no-explicit-any
 export const generateToken = (payload: MigrationPayload): string => {
-  return jwt.sign(payload, secretKey, { expiresIn: "1h" });
+  return jwt.sign(payload, secretKey, { expiresIn: "5d" });
 };
