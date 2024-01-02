@@ -1,15 +1,3 @@
-let env: string;
-let config: ConfigType = {};
-
-export type ConfigType = {
-  config?: string;
-};
-
-export type ConfigFilePathType = {
-  dev: string;
-  stage: string;
-  prod: string;
-};
 export type HttpErrorCodes = {
   HTTP_OK: number;
   FORBIDDEN: number;
@@ -20,13 +8,6 @@ export type HttpErrorCodes = {
   MOVED_PERMANENTLY: number;
 };
 export type ConstantType = {
-  NODE_CLI_ENV_KEY: string;
-  NODE_CLI_INVALID_ENV: string;
-  CONFIG_FILE_PATHS: ConfigFilePathType;
-  setEnv: (e: string) => void;
-  getEnv: () => string;
-  setConfig: (config: ConfigType) => void;
-  getConfig: (key: string) => unknown;
   HTTP_ERROR_CODES: HttpErrorCodes;
   HTTP_ERROR_TEXTS: HttpErrorTexts;
   HTTP_RESPONSE_HEADERS: HttpResponseHeaders;
@@ -45,18 +26,6 @@ export type HttpResponseHeaders = {
 };
 
 export const constants: ConstantType = {
-  NODE_CLI_ENV_KEY: "--env",
-  NODE_CLI_INVALID_ENV:
-    "Please provide a valid cli argument for --env when starting the node server",
-  CONFIG_FILE_PATHS: {
-    dev: "../config-dev.json",
-    stage: "../config-stage.json",
-    prod: "../config.json",
-  },
-  setEnv: (e: string) => (env = e),
-  getEnv: () => env,
-  setConfig: (c: ConfigType) => (config = c),
-  getConfig: (key: string) => (key ? config[key as keyof ConfigType] : config),
   HTTP_ERROR_CODES: {
     HTTP_OK: 200,
     FORBIDDEN: 403,

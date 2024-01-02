@@ -1,17 +1,12 @@
-import { parseCLIArgsFromProcess, loadConfigFile } from "./utils";
+import { config } from "./config";
 import { constants } from "./constants";
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import helmet from "helmet";
-const PORT = process.env.PORT ?? 5000;
 import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/projects.routes";
 
 try {
-  loadConfigFile(parseCLIArgsFromProcess(process.argv));
-  dotenv.config();
-
   const app = express();
   app.use(
     helmet({
@@ -57,8 +52,8 @@ try {
       });
   });
 
-  app.listen(PORT, () => {
-    console.info(`Server listening at port ${PORT}`);
+  app.listen(config.PORT, () => {
+    console.info(`Server listening at port ${config.PORT}`);
   });
 } catch (e) {
   console.error("Error while starting the server!");

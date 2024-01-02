@@ -1,6 +1,6 @@
 import { Request } from "express";
 import axios from "axios";
-import { API_MGMT_URL } from "../config";
+import { config } from "../config";
 import { generateToken } from "../utils/jwt.utils";
 import * as fs from "fs/promises";
 import { MigrationPayload, ResponseType } from "../models/types";
@@ -12,7 +12,7 @@ const createUserService = () => {
     try {
       const apiResponse = await axios({
         method: "POST",
-        url: API_MGMT_URL,
+        url: config.CS_API.US,
         headers: {
           "Content-Type": "application/json",
         },
