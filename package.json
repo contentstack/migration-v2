@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx tsc && node dist/server.js --env=prod",
-    "dev": "ts-node-dev --respawn ./src/server.ts --env=dev",
+    "start": "npx tsc && NODE_ENV=prod node dist/server.js",
+    "dev": "NODE_ENV=dev ts-node-dev --respawn ./src/server.ts",
     "prettify": "prettier --write .",
     "lint:fix": "eslint src/**/*.ts",
     "precommit": "npm run prettify && npm run lint:fix"
@@ -24,7 +24,7 @@
   "homepage": "https://github.com/contentstack-expert-services/migration-v2-node-server#readme",
   "dependencies": {
     "@types/express": "^4.17.21",
-    "axios": "^1.6.2",
+    "axios": "^1.6.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
