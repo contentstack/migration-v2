@@ -12,13 +12,7 @@ export interface UserProfile {
   };
 }
 
-export interface ResponseType {
-  message: string;
+export interface LoginServiceType {
+  data: any;
   status: number;
-  migration_token: string | null;
-}
-
-export interface MigrationPayload {
-  region: string;
-  user_id: string;
 }

@@ -1,62 +1,89 @@
 import { Request } from "express";
 import { config } from "../config";
-import { generateToken } from "../utils/jwt.utils";
+import jwt from "jsonwebtoken";
+import { safePromise } from "../utils/index";
 import https from "../utils/https.utils";
 import * as fs from "fs/promises";
-import { MigrationPayload, ResponseType, UserProfile } from "../models/types";
+import { LoginServiceType, UserProfile } from "../models/types";
+import { constants } from "../constants";
 
-const login = async (req: Request): Promise<ResponseType | null> => {
-  const userData = req.body;
+const login = async (req: Request): Promise<LoginServiceType> => {
+  //TODO: 1. request validation, 2. saving the authtoken in DB
+  const userData = req?.body;
 
   try {
-    const apiResponse = await https({
-      method: "POST",
-      url: config.CS_API.US,
-      headers: {
-        "Content-Type": "application/json",
+    const [err, res] = await safePromise(
+      https({
+        method: "POST",
+        url: config.CS_API[userData?.region as keyof typeof config.CS_API]!,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        data: {
+          user: {
+            email: userData?.email,
+            password: userData?.password,
+            ...(userData?.tfa_token && { tfa_token: userData?.tfa_token }),
+          },
+        },
+      })
+    );
+
+    if (err || res?.status === constants.HTTP_CODES.SUPPORT_DOC)
+      return {
+        data: err.response.data,
+        status: err.response.status,
+      };
+
+    if (!res?.user)
+      return {
+        data: constants.HTTP_TEXTS.NO_CS_USER,
+        status: constants.HTTP_CODES.BAD_REQUEST,
+      };
+
+    const app_token = jwt.sign(
+      {
+        region: userData?.region,
+        user_id: res?.user.uid,
       },
-      data: userData,
-    });
+      config.APP_TOKEN_KEY,
+      { expiresIn: config.APP_TOKEN_EXP }
+    );
 
-    if (apiResponse) {
-      const migration_payload: MigrationPayload = {
-        region: userData.region,
-        user_id: apiResponse.data.user.uid,
-      };
-      const migration_token = generateToken(migration_payload);
-      const response = {
-        message: apiResponse.data.notice,
-        status: 200,
-        migration_token,
-      };
+    const response = {
+      data: {
+        message: constants.HTTP_TEXTS.SUCCESS_LOGIN,
+        app_token,
+      },
+      status: constants.HTTP_CODES.OK,
+    };
 
-      // Create an object with migration_token as the key
-      const dataToWrite = {
-        [migration_token]: apiResponse.data.user.authtoken,
-      };
+    // Write the data to a JSON file (e.g., tokens.json)
+    //TODO: remove this temp localStorage file, and use DB instead
+    await fs.writeFile(
+      "tokens.json",
+      JSON.stringify(
+        {
+          [app_token]: res?.user?.authtoken,
+        },
+        null,
+        2
+      )
+    );
 
-      // Write the data to a JSON file (e.g., tokens.json)
-      await fs.writeFile("tokens.json", JSON.stringify(dataToWrite, null, 2));
-
-      return response;
-    }
-
-    // Explicit return statement in case apiResponse is falsy
-    return null;
+    return response;
   } catch (error) {
-    // Handle errors (e.g., log, return an error response)
     console.error(error);
     return {
-      message: "Error during login",
-      status: 500,
-      migration_token: null,
+      data: constants.HTTP_TEXTS.LOGIN_ERROR,
+      status: constants.HTTP_CODES.SOMETHING_WRONG,
     };
   }
 };
 
 const getUserProfile = async (
   req: Request
-): Promise<UserProfile | ResponseType> => {
+): Promise<UserProfile | LoginServiceType> => {
   try {
     const tokens = JSON.parse(await fs.readFile(`tokens.json`, "utf8"));
     const authtoken = tokens?.[req?.headers?.app_token as string];
@@ -88,17 +115,15 @@ const getUserProfile = async (
       return userProfile;
     }
     return {
-      message: "Invalid User",
+      data: "Invalid User",
       status: 401,
-      migration_token: null,
     };
   } catch (error) {
     // Handle errors (e.g., log, return an error response)
     console.error(error);
     return {
-      message: "Error while getting user profile",
+      data: "Error while getting user profile",
       status: 500,
-      migration_token: null,
     };
   }
 };
