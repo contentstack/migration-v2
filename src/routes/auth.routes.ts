@@ -7,5 +7,10 @@ const router = express.Router();
 
 // Login route
 router.post("/login", authenticateUser, asyncRouter(authController.login));
+router.get(
+  "/profile",
+  authenticateUser,
+  asyncRouter(authController.getUserProfile)
+);
 
 export default router;

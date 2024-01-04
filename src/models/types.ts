@@ -3,6 +3,15 @@ export interface User {
   password: string;
 }
 
+export interface UserProfile {
+  user: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    orgs: [{ org_id: string; org_name: string }];
+  };
+}
+
 export interface ResponseType {
   message: string;
   status: number;
