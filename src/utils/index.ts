@@ -7,3 +7,6 @@ export const isEmpty = (val: unknown) =>
   val === null ||
   (typeof val === "object" && !Object.keys(val).length) ||
   (typeof val === "string" && !val.trim().length);
+
+export const safePromise = (promise: Promise<any>): Promise<any> =>
+  promise.then((res) => [null, res]).catch((err) => [err]);
