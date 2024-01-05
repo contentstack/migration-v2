@@ -9,6 +9,7 @@ dotenv.config({
 
 export type ConfigType = {
   PORT: string;
+  SECRET_KEY: string;
   CS_API: {
     US: string;
     EU: string;
@@ -19,5 +20,6 @@ export type ConfigType = {
 
 export const config: ConfigType = {
   PORT: process.env.PORT!,
+  SECRET_KEY: process.env.SECRET_KEY!,
   ...(process.env.NODE_ENV === "prod" ? prodConfig : devConfig),
 };
