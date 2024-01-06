@@ -6,6 +6,12 @@ import { asyncRouter } from "../utils/async-router.utils";
 const router = express.Router();
 
 // Login route
-router.post("/login", authenticateUser, asyncRouter(authController.login));
+router.post("/user-session", asyncRouter(authController.login));
+
+router.get(
+  "/profile",
+  authenticateUser,
+  asyncRouter(authController.getUserProfile)
+);
 
 export default router;

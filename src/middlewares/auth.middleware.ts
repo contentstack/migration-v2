@@ -10,7 +10,7 @@ export const authenticateUser = (
 ) => {
   // authentication logic (check for a valid token)
   const token = req.headers.authorization?.split(" ")[1];
-  const secretKey = config.SECRET_KEY;
+  const secretKey = config.APP_TOKEN_KEY;
   if (token) {
     jwt.verify(token, secretKey, (err, decoded) => {
       if (err) {

@@ -19,8 +19,8 @@ try {
   app.use(express.json({ limit: "10mb" }));
 
   // Routes
-  app.use("/api.contentstack-migration/v2/auth", authRoutes);
-  app.use("/api.contentstack-migration/v2/org", projectRoutes);
+  app.use("/v2/auth", authRoutes);
+  app.use("/v2/org", projectRoutes);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -45,10 +45,10 @@ try {
     res
       .status(
         (error as unknown as { statusCode: number }).statusCode ||
-          constants.HTTP_ERROR_CODES.SOMETHING_WRONG
+          constants.HTTP_CODES.SOMETHING_WRONG
       )
       .json({
-        message: error.message || constants.HTTP_ERROR_TEXTS.INTERNAL_ERROR,
+        message: error.message || constants.HTTP_TEXTS.INTERNAL_ERROR,
       });
   });
 

@@ -8,8 +8,9 @@ dotenv.config({
 });
 
 export type ConfigType = {
+  APP_TOKEN_EXP: string;
+  APP_TOKEN_KEY: string;
   PORT: string;
-  SECRET_KEY: string;
   CS_API: {
     US: string;
     EU: string;
@@ -19,7 +20,8 @@ export type ConfigType = {
 };
 
 export const config: ConfigType = {
+  APP_TOKEN_EXP: "1d",
   PORT: process.env.PORT!,
-  SECRET_KEY: process.env.SECRET_KEY!,
+  APP_TOKEN_KEY: process.env.APP_TOKEN_KEY!,
   ...(process.env.NODE_ENV === "prod" ? prodConfig : devConfig),
 };
