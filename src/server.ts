@@ -5,6 +5,7 @@ import cors from "cors";
 import helmet from "helmet";
 import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/projects.routes";
+import loggerMiddleware from "./middlewares/logger.middleware";
 
 try {
   const app = express();
@@ -17,6 +18,7 @@ try {
   app.use(cors({ origin: "*" }));
   app.use(express.urlencoded({ extended: false, limit: "10mb" }));
   app.use(express.json({ limit: "10mb" }));
+  app.use(loggerMiddleware);
 
   // Routes
   app.use("/v2/auth", authRoutes);
