@@ -351,3 +351,7 @@ MigrationBackup/
 .ionide/
 .dccache
 *.env
+
+#Log files temp
+error.log
+combine.log
