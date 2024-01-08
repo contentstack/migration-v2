@@ -12,6 +12,11 @@ export interface UserProfile {
   };
 }
 
+export interface MigrationPayload {
+  region: string;
+  user_id: string;
+}
+
 export interface LoginServiceType {
   data: any;
   status: number;
