@@ -4,10 +4,10 @@ import jwt from "jsonwebtoken";
 import { safePromise } from "../utils/index";
 import https from "../utils/https.utils";
 import * as fs from "fs/promises";
-import { LoginServiceType, UserProfile } from "../models/types";
+import { ServiceType, UserProfile } from "../models/types";
 import { constants } from "../constants";
 
-const login = async (req: Request): Promise<LoginServiceType> => {
+const login = async (req: Request): Promise<ServiceType> => {
   //TODO: 1. request validation, 2. saving the authtoken in DB
   const userData = req?.body;
 
@@ -15,7 +15,9 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     const [err, res] = await safePromise(
       https({
         method: "POST",
-        url: config.CS_API[userData?.region as keyof typeof config.CS_API]!,
+        url: `${config.CS_API[
+          userData?.region as keyof typeof config.CS_API
+        ]!}/user-session`,
         headers: {
           "Content-Type": "application/json",
         },
@@ -29,13 +31,19 @@ const login = async (req: Request): Promise<LoginServiceType> => {
       })
     );
 
-    if (err || res?.status === constants.HTTP_CODES.SUPPORT_DOC)
+    if (err)
       return {
-        data: err.response.data,
-        status: err.response.status,
+        data: err?.response?.data,
+        status: err?.response?.status,
       };
 
-    if (!res?.user)
+    if (res?.status === constants.HTTP_CODES.SUPPORT_DOC)
+      return {
+        data: res?.data,
+        status: res?.status,
+      };
+
+    if (!res?.data?.user)
       return {
         data: constants.HTTP_TEXTS.NO_CS_USER,
         status: constants.HTTP_CODES.BAD_REQUEST,
@@ -44,7 +52,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     const app_token = jwt.sign(
       {
         region: userData?.region,
-        user_id: res?.user.uid,
+        user_id: res?.data.user.uid,
       },
       config.APP_TOKEN_KEY,
       { expiresIn: config.APP_TOKEN_EXP }
@@ -64,7 +72,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
       "tokens.json",
       JSON.stringify(
         {
-          [app_token]: res?.user?.authtoken,
+          [app_token]: res?.data.user?.authtoken,
         },
         null,
         2
@@ -81,9 +89,48 @@ const login = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+const requestSms = async (req: Request): Promise<ServiceType> => {
+  //TODO: 1. request validation
+  const userData = req?.body;
+
+  try {
+    const [err, res] = await safePromise(
+      https({
+        method: "POST",
+        url: `${config.CS_API[
+          userData?.region as keyof typeof config.CS_API
+        ]!}/user/request_token_sms`,
+        data: {
+          user: {
+            email: userData?.email,
+            password: userData?.password,
+          },
+        },
+      })
+    );
+
+    if (err)
+      return {
+        data: err.response.data,
+        status: err.response.status,
+      };
+
+    return {
+      data: res.data,
+      status: res.status,
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      data: constants.HTTP_TEXTS.TOKEN_ERROR,
+      status: constants.HTTP_CODES.SOMETHING_WRONG,
+    };
+  }
+};
+
 const getUserProfile = async (
   req: Request
-): Promise<UserProfile | LoginServiceType> => {
+): Promise<UserProfile | ServiceType> => {
   try {
     const tokens = JSON.parse(await fs.readFile(`tokens.json`, "utf8"));
     const authtoken = tokens?.[req?.headers?.app_token as string];
@@ -130,5 +177,6 @@ const getUserProfile = async (
 
 export const userService = {
   login,
+  requestSms,
   getUserProfile,
 };

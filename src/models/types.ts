@@ -12,7 +12,7 @@ export interface UserProfile {
   };
 }
 
-export interface LoginServiceType {
+export interface ServiceType {
   data: any;
   status: number;
 }
