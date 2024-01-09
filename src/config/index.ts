@@ -9,8 +9,8 @@ dotenv.config({
 
 export type ConfigType = {
   APP_TOKEN_EXP: string;
-  PORT: string;
   APP_TOKEN_KEY: string;
+  PORT: string;
   CS_API: {
     US: string;
     EU: string;

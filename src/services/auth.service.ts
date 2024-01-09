@@ -1,11 +1,15 @@
 import { Request } from "express";
 import { config } from "../config";
-import jwt from "jsonwebtoken";
 import { safePromise } from "../utils/index";
 import https from "../utils/https.utils";
 import * as fs from "fs/promises";
-import { LoginServiceType, UserProfile } from "../models/types";
+import {
+  LoginServiceType,
+  MigrationPayload,
+  UserProfile,
+} from "../models/types";
 import { constants } from "../constants";
+import { generateToken } from "../utils/jwt.utils";
 
 const login = async (req: Request): Promise<LoginServiceType> => {
   //TODO: 1. request validation, 2. saving the authtoken in DB
@@ -41,14 +45,12 @@ const login = async (req: Request): Promise<LoginServiceType> => {
         status: constants.HTTP_CODES.BAD_REQUEST,
       };
 
-    const app_token = jwt.sign(
-      {
-        region: userData?.region,
-        user_id: res?.user.uid,
-      },
-      config.APP_TOKEN_KEY,
-      { expiresIn: config.APP_TOKEN_EXP }
-    );
+    const migration_payload: MigrationPayload = {
+      region: userData?.region,
+      user_id: res?.user.uid,
+    };
+    // JWT token generation
+    const app_token = generateToken(migration_payload);
 
     const response = {
       data: {
