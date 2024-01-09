@@ -5,6 +5,7 @@ import cors from "cors";
 import helmet from "helmet";
 import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/projects.routes";
+import { errorMiddleware } from "./middlewares/error.middleware";
 
 try {
   const app = express();
@@ -21,6 +22,9 @@ try {
   // Routes
   app.use("/v2/auth", authRoutes);
   app.use("/v2/org", projectRoutes);
+
+  // Middleware
+  app.use(errorMiddleware);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
