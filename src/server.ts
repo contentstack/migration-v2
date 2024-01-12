@@ -47,6 +47,11 @@ try {
     res.status(200).json("Welcome to Migration APIs");
   });
 
+  //For unmatched route patterns
+  app.use((req: Request, res: Response) => {
+    res.status(404).json({ error: "Not Found" });
+  });
+
   app.use((error: Error, req: Request, res: Response) => {
     console.error(error);
     res
