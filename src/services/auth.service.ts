@@ -55,7 +55,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
 
     const migration_payload: MigrationPayload = {
       region: userData?.region,
-      user_id: res?.user.uid,
+      user_id: res?.data?.user.uid,
     };
     // JWT token generation
     const app_token = generateToken(migration_payload);
