@@ -52,7 +52,7 @@ try {
     res
       .status(
         (error as unknown as { statusCode: number }).statusCode ||
-        constants.HTTP_CODES.SOMETHING_WRONG
+          constants.HTTP_CODES.SOMETHING_WRONG
       )
       .json({
         message: error.message || constants.HTTP_TEXTS.INTERNAL_ERROR,

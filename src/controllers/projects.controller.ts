@@ -48,8 +48,6 @@ const updateProject = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-
-
 export const projectController = {
   getAllProjects,
   getProject,

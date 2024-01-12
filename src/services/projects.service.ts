@@ -1,6 +1,5 @@
 import { Request } from "express";
 
-
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
   //Add logic to get All Projects from DB
@@ -34,8 +33,6 @@ const updateProject = async (req: Request) => {
   //Add logic to update Project from DB
   return { orgId, id };
 };
-
-
 
 export const projectService = {
   getAllProjects,
