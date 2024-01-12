@@ -2,11 +2,13 @@ export type HttpErrorCodes = {
   OK: number;
   FORBIDDEN: number;
   BAD_REQUEST: number;
+  NOT_FOUND: number;
   UNAUTHORIZED: number;
   TOO_MANY_REQS: number;
   SOMETHING_WRONG: number;
   MOVED_PERMANENTLY: number;
   SUPPORT_DOC: number;
+  SERVER_ERROR: number;
 };
 export type ConstantType = {
   AXIOS_TIMEOUT: number;
@@ -37,11 +39,13 @@ export const constants: ConstantType = {
     OK: 200,
     FORBIDDEN: 403,
     BAD_REQUEST: 400,
+    NOT_FOUND: 404,
     UNAUTHORIZED: 401,
     TOO_MANY_REQS: 429,
     SOMETHING_WRONG: 501,
     MOVED_PERMANENTLY: 301,
     SUPPORT_DOC: 294,
+    SERVER_ERROR: 500,
   },
   HTTP_TEXTS: {
     INTERNAL_ERROR: "Internal server error, please try again later.",

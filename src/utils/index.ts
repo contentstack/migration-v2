@@ -10,3 +10,12 @@ export const isEmpty = (val: unknown) =>
 
 export const safePromise = (promise: Promise<any>): Promise<any> =>
   promise.then((res) => [null, res]).catch((err) => [err]);
+
+//Generic method to get log message object
+export const getLogMessage = (methodName: string, message = {}, user = {}) => {
+  return {
+    methodName: methodName,
+    message: message,
+    user: user,
+  };
+};
