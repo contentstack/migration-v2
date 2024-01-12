@@ -1,34 +1,37 @@
 import express from "express";
 import { projectController } from "../controllers/projects.controller";
-import { authenticateUser } from "../middlewares/auth.middleware";
+import { asyncRouter } from "../utils/async-router.utils";
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
-// Login route
+// GET all projects route
 router.get(
-  "/:orgId/projects",
-  authenticateUser,
-  projectController.getAllProjects
+  "/",
+  asyncRouter(projectController.getAllProjects)
 );
+
+// GET a single project route
 router.get(
-  "/:orgId/project/:id",
-  authenticateUser,
-  projectController.getProject
+  "/:id",
+  asyncRouter(projectController.getProject)
 );
+
+// Create a new project route
 router.post(
-  "/:orgId/project",
-  authenticateUser,
-  projectController.createProject
+  "/",
+  asyncRouter(projectController.createProject)
 );
+
+// Delete a project route
 router.delete(
-  "/:orgId/project/:id",
-  authenticateUser,
-  projectController.createProject
+  "/:id",
+  asyncRouter(projectController.deleteProject)
 );
+
+// Update a project route
 router.put(
-  "/:orgId/project/:id",
-  authenticateUser,
-  projectController.updateProject
+  "/:id",
+  asyncRouter(projectController.updateProject)
 );
 
 export default router;

@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/projects.routes";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import loggerMiddleware from "./middlewares/logger.middleware";
+import { authenticateUser } from "./middlewares/auth.middleware";
 
 try {
   const app = express();
@@ -23,7 +24,7 @@ try {
 
   // Routes
   app.use("/v2/auth", authRoutes);
-  app.use("/v2/org", projectRoutes);
+  app.use("/v2/org/:orgId/project", authenticateUser, projectRoutes);
 
   // Middleware
   app.use(errorMiddleware);
@@ -51,7 +52,7 @@ try {
     res
       .status(
         (error as unknown as { statusCode: number }).statusCode ||
-          constants.HTTP_CODES.SOMETHING_WRONG
+        constants.HTTP_CODES.SOMETHING_WRONG
       )
       .json({
         message: error.message || constants.HTTP_TEXTS.INTERNAL_ERROR,
