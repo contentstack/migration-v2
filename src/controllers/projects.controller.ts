@@ -3,7 +3,6 @@ import { projectService } from "../services/projects.service";
 
 const getAllProjects = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.info("params: ", req?.params);
     const allProjects = await projectService.getAllProjects(req);
     res.status(200).json(allProjects);
   } catch (error) {
@@ -29,18 +28,20 @@ const createProject = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-const deleteProject = async (req: Request, res: Response): Promise<void> => {
+
+const updateProject = async (req: Request, res: Response): Promise<void> => {
   try {
-    const project = await projectService.deleteProject(req);
+    const project = await projectService.updateProject(req);
     res.status(200).json(project);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-const updateProject = async (req: Request, res: Response): Promise<void> => {
+
+const deleteProject = async (req: Request, res: Response): Promise<void> => {
   try {
-    const project = await projectService.updateProject(req);
+    const project = await projectService.deleteProject(req);
     res.status(200).json(project);
   } catch (error) {
     console.error(error);

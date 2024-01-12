@@ -4,7 +4,7 @@ import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import authRoutes from "./routes/auth.routes";
-import projectRoutes from "./routes/projects.routes";
+import projectRoutes from "./routes/projects/projects.routes";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import loggerMiddleware from "./middlewares/logger.middleware";
 import { authenticateUser } from "./middlewares/auth.middleware";

@@ -7,10 +7,10 @@ const getAllProjects = async (req: Request) => {
 };
 const getProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
-  const id = req?.params?.id;
+  const projectId = req?.params?.projectId;
 
   //Add logic to get Project from DB
-  return { orgId, id };
+  return { orgId, projectId };
 };
 const createProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
@@ -19,25 +19,26 @@ const createProject = async (req: Request) => {
   return { orgId };
 };
 
-const deleteProject = async (req: Request) => {
-  const orgId = req?.params?.orgId;
-  const id = req?.params?.id;
-
-  //Add logic to delete Project from DB
-  return { orgId, id };
-};
 const updateProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
-  const id = req?.params?.id;
+  const projectId = req?.params?.projectId;
 
   //Add logic to update Project from DB
-  return { orgId, id };
+  return { orgId, projectId };
+};
+
+const deleteProject = async (req: Request) => {
+  const orgId = req?.params?.orgId;
+  const projectId = req?.params?.projectId;
+
+  //Add logic to delete Project from DB
+  return { orgId, projectId };
 };
 
 export const projectService = {
   getAllProjects,
   getProject,
   createProject,
-  deleteProject,
   updateProject,
+  deleteProject,
 };
