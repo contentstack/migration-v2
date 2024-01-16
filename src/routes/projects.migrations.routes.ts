@@ -1,6 +1,6 @@
 import express from "express";
-import { migrationController } from "../../../controllers/migrations.controller";
-import { asyncRouter } from "../../../utils/async-router.utils";
+import { migrationController } from "../controllers/projects.migrations.controller";
+import { asyncRouter } from "../utils/async-router.utils";
 
 const router = express.Router({ mergeParams: true });
 

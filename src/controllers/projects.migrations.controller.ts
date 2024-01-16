@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { migrationService } from "../services/migrations.service";
+import { migrationService } from "../services/projects.migrations.service";
 
 const getMigration = async (req: Request, res: Response): Promise<void> => {
   try {
