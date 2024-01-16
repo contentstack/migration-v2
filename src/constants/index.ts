@@ -25,6 +25,7 @@ export type HttpErrorTexts = {
   SUCCESS_LOGIN: string;
   TOKEN_ERROR: string;
   LOGIN_ERROR: string;
+  ROUTE_ERROR: string;
 };
 
 export type HttpResponseHeaders = {
@@ -55,6 +56,7 @@ export const constants: ConstantType = {
     SUCCESS_LOGIN: "Login Successful.",
     TOKEN_ERROR: "Error occurred during token generation.",
     LOGIN_ERROR: "Error occurred during login",
+    ROUTE_ERROR: "Sorry, the requested resource is not available.",
   },
   HTTP_RESPONSE_HEADERS: {
     "Access-Control-Allow-Origin": "*",

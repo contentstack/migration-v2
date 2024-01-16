@@ -10,6 +10,10 @@ import {
 } from "../models/types";
 import { constants } from "../constants";
 import { generateToken } from "../utils/jwt.utils";
+import {
+  BadRequestError,
+  InternalServerError,
+} from "../utils/custom-errors.utils";
 
 const login = async (req: Request): Promise<LoginServiceType> => {
   //TODO: 1. request validation, 2. saving the authtoken in DB
@@ -48,10 +52,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
       };
 
     if (!res?.data?.user)
-      return {
-        data: constants.HTTP_TEXTS.NO_CS_USER,
-        status: constants.HTTP_CODES.BAD_REQUEST,
-      };
+      throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
 
     const migration_payload: MigrationPayload = {
       region: userData?.region,
@@ -82,12 +83,8 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     );
 
     return response;
-  } catch (error) {
-    console.error(error);
-    return {
-      data: constants.HTTP_TEXTS.LOGIN_ERROR,
-      status: constants.HTTP_CODES.SOMETHING_WRONG,
-    };
+  } catch (err) {
+    throw new InternalServerError();
   }
 };
 
@@ -122,11 +119,7 @@ const requestSms = async (req: Request): Promise<LoginServiceType> => {
       status: res.status,
     };
   } catch (error) {
-    console.error(error);
-    return {
-      data: constants.HTTP_TEXTS.TOKEN_ERROR,
-      status: constants.HTTP_CODES.SOMETHING_WRONG,
-    };
+    throw new InternalServerError();
   }
 };
 
@@ -134,6 +127,7 @@ const getUserProfile = async (
   req: Request
 ): Promise<UserProfile | LoginServiceType> => {
   try {
+    //TODO: replace the current logic with the actual db-fetch logic
     const tokens = JSON.parse(await fs.readFile(`tokens.json`, "utf8"));
     const authtoken = tokens?.[req?.headers?.app_token as string];
 
@@ -148,32 +142,24 @@ const getUserProfile = async (
         },
       }));
 
-    if (apiResponse?.data?.user) {
-      const orgs = apiResponse?.data?.user?.organizations
-        ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
-        ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
+    if (!apiResponse?.data?.user)
+      throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
 
-      const userProfile: UserProfile = {
-        user: {
-          email: apiResponse?.data?.user?.email,
-          first_name: apiResponse?.data?.user?.first_name,
-          last_name: apiResponse?.data?.user?.last_name,
-          orgs: orgs,
-        },
-      };
-      return userProfile;
-    }
-    return {
-      data: "Invalid User",
-      status: 401,
+    const orgs = apiResponse?.data?.user?.organizations
+      ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
+      ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
+
+    const userProfile: UserProfile = {
+      user: {
+        email: apiResponse?.data?.user?.email,
+        first_name: apiResponse?.data?.user?.first_name,
+        last_name: apiResponse?.data?.user?.last_name,
+        orgs: orgs,
+      },
     };
+    return userProfile;
   } catch (error) {
-    // Handle errors (e.g., log, return an error response)
-    console.error(error);
-    return {
-      data: "Error while getting user profile",
-      status: 500,
-    };
+    throw new InternalServerError("Error while getting user profile");
   }
 };
 
