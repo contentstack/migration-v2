@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx tsc && NODE_ENV=prod node dist/server.js",
-    "dev": "NODE_ENV=dev ts-node-dev --respawn ./src/server.ts",
+    "start": "npx tsc && NODE_ENV=production node dist/server.js",
+    "dev": "NODE_ENV=development ts-node-dev --respawn ./src/server.ts",
     "prettify": "prettier --write .",
     "lint:fix": "eslint src/**/*.ts",
     "precommit": "npm run prettify && npm run lint:fix"
