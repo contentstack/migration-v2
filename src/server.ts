@@ -1,5 +1,4 @@
 import { config } from "./config";
-import { constants } from "./constants";
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -7,6 +6,12 @@ import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/projects.routes";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import loggerMiddleware from "./middlewares/logger.middleware";
+import mongoose from "mongoose";
+import logger from "./utils/logger";
+import MigrationModel from "./models/migration";
+import AuthenticationModel from "./models/authenticationLog";
+import AuditLogModel from "./models/auditLog";
+import connectToDatabase from "./database";
 
 try {
   const app = express();
@@ -24,9 +29,6 @@ try {
   // Routes
   app.use("/v2/auth", authRoutes);
   app.use("/v2/org", projectRoutes);
-
-  // Middleware
-  app.use(errorMiddleware);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -46,21 +48,16 @@ try {
     res.status(200).json("Welcome to Migration APIs");
   });
 
-  app.use((error: Error, req: Request, res: Response) => {
-    console.error(error);
-    res
-      .status(
-        (error as unknown as { statusCode: number }).statusCode ||
-          constants.HTTP_CODES.SOMETHING_WRONG
-      )
-      .json({
-        message: error.message || constants.HTTP_TEXTS.INTERNAL_ERROR,
-      });
-  });
+  // Connect to DB
+  connectToDatabase();
 
-  app.listen(config.PORT, () => {
-    console.info(`Server listening at port ${config.PORT}`);
+  // Error Middleware
+  app.use(errorMiddleware);
+
+  app.listen(7000, () => {
+    console.info(`Server listening at port ${7000}`);
   });
+  logger.info("Connected node");
 } catch (e) {
   console.error("Error while starting the server!");
   console.error(e);
