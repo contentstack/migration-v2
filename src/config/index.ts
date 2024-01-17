@@ -23,5 +23,5 @@ export const config: ConfigType = {
   APP_TOKEN_EXP: "1d",
   PORT: process.env.PORT!,
   APP_TOKEN_KEY: process.env.APP_TOKEN_KEY!,
-  ...(process.env.NODE_ENV === "prod" ? prodConfig : devConfig),
+  ...(process.env.NODE_ENV === "production" ? prodConfig : devConfig),
 };
