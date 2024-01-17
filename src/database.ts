@@ -17,7 +17,7 @@ const connectToDatabase = async () => {
     await AuthenticationModel.init();
     await AuditLogModel.init();
   } catch (error) {
-    logger.error("Error connecting to MongoDB:", error);
+    logger.error("Error while connecting to MongoDB:", error);
     process.exit(1);
   }
 };

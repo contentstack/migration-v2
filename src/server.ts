@@ -11,6 +11,7 @@ import connectToDatabase from "./database";
 import { authenticateUser } from "./middlewares/auth.middleware";
 import { requestHeadersMiddleware } from "./middlewares/req-headers.middleware";
 import { unmatchedRoutesMiddleware } from "./middlewares/unmatched-routes.middleware";
+import logger from "./utils/logger";
 
 try {
   const app = express();
@@ -33,16 +34,17 @@ try {
   //For unmatched route patterns
   app.use(unmatchedRoutesMiddleware);
 
-  // Connect to DB
-  connectToDatabase();
-
   // Error Middleware
   app.use(errorMiddleware);
 
-  app.listen(config.PORT, () => {
-    console.info(`Server listening at port ${config.PORT}`);
-  });
+  // starting the server & DB connection.
+  (async () => {
+    await connectToDatabase();
+    app.listen(config.PORT, () =>
+      logger.info(`Server listening at port ${config.PORT}`)
+    );
+  })();
 } catch (e) {
-  console.error("Error while starting the server!");
-  console.error(e);
+  logger.error("Error while starting the server!");
+  logger.error(e);
 }
