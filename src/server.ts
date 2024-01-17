@@ -1,4 +1,3 @@
-import { config } from "./config";
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -6,12 +5,10 @@ import authRoutes from "./routes/auth.routes";
 import projectRoutes from "./routes/projects.routes";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import loggerMiddleware from "./middlewares/logger.middleware";
-import mongoose from "mongoose";
 import logger from "./utils/logger";
-import MigrationModel from "./models/migration";
-import AuthenticationModel from "./models/authenticationLog";
-import AuditLogModel from "./models/auditLog";
 import connectToDatabase from "./database";
+import { authenticateUser } from "./middlewares/auth.middleware";
+import { constants } from "./constants";
 
 try {
   const app = express();
@@ -28,7 +25,7 @@ try {
 
   // Routes
   app.use("/v2/auth", authRoutes);
-  app.use("/v2/org", projectRoutes);
+  app.use("/v2/org/:orgId/project", authenticateUser, projectRoutes);
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -44,8 +41,12 @@ try {
     next();
   });
 
-  app.use("/", (req, res) => {
-    res.status(200).json("Welcome to Migration APIs");
+  //For unmatched route patterns
+  app.use((req: Request, res: Response) => {
+    const status = constants.HTTP_CODES.NOT_FOUND;
+    res.status(status).json({
+      error: { code: status, message: constants.HTTP_TEXTS.ROUTE_ERROR },
+    });
   });
 
   // Connect to DB

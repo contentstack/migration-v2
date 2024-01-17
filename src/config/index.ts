@@ -25,5 +25,5 @@ export const config: ConfigType = {
   PORT: process.env.PORT!,
   APP_TOKEN_KEY: process.env.APP_TOKEN_KEY!,
   MONGODB_URI: process.env.MONGODB_URI!,
-  ...(process.env.NODE_ENV === "prod" ? prodConfig : devConfig),
+  ...(process.env.NODE_ENV === "production" ? prodConfig : devConfig),
 };

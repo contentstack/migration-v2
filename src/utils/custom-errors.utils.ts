@@ -31,4 +31,10 @@ export class ValidationError extends AppError {
   }
 }
 
+export class InternalServerError extends AppError {
+  constructor(message: string = constants.HTTP_TEXTS.INTERNAL_ERROR) {
+    super(constants.HTTP_CODES.SERVER_ERROR, message);
+  }
+}
+
 // Add more custom error classes as needed

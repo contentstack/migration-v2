@@ -9,10 +9,9 @@ export const authenticateUser = (
   next: NextFunction
 ) => {
   // authentication logic (check for a valid token)
-  const token = req.headers.authorization?.split(" ")[1];
-  const secretKey = config.APP_TOKEN_KEY;
+  const token = req.get("app_token");
   if (token) {
-    jwt.verify(token, secretKey, (err, decoded) => {
+    jwt.verify(token, config.APP_TOKEN_KEY, (err, decoded) => {
       if (err) {
         return res
           .status(401)

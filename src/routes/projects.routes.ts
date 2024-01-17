@@ -1,34 +1,26 @@
 import express from "express";
+import migrationsRoutes from "./projects.migrations.routes";
 import { projectController } from "../controllers/projects.controller";
-import { authenticateUser } from "../middlewares/auth.middleware";
+import { asyncRouter } from "../utils/async-router.utils";
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
-// Login route
-router.get(
-  "/:orgId/projects",
-  authenticateUser,
-  projectController.getAllProjects
-);
-router.get(
-  "/:orgId/project/:id",
-  authenticateUser,
-  projectController.getProject
-);
-router.post(
-  "/:orgId/project",
-  authenticateUser,
-  projectController.createProject
-);
-router.delete(
-  "/:orgId/project/:id",
-  authenticateUser,
-  projectController.createProject
-);
-router.put(
-  "/:orgId/project/:id",
-  authenticateUser,
-  projectController.updateProject
-);
+// GET all projects route
+router.get("/", asyncRouter(projectController.getAllProjects));
+
+// GET a single project route
+router.get("/:projectId", asyncRouter(projectController.getProject));
+
+// Create a new project route
+router.post("/", asyncRouter(projectController.createProject));
+
+// Update a project route
+router.put("/:projectId", asyncRouter(projectController.updateProject));
+
+// Delete a project route
+router.delete("/:projectId", asyncRouter(projectController.deleteProject));
+
+// Project migration's Router
+router.use("/:projectId/migration", migrationsRoutes);
 
 export default router;

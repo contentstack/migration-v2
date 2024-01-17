@@ -23,7 +23,9 @@ export type HttpErrorTexts = {
   SOMETHING_WENT_WRONG: string;
   NO_CS_USER: string;
   SUCCESS_LOGIN: string;
+  TOKEN_ERROR: string;
   LOGIN_ERROR: string;
+  ROUTE_ERROR: string;
 };
 
 export type HttpResponseHeaders = {
@@ -52,7 +54,9 @@ export const constants: ConstantType = {
       "Something went wrong while processing your request, please try again.",
     NO_CS_USER: "No user found with the credentials",
     SUCCESS_LOGIN: "Login Successful.",
-    LOGIN_ERROR: "Error during login",
+    TOKEN_ERROR: "Error occurred during token generation.",
+    LOGIN_ERROR: "Error occurred during login",
+    ROUTE_ERROR: "Sorry, the requested resource is not available.",
   },
   HTTP_RESPONSE_HEADERS: {
     "Access-Control-Allow-Origin": "*",

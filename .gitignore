@@ -355,3 +355,5 @@ MigrationBackup/
 #Log files temp
 error.log
 combine.log
+
+package-lock.json
