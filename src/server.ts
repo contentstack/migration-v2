@@ -1,3 +1,4 @@
+import { config } from "./config";
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -55,8 +56,8 @@ try {
   // Error Middleware
   app.use(errorMiddleware);
 
-  app.listen(7000, () => {
-    console.info(`Server listening at port ${7000}`);
+  app.listen(config.PORT, () => {
+    console.info(`Server listening at port ${config.PORT}`);
   });
   logger.info("Connected node");
 } catch (e) {
