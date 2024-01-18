@@ -1,32 +1,22 @@
 // src/models/Authentication.ts
 
 import { Schema, model, Document } from "mongoose";
-
-// Disabling this error until API's being implemented
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface Authentication {
-  user_id: string;
-  region: string;
-  authtoken: string;
-  created_at: string;
-  modified_at: string;
-}
+import { constants } from "../constants";
 
 interface AuthenticationDocument extends Document {
   user_id: string;
   region: string;
   authtoken: string;
-  created_at: string;
-  modified_at: string;
 }
 
-const authenticationSchema = new Schema<AuthenticationDocument>({
-  user_id: { type: String, required: true },
-  region: { type: String, required: true },
-  authtoken: { type: String, required: true },
-  created_at: { type: String, required: true },
-  modified_at: { type: String, required: true },
-});
+const authenticationSchema = new Schema<AuthenticationDocument>(
+  {
+    user_id: { type: String, required: true },
+    region: { type: String, required: true, enum: constants.CS_REGIONS },
+    authtoken: { type: String, required: true },
+  },
+  { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
 
 const AuthenticationModel = model<AuthenticationDocument>(
   "Authentication",

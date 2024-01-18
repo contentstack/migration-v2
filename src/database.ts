@@ -8,7 +8,9 @@ import AuditLogModel from "./models/auditLog";
 
 const connectToDatabase = async () => {
   try {
-    await mongoose.connect(config.MONGODB_URI);
+    await mongoose.connect(config.MONGODB_URI, {
+      ...(config.APP_ENV === "production" ? { autoIndex: false } : {}),
+    });
 
     logger.info("Connected to MongoDB");
 
