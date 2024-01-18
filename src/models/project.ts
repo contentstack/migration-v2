@@ -27,7 +27,7 @@ interface ExecutionLog {
   log_url: string;
 }
 
-interface MigrationDocument extends Document {
+interface ProjectDocument extends Document {
   region: string;
   org_id: string;
   owner: string;
@@ -39,7 +39,7 @@ interface MigrationDocument extends Document {
   execution_log: ExecutionLog;
 }
 
-const migrationSchema = new Schema<MigrationDocument>(
+const projectSchema = new Schema<ProjectDocument>(
   {
     region: { type: String, required: true, enum: constants.CS_REGIONS },
     org_id: { type: String, required: true },
@@ -70,6 +70,6 @@ const migrationSchema = new Schema<MigrationDocument>(
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
 
-const MigrationModel = model<MigrationDocument>("Migration", migrationSchema);
+const ProjectModel = model<ProjectDocument>("Project", projectSchema);
 
-export default MigrationModel;
+export default ProjectModel;
