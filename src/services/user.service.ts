@@ -11,7 +11,7 @@ const getUserProfile = async (req: Request): Promise<UserProfile> => {
 
   const user = await AuthenticationModel.findOne({
     user_id: appTokenPayload?.user_id,
-    region: appTokenPayload.region,
+    region: appTokenPayload?.region,
   }).lean();
 
   if (!user?.authtoken)
@@ -19,7 +19,9 @@ const getUserProfile = async (req: Request): Promise<UserProfile> => {
 
   const res = await https({
     method: "GET",
-    url: `${config.CS_API.US}/user?include_orgs_roles=true`,
+    url: `${config.CS_API[
+      appTokenPayload?.region as keyof typeof config.CS_API
+    ]!}/user?include_orgs_roles=true`,
     headers: {
       "Content-Type": "application/json",
       authtoken: user?.authtoken,
