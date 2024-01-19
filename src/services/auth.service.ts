@@ -2,7 +2,7 @@ import { Request } from "express";
 import { config } from "../config";
 import { safePromise } from "../utils/index";
 import https from "../utils/https.utils";
-import { LoginServiceType, MigrationPayload } from "../models/types";
+import { LoginServiceType, AppTokenPayload } from "../models/types";
 import { constants } from "../constants";
 import { generateToken } from "../utils/jwt.utils";
 import {
@@ -50,19 +50,24 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     if (!res?.data?.user)
       throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
 
-    const migration_payload: MigrationPayload = {
+    const appTokenPayload: AppTokenPayload = {
       region: userData?.region,
       user_id: res?.data?.user.uid,
     };
 
     // Saving auth info in the DB
-    await AuthenticationModel.create({
-      ...migration_payload,
-      authtoken: res?.data.user?.authtoken,
-    });
+    await AuthenticationModel.findOneAndUpdate(
+      appTokenPayload,
+      {
+        authtoken: res?.data.user?.authtoken,
+      },
+      {
+        upsert: true,
+      }
+    );
 
     // JWT token generation
-    const app_token = generateToken(migration_payload);
+    const app_token = generateToken(appTokenPayload);
 
     return {
       data: {
