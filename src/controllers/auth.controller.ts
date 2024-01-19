@@ -11,13 +11,7 @@ const RequestSms = async (req: Request, res: Response) => {
   res.status(resp.status).json(resp.data);
 };
 
-const getUserProfile = async (req: Request, res: Response) => {
-  const user = await authService.getUserProfile(req);
-  res.status(200).json(user);
-};
-
 export const authController = {
   login,
   RequestSms,
-  getUserProfile,
 };
