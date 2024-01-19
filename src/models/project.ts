@@ -47,24 +47,24 @@ const projectSchema = new Schema<ProjectDocument>(
     created_by: { type: String, required: true },
     name: { type: String, required: true },
     description: { type: String, required: true },
-    status: { type: Boolean, required: true, default: true },
+    status: { type: Boolean, default: true },
     migration: {
-      name: { type: String, required: true },
-      description: { type: String, required: true },
+      name: { type: String },
+      description: { type: String },
       modules: {
         legacy_cms: {
-          cms: { type: String, required: true },
-          file_format: { type: String, required: true },
-          import_data: { type: String, required: true },
+          cms: { type: String },
+          file_format: { type: String },
+          import_data: { type: String },
         },
         destination_cms: {
-          stack_id: { type: String, required: true },
-          org_id: { type: String, required: true },
+          stack_id: { type: String },
+          org_id: { type: String },
         },
       },
     },
     execution_log: {
-      log_url: { type: String, required: true },
+      log_url: { type: String },
     },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
