@@ -3,51 +3,44 @@ import { config } from "../config";
 import https from "../utils/https.utils";
 import { AppTokenPayload, UserProfile } from "../models/types";
 import { constants } from "../constants";
-import {
-  BadRequestError,
-  InternalServerError,
-} from "../utils/custom-errors.utils";
+import { BadRequestError } from "../utils/custom-errors.utils";
 import AuthenticationModel from "../models/authentication";
 
 const getUserProfile = async (req: Request): Promise<UserProfile> => {
-  try {
-    const appTokenPayload: AppTokenPayload = req?.body?.token_payload;
+  const appTokenPayload: AppTokenPayload = req?.body?.token_payload;
 
-    const user = await AuthenticationModel.findOne({
-      user_id: appTokenPayload?.user_id,
-      region: appTokenPayload.region,
-    }).lean();
+  const user = await AuthenticationModel.findOne({
+    user_id: appTokenPayload?.user_id,
+    region: appTokenPayload.region,
+  }).lean();
 
-    if (!user?.authtoken)
-      throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
+  if (!user?.authtoken)
+    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
 
-    const res = await https({
-      method: "GET",
-      url: `${config.CS_API.US}/user?include_orgs_roles=true`,
-      headers: {
-        "Content-Type": "application/json",
-        authtoken: user?.authtoken,
-      },
-    });
+  const res = await https({
+    method: "GET",
+    url: `${config.CS_API.US}/user?include_orgs_roles=true`,
+    headers: {
+      "Content-Type": "application/json",
+      authtoken: user?.authtoken,
+    },
+  });
 
-    if (!res?.data?.user)
-      throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
+  if (!res?.data?.user)
+    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
 
-    const orgs = (res?.data?.user?.organizations || [])
-      ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
-      ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
+  const orgs = (res?.data?.user?.organizations || [])
+    ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
+    ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
 
-    return {
-      user: {
-        email: res?.data?.user?.email,
-        first_name: res?.data?.user?.first_name,
-        last_name: res?.data?.user?.last_name,
-        orgs: orgs,
-      },
-    };
-  } catch (error) {
-    throw new InternalServerError("Error while getting user profile");
-  }
+  return {
+    user: {
+      email: res?.data?.user?.email,
+      first_name: res?.data?.user?.first_name,
+      last_name: res?.data?.user?.last_name,
+      orgs: orgs,
+    },
+  };
 };
 
 export const userService = {
