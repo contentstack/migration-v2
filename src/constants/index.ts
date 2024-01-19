@@ -11,6 +11,7 @@ export type HttpErrorCodes = {
   SERVER_ERROR: number;
 };
 export type ConstantType = {
+  CS_REGIONS: Array<string>;
   AXIOS_TIMEOUT: number;
   HTTP_CODES: HttpErrorCodes;
   HTTP_TEXTS: HttpErrorTexts;
@@ -35,6 +36,7 @@ export type HttpResponseHeaders = {
 };
 
 export const constants: ConstantType = {
+  CS_REGIONS: ["US", "EU", "AZURE_NA", "AZURE_EU"],
   AXIOS_TIMEOUT: 60 * 1000,
   HTTP_CODES: {
     OK: 200,

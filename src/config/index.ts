@@ -11,6 +11,7 @@ export type ConfigType = {
   APP_TOKEN_EXP: string;
   APP_TOKEN_KEY: string;
   PORT: string;
+  APP_ENV: string;
   MONGODB_URI: string;
   CS_API: {
     US: string;
@@ -23,6 +24,7 @@ export type ConfigType = {
 export const config: ConfigType = {
   APP_TOKEN_EXP: "1d",
   PORT: process.env.PORT!,
+  APP_ENV: process.env.NODE_ENV!,
   APP_TOKEN_KEY: process.env.APP_TOKEN_KEY!,
   MONGODB_URI: process.env.MONGODB_URI!,
   ...(process.env.NODE_ENV === "production" ? prodConfig : devConfig),
