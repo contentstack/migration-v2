@@ -14,9 +14,10 @@ import {
   BadRequestError,
   InternalServerError,
 } from "../utils/custom-errors.utils";
+import AuthenticationModel from "../models/authentication";
 
 const login = async (req: Request): Promise<LoginServiceType> => {
-  //TODO: 1. request validation, 2. saving the authtoken in DB
+  //TODO: 1. request validation
   const userData = req?.body;
 
   try {
@@ -58,31 +59,23 @@ const login = async (req: Request): Promise<LoginServiceType> => {
       region: userData?.region,
       user_id: res?.data?.user.uid,
     };
+
+    // Saving auth info in the DB
+    await AuthenticationModel.create({
+      ...migration_payload,
+      authtoken: res?.data.user?.authtoken,
+    });
+
     // JWT token generation
     const app_token = generateToken(migration_payload);
 
-    const response = {
+    return {
       data: {
         message: constants.HTTP_TEXTS.SUCCESS_LOGIN,
         app_token,
       },
       status: constants.HTTP_CODES.OK,
     };
-
-    // Write the data to a JSON file (e.g., tokens.json)
-    //TODO: remove this temp localStorage file, and use DB instead
-    await fs.writeFile(
-      "tokens.json",
-      JSON.stringify(
-        {
-          [app_token]: res?.data.user?.authtoken,
-        },
-        null,
-        2
-      )
-    );
-
-    return response;
   } catch (err) {
     throw new InternalServerError();
   }
@@ -163,7 +156,7 @@ const getUserProfile = async (
   }
 };
 
-export const userService = {
+export const authService = {
   login,
   requestSms,
   getUserProfile,
