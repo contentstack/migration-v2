@@ -37,6 +37,8 @@ interface ProjectDocument extends Document {
   status: boolean;
   migration: Migration;
   execution_log: ExecutionLog;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const projectSchema = new Schema<ProjectDocument>(
