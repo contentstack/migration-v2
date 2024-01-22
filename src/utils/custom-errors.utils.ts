@@ -27,7 +27,7 @@ export class DatabaseError extends AppError {
 
 export class ValidationError extends AppError {
   constructor(message: string = "User validation error") {
-    super(constants.HTTP_CODES.FORBIDDEN, message);
+    super(constants.HTTP_CODES.UNPROCESSABLE_CONTENT, message);
   }
 }
 
