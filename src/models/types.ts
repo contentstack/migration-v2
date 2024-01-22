@@ -12,7 +12,7 @@ export interface UserProfile {
   };
 }
 
-export interface MigrationPayload {
+export interface AppTokenPayload {
   region: string;
   user_id: string;
 }
