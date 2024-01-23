@@ -12,7 +12,6 @@ import {
 import AuthenticationModel from "../models/authentication";
 
 const login = async (req: Request): Promise<LoginServiceType> => {
-  //TODO: 1. request validation
   const userData = req?.body;
 
   const [err, res] = await safePromise(
@@ -78,7 +77,6 @@ const login = async (req: Request): Promise<LoginServiceType> => {
 };
 
 const requestSms = async (req: Request): Promise<LoginServiceType> => {
-  //TODO: 1. request validation
   const userData = req?.body;
 
   try {
