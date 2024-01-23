@@ -9,7 +9,16 @@ export type HttpErrorCodes = {
   MOVED_PERMANENTLY: number;
   SUPPORT_DOC: number;
   SERVER_ERROR: number;
+  UNPROCESSABLE_CONTENT: number;
 };
+
+export type ValidationErrors = {
+  INVALID_EMAIL: string;
+  EMAIL_LIMIT: string;
+  STRING_REQUIRED: string;
+  INVALID_REGION: string;
+};
+
 export type ConstantType = {
   CS_REGIONS: Array<string>;
   AXIOS_TIMEOUT: number;
@@ -17,6 +26,7 @@ export type ConstantType = {
   HTTP_TEXTS: HttpErrorTexts;
   HTTP_RESPONSE_HEADERS: HttpResponseHeaders;
   METHODS_TO_INCLUDE_DATA_IN_AXIOS: Array<string>;
+  VALIDATION_ERRORS: ValidationErrors;
 };
 
 export type HttpErrorTexts = {
@@ -49,6 +59,7 @@ export const constants: ConstantType = {
     MOVED_PERMANENTLY: 301,
     SUPPORT_DOC: 294,
     SERVER_ERROR: 500,
+    UNPROCESSABLE_CONTENT: 422,
   },
   HTTP_TEXTS: {
     INTERNAL_ERROR: "Internal server error, please try again later.",
@@ -66,4 +77,10 @@ export const constants: ConstantType = {
     Connection: "close",
   },
   METHODS_TO_INCLUDE_DATA_IN_AXIOS: ["PUT", "POST", "DELETE", "PATCH"],
+  VALIDATION_ERRORS: {
+    INVALID_EMAIL: "Given email ID is invalid.",
+    EMAIL_LIMIT: "Email's max limit reached.",
+    STRING_REQUIRED: "Provided $ should be a string.",
+    INVALID_REGION: "Provided region doesn't exists.",
+  },
 };
