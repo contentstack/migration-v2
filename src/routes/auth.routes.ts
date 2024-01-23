@@ -1,24 +1,21 @@
 import express from "express";
 import { authController } from "../controllers/auth.controller";
 import { asyncRouter } from "../utils/async-router.utils";
-import authValidator from "../validators/auth.validator";
-import { validationMiddleware } from "../middlewares/validation.middleware";
+import validator from "../validators";
 
 const router = express.Router();
 
 // Login route
 router.post(
   "/user-session",
-  authValidator,
-  validationMiddleware,
+  validator("auth"),
   asyncRouter(authController.login)
 );
 
 // SMS token route
 router.post(
   "/request-token-sms",
-  authValidator,
-  validationMiddleware,
+  validator("auth"),
   asyncRouter(authController.RequestSms)
 );
 
