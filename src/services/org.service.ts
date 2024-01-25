@@ -45,6 +45,39 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   };
 };
 
+const getLocales = async (req: Request): Promise<LoginServiceType> => {
+  const { token_payload } = req.body;
+
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+
+  const [err, res] = await safePromise(
+    https({
+      method: "GET",
+      url: `${config.CS_API[
+        token_payload?.region as keyof typeof config.CS_API
+      ]!}/locales?include_all=true`,
+      headers: {
+        authtoken,
+      },
+    })
+  );
+
+  if (err)
+    return {
+      data: err.response.data,
+      status: err.response.status,
+    };
+
+  return {
+    data: res.data,
+    status: res.status,
+  };
+};
+
 export const orgService = {
   getAllStacks,
+  getLocales,
 };

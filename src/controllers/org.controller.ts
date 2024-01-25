@@ -12,7 +12,7 @@ const createStack = async (req: Request, res: Response) => {
 };
 
 const getLocales = async (req: Request, res: Response) => {
-  const resp = await orgService.getAllStacks(req);
+  const resp = await orgService.getLocales(req);
   res.status(resp.status).json(resp.data);
 };
 
