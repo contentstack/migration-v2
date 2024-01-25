@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 export const throwError = (message: string, statusCode: number) => {
   throw Object.assign(new Error(message), { statusCode });
 };
@@ -19,3 +21,8 @@ export const getLogMessage = (methodName: string, message = {}, user = {}) => {
     user: user,
   };
 };
+
+export const isValidObjectId = (id: string | undefined) =>
+  mongoose.isValidObjectId(id);
+
+export const getMongooseID = () => new mongoose.Types.ObjectId();

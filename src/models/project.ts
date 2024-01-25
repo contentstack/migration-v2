@@ -18,8 +18,11 @@ interface Modules {
 }
 
 interface Migration {
+  _id: Schema.Types.ObjectId;
   name: string;
   description: string;
+  created_at: Date;
+  updated_at: Date;
   modules: Modules;
 }
 
@@ -35,7 +38,7 @@ interface ProjectDocument extends Document {
   name: string;
   description: string;
   status: boolean;
-  migration: Migration;
+  migration: [Migration];
   execution_log: ExecutionLog;
 }
 
@@ -48,21 +51,26 @@ const projectSchema = new Schema<ProjectDocument>(
     name: { type: String, required: true },
     description: { type: String, required: true },
     status: { type: Boolean, default: true },
-    migration: {
-      name: { type: String },
-      description: { type: String },
-      modules: {
-        legacy_cms: {
-          cms: { type: String },
-          file_format: { type: String },
-          import_data: { type: String },
-        },
-        destination_cms: {
-          stack_id: { type: String },
-          org_id: { type: String },
+    migration: [
+      {
+        _id: Schema.Types.ObjectId,
+        name: { type: String },
+        description: { type: String },
+        created_at: { type: Date },
+        updated_at: { type: Date },
+        modules: {
+          legacy_cms: {
+            cms: { type: String },
+            file_format: { type: String },
+            import_data: { type: String },
+          },
+          destination_cms: {
+            stack_id: { type: String },
+            org_id: { type: String },
+          },
         },
       },
-    },
+    ],
     execution_log: {
       log_url: { type: String },
     },

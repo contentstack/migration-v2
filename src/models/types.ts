@@ -21,3 +21,11 @@ export interface LoginServiceType {
   data: any;
   status: number;
 }
+
+export interface MigrationQueryType {
+  _id: string;
+  "migration._id"?: string;
+  org_id: string;
+  region: string;
+  owner: string;
+}

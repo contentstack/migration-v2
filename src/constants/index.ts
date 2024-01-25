@@ -37,6 +37,12 @@ export type HttpErrorTexts = {
   TOKEN_ERROR: string;
   LOGIN_ERROR: string;
   ROUTE_ERROR: string;
+  NO_PROJECT: string;
+  MIGRATION_CREATED: string;
+  MIGRATION_UPDATED: string;
+  MIGRATION_DELETED: string;
+  INVALID_ID: string;
+  MIGRATION_EXISTS: string;
 };
 
 export type HttpResponseHeaders = {
@@ -70,6 +76,12 @@ export const constants: ConstantType = {
     TOKEN_ERROR: "Error occurred during token generation.",
     LOGIN_ERROR: "Error occurred during login",
     ROUTE_ERROR: "Sorry, the requested resource is not available.",
+    NO_PROJECT: "resource not found with the given ID(s).",
+    MIGRATION_CREATED: "Project's migration created successfully.",
+    MIGRATION_UPDATED: "Project's migration updated successfully.",
+    MIGRATION_DELETED: "Project's migration deleted successfully.",
+    INVALID_ID: "Provided $ ID is invalid.",
+    MIGRATION_EXISTS: "Project's migration already exists.",
   },
   HTTP_RESPONSE_HEADERS: {
     "Access-Control-Allow-Origin": "*",
