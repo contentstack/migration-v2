@@ -15,6 +15,7 @@ export type HttpErrorCodes = {
 export type ValidationErrors = {
   INVALID_EMAIL: string;
   EMAIL_LIMIT: string;
+  LENGTH_LIMIT: string;
   STRING_REQUIRED: string;
   INVALID_REGION: string;
 };
@@ -92,6 +93,7 @@ export const constants: ConstantType = {
   VALIDATION_ERRORS: {
     INVALID_EMAIL: "Given email ID is invalid.",
     EMAIL_LIMIT: "Email's max limit reached.",
+    LENGTH_LIMIT: "$'s max limit reached.",
     STRING_REQUIRED: "Provided $ should be a string.",
     INVALID_REGION: "Provided region doesn't exists.",
   },

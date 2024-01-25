@@ -1,6 +1,7 @@
 import express from "express";
 import { migrationController } from "../controllers/projects.migrations.controller";
 import { asyncRouter } from "../utils/async-router.utils";
+import validator from "../validators";
 
 const router = express.Router({ mergeParams: true });
 
@@ -8,10 +9,18 @@ const router = express.Router({ mergeParams: true });
 router.get("/", asyncRouter(migrationController.getMigration));
 
 // Create a new project's migration route
-router.post("/", asyncRouter(migrationController.createMigration));
+router.post(
+  "/",
+  validator("project"),
+  asyncRouter(migrationController.createMigration)
+);
 
 // Update project's migration route
-router.put("/:migrationId", asyncRouter(migrationController.updateMigration));
+router.put(
+  "/:migrationId",
+  validator("project"),
+  asyncRouter(migrationController.updateMigration)
+);
 
 // Delete project's migration route
 router.delete(
