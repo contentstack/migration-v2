@@ -7,7 +7,7 @@ const getAllStacks = async (req: Request, res: Response) => {
 };
 
 const createStack = async (req: Request, res: Response) => {
-  const resp = await orgService.getAllStacks(req);
+  const resp = await orgService.createStack(req);
   res.status(resp.status).json(resp.data);
 };
 

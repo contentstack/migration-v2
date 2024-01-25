@@ -45,6 +45,47 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   };
 };
 
+const createStack = async (req: Request): Promise<LoginServiceType> => {
+  const orgId = req?.params?.orgId;
+  const { token_payload, name, description, master_locale } = req.body;
+
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+
+  const [err, res] = await safePromise(
+    https({
+      method: "POST",
+      url: `${config.CS_API[
+        token_payload?.region as keyof typeof config.CS_API
+      ]!}/stacks`,
+      headers: {
+        organization_uid: orgId,
+        authtoken,
+      },
+      data: {
+        stack: {
+          name,
+          description,
+          master_locale,
+        },
+      },
+    })
+  );
+
+  if (err)
+    return {
+      data: err.response.data,
+      status: err.response.status,
+    };
+
+  return {
+    data: res.data,
+    status: res.status,
+  };
+};
+
 const getLocales = async (req: Request): Promise<LoginServiceType> => {
   const { token_payload } = req.body;
 
@@ -80,4 +121,5 @@ const getLocales = async (req: Request): Promise<LoginServiceType> => {
 export const orgService = {
   getAllStacks,
   getLocales,
+  createStack,
 };
