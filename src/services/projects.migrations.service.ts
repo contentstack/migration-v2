@@ -34,12 +34,13 @@ const _getCondensedMigration = (projectId: string, data: any) => {
 const getMigration = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
+  const { token_payload } = req.body;
 
   const project = await _getProject(projectId, {
     _id: projectId,
     org_id: orgId,
-    region: req?.body?.token_payload?.region,
-    owner: req?.body?.token_payload?.user_id,
+    region: token_payload?.region,
+    owner: token_payload?.user_id,
   });
 
   return {
@@ -57,12 +58,13 @@ const getMigration = async (req: Request) => {
 const createMigration = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
+  const { token_payload } = req.body;
 
   const project = await _getProject(projectId, {
     _id: projectId,
     org_id: orgId,
-    region: req?.body?.token_payload?.region,
-    owner: req?.body?.token_payload?.user_id,
+    region: token_payload?.region,
+    owner: token_payload?.user_id,
   });
 
   if (project.migration?.length)
@@ -92,6 +94,7 @@ const updateMigration = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
   const migrationId = req?.params?.migrationId;
+  const { token_payload, name, description } = req.body;
 
   if (!isValidObjectId(migrationId))
     throw new BadRequestError(
@@ -102,12 +105,12 @@ const updateMigration = async (req: Request) => {
     _id: projectId,
     "migration._id": migrationId,
     org_id: orgId,
-    region: req?.body?.token_payload?.region,
-    owner: req?.body?.token_payload?.user_id,
+    region: token_payload?.region,
+    owner: token_payload?.user_id,
   });
 
-  project.migration[0].name = req?.body?.name;
-  project.migration[0].description = req?.body?.description;
+  project.migration[0].name = name;
+  project.migration[0].description = description;
   project.migration[0].updated_at = new Date();
 
   const updatedProject = await project.save();
@@ -127,6 +130,7 @@ const deleteMigration = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
   const migrationId = req?.params?.migrationId;
+  const { token_payload } = req.body;
 
   if (!isValidObjectId(migrationId))
     throw new BadRequestError(
@@ -137,8 +141,8 @@ const deleteMigration = async (req: Request) => {
     _id: projectId,
     "migration._id": migrationId,
     org_id: orgId,
-    region: req?.body?.token_payload?.region,
-    owner: req?.body?.token_payload?.user_id,
+    region: token_payload?.region,
+    owner: token_payload?.user_id,
   };
 
   const project = await _getProject(projectId, filter);
