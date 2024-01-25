@@ -37,4 +37,10 @@ export class InternalServerError extends AppError {
   }
 }
 
+export class UnauthorizedError extends AppError {
+  constructor(message: string = constants.HTTP_TEXTS.UNAUTHORIZED) {
+    super(constants.HTTP_CODES.UNAUTHORIZED, message);
+  }
+}
+
 // Add more custom error classes as needed

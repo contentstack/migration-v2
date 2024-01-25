@@ -31,6 +31,7 @@ export type ConstantType = {
 };
 
 export type HttpErrorTexts = {
+  UNAUTHORIZED: string;
   INTERNAL_ERROR: string;
   SOMETHING_WENT_WRONG: string;
   NO_CS_USER: string;
@@ -69,6 +70,7 @@ export const constants: ConstantType = {
     UNPROCESSABLE_CONTENT: 422,
   },
   HTTP_TEXTS: {
+    UNAUTHORIZED: "You're unauthorized to access this resource.",
     INTERNAL_ERROR: "Internal server error, please try again later.",
     SOMETHING_WENT_WRONG:
       "Something went wrong while processing your request, please try again.",
