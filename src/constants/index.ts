@@ -42,6 +42,8 @@ export type HttpErrorTexts = {
   NO_PROJECT: string;
   MIGRATION_CREATED: string;
   MIGRATION_UPDATED: string;
+  CMS_UPDATED: string;
+  FILE_FORMAT_UPDATED: string;
   MIGRATION_DELETED: string;
   INVALID_ID: string;
   MIGRATION_EXISTS: string;
@@ -82,6 +84,8 @@ export const constants: ConstantType = {
     NO_PROJECT: "resource not found with the given ID(s).",
     MIGRATION_CREATED: "Project's migration created successfully.",
     MIGRATION_UPDATED: "Project's migration updated successfully.",
+    CMS_UPDATED: "Project's migration cms updated successfully",
+    FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
     MIGRATION_DELETED: "Project's migration deleted successfully.",
     INVALID_ID: "Provided $ ID is invalid.",
     MIGRATION_EXISTS: "Project's migration already exists.",

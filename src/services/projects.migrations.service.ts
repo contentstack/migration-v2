@@ -75,6 +75,17 @@ const createMigration = async (req: Request) => {
     created_at: new Date(),
     updated_at: new Date(),
     ...req?.body,
+    modules: {
+      legacy_cms: {
+        cms: "",
+        file_format: "",
+        import_data: "",
+      },
+      destination_cms: {
+        stack_id: "",
+        org_id: "",
+      },
+    },
   });
 
   const updatedProject = await project.save();
@@ -126,6 +137,64 @@ const updateMigration = async (req: Request) => {
   };
 };
 
+const updateMigrationLegacyCMS = async (req: Request) => {
+  const { orgId, projectId, migrationId } = req.params;
+  const { token_payload, legacy_cms } = req.body;
+
+  if (!isValidObjectId(migrationId))
+    throw new BadRequestError(
+      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration")
+    );
+
+  const project = await _getProject(projectId, {
+    _id: projectId,
+    "migration._id": migrationId,
+    org_id: orgId,
+    region: token_payload?.region,
+    owner: token_payload?.user_id,
+  });
+
+  project.migration[0].modules.legacy_cms.cms = legacy_cms;
+
+  await project.save();
+
+  return {
+    status: constants.HTTP_CODES.OK,
+    data: {
+      message: constants.HTTP_TEXTS.CMS_UPDATED,
+    },
+  };
+};
+
+const updateMigrationFileFormat = async (req: Request) => {
+  const { orgId, projectId, migrationId } = req.params;
+  const { token_payload, file_format } = req.body;
+
+  if (!isValidObjectId(migrationId))
+    throw new BadRequestError(
+      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration")
+    );
+
+  const project = await _getProject(projectId, {
+    _id: projectId,
+    "migration._id": migrationId,
+    org_id: orgId,
+    region: token_payload?.region,
+    owner: token_payload?.user_id,
+  });
+
+  project.migration[0].modules.legacy_cms.file_format = file_format;
+
+  await project.save();
+
+  return {
+    status: constants.HTTP_CODES.OK,
+    data: {
+      message: constants.HTTP_TEXTS.FILE_FORMAT_UPDATED,
+    },
+  };
+};
+
 const deleteMigration = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
@@ -164,4 +233,6 @@ export const migrationService = {
   createMigration,
   updateMigration,
   deleteMigration,
+  updateMigrationLegacyCMS,
+  updateMigrationFileFormat,
 };
