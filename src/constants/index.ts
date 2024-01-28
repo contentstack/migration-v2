@@ -15,6 +15,7 @@ export type HttpErrorCodes = {
 export type ValidationErrors = {
   INVALID_EMAIL: string;
   EMAIL_LIMIT: string;
+  LENGTH_LIMIT: string;
   STRING_REQUIRED: string;
   INVALID_REGION: string;
 };
@@ -30,6 +31,7 @@ export type ConstantType = {
 };
 
 export type HttpErrorTexts = {
+  UNAUTHORIZED: string;
   INTERNAL_ERROR: string;
   SOMETHING_WENT_WRONG: string;
   NO_CS_USER: string;
@@ -37,6 +39,12 @@ export type HttpErrorTexts = {
   TOKEN_ERROR: string;
   LOGIN_ERROR: string;
   ROUTE_ERROR: string;
+  NO_PROJECT: string;
+  MIGRATION_CREATED: string;
+  MIGRATION_UPDATED: string;
+  MIGRATION_DELETED: string;
+  INVALID_ID: string;
+  MIGRATION_EXISTS: string;
 };
 
 export type HttpResponseHeaders = {
@@ -62,6 +70,7 @@ export const constants: ConstantType = {
     UNPROCESSABLE_CONTENT: 422,
   },
   HTTP_TEXTS: {
+    UNAUTHORIZED: "You're unauthorized to access this resource.",
     INTERNAL_ERROR: "Internal server error, please try again later.",
     SOMETHING_WENT_WRONG:
       "Something went wrong while processing your request, please try again.",
@@ -70,6 +79,12 @@ export const constants: ConstantType = {
     TOKEN_ERROR: "Error occurred during token generation.",
     LOGIN_ERROR: "Error occurred during login",
     ROUTE_ERROR: "Sorry, the requested resource is not available.",
+    NO_PROJECT: "resource not found with the given ID(s).",
+    MIGRATION_CREATED: "Project's migration created successfully.",
+    MIGRATION_UPDATED: "Project's migration updated successfully.",
+    MIGRATION_DELETED: "Project's migration deleted successfully.",
+    INVALID_ID: "Provided $ ID is invalid.",
+    MIGRATION_EXISTS: "Project's migration already exists.",
   },
   HTTP_RESPONSE_HEADERS: {
     "Access-Control-Allow-Origin": "*",
@@ -80,6 +95,7 @@ export const constants: ConstantType = {
   VALIDATION_ERRORS: {
     INVALID_EMAIL: "Given email ID is invalid.",
     EMAIL_LIMIT: "Email's max limit reached.",
+    LENGTH_LIMIT: "$'s max limit reached.",
     STRING_REQUIRED: "Provided $ should be a string.",
     INVALID_REGION: "Provided region doesn't exists.",
   },
