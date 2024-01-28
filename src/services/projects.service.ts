@@ -28,8 +28,8 @@ const getProject = async (req: Request) => {
     description: project?.description,
     id: project?.id,
     status: project?.status,
-    created_at: project?.createdAt,
-    modified_at: project?.updatedAt,
+    created_at: project?.created_at,
+    modified_at: project?.updated_at,
   };
 };
 const createProject = async (req: Request) => {
@@ -56,8 +56,8 @@ const createProject = async (req: Request) => {
       name: project.name,
       id: project.id,
       status: project.status,
-      created_at: project.createdAt,
-      modified_at: project.updatedAt,
+      created_at: project.created_at,
+      modified_at: project.updated_at,
       // Add other properties as needed
     },
   };
@@ -93,8 +93,8 @@ const updateProject = async (req: Request) => {
       name: updatedProject.name,
       id: updatedProject.id,
       status: updatedProject.status,
-      created_at: updatedProject.createdAt,
-      modified_at: updatedProject.updatedAt,
+      created_at: updatedProject.created_at,
+      modified_at: updatedProject.updated_at,
       // Add other properties as needed
     },
   };
