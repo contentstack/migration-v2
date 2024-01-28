@@ -1,7 +1,7 @@
 import { Request } from "express";
 import ProjectModel from "../models/project";
-import logger from "../utils/logger";
 import { NotFoundError } from "../utils/custom-errors.utils";
+import { constants } from "../constants";
 
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
@@ -11,11 +11,17 @@ const getAllProjects = async (req: Request) => {
 const getProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
+  const decodedToken = req.body.token_payload;
+  const { user_id = "test-123", region = "NA" } = decodedToken;
+  // Find the project based on both orgId and projectId, region, owner
+  const project = await ProjectModel.findOne({
+    org_id: orgId,
+    _id: projectId,
+    region,
+    owner: user_id,
+  });
 
-  // Find the project based on both orgId and projectId
-  const project = await ProjectModel.findOne({ org_id: orgId, _id: projectId });
-
-  if (!project) throw new NotFoundError("Project not found!");
+  if (!project) throw new NotFoundError(constants.HTTP_TEXTS.PROJECT_NOT_FOUND);
 
   return {
     name: project?.name,
@@ -29,21 +35,20 @@ const getProject = async (req: Request) => {
 const createProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const { name, description } = req.body;
-  logger.info(orgId);
-  // const decodedToken = (req as any).decodedToken;
-  // const { user_id = "1", region = "NA" } = decodedToken;
+  const decodedToken = req.body.token_payload;
+  const { user_id = "test-123", region = "NA" } = decodedToken;
   const projectData = {
-    region: "US",
+    region,
     org_id: orgId,
-    owner: "2",
-    created_by: "2",
+    owner: user_id,
+    created_by: user_id,
     name,
     description,
   };
   //Add logic to create Project from DB
   const project = await ProjectModel.create(projectData);
 
-  //Add some logic to throw error
+  if (!project) throw new NotFoundError(constants.HTTP_TEXTS.PROJECT_NOT_FOUND);
   return {
     status: "success",
     message: "Project created successfully",
@@ -62,9 +67,15 @@ const updateProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
   const updateData = req?.body;
-
+  const decodedToken = req.body.token_payload;
+  const { user_id = "test-123", region = "NA" } = decodedToken;
   // Find the project based on both orgId and projectId
-  const project = await ProjectModel.findOne({ org_id: orgId, _id: projectId });
+  const project = await ProjectModel.findOne({
+    org_id: orgId,
+    _id: projectId,
+    region,
+    owner: user_id,
+  });
 
   if (!project) throw new NotFoundError("Project not found!");
 
