@@ -14,11 +14,17 @@ export const safePromise = (promise: Promise<any>): Promise<any> =>
   promise.then((res) => [null, res]).catch((err) => [err]);
 
 //Generic method to get log message object
-export const getLogMessage = (methodName: string, message = {}, user = {}) => {
+export const getLogMessage = (
+  message: string,
+  methodName: string,
+  user = {},
+  error?: any
+) => {
   return {
-    methodName: methodName,
-    message: message,
-    user: user,
+    message,
+    methodName,
+    ...(user && { user }),
+    ...(error && { error }),
   };
 };
 
