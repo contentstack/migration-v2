@@ -46,7 +46,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     };
 
   if (!res?.data?.user)
-    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
+    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER, "login");
 
   const appTokenPayload: AppTokenPayload = {
     region: userData?.region,
@@ -106,7 +106,10 @@ const requestSms = async (req: Request): Promise<LoginServiceType> => {
       status: res.status,
     };
   } catch (error) {
-    throw new InternalServerError();
+    throw new InternalServerError(
+      constants.HTTP_TEXTS.INTERNAL_ERROR,
+      "requestSms"
+    );
   }
 };
 

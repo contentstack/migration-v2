@@ -15,7 +15,10 @@ const getUserProfile = async (req: Request): Promise<UserProfile> => {
   }).lean();
 
   if (!user?.authtoken)
-    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
+    throw new BadRequestError(
+      constants.HTTP_TEXTS.NO_CS_USER,
+      "getUserProfile"
+    );
 
   const res = await https({
     method: "GET",
@@ -29,7 +32,10 @@ const getUserProfile = async (req: Request): Promise<UserProfile> => {
   });
 
   if (!res?.data?.user)
-    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
+    throw new BadRequestError(
+      constants.HTTP_TEXTS.NO_CS_USER,
+      "getUserProfile"
+    );
 
   const orgs = (res?.data?.user?.organizations || [])
     ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))

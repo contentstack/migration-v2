@@ -17,29 +17,26 @@ router.post(
 
 // Update project's migration route
 router.put(
-  "/:migrationId",
+  "/",
   validator("project"),
   asyncRouter(migrationController.updateMigration)
 );
 
 // Update project's legacy-cms
 router.put(
-  "/:migrationId/legacy-cms",
+  "/legacy-cms",
   validator("cms"),
   asyncRouter(migrationController.updateMigrationLegacyCMS)
 );
 
 // Update project's file format
 router.put(
-  "/:migrationId/file-format",
+  "/file-format",
   validator("file_format"),
   asyncRouter(migrationController.updateMigrationFileFormat)
 );
 
 // Delete project's migration route
-router.delete(
-  "/:migrationId",
-  asyncRouter(migrationController.deleteMigration)
-);
+router.delete("/", asyncRouter(migrationController.deleteMigration));
 
 export default router;
