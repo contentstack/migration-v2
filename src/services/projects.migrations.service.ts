@@ -9,12 +9,14 @@ import { MigrationQueryType } from "../models/types";
 const _getProject = async (projectId: string, query: MigrationQueryType) => {
   if (!isValidObjectId(projectId))
     throw new BadRequestError(
-      constants.HTTP_TEXTS.INVALID_ID.replace("$", "project")
+      constants.HTTP_TEXTS.INVALID_ID.replace("$", "project"),
+      "_getProject"
     );
 
   const project = await ProjectModel.findOne(query);
 
-  if (!project) throw new NotFoundError(constants.HTTP_TEXTS.NO_PROJECT);
+  if (!project)
+    throw new NotFoundError(constants.HTTP_TEXTS.NO_PROJECT, "_getProject");
 
   return project;
 };
@@ -68,7 +70,10 @@ const createMigration = async (req: Request) => {
   });
 
   if (project.migration?.length)
-    throw new BadRequestError(constants.HTTP_TEXTS.MIGRATION_EXISTS);
+    throw new BadRequestError(
+      constants.HTTP_TEXTS.MIGRATION_EXISTS,
+      "createMigration"
+    );
 
   project.migration.push({
     _id: getMongooseID(),
@@ -109,7 +114,8 @@ const updateMigration = async (req: Request) => {
 
   if (!isValidObjectId(migrationId))
     throw new BadRequestError(
-      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration")
+      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration"),
+      "updateMigration"
     );
 
   const project = await _getProject(projectId, {
@@ -143,7 +149,8 @@ const updateMigrationLegacyCMS = async (req: Request) => {
 
   if (!isValidObjectId(migrationId))
     throw new BadRequestError(
-      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration")
+      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration"),
+      "updateMigrationLegacyCMS"
     );
 
   const project = await _getProject(projectId, {
@@ -172,7 +179,8 @@ const updateMigrationFileFormat = async (req: Request) => {
 
   if (!isValidObjectId(migrationId))
     throw new BadRequestError(
-      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration")
+      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration"),
+      "updateMigrationFileFormat"
     );
 
   const project = await _getProject(projectId, {
@@ -203,7 +211,8 @@ const deleteMigration = async (req: Request) => {
 
   if (!isValidObjectId(migrationId))
     throw new BadRequestError(
-      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration")
+      constants.HTTP_TEXTS.INVALID_ID.replace("$", "migration"),
+      "deleteMigration"
     );
 
   const filter = {
