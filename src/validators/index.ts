@@ -3,12 +3,16 @@ import { ValidationError } from "../utils/custom-errors.utils";
 import { asyncRouter } from "../utils/async-router.utils";
 import authValidator from "./auth.validator";
 import projectValidator from "./project.validator";
+import cmsValidator from "./cms.validator";
+import fileFormatValidator from "./file-format.validator";
 
 export default (route: string = "") =>
   asyncRouter(async (req: Request, res: Response, next: NextFunction) => {
     const appValidators = {
       auth: authValidator,
       project: projectValidator,
+      cms: cmsValidator,
+      file_format: fileFormatValidator,
     };
 
     const validator = appValidators[route as keyof typeof appValidators];
