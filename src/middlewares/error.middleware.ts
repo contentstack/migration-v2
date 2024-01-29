@@ -13,6 +13,7 @@ export const errorMiddleware = (
   logger.error(err.stack);
 
   if (err instanceof AppError) {
+    logger.error(`Error in method:  ${err.srcFunc}`);
     res
       .status(err.statusCode)
       .json({ error: { code: err.statusCode, message: err.message } });

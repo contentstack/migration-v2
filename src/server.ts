@@ -6,6 +6,7 @@ import helmet from "helmet";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import projectRoutes from "./routes/projects.routes";
+import orgRoutes from "./routes/org.routes";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import loggerMiddleware from "./middlewares/logger.middleware";
 import connectToDatabase from "./database";
@@ -31,6 +32,7 @@ try {
   // Routes
   app.use("/v2/auth", authRoutes);
   app.use("/v2/user", authenticateUser, userRoutes);
+  app.use("/v2/org/:orgId", authenticateUser, orgRoutes);
   app.use("/v2/org/:orgId/project", authenticateUser, projectRoutes);
 
   //For unmatched route patterns

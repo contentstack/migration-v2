@@ -1,23 +1,33 @@
 import { Request, Response } from "express";
 import { migrationService } from "../services/projects.migrations.service";
 
-const getMigration = async (req: Request, res: Response): Promise<void> => {
+const getMigration = async (req: Request, res: Response) => {
   const resp = await migrationService.getMigration(req);
-  res.status(200).json(resp);
+  res.status(resp.status).json(resp.data);
 };
-const createMigration = async (req: Request, res: Response): Promise<void> => {
+const createMigration = async (req: Request, res: Response) => {
   const resp = await migrationService.createMigration(req);
-  res.status(201).json(resp);
+  res.status(resp.status).json(resp.data);
 };
 
-const updateMigration = async (req: Request, res: Response): Promise<void> => {
+const updateMigration = async (req: Request, res: Response) => {
   const resp = await migrationService.updateMigration(req);
-  res.status(200).json(resp);
+  res.status(resp.status).json(resp.data);
 };
 
-const deleteMigration = async (req: Request, res: Response): Promise<void> => {
+const updateMigrationLegacyCMS = async (req: Request, res: Response) => {
+  const resp = await migrationService.updateMigrationLegacyCMS(req);
+  res.status(resp.status).json(resp.data);
+};
+
+const updateMigrationFileFormat = async (req: Request, res: Response) => {
+  const resp = await migrationService.updateMigrationFileFormat(req);
+  res.status(resp.status).json(resp.data);
+};
+
+const deleteMigration = async (req: Request, res: Response) => {
   const resp = await migrationService.deleteMigration(req);
-  res.status(200).json(resp);
+  res.status(resp.status).json(resp.data);
 };
 
 export const migrationController = {
@@ -25,4 +35,6 @@ export const migrationController = {
   createMigration,
   updateMigration,
   deleteMigration,
+  updateMigrationLegacyCMS,
+  updateMigrationFileFormat,
 };

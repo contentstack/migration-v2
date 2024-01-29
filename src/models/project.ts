@@ -20,6 +20,8 @@ interface Modules {
 interface Migration {
   name: string;
   description: string;
+  created_at: Date;
+  updated_at: Date;
   modules: Modules;
 }
 
@@ -53,6 +55,8 @@ const projectSchema = new Schema<ProjectDocument>(
     migration: {
       name: { type: String },
       description: { type: String },
+      created_at: { type: Date },
+      updated_at: { type: Date },
       modules: {
         legacy_cms: {
           cms: { type: String },

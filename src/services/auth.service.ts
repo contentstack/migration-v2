@@ -12,7 +12,6 @@ import {
 import AuthenticationModel from "../models/authentication";
 
 const login = async (req: Request): Promise<LoginServiceType> => {
-  //TODO: 1. request validation
   const userData = req?.body;
 
   const [err, res] = await safePromise(
@@ -47,7 +46,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     };
 
   if (!res?.data?.user)
-    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
+    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER, "login");
 
   const appTokenPayload: AppTokenPayload = {
     region: userData?.region,
@@ -78,7 +77,6 @@ const login = async (req: Request): Promise<LoginServiceType> => {
 };
 
 const requestSms = async (req: Request): Promise<LoginServiceType> => {
-  //TODO: 1. request validation
   const userData = req?.body;
 
   try {
@@ -108,7 +106,10 @@ const requestSms = async (req: Request): Promise<LoginServiceType> => {
       status: res.status,
     };
   } catch (error) {
-    throw new InternalServerError();
+    throw new InternalServerError(
+      constants.HTTP_TEXTS.INTERNAL_ERROR,
+      "requestSms"
+    );
   }
 };
 
