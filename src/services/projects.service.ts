@@ -5,10 +5,17 @@ import { constants } from "../constants";
 
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
+  const decodedToken = req.body.token_payload;
+  const { user_id = "", region = "" } = decodedToken;
+
   const project = await ProjectModel.find({
     org_id: orgId,
+    region,
+    owner: user_id,
   });
+
   if (!project) throw new NotFoundError(constants.HTTP_TEXTS.PROJECT_NOT_FOUND);
+
   return project;
 };
 const getProject = async (req: Request) => {
