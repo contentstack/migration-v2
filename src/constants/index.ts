@@ -33,7 +33,6 @@ export const constants = {
     MIGRATION_DELETED: "Project's migration deleted successfully.",
     INVALID_ID: "Provided $ ID is invalid.",
     MIGRATION_EXISTS: "Project's migration already exists.",
-    PROJECT_NOT_FOUND: "Project does not exist",
     CONTENT_TYPE_NOT_FOUND: "ContentType does not exist",
     INVALID_CONTENT_TYPE: "Provide valid ContentType data",
     RESET_CONTENT_MAPPING:
