@@ -61,7 +61,7 @@ const createProject = async (req: Request) => {
   if (!project) throw new NotFoundError(constants.HTTP_TEXTS.PROJECT_NOT_FOUND);
   return {
     status: "success",
-    message: "Project created successfullyyyyy",
+    message: "Project created successfully",
     project: {
       name: project.name,
       id: project.id,
