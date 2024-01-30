@@ -65,6 +65,9 @@ const projectSchema = new Schema<ProjectDocument>(
           stack_id: { type: String },
           org_id: { type: String },
         },
+        content_mapper: [
+          { type: Schema.Types.ObjectId, ref: "ContentTypes Mapper" },
+        ],
       },
     },
     execution_log: {

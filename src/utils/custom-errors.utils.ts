@@ -52,4 +52,10 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class ExceptionFunction extends AppError {
+  constructor(message: string, httpStatus: number, srcFunc: string) {
+    super(httpStatus, message, srcFunc);
+  }
+}
+
 // Add more custom error classes as needed
