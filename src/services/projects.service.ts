@@ -5,14 +5,17 @@ import { constants } from "../constants";
 
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
-  //Add logic to get All Projects from DB
-  return [orgId];
+  const project = await ProjectModel.find({
+    org_id: orgId,
+  });
+  if (!project) throw new NotFoundError(constants.HTTP_TEXTS.PROJECT_NOT_FOUND);
+  return project;
 };
 const getProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
   const decodedToken = req.body.token_payload;
-  const { user_id = "test-123", region = "NA" } = decodedToken;
+  const { user_id = "", region = "" } = decodedToken;
   // Find the project based on both orgId and projectId, region, owner
   const project = await ProjectModel.findOne({
     org_id: orgId,
@@ -36,7 +39,7 @@ const createProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const { name, description } = req.body;
   const decodedToken = req.body.token_payload;
-  const { user_id = "test-123", region = "NA" } = decodedToken;
+  const { user_id = "", region = "" } = decodedToken;
   const projectData = {
     region,
     org_id: orgId,
@@ -68,7 +71,7 @@ const updateProject = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const updateData = req?.body;
   const decodedToken = req.body.token_payload;
-  const { user_id = "test-123", region = "NA" } = decodedToken;
+  const { user_id = "", region = "" } = decodedToken;
   // Find the project based on both orgId and projectId
   const project = await ProjectModel.findOne({
     org_id: orgId,
