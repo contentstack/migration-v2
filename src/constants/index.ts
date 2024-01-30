@@ -30,8 +30,11 @@ export const constants = {
     MIGRATION_UPDATED: "Project's migration updated successfully.",
     CMS_UPDATED: "Project's migration cms updated successfully",
     FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
-    DESTINATION_CMS_UPDATED:
-      "Project's migration destination cms updated successfully",
+    DESTINATION_STACK_UPDATED:
+      "Project's migration destination stack updated successfully",
+    DESTINATION_STACK_NOT_FOUND: "Destination stack does not exist",
+    DESTINATION_STACK_ERROR:
+      "Error occurred during verifying destination stack",
     MIGRATION_DELETED: "Project's migration deleted successfully.",
     INVALID_ID: "Provided $ ID is invalid.",
     MIGRATION_EXISTS: "Project's migration already exists.",
