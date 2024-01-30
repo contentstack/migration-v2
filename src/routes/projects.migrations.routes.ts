@@ -36,6 +36,13 @@ router.put(
   asyncRouter(migrationController.updateMigrationFileFormat)
 );
 
+// Update project's destination-cms
+router.put(
+  "/destination-cms",
+  validator("destination_cms"),
+  asyncRouter(migrationController.updateMigrationDestinationCMS)
+);
+
 // Delete project's migration route
 router.delete("/", asyncRouter(migrationController.deleteMigration));
 

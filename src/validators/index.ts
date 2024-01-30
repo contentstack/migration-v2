@@ -5,6 +5,7 @@ import authValidator from "./auth.validator";
 import projectValidator from "./project.validator";
 import cmsValidator from "./cms.validator";
 import fileFormatValidator from "./file-format.validator";
+import destinationCmsValidator from "./destination-cms.validator";
 
 export default (route: string = "") =>
   asyncRouter(async (req: Request, res: Response, next: NextFunction) => {
@@ -13,6 +14,7 @@ export default (route: string = "") =>
       project: projectValidator,
       cms: cmsValidator,
       file_format: fileFormatValidator,
+      destination_cms: destinationCmsValidator,
     };
 
     const validator = appValidators[route as keyof typeof appValidators];
