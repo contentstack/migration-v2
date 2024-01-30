@@ -24,6 +24,7 @@ export const constants = {
     TOKEN_ERROR: "Error occurred during token generation.",
     LOGIN_ERROR: "Error occurred during login",
     ROUTE_ERROR: "Sorry, the requested resource is not available.",
+    PROJECT_NOT_FOUND: "Sorry, the requested project does not exists.",
     NO_PROJECT: "resource not found with the given ID(s).",
     MIGRATION_CREATED: "Project's migration created successfully.",
     MIGRATION_UPDATED: "Project's migration updated successfully.",
