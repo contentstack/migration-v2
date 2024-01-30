@@ -173,6 +173,30 @@ const updateMigrationFileFormat = async (req: Request) => {
   };
 };
 
+const updateMigrationDestinationCMS = async (req: Request) => {
+  const { orgId, projectId } = req.params;
+  const { token_payload, stack_api_key } = req.body;
+
+  const project = await _getProject(projectId, {
+    _id: projectId,
+    org_id: orgId,
+    region: token_payload?.region,
+    owner: token_payload?.user_id,
+  });
+
+  project.migration.modules.destination_cms.stack_id = stack_api_key;
+  project.migration.modules.destination_cms.org_id = orgId;
+
+  await project.save();
+
+  return {
+    status: constants.HTTP_CODES.OK,
+    data: {
+      message: constants.HTTP_TEXTS.DESTINATION_CMS_UPDATED,
+    },
+  };
+};
+
 const deleteMigration = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
@@ -208,4 +232,5 @@ export const migrationService = {
   deleteMigration,
   updateMigrationLegacyCMS,
   updateMigrationFileFormat,
+  updateMigrationDestinationCMS,
 };

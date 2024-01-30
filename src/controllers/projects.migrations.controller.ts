@@ -25,6 +25,11 @@ const updateMigrationFileFormat = async (req: Request, res: Response) => {
   res.status(resp.status).json(resp.data);
 };
 
+const updateMigrationDestinationCMS = async (req: Request, res: Response) => {
+  const resp = await migrationService.updateMigrationDestinationCMS(req);
+  res.status(resp.status).json(resp.data);
+};
+
 const deleteMigration = async (req: Request, res: Response) => {
   const resp = await migrationService.deleteMigration(req);
   res.status(resp.status).json(resp.data);
@@ -37,4 +42,5 @@ export const migrationController = {
   deleteMigration,
   updateMigrationLegacyCMS,
   updateMigrationFileFormat,
+  updateMigrationDestinationCMS,
 };
