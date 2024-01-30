@@ -5,6 +5,8 @@ import logger from "./utils/logger";
 import ProjectModel from "./models/project";
 import AuthenticationModel from "./models/authentication";
 import AuditLogModel from "./models/auditLog";
+import ContentTypesMapperModel from "./models/contentTypesMapper";
+import FieldMapperModel from "./models/FieldMapper";
 
 const connectToDatabase = async () => {
   try {
@@ -18,6 +20,8 @@ const connectToDatabase = async () => {
     await ProjectModel.init();
     await AuthenticationModel.init();
     await AuditLogModel.init();
+    await ContentTypesMapperModel.init();
+    await FieldMapperModel.init();
   } catch (error) {
     logger.error("Error while connecting to MongoDB:", error);
     process.exit(1);
