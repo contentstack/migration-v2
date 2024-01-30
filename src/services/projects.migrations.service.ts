@@ -173,7 +173,7 @@ const updateMigrationFileFormat = async (req: Request) => {
   };
 };
 
-const updateMigrationDestinationCMS = async (req: Request) => {
+const updateMigrationDestinationStack = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, stack_api_key } = req.body;
 
@@ -232,5 +232,5 @@ export const migrationService = {
   deleteMigration,
   updateMigrationLegacyCMS,
   updateMigrationFileFormat,
-  updateMigrationDestinationCMS,
+  updateMigrationDestinationStack,
 };
