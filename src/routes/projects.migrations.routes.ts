@@ -38,9 +38,9 @@ router.put(
 
 // Update project's destination-cms
 router.put(
-  "/destination-cms",
-  validator("destination_cms"),
-  asyncRouter(migrationController.updateMigrationDestinationCMS)
+  "/destination-stack",
+  validator("destination_stack"),
+  asyncRouter(migrationController.updateMigrationDestinationStack)
 );
 
 // Delete project's migration route

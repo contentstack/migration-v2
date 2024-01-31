@@ -5,6 +5,10 @@ import ProjectModel from "../models/project";
 import { isValidObjectId } from "../utils";
 import { NotFoundError, BadRequestError } from "../utils/custom-errors.utils";
 import { MigrationQueryType } from "../models/types";
+import { safePromise } from "../utils/index";
+import { config } from "../config";
+import getAuthtoken from "../utils/auth.utils";
+import https from "../utils/https.utils";
 
 const _getProject = async (projectId: string, query: MigrationQueryType) => {
   if (!isValidObjectId(projectId))
@@ -173,7 +177,7 @@ const updateMigrationFileFormat = async (req: Request) => {
   };
 };
 
-const updateMigrationDestinationCMS = async (req: Request) => {
+const updateMigrationDestinationStack = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, stack_api_key } = req.body;
 
@@ -184,6 +188,38 @@ const updateMigrationDestinationCMS = async (req: Request) => {
     owner: token_payload?.user_id,
   });
 
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+
+  const [err, res] = await safePromise(
+    https({
+      method: "GET",
+      url: `${config.CS_API[
+        token_payload?.region as keyof typeof config.CS_API
+      ]!}/stacks`,
+      headers: {
+        organization_uid: orgId,
+        authtoken,
+      },
+    })
+  );
+
+  if (err)
+    return {
+      data: {
+        message: constants.HTTP_TEXTS.DESTINATION_STACK_ERROR,
+      },
+      status: err.response.status,
+    };
+
+  if (!res.data.stacks.find((stack: any) => stack.api_key === stack_api_key))
+    throw new BadRequestError(
+      constants.HTTP_TEXTS.DESTINATION_STACK_NOT_FOUND,
+      "updateMigrationDestinationStack"
+    );
+
   project.migration.modules.destination_cms.stack_id = stack_api_key;
   project.migration.modules.destination_cms.org_id = orgId;
 
@@ -192,7 +228,7 @@ const updateMigrationDestinationCMS = async (req: Request) => {
   return {
     status: constants.HTTP_CODES.OK,
     data: {
-      message: constants.HTTP_TEXTS.DESTINATION_CMS_UPDATED,
+      message: constants.HTTP_TEXTS.DESTINATION_STACK_UPDATED,
     },
   };
 };
@@ -232,5 +268,5 @@ export const migrationService = {
   deleteMigration,
   updateMigrationLegacyCMS,
   updateMigrationFileFormat,
-  updateMigrationDestinationCMS,
+  updateMigrationDestinationStack,
 };

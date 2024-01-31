@@ -19,7 +19,7 @@ export default checkSchema({
       ),
       options: {
         min: 1,
-        max: 400,
+        max: 100,
       },
       bail: true,
     },
