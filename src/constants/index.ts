@@ -59,4 +59,4 @@ export const constants = {
 };
 export const PROJECT_POPULATE_FIELDS = "migration.modules.content_mapper";
 export const CONTENT_TYPE_POPULATE_FIELDS =
-  "otherCmsTitle otherCmsUid isUpdated updateAt contentstackTitle contnetStackUid";
+  "otherCmsTitle otherCmsUid isUpdated updateAt contentstackTitle contentStackUid";
