@@ -172,8 +172,8 @@ const getExistingContentTypes = async (req: Request) => {
     token_payload?.region,
     token_payload?.user_id
   );
-  const project = await ProjectModel.findById(projectId)
-  const stackId = project?.migration?.modules?.destination_cms?.stack_id
+  const project = await ProjectModel.findById(projectId);
+  const stackId = project?.migration?.modules?.destination_cms?.stack_id;
   const [err, res] = await safePromise(
     https({
       method: "GET",
@@ -182,7 +182,7 @@ const getExistingContentTypes = async (req: Request) => {
       ]!}/content_types`,
       headers: {
         api_key: stackId,
-        authtoken : authtoken
+        authtoken: authtoken,
       },
     })
   );
@@ -193,14 +193,13 @@ const getExistingContentTypes = async (req: Request) => {
       status: err.response.status,
     };
 
-  const contentTypes = res.data.content_types.map((singleCT:any)=>{
+  const contentTypes = res.data.content_types.map((singleCT: any) => {
     return {
-      title : singleCT.title,
-      uid : singleCT.uid,
-      schema : singleCT.schema
-    }
-  })
-
+      title: singleCT.title,
+      uid: singleCT.uid,
+      schema: singleCT.schema,
+    };
+  });
 
   //Add logic to get Project from DB
   return { contentTypes };

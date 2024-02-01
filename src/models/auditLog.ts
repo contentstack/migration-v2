@@ -1,35 +1,42 @@
+import { constants } from "../constants";
 import { Schema, model, Document } from "mongoose";
 
 interface Action {
-  date: string;
+  date: Date;
   user_id: string;
-  user_name: string;
+  user_first_name: string;
+  user_last_name: string;
   module: string;
   action: string;
 }
-// Disabling this error until API's being implemented
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface AuditLog {
-  project_id: string;
-  actions: Action[];
-}
 
 interface AuditLogDocument extends Document {
-  project_id: string;
+  project_id: Schema.Types.ObjectId;
   actions: Action[];
 }
 
-const actionSchema = new Schema<Action>({
-  date: { type: String, required: true },
-  user_id: { type: String, required: true },
-  user_name: { type: String, required: true },
-  module: { type: String, required: true },
-  action: { type: String, required: true },
-});
-
 const auditLogSchema = new Schema<AuditLogDocument>({
-  project_id: { type: String, required: true },
-  actions: { type: [actionSchema], required: true },
+  project_id: {
+    type: Schema.Types.ObjectId,
+    ref: "Project",
+  },
+  actions: {
+    type: [
+      {
+        date: { type: Date, required: true },
+        user_id: { type: String, required: true },
+        user_first_name: { type: String, required: true },
+        user_last_name: { type: String, required: true },
+        module: { type: String, required: true, enum: constants.MODULES },
+        action: {
+          type: String,
+          required: true,
+          enum: constants.MODULES_ACTIONS,
+        },
+      },
+    ],
+    required: true,
+  },
 });
 
 const AuditLogModel = model<AuditLogDocument>("AuditLog", auditLogSchema);

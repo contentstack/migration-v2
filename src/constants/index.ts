@@ -1,5 +1,13 @@
 export const constants = {
   CS_REGIONS: ["US", "EU", "AZURE_NA", "AZURE_EU"],
+  MODULES: [
+    "Project",
+    "Migration",
+    "Content Mapping",
+    "Legacy CMS",
+    "Destination Stack",
+  ],
+  MODULES_ACTIONS: ["Create", "Update", "Delete"],
   AXIOS_TIMEOUT: 60 * 1000,
   HTTP_CODES: {
     OK: 200,
