@@ -2,7 +2,7 @@ import { Request } from "express";
 import ContentTypesMapperModel from "../models/contentTypesMapper";
 import FieldMapperModel from "../models/FieldMapper";
 import ProjectModel from "../models/project";
-import { getLogMessage, isEmpty } from "../utils";
+import { getLogMessage, isEmpty, safePromise } from "../utils";
 import {
   BadRequestError,
   ExceptionFunction,
@@ -13,6 +13,9 @@ import {
   constants,
 } from "../constants";
 import logger from "../utils/logger";
+import { config } from "../config";
+import https from "../utils/https.utils";
+import getAuthtoken from "../utils/auth.utils";
 
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {
@@ -161,13 +164,46 @@ const getFieldMapping = async (req: Request) => {
 };
 
 const getExistingContentTypes = async (req: Request) => {
-  const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
 
-  //Add logic to get Project from DB
-  return { orgId, projectId };
-};
+  const { token_payload } = req.body;
 
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+  const project = await ProjectModel.findById(projectId);
+  const stackId = project?.migration?.modules?.destination_cms?.stack_id;
+  const [err, res] = await safePromise(
+    https({
+      method: "GET",
+      url: `${config.CS_API[
+        token_payload?.region as keyof typeof config.CS_API
+      ]!}/content_types`,
+      headers: {
+        api_key: stackId,
+        authtoken: authtoken,
+      },
+    })
+  );
+
+  if (err)
+    return {
+      data: err.response.data,
+      status: err.response.status,
+    };
+
+  const contentTypes = res.data.content_types.map((singleCT: any) => {
+    return {
+      title: singleCT.title,
+      uid: singleCT.uid,
+      schema: singleCT.schema,
+    };
+  });
+
+  //Add logic to get Project from DB
+  return { contentTypes };
+};
 const udateContentType = async (req: Request) => {
   const srcFun = "udateContentType";
   const contentTypeId = req?.params?.contentTypeId;
@@ -196,7 +232,7 @@ const udateContentType = async (req: Request) => {
         isUpdated: contentTypeData?.isUpdated,
         updateAt: contentTypeData?.updateAt,
         contentstackTitle: contentTypeData?.contentstackTitle,
-        contnetStackUid: contentTypeData?.contnetStackUid,
+        contentStackUid: contentTypeData?.contentStackUid,
       },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
