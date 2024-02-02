@@ -1,60 +1,51 @@
 import { constants } from "../constants";
 
 export class AppError extends Error {
-  srcFunc: string;
-  constructor(
-    public statusCode: number,
-    message: string,
-    srcFunc: string = ""
-  ) {
+  constructor(public statusCode: number, message: string) {
     super(message);
-    this.srcFunc = srcFunc;
     Object.setPrototypeOf(this, AppError.prototype);
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(message: string = "Not Found", srcFunc: string = "") {
-    super(constants.HTTP_CODES.NOT_FOUND, message, srcFunc);
+  constructor(message: string = "Not Found") {
+    super(constants.HTTP_CODES.NOT_FOUND, message);
   }
 }
 
 export class BadRequestError extends AppError {
-  constructor(message: string = "Bad Request", srcFunc: string = "") {
-    super(constants.HTTP_CODES.BAD_REQUEST, message, srcFunc);
+  constructor(message: string = "Bad Request") {
+    super(constants.HTTP_CODES.BAD_REQUEST, message);
   }
 }
 
 export class DatabaseError extends AppError {
-  constructor(message: string = "DB error", srcFunc: string = "") {
-    super(constants.HTTP_CODES.SERVER_ERROR, message, srcFunc);
+  constructor(message: string = "DB error") {
+    super(constants.HTTP_CODES.SERVER_ERROR, message);
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string = "User validation error", srcFunc: string = "") {
-    super(constants.HTTP_CODES.UNPROCESSABLE_CONTENT, message, srcFunc);
+  constructor(message: string = "User validation error") {
+    super(constants.HTTP_CODES.UNPROCESSABLE_CONTENT, message);
   }
 }
 
 export class InternalServerError extends AppError {
-  constructor(
-    message: string = constants.HTTP_TEXTS.INTERNAL_ERROR,
-    srcFunc: string = ""
-  ) {
-    super(constants.HTTP_CODES.SERVER_ERROR, message, srcFunc);
+  constructor(message: string = constants.HTTP_TEXTS.INTERNAL_ERROR) {
+    super(constants.HTTP_CODES.SERVER_ERROR, message);
   }
 }
 
 export class UnauthorizedError extends AppError {
   constructor(message: string = constants.HTTP_TEXTS.UNAUTHORIZED) {
-    super(constants.HTTP_CODES.UNAUTHORIZED, message, "Auth utils");
+    super(constants.HTTP_CODES.UNAUTHORIZED, message);
   }
 }
 
 export class ExceptionFunction extends AppError {
-  constructor(message: string, httpStatus: number, srcFunc: string) {
-    super(httpStatus, message, srcFunc);
+  constructor(message: string, httpStatus: number) {
+    super(httpStatus, message);
   }
 }
 

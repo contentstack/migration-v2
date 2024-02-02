@@ -9,15 +9,13 @@ export const errorMiddleware = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction
 ) => {
-  // Log the error
-  logger.error(err.stack);
-
   if (err instanceof AppError) {
-    logger.error(`Error in method:  ${err.srcFunc}`);
     res
       .status(err.statusCode)
       .json({ error: { code: err.statusCode, message: err.message } });
   } else {
+    // Log the error
+    logger.error(err.stack);
     res
       .status(500)
       .json({ error: { code: 500, message: "Internal Server Error" } });
