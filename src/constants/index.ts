@@ -65,6 +65,9 @@ export const constants = {
     INVALID_REGION: "Provided region doesn't exists.",
   },
 };
-export const PROJECT_POPULATE_FIELDS = "migration.modules.content_mapper";
+export const PROJECT_POPULATE_FIELDS = "content_mapper";
 export const CONTENT_TYPE_POPULATE_FIELDS =
   "otherCmsTitle otherCmsUid isUpdated updateAt contentstackTitle contentStackUid";
+export const PROJECT_UNSELECTED_FIELDS =
+  "-content_mapper -legacy_cms -destination_stack_id -execution_log";
+export const EXCLUDE_CONTENT_MAPPER = "-content_mapper -execution_log";
