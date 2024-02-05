@@ -24,7 +24,7 @@ const putContentTypeFields = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const resp = await contentMapperService.udateContentType(req);
+  const resp = await contentMapperService.updateContentType(req);
   res.status(200).json(resp);
 };
 const resetContentType = async (req: Request, res: Response): Promise<void> => {

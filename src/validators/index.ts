@@ -23,7 +23,7 @@ export default (route: string = "") =>
       .map((field) => field.array())
       .reduce((acc, val) => [...acc, ...val], []);
 
-    if (result.length) throw new ValidationError(result[0].msg, "validation");
+    if (result.length) throw new ValidationError(result[0].msg);
 
     return next();
   });

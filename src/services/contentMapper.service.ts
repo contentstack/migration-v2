@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import { Request } from "express";
 import ContentTypesMapperModel from "../models/contentTypesMapper";
 import FieldMapperModel from "../models/FieldMapper";
@@ -21,13 +20,12 @@ import getAuthtoken from "../utils/auth.utils";
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
-  let contentTypes = req.body;
-  let updatedTypes: any = [];
+  const contentTypes = req.body;
 
   // console.log(contentTypes)
   await Promise.all(
     contentTypes.map(async (type: any, index: any) => {
-      const mapperData = await FieldMapperModel.insertMany(type.fieldMapping, {
+      await FieldMapperModel.insertMany(type.fieldMapping, {
         ordered: true,
       })
         .then(function (docs: any) {
@@ -36,7 +34,7 @@ const putTestData = async (req: Request) => {
             return item._id;
           });
         })
-        .catch(function (err) {
+        .catch(function () {
           // console.log("type.fieldMapping")
           //  console.log(err)
           // error handling here
@@ -46,7 +44,7 @@ const putTestData = async (req: Request) => {
 
   let typeIds: any = [];
 
-  const postData = await ContentTypesMapperModel.insertMany(contentTypes, {
+  await ContentTypesMapperModel.insertMany(contentTypes, {
     ordered: true,
   })
     .then(async function (docs) {
@@ -55,7 +53,7 @@ const putTestData = async (req: Request) => {
         return item._id;
       });
     })
-    .catch(function (err) {
+    .catch(function () {
       // console.log(err)
       // error handling here
     });
@@ -63,7 +61,7 @@ const putTestData = async (req: Request) => {
   const projectDetails: any = await ProjectModel.findOne({
     _id: projectId,
   });
-  projectDetails.migration.modules.content_mapper = typeIds;
+  projectDetails.content_mapper = typeIds;
   projectDetails.save();
   //Add logic to get Project from DB
   return projectDetails;
@@ -94,15 +92,11 @@ const getContentTypes = async (req: Request) => {
     );
     throw new BadRequestError(constants.HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
-  const {
-    migration: {
-      modules: { content_mapper },
-    },
-  }: any = projectDetails;
+  const { content_mapper }: any = projectDetails;
 
   if (!isEmpty(content_mapper)) {
     if (search) {
-      let filteredResult = content_mapper
+      const filteredResult = content_mapper
         .filter((item: any) =>
           item?.otherCmsTitle?.toLowerCase().includes(search)
         )
@@ -174,7 +168,7 @@ const getExistingContentTypes = async (req: Request) => {
     token_payload?.user_id
   );
   const project = await ProjectModel.findById(projectId);
-  const stackId = project?.migration?.modules?.destination_cms?.stack_id;
+  const stackId = project?.destination_stack_id;
   const [err, res] = await safePromise(
     https({
       method: "GET",
@@ -205,7 +199,7 @@ const getExistingContentTypes = async (req: Request) => {
   //Add logic to get Project from DB
   return { contentTypes };
 };
-const udateContentType = async (req: Request) => {
+const updateContentType = async (req: Request) => {
   const srcFun = "udateContentType";
   const contentTypeId = req?.params?.contentTypeId;
   const contentTypeData = req?.body;
@@ -321,6 +315,6 @@ export const contentMapperService = {
   getContentTypes,
   getFieldMapping,
   getExistingContentTypes,
-  udateContentType,
+  updateContentType,
   resetToInitialMapping,
 };

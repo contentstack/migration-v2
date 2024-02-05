@@ -7,26 +7,9 @@ interface LegacyCMS {
   import_data: string;
 }
 
-interface DestinationCMS {
-  stack_id: string;
-  org_id: string;
-}
-
-interface Modules {
-  legacy_cms: LegacyCMS;
-  destination_cms: DestinationCMS;
-}
-
-interface Migration {
-  name: string;
-  description: string;
-  created_at: Date;
-  updated_at: Date;
-  modules: Modules;
-}
-
 interface ExecutionLog {
   log_url: string;
+  date: Date;
 }
 
 interface ProjectDocument extends Document {
@@ -34,11 +17,15 @@ interface ProjectDocument extends Document {
   org_id: string;
   owner: string;
   created_by: string;
+  updated_by: string;
+  former_owner_ids: [];
   name: string;
   description: string;
   status: boolean;
-  migration: Migration;
-  execution_log: ExecutionLog;
+  destination_stack_id: string;
+  legacy_cms: LegacyCMS;
+  content_mapper: [];
+  execution_log: [ExecutionLog];
   created_at: Date;
   updated_at: Date;
 }
@@ -49,32 +36,26 @@ const projectSchema = new Schema<ProjectDocument>(
     org_id: { type: String, required: true },
     owner: { type: String, required: true },
     created_by: { type: String, required: true },
+    updated_by: { type: String },
+    former_owner_ids: [{ type: String }],
     name: { type: String, required: true },
     description: { type: String, required: true },
     status: { type: Boolean, default: true },
-    migration: {
-      name: { type: String },
-      description: { type: String },
-      created_at: { type: Date },
-      updated_at: { type: Date },
-      modules: {
-        legacy_cms: {
-          cms: { type: String },
-          file_format: { type: String },
-          import_data: { type: String },
-        },
-        destination_cms: {
-          stack_id: { type: String },
-          org_id: { type: String },
-        },
-        content_mapper: [
-          { type: Schema.Types.ObjectId, ref: "ContentTypes Mapper" },
-        ],
+    destination_stack_id: { type: String },
+    legacy_cms: {
+      cms: { type: String },
+      file_format: { type: String },
+      import_data: { type: String },
+    },
+    content_mapper: [
+      { type: Schema.Types.ObjectId, ref: "ContentTypes Mapper" },
+    ],
+    execution_log: [
+      {
+        log_url: { type: String },
+        date: { type: Date },
       },
-    },
-    execution_log: {
-      log_url: { type: String },
-    },
+    ],
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
