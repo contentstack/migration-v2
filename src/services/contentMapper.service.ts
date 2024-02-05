@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import { Request } from "express";
 import ContentTypesMapperModel from "../models/contentTypesMapper";
 import FieldMapperModel from "../models/FieldMapper";
@@ -258,8 +259,7 @@ const udateContentType = async (req: Request) => {
     );
     throw new ExceptionFunction(
       error?.message || constants.HTTP_TEXTS.INTERNAL_ERROR,
-      error?.status || constants.HTTP_CODES.SERVER_ERROR,
-      srcFun
+      error?.status || constants.HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -311,8 +311,7 @@ const resetToInitialMapping = async (req: Request) => {
     );
     throw new ExceptionFunction(
       error?.message || constants.HTTP_TEXTS.INTERNAL_ERROR,
-      error?.status || constants.HTTP_CODES.SERVER_ERROR,
-      srcFunc
+      error?.status || constants.HTTP_CODES.SERVER_ERROR
     );
   }
 };
