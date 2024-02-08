@@ -1,11 +1,11 @@
 import { checkSchema } from "express-validator";
-import { constants } from "../constants";
+import { VALIDATION_ERRORS } from "../constants";
 
 export default checkSchema({
   stack_api_key: {
     in: "body",
     isString: {
-      errorMessage: constants.VALIDATION_ERRORS.STRING_REQUIRED.replace(
+      errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace(
         "$",
         "stack_api_key"
       ),
@@ -13,7 +13,7 @@ export default checkSchema({
     },
     trim: true,
     isLength: {
-      errorMessage: constants.VALIDATION_ERRORS.LENGTH_LIMIT.replace(
+      errorMessage: VALIDATION_ERRORS.LENGTH_LIMIT.replace(
         "$",
         "stack_api_key"
       ),

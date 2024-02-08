@@ -1,4 +1,4 @@
-import { constants } from "../constants";
+import { MODULES, MODULES_ACTIONS } from "../constants";
 import { Schema, model, Document } from "mongoose";
 
 interface Action {
@@ -27,11 +27,11 @@ const auditLogSchema = new Schema<AuditLogDocument>({
         user_id: { type: String, required: true },
         user_first_name: { type: String, required: true },
         user_last_name: { type: String, required: true },
-        module: { type: String, required: true, enum: constants.MODULES },
+        module: { type: String, required: true, enum: MODULES },
         action: {
           type: String,
           required: true,
-          enum: constants.MODULES_ACTIONS,
+          enum: MODULES_ACTIONS,
         },
       },
     ],

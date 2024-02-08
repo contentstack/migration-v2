@@ -2,7 +2,7 @@ import { Request } from "express";
 import { config } from "../config";
 import https from "../utils/https.utils";
 import { AppTokenPayload, UserProfile } from "../models/types";
-import { constants } from "../constants";
+import { HTTP_TEXTS } from "../constants";
 import { BadRequestError } from "../utils/custom-errors.utils";
 import AuthenticationModel from "../models/authentication";
 
@@ -14,8 +14,7 @@ const getUserProfile = async (req: Request): Promise<UserProfile> => {
     region: appTokenPayload?.region,
   }).lean();
 
-  if (!user?.authtoken)
-    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
+  if (!user?.authtoken) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
 
   const res = await https({
     method: "GET",
@@ -28,8 +27,7 @@ const getUserProfile = async (req: Request): Promise<UserProfile> => {
     },
   });
 
-  if (!res?.data?.user)
-    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
+  if (!res?.data?.user) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
 
   const orgs = (res?.data?.user?.organizations || [])
     ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))

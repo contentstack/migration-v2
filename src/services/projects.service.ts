@@ -4,7 +4,8 @@ import { BadRequestError, NotFoundError } from "../utils/custom-errors.utils";
 import {
   EXCLUDE_CONTENT_MAPPER,
   PROJECT_UNSELECTED_FIELDS,
-  constants,
+  HTTP_TEXTS,
+  HTTP_CODES,
 } from "../constants";
 import { MigrationQueryType } from "../models/types";
 import { config } from "../config";
@@ -14,15 +15,13 @@ import https from "../utils/https.utils";
 
 const _getProject = async (projectId: string, query: MigrationQueryType) => {
   if (!isValidObjectId(projectId))
-    throw new BadRequestError(
-      constants.HTTP_TEXTS.INVALID_ID.replace("$", "project")
-    );
+    throw new BadRequestError(HTTP_TEXTS.INVALID_ID.replace("$", "project"));
 
   const project = await ProjectModel.findOne(query).select(
     EXCLUDE_CONTENT_MAPPER
   );
 
-  if (!project) throw new NotFoundError(constants.HTTP_TEXTS.NO_PROJECT);
+  if (!project) throw new NotFoundError(HTTP_TEXTS.NO_PROJECT);
 
   return project;
 };
@@ -38,7 +37,7 @@ const getAllProjects = async (req: Request) => {
     owner: user_id,
   }).select(PROJECT_UNSELECTED_FIELDS);
 
-  if (!project) throw new NotFoundError(constants.HTTP_TEXTS.PROJECT_NOT_FOUND);
+  if (!project) throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
 
   return project;
 };
@@ -75,7 +74,7 @@ const createProject = async (req: Request) => {
   //Add logic to create Project from DB
   const project = await ProjectModel.create(projectData);
 
-  if (!project) throw new NotFoundError(constants.HTTP_TEXTS.PROJECT_NOT_FOUND);
+  if (!project) throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   return {
     status: "success",
     message: "Project created successfully",
@@ -144,9 +143,9 @@ const updateLegacyCMS = async (req: Request) => {
   await project.save();
 
   return {
-    status: constants.HTTP_CODES.OK,
+    status: HTTP_CODES.OK,
     data: {
-      message: constants.HTTP_TEXTS.CMS_UPDATED,
+      message: HTTP_TEXTS.CMS_UPDATED,
     },
   };
 };
@@ -167,9 +166,9 @@ const updateFileFormat = async (req: Request) => {
   await project.save();
 
   return {
-    status: constants.HTTP_CODES.OK,
+    status: HTTP_CODES.OK,
     data: {
-      message: constants.HTTP_TEXTS.FILE_FORMAT_UPDATED,
+      message: HTTP_TEXTS.FILE_FORMAT_UPDATED,
     },
   };
 };
@@ -206,13 +205,13 @@ const updateDestinationStack = async (req: Request) => {
   if (err)
     return {
       data: {
-        message: constants.HTTP_TEXTS.DESTINATION_STACK_ERROR,
+        message: HTTP_TEXTS.DESTINATION_STACK_ERROR,
       },
       status: err.response.status,
     };
 
   if (!res.data.stacks.find((stack: any) => stack.api_key === stack_api_key))
-    throw new BadRequestError(constants.HTTP_TEXTS.DESTINATION_STACK_NOT_FOUND);
+    throw new BadRequestError(HTTP_TEXTS.DESTINATION_STACK_NOT_FOUND);
 
   project.destination_stack_id = stack_api_key;
   // project.migration.modules.destination_cms.org_id = orgId;
@@ -220,9 +219,9 @@ const updateDestinationStack = async (req: Request) => {
   await project.save();
 
   return {
-    status: constants.HTTP_CODES.OK,
+    status: HTTP_CODES.OK,
     data: {
-      message: constants.HTTP_TEXTS.DESTINATION_STACK_UPDATED,
+      message: HTTP_TEXTS.DESTINATION_STACK_UPDATED,
     },
   };
 };

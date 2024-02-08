@@ -1,5 +1,5 @@
 import { Schema, model, Document } from "mongoose";
-import { constants } from "../constants";
+import { CS_REGIONS } from "../constants";
 
 interface LegacyCMS {
   cms: string;
@@ -32,7 +32,7 @@ interface ProjectDocument extends Document {
 
 const projectSchema = new Schema<ProjectDocument>(
   {
-    region: { type: String, required: true, enum: constants.CS_REGIONS },
+    region: { type: String, required: true, enum: CS_REGIONS },
     org_id: { type: String, required: true },
     owner: { type: String, required: true },
     created_by: { type: String, required: true },

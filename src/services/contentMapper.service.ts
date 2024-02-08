@@ -10,7 +10,8 @@ import {
 import {
   CONTENT_TYPE_POPULATE_FIELDS,
   PROJECT_POPULATE_FIELDS,
-  constants,
+  HTTP_TEXTS,
+  HTTP_CODES,
 } from "../constants";
 import logger from "../utils/logger";
 import { config } from "../config";
@@ -87,10 +88,10 @@ const getContentTypes = async (req: Request) => {
     logger.error(
       getLogMessage(
         sourceFn,
-        `${constants.HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
       )
     );
-    throw new BadRequestError(constants.HTTP_TEXTS.PROJECT_NOT_FOUND);
+    throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
   const { content_mapper }: any = projectDetails;
 
@@ -136,10 +137,10 @@ const getFieldMapping = async (req: Request) => {
     logger.error(
       getLogMessage(
         srcFunc,
-        `${constants.HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
       )
     );
-    throw new BadRequestError(constants.HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
+    throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
   }
 
   const { fieldMapping }: any = contentType;
@@ -211,10 +212,10 @@ const updateContentType = async (req: Request) => {
     logger.error(
       getLogMessage(
         srcFun,
-        `${constants.HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
       )
     );
-    throw new BadRequestError(constants.HTTP_TEXTS.INVALID_CONTENT_TYPE);
+    throw new BadRequestError(HTTP_TEXTS.INVALID_CONTENT_TYPE);
   }
   try {
     updatedContentType = await ContentTypesMapperModel.findOneAndUpdate(
@@ -252,8 +253,8 @@ const updateContentType = async (req: Request) => {
       )
     );
     throw new ExceptionFunction(
-      error?.message || constants.HTTP_TEXTS.INTERNAL_ERROR,
-      error?.status || constants.HTTP_CODES.SERVER_ERROR
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -270,10 +271,10 @@ const resetToInitialMapping = async (req: Request) => {
     logger.error(
       getLogMessage(
         srcFunc,
-        `${constants.HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
       )
     );
-    throw new BadRequestError(constants.HTTP_TEXTS.INVALID_CONTENT_TYPE);
+    throw new BadRequestError(HTTP_TEXTS.INVALID_CONTENT_TYPE);
   }
 
   try {
@@ -294,7 +295,7 @@ const resetToInitialMapping = async (req: Request) => {
       );
       await FieldMapperModel.bulkWrite(bulkWriteOperations, { ordered: false });
     }
-    return { message: constants.HTTP_TEXTS.RESET_CONTENT_MAPPING };
+    return { message: HTTP_TEXTS.RESET_CONTENT_MAPPING };
   } catch (error: any) {
     logger.error(
       getLogMessage(
@@ -304,8 +305,8 @@ const resetToInitialMapping = async (req: Request) => {
       )
     );
     throw new ExceptionFunction(
-      error?.message || constants.HTTP_TEXTS.INTERNAL_ERROR,
-      error?.status || constants.HTTP_CODES.SERVER_ERROR
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };

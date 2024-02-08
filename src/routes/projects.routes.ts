@@ -41,5 +41,4 @@ router.put(
 // Delete a project route
 router.delete("/:projectId", asyncRouter(projectController.deleteProject));
 
-
 export default router;

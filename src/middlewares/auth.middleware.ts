@@ -2,14 +2,14 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { config } from "../config";
-import { constants } from "../constants";
+import { HTTP_CODES } from "../constants";
 
 export const authenticateUser = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const status = constants.HTTP_CODES.UNAUTHORIZED;
+  const status = HTTP_CODES.UNAUTHORIZED;
   const token = req.get("app_token");
 
   if (!token)
