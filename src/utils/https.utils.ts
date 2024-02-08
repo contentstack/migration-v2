@@ -1,5 +1,5 @@
 import axios from "axios";
-import { constants } from "../constants";
+import { AXIOS_TIMEOUT, METHODS_TO_INCLUDE_DATA_IN_AXIOS } from "../constants";
 
 type httpType = {
   url: string;
@@ -14,8 +14,8 @@ export default async (obj: httpType) => {
     method,
     headers: headers,
     ...(headers && { headers }),
-    timeout: timeout ?? constants.AXIOS_TIMEOUT,
-    ...(constants.METHODS_TO_INCLUDE_DATA_IN_AXIOS.includes(method) && {
+    timeout: timeout ?? AXIOS_TIMEOUT,
+    ...(METHODS_TO_INCLUDE_DATA_IN_AXIOS.includes(method) && {
       data,
     }),
   });

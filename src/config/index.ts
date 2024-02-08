@@ -14,7 +14,7 @@ export type ConfigType = {
   APP_ENV: string;
   MONGODB_URI: string;
   CS_API: {
-    US: string;
+    NA: string;
     EU: string;
     AZURE_NA: string;
     AZURE_EU?: string;

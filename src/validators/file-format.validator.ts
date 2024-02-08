@@ -1,11 +1,11 @@
 import { checkSchema } from "express-validator";
-import { constants } from "../constants";
+import { VALIDATION_ERRORS } from "../constants";
 
 export default checkSchema({
   file_format: {
     in: "body",
     isString: {
-      errorMessage: constants.VALIDATION_ERRORS.STRING_REQUIRED.replace(
+      errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace(
         "$",
         "file_format"
       ),
@@ -13,10 +13,7 @@ export default checkSchema({
     },
     trim: true,
     isLength: {
-      errorMessage: constants.VALIDATION_ERRORS.LENGTH_LIMIT.replace(
-        "$",
-        "file_format"
-      ),
+      errorMessage: VALIDATION_ERRORS.LENGTH_LIMIT.replace("$", "file_format"),
       options: {
         min: 1,
         max: 200,

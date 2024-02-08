@@ -3,7 +3,7 @@ import { config } from "../config";
 import { safePromise } from "../utils/index";
 import https from "../utils/https.utils";
 import { LoginServiceType, AppTokenPayload } from "../models/types";
-import { constants } from "../constants";
+import { HTTP_CODES, HTTP_TEXTS } from "../constants";
 import { generateToken } from "../utils/jwt.utils";
 import {
   BadRequestError,
@@ -39,14 +39,13 @@ const login = async (req: Request): Promise<LoginServiceType> => {
       status: err?.response?.status,
     };
 
-  if (res?.status === constants.HTTP_CODES.SUPPORT_DOC)
+  if (res?.status === HTTP_CODES.SUPPORT_DOC)
     return {
       data: res?.data,
       status: res?.status,
     };
 
-  if (!res?.data?.user)
-    throw new BadRequestError(constants.HTTP_TEXTS.NO_CS_USER);
+  if (!res?.data?.user) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
 
   const appTokenPayload: AppTokenPayload = {
     region: userData?.region,
@@ -69,10 +68,10 @@ const login = async (req: Request): Promise<LoginServiceType> => {
 
   return {
     data: {
-      message: constants.HTTP_TEXTS.SUCCESS_LOGIN,
+      message: HTTP_TEXTS.SUCCESS_LOGIN,
       app_token,
     },
-    status: constants.HTTP_CODES.OK,
+    status: HTTP_CODES.OK,
   };
 };
 
@@ -106,7 +105,7 @@ const requestSms = async (req: Request): Promise<LoginServiceType> => {
       status: res.status,
     };
   } catch (error) {
-    throw new InternalServerError(constants.HTTP_TEXTS.INTERNAL_ERROR);
+    throw new InternalServerError(HTTP_TEXTS.INTERNAL_ERROR);
   }
 };
 

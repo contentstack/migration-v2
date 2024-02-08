@@ -1,22 +1,16 @@
 import { checkSchema } from "express-validator";
-import { constants } from "../constants";
+import { VALIDATION_ERRORS } from "../constants";
 
 export default checkSchema({
   name: {
     in: "body",
     isString: {
-      errorMessage: constants.VALIDATION_ERRORS.STRING_REQUIRED.replace(
-        "$",
-        "Name"
-      ),
+      errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "Name"),
       bail: true,
     },
     trim: true,
     isLength: {
-      errorMessage: constants.VALIDATION_ERRORS.LENGTH_LIMIT.replace(
-        "$",
-        "Name"
-      ),
+      errorMessage: VALIDATION_ERRORS.LENGTH_LIMIT.replace("$", "Name"),
       options: {
         min: 1,
         max: 200,
@@ -27,7 +21,7 @@ export default checkSchema({
   description: {
     in: "body",
     isString: {
-      errorMessage: constants.VALIDATION_ERRORS.STRING_REQUIRED.replace(
+      errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace(
         "$",
         "Description"
       ),
@@ -35,10 +29,7 @@ export default checkSchema({
     },
     trim: true,
     isLength: {
-      errorMessage: constants.VALIDATION_ERRORS.LENGTH_LIMIT.replace(
-        "$",
-        "Description"
-      ),
+      errorMessage: VALIDATION_ERRORS.LENGTH_LIMIT.replace("$", "Description"),
       options: {
         min: 1,
         max: 255,

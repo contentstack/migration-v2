@@ -1,7 +1,7 @@
 // src/models/Authentication.ts
 
 import { Schema, model, Document } from "mongoose";
-import { constants } from "../constants";
+import { CS_REGIONS } from "../constants";
 
 interface AuthenticationDocument extends Document {
   user_id: string;
@@ -12,7 +12,7 @@ interface AuthenticationDocument extends Document {
 const authenticationSchema = new Schema<AuthenticationDocument>(
   {
     user_id: { type: String, required: true },
-    region: { type: String, required: true, enum: constants.CS_REGIONS },
+    region: { type: String, required: true, enum: CS_REGIONS },
     authtoken: { type: String, required: true },
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }

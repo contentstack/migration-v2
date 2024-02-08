@@ -1,4 +1,4 @@
-import { constants } from "../constants";
+import { HTTP_CODES, HTTP_TEXTS } from "../constants";
 
 export class AppError extends Error {
   constructor(public statusCode: number, message: string) {
@@ -9,37 +9,37 @@ export class AppError extends Error {
 
 export class NotFoundError extends AppError {
   constructor(message: string = "Not Found") {
-    super(constants.HTTP_CODES.NOT_FOUND, message);
+    super(HTTP_CODES.NOT_FOUND, message);
   }
 }
 
 export class BadRequestError extends AppError {
   constructor(message: string = "Bad Request") {
-    super(constants.HTTP_CODES.BAD_REQUEST, message);
+    super(HTTP_CODES.BAD_REQUEST, message);
   }
 }
 
 export class DatabaseError extends AppError {
   constructor(message: string = "DB error") {
-    super(constants.HTTP_CODES.SERVER_ERROR, message);
+    super(HTTP_CODES.SERVER_ERROR, message);
   }
 }
 
 export class ValidationError extends AppError {
   constructor(message: string = "User validation error") {
-    super(constants.HTTP_CODES.UNPROCESSABLE_CONTENT, message);
+    super(HTTP_CODES.UNPROCESSABLE_CONTENT, message);
   }
 }
 
 export class InternalServerError extends AppError {
-  constructor(message: string = constants.HTTP_TEXTS.INTERNAL_ERROR) {
-    super(constants.HTTP_CODES.SERVER_ERROR, message);
+  constructor(message: string = HTTP_TEXTS.INTERNAL_ERROR) {
+    super(HTTP_CODES.SERVER_ERROR, message);
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message: string = constants.HTTP_TEXTS.UNAUTHORIZED) {
-    super(constants.HTTP_CODES.UNAUTHORIZED, message);
+  constructor(message: string = HTTP_TEXTS.UNAUTHORIZED) {
+    super(HTTP_CODES.UNAUTHORIZED, message);
   }
 }
 
