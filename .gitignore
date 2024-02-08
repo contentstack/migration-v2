@@ -357,3 +357,5 @@ error.log
 combine.log
 
 package-lock.json
+
+!example.env
