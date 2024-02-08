@@ -1,5 +1,5 @@
 export const constants = {
-  CS_REGIONS: ["US", "EU", "AZURE_NA", "AZURE_EU"],
+  CS_REGIONS: ["NA", "EU", "AZURE_NA", "AZURE_EU"],
   MODULES: [
     "Project",
     "Migration",
