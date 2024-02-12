@@ -6,6 +6,8 @@ import projectValidator from "./project.validator";
 import cmsValidator from "./cms.validator";
 import fileFormatValidator from "./file-format.validator";
 import destinationStackValidator from "./destination-stack.validator";
+import initializeUploadValidator from "./initialize-upload.validator";
+import uploadValidator from "./upload.validator";
 
 export default (route: string = "") =>
   asyncRouter(async (req: Request, res: Response, next: NextFunction) => {
@@ -15,6 +17,8 @@ export default (route: string = "") =>
       cms: cmsValidator,
       file_format: fileFormatValidator,
       destination_stack: destinationStackValidator,
+      initialize_upload: initializeUploadValidator,
+      file_upload: uploadValidator,
     };
 
     const validator = appValidators[route as keyof typeof appValidators];

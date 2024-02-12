@@ -2,7 +2,7 @@
 
 This is the TSO migration V2's node server.
 
-## To start the sever
+## To start the server
 
 1.  Run `npm i`
 2.  Install & start MongoDB
