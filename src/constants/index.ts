@@ -67,6 +67,7 @@ export const VALIDATION_ERRORS = {
   LENGTH_LIMIT: "$'s max limit reached.",
   STRING_REQUIRED: "Provided $ should be a string.",
   INVALID_REGION: "Provided region doesn't exists.",
+  FIELD_REQUIRED: "Field '$' is required.",
 };
 export const PROJECT_POPULATE_FIELDS = "content_mapper";
 export const CONTENT_TYPE_POPULATE_FIELDS =

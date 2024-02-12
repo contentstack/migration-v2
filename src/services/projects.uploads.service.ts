@@ -22,7 +22,7 @@ const _getProject = async (projectId: string, query: MigrationQueryType) => {
 const initializeUpload = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
-  const FileName = req.body.file_name;
+  const fileName = req.body.file_name;
   const { user_id = "", region = "" } = req.body.token_payload;
 
   // Find the project based on both orgId and projectId, region, owner
@@ -33,7 +33,7 @@ const initializeUpload = async (req: Request) => {
     owner: user_id,
   });
 
-  const result = await initialize(region, orgId, user_id, projectId, FileName);
+  const result = await initialize(region, orgId, user_id, projectId, fileName);
 
   return {
     status: HTTP_CODES.OK,
