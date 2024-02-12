@@ -48,6 +48,7 @@ export const HTTP_TEXTS = {
   INVALID_CONTENT_TYPE: "Provide valid ContentType data",
   RESET_CONTENT_MAPPING:
     "ContentType has been successfully restored to its initial mapping",
+  UPLOAD_SUCCESS: "File uploaded successfully",
 };
 export const HTTP_RESPONSE_HEADERS = {
   "Access-Control-Allow-Origin": "*",
