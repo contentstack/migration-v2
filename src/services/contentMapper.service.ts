@@ -9,9 +9,10 @@ import {
 } from "../utils/custom-errors.utils";
 import {
   CONTENT_TYPE_POPULATE_FIELDS,
-  PROJECT_POPULATE_FIELDS,
   HTTP_TEXTS,
   HTTP_CODES,
+  POPULATE_CONTENT_MAPPER,
+  POPULATE_FIELD_MAPPING,
 } from "../constants";
 import logger from "../utils/logger";
 import { config } from "../config";
@@ -80,7 +81,7 @@ const getContentTypes = async (req: Request) => {
   const projectDetails = await ProjectModel.findOne({
     _id: projectId,
   }).populate({
-    path: PROJECT_POPULATE_FIELDS,
+    path: POPULATE_CONTENT_MAPPER,
     select: CONTENT_TYPE_POPULATE_FIELDS,
   });
 
@@ -228,7 +229,7 @@ const updateContentType = async (req: Request) => {
         isUpdated: contentTypeData?.isUpdated,
         updateAt: contentTypeData?.updateAt,
         contentstackTitle: contentTypeData?.contentstackTitle,
-        contentStackUid: contentTypeData?.contentStackUid,
+        contentstackUid: contentTypeData?.contentstackUid,
       },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
@@ -263,9 +264,9 @@ const resetToInitialMapping = async (req: Request) => {
   const srcFunc = "resetToInitialMapping";
   const contentTypeId = req?.params?.contentTypeId;
 
-  const contentType = await ContentTypesMapperModel.findOne({
+  const contentType: any = await ContentTypesMapperModel.findOne({
     _id: contentTypeId,
-  }).populate("fieldMapping");
+  }).populate(POPULATE_FIELD_MAPPING);
 
   if (isEmpty(contentType)) {
     logger.error(
@@ -295,22 +296,91 @@ const resetToInitialMapping = async (req: Request) => {
       );
       await FieldMapperModel.bulkWrite(bulkWriteOperations, { ordered: false });
     }
+    contentType.contentstackTitle = "";
+    contentType.contentstackUid = "";
+    contentType?.save();
     return { message: HTTP_TEXTS.RESET_CONTENT_MAPPING };
   } catch (error: any) {
     logger.error(
       getLogMessage(
         srcFunc,
         `Error occurred while resetting the field mapping for the ContentType ID: ${contentTypeId}`,
+        {},
         error
       )
     );
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.status || HTTP_CODES.SERVER_ERROR
+      error?.status || error.statusCode || HTTP_CODES.SERVER_ERROR
     );
   }
 };
+const removeMapping = async (req: Request) => {
+  const srcFunc = "removeMapping";
+  const projectId = req?.params?.projectId;
 
+  const projectDetails: any = await ProjectModel.findOne({
+    _id: projectId,
+  }).populate({
+    path: POPULATE_CONTENT_MAPPER,
+    populate: { path: POPULATE_FIELD_MAPPING },
+  });
+
+  if (isEmpty(projectDetails)) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+      )
+    );
+    throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
+
+  try {
+    const contentTypes = projectDetails?.content_mapper;
+
+    const contentTypesbulkWriteOperations: any = await Promise.all(
+      contentTypes?.map(async (contentType: any) => {
+        if (!isEmpty(contentType?.fieldMapping)) {
+          const bulkWriteOperations: any = contentType?.fieldMapping?.map(
+            (doc: any) => ({
+              deleteOne: {
+                filter: { _id: doc._id },
+              },
+            })
+          );
+          await FieldMapperModel.bulkWrite(bulkWriteOperations, {
+            ordered: false,
+          });
+        }
+        return {
+          deleteOne: {
+            filter: { _id: contentType._id },
+          },
+        };
+      })
+    );
+    await ContentTypesMapperModel.bulkWrite(contentTypesbulkWriteOperations, {
+      ordered: false,
+    });
+    projectDetails.content_mapper = [];
+    await projectDetails?.save();
+    return projectDetails;
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while removing the content mapping for the Project [Id: ${projectId}]`,
+        {},
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -318,4 +388,5 @@ export const contentMapperService = {
   getExistingContentTypes,
   updateContentType,
   resetToInitialMapping,
+  removeMapping,
 };

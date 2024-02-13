@@ -15,14 +15,14 @@ export const safePromise = (promise: Promise<any>): Promise<any> =>
 
 //Generic method to get log message object
 export const getLogMessage = (
-  message: string,
   methodName: string,
+  message: string,
   user = {},
   error?: any
 ) => {
   return {
-    message,
     methodName,
+    message,
     ...(user && { user }),
     ...(error && { error }),
   };

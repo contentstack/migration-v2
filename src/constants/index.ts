@@ -69,9 +69,10 @@ export const VALIDATION_ERRORS = {
   INVALID_REGION: "Provided region doesn't exists.",
   FIELD_REQUIRED: "Field '$' is required.",
 };
-export const PROJECT_POPULATE_FIELDS = "content_mapper";
+export const POPULATE_CONTENT_MAPPER = "content_mapper";
+export const POPULATE_FIELD_MAPPING = "fieldMapping";
 export const CONTENT_TYPE_POPULATE_FIELDS =
-  "otherCmsTitle otherCmsUid isUpdated updateAt contentstackTitle contentStackUid";
+  "otherCmsTitle otherCmsUid isUpdated updateAt contentstackTitle contentstackUid";
 export const PROJECT_UNSELECTED_FIELDS =
   "-content_mapper -legacy_cms -destination_stack_id -execution_log";
 export const EXCLUDE_CONTENT_MAPPER = "-content_mapper -execution_log";

@@ -6,7 +6,7 @@ interface ContentTypesMapper extends Document {
   isUpdated: boolean;
   updateAt: Date;
   contentstackTitle: string;
-  contentStackUid: string;
+  contentstackUid: string;
   fieldMapping: [];
 }
 
@@ -16,7 +16,7 @@ const contentTypesMapperSchema = new Schema<ContentTypesMapper>({
   isUpdated: { type: Boolean, default: false },
   updateAt: { type: Date },
   contentstackTitle: { type: String },
-  contentStackUid: { type: String },
+  contentstackUid: { type: String },
   fieldMapping: [{ type: Schema.Types.ObjectId, ref: "FieldMapping" }],
 });
 

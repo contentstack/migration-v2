@@ -10,6 +10,13 @@ const getProject = async (req: Request, res: Response): Promise<void> => {
   const project = await projectService.getProject(req);
   res.status(200).json(project);
 };
+const getProjectAllDetails = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const project = await projectService.getProjectAllDetails(req);
+  res.status(200).json(project);
+};
 const createProject = async (req: Request, res: Response): Promise<void> => {
   const project = await projectService.createProject(req);
   res.status(201).json(project);
@@ -42,6 +49,7 @@ const deleteProject = async (req: Request, res: Response): Promise<void> => {
 export const projectController = {
   getAllProjects,
   getProject,
+  getProjectAllDetails,
   createProject,
   updateProject,
   updateLegacyCMS,
