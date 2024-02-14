@@ -6,12 +6,15 @@ import {
   PROJECT_UNSELECTED_FIELDS,
   HTTP_TEXTS,
   HTTP_CODES,
+  POPULATE_CONTENT_MAPPER,
+  POPULATE_FIELD_MAPPING,
 } from "../constants";
 import { config } from "../config";
-import { safePromise } from "../utils";
+import { getLogMessage, isEmpty, safePromise } from "../utils";
 import getAuthtoken from "../utils/auth.utils";
 import https from "../utils/https.utils";
 import getProjectUtil from "../utils/get-project.utils";
+import logger from "../utils/logger";
 
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
@@ -45,6 +48,31 @@ const getProject = async (req: Request) => {
     },
     EXCLUDE_CONTENT_MAPPER
   );
+
+  return project;
+};
+
+const getProjectAllDetails = async (req: Request) => {
+  const projectId = req?.params?.projectId;
+  const srcFunc = "getProjectAllDetails";
+
+  // Find the project
+  const project = await ProjectModel.findOne({
+    _id: projectId,
+  }).populate({
+    path: POPULATE_CONTENT_MAPPER,
+    populate: { path: POPULATE_FIELD_MAPPING },
+  });
+
+  if (isEmpty(project)) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+      )
+    );
+    throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
 
   return project;
 };
@@ -244,6 +272,7 @@ const deleteProject = async (req: Request) => {
 export const projectService = {
   getAllProjects,
   getProject,
+  getProjectAllDetails,
   createProject,
   updateProject,
   updateLegacyCMS,

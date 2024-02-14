@@ -31,6 +31,11 @@ const resetContentType = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.resetToInitialMapping(req);
   res.status(200).json(resp);
 };
+// TODO Will remove if not required
+// const removeMapping = async (req: Request, res: Response): Promise<void> => {
+//   const resp = await contentMapperService.removeMapping(req);
+//   res.status(200).json(resp);
+// };
 
 export const contentMapperController = {
   getContentTypes,
@@ -39,4 +44,5 @@ export const contentMapperController = {
   putTestData,
   putContentTypeFields,
   resetContentType,
+  // removeMapping,
 };
