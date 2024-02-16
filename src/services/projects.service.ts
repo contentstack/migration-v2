@@ -177,6 +177,33 @@ const updateLegacyCMS = async (req: Request) => {
   };
 };
 
+const updateAffix = async (req: Request) => {
+  const { orgId, projectId } = req.params;
+  const { token_payload, affix } = req.body;
+
+  const project = await getProjectUtil(
+    projectId,
+    {
+      _id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    EXCLUDE_CONTENT_MAPPER
+  );
+
+  project.legacy_cms.affix = affix;
+
+  await project.save();
+
+  return {
+    status: HTTP_CODES.OK,
+    data: {
+      message: HTTP_TEXTS.AFFIX_UPDATED,
+    },
+  };
+};
+
 const updateFileFormat = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, file_format } = req.body;
@@ -276,6 +303,7 @@ export const projectService = {
   createProject,
   updateProject,
   updateLegacyCMS,
+  updateAffix,
   updateFileFormat,
   updateDestinationStack,
   deleteProject,

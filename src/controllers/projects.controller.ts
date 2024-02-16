@@ -31,6 +31,11 @@ const updateLegacyCMS = async (req: Request, res: Response) => {
   res.status(resp.status).json(resp.data);
 };
 
+const updateAffix = async (req: Request, res: Response) => {
+  const resp = await projectService.updateAffix(req);
+  res.status(resp.status).json(resp.data);
+};
+
 const updateFileFormat = async (req: Request, res: Response) => {
   const resp = await projectService.updateFileFormat(req);
   res.status(resp.status).json(resp.data);
@@ -53,6 +58,7 @@ export const projectController = {
   createProject,
   updateProject,
   updateLegacyCMS,
+  updateAffix,
   updateFileFormat,
   updateDestinationStack,
   deleteProject,

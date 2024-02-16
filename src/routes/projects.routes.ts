@@ -25,6 +25,13 @@ router.put(
   asyncRouter(projectController.updateLegacyCMS)
 );
 
+// Update project's Affix
+router.put(
+  "/:projectId/affix",
+  validator("affix"),
+  asyncRouter(projectController.updateAffix)
+);
+
 // Update project's file format
 router.put(
   "/:projectId/file-format",

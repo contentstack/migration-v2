@@ -35,6 +35,7 @@ export const HTTP_TEXTS = {
   NO_PROJECT: "resource not found with the given ID(s).",
   MIGRATION_CREATED: "Project's migration created successfully.",
   MIGRATION_UPDATED: "Project's migration updated successfully.",
+  AFFIX_UPDATED: "Project's Affix updated successfully",
   CMS_UPDATED: "Project's migration cms updated successfully",
   FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
   DESTINATION_STACK_UPDATED:
@@ -68,6 +69,7 @@ export const VALIDATION_ERRORS = {
   STRING_REQUIRED: "Provided $ should be a string.",
   INVALID_REGION: "Provided region doesn't exists.",
   FIELD_REQUIRED: "Field '$' is required.",
+  INVALID_AFFIX: "Invalid affix format",
 };
 export const POPULATE_CONTENT_MAPPER = "content_mapper";
 export const POPULATE_FIELD_MAPPING = "fieldMapping";
@@ -76,3 +78,4 @@ export const CONTENT_TYPE_POPULATE_FIELDS =
 export const PROJECT_UNSELECTED_FIELDS =
   "-content_mapper -legacy_cms -destination_stack_id -execution_log";
 export const EXCLUDE_CONTENT_MAPPER = "-content_mapper -execution_log";
+export const AFFIX_REGEX = /^[a-zA-Z][a-zA-Z0-9]{0,4}$/;
