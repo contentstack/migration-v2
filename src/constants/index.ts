@@ -80,4 +80,4 @@ export const CONTENT_TYPE_POPULATE_FIELDS =
 export const PROJECT_UNSELECTED_FIELDS =
   "-content_mapper -legacy_cms -destination_stack_id -execution_log";
 export const EXCLUDE_CONTENT_MAPPER = "-content_mapper -execution_log";
-export const AFFIX_REGEX = /^[a-zA-Z][a-zA-Z0-9]{0,4}$/;
+export const AFFIX_REGEX = /^[a-zA-Z][a-zA-Z0-9]{1,4}$/;
