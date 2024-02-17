@@ -23,9 +23,11 @@ export const HTTP_CODES = {
 };
 export const HTTP_TEXTS = {
   UNAUTHORIZED: "You're unauthorized to access this resource.",
+  S3_ERROR: "Something went wrong while handing the file",
   INTERNAL_ERROR: "Internal server error, please try again later.",
   SOMETHING_WENT_WRONG:
     "Something went wrong while processing your request, please try again.",
+  CS_ERROR: "Contentstack API error",
   NO_CS_USER: "No user found with the credentials",
   SUCCESS_LOGIN: "Login Successful.",
   TOKEN_ERROR: "Error occurred during token generation.",
