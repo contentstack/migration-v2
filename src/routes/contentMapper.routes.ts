@@ -28,12 +28,12 @@ router.get(
 );
 //Update FieldMapping or contentType
 router.put(
-  "/contentTypes/:contentTypeId",
+  "/contentTypes/:orgId/:projectId/:contentTypeId",
   asyncRouter(contentMapperController.putContentTypeFields)
 );
 //Reset FieldMapping or contentType
 router.put(
-  "/resetFields/:contentTypeId",
+  "/resetFields/:orgId/:projectId/:contentTypeId",
   asyncRouter(contentMapperController.resetContentType)
 );
 

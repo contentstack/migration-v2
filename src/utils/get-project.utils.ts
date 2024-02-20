@@ -1,32 +1,49 @@
 import ProjectModel from "../models/project";
-import { BadRequestError, NotFoundError } from "../utils/custom-errors.utils";
-import { HTTP_TEXTS } from "../constants";
+import {
+  BadRequestError,
+  ExceptionFunction,
+} from "../utils/custom-errors.utils";
+import { HTTP_CODES, HTTP_TEXTS } from "../constants";
 import { MigrationQueryType } from "../models/types";
-import { isValidObjectId, getLogMessage } from "../utils";
-import logger from "../utils/logger";
+import { getLogMessage, isValidObjectId } from "../utils";
+import logger from "./logger";
 
 export default async (
   projectId: string,
   query: MigrationQueryType,
-  projections: string = ""
+  projections: string = "",
+  srcFunc: string = ""
 ) => {
-  if (!isValidObjectId(projectId))
+  if (!isValidObjectId(projectId)) {
+    logger.error(
+      getLogMessage(srcFunc, HTTP_TEXTS.INVALID_ID.replace("$", "project"))
+    );
     throw new BadRequestError(HTTP_TEXTS.INVALID_ID.replace("$", "project"));
-
+  }
   try {
     const project = await ProjectModel.findOne(query).select(projections);
 
-    if (!project) throw new NotFoundError(HTTP_TEXTS.NO_PROJECT);
-
+    if (!project) {
+      logger.error(
+        getLogMessage(
+          srcFunc,
+          `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+        )
+      );
+      throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+    }
     return project;
-  } catch (err) {
+  } catch (error: any) {
     logger.error(
       getLogMessage(
-        "get-project.utils",
+        srcFunc,
         `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`,
         query
       )
     );
-    throw err;
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
   }
 };

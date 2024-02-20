@@ -13,11 +13,15 @@ import {
   HTTP_CODES,
   POPULATE_CONTENT_MAPPER,
   POPULATE_FIELD_MAPPING,
+  EXCLUDE_CONTENT_MAPPER,
+  PROJECT_STATUS,
+  STEPPER_STEPS,
 } from "../constants";
 import logger from "../utils/logger";
 import { config } from "../config";
 import https from "../utils/https.utils";
 import getAuthtoken from "../utils/auth.utils";
+import getProjectUtil from "../utils/get-project.utils";
 
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {
@@ -203,17 +207,48 @@ const getExistingContentTypes = async (req: Request) => {
 };
 const updateContentType = async (req: Request) => {
   const srcFun = "udateContentType";
-  const contentTypeId = req?.params?.contentTypeId;
-  const contentTypeData = req?.body;
-  const { fieldMapping } = contentTypeData;
+  const { orgId, projectId, contentTypeId } = req.params;
+  const { contentTypeData, token_payload } = req.body;
+  // const token_payload = req?.body?.token_payload;
+  const fieldMapping = contentTypeData?.fieldMapping;
 
-  let updatedContentType = {};
+  let updatedContentType: any = {};
+
+  const project = await getProjectUtil(
+    projectId,
+    {
+      _id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    EXCLUDE_CONTENT_MAPPER,
+    srcFun
+  );
+
+  if (
+    [
+      PROJECT_STATUS.DRAFT,
+      PROJECT_STATUS.SUCCESS,
+      PROJECT_STATUS.INPROGRESS,
+    ].includes(project.status) ||
+    project.current_step < STEPPER_STEPS.CONTENT_MAPPING
+  ) {
+    logger.error(
+      getLogMessage(
+        srcFun,
+        HTTP_TEXTS.CANNOT_UPDATE_CONTENT_MAPPING,
+        token_payload
+      )
+    );
+    throw new BadRequestError(HTTP_TEXTS.CANNOT_UPDATE_CONTENT_MAPPING);
+  }
 
   if (isEmpty(contentTypeData)) {
     logger.error(
       getLogMessage(
         srcFun,
-        `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        `${HTTP_TEXTS.INVALID_CONTENT_TYPE} Id: ${contentTypeId}`
       )
     );
     throw new BadRequestError(HTTP_TEXTS.INVALID_CONTENT_TYPE);
@@ -231,8 +266,17 @@ const updateContentType = async (req: Request) => {
         contentstackTitle: contentTypeData?.contentstackTitle,
         contentstackUid: contentTypeData?.contentstackUid,
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { new: true, setDefaultsOnInsert: true }
     );
+    if (isEmpty(updatedContentType)) {
+      logger.error(
+        getLogMessage(
+          srcFun,
+          `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        )
+      );
+      throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
+    }
     if (!isEmpty(fieldMapping)) {
       const bulkWriteOperations = fieldMapping?.map((doc: any) => ({
         replaceOne: {
@@ -262,7 +306,38 @@ const updateContentType = async (req: Request) => {
 
 const resetToInitialMapping = async (req: Request) => {
   const srcFunc = "resetToInitialMapping";
-  const contentTypeId = req?.params?.contentTypeId;
+  const { orgId, projectId, contentTypeId } = req.params;
+  const { token_payload } = req.body;
+
+  const project = await getProjectUtil(
+    projectId,
+    {
+      _id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    EXCLUDE_CONTENT_MAPPER,
+    srcFunc
+  );
+
+  if (
+    [
+      PROJECT_STATUS.DRAFT,
+      PROJECT_STATUS.SUCCESS,
+      PROJECT_STATUS.INPROGRESS,
+    ].includes(project.status) ||
+    project.current_step < STEPPER_STEPS.CONTENT_MAPPING
+  ) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        HTTP_TEXTS.CANNOT_RESET_CONTENT_MAPPING,
+        token_payload
+      )
+    );
+    throw new BadRequestError(HTTP_TEXTS.CANNOT_RESET_CONTENT_MAPPING);
+  }
 
   const contentType: any = await ContentTypesMapperModel.findOne({
     _id: contentTypeId,
@@ -315,9 +390,85 @@ const resetToInitialMapping = async (req: Request) => {
     );
   }
 };
-const removeMapping = async (req: Request) => {
+const resetAllContentTypesMapping = async (projectId: string) => {
+  const srcFunc = "resetAllContentTypesMapping";
+  // const projectId = req?.params?.projectId;
+
+  const projectDetails: any = await ProjectModel.findOne({
+    _id: projectId,
+  }).populate({
+    path: POPULATE_CONTENT_MAPPER,
+    populate: { path: POPULATE_FIELD_MAPPING },
+  });
+
+  if (isEmpty(projectDetails)) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+      )
+    );
+    throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
+
+  try {
+    const contentTypes = projectDetails?.content_mapper;
+
+    const contentTypesbulkWriteOperations: any = await Promise.all(
+      contentTypes?.map(async (contentType: any) => {
+        if (!isEmpty(contentType?.fieldMapping)) {
+          const bulkWriteOperations: any = contentType?.fieldMapping?.map(
+            (doc: any) => ({
+              updateOne: {
+                filter: { _id: doc._id },
+                update: {
+                  $set: {
+                    contentstackField: "",
+                    contentstackFieldUid: "",
+                    ContentstackFieldType: doc.backupFieldType,
+                  },
+                },
+              },
+            })
+          );
+          await FieldMapperModel.bulkWrite(bulkWriteOperations, {
+            ordered: false,
+          });
+        }
+        return {
+          updateOne: {
+            filter: { _id: contentType._id },
+            update: {
+              $set: {
+                contentstackTitle: "",
+                contentstackUid: "",
+              },
+            },
+          },
+        };
+      })
+    );
+    await ContentTypesMapperModel.bulkWrite(contentTypesbulkWriteOperations, {
+      ordered: false,
+    });
+    return projectDetails;
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while reseting all the content types mapping for the Project [Id: ${projectId}]`,
+        {},
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+const removeMapping = async (projectId: string) => {
   const srcFunc = "removeMapping";
-  const projectId = req?.params?.projectId;
 
   const projectDetails: any = await ProjectModel.findOne({
     _id: projectId,
@@ -388,5 +539,6 @@ export const contentMapperService = {
   getExistingContentTypes,
   updateContentType,
   resetToInitialMapping,
+  resetAllContentTypesMapping,
   removeMapping,
 };
