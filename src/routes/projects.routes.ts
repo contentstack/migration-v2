@@ -46,6 +46,12 @@ router.put(
   asyncRouter(projectController.updateDestinationStack)
 );
 
+// Update project's current step
+router.put(
+  "/:projectId/current-step",
+  asyncRouter(projectController.updateCurrentStep)
+);
+
 // Delete a project route
 router.delete("/:projectId", asyncRouter(projectController.deleteProject));
 

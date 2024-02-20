@@ -45,6 +45,10 @@ const updateDestinationStack = async (req: Request, res: Response) => {
   const resp = await projectService.updateDestinationStack(req);
   res.status(resp.status).json(resp.data);
 };
+const updateCurrentStep = async (req: Request, res: Response) => {
+  const project = await projectService.updateCurrentStep(req);
+  res.status(200).json(project);
+};
 
 const deleteProject = async (req: Request, res: Response): Promise<void> => {
   const project = await projectService.deleteProject(req);
@@ -61,5 +65,6 @@ export const projectController = {
   updateAffix,
   updateFileFormat,
   updateDestinationStack,
+  updateCurrentStep,
   deleteProject,
 };

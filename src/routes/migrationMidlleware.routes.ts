@@ -6,7 +6,7 @@ const router = express.Router({ mergeParams: true });
 
 // GET Project Details
 router.get(
-  "project/:projectId",
+  "/project/:projectId",
   asyncRouter(projectController.getProjectAllDetails)
 );
 

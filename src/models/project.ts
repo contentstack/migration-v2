@@ -1,11 +1,23 @@
 import { Schema, model, Document } from "mongoose";
-import { CS_REGIONS } from "../constants";
+import {
+  CS_REGIONS,
+  PREDEFINED_STATUS,
+  PREDEFINED_STEPS,
+  PROJECT_STATUS,
+  STEPPER_STEPS,
+} from "../constants";
 
 interface LegacyCMS {
   cms: string;
   affix: string;
   file_format: string;
-  import_data: string;
+  file: {
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+    path: string;
+  };
 }
 
 interface ExecutionLog {
@@ -22,7 +34,8 @@ interface ProjectDocument extends Document {
   former_owner_ids: [];
   name: string;
   description: string;
-  status: boolean;
+  status: string;
+  current_step: number;
   destination_stack_id: string;
   legacy_cms: LegacyCMS;
   content_mapper: [];
@@ -41,13 +54,30 @@ const projectSchema = new Schema<ProjectDocument>(
     former_owner_ids: [{ type: String }],
     name: { type: String, required: true },
     description: { type: String, required: true },
-    status: { type: Boolean, default: true },
+    status: {
+      type: String,
+      required: true,
+      default: PROJECT_STATUS.DRAFT,
+      enum: PREDEFINED_STATUS,
+    },
+    current_step: {
+      type: Number,
+      required: true,
+      default: STEPPER_STEPS.LEGACY_CMS,
+      enum: PREDEFINED_STEPS,
+    },
     destination_stack_id: { type: String },
     legacy_cms: {
       cms: { type: String },
       affix: { type: String },
       file_format: { type: String },
-      import_data: { type: String },
+      file: {
+        id: { type: String },
+        name: { type: String },
+        size: { type: String },
+        type: { type: String },
+        path: { type: String },
+      },
     },
     content_mapper: [
       { type: Schema.Types.ObjectId, ref: "ContentTypes Mapper" },
