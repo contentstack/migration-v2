@@ -43,6 +43,12 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class S3Error extends AppError {
+  constructor(message: string = HTTP_TEXTS.S3_ERROR) {
+    super(HTTP_CODES.SERVER_ERROR, message);
+  }
+}
+
 export class ExceptionFunction extends AppError {
   constructor(message: string, httpStatus: number) {
     super(httpStatus, message);

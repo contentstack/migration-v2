@@ -4,7 +4,6 @@ import { config } from "./config";
 import logger from "./utils/logger";
 import ProjectModel from "./models/project";
 import AuthenticationModel from "./models/authentication";
-import AuditLogModel from "./models/auditLog";
 import ContentTypesMapperModel from "./models/contentTypesMapper";
 import FieldMapperModel from "./models/FieldMapper";
 
@@ -19,7 +18,6 @@ const connectToDatabase = async () => {
     // Create the collection's if it doesn't exist
     await ProjectModel.init();
     await AuthenticationModel.init();
-    await AuditLogModel.init();
     await ContentTypesMapperModel.init();
     await FieldMapperModel.init();
   } catch (error) {

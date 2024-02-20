@@ -8,6 +8,7 @@ import fileFormatValidator from "./file-format.validator";
 import destinationStackValidator from "./destination-stack.validator";
 import initializeUploadValidator from "./initialize-upload.validator";
 import uploadValidator from "./upload.validator";
+import affixValidator from "./affix.validator";
 
 export default (route: string = "") =>
   asyncRouter(async (req: Request, res: Response, next: NextFunction) => {
@@ -19,6 +20,7 @@ export default (route: string = "") =>
       destination_stack: destinationStackValidator,
       initialize_upload: initializeUploadValidator,
       file_upload: uploadValidator,
+      affix: affixValidator,
     };
 
     const validator = appValidators[route as keyof typeof appValidators];

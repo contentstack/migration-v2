@@ -3,6 +3,7 @@ import { CS_REGIONS } from "../constants";
 
 interface LegacyCMS {
   cms: string;
+  affix: string;
   file_format: string;
   import_data: string;
 }
@@ -44,6 +45,7 @@ const projectSchema = new Schema<ProjectDocument>(
     destination_stack_id: { type: String },
     legacy_cms: {
       cms: { type: String },
+      affix: { type: String },
       file_format: { type: String },
       import_data: { type: String },
     },
