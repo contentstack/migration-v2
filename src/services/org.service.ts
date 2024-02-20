@@ -5,8 +5,8 @@ import https from "../utils/https.utils";
 import { LoginServiceType } from "../models/types";
 import getAuthtoken from "../utils/auth.utils";
 import logger from "../utils/logger";
-import { HTTP_TEXTS } from "../constants";
-import { InternalServerError } from "../utils/custom-errors.utils";
+import { HTTP_TEXTS, HTTP_CODES } from "../constants";
+import { ExceptionFunction } from "../utils/custom-errors.utils";
 
 const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getAllStacks";
@@ -68,7 +68,10 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
       )
     );
 
-    throw new InternalServerError();
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
   }
 };
 
@@ -133,7 +136,10 @@ const createStack = async (req: Request): Promise<LoginServiceType> => {
       )
     );
 
-    throw new InternalServerError();
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
   }
 };
 
@@ -184,7 +190,10 @@ const getLocales = async (req: Request): Promise<LoginServiceType> => {
       getLogMessage(srcFun, "Error while getting locales", token_payload, error)
     );
 
-    throw new InternalServerError();
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
   }
 };
 

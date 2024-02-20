@@ -80,7 +80,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
     );
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.status || HTTP_CODES.SERVER_ERROR
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
