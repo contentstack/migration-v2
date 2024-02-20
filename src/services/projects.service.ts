@@ -547,7 +547,7 @@ const updateCurrentStep = async (req: Request) => {
     logger.info(
       getLogMessage(
         srcFunc,
-        `Successfully progressed to the next step for project [Id : ${projectId}].`,
+        `Successfully progressed to the next step: ${project.current_step} for project [Id : ${projectId}].`,
         token_payload
       )
     );
