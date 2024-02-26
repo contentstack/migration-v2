@@ -16,9 +16,7 @@ import { unmatchedRoutesMiddleware } from "./middlewares/unmatched-routes.middle
 import logger from "./utils/logger";
 import contentMapperRoutes from "./routes/contentMapper.routes";
 import migrationMidllewareRoutes from "./routes/migrationMidlleware.routes";
-import uploadServiceRoutes from "./routes/uploadService.routes";
 import { authenticateMigrationService } from "./middlewares/auth.migration.middleware";
-import { authenticateUploadService } from "./middlewares/auth.uploadService.middleware";
 
 try {
   const app = express();
@@ -45,7 +43,7 @@ try {
     authenticateMigrationService,
     migrationMidllewareRoutes
   );
-  app.use("/v2/uploadService", authenticateUploadService, uploadServiceRoutes);
+
   //For unmatched route patterns
   app.use(unmatchedRoutesMiddleware);
 

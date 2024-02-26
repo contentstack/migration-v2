@@ -6,8 +6,6 @@ import projectValidator from "./project.validator";
 import cmsValidator from "./cms.validator";
 import fileFormatValidator from "./file-format.validator";
 import destinationStackValidator from "./destination-stack.validator";
-import initializeUploadValidator from "./initialize-upload.validator";
-import uploadValidator from "./upload.validator";
 import affixValidator from "./affix.validator";
 
 export default (route: string = "") =>
@@ -18,8 +16,6 @@ export default (route: string = "") =>
       cms: cmsValidator,
       file_format: fileFormatValidator,
       destination_stack: destinationStackValidator,
-      initialize_upload: initializeUploadValidator,
-      file_upload: uploadValidator,
       affix: affixValidator,
     };
 
