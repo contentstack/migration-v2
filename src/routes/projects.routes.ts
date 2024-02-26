@@ -2,7 +2,6 @@ import express from "express";
 import { projectController } from "../controllers/projects.controller";
 import { asyncRouter } from "../utils/async-router.utils";
 import validator from "../validators";
-import uploadRouter from "./projects.uploads.routes";
 
 const router = express.Router({ mergeParams: true });
 
@@ -54,8 +53,5 @@ router.put(
 
 // Delete a project route
 router.delete("/:projectId", asyncRouter(projectController.deleteProject));
-
-// Multipart upload route
-router.use("/:projectId/uploads", uploadRouter);
 
 export default router;
