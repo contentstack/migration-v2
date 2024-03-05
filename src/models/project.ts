@@ -10,7 +10,9 @@ import {
 interface LegacyCMS {
   cms: string;
   affix: string;
+  affix_confirmation: boolean;
   file_format: string;
+  file_format_confirmation: boolean;
   file: {
     id: string;
     name: string;
@@ -70,7 +72,9 @@ const projectSchema = new Schema<ProjectDocument>(
     legacy_cms: {
       cms: { type: String },
       affix: { type: String },
+      affix_confirmation: { type: Boolean },
       file_format: { type: String },
+      file_format_confirmation: { type: Boolean },
       file: {
         id: { type: String },
         name: { type: String },

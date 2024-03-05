@@ -31,11 +31,25 @@ router.put(
   asyncRouter(projectController.updateAffix)
 );
 
+// Update project's Affix confirmation
+router.put(
+  "/:projectId/affix_confirmation",
+  validator("affix_confirmation_validator"),
+  asyncRouter(projectController.affixConfirmation)
+);
+
 // Update project's file format
 router.put(
   "/:projectId/file-format",
   validator("file_format"),
   asyncRouter(projectController.updateFileFormat)
+);
+
+// Update project's fileformat confirmation
+router.put(
+  "/:projectId/fileformat_confirmation",
+  validator("fileformat_confirmation_validator"),
+  asyncRouter(projectController.fileformatConfirmation)
 );
 
 // Update project's destination-cms

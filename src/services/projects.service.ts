@@ -306,6 +306,33 @@ const updateAffix = async (req: Request) => {
   };
 };
 
+const affixConfirmation = async (req: Request) => {
+  const { orgId, projectId } = req.params;
+  const { token_payload, affix_confirmation } = req.body;
+
+  const project = await getProjectUtil(
+    projectId,
+    {
+      _id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    EXCLUDE_CONTENT_MAPPER
+  );
+
+  project.legacy_cms.affix_confirmation = affix_confirmation;
+
+  await project.save();
+
+  return {
+    status: HTTP_CODES.OK,
+    data: {
+      message: HTTP_TEXTS.AFFIX_CONFIRMATION_UPDATED,
+    },
+  };
+};
+
 const updateFileFormat = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, file_format } = req.body;
@@ -380,6 +407,33 @@ const updateFileFormat = async (req: Request) => {
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
+};
+
+const fileformatConfirmation = async (req: Request) => {
+  const { orgId, projectId } = req.params;
+  const { token_payload, fileformat_confirmation } = req.body;
+
+  const project = await getProjectUtil(
+    projectId,
+    {
+      _id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    EXCLUDE_CONTENT_MAPPER
+  );
+
+  project.legacy_cms.file_format_confirmation = fileformat_confirmation;
+
+  await project.save();
+
+  return {
+    status: HTTP_CODES.OK,
+    data: {
+      message: HTTP_TEXTS.FILEFORMAT_CONFIRMATION_UPDATED,
+    },
+  };
 };
 
 const updateDestinationStack = async (req: Request) => {
@@ -584,7 +638,9 @@ export const projectService = {
   updateProject,
   updateLegacyCMS,
   updateAffix,
+  affixConfirmation,
   updateFileFormat,
+  fileformatConfirmation,
   updateDestinationStack,
   updateCurrentStep,
   deleteProject,

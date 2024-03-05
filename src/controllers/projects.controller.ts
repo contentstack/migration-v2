@@ -36,8 +36,18 @@ const updateAffix = async (req: Request, res: Response) => {
   res.status(resp.status).json(resp.data);
 };
 
+const affixConfirmation = async (req: Request, res: Response) => {
+  const resp = await projectService.affixConfirmation(req);
+  res.status(resp.status).json(resp.data);
+};
+
 const updateFileFormat = async (req: Request, res: Response) => {
   const resp = await projectService.updateFileFormat(req);
+  res.status(resp.status).json(resp.data);
+};
+
+const fileformatConfirmation = async (req: Request, res: Response) => {
+  const resp = await projectService.fileformatConfirmation(req);
   res.status(resp.status).json(resp.data);
 };
 
@@ -63,7 +73,9 @@ export const projectController = {
   updateProject,
   updateLegacyCMS,
   updateAffix,
+  affixConfirmation,
   updateFileFormat,
+  fileformatConfirmation,
   updateDestinationStack,
   updateCurrentStep,
   deleteProject,
