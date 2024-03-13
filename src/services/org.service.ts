@@ -54,6 +54,7 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
           res.data.stacks?.map((stack: any) => ({
             name: stack.name,
             api_key: stack.api_key,
+            master_locale: stack.master_locale,
           })) || [],
       },
       status: res.status,
