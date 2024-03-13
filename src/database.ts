@@ -6,12 +6,18 @@ import ProjectModel from "./models/project.js";
 // import AuthenticationModel from "./models/authentication.js";
 import ContentTypesMapperModel from "./models/contentTypesMapper.js";
 import FieldMapperModel from "./models/FieldMapper.js";
+import fs from "fs";
 
 const connectToDatabase = async () => {
   try {
     await mongoose.connect(config.MONGODB_URI, {
       ...(config.APP_ENV === "production" ? { autoIndex: false } : {}),
     });
+
+    //check if the database folder exists
+    if (!fs.existsSync("./database")) {
+      fs.mkdirSync("./database");
+    }
 
     // Create the collection's if it doesn't exist
     await ProjectModel.init();
