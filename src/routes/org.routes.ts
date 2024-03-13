@@ -1,7 +1,7 @@
 import express from "express";
-import { orgController } from "../controllers/org.controller";
-import { asyncRouter } from "../utils/async-router.utils";
-import validator from "../validators";
+import { orgController } from "../controllers/org.controller.js";
+import { asyncRouter } from "../utils/async-router.utils.js";
+import validator from "../validators/index.js";
 
 const router = express.Router({ mergeParams: true });
 

@@ -1,10 +1,10 @@
 import { Request } from "express";
-import ProjectModel from "../models/project";
+import ProjectModel from "../models/project.js";
 import {
   BadRequestError,
   ExceptionFunction,
   NotFoundError,
-} from "../utils/custom-errors.utils";
+} from "../utils/custom-errors.utils.js";
 import {
   EXCLUDE_CONTENT_MAPPER,
   PROJECT_UNSELECTED_FIELDS,
@@ -14,14 +14,14 @@ import {
   POPULATE_FIELD_MAPPING,
   PROJECT_STATUS,
   STEPPER_STEPS,
-} from "../constants";
-import { config } from "../config";
-import { getLogMessage, isEmpty, safePromise } from "../utils";
-import getAuthtoken from "../utils/auth.utils";
-import https from "../utils/https.utils";
-import getProjectUtil from "../utils/get-project.utils";
-import logger from "../utils/logger";
-import { contentMapperService } from "./contentMapper.service";
+} from "../constants/index.js";
+import { config } from "../config/index.js";
+import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
+import getAuthtoken from "../utils/auth.utils.js";
+import https from "../utils/https.utils.js";
+import getProjectUtil from "../utils/get-project.utils.js";
+import logger from "../utils/logger.js";
+import { contentMapperService } from "./contentMapper.service.js";
 
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;

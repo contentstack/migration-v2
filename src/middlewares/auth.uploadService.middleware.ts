@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { HTTP_CODES } from "../constants";
-import { config } from "../config";
+import { HTTP_CODES } from "../constants/index.js";
+import { config } from "../config/index.js";
 
 export const authenticateUploadService = (
   req: Request,

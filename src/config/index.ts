@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
-import { prodConfig } from "./prod.config";
-import { devConfig } from "./dev.config";
+import { prodConfig } from "./prod.config.js";
+import { devConfig } from "./dev.config.js";
 
 dotenv.config({
   path: path.resolve(process.cwd(), `${process.env.NODE_ENV}.env`),

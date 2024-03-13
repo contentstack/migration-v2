@@ -1,5 +1,5 @@
 import { checkSchema } from "express-validator";
-import { VALIDATION_ERRORS, CS_REGIONS } from "../constants";
+import { VALIDATION_ERRORS, CS_REGIONS } from "../constants/index.js";
 
 export default checkSchema({
   email: {

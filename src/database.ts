@@ -1,11 +1,11 @@
 // database.ts
 import mongoose from "mongoose";
-import { config } from "./config";
-import logger from "./utils/logger";
-import ProjectModel from "./models/project";
-import AuthenticationModel from "./models/authentication";
-import ContentTypesMapperModel from "./models/contentTypesMapper";
-import FieldMapperModel from "./models/FieldMapper";
+import { config } from "./config/index.js";
+import logger from "./utils/logger.js";
+import ProjectModel from "./models/project.js";
+import AuthenticationModel from "./models/authentication.js";
+import ContentTypesMapperModel from "./models/contentTypesMapper.js";
+import FieldMapperModel from "./models/FieldMapper.js";
 
 const connectToDatabase = async () => {
   try {

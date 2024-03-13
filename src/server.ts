@@ -1,22 +1,22 @@
 // file deepcode ignore UseCsurfForExpress: We've app_token for all the API calls, so we don't need CSRF token.
-import { config } from "./config";
+import { config } from "./config/index.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import authRoutes from "./routes/auth.routes";
-import userRoutes from "./routes/user.routes";
-import projectRoutes from "./routes/projects.routes";
-import orgRoutes from "./routes/org.routes";
-import { errorMiddleware } from "./middlewares/error.middleware";
-import loggerMiddleware from "./middlewares/logger.middleware";
-import connectToDatabase from "./database";
-import { authenticateUser } from "./middlewares/auth.middleware";
-import { requestHeadersMiddleware } from "./middlewares/req-headers.middleware";
-import { unmatchedRoutesMiddleware } from "./middlewares/unmatched-routes.middleware";
-import logger from "./utils/logger";
-import contentMapperRoutes from "./routes/contentMapper.routes";
-import migrationMidllewareRoutes from "./routes/migrationMidlleware.routes";
-import { authenticateMigrationService } from "./middlewares/auth.migration.middleware";
+import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import projectRoutes from "./routes/projects.routes.js";
+import orgRoutes from "./routes/org.routes.js";
+import { errorMiddleware } from "./middlewares/error.middleware.js";
+import loggerMiddleware from "./middlewares/logger.middleware.js";
+import connectToDatabase from "./database.js";
+import { authenticateUser } from "./middlewares/auth.middleware.js";
+import { requestHeadersMiddleware } from "./middlewares/req-headers.middleware.js";
+import { unmatchedRoutesMiddleware } from "./middlewares/unmatched-routes.middleware.js";
+import logger from "./utils/logger.js";
+import contentMapperRoutes from "./routes/contentMapper.routes.js";
+import migrationMidllewareRoutes from "./routes/migrationMidlleware.routes.js";
+import { authenticateMigrationService } from "./middlewares/auth.migration.middleware.js";
 
 try {
   const app = express();

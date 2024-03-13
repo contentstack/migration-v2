@@ -1,4 +1,4 @@
-import { HTTP_CODES, HTTP_TEXTS } from "../constants";
+import { HTTP_CODES, HTTP_TEXTS } from "../constants/index.js";
 
 export class AppError extends Error {
   constructor(public statusCode: number, message: string) {

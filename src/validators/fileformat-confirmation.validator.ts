@@ -1,5 +1,5 @@
 import { checkSchema } from "express-validator";
-import { VALIDATION_ERRORS } from "../constants";
+import { VALIDATION_ERRORS } from "../constants/index.js";
 
 export default checkSchema({
   fileformat_confirmation: {

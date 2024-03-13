@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { projectService } from "../services/projects.service";
+import { projectService } from "../services/projects.service.js";
 
 const getAllProjects = async (req: Request, res: Response): Promise<void> => {
   const allProjects = await projectService.getAllProjects(req);

@@ -1,7 +1,7 @@
 // src/models/Authentication.ts
 
 import { Schema, model, Document } from "mongoose";
-import { CS_REGIONS } from "../constants";
+import { CS_REGIONS } from "../constants/index.js";
 
 interface AuthenticationDocument extends Document {
   user_id: string;

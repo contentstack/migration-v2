@@ -1,5 +1,5 @@
-import AuthenticationModel from "../models/authentication";
-import { UnauthorizedError } from "../utils/custom-errors.utils";
+import AuthenticationModel from "../models/authentication.js";
+import { UnauthorizedError } from "../utils/custom-errors.utils.js";
 
 export default async (region: string, userId: string) => {
   const res = await AuthenticationModel.findOne({

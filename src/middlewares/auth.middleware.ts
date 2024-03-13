@@ -1,8 +1,8 @@
 // middleware/authentication.middleware.ts
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { config } from "../config";
-import { HTTP_CODES } from "../constants";
+import { config } from "../config/index.js";
+import { HTTP_CODES } from "../constants/index.js";
 
 export const authenticateUser = (
   req: Request,

@@ -1,15 +1,15 @@
 import { Request } from "express";
-import { config } from "../config";
-import https from "../utils/https.utils";
-import { AppTokenPayload, LoginServiceType } from "../models/types";
-import { HTTP_CODES, HTTP_TEXTS } from "../constants";
+import { config } from "../config/index.js";
+import https from "../utils/https.utils.js";
+import { AppTokenPayload, LoginServiceType } from "../models/types.js";
+import { HTTP_CODES, HTTP_TEXTS } from "../constants/index.js";
 import {
   BadRequestError,
   ExceptionFunction,
-} from "../utils/custom-errors.utils";
-import AuthenticationModel from "../models/authentication";
-import { safePromise, getLogMessage } from "../utils";
-import logger from "../utils/logger";
+} from "../utils/custom-errors.utils.js";
+import AuthenticationModel from "../models/authentication.js";
+import { safePromise, getLogMessage } from "../utils/index.js";
+import logger from "../utils/logger.js";
 
 const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getUserProfile";

@@ -5,7 +5,7 @@ import {
   PREDEFINED_STEPS,
   PROJECT_STATUS,
   STEPPER_STEPS,
-} from "../constants";
+} from "../constants/index.js";
 
 interface LegacyCMS {
   cms: string;
