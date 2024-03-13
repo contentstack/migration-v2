@@ -1,5 +1,11 @@
 // src/models/Authentication.ts
-import { JSONFileSyncPreset } from "lowdb/node";
+import { Low } from "lowdb";
+import { JSONFile } from "lowdb/node";
+import lodash from "lodash";
+
+class LowWithLodash<T> extends Low<T> {
+  chain: lodash.ExpChain<this["data"]> = lodash.chain(this).get("data");
+}
 
 interface AuthenticationDocument {
   users: {
@@ -13,7 +19,9 @@ interface AuthenticationDocument {
 
 const defaultData: AuthenticationDocument = { users: [] };
 
-export default JSONFileSyncPreset<AuthenticationDocument>(
-  "database/authentication.json",
+const db = new LowWithLodash(
+  new JSONFile<AuthenticationDocument>("database/authentication.json"),
   defaultData
 );
+
+export default db;

@@ -10,7 +10,6 @@ import {
 import AuthenticationModel from "../models/authentication.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
 import logger from "../utils/logger.js";
-import _ from "lodash";
 
 const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getUserProfile";
@@ -18,10 +17,13 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
 
   try {
     AuthenticationModel.read();
-    const userIndex = _.findIndex(AuthenticationModel.data.users, {
-      user_id: appTokenPayload?.user_id,
-      region: appTokenPayload?.region,
-    });
+    const userIndex = AuthenticationModel.chain
+      .get("users")
+      .findIndex({
+        user_id: appTokenPayload?.user_id,
+        region: appTokenPayload?.region,
+      })
+      .value();
 
     if (userIndex < 0) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
 

@@ -12,7 +12,6 @@ import {
 } from "../utils/custom-errors.utils.js";
 import AuthenticationModel from "../models/authentication.js";
 import logger from "../utils/logger.js";
-import _ from "lodash";
 
 const login = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "Login";
@@ -65,10 +64,10 @@ const login = async (req: Request): Promise<LoginServiceType> => {
 
     // Saving auth info in the DB
     AuthenticationModel.read();
-    const userIndex = _.findIndex(
-      AuthenticationModel.data.users,
-      appTokenPayload
-    );
+    const userIndex = AuthenticationModel.chain
+      .get("users")
+      .findIndex(appTokenPayload)
+      .value();
 
     AuthenticationModel.update((data: any) => {
       if (userIndex < 0) {
