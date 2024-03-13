@@ -1,6 +1,6 @@
 import express from "express";
-import { contentMapperController } from "../controllers/projects.contentMapper.controller";
-import { asyncRouter } from "../utils/async-router.utils";
+import { contentMapperController } from "../controllers/projects.contentMapper.controller.js";
+import { asyncRouter } from "../utils/async-router.utils.js";
 
 const router = express.Router({ mergeParams: true });
 

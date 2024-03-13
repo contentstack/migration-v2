@@ -1,17 +1,17 @@
 import { Request } from "express";
-import { config } from "../config";
-import { safePromise, getLogMessage } from "../utils";
-import https from "../utils/https.utils";
-import { LoginServiceType, AppTokenPayload } from "../models/types";
-import { HTTP_CODES, HTTP_TEXTS } from "../constants";
-import { generateToken } from "../utils/jwt.utils";
+import { config } from "../config/index.js";
+import { safePromise, getLogMessage } from "../utils/index.js";
+import https from "../utils/https.utils.js";
+import { LoginServiceType, AppTokenPayload } from "../models/types.js";
+import { HTTP_CODES, HTTP_TEXTS } from "../constants/index.js";
+import { generateToken } from "../utils/jwt.utils.js";
 import {
   BadRequestError,
   InternalServerError,
   ExceptionFunction,
-} from "../utils/custom-errors.utils";
-import AuthenticationModel from "../models/authentication";
-import logger from "../utils/logger";
+} from "../utils/custom-errors.utils.js";
+import AuthenticationModel from "../models/authentication.js";
+import logger from "../utils/logger.js";
 
 const login = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "Login";
@@ -63,15 +63,25 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     };
 
     // Saving auth info in the DB
-    await AuthenticationModel.findOneAndUpdate(
-      appTokenPayload,
-      {
-        authtoken: res?.data.user?.authtoken,
-      },
-      {
-        upsert: true,
+    AuthenticationModel.read();
+    const userIndex = AuthenticationModel.chain
+      .get("users")
+      .findIndex(appTokenPayload)
+      .value();
+
+    AuthenticationModel.update((data: any) => {
+      if (userIndex < 0) {
+        data.users.push({
+          ...appTokenPayload,
+          authtoken: res?.data.user?.authtoken,
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        });
+      } else {
+        data.users[userIndex].authtoken = res?.data.user?.authtoken;
+        data.users[userIndex].updated_at = new Date().toISOString();
       }
-    );
+    });
 
     // JWT token generation
     const app_token = generateToken(appTokenPayload);

@@ -1,5 +1,5 @@
 import { checkSchema } from "express-validator";
-import { VALIDATION_ERRORS, AFFIX_REGEX } from "../constants";
+import { VALIDATION_ERRORS, AFFIX_REGEX } from "../constants/index.js";
 
 export default checkSchema({
   affix: {

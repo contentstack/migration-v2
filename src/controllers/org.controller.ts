@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { orgService } from "../services/org.service";
+import { orgService } from "../services/org.service.js";
 
 const getAllStacks = async (req: Request, res: Response) => {
   const resp = await orgService.getAllStacks(req);

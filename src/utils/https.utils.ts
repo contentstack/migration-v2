@@ -1,5 +1,8 @@
 import axios from "axios";
-import { AXIOS_TIMEOUT, METHODS_TO_INCLUDE_DATA_IN_AXIOS } from "../constants";
+import {
+  AXIOS_TIMEOUT,
+  METHODS_TO_INCLUDE_DATA_IN_AXIOS,
+} from "../constants/index.js";
 
 type httpType = {
   url: string;

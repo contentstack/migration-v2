@@ -1,26 +1,27 @@
 // src/models/Authentication.ts
+import { Low } from "lowdb";
+import { JSONFile } from "lowdb/node";
+import lodash from "lodash";
 
-import { Schema, model, Document } from "mongoose";
-import { CS_REGIONS } from "../constants";
-
-interface AuthenticationDocument extends Document {
-  user_id: string;
-  region: string;
-  authtoken: string;
+class LowWithLodash<T> extends Low<T> {
+  chain: lodash.ExpChain<this["data"]> = lodash.chain(this).get("data");
 }
 
-const authenticationSchema = new Schema<AuthenticationDocument>(
-  {
-    user_id: { type: String, required: true },
-    region: { type: String, required: true, enum: CS_REGIONS },
-    authtoken: { type: String, required: true },
-  },
-  { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+interface AuthenticationDocument {
+  users: {
+    user_id: string;
+    region: string;
+    authtoken: string;
+    created_at: string;
+    updated_at: string;
+  }[];
+}
+
+const defaultData: AuthenticationDocument = { users: [] };
+
+const db = new LowWithLodash(
+  new JSONFile<AuthenticationDocument>("database/authentication.json"),
+  defaultData
 );
 
-const AuthenticationModel = model<AuthenticationDocument>(
-  "Authentication",
-  authenticationSchema
-);
-
-export default AuthenticationModel;
+export default db;

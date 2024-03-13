@@ -1,13 +1,19 @@
-import AuthenticationModel from "../models/authentication";
-import { UnauthorizedError } from "../utils/custom-errors.utils";
+import AuthenticationModel from "../models/authentication.js";
+import { UnauthorizedError } from "../utils/custom-errors.utils.js";
 
 export default async (region: string, userId: string) => {
-  const res = await AuthenticationModel.findOne({
-    region: region,
-    user_id: userId,
-  }).lean();
+  AuthenticationModel.read();
+  const userIndex = AuthenticationModel.chain
+    .get("users")
+    .findIndex({
+      region: region,
+      user_id: userId,
+    })
+    .value();
 
-  if (!res?.authtoken) throw new UnauthorizedError();
+  const authToken = AuthenticationModel.data.users[userIndex]?.authtoken;
 
-  return res?.authtoken;
+  if (userIndex < 0 || !authToken) throw new UnauthorizedError();
+
+  return authToken;
 };

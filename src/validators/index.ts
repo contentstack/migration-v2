@@ -1,12 +1,14 @@
 import { Request, NextFunction, Response } from "express";
-import { ValidationError } from "../utils/custom-errors.utils";
-import { asyncRouter } from "../utils/async-router.utils";
-import authValidator from "./auth.validator";
-import projectValidator from "./project.validator";
-import cmsValidator from "./cms.validator";
-import fileFormatValidator from "./file-format.validator";
-import destinationStackValidator from "./destination-stack.validator";
-import affixValidator from "./affix.validator";
+import { ValidationError } from "../utils/custom-errors.utils.js";
+import { asyncRouter } from "../utils/async-router.utils.js";
+import authValidator from "./auth.validator.js";
+import projectValidator from "./project.validator.js";
+import cmsValidator from "./cms.validator.js";
+import fileFormatValidator from "./file-format.validator.js";
+import destinationStackValidator from "./destination-stack.validator.js";
+import affixValidator from "./affix.validator.js";
+import affixConfirmationValidator from "./affix-confirmation.validator.js";
+import fileformatConfirmationValidator from "./fileformat-confirmation.validator.js";
 
 export default (route: string = "") =>
   asyncRouter(async (req: Request, res: Response, next: NextFunction) => {
@@ -17,6 +19,8 @@ export default (route: string = "") =>
       file_format: fileFormatValidator,
       destination_stack: destinationStackValidator,
       affix: affixValidator,
+      affix_confirmation_validator: affixConfirmationValidator,
+      fileformat_confirmation_validator: fileformatConfirmationValidator,
     };
 
     const validator = appValidators[route as keyof typeof appValidators];

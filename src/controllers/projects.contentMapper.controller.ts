@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { contentMapperService } from "../services/contentMapper.service";
+import { contentMapperService } from "../services/contentMapper.service.js";
 const putTestData = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.putTestData(req);
   res.status(200).json(resp);

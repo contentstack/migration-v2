@@ -37,6 +37,10 @@ export const HTTP_TEXTS = {
   PROJECT_CREATION_FAILED: "Error occurred while creating project.",
   NO_PROJECT: "resource not found with the given ID(s).",
   AFFIX_UPDATED: "Project's Affix updated successfully",
+  AFFIX_CONFIRMATION_UPDATED:
+    "Project's Affix confirmation updated successfully",
+  FILEFORMAT_CONFIRMATION_UPDATED:
+    "Project's Fileformat confirmation updated successfully",
   CMS_UPDATED: "Project's migration cms updated successfully",
   FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
   DESTINATION_STACK_UPDATED:
@@ -81,6 +85,7 @@ export const VALIDATION_ERRORS = {
   EMAIL_LIMIT: "Email's max limit reached.",
   LENGTH_LIMIT: "$'s max limit reached.",
   STRING_REQUIRED: "Provided $ should be a string.",
+  BOOLEAN_REQUIRED: "Provided $ should be a boolean.",
   INVALID_REGION: "Provided region doesn't exists.",
   FIELD_REQUIRED: "Field '$' is required.",
   INVALID_AFFIX: "Invalid affix format",

@@ -1,12 +1,12 @@
-import ProjectModel from "../models/project";
+import ProjectModel from "../models/project.js";
 import {
   BadRequestError,
   ExceptionFunction,
-} from "../utils/custom-errors.utils";
-import { HTTP_CODES, HTTP_TEXTS } from "../constants";
-import { MigrationQueryType } from "../models/types";
-import { getLogMessage, isValidObjectId } from "../utils";
-import logger from "./logger";
+} from "../utils/custom-errors.utils.js";
+import { HTTP_CODES, HTTP_TEXTS } from "../constants/index.js";
+import { MigrationQueryType } from "../models/types.js";
+import { getLogMessage, isValidObjectId } from "../utils/index.js";
+import logger from "./logger.js";
 
 export default async (
   projectId: string,

@@ -1,11 +1,12 @@
 // database.ts
 import mongoose from "mongoose";
-import { config } from "./config";
-import logger from "./utils/logger";
-import ProjectModel from "./models/project";
-import AuthenticationModel from "./models/authentication";
-import ContentTypesMapperModel from "./models/contentTypesMapper";
-import FieldMapperModel from "./models/FieldMapper";
+import { config } from "./config/index.js";
+import logger from "./utils/logger.js";
+import ProjectModel from "./models/project.js";
+// import AuthenticationModel from "./models/authentication.js";
+import ContentTypesMapperModel from "./models/contentTypesMapper.js";
+import FieldMapperModel from "./models/FieldMapper.js";
+import fs from "fs";
 
 const connectToDatabase = async () => {
   try {
@@ -13,11 +14,14 @@ const connectToDatabase = async () => {
       ...(config.APP_ENV === "production" ? { autoIndex: false } : {}),
     });
 
-    logger.info("Connected to MongoDB");
+    //check if the database folder exists
+    if (!fs.existsSync("./database")) {
+      fs.mkdirSync("./database");
+    }
 
     // Create the collection's if it doesn't exist
     await ProjectModel.init();
-    await AuthenticationModel.init();
+    // const AuthenticationModel = await AuthenticationDb;
     await ContentTypesMapperModel.init();
     await FieldMapperModel.init();
   } catch (error) {

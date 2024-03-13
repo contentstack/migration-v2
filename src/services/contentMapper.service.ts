@@ -1,12 +1,12 @@
 import { Request } from "express";
-import ContentTypesMapperModel from "../models/contentTypesMapper";
-import FieldMapperModel from "../models/FieldMapper";
-import ProjectModel from "../models/project";
-import { getLogMessage, isEmpty, safePromise } from "../utils";
+import ContentTypesMapperModel from "../models/contentTypesMapper.js";
+import FieldMapperModel from "../models/FieldMapper.js";
+import ProjectModel from "../models/project.js";
+import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
 import {
   BadRequestError,
   ExceptionFunction,
-} from "../utils/custom-errors.utils";
+} from "../utils/custom-errors.utils.js";
 import {
   CONTENT_TYPE_POPULATE_FIELDS,
   HTTP_TEXTS,
@@ -16,12 +16,12 @@ import {
   EXCLUDE_CONTENT_MAPPER,
   PROJECT_STATUS,
   STEPPER_STEPS,
-} from "../constants";
-import logger from "../utils/logger";
-import { config } from "../config";
-import https from "../utils/https.utils";
-import getAuthtoken from "../utils/auth.utils";
-import getProjectUtil from "../utils/get-project.utils";
+} from "../constants/index.js";
+import logger from "../utils/logger.js";
+import { config } from "../config/index.js";
+import https from "../utils/https.utils.js";
+import getAuthtoken from "../utils/auth.utils.js";
+import getProjectUtil from "../utils/get-project.utils.js";
 
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {

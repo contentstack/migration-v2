@@ -1,7 +1,7 @@
 import express from "express";
-import { projectController } from "../controllers/projects.controller";
-import { asyncRouter } from "../utils/async-router.utils";
-import validator from "../validators";
+import { projectController } from "../controllers/projects.controller.js";
+import { asyncRouter } from "../utils/async-router.utils.js";
+import validator from "../validators/index.js";
 
 const router = express.Router({ mergeParams: true });
 
@@ -31,11 +31,25 @@ router.put(
   asyncRouter(projectController.updateAffix)
 );
 
+// Update project's Affix confirmation
+router.put(
+  "/:projectId/affix_confirmation",
+  validator("affix_confirmation_validator"),
+  asyncRouter(projectController.affixConfirmation)
+);
+
 // Update project's file format
 router.put(
   "/:projectId/file-format",
   validator("file_format"),
   asyncRouter(projectController.updateFileFormat)
+);
+
+// Update project's fileformat confirmation
+router.put(
+  "/:projectId/fileformat_confirmation",
+  validator("fileformat_confirmation_validator"),
+  asyncRouter(projectController.fileformatConfirmation)
 );
 
 // Update project's destination-cms

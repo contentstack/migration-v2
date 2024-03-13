@@ -1,27 +1,31 @@
 import { Request } from "express";
-import { config } from "../config";
-import https from "../utils/https.utils";
-import { AppTokenPayload, LoginServiceType } from "../models/types";
-import { HTTP_CODES, HTTP_TEXTS } from "../constants";
+import { config } from "../config/index.js";
+import https from "../utils/https.utils.js";
+import { AppTokenPayload, LoginServiceType } from "../models/types.js";
+import { HTTP_CODES, HTTP_TEXTS } from "../constants/index.js";
 import {
   BadRequestError,
   ExceptionFunction,
-} from "../utils/custom-errors.utils";
-import AuthenticationModel from "../models/authentication";
-import { safePromise, getLogMessage } from "../utils";
-import logger from "../utils/logger";
+} from "../utils/custom-errors.utils.js";
+import AuthenticationModel from "../models/authentication.js";
+import { safePromise, getLogMessage } from "../utils/index.js";
+import logger from "../utils/logger.js";
 
 const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getUserProfile";
   const appTokenPayload: AppTokenPayload = req?.body?.token_payload;
 
   try {
-    const user = await AuthenticationModel.findOne({
-      user_id: appTokenPayload?.user_id,
-      region: appTokenPayload?.region,
-    }).lean();
+    AuthenticationModel.read();
+    const userIndex = AuthenticationModel.chain
+      .get("users")
+      .findIndex({
+        user_id: appTokenPayload?.user_id,
+        region: appTokenPayload?.region,
+      })
+      .value();
 
-    if (!user?.authtoken) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
+    if (userIndex < 0) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
 
     const [err, res] = await safePromise(
       https({
@@ -31,7 +35,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
         ]!}/user?include_orgs_roles=true`,
         headers: {
           "Content-Type": "application/json",
-          authtoken: user?.authtoken,
+          authtoken: AuthenticationModel.data.users[userIndex]?.authtoken,
         },
       })
     );

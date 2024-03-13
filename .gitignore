@@ -359,3 +359,5 @@ combine.log
 package-lock.json
 
 !example.env
+
+database/
