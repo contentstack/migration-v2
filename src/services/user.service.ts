@@ -10,18 +10,20 @@ import {
 import AuthenticationModel from "../models/authentication.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
 import logger from "../utils/logger.js";
+import _ from "lodash";
 
 const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getUserProfile";
   const appTokenPayload: AppTokenPayload = req?.body?.token_payload;
 
   try {
-    const user = await AuthenticationModel.findOne({
+    AuthenticationModel.read();
+    const userIndex = _.findIndex(AuthenticationModel.data.users, {
       user_id: appTokenPayload?.user_id,
       region: appTokenPayload?.region,
-    }).lean();
+    });
 
-    if (!user?.authtoken) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
+    if (userIndex < 0) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
 
     const [err, res] = await safePromise(
       https({
@@ -31,7 +33,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
         ]!}/user?include_orgs_roles=true`,
         headers: {
           "Content-Type": "application/json",
-          authtoken: user?.authtoken,
+          authtoken: AuthenticationModel.data.users[userIndex]?.authtoken,
         },
       })
     );

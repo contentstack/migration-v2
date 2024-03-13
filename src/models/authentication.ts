@@ -1,26 +1,19 @@
 // src/models/Authentication.ts
+import { JSONFileSyncPreset } from "lowdb/node";
 
-import { Schema, model, Document } from "mongoose";
-import { CS_REGIONS } from "../constants/index.js";
-
-interface AuthenticationDocument extends Document {
-  user_id: string;
-  region: string;
-  authtoken: string;
+interface AuthenticationDocument {
+  users: {
+    user_id: string;
+    region: string;
+    authtoken: string;
+    created_at: string;
+    updated_at: string;
+  }[];
 }
 
-const authenticationSchema = new Schema<AuthenticationDocument>(
-  {
-    user_id: { type: String, required: true },
-    region: { type: String, required: true, enum: CS_REGIONS },
-    authtoken: { type: String, required: true },
-  },
-  { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
-);
+const defaultData: AuthenticationDocument = { users: [] };
 
-const AuthenticationModel = model<AuthenticationDocument>(
-  "Authentication",
-  authenticationSchema
+export default JSONFileSyncPreset<AuthenticationDocument>(
+  "database/authentication.json",
+  defaultData
 );
-
-export default AuthenticationModel;

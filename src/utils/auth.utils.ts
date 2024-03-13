@@ -1,13 +1,17 @@
 import AuthenticationModel from "../models/authentication.js";
 import { UnauthorizedError } from "../utils/custom-errors.utils.js";
+import _ from "lodash";
 
 export default async (region: string, userId: string) => {
-  const res = await AuthenticationModel.findOne({
+  AuthenticationModel.read();
+  const userIndex = _.findIndex(AuthenticationModel.data.users, {
     region: region,
     user_id: userId,
-  }).lean();
+  });
 
-  if (!res?.authtoken) throw new UnauthorizedError();
+  const authToken = AuthenticationModel.data.users[userIndex]?.authtoken;
 
-  return res?.authtoken;
+  if (userIndex < 0 || !authToken) throw new UnauthorizedError();
+
+  return authToken;
 };
