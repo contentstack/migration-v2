@@ -16,7 +16,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
   const appTokenPayload: AppTokenPayload = req?.body?.token_payload;
 
   try {
-    AuthenticationModel.read();
+    await AuthenticationModel.read();
     const userIndex = AuthenticationModel.chain
       .get("users")
       .findIndex({

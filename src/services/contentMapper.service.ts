@@ -13,7 +13,6 @@ import {
   HTTP_CODES,
   POPULATE_CONTENT_MAPPER,
   POPULATE_FIELD_MAPPING,
-  EXCLUDE_CONTENT_MAPPER,
   PROJECT_STATUS,
   STEPPER_STEPS,
 } from "../constants/index.js";
@@ -22,6 +21,7 @@ import { config } from "../config/index.js";
 import https from "../utils/https.utils.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
+import ProjectModelLowdb from "../models/project-lowdb.js";
 
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {
@@ -209,22 +209,23 @@ const updateContentType = async (req: Request) => {
   const srcFun = "udateContentType";
   const { orgId, projectId, contentTypeId } = req.params;
   const { contentTypeData, token_payload } = req.body;
-  // const token_payload = req?.body?.token_payload;
   const fieldMapping = contentTypeData?.fieldMapping;
 
   let updatedContentType: any = {};
 
-  const project = await getProjectUtil(
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: token_payload?.region,
       owner: token_payload?.user_id,
     },
-    EXCLUDE_CONTENT_MAPPER,
-    srcFun
-  );
+    srcFun,
+    true
+  )) as number;
+  const project = ProjectModelLowdb.data.projects[projectIndex];
 
   if (
     [
@@ -309,17 +310,20 @@ const resetToInitialMapping = async (req: Request) => {
   const { orgId, projectId, contentTypeId } = req.params;
   const { token_payload } = req.body;
 
-  const project = await getProjectUtil(
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: token_payload?.region,
       owner: token_payload?.user_id,
     },
-    EXCLUDE_CONTENT_MAPPER,
-    srcFunc
-  );
+    srcFunc,
+    true
+  )) as number;
+
+  const project = ProjectModelLowdb.data.projects[projectIndex];
 
   if (
     [

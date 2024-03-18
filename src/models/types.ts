@@ -14,7 +14,7 @@ export interface LoginServiceType {
 }
 
 export interface MigrationQueryType {
-  _id: string;
+  id: string;
   org_id: string;
   region: string;
   owner: string;
