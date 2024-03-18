@@ -2,7 +2,7 @@ import AuthenticationModel from "../models/authentication.js";
 import { UnauthorizedError } from "../utils/custom-errors.utils.js";
 
 export default async (region: string, userId: string) => {
-  AuthenticationModel.read();
+  await AuthenticationModel.read();
   const userIndex = AuthenticationModel.chain
     .get("users")
     .findIndex({

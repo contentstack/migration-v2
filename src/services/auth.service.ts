@@ -63,7 +63,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     };
 
     // Saving auth info in the DB
-    AuthenticationModel.read();
+    await AuthenticationModel.read();
     const userIndex = AuthenticationModel.chain
       .get("users")
       .findIndex(appTokenPayload)

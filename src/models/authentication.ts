@@ -1,12 +1,6 @@
 // src/models/Authentication.ts
-import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
-import lodash from "lodash";
-
-class LowWithLodash<T> extends Low<T> {
-  chain: lodash.ExpChain<this["data"]> = lodash.chain(this).get("data");
-}
-
+import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 interface AuthenticationDocument {
   users: {
     user_id: string;

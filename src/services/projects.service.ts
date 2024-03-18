@@ -1,42 +1,43 @@
 import { Request } from "express";
-import ProjectModel from "../models/project.js";
+import ProjectModelLowdb from "../models/project-lowdb.js";
 import {
   BadRequestError,
   ExceptionFunction,
   NotFoundError,
 } from "../utils/custom-errors.utils.js";
 import {
-  EXCLUDE_CONTENT_MAPPER,
-  PROJECT_UNSELECTED_FIELDS,
   HTTP_TEXTS,
   HTTP_CODES,
-  POPULATE_CONTENT_MAPPER,
-  POPULATE_FIELD_MAPPING,
   PROJECT_STATUS,
   STEPPER_STEPS,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
-import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
+import { getLogMessage, safePromise } from "../utils/index.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import https from "../utils/https.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
 import logger from "../utils/logger.js";
 import { contentMapperService } from "./contentMapper.service.js";
+import { v4 as uuidv4 } from "uuid";
 
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const decodedToken = req.body.token_payload;
   const { user_id = "", region = "" } = decodedToken;
 
-  const project = await ProjectModel.find({
-    org_id: orgId,
-    region,
-    owner: user_id,
-  }).select(PROJECT_UNSELECTED_FIELDS);
+  await ProjectModelLowdb.read();
+  const projects = ProjectModelLowdb.chain
+    .get("projects")
+    .filter({
+      org_id: orgId,
+      region,
+      owner: user_id,
+    })
+    .value();
 
-  if (!project) throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  if (!projects) throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
 
-  return project;
+  return projects;
 };
 
 const getProject = async (req: Request) => {
@@ -48,39 +49,13 @@ const getProject = async (req: Request) => {
   const project = await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: region,
       owner: user_id,
     },
-    EXCLUDE_CONTENT_MAPPER,
     "getProject"
   );
-
-  return project;
-};
-
-const getProjectAllDetails = async (req: Request) => {
-  const projectId = req?.params?.projectId;
-  const srcFunc = "getProjectAllDetails";
-
-  // Find the project
-  const project = await ProjectModel.findOne({
-    _id: projectId,
-  }).populate({
-    path: POPULATE_CONTENT_MAPPER,
-    populate: { path: POPULATE_FIELD_MAPPING },
-  });
-
-  if (isEmpty(project)) {
-    logger.error(
-      getLogMessage(
-        srcFunc,
-        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
-      )
-    );
-    throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
-  }
 
   return project;
 };
@@ -92,24 +67,36 @@ const createProject = async (req: Request) => {
   const { user_id = "", region = "" } = decodedToken;
   const srcFunc = "createProject";
   const projectData = {
+    id: uuidv4(),
     region,
     org_id: orgId,
     owner: user_id,
-    created_by: user_id,
+    former_owner_ids: [],
     name,
     description,
+    status: PROJECT_STATUS.DRAFT,
+    current_step: STEPPER_STEPS.LEGACY_CMS,
+    destination_stack_id: "",
+    legacy_cms: {},
+    content_mapper: [],
+    execution_log: [],
+    created_by: user_id,
+    updated_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
   };
 
   try {
     //Add logic to create Project from DB
-    const project = await ProjectModel.create(projectData);
+    await ProjectModelLowdb.read();
 
-    if (!project) throw new BadRequestError(HTTP_TEXTS.PROJECT_CREATION_FAILED);
+    ProjectModelLowdb.update((data: any) => {
+      data.projects.push(projectData);
+    });
 
     logger.info(
       getLogMessage(
         srcFunc,
-        `Project successfully created Id : ${project._id}.`,
+        `Project successfully created Id : ${projectData.id}.`,
         decodedToken
       )
     );
@@ -117,11 +104,11 @@ const createProject = async (req: Request) => {
       status: "success",
       message: "Project created successfully",
       project: {
-        name: project.name,
-        id: project.id,
-        status: project.status,
-        created_at: project.created_at,
-        modified_at: project.updated_at,
+        name: projectData.name,
+        id: projectData.id,
+        status: projectData.status,
+        created_at: projectData.created_at,
+        modified_at: projectData.updated_at,
         // Add other properties as needed
       },
     };
@@ -148,32 +135,35 @@ const updateProject = async (req: Request) => {
   const decodedToken = req.body.token_payload;
   const { user_id = "", region = "" } = decodedToken;
   const srcFunc = "updateProject";
+  let project: any;
 
   // Find the project based on both orgId and projectId
-  const project = await getProjectUtil(
+  const projectIndex = (await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: region,
       owner: user_id,
     },
-    EXCLUDE_CONTENT_MAPPER,
-    srcFunc
-  );
+    srcFunc,
+    true
+  )) as number;
 
   try {
     // Update the project fields
-    project.name = updateData?.name || project.name;
-    project.description = updateData?.description || project.description;
-    project.updated_by = user_id;
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].name = updateData?.name;
+      data.projects[projectIndex].description = updateData?.description;
+      data.projects[projectIndex].updated_by = user_id;
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+      project = data.projects[projectIndex];
+    });
 
-    // Save the updated project
-    const updatedProject = await project.save();
     logger.info(
       getLogMessage(
         srcFunc,
-        `Project details have been successfully revised Id : ${project._id}.`,
+        `Project details have been successfully revised Id : ${projectId}.`,
         decodedToken
       )
     );
@@ -181,12 +171,12 @@ const updateProject = async (req: Request) => {
       status: "success",
       message: "Project updated successfully",
       project: {
-        name: updatedProject?.name,
-        description: updatedProject?.description,
-        id: updatedProject?.id,
-        status: updatedProject?.status,
-        created_at: updatedProject?.created_at,
-        modified_at: updatedProject?.updated_at,
+        name: updateData?.name,
+        description: updateData?.description,
+        id: project?.id,
+        status: project?.status,
+        created_at: project?.created_at,
+        modified_at: project?.updated_at,
         // Add other properties as needed
       },
     };
@@ -211,17 +201,20 @@ const updateLegacyCMS = async (req: Request) => {
   const { token_payload, legacy_cms } = req.body;
   const srcFunc = "updateLegacyCMS";
 
-  const project = await getProjectUtil(
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: token_payload?.region,
       owner: token_payload?.user_id,
     },
-    EXCLUDE_CONTENT_MAPPER,
-    srcFunc
-  );
+    srcFunc,
+    true
+  )) as number;
+
+  const project = ProjectModelLowdb.data.projects[projectIndex];
 
   if (
     project.status === PROJECT_STATUS.INPROGRESS ||
@@ -245,11 +238,13 @@ const updateLegacyCMS = async (req: Request) => {
   }
 
   try {
-    project.legacy_cms.cms = legacy_cms;
-    project.current_step = STEPPER_STEPS.LEGACY_CMS;
-    project.status = PROJECT_STATUS.DRAFT;
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].legacy_cms.cms = legacy_cms;
+      data.projects[projectIndex].current_step = STEPPER_STEPS.LEGACY_CMS;
+      data.projects[projectIndex].status = PROJECT_STATUS.DRAFT;
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
 
-    await project.save();
     logger.info(
       getLogMessage(
         srcFunc,
@@ -280,23 +275,27 @@ const updateLegacyCMS = async (req: Request) => {
 };
 
 const updateAffix = async (req: Request) => {
+  const srcFunc = "updateAffix";
   const { orgId, projectId } = req.params;
   const { token_payload, affix } = req.body;
 
-  const project = await getProjectUtil(
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: token_payload?.region,
       owner: token_payload?.user_id,
     },
-    EXCLUDE_CONTENT_MAPPER
-  );
+    srcFunc,
+    true
+  )) as number;
 
-  project.legacy_cms.affix = affix;
-
-  await project.save();
+  ProjectModelLowdb.update((data: any) => {
+    data.projects[projectIndex].legacy_cms.affix = affix;
+    data.projects[projectIndex].updated_at = new Date().toISOString();
+  });
 
   return {
     status: HTTP_CODES.OK,
@@ -307,23 +306,28 @@ const updateAffix = async (req: Request) => {
 };
 
 const affixConfirmation = async (req: Request) => {
+  const srcFunc = "affixConfirmation";
   const { orgId, projectId } = req.params;
   const { token_payload, affix_confirmation } = req.body;
 
-  const project = await getProjectUtil(
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: token_payload?.region,
       owner: token_payload?.user_id,
     },
-    EXCLUDE_CONTENT_MAPPER
-  );
+    srcFunc,
+    true
+  )) as number;
 
-  project.legacy_cms.affix_confirmation = affix_confirmation;
-
-  await project.save();
+  ProjectModelLowdb.update((data: any) => {
+    data.projects[projectIndex].legacy_cms.affix_confirmation =
+      affix_confirmation;
+    data.projects[projectIndex].updated_at = new Date().toISOString();
+  });
 
   return {
     status: HTTP_CODES.OK,
@@ -338,17 +342,21 @@ const updateFileFormat = async (req: Request) => {
   const { token_payload, file_format } = req.body;
   const srcFunc = "updateFileFormat";
 
-  const project = await getProjectUtil(
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: token_payload?.region,
       owner: token_payload?.user_id,
     },
-    EXCLUDE_CONTENT_MAPPER,
-    srcFunc
-  );
+    srcFunc,
+    true
+  )) as number;
+
+  const project = ProjectModelLowdb.data.projects[projectIndex];
+
   if (
     project.status === PROJECT_STATUS.INPROGRESS ||
     project.status === PROJECT_STATUS.SUCCESS
@@ -375,11 +383,13 @@ const updateFileFormat = async (req: Request) => {
   }
 
   try {
-    project.legacy_cms.file_format = file_format;
-    project.current_step = STEPPER_STEPS.LEGACY_CMS;
-    project.status = PROJECT_STATUS.DRAFT;
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].legacy_cms.file_format = file_format;
+      data.projects[projectIndex].current_step = STEPPER_STEPS.LEGACY_CMS;
+      data.projects[projectIndex].status = PROJECT_STATUS.DRAFT;
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
 
-    await project.save();
     logger.info(
       getLogMessage(
         srcFunc,
@@ -410,23 +420,28 @@ const updateFileFormat = async (req: Request) => {
 };
 
 const fileformatConfirmation = async (req: Request) => {
+  const srcFunc = "fileformat";
   const { orgId, projectId } = req.params;
   const { token_payload, fileformat_confirmation } = req.body;
 
-  const project = await getProjectUtil(
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: token_payload?.region,
       owner: token_payload?.user_id,
     },
-    EXCLUDE_CONTENT_MAPPER
-  );
+    srcFunc,
+    true
+  )) as number;
 
-  project.legacy_cms.file_format_confirmation = fileformat_confirmation;
-
-  await project.save();
+  ProjectModelLowdb.update((data: any) => {
+    data.projects[projectIndex].legacy_cms.file_format_confirmation =
+      fileformat_confirmation;
+    data.projects[projectIndex].updated_at = new Date().toISOString();
+  });
 
   return {
     status: HTTP_CODES.OK,
@@ -441,17 +456,20 @@ const updateDestinationStack = async (req: Request) => {
   const { token_payload, stack_api_key } = req.body;
   const srcFunc = "updateDestinationStack";
 
-  const project = await getProjectUtil(
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
     projectId,
     {
-      _id: projectId,
+      id: projectId,
       org_id: orgId,
       region: token_payload?.region,
       owner: token_payload?.user_id,
     },
-    EXCLUDE_CONTENT_MAPPER,
-    srcFunc
-  );
+    srcFunc,
+    true
+  )) as number;
+
+  const project = ProjectModelLowdb.data.projects[projectIndex];
 
   const authtoken = await getAuthtoken(
     token_payload?.region,
@@ -508,11 +526,14 @@ const updateDestinationStack = async (req: Request) => {
     if (!res.data.stacks.find((stack: any) => stack.api_key === stack_api_key))
       throw new BadRequestError(HTTP_TEXTS.DESTINATION_STACK_NOT_FOUND);
 
-    project.destination_stack_id = stack_api_key;
-    project.current_step = STEPPER_STEPS.DESTINATION_STACK;
-    project.status = PROJECT_STATUS.DRAFT;
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].destination_stack_id = stack_api_key;
+      data.projects[projectIndex].current_step =
+        STEPPER_STEPS.DESTINATION_STACK;
+      data.projects[projectIndex].status = PROJECT_STATUS.DRAFT;
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
 
-    await project.save();
     logger.info(
       getLogMessage(
         srcFunc,
@@ -547,57 +568,72 @@ const updateCurrentStep = async (req: Request) => {
   const token_payload = req.body.token_payload;
   const srcFunc = "updateCurrentStep";
 
-  const project = await getProjectUtil(
-    projectId,
-    {
-      _id: projectId,
-      org_id: orgId,
-      region: token_payload?.region,
-      owner: token_payload?.user_id,
-    },
-    EXCLUDE_CONTENT_MAPPER,
-    srcFunc
-  );
-  const isStepCompleted =
-    project?.legacy_cms?.cms && project?.legacy_cms?.file_format;
-
-  switch (project.current_step) {
-    case STEPPER_STEPS.LEGACY_CMS: {
-      if (project.status !== PROJECT_STATUS.DRAFT || !isStepCompleted) {
-        logger.error(
-          getLogMessage(
-            srcFunc,
-            HTTP_TEXTS.CANNOT_PROCEED_LEGACY_CMS,
-            token_payload
-          )
-        );
-        throw new BadRequestError(HTTP_TEXTS.CANNOT_PROCEED_LEGACY_CMS);
-      }
-      project.current_step = STEPPER_STEPS.DESTINATION_STACK;
-      break;
-    }
-    case STEPPER_STEPS.DESTINATION_STACK: {
-      if (
-        project.status !== PROJECT_STATUS.DRAFT ||
-        !isStepCompleted ||
-        !project?.destination_stack_id
-      ) {
-        logger.error(
-          getLogMessage(
-            srcFunc,
-            HTTP_TEXTS.CANNOT_PROCEED_DESTINATION_STACK,
-            token_payload
-          )
-        );
-        throw new BadRequestError(HTTP_TEXTS.CANNOT_PROCEED_DESTINATION_STACK);
-      }
-      project.current_step = STEPPER_STEPS.CONTENT_MAPPING;
-      project.status = PROJECT_STATUS.READY;
-      break;
-    }
-  }
   try {
-    await project.save();
+    await ProjectModelLowdb.read();
+    const projectIndex = (await getProjectUtil(
+      projectId,
+      {
+        id: projectId,
+        org_id: orgId,
+        region: token_payload?.region,
+        owner: token_payload?.user_id,
+      },
+      srcFunc,
+      true
+    )) as number;
+
+    const project = ProjectModelLowdb.data.projects[projectIndex];
+
+    const isStepCompleted =
+      project?.legacy_cms?.cms && project?.legacy_cms?.file_format;
+
+    switch (project.current_step) {
+      case STEPPER_STEPS.LEGACY_CMS: {
+        if (project.status !== PROJECT_STATUS.DRAFT || !isStepCompleted) {
+          logger.error(
+            getLogMessage(
+              srcFunc,
+              HTTP_TEXTS.CANNOT_PROCEED_LEGACY_CMS,
+              token_payload
+            )
+          );
+          throw new BadRequestError(HTTP_TEXTS.CANNOT_PROCEED_LEGACY_CMS);
+        }
+
+        ProjectModelLowdb.update((data: any) => {
+          data.projects[projectIndex].current_step =
+            STEPPER_STEPS.DESTINATION_STACK;
+          data.projects[projectIndex].updated_at = new Date().toISOString();
+        });
+        break;
+      }
+      case STEPPER_STEPS.DESTINATION_STACK: {
+        if (
+          project.status !== PROJECT_STATUS.DRAFT ||
+          !isStepCompleted ||
+          !project?.destination_stack_id
+        ) {
+          logger.error(
+            getLogMessage(
+              srcFunc,
+              HTTP_TEXTS.CANNOT_PROCEED_DESTINATION_STACK,
+              token_payload
+            )
+          );
+          throw new BadRequestError(
+            HTTP_TEXTS.CANNOT_PROCEED_DESTINATION_STACK
+          );
+        }
+
+        ProjectModelLowdb.update((data: any) => {
+          data.projects[projectIndex].current_step =
+            STEPPER_STEPS.CONTENT_MAPPING;
+          data.projects[projectIndex].status = PROJECT_STATUS.READY;
+          data.projects[projectIndex].updated_at = new Date().toISOString();
+        });
+        break;
+      }
+    }
     logger.info(
       getLogMessage(
         srcFunc,
@@ -633,7 +669,6 @@ const deleteProject = async (req: Request) => {
 export const projectService = {
   getAllProjects,
   getProject,
-  getProjectAllDetails,
   createProject,
   updateProject,
   updateLegacyCMS,
