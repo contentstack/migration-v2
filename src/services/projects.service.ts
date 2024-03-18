@@ -1,5 +1,4 @@
 import { Request } from "express";
-import ProjectModel from "../models/project.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import {
   BadRequestError,
@@ -9,13 +8,11 @@ import {
 import {
   HTTP_TEXTS,
   HTTP_CODES,
-  POPULATE_CONTENT_MAPPER,
-  POPULATE_FIELD_MAPPING,
   PROJECT_STATUS,
   STEPPER_STEPS,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
-import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
+import { getLogMessage, safePromise } from "../utils/index.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import https from "../utils/https.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
@@ -59,31 +56,6 @@ const getProject = async (req: Request) => {
     },
     "getProject"
   );
-
-  return project;
-};
-
-const getProjectAllDetails = async (req: Request) => {
-  const projectId = req?.params?.projectId;
-  const srcFunc = "getProjectAllDetails";
-
-  // Find the project
-  const project = await ProjectModel.findOne({
-    _id: projectId,
-  }).populate({
-    path: POPULATE_CONTENT_MAPPER,
-    populate: { path: POPULATE_FIELD_MAPPING },
-  });
-
-  if (isEmpty(project)) {
-    logger.error(
-      getLogMessage(
-        srcFunc,
-        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
-      )
-    );
-    throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
-  }
 
   return project;
 };
@@ -697,7 +669,6 @@ const deleteProject = async (req: Request) => {
 export const projectService = {
   getAllProjects,
   getProject,
-  getProjectAllDetails,
   createProject,
   updateProject,
   updateLegacyCMS,
