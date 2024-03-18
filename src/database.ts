@@ -4,7 +4,6 @@ import { config } from "./config/index.js";
 import logger from "./utils/logger.js";
 import ProjectModel from "./models/project.js";
 import ContentTypesMapperModel from "./models/contentTypesMapper.js";
-import FieldMapperModel from "./models/FieldMapper.js";
 import fs from "fs";
 
 const connectToDatabase = async () => {
@@ -21,7 +20,6 @@ const connectToDatabase = async () => {
     // Create the collection's if it doesn't exist
     await ProjectModel.init();
     await ContentTypesMapperModel.init();
-    await FieldMapperModel.init();
   } catch (error) {
     logger.error("Error while connecting to MongoDB:", error);
     process.exit(1);
