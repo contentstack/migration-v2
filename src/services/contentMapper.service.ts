@@ -1,6 +1,5 @@
 import { Request } from "express";
 import ContentTypesMapperModel from "../models/contentTypesMapper.js";
-import FieldMapperModel from "../models/FieldMapper.js";
 import ProjectModel from "../models/project.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
 import {
@@ -22,31 +21,29 @@ import https from "../utils/https.utils.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
+import FieldMapperModel from "../models/FieldMapper.js";
+import { v4 as uuidv4 } from "uuid";
 
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
   const contentTypes = req.body;
 
-  // console.log(contentTypes)
-  await Promise.all(
-    contentTypes.map(async (type: any, index: any) => {
-      await FieldMapperModel.insertMany(type.fieldMapping, {
-        ordered: true,
-      })
-        .then(function (docs: any) {
-          // do something with docs
-          contentTypes[index].fieldMapping = docs.map((item: any) => {
-            return item._id;
-          });
-        })
-        .catch(function () {
-          // console.log("type.fieldMapping")
-          //  console.log(err)
-          // error handling here
-        });
-    })
-  );
+  await FieldMapperModel.read();
+  contentTypes.map((type: any, index: any) => {
+    const fieldIds: string[] = [];
+    const fields = type.fieldMapping.map((field: any) => {
+      const id = uuidv4();
+      fieldIds.push(id);
+      return { id, isDeleted: false, ...field.fieldMapping };
+    });
+
+    FieldMapperModel.update((data: any) => {
+      data.field_mapper = [...data.field_mapper, ...fields];
+    });
+
+    contentTypes[index].fieldMapping = fieldIds;
+  });
 
   let typeIds: any = [];
 
@@ -279,14 +276,17 @@ const updateContentType = async (req: Request) => {
       throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
     }
     if (!isEmpty(fieldMapping)) {
-      const bulkWriteOperations = fieldMapping?.map((doc: any) => ({
-        replaceOne: {
-          filter: { _id: doc._id },
-          replacement: doc,
-          upsert: true,
-        },
-      }));
-      await FieldMapperModel.bulkWrite(bulkWriteOperations, { ordered: false });
+      await FieldMapperModel.read();
+      (fieldMapping || []).forEach((field: any) => {
+        const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
+          (f: any) => f?.id === field?.id
+        );
+        if (fieldIndex > -1) {
+          FieldMapperModel.update((data: any) => {
+            data.field_mapper[fieldIndex] = field;
+          });
+        }
+      });
     }
 
     return { updatedContentType };
@@ -359,21 +359,22 @@ const resetToInitialMapping = async (req: Request) => {
 
   try {
     if (!isEmpty(contentType?.fieldMapping)) {
-      const bulkWriteOperations: any = contentType?.fieldMapping?.map(
-        (doc: any) => ({
-          updateOne: {
-            filter: { _id: doc._id },
-            update: {
-              $set: {
-                contentstackField: "",
-                contentstackFieldUid: "",
-                ContentstackFieldType: doc.backupFieldType,
-              },
-            },
-          },
-        })
-      );
-      await FieldMapperModel.bulkWrite(bulkWriteOperations, { ordered: false });
+      await FieldMapperModel.read();
+      (contentType?.fieldMapping || []).forEach((field: any) => {
+        const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
+          (f: any) => f?.id === field?.id
+        );
+        if (fieldIndex > -1) {
+          FieldMapperModel.update((data: any) => {
+            data.field_mapper[fieldIndex] = {
+              ...field,
+              contentstackField: "",
+              contentstackFieldUid: "",
+              ContentstackFieldType: field.backupFieldType,
+            };
+          });
+        }
+      });
     }
     contentType.contentstackTitle = "";
     contentType.contentstackUid = "";
@@ -421,22 +422,21 @@ const resetAllContentTypesMapping = async (projectId: string) => {
     const contentTypesbulkWriteOperations: any = await Promise.all(
       contentTypes?.map(async (contentType: any) => {
         if (!isEmpty(contentType?.fieldMapping)) {
-          const bulkWriteOperations: any = contentType?.fieldMapping?.map(
-            (doc: any) => ({
-              updateOne: {
-                filter: { _id: doc._id },
-                update: {
-                  $set: {
-                    contentstackField: "",
-                    contentstackFieldUid: "",
-                    ContentstackFieldType: doc.backupFieldType,
-                  },
-                },
-              },
-            })
-          );
-          await FieldMapperModel.bulkWrite(bulkWriteOperations, {
-            ordered: false,
+          await FieldMapperModel.read();
+          (contentType?.fieldMapping || []).forEach((field: any) => {
+            const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
+              (f: any) => f?.id === field?.id
+            );
+            if (fieldIndex > -1) {
+              FieldMapperModel.update((data: any) => {
+                data.field_mapper[fieldIndex] = {
+                  ...field,
+                  contentstackField: "",
+                  contentstackFieldUid: "",
+                  ContentstackFieldType: field.backupFieldType,
+                };
+              });
+            }
           });
         }
         return {
@@ -494,18 +494,20 @@ const removeMapping = async (projectId: string) => {
   try {
     const contentTypes = projectDetails?.content_mapper;
 
+    //TODO: remove fieldMapping ids in ContentTypesMapperModel for each content types
     const contentTypesbulkWriteOperations: any = await Promise.all(
       contentTypes?.map(async (contentType: any) => {
         if (!isEmpty(contentType?.fieldMapping)) {
-          const bulkWriteOperations: any = contentType?.fieldMapping?.map(
-            (doc: any) => ({
-              deleteOne: {
-                filter: { _id: doc._id },
-              },
-            })
-          );
-          await FieldMapperModel.bulkWrite(bulkWriteOperations, {
-            ordered: false,
+          await FieldMapperModel.read();
+          (contentType?.fieldMapping || []).forEach((field: any) => {
+            const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
+              (f: any) => f?.id === field?.id
+            );
+            if (fieldIndex > -1) {
+              FieldMapperModel.update((data: any) => {
+                delete data.field_mapper[fieldIndex];
+              });
+            }
           });
         }
         return {
