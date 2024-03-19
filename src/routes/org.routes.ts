@@ -18,4 +18,11 @@ router.post(
 // GET all contentstack locales route
 router.get("/locales", asyncRouter(orgController.getLocales));
 
+// GET Content_types count
+router.post(
+  "/stack_status",
+  validator("destination_stack"),
+  asyncRouter(orgController.getStackStatus)
+);
+
 export default router;

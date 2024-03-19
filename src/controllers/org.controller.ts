@@ -16,8 +16,14 @@ const getLocales = async (req: Request, res: Response) => {
   res.status(resp.status).json(resp.data);
 };
 
+const getStackStatus = async (req: Request, res: Response) => {
+  const resp = await orgService.getStackStatus(req);
+  res.status(resp.status).json(resp.data);
+};
+
 export const orgController = {
   getAllStacks,
   createStack,
   getLocales,
+  getStackStatus,
 };

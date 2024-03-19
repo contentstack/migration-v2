@@ -7,6 +7,7 @@ import getAuthtoken from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
 import { HTTP_TEXTS, HTTP_CODES } from "../constants/index.js";
 import { ExceptionFunction } from "../utils/custom-errors.utils.js";
+import { BadRequestError } from "../utils/custom-errors.utils.js";
 
 const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getAllStacks";
@@ -198,8 +199,91 @@ const getLocales = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+const getStackStatus = async (req: Request) => {
+  const { orgId } = req.params;
+  const { token_payload, stack_api_key } = req.body;
+  const srcFunc = "getStackStatus";
+
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+
+  try {
+    const [stackErr, stackRes] = await safePromise(
+      https({
+        method: "GET",
+        url: `${config.CS_API[
+          token_payload?.region as keyof typeof config.CS_API
+        ]!}/stacks`,
+        headers: {
+          organization_uid: orgId,
+          authtoken,
+        },
+      })
+    );
+
+    if (stackErr)
+      return {
+        data: {
+          message: HTTP_TEXTS.DESTINATION_STACK_ERROR,
+        },
+        status: stackErr.response.status,
+      };
+
+    if (
+      !stackRes.data.stacks.find(
+        (stack: any) => stack.api_key === stack_api_key
+      )
+    )
+      throw new BadRequestError(HTTP_TEXTS.DESTINATION_STACK_NOT_FOUND);
+
+    const [err, res] = await safePromise(
+      https({
+        method: "GET",
+        url: `${config.CS_API[
+          token_payload?.region as keyof typeof config.CS_API
+        ]!}/content_types?skip=0&limit=1&include_count=true`,
+        headers: {
+          api_key: stack_api_key,
+          authtoken,
+        },
+      })
+    );
+
+    if (err)
+      return {
+        data: {
+          message: HTTP_TEXTS.DESTINATION_STACK_ERROR,
+        },
+        status: err.response.status,
+      };
+
+    return {
+      status: HTTP_CODES.OK,
+      data: {
+        contenttype_count: res.data?.count || 0,
+      },
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while checking the status of a stack [OrgId : ${orgId}].`,
+        token_payload,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
 export const orgService = {
   getAllStacks,
   getLocales,
   createStack,
+  getStackStatus,
 };
