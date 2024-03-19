@@ -23,11 +23,12 @@ import getProjectUtil from "../utils/get-project.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import FieldMapperModel from "../models/FieldMapper.js";
 import { v4 as uuidv4 } from "uuid";
+import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
 
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
-  const contentTypes = req.body;
+  const contentTypes = req.body.contentTypes;
 
   await FieldMapperModel.read();
   contentTypes.map((type: any, index: any) => {
@@ -45,29 +46,25 @@ const putTestData = async (req: Request) => {
     contentTypes[index].fieldMapping = fieldIds;
   });
 
-  let typeIds: any = [];
-
-  await ContentTypesMapperModel.insertMany(contentTypes, {
-    ordered: true,
-  })
-    .then(async function (docs) {
-      // do something with docs
-      typeIds = docs.map((item) => {
-        return item._id;
-      });
-    })
-    .catch(function () {
-      // console.log(err)
-      // error handling here
-    });
-
-  const projectDetails: any = await ProjectModel.findOne({
-    _id: projectId,
+  const typeIds: any = [];
+  const obj = {
+    id: uuidv4(),
+    projectId: projectId,
+    contentTypes: contentTypes,
+  };
+  await ContentTypesMapperModelLowdb.read();
+  await ContentTypesMapperModelLowdb.update((data: any) => {
+    data.ContentTypesMappers.push(obj);
   });
-  projectDetails.content_mapper = typeIds;
-  projectDetails.save();
-  //Add logic to get Project from DB
-  return projectDetails;
+  typeIds.push(obj.id);
+  await ProjectModelLowdb.read();
+  const pData = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .assign({ content_mapper: typeIds })
+    .value();
+
+  return pData;
 };
 
 const getContentTypes = async (req: Request) => {
