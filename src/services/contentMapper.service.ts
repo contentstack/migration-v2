@@ -134,7 +134,6 @@ const getFieldMapping = async (req: Request) => {
   const contentType = await ContentTypesMapperModel.findOne({
     _id: contentTypeId,
   }).populate("fieldMapping");
-
   if (isEmpty(contentType)) {
     logger.error(
       getLogMessage(
