@@ -465,8 +465,10 @@ const resetAllContentTypesMapping = async (projectId: string) => {
         };
       })
     );
-    await ContentTypesMapperModel.bulkWrite(contentTypesbulkWriteOperations, {
-      ordered: false,
+
+    await ContentTypesMapperModelLowdb.read();
+    ContentTypesMapperModelLowdb.update((data: any) => {
+      data.ContentTypesMappers.push(contentTypesbulkWriteOperations);
     });
     return projectDetails;
   } catch (error: any) {
