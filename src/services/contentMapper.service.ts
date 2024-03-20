@@ -7,7 +7,6 @@ import {
   ExceptionFunction,
 } from "../utils/custom-errors.utils.js";
 import {
-  CONTENT_TYPE_POPULATE_FIELDS,
   HTTP_TEXTS,
   HTTP_CODES,
   POPULATE_CONTENT_MAPPER,
@@ -72,14 +71,14 @@ const getContentTypes = async (req: Request) => {
   const limit: any = req?.params?.limit;
   const search: string = req?.params?.searchText?.toLowerCase();
 
-  let result = [];
+  let result: any = [];
   let totalCount = 0;
-  const projectDetails = await ProjectModel.findOne({
-    _id: projectId,
-  }).populate({
-    path: POPULATE_CONTENT_MAPPER,
-    select: CONTENT_TYPE_POPULATE_FIELDS,
-  });
+
+  await ProjectModelLowdb.read();
+  const projectDetails = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .value();
 
   if (isEmpty(projectDetails)) {
     logger.error(
@@ -90,28 +89,35 @@ const getContentTypes = async (req: Request) => {
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
-  const { content_mapper }: any = projectDetails;
-
-  if (!isEmpty(content_mapper)) {
-    if (search) {
-      const filteredResult = content_mapper
-        .filter((item: any) =>
-          item?.otherCmsTitle?.toLowerCase().includes(search)
-        )
-        ?.sort((a: any, b: any) =>
-          a.otherCmsTitle.localeCompare(b.otherCmsTitle)
-        );
-      totalCount = filteredResult.length;
-      result = filteredResult.slice(skip, Number(skip) + Number(limit));
-    } else {
-      totalCount = content_mapper.length;
-      result = content_mapper
-        ?.sort((a: any, b: any) =>
-          a.otherCmsTitle.localeCompare(b.otherCmsTitle)
-        )
-        ?.slice(skip, Number(skip) + Number(limit));
+  const contentMapperId = projectDetails.content_mapper;
+  await ContentTypesMapperModelLowdb.read();
+  contentMapperId.map((data: any) => {
+    const contentMapperData = ContentTypesMapperModelLowdb.chain
+      .get("ContentTypesMappers")
+      .find({ id: data })
+      .value();
+    const content_mapper = contentMapperData.contentTypes;
+    if (!isEmpty(content_mapper)) {
+      if (search) {
+        const filteredResult = content_mapper
+          .filter((item: any) =>
+            item?.otherCmsTitle?.toLowerCase().includes(search)
+          )
+          ?.sort((a: any, b: any) =>
+            a.otherCmsTitle.localeCompare(b.otherCmsTitle)
+          );
+        totalCount = filteredResult.length;
+        result = filteredResult.slice(skip, Number(skip) + Number(limit));
+      } else {
+        totalCount = content_mapper.length;
+        result = content_mapper
+          ?.sort((a: any, b: any) =>
+            a.otherCmsTitle.localeCompare(b.otherCmsTitle)
+          )
+          ?.slice(skip, Number(skip) + Number(limit));
+      }
     }
-  }
+  });
   return { count: totalCount, contentTypes: result };
 };
 
