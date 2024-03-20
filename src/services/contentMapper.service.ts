@@ -36,14 +36,12 @@ const putTestData = async (req: Request) => {
     const fields = type.fieldMapping.map((field: any) => {
       const id = uuidv4();
       fieldIds.push(id);
-      return { id, isDeleted: false, ...field.fieldMapping };
+      return { id, isDeleted: false, ...field };
     });
-
     FieldMapperModel.update((data: any) => {
       data.field_mapper = [...data.field_mapper, ...fields];
     });
-
-    contentTypes[index].fieldMapping = fieldIds;
+    contentTypes[index].fieldMapping = fields;
   });
 
   const typeIds: any = [];
@@ -124,13 +122,17 @@ const getFieldMapping = async (req: Request) => {
   const limit: any = req?.params?.limit;
   const search: string = req?.params?.searchText?.toLowerCase();
 
-  let result = [];
+  let result: any[] = [];
   let filteredResult = [];
   let totalCount = 0;
 
-  const contentType = await ContentTypesMapperModel.findOne({
-    _id: contentTypeId,
-  }).populate("fieldMapping");
+  await ContentTypesMapperModelLowdb.read();
+
+  const contentType = ContentTypesMapperModelLowdb.chain
+    .get("ContentTypesMappers")
+    .find({ id: contentTypeId })
+    .value();
+
   if (isEmpty(contentType)) {
     logger.error(
       getLogMessage(
@@ -141,19 +143,24 @@ const getFieldMapping = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
   }
 
-  const { fieldMapping }: any = contentType;
-  if (!isEmpty(fieldMapping)) {
-    if (search) {
-      filteredResult = fieldMapping.filter((item: any) =>
-        item?.otherCmsField?.toLowerCase().includes(search)
-      );
-      totalCount = filteredResult.length;
-      result = filteredResult.slice(skip, Number(skip) + Number(limit));
-    } else {
-      totalCount = fieldMapping.length;
-      result = fieldMapping.slice(skip, Number(skip) + Number(limit));
+  contentType.contentTypes.map((type: any) => {
+    const fieldData = type.fieldMapping.map((fields: any) => {
+      return fields;
+    });
+    const fieldMapping: any = fieldData;
+    if (!isEmpty(fieldMapping)) {
+      if (search) {
+        filteredResult = fieldMapping.filter((item: any) =>
+          item?.otherCmsField?.toLowerCase().includes(search)
+        );
+        totalCount = filteredResult.length;
+        result = filteredResult.slice(skip, Number(skip) + Number(limit));
+      } else {
+        totalCount = fieldMapping.length;
+        result = fieldMapping.slice(skip, Number(skip) + Number(limit));
+      }
     }
-  }
+  });
   return { count: totalCount, fieldMapping: result };
 };
 
