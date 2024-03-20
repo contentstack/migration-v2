@@ -173,7 +173,11 @@ const getExistingContentTypes = async (req: Request) => {
     token_payload?.region,
     token_payload?.user_id
   );
-  const project = await ProjectModel.findById(projectId);
+  await ProjectModelLowdb.read();
+  const project = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .value();
   const stackId = project?.destination_stack_id;
   const [err, res] = await safePromise(
     https({
