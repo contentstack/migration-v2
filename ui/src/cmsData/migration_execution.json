@@ -1,0 +1,38 @@
+{
+  "title": "Migration Execution",
+  "migration_information": [
+    {
+      "title": "Uploaded CMS",
+      "disabled": true,
+      "width": "small",
+      "_metadata": { "uid": "cs16c565a53c4b8a86" }
+    },
+    {
+      "title": "Organization",
+      "disabled": true,
+      "width": "small",
+      "_metadata": { "uid": "csc38f4dcfb3bef818" }
+    },
+    {
+      "title": "Selected stack",
+      "disabled": true,
+      "width": "small",
+      "_metadata": { "uid": "cs6a1bb7cbef06c88a" }
+    },
+    {
+      "title": "Selected locale",
+      "disabled": true,
+      "width": "small",
+      "_metadata": { "uid": "cs8adacd2a8a057f62" }
+    }
+  ],
+  "tags": [],
+  "locale": "en-us",
+  "uid": "blt875421bb12019625",
+  "created_by": "blt74f496d523384141",
+  "updated_by": "blt74f496d523384141",
+  "created_at": "2024-02-19T08:29:31.212Z",
+  "updated_at": "2024-02-19T08:29:31.212Z",
+  "_version": 1,
+  "_in_progress": false
+}

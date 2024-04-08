@@ -1,0 +1,104 @@
+{
+  "title": "Projects",
+  "url": "/projects",
+  "heading": "Content Migration Projects",
+  "search_projects": "Search for projects...",
+  "cta": {
+    "title": "New Project",
+    "url": "",
+    "theme": "primary",
+    "open_in_new_tab": false,
+    "with_icon": true
+  },
+  "tags": [],
+  "locale": "en-us",
+  "uid": "blta1dbec2d70eaa448",
+  "created_by": "bltb317ebe35429ebe6",
+  "updated_by": "bltb317ebe35429ebe6",
+  "created_at": "2023-12-15T11:18:20.412Z",
+  "updated_at": "2024-02-01T13:46:57.454Z",
+  "_version": 7,
+  "_in_progress": false,
+  "emptystate": {
+    "cta": [
+      {
+        "title": "New Project",
+        "_metadata": {
+          "uid": "csf029579137a04f81"
+        },
+        "url": "",
+        "theme": "primary",
+        "with_icon": true,
+        "open_in_new_tab": false
+      }
+    ],
+    "description": {
+      "uid": "c876d3d577d549a99b3987a0ed5283c0",
+      "_version": 7,
+      "attrs": {},
+      "children": [
+        {
+          "type": "p",
+          "attrs": {
+            "style": {},
+            "redactor-attributes": {},
+            "dir": "ltr"
+          },
+          "uid": "5ff5db2c09b54cf994ac9c0684d9a9eb",
+          "children": [
+            {
+              "text": "Contentstack Migration allows you to migrate content from other CMS to Contentstack."
+            }
+          ]
+        }
+      ],
+      "type": "doc"
+    },
+    "heading": "Welcome to Contentstack Migrations",
+    "help_text": "",
+    "empty_search_description": {
+      "uid": "911e7fc98c954b72ba0cfeea4a0737d1",
+      "_version": 7,
+      "attrs": {},
+      "children": [
+        {
+          "type": "p",
+          "attrs": {
+            "style": {},
+            "redactor-attributes": {},
+            "dir": "ltr"
+          },
+          "uid": "abe73b9230a14732b851770356995ee8",
+          "children": [
+            {
+              "text": "Don't worry though, we're here to help. Try adjusting your search terms or check if you misspelled anything."
+            }
+          ]
+        }
+      ],
+      "type": "doc"
+    },
+    "empty_search_heading": "No results found for your search criteria"
+  },
+  "create_project_modal": {
+    "description": "Description",
+    "description_placeholder": "Provide a description",
+    "name": "Project Name",
+    "name_placeholder": "Enter project name",
+    "primary_cta": {
+      "open_in_new_tab": false,
+      "theme": "primary",
+      "title": "Create Project",
+      "url": "",
+      "with_icon": true
+    },
+    "secondary_cta": {
+      "open_in_new_tab": false,
+      "theme": "secondary",
+      "title": "Cancel",
+      "url": "",
+      "with_icon": false
+    },
+    "title": "Create New Project"
+  }
+}

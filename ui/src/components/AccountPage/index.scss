@@ -1,0 +1,144 @@
+@import '../../scss/variables';
+
+.AccountPage {
+  align-items: stretch;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+
+  &__intro {
+    background-color: $color-brand-primary-base;
+    flex: 0 0 35%;
+    height: 100%;
+    position: relative;
+    width: 35%;
+  }
+
+  &__action {
+    flex: 0 0 65%;
+    max-width: 65%;
+    position: relative;
+    width: 65%;
+    z-index: 10;
+
+    &::before {
+      backdrop-filter: blur(104px);
+      background: $color-brand-white-base;
+      /* background: rgba(249, 251, 253, 0.5); */
+      content: '';
+      display: block;
+      height: 100%;
+      width: 100%;
+    }
+  }
+
+  &__content {
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+  }
+
+  &__heading {
+    left: 15%;
+    position: absolute;
+    top: 40%;
+    z-index: 10;
+
+    &_title {
+      color: $color-brand-white-base;
+      font-family: $font-family-secondary;
+      font-size: 2.5rem;
+      font-weight: $font-weight-extra-bold;
+      line-height: 49px;
+      max-width: $px-260;
+      text-transform: uppercase;
+    }
+    &_subtitle {
+      color: $color-font-mercury;
+      font-family: $font-family-primary;
+      font-size: 1.5rem;
+      font-weight: $font-weight-semi-bold;
+      line-height: 150%;
+      max-width: $px-335;
+    }
+  }
+
+  &__logo {
+    display: inline-block;
+    height: 28px !important;
+    left: 15%;
+    margin-top: $space-50;
+    position: relative;
+    width: $px-159 !important;
+    z-index: 10;
+  }
+
+  &__circle {
+    border-radius: $radii-50;
+    position: absolute;
+    z-index: 5;
+
+    &_one {
+      background-color: #5a20b8;
+      height: 20.313rem;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -50%);
+      width: 20.313rem;
+    }
+
+    &_two {
+      background-color: #300565;
+      height: 27.25rem;
+      right: -9.188rem;
+      top: -7.313rem;
+      width: 27.25rem;
+    }
+
+    &_three {
+      background-color: #ea624a;
+      height: 4.063rem;
+      left: $space-50;
+      top: 17.25rem;
+      width: 4.063rem;
+    }
+
+    &_four {
+      background-color: #ea624a;
+      height: 14.813rem;
+      right: 0;
+      top: 20.375rem;
+      transform: translateX(50%);
+      width: 14.813rem;
+    }
+
+    &_five {
+      background-color: #5a20b8;
+      height: 8.438rem;
+      left: -3.25rem;
+      top: 31.563rem;
+      width: 8.438rem;
+    }
+
+    &_six {
+      background-color: #300565;
+      bottom: -2.188rem;
+      height: 6.813rem;
+      left: -1.938rem;
+      width: 6.813rem;
+    }
+
+    &_seven {
+      background-color: #5a20b8;
+      bottom: -14.25rem;
+      height: 25rem;
+      right: -$space-20;
+      width: 25rem;
+    }
+  }
+}
+
+.AccountForm {
+}

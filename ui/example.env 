@@ -1,0 +1,15 @@
+#Common and mandetory variables
+REACT_APP_WEBSITE_BASE_URL=""
+REACT_APP_BASE_API_URL=""
+REACT_APP_API_VERSION=
+REACT_APP_UPLOAD_SERVER=""
+
+#Set to true if want to use static cms content on entire app, By default it will take value as true.  
+REACT_APP_OFFLINE_CMS=true
+
+#IF REACT_APP_OFFLINE_CMS set to false then need to specify Delivery Token, API Key, cms environment,Host URL to get data entries from CMS
+REACT_APP_CS_DELIVERY_TOKEN=
+REACT_APP_CS_ENVIRONMENT=
+REACT_APP_CS_API_KEY=
+REACT_APP_CS_HOST=
+REACT_APP_CS_REGION=

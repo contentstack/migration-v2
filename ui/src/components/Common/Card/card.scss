@@ -1,0 +1,61 @@
+@import '../../../scss/variables';
+
+.service_list {
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $px-12;
+}
+
+.trigger_list {
+  min-width: 120px !important;
+}
+
+.connector_list .tippy-box-light {
+  max-width: $px-360 !important;
+  padding: $px-15 !important;
+  line-height: 130%;
+  font-size: $px-12;
+  font-weight: $font-weight-regular;
+}
+
+.connector_list,
+.action_list,
+.trigger_list {
+  border: 1px solid $color-base-gray-40;
+  border-radius: $px-6;
+  flex: 0 10%;
+  cursor: pointer;
+  min-width: $px-117;
+  text-align: center;
+}
+
+.connector_list .tippy-box-light #automationConnectorsHelpText {
+  cursor: default;
+  color: $color-base-gray-20;
+}
+
+.connector_list:hover {
+  box-shadow: 0 3px $px-5 $px-2 rgb(215 215 215);
+}
+
+.service_icon {
+  padding: $space-20 0;
+}
+
+.service_title {
+  padding: $px-5 $px-5;
+  min-height: $px-40;
+  max-height: $px-40;
+  overflow-y: auto;
+  font-weight: 500;
+  font-size: 0.8rem;
+  border-radius: 0 0 $px-6 $px-6;
+  background: $color-base-white-10;
+}
+
+.PageLayout--full-screen .PageLayout__head {
+  border-bottom: 1px solid rgb(226, 235, 248);
+  box-shadow: rgba(226, 235, 248, 0.15) 0 $space-10 15px;
+  border: 1px solid rgba(204, 204, 204, 0.6);
+}

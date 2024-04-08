@@ -1,0 +1,63 @@
+@import '../../scss/variables';
+.service_list {
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: $space-15;
+}
+
+.pl-40 {
+  padding-left: $px-40;
+}
+
+.center-align {
+  margin-top: calc(100vh - 65%);
+}
+
+.CircularLoader--size-small {
+  width: $px-80 !important;
+  height: $px-80 !important;
+}
+
+.CircularLoader {
+  display: inline-block !important;
+  border-top: $px-5 solid $color-brand-primary-base !important;
+}
+.legacy-cms-container {
+  margin-top: $px-60 !important;
+  width: $px-850 !important;
+  margin-left: 10% !important;
+}
+
+.service_list_search {
+  display: flex;
+  margin: $space-15;
+}
+
+.service_list_search_bar {
+  flex: 15;
+  margin-right: $px-15;
+  height: $px-35;
+}
+
+.service_list_search_bar .Search-input-show {
+  width: 100%;
+}
+
+.service_list_search_button {
+  flex: 1;
+}
+
+.service_list_search_button .Filter__modal {
+  right: $px-15;
+}
+
+.service_list_search_button .Filter__wrapper {
+  position: absolute;
+}
+
+.service_list_search_button .Filter__icon {
+  min-height: $px-40;
+  top: -8px;
+}
