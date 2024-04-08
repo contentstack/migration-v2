@@ -1,0 +1,82 @@
+@import '../../scss/App.scss';
+@import '../../scss/variables';
+
+.content-types-list-wrapper {
+  max-width: 27%;
+  width: 100%;
+}
+.content-types-list-header {
+  border-bottom: 1px solid $color-brand-secondary-lightest;
+  padding: 18px $space-12;
+  .Search {
+    margin: $space-20 0 $space-12;
+    width: 100%;
+    .Search-input-show {
+      width: auto;
+    }
+  }
+}
+.ct-list {
+  list-style-type: none;
+  margin-right: 15px;
+  margin-top: 5px;
+  li {
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: $size-font-large;
+    line-height: normal;
+    padding: $space-10 35px;
+    &.active-ct {
+      background-color: $color-brand-white-base;
+      border: 1px solid $color-brand-primary-base;
+      color: $color-brand-primary-base;
+    }
+  }
+}
+.content-type-list {
+  padding-left: 12px;
+}
+.content-types-fields-wrapper {
+  border-left: 1px solid $color-brand-secondary-lightest;
+  max-width: 73%;
+  width: 100%;
+  padding: 0px;
+}
+.cta-wrapper {
+  border-top: 1px solid $color-base-gray-40;
+  // bottom: 0;
+  padding: $space-12 $space-24 $space-12 $space-12;
+  // position: fixed;
+  // right: 0;
+  text-align: right;
+  width: 100%;
+  z-index: 1;
+  position: relative;
+}
+.table-wrapper {
+  .Table {
+    min-height: inherit;
+  }
+}
+.action-btn-wrapper {
+  background-color: $color-brand-white-base;
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+}
+.step-container {
+  margin-top: 0;
+  width: 100%;
+  margin-left: 0px;
+  margin-bottom: 20px;
+}
+.saveButton {
+  padding: 5px 30px;
+}
+.btnWrapper {
+  margin-left: 20px;
+}
+div .select .Select {
+  width: $px-50;
+  max-width: $px-50 !important;
+}

@@ -1,0 +1,24 @@
+@import '../../scss/variables';
+
+.project-search-wrapper {
+  margin-top: 2px;
+  margin-left: 8px;
+}
+
+.projects-landing {
+  &.layout-container {
+    .PageLayout--primary {
+      .PageLayout__head,
+      .PageLayout__body {
+        border-left: 0 none;
+        margin-left: 0;
+        padding-left: 0;
+        padding-right: 0;
+        width: 100%;
+      }
+      .PageLayout__head {
+        border-top: 0 none;
+      }
+    }
+  }
+}
