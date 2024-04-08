@@ -1,0 +1,57 @@
+@import '../../scss/variables';
+
+.basicinfo-tab {
+  cursor: pointer;
+  padding-bottom: $space-20;
+  .detail .Icon--small {
+    margin: 12px $space-10;
+    width: 16px;
+    height: 16px;
+  }
+  .basic-info-caret-right {
+    svg {
+      margin: 12px;
+      height: 16px;
+      width: 8px;
+    }
+  }
+}
+.basic-info-block {
+  margin: $space-10 $space-10 0;
+  padding-left: $space-12;
+  p {
+    font-style: normal;
+    font-weight: $font-weight-regular;
+    font-size: $size-font-medium;
+    color: $color-font-base;
+  }
+}
+.basic-info-block-active {
+  background: $color-brand-white-base;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: $space-4;
+  height: 40px;
+  margin: $space-10 $space-10 0;
+  padding-left: $space-12;
+  p {
+    color: $color-brand-primary-base;
+    font-style: normal;
+    font-size: $size-font-medium;
+    font-weight: $font-weight-semi-bold;
+  }
+}
+.step-wrapper {
+  padding: 15px 0;
+}
+
+.outline-text {
+  font-style: normal;
+  font-weight: $font-weight-semi-bold;
+  line-height: $line-height-default;
+  letter-spacing: 0.01em;
+  text-align: left;
+  font-size: 13px;
+  color: $color-font-base;
+  border-bottom: 1px solid $color-base-gray-40;
+  min-height: 35px;
+}

@@ -1,0 +1,109 @@
+{
+  "title": "Account Login",
+  "url": "/region-login",
+  "heading": "Account Login",
+  "description": "Please select Contentstack <strong>North America (AWS or Azure)</strong> or Contentstack <strong>Europe (AWS or Azure)</strong> to continue.",
+  "regions": [
+    {
+      "service_icon": {
+        "uid": "bltbe45879eac0025d8",
+        "created_at": "2023-10-31T06:59:22.783Z",
+        "updated_at": "2023-10-31T06:59:22.783Z",
+        "created_by": "bltb317ebe35429ebe6",
+        "updated_by": "bltb317ebe35429ebe6",
+        "content_type": "image/svg+xml",
+        "file_size": "92431",
+        "tags": [],
+        "filename": "aws.svg",
+        "url": "https://images.contentstack.io/v3/assets/bltd3620ec6418ad3ad/bltbe45879eac0025d8/6540a5ca1680320407c3a753/aws.svg",
+        "ACL": [],
+        "is_dir": false,
+        "parent_uid": null,
+        "_version": 1,
+        "title": "aws.svg"
+      },
+      "service_title": "Amazon Web Services",
+      "region_title": "North America",
+      "cta": { "title": "Continue", "url": "/login" },
+      "_metadata": { "uid": "cs32a9ba30ec1496ef" }
+    },
+    {
+      "service_icon": {
+        "uid": "blt85d2a7024c613199",
+        "created_at": "2023-10-31T07:00:56.567Z",
+        "updated_at": "2023-10-31T07:00:56.567Z",
+        "created_by": "bltb317ebe35429ebe6",
+        "updated_by": "bltb317ebe35429ebe6",
+        "content_type": "image/svg+xml",
+        "file_size": "821",
+        "tags": [],
+        "filename": "Azure_icon.svg",
+        "url": "https://images.contentstack.io/v3/assets/bltd3620ec6418ad3ad/blt85d2a7024c613199/6540a62808cc0104077cc6e4/Azure_icon.svg",
+        "ACL": [],
+        "is_dir": false,
+        "parent_uid": null,
+        "_version": 1,
+        "title": "Azure_icon.svg"
+      },
+      "service_title": "Microsoft Azure",
+      "region_title": "North America",
+      "cta": { "title": "Continue", "url": "/login" },
+      "_metadata": { "uid": "cs77a3bf15c456afbb" }
+    },
+    {
+      "service_icon": {
+        "uid": "bltbe45879eac0025d8",
+        "created_at": "2023-10-31T06:59:22.783Z",
+        "updated_at": "2023-10-31T06:59:22.783Z",
+        "created_by": "bltb317ebe35429ebe6",
+        "updated_by": "bltb317ebe35429ebe6",
+        "content_type": "image/svg+xml",
+        "file_size": "92431",
+        "tags": [],
+        "filename": "aws.svg",
+        "url": "https://images.contentstack.io/v3/assets/bltd3620ec6418ad3ad/bltbe45879eac0025d8/6540a5ca1680320407c3a753/aws.svg",
+        "ACL": [],
+        "is_dir": false,
+        "parent_uid": null,
+        "_version": 1,
+        "title": "aws.svg"
+      },
+      "service_title": "Amazon Web Services",
+      "region_title": "Europe",
+      "cta": { "title": "Continue", "url": "/login" },
+      "_metadata": { "uid": "csf578f8fbea1ae0c0" }
+    },
+    {
+      "service_icon": {
+        "uid": "blt85d2a7024c613199",
+        "created_at": "2023-10-31T07:00:56.567Z",
+        "updated_at": "2023-10-31T07:00:56.567Z",
+        "created_by": "bltb317ebe35429ebe6",
+        "updated_by": "bltb317ebe35429ebe6",
+        "content_type": "image/svg+xml",
+        "file_size": "821",
+        "tags": [],
+        "filename": "Azure_icon.svg",
+        "url": "https://images.contentstack.io/v3/assets/bltd3620ec6418ad3ad/blt85d2a7024c613199/6540a62808cc0104077cc6e4/Azure_icon.svg",
+        "ACL": [],
+        "is_dir": false,
+        "parent_uid": null,
+        "_version": 1,
+        "title": "Azure_icon.svg"
+      },
+      "service_title": "Microsoft Azure",
+      "region_title": "Europe",
+      "cta": { "title": "Continue", "url": "/login" },
+      "_metadata": { "uid": "cs7c90ee35480e165e" }
+    }
+  ],
+  "tags": [],
+  "locale": "en-us",
+  "uid": "blt0ce2fe0d798e59cf",
+  "created_by": "bltb317ebe35429ebe6",
+  "updated_by": "bltb317ebe35429ebe6",
+  "created_at": "2023-10-31T07:03:41.880Z",
+  "updated_at": "2023-10-31T07:03:41.880Z",
+  "_version": 1,
+  "_in_progress": false
+}

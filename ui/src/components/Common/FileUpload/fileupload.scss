@@ -1,0 +1,57 @@
+@import '../../../scss/variables';
+.file-upload-container {
+  display: flex;
+  height: 21.25rem;
+  padding: 1rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  align-self: stretch;
+  border-radius: 0.25rem;
+  border: 0.125rem dashed $color-base-gray-40;
+
+  .file-upload {
+    display: flex;
+    height: 4.5rem;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .file-upload-text {
+    text-align: center;
+    font-family: Inter;
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: $font-weight-regular;
+    line-height: 150%;
+    letter-spacing: 0.16px;
+  }
+
+  .file-upload-image {
+    width: 15rem;
+    height: 15rem;
+    flex-shrink: 0;
+  }
+}
+
+.hover {
+  border: 0.125rem dashed $color-base-purple;
+}
+
+.hidden {
+  display: none;
+}
+
+.validation-container {
+  display: flex;
+  background-color: $color-base-white-5;
+  height: $px-108;
+  width: 100%;
+  align-items: center;
+  padding: 0 !important;
+  border: 1px solid #dde3ee;
+  border-radius: var(--TermCount, 5px);
+}

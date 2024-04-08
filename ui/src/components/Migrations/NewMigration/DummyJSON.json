@@ -1,0 +1,4141 @@
+{
+  "projectId": "",
+  "contentTypes": [
+    {
+      "otherCmsTitle": "Homepage",
+      "otherCmsUid": "homepage",
+      "isUpdated": false,
+      "updateAt": "",
+      "contentstackTitle": "",
+      "contnetStackUid": "",
+      "fieldMapping": [
+        {
+          "uid": "title",
+          "otherCmsField": "title",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url",
+          "otherCmsField": "url",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner",
+          "otherCmsField": "banner",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest",
+          "otherCmsField": "integerTest Number",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown",
+          "otherCmsField": "integer dropDown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating",
+          "otherCmsField": "integer rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio",
+          "otherCmsField": "integer radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo",
+          "otherCmsField": "decimal no.",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown",
+          "otherCmsField": "decimal dropdown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date",
+          "otherCmsField": "date24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour",
+          "otherCmsField": "date12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly",
+          "otherCmsField": "dateonly",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone",
+          "otherCmsField": "datewithouttimezone24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour",
+          "otherCmsField": "datewithouttimezone12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio",
+          "otherCmsField": "decimal radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating",
+          "otherCmsField": "decimal rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-2",
+          "otherCmsField": "title-2",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-2",
+          "otherCmsField": "url-2",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-2",
+          "otherCmsField": "banner-2",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-2",
+          "otherCmsField": "integerTest Number-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-2",
+          "otherCmsField": "integer dropDown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-2",
+          "otherCmsField": "integer rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio_2",
+          "otherCmsField": "integer radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_2",
+          "otherCmsField": "decimal no.-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-2",
+          "otherCmsField": "decimal dropdown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-2",
+          "otherCmsField": "date24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-2",
+          "otherCmsField": "date12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-2",
+          "otherCmsField": "dateonly-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-2",
+          "otherCmsField": "datewithouttimezone24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-2",
+          "otherCmsField": "datewithouttimezone12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-2",
+          "otherCmsField": "decimal radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-2",
+          "otherCmsField": "decimal rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-3",
+          "otherCmsField": "title-3",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-3",
+          "otherCmsField": "url-3",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-3",
+          "otherCmsField": "banner-3",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-3",
+          "otherCmsField": "integerTest Number-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-3",
+          "otherCmsField": "integer dropDown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-3",
+          "otherCmsField": "integer rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio-3",
+          "otherCmsField": "integer radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo-3",
+          "otherCmsField": "decimal no.-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-3",
+          "otherCmsField": "decimal dropdown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-3",
+          "otherCmsField": "date24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-3",
+          "otherCmsField": "date12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-3",
+          "otherCmsField": "dateonly-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-3",
+          "otherCmsField": "datewithouttimezone24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-3",
+          "otherCmsField": "datewithouttimezone12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-3",
+          "otherCmsField": "decimal radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-3",
+          "otherCmsField": "decimal rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-4",
+          "otherCmsField": "title-4",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-4",
+          "otherCmsField": "url-4",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-5",
+          "otherCmsField": "banner5",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest5",
+          "otherCmsField": "integerTest Number-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-5",
+          "otherCmsField": "integer dropDown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-5",
+          "otherCmsField": "integer rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio5",
+          "otherCmsField": "integer radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_5",
+          "otherCmsField": "decimal no.-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-5",
+          "otherCmsField": "decimal dropdown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-5",
+          "otherCmsField": "date24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-5",
+          "otherCmsField": "date12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-5",
+          "otherCmsField": "dateonly-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-5",
+          "otherCmsField": "datewithouttimezone24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-5",
+          "otherCmsField": "datewithouttimezone12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-5",
+          "otherCmsField": "decimal radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-5",
+          "otherCmsField": "decimal rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title",
+          "otherCmsField": "title",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url",
+          "otherCmsField": "url",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner",
+          "otherCmsField": "banner",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest",
+          "otherCmsField": "integerTest Number",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown",
+          "otherCmsField": "integer dropDown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating",
+          "otherCmsField": "integer rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio",
+          "otherCmsField": "integer radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo",
+          "otherCmsField": "decimal no.",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown",
+          "otherCmsField": "decimal dropdown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date",
+          "otherCmsField": "date24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour",
+          "otherCmsField": "date12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly",
+          "otherCmsField": "dateonly",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone",
+          "otherCmsField": "datewithouttimezone24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour",
+          "otherCmsField": "datewithouttimezone12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio",
+          "otherCmsField": "decimal radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating",
+          "otherCmsField": "decimal rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-2",
+          "otherCmsField": "title-2",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-2",
+          "otherCmsField": "url-2",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-2",
+          "otherCmsField": "banner-2",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-2",
+          "otherCmsField": "integerTest Number-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-2",
+          "otherCmsField": "integer dropDown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-2",
+          "otherCmsField": "integer rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio_2",
+          "otherCmsField": "integer radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_2",
+          "otherCmsField": "decimal no.-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-2",
+          "otherCmsField": "decimal dropdown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-2",
+          "otherCmsField": "date24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-2",
+          "otherCmsField": "date12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-2",
+          "otherCmsField": "dateonly-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-2",
+          "otherCmsField": "datewithouttimezone24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-2",
+          "otherCmsField": "datewithouttimezone12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-2",
+          "otherCmsField": "decimal radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-2",
+          "otherCmsField": "decimal rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-3",
+          "otherCmsField": "title-3",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-3",
+          "otherCmsField": "url-3",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-3",
+          "otherCmsField": "banner-3",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-3",
+          "otherCmsField": "integerTest Number-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-3",
+          "otherCmsField": "integer dropDown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-3",
+          "otherCmsField": "integer rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio-3",
+          "otherCmsField": "integer radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo-3",
+          "otherCmsField": "decimal no.-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-3",
+          "otherCmsField": "decimal dropdown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-3",
+          "otherCmsField": "date24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-3",
+          "otherCmsField": "date12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-3",
+          "otherCmsField": "dateonly-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-3",
+          "otherCmsField": "datewithouttimezone24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-3",
+          "otherCmsField": "datewithouttimezone12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-3",
+          "otherCmsField": "decimal radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-3",
+          "otherCmsField": "decimal rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-4",
+          "otherCmsField": "title-4",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-4",
+          "otherCmsField": "url-4",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-5",
+          "otherCmsField": "banner5",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest5",
+          "otherCmsField": "integerTest Number-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-5",
+          "otherCmsField": "integer dropDown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-5",
+          "otherCmsField": "integer rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio5",
+          "otherCmsField": "integer radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_5",
+          "otherCmsField": "decimal no.-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-5",
+          "otherCmsField": "decimal dropdown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-5",
+          "otherCmsField": "date24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-5",
+          "otherCmsField": "date12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-5",
+          "otherCmsField": "dateonly-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-5",
+          "otherCmsField": "datewithouttimezone24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-5",
+          "otherCmsField": "datewithouttimezone12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-5",
+          "otherCmsField": "decimal radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-5",
+          "otherCmsField": "decimal rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        }
+      ]
+    },
+    {
+      "otherCmsTitle": "AboutUs",
+      "otherCmsUid": "aboutus",
+      "isUpdated": false,
+      "updateAt": "",
+      "contentstackTitle": "",
+      "contnetStackUid": "",
+      "fieldMapping": [
+        {
+          "uid": "title1",
+          "otherCmsField": "title1",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url",
+          "otherCmsField": "url",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner",
+          "otherCmsField": "banner",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest",
+          "otherCmsField": "integerTest Number",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown",
+          "otherCmsField": "integer dropDown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating",
+          "otherCmsField": "integer rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio",
+          "otherCmsField": "integer radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo",
+          "otherCmsField": "decimal no.",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown",
+          "otherCmsField": "decimal dropdown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date",
+          "otherCmsField": "date24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour",
+          "otherCmsField": "date12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly",
+          "otherCmsField": "dateonly",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone",
+          "otherCmsField": "datewithouttimezone24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour",
+          "otherCmsField": "datewithouttimezone12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio",
+          "otherCmsField": "decimal radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating",
+          "otherCmsField": "decimal rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-2",
+          "otherCmsField": "title-2",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-2",
+          "otherCmsField": "url-2",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-2",
+          "otherCmsField": "banner-2",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-2",
+          "otherCmsField": "integerTest Number-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-2",
+          "otherCmsField": "integer dropDown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-2",
+          "otherCmsField": "integer rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio_2",
+          "otherCmsField": "integer radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_2",
+          "otherCmsField": "decimal no.-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-2",
+          "otherCmsField": "decimal dropdown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-2",
+          "otherCmsField": "date24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-2",
+          "otherCmsField": "date12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-2",
+          "otherCmsField": "dateonly-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-2",
+          "otherCmsField": "datewithouttimezone24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-2",
+          "otherCmsField": "datewithouttimezone12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-2",
+          "otherCmsField": "decimal radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-2",
+          "otherCmsField": "decimal rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-3",
+          "otherCmsField": "title-3",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-3",
+          "otherCmsField": "url-3",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-3",
+          "otherCmsField": "banner-3",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-3",
+          "otherCmsField": "integerTest Number-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-3",
+          "otherCmsField": "integer dropDown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-3",
+          "otherCmsField": "integer rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio-3",
+          "otherCmsField": "integer radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo-3",
+          "otherCmsField": "decimal no.-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-3",
+          "otherCmsField": "decimal dropdown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-3",
+          "otherCmsField": "date24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-3",
+          "otherCmsField": "date12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-3",
+          "otherCmsField": "dateonly-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-3",
+          "otherCmsField": "datewithouttimezone24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-3",
+          "otherCmsField": "datewithouttimezone12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-3",
+          "otherCmsField": "decimal radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-3",
+          "otherCmsField": "decimal rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-4",
+          "otherCmsField": "title-4",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-4",
+          "otherCmsField": "url-4",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-5",
+          "otherCmsField": "banner5",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest5",
+          "otherCmsField": "integerTest Number-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-5",
+          "otherCmsField": "integer dropDown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-5",
+          "otherCmsField": "integer rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio5",
+          "otherCmsField": "integer radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_5",
+          "otherCmsField": "decimal no.-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-5",
+          "otherCmsField": "decimal dropdown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-5",
+          "otherCmsField": "date24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-5",
+          "otherCmsField": "date12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-5",
+          "otherCmsField": "dateonly-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-5",
+          "otherCmsField": "datewithouttimezone24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-5",
+          "otherCmsField": "datewithouttimezone12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-5",
+          "otherCmsField": "decimal radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-5",
+          "otherCmsField": "decimal rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title",
+          "otherCmsField": "title",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url",
+          "otherCmsField": "url",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner",
+          "otherCmsField": "banner",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest",
+          "otherCmsField": "integerTest Number",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown",
+          "otherCmsField": "integer dropDown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating",
+          "otherCmsField": "integer rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio",
+          "otherCmsField": "integer radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo",
+          "otherCmsField": "decimal no.",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown",
+          "otherCmsField": "decimal dropdown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date",
+          "otherCmsField": "date24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour",
+          "otherCmsField": "date12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly",
+          "otherCmsField": "dateonly",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone",
+          "otherCmsField": "datewithouttimezone24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour",
+          "otherCmsField": "datewithouttimezone12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio",
+          "otherCmsField": "decimal radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating",
+          "otherCmsField": "decimal rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-2",
+          "otherCmsField": "title-2",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-2",
+          "otherCmsField": "url-2",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-2",
+          "otherCmsField": "banner-2",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-2",
+          "otherCmsField": "integerTest Number-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-2",
+          "otherCmsField": "integer dropDown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-2",
+          "otherCmsField": "integer rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio_2",
+          "otherCmsField": "integer radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_2",
+          "otherCmsField": "decimal no.-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-2",
+          "otherCmsField": "decimal dropdown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-2",
+          "otherCmsField": "date24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-2",
+          "otherCmsField": "date12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-2",
+          "otherCmsField": "dateonly-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-2",
+          "otherCmsField": "datewithouttimezone24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-2",
+          "otherCmsField": "datewithouttimezone12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-2",
+          "otherCmsField": "decimal radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-2",
+          "otherCmsField": "decimal rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-3",
+          "otherCmsField": "title-3",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-3",
+          "otherCmsField": "url-3",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-3",
+          "otherCmsField": "banner-3",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-3",
+          "otherCmsField": "integerTest Number-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-3",
+          "otherCmsField": "integer dropDown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-3",
+          "otherCmsField": "integer rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio-3",
+          "otherCmsField": "integer radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo-3",
+          "otherCmsField": "decimal no.-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-3",
+          "otherCmsField": "decimal dropdown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-3",
+          "otherCmsField": "date24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-3",
+          "otherCmsField": "date12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-3",
+          "otherCmsField": "dateonly-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-3",
+          "otherCmsField": "datewithouttimezone24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-3",
+          "otherCmsField": "datewithouttimezone12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-3",
+          "otherCmsField": "decimal radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-3",
+          "otherCmsField": "decimal rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-4",
+          "otherCmsField": "title-4",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-4",
+          "otherCmsField": "url-4",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-5",
+          "otherCmsField": "banner5",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest5",
+          "otherCmsField": "integerTest Number-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-5",
+          "otherCmsField": "integer dropDown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-5",
+          "otherCmsField": "integer rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio5",
+          "otherCmsField": "integer radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_5",
+          "otherCmsField": "decimal no.-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-5",
+          "otherCmsField": "decimal dropdown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-5",
+          "otherCmsField": "date24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-5",
+          "otherCmsField": "date12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-5",
+          "otherCmsField": "dateonly-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-5",
+          "otherCmsField": "datewithouttimezone24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-5",
+          "otherCmsField": "datewithouttimezone12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-5",
+          "otherCmsField": "decimal radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-5",
+          "otherCmsField": "decimal rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        }
+      ]
+    },
+    {
+      "otherCmsTitle": "Article",
+      "otherCmsUid": "article",
+      "isUpdated": false,
+      "updateAt": "",
+      "contentstackTitle": "",
+      "contnetStackUid": "",
+      "fieldMapping": [
+        {
+          "uid": "title2",
+          "otherCmsField": "title2",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url",
+          "otherCmsField": "url",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner",
+          "otherCmsField": "banner",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest",
+          "otherCmsField": "integerTest Number",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown",
+          "otherCmsField": "integer dropDown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating",
+          "otherCmsField": "integer rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio",
+          "otherCmsField": "integer radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo",
+          "otherCmsField": "decimal no.",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown",
+          "otherCmsField": "decimal dropdown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date",
+          "otherCmsField": "date24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour",
+          "otherCmsField": "date12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly",
+          "otherCmsField": "dateonly",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone",
+          "otherCmsField": "datewithouttimezone24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour",
+          "otherCmsField": "datewithouttimezone12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio",
+          "otherCmsField": "decimal radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating",
+          "otherCmsField": "decimal rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-2",
+          "otherCmsField": "title-2",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-2",
+          "otherCmsField": "url-2",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-2",
+          "otherCmsField": "banner-2",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-2",
+          "otherCmsField": "integerTest Number-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-2",
+          "otherCmsField": "integer dropDown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-2",
+          "otherCmsField": "integer rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio_2",
+          "otherCmsField": "integer radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_2",
+          "otherCmsField": "decimal no.-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-2",
+          "otherCmsField": "decimal dropdown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-2",
+          "otherCmsField": "date24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-2",
+          "otherCmsField": "date12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-2",
+          "otherCmsField": "dateonly-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-2",
+          "otherCmsField": "datewithouttimezone24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-2",
+          "otherCmsField": "datewithouttimezone12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-2",
+          "otherCmsField": "decimal radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-2",
+          "otherCmsField": "decimal rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-3",
+          "otherCmsField": "title-3",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-3",
+          "otherCmsField": "url-3",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-3",
+          "otherCmsField": "banner-3",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-3",
+          "otherCmsField": "integerTest Number-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-3",
+          "otherCmsField": "integer dropDown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-3",
+          "otherCmsField": "integer rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio-3",
+          "otherCmsField": "integer radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo-3",
+          "otherCmsField": "decimal no.-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-3",
+          "otherCmsField": "decimal dropdown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-3",
+          "otherCmsField": "date24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-3",
+          "otherCmsField": "date12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-3",
+          "otherCmsField": "dateonly-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-3",
+          "otherCmsField": "datewithouttimezone24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-3",
+          "otherCmsField": "datewithouttimezone12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-3",
+          "otherCmsField": "decimal radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-3",
+          "otherCmsField": "decimal rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-4",
+          "otherCmsField": "title-4",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-4",
+          "otherCmsField": "url-4",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-5",
+          "otherCmsField": "banner5",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest5",
+          "otherCmsField": "integerTest Number-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-5",
+          "otherCmsField": "integer dropDown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-5",
+          "otherCmsField": "integer rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio5",
+          "otherCmsField": "integer radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_5",
+          "otherCmsField": "decimal no.-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-5",
+          "otherCmsField": "decimal dropdown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-5",
+          "otherCmsField": "date24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-5",
+          "otherCmsField": "date12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-5",
+          "otherCmsField": "dateonly-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-5",
+          "otherCmsField": "datewithouttimezone24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-5",
+          "otherCmsField": "datewithouttimezone12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-5",
+          "otherCmsField": "decimal radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-5",
+          "otherCmsField": "decimal rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title",
+          "otherCmsField": "title",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url",
+          "otherCmsField": "url",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner",
+          "otherCmsField": "banner",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest",
+          "otherCmsField": "integerTest Number",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown",
+          "otherCmsField": "integer dropDown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating",
+          "otherCmsField": "integer rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio",
+          "otherCmsField": "integer radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo",
+          "otherCmsField": "decimal no.",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown",
+          "otherCmsField": "decimal dropdown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date",
+          "otherCmsField": "date24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour",
+          "otherCmsField": "date12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly",
+          "otherCmsField": "dateonly",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone",
+          "otherCmsField": "datewithouttimezone24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour",
+          "otherCmsField": "datewithouttimezone12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio",
+          "otherCmsField": "decimal radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating",
+          "otherCmsField": "decimal rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-2",
+          "otherCmsField": "title-2",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-2",
+          "otherCmsField": "url-2",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-2",
+          "otherCmsField": "banner-2",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-2",
+          "otherCmsField": "integerTest Number-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-2",
+          "otherCmsField": "integer dropDown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-2",
+          "otherCmsField": "integer rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio_2",
+          "otherCmsField": "integer radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_2",
+          "otherCmsField": "decimal no.-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-2",
+          "otherCmsField": "decimal dropdown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-2",
+          "otherCmsField": "date24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-2",
+          "otherCmsField": "date12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-2",
+          "otherCmsField": "dateonly-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-2",
+          "otherCmsField": "datewithouttimezone24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-2",
+          "otherCmsField": "datewithouttimezone12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-2",
+          "otherCmsField": "decimal radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-2",
+          "otherCmsField": "decimal rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-3",
+          "otherCmsField": "title-3",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-3",
+          "otherCmsField": "url-3",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-3",
+          "otherCmsField": "banner-3",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-3",
+          "otherCmsField": "integerTest Number-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-3",
+          "otherCmsField": "integer dropDown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-3",
+          "otherCmsField": "integer rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio-3",
+          "otherCmsField": "integer radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo-3",
+          "otherCmsField": "decimal no.-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-3",
+          "otherCmsField": "decimal dropdown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-3",
+          "otherCmsField": "date24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-3",
+          "otherCmsField": "date12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-3",
+          "otherCmsField": "dateonly-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-3",
+          "otherCmsField": "datewithouttimezone24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-3",
+          "otherCmsField": "datewithouttimezone12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-3",
+          "otherCmsField": "decimal radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-3",
+          "otherCmsField": "decimal rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-4",
+          "otherCmsField": "title-4",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-4",
+          "otherCmsField": "url-4",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-5",
+          "otherCmsField": "banner5",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest5",
+          "otherCmsField": "integerTest Number-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-5",
+          "otherCmsField": "integer dropDown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-5",
+          "otherCmsField": "integer rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio5",
+          "otherCmsField": "integer radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_5",
+          "otherCmsField": "decimal no.-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-5",
+          "otherCmsField": "decimal dropdown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-5",
+          "otherCmsField": "date24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-5",
+          "otherCmsField": "date12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-5",
+          "otherCmsField": "dateonly-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-5",
+          "otherCmsField": "datewithouttimezone24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-5",
+          "otherCmsField": "datewithouttimezone12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-5",
+          "otherCmsField": "decimal radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-5",
+          "otherCmsField": "decimal rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        }
+      ]
+    },
+    {
+      "otherCmsTitle": "LandingPage",
+      "otherCmsUid": "landing_page",
+      "isUpdated": false,
+      "updateAt": "",
+      "contentstackTitle": "",
+      "contnetStackUid": "",
+      "fieldMapping": [
+        {
+          "uid": "title3",
+          "otherCmsField": "title3",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url",
+          "otherCmsField": "url",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner",
+          "otherCmsField": "banner",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest",
+          "otherCmsField": "integerTest Number",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown",
+          "otherCmsField": "integer dropDown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating",
+          "otherCmsField": "integer rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio",
+          "otherCmsField": "integer radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo",
+          "otherCmsField": "decimal no.",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown",
+          "otherCmsField": "decimal dropdown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date",
+          "otherCmsField": "date24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour",
+          "otherCmsField": "date12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly",
+          "otherCmsField": "dateonly",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone",
+          "otherCmsField": "datewithouttimezone24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour",
+          "otherCmsField": "datewithouttimezone12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio",
+          "otherCmsField": "decimal radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating",
+          "otherCmsField": "decimal rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-2",
+          "otherCmsField": "title-2",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-2",
+          "otherCmsField": "url-2",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-2",
+          "otherCmsField": "banner-2",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-2",
+          "otherCmsField": "integerTest Number-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-2",
+          "otherCmsField": "integer dropDown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-2",
+          "otherCmsField": "integer rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio_2",
+          "otherCmsField": "integer radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_2",
+          "otherCmsField": "decimal no.-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-2",
+          "otherCmsField": "decimal dropdown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-2",
+          "otherCmsField": "date24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-2",
+          "otherCmsField": "date12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-2",
+          "otherCmsField": "dateonly-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-2",
+          "otherCmsField": "datewithouttimezone24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-2",
+          "otherCmsField": "datewithouttimezone12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-2",
+          "otherCmsField": "decimal radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-2",
+          "otherCmsField": "decimal rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-3",
+          "otherCmsField": "title-3",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-3",
+          "otherCmsField": "url-3",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-3",
+          "otherCmsField": "banner-3",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-3",
+          "otherCmsField": "integerTest Number-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-3",
+          "otherCmsField": "integer dropDown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-3",
+          "otherCmsField": "integer rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio-3",
+          "otherCmsField": "integer radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo-3",
+          "otherCmsField": "decimal no.-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-3",
+          "otherCmsField": "decimal dropdown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-3",
+          "otherCmsField": "date24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-3",
+          "otherCmsField": "date12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-3",
+          "otherCmsField": "dateonly-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-3",
+          "otherCmsField": "datewithouttimezone24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-3",
+          "otherCmsField": "datewithouttimezone12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-3",
+          "otherCmsField": "decimal radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-3",
+          "otherCmsField": "decimal rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-4",
+          "otherCmsField": "title-4",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-4",
+          "otherCmsField": "url-4",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-5",
+          "otherCmsField": "banner5",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest5",
+          "otherCmsField": "integerTest Number-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-5",
+          "otherCmsField": "integer dropDown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-5",
+          "otherCmsField": "integer rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio5",
+          "otherCmsField": "integer radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_5",
+          "otherCmsField": "decimal no.-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-5",
+          "otherCmsField": "decimal dropdown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-5",
+          "otherCmsField": "date24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-5",
+          "otherCmsField": "date12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-5",
+          "otherCmsField": "dateonly-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-5",
+          "otherCmsField": "datewithouttimezone24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-5",
+          "otherCmsField": "datewithouttimezone12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-5",
+          "otherCmsField": "decimal radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-5",
+          "otherCmsField": "decimal rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title",
+          "otherCmsField": "title",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url",
+          "otherCmsField": "url",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner",
+          "otherCmsField": "banner",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest",
+          "otherCmsField": "integerTest Number",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown",
+          "otherCmsField": "integer dropDown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating",
+          "otherCmsField": "integer rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio",
+          "otherCmsField": "integer radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo",
+          "otherCmsField": "decimal no.",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown",
+          "otherCmsField": "decimal dropdown",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date",
+          "otherCmsField": "date24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour",
+          "otherCmsField": "date12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly",
+          "otherCmsField": "dateonly",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone",
+          "otherCmsField": "datewithouttimezone24hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour",
+          "otherCmsField": "datewithouttimezone12hour",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio",
+          "otherCmsField": "decimal radio",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating",
+          "otherCmsField": "decimal rating",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-2",
+          "otherCmsField": "title-2",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-2",
+          "otherCmsField": "url-2",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-2",
+          "otherCmsField": "banner-2",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-2",
+          "otherCmsField": "integerTest Number-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-2",
+          "otherCmsField": "integer dropDown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-2",
+          "otherCmsField": "integer rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio_2",
+          "otherCmsField": "integer radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_2",
+          "otherCmsField": "decimal no.-2",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-2",
+          "otherCmsField": "decimal dropdown-2",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-2",
+          "otherCmsField": "date24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-2",
+          "otherCmsField": "date12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-2",
+          "otherCmsField": "dateonly-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-2",
+          "otherCmsField": "datewithouttimezone24hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-2",
+          "otherCmsField": "datewithouttimezone12hour-2",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-2",
+          "otherCmsField": "decimal radio-2",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-2",
+          "otherCmsField": "decimal rating-2",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-3",
+          "otherCmsField": "title-3",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-3",
+          "otherCmsField": "url-3",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-3",
+          "otherCmsField": "banner-3",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest-3",
+          "otherCmsField": "integerTest Number-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-3",
+          "otherCmsField": "integer dropDown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-3",
+          "otherCmsField": "integer rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio-3",
+          "otherCmsField": "integer radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo-3",
+          "otherCmsField": "decimal no.-3",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-3",
+          "otherCmsField": "decimal dropdown-3",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-3",
+          "otherCmsField": "date24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-3",
+          "otherCmsField": "date12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-3",
+          "otherCmsField": "dateonly-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-3",
+          "otherCmsField": "datewithouttimezone24hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-3",
+          "otherCmsField": "datewithouttimezone12hour-3",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-3",
+          "otherCmsField": "decimal radio-3",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-3",
+          "otherCmsField": "decimal rating-3",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "title-4",
+          "otherCmsField": "title-4",
+          "otherCmsType": "singleLine",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Single Line Textbox"
+        },
+        {
+          "uid": "url-4",
+          "otherCmsField": "url-4",
+          "otherCmsType": "urlEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "URL"
+        },
+        {
+          "uid": "banner-5",
+          "otherCmsField": "banner5",
+          "otherCmsType": "assetLinkEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "file"
+        },
+        {
+          "uid": "integerTest5",
+          "otherCmsField": "integerTest Number-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "integerDropDown-5",
+          "otherCmsField": "integer dropDown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRating-5",
+          "otherCmsField": "integer rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "integerRadio5",
+          "otherCmsField": "integer radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalNo_5",
+          "otherCmsField": "decimal no.-5",
+          "otherCmsType": "numberEditor",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "number"
+        },
+        {
+          "uid": "decimalDropdown-5",
+          "otherCmsField": "decimal dropdown-5",
+          "otherCmsType": "dropdown",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "date-5",
+          "otherCmsField": "date24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "date12hour-5",
+          "otherCmsField": "date12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "dateonly-5",
+          "otherCmsField": "dateonly-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone-5",
+          "otherCmsField": "datewithouttimezone24hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "datewithouttimezone12hour-5",
+          "otherCmsField": "datewithouttimezone12hour-5",
+          "otherCmsType": "datePicker",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "Date"
+        },
+        {
+          "uid": "decimalRadio-5",
+          "otherCmsField": "decimal radio-5",
+          "otherCmsType": "radio",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        },
+        {
+          "uid": "decimalRating-5",
+          "otherCmsField": "decimal rating-5",
+          "otherCmsType": "rating",
+          "contentstackField": "",
+          "contentstackFieldUid": "",
+          "ContentstackFieldType": "dropdown"
+        }
+      ]
+    }
+  ]
+}

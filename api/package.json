@@ -1,0 +1,57 @@
+{
+  "name": "migration-v2-node-server",
+  "version": "1.0.0",
+  "description": "This is the TSO migration V2's node server",
+  "exports": "./src/server.ts",
+  "scripts": {
+    "build": "npx tsc",
+    "start": "NODE_ENV=production node dist/server.js",
+    "dev": "NODE_ENV=production tsx watch ./src/server.ts",
+    "prettify": "prettier --write .",
+    "lint:fix": "eslint --fix --ext .ts . --ignore-pattern './node_modules/' --ignore-pattern './dist/'",
+    "precommit": "npm run prettify && npm run lint:fix"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/contentstack-expert-services/migration-v2-node-server.git"
+  },
+  "author": "Contentstack",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/contentstack-expert-services/migration-v2-node-server/issues"
+  },
+  "homepage": "https://github.com/contentstack-expert-services/migration-v2-node-server#readme",
+  "dependencies": {
+    "axios": "^1.6.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "express-winston": "^4.2.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "lowdb": "^7.0.1",
+    "mongoose": "^8.0.4",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/lodash": "^4.17.0",
+    "@types/node": "^20.10.4",
+    "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "eslint-config-airbnb": "^19.0.0",
+    "eslint-config-prettier": "^8.3.0",
+    "lodash": "^4.17.21",
+    "prettier": "^2.4.1",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.3"
+  },
+  "keywords": []
+}

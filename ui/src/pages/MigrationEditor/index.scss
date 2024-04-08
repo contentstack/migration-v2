@@ -1,0 +1,39 @@
+@import '../../scss/variables';
+.migration-container {
+  #PageLayout__body {
+    //display: flex;
+    margin-left: 0;
+    width: 100% !important;
+    background: $color-base-white-10;
+    padding: 0;
+    overflow: hidden;
+  }
+  .PageTitle {
+    margin-left: 1rem;
+    font-weight: 700;
+    font-size: 18px;
+    font-family: Inter, sans-serif;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: normal;
+  }
+  .step-flow-wrapper-tree-area {
+    // border-right: 1px solid $color-base-gray-40;
+    display: flex;
+    max-width: 380px;
+    min-width: 378px;
+    max-height: 94vh;
+    min-height: calc(100vh - 115px);
+  }
+  .step-flow-wrapper-content-area {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    // justify-content: center;
+    // max-height: calc(100vh - 37px);
+    // overflow-y: auto;
+    // overflow-x: hidden;
+    width: calc(100% - 420px);
+  }
+}

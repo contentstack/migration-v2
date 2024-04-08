@@ -1,0 +1,202 @@
+@import '../../../scss/variables';
+
+.ft-block {
+  background: linear-gradient(
+      rgb(247, 249, 252) $space-30,
+      $color-base-gray-40 $space-20,
+      $color-base-gray-40 $space-20,
+      $color-base-gray-40 calc(100% - $space-20),
+      $color-base-white-10 calc(100% - $space-20)
+    )
+    16px;
+  background-size: 1px 100%;
+  background-repeat: no-repeat;
+
+  margin-top: 1rem;
+}
+
+.ft-block-disabled {
+  background: linear-gradient(
+      rgb(247, 249, 252) $space-30,
+      $color-base-gray-40 $space-20,
+      $color-base-gray-40 $space-20,
+      $color-base-gray-40 calc(100% - 75px),
+      $color-base-white-10 calc(0%)
+    )
+    16px;
+  background-size: 1px 100%;
+  background-repeat: no-repeat;
+}
+
+.ft-block-item {
+  margin-bottom: $space-10;
+  align-items: center;
+}
+
+.ft-step-block-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  padding: $space-10;
+  border: 1px solid transparent;
+  /* remove this when shadow is activated for if and repeat */
+  max-width: 20.375rem;
+  min-height: 78px;
+  min-width: 20.375rem;
+  margin-left: -$space-10;
+}
+
+.ft-step-block-head:hover {
+  background: $color-brand-white-base;
+  cursor: pointer;
+  min-height: 78px;
+  box-shadow: 0 1px 3px 0 $color-base-black-51, 0 2px 2px 0 $color-base-black-31,
+    0 0 2px 0 $color-base-black-36;
+}
+
+.ft-step-block-head-branch-1 {
+  max-width: 17.9rem !important;
+  min-width: 17.9rem !important;
+  margin-left: $space-10 !important;
+}
+
+.ft-step-block-head-active {
+  background-color: white;
+  border: 1px solid $color-base-gray-40;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: $space-10;
+  /* padding-right: $space-20; */
+  margin-left: -$space-10;
+  min-height: 78px;
+}
+
+.ft-step-block-head-active:hover {
+  background-color: white !important;
+  cursor: pointer;
+  min-height: 78px;
+}
+
+.ft-step-block-head:hover .ft-step-config-icon {
+  opacity: 1;
+}
+
+.ft-step-block-head .configure_action_logo {
+  padding: 0;
+  margin-right: 0;
+}
+
+.icon-container {
+  align-items: center;
+  display: flex !important;
+  justify-content: center;
+  width: $space-30;
+  height: $space-30;
+}
+
+.icon-container:hover {
+  background-color: $color-base-white-10;
+  border-radius: $space-4;
+}
+
+.block-title {
+  margin: 0;
+  font-weight: 600;
+  max-width: 244px;
+  font-size: $size-font-large;
+  line-height: 135%;
+  font-family: $font-family-primary;
+  line-height: 21px;
+}
+
+.block-description {
+  font-size: $size-font-large;
+  font-weight: $font-weight-regular;
+  max-width: 200px;
+  max-height: 40px;
+  line-height: 21px;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ft-step-block-head .configure_action_logo {
+  padding: 0;
+  margin-right: 0;
+}
+
+.step-block-http-trigger-url-instruction-trigger .TextInput__input {
+  text-overflow: ellipsis;
+}
+
+.step-flow-icon {
+  width: $space-20;
+  height: $space-20;
+}
+
+.centered-flex-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.centered-flex-container .tippy-wrapper {
+  display: block;
+}
+
+.step_name_sticker {
+  position: relative;
+  white-space: nowrap;
+  border: 1px solid $color-stepper-title;
+}
+
+.step_name_tested {
+  display: inline-block;
+  border-radius: $space-4;
+  font-weight: 600;
+  font-size: 12px;
+  text-align: center;
+  color: $color-base-gray-20;
+  width: 32px;
+  height: $space-24;
+  line-height: $space-24;
+  margin-top: 1px;
+  letter-spacing: 2px;
+}
+
+.step_tested_check {
+  height: 1rem !important;
+  width: 1rem !important;
+  position: absolute;
+  right: -9px;
+  top: -$space-10;
+  border: 1px solid $color-base-white-10;
+  border-radius: 0 0 40% 40%;
+  background-color: $color-base-white-10;
+}
+
+.action-component-title .step_tested_check {
+  border: 1px solid $color-base-white-5;
+  border-radius: 0 0 40% 40%;
+  background-color: $color-base-white-5;
+}
+
+.step-name-icon {
+  display: inline-block;
+  border-radius: 2px;
+  font-weight: bold;
+  font-size: 12px;
+  text-align: center;
+  color: $color-base-white-5;
+  min-width: 32px;
+  height: 26px;
+  line-height: $space-20;
+  background: $color-base-white-5;
+  margin-right: $space-20;
+  margin-top: $space-30;
+  white-space: nowrap;
+}

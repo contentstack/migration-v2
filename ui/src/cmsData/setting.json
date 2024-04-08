@@ -1,0 +1,36 @@
+{
+  "title": "Setting page",
+  "project": {
+    "title": "Project",
+    "name": "Project Name",
+    "description": "Project Description",
+    "email": "Project Owner Email",
+    "general": "General",
+    "delete_project": {
+      "open_in_new_tab": false,
+      "theme": "secondary",
+      "title": "Delete Project",
+      "url": "",
+      "with_icon": true
+    },
+    "save_project": {
+      "open_in_new_tab": false,
+      "theme": "primary",
+      "title": "Save",
+      "url": "",
+      "with_icon": true
+    }
+  },
+  "execution_logs": {
+    "title": "Execution Logs"
+  },
+  "tags": [],
+  "locale": "en-us",
+  "uid": "blt96cda740c3157d20",
+  "created_by": "blt74f496d523384141",
+  "updated_by": "blt74f496d523384141",
+  "created_at": "2024-03-04T10:25:04.332Z",
+  "updated_at": "2024-03-11T06:03:23.420Z",
+  "_version": 3,
+  "_in_progress": false
+}
