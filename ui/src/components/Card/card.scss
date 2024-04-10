@@ -1,0 +1,58 @@
+@import '../../scss/variables';
+
+.ProjectCard {
+  background: $color-brand-white-base;
+  border-radius: 0.6rem;
+  transition: box-shadow 0.3s ease;
+  width: 20rem;
+}
+.ProjectCard__heading {
+  display: flex;
+  margin-bottom: 2.125rem;
+  padding: 1.75rem 2rem 0.688rem;
+}
+.ProjectCard__footer {
+  display: flex;
+  position: relative;
+  background-color: #edebff;
+  border-radius: 0 0 0.5rem 0.5rem;
+  height: 59.008px;
+  justify-content: space-between;
+  padding: 0.9375rem 1.875rem;
+  align-items: center;
+}
+.ProjectCard__content {
+  margin: 0 1rem 2rem;
+  padding: 0;
+  text-align: center;
+}
+.ProjectCard__unit {
+  padding: 0 1em;
+}
+.ProjectCard__unit:not(:last-child) {
+  border-right: 1px solid $color-base-gray-40;
+}
+.ProjectCard__stats {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+.ProjectCard__stats-number {
+  font-size: 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.14px;
+  letter-spacing: 0.00875rem;
+  line-height: 150%;
+}
+.validation-color {
+  color: $color-brand-warning-medium;
+}
+.ProjectCard__cms {
+  font-size: 12px;
+  color: $color-font-black;
+  text-transform: capitalize;
+}
+.ProjectCard__modified-date {
+  padding-left: 8px;
+}

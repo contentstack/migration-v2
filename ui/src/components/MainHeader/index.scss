@@ -1,0 +1,22 @@
+@import '../../scss/variables';
+
+.mainheader {
+  background-color: $color-brand-white-base;
+  border-bottom: 1px solid $color-brand-secondary-lightest;
+  height: 3.5rem;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  display: flex;
+  align-items: center;
+  z-index: 9;
+  button {
+    border: 0 none;
+  }
+  .logo {
+    // height: 2rem;
+    margin-right: 1rem;
+    position: relative;
+    width: 2rem;
+  }
+}

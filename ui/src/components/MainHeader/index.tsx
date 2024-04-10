@@ -1,0 +1,150 @@
+// Libraries
+import { useContext, useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Dropdown } from '@contentstack/venus-components';
+
+// Service
+import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
+
+//Utilities
+import { CS_ENTRIES } from '../../utilities/constants';
+
+// Context
+import { AppContext } from '../../context/app/app.context';
+
+// Interface
+import { MainHeaderType } from './mainheader.interface';
+import { DEFAULT_USER, IDropDown } from '../../context/app/app.interface';
+
+// Styles
+import './index.scss';
+import {
+  clearLocalStorage,
+  getDataFromLocalStorage,
+  setDataInLocalStorage
+} from '../../utilities/functions';
+
+const MainHeader = () => {
+  const {
+    user = DEFAULT_USER,
+    organisationsList,
+    updateSelectedOrganisation,
+    selectedOrganisation
+  } = useContext(AppContext);
+
+  const [data, setData] = useState<MainHeaderType>({});
+  const [orgsList, setOrgsList] = useState<IDropDown[]>([]);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const { logo, organization_label: organizationLabel } = data;
+
+  const name = `${user?.first_name?.charAt(0)}${user?.last_name?.charAt(0)}`.toUpperCase() ?? '';
+
+  const updateOrganisationListState = () => {
+    //set  selected org as default
+    const list = organisationsList.map((org) => ({
+      ...org,
+      default: org?.value === selectedOrganisation?.value
+    }));
+
+    setOrgsList(list);
+
+    //Set organization in local storage , first check if selectedOrg.value exist, if not get org id from local storage and set.
+    setDataInLocalStorage(
+      'organization',
+      selectedOrganisation?.value || getDataFromLocalStorage('organization')
+    );
+  };
+
+  const fetchData = async () => {
+    //check if offline CMS data field is set to true, if then read data from cms data file.
+    getCMSDataFromFile(CS_ENTRIES.MAIN_HEADER)
+      .then((data) => setData(data))
+      .catch((err) => {
+        console.error(err);
+        setData({});
+      });
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    updateOrganisationListState();
+  }, [selectedOrganisation]);
+
+  const urlParams = new URLSearchParams(location.search);
+  const newParam = urlParams.get('region');
+
+  // Function for Logout
+  const handleLogout = () => {
+    if (clearLocalStorage()) {
+      navigate('/', { replace: true });
+    }
+  };
+
+  const handleOnDropDownChange = (data: IDropDown) => {
+    if (data.value === selectedOrganisation.value) return;
+
+    updateSelectedOrganisation(data);
+    setDataInLocalStorage('organization', data?.value);
+  };
+
+  return (
+    <div className="mainheader">
+      <div className="container-fluid">
+        <div className="row align-items-center">
+          <div className="col-6 d-flex align-items-center">
+            {logo?.image?.url ? (
+              <div className="logo">
+                <a
+                  className="navbar-brand"
+                  title="contentstack.com"
+                  href={`${logo?.url}?region=${newParam}`}
+                >
+                  <img src={logo?.image?.url} className="w-100" alt="Contentstack Logo" />
+                </a>
+              </div>
+            ) : (
+              ''
+            )}
+
+            <div>
+              <div className="Dropdown__header__label">{organizationLabel}</div>
+              <Dropdown
+                closeAfterSelect
+                highlightActive
+                list={orgsList}
+                type="select"
+                withArrow
+                onChange={handleOnDropDownChange}
+              ></Dropdown>
+            </div>
+          </div>
+
+          <div className="col-6 flex-end">
+            <div className="Dropdown-wrapper">
+              <Dropdown
+                list={[
+                  {
+                    action: handleLogout,
+                    default: true,
+                    label: 'Logout'
+                  }
+                ]}
+                type="click"
+              >
+                <div className="user-short-name flex-v-center flex-h-center">{name}</div>
+              </Dropdown>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MainHeader;

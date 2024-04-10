@@ -1,0 +1,126 @@
+@import '../../../../scss/variables';
+
+.Filter__modal {
+  width: $px-400;
+  z-index: 40;
+  position: absolute;
+  background: $color-brand-white-base;
+  filter: drop-shadow(0px 4px 30px rgba(34, 34, 34, 0.25));
+  border-radius: $px-10;
+}
+
+.Filter__modal .Checkbox input:checked ~ .Checkbox__tick,
+.Filter__modal .Checkbox .Checkbox__box {
+  margin-top: $px-4;
+  font-size: $px-16;
+}
+
+.Filter__modal .Filter__item {
+  cursor: pointer;
+  padding: $px-10 $px-20;
+}
+
+.Filter__modal .Filter__item:hover {
+  background-color: $color-base-white-10;
+}
+
+.Filter__modal .Filter__item:hover .WordWrapper {
+  color: $color-brand-primary-base;
+}
+
+.Filter__modal .Filter__item:hover .Checkbox__box {
+  border: 1.5px solid $color-brand-primary-base;
+}
+
+.Filter__modal-header {
+  background: $color-base-white-10;
+  border-bottom: 1px solid $color-brand-secondary-lightest;
+  font-size: $px-20;
+  height: $px-60;
+  justify-content: space-between;
+  padding: $px-14 $px-16;
+}
+
+.Filter__modal-header .Filter__modal-header-container {
+  align-items: center;
+  display: flex;
+  color: #222;
+  font-size: $px-20;
+  height: $px-32;
+  line-height: 1.5;
+  align-items: center;
+  display: flex;
+  font-weight: 600;
+}
+
+.Filter__modal-header .Filter__modal-header-container .Filter__modal-header-title {
+  font-weight: 600;
+}
+
+.Filter__modal-header .Filter__modal-header-container .Filter__modal-header-counter {
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 1rem;
+  color: $color-stepper-title;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  font-size: $px-12;
+  font-weight: 400;
+  justify-content: center;
+  margin-left: $px-8;
+  max-height: $px-24;
+  min-width: $px-30;
+  padding: $px-2 $px-8;
+  width: fit-content;
+}
+
+.Filter__searchbox .Search--primary .Search__input {
+  height: $px-35;
+}
+
+.Filter__modal-content {
+  overflow: scroll;
+  max-height: $px-250;
+  overflow-x: hidden;
+}
+
+.Filter__icon {
+  cursor: pointer !important;
+  padding: $px-5;
+  border-radius: 10%;
+}
+
+.Filter__icon:hover {
+  background-color: rgba(108, 92, 231, 0.1);
+}
+
+.Filter__icon_bg_color {
+  background-color: rgba(108, 92, 231, 0.1);
+}
+
+.Filter__modal-header-cancel {
+  border-radius: 25%;
+  cursor: pointer;
+  height: $px-24;
+  width: $px-24;
+}
+
+.Filter__modal-header-cancel:hover {
+  background-color: $color-brand-secondary-lightest;
+}
+
+.Filter__modal-footer {
+  display: flex;
+  border-top: 1px solid $color-brand-secondary-lightest;
+  height: $px-70;
+  flex-direction: row-reverse;
+  padding: $px-20;
+}
+
+.Filter__no-found {
+  text-align: center;
+  vertical-align: middle;
+  line-height: $px-50;
+  font-weight: 600;
+  font-size: $px-14;
+}
