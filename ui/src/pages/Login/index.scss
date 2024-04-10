@@ -1,0 +1,299 @@
+@import '../../scss/variables';
+@import '../../components/AccountPage/index.scss';
+
+/* Login page , Reset Password , Forgot password , two-factor Authentication */
+.AccountForm {
+  width: 26.25rem;
+
+  /* &.app-login {
+		width: 26.25rem;
+	} */
+  &__sso-field {
+    width: 26.25rem;
+  }
+  &__actions__login_button,
+  &__actions__send_instructions_button,
+  &__actions__verify_button {
+    svg {
+      path {
+        fill: $color-brand-white-base;
+      }
+    }
+  }
+  &__actions__login-or {
+    color: $color-font-base;
+  }
+  &.reset-password {
+    form {
+      display: flex;
+      flex-direction: column;
+      /* width: 20rem; */
+      .Field {
+        margin-left: -$space-10;
+      }
+      .ValidationMessage {
+        flex-grow: 0;
+        margin: 0.188rem 0;
+      }
+    }
+  }
+  &.forgot-password {
+    form {
+      display: flex;
+      flex-direction: column;
+      .forgot-password-text {
+        margin: $space-36 0 $space-32;
+        p {
+          font-size: $size-font-small;
+          line-height: $space-20;
+        }
+        & + .Field {
+          margin-left: -$space-10;
+        }
+      }
+    }
+    .forgot-password__actions {
+      width: 26.25rem;
+    }
+  }
+  /* &.tf-authentication {
+		.app-login {
+			width: auto;
+		}
+		.Field {
+			margin-left: -$space-10;
+		}
+		.tf-authentication-helptext {
+			font-size:$size-font-small;
+			font-weight: $font-weight-regular;
+			margin: $space-20 0 $space-40;
+			span {
+				color: $color-font-link;
+				cursor: pointer;
+			}
+		}
+	} */
+  /* &__tabs-content {
+		.Field {
+			margin-left: -$space-10;
+		}
+	} */
+  &__cnf-text {
+    color: $color-font-black;
+    font-size: $size-font-small;
+    font-weight: $font-weight-regular;
+    & + .Link {
+      display: inline-block;
+    }
+  }
+  /* .link-expired-text {
+		font-size: 14px;
+		line-height: 1.5rem;
+	} */
+
+  &_login {
+    min-height: 23rem;
+    min-width: 16.25rem;
+  }
+
+  &__name {
+    font-family: $font-family-primary;
+    font-size: $size-font-3-xl;
+    font-weight: $font-weight-extra-bold;
+    line-height: $line-height-reset;
+  }
+
+  &__tabs {
+    display: flex;
+    justify-content: flex-start;
+    margin: 0 0 $space-30 0;
+  }
+
+  &__tab {
+    margin-right: $space-50;
+    &:hover {
+      .AccountForm__tab_button {
+        color: $color-brand-primary-base;
+      }
+    }
+    &--active {
+      .AccountForm__tab_button {
+        border-bottom: 1px solid $color-brand-primary-base;
+        color: $color-brand-primary-base;
+
+        &:focus {
+          border-radius: $radii-4;
+          box-shadow: 0 0 0 1px $color-brand-primary-base, 0 0 0 $space-4 #bbb4f4;
+          padding: $space-6;
+        }
+      }
+    }
+  }
+
+  &__tab_button {
+    background-color: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    color: $color-font-active;
+    font-family: $font-family-primary;
+    font-size: $size-font-small;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-reset;
+    padding: 0 0 $space-12 0;
+    &:focus {
+      border-radius: $radii-4;
+      box-shadow: 0 0 0 1px $color-brand-primary-base, 0 0 0 $space-4 #bbb4f4;
+      padding: $space-6;
+    }
+  }
+
+  // &__tab_content {
+  // 	display: none;
+
+  // 	&_active {
+  // 	display: block;
+  // 	}
+  // }
+
+  &__actions {
+    width: 26.25rem;
+    .Button {
+      margin-right: $space-20;
+    }
+  }
+}
+
+/* for heightlighting forgot password link field */
+
+.AccountForm__actions--forgotPassword:focus {
+  border-radius: $radii-4;
+  box-shadow: 0 0 0 1px $color-brand-primary-base, 0 0 0 $space-4 #bbb4f4;
+  padding: $space-6;
+}
+
+@media only screen and (max-width: 1800px) and (min-width: 1500px) {
+  .Activation {
+    .TextInput--large {
+      width: 23.75rem;
+    }
+  }
+}
+@media only screen and (max-width: 1499px) and (min-width: 1380px) {
+  .Activation {
+    .TextInput--large {
+      width: 21.875rem;
+    }
+  }
+}
+@media only screen and (max-width: 1379px) and (min-width: 1265px) {
+  .Activation {
+    .TextInput--large {
+      width: 20rem;
+    }
+  }
+}
+@media only screen and (max-width: 1264px) and (min-width: 1048px) {
+  .Activation {
+    .TextInput--large {
+      width: 14.375rem;
+    }
+  }
+}
+@media only screen and (max-width: 1047px) and (min-width: 760px) {
+  .Activation {
+    .Activation__form__columns {
+      flex-direction: column;
+    }
+    .TextInput--large {
+      width: 100%;
+    }
+  }
+}
+
+/* DataCenter Dropdown CSS (Do NOT REMOVE)*/
+
+/* .AccountForm--login {
+	div {
+		.dropdown {
+			.globeIcon {
+				left: 5.75rem;
+				position: absolute;
+				top: $space-8;
+			}
+			&:hover {
+				.globeIcon {
+					path {
+						fill: $color-brand-primary-base;
+					}
+				}
+			}
+		}
+	}
+}
+
+.DataCenterDropdown {
+	align-items: 'center';
+	border: 1px solid $color-border-light;
+	border-radius: $radii-4;
+	display: flex;
+	height: $space-30;
+	justify-content: center;
+	margin-left: 1.688rem;
+	.Dropdown__header{
+		padding: 0 $space-10;
+	}
+	&:hover {
+		border: 1px solid $color-brand-primary-base;
+		.Dropdown__header__value {
+			color: $color-brand-primary-base;
+		}
+		.Dropdown__chevron {
+			path {
+				fill: $color-brand-primary-base;
+			}
+		}
+		.Dropdown__header__value {
+			svg {
+				path {
+					fill: $color-brand-primary-base;
+				}
+			}
+		}
+	}
+	.Dropdown__header__value {
+		font-size: $size-font-tiny;
+		font-weight: $font-weight-medium;
+		height: 0.75rem;
+		line-height: 0.832rem;
+	}
+	&.Dropdown--primary {
+		> .Dropdown__menu--primary {
+			left: 0;
+			top: $space-30;
+			width: 8.125rem;
+			li {
+				font-size: $size-font-medium;
+				font-weight: $font-weight-regular;
+				svg {
+					display: none;
+				}
+			}
+		}
+	}
+	&.Dropdown--open {
+		border: 1px solid $color-brand-primary-base;
+		.Dropdown__header__value {
+			color: $color-brand-primary-base;
+			svg {
+				path {
+					fill: $color-brand-primary-base;
+				}
+			}
+		}
+		.toggle-icon {
+			path {
+				fill: $color-brand-primary-base !important;
+			}
+		}
+	}
+} */

@@ -1,0 +1,115 @@
+@import '../../../scss/variables';
+
+/* Asset upload window css */
+.asset-upload {
+  background: $color-brand-white-base;
+  box-shadow: 0 $space-4 $space-30 rgba(0, 0, 0, 0.25);
+  width: 31.25rem;
+
+  &__heading {
+    align-items: center;
+    border-radius: $radii-4;
+    display: flex;
+    height: 3.5rem;
+    justify-content: space-between;
+    padding: 0 calc(var(--space-22) + 0.063rem);
+
+    &.in-progress {
+      background-color: $color-brand-primary-base;
+    }
+
+    &.success {
+      background-color: $color-brand-success-base;
+    }
+
+    &.attention {
+      background-color: $color-brand-attention-base;
+    }
+
+    &.warning {
+      background-color: #ffab00 !important;
+    }
+
+    .asset-upload-actions {
+      justify-content: space-between;
+      width: 4.375rem;
+
+      &__cancel,
+      &__minimize,
+      &__maximize {
+        align-items: center;
+        border-radius: $radii-50;
+        cursor: pointer;
+        display: flex;
+        height: $space-30;
+        justify-content: center;
+        width: $space-30;
+
+        &:hover {
+          background: rgba(34, 34, 34, 0.2);
+        }
+
+        & > svg {
+          cursor: pointer;
+        }
+      }
+
+      & > svg {
+        cursor: pointer;
+      }
+    }
+
+    .asset-upload__count {
+      color: $color-font-white;
+      font-size: $size-font-xl;
+      font-weight: $font-weight-bold;
+      margin-left: calc(var(--space-16) + 0.063rem);
+    }
+  }
+
+  &__body {
+    height: 19.06rem;
+    margin-right: $space-15;
+    overflow-y: auto;
+
+    .asset-upload__file {
+      display: flex;
+      height: 3.75rem;
+      justify-content: space-between;
+      padding: $space-15;
+
+      &__name {
+        color: $color-font-black;
+        font-size: $size-font-medium;
+        font-weight: $font-weight-medium;
+        height: $space-14;
+        max-width: 16.25rem;
+        // @include text-wrapper;
+      }
+
+      &__actions {
+        display: flex;
+
+        &__progress {
+          margin-right: $space-34;
+
+          .file-loaded {
+            color: $color-font-base;
+            font-size: $size-font-medium;
+          }
+
+          .total-size {
+            color: $color-font-base;
+            font-size: $size-font-medium;
+            font-weight: $font-weight-bold;
+          }
+        }
+
+        .cancel-upload {
+          cursor: pointer;
+          margin-top: calc(var(--space-2) + 0.063rem);
+        }
+      }
+    }
+  }
+}

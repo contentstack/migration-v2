@@ -1,0 +1,16 @@
+{
+  "Single Line Textbox": ["Multi Line Textbox", "HTML Rich text Editor", "JSON Rich Text Editor"],
+  "Multi Line Textbox": ["HTML Rich text Editor", "JSON Rich Text Editor"],
+  "HTML Rich text Editor": "JSON Rich Text Editor",
+  "JSON Rich Text Editor": "JSON Rich Text Editor",
+  "URL": "URL",
+  "file": "File",
+  "number": "Number",
+  "date": "Date",
+  "boolean": "Boolean",
+  "link": "Link",
+  "reference": "Reference",
+  "dropdown": "Select",
+  "radio": "Select",
+  "CheckBox": "Select"
+}

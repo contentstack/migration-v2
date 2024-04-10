@@ -1,0 +1,66 @@
+@import '../../scss/variables';
+
+.mainWrapper {
+  display: flex;
+}
+
+.cmsImageWrapper {
+  background-color: #6c5ce7;
+  height: 100vh;
+  max-width: 35%;
+  flex: 0 0 35%;
+}
+.formWrapper {
+  align-items: center;
+  display: flex;
+  flex: 0 0 65%;
+  justify-content: center;
+  max-width: 65%;
+}
+
+.textStone600 {
+  color: #4a556d;
+}
+.card {
+  border: 3px solid transparent;
+  box-shadow: 0 $space-4 $space-20 0 rgba(0, 0, 0, 0.1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  word-wrap: break-word;
+  background-color: $color-base-white-5;
+  background-clip: border-box;
+  border-radius: 0.5rem;
+  &:hover {
+    border: 3px solid #7c4dff;
+    [class*='link-arrow'] {
+      &:after {
+        margin-left: $space-4;
+      }
+    }
+    a {
+      text-decoration: none;
+    }
+  }
+  .cardBody {
+    color: #253143;
+    flex: 1 1 auto;
+    padding: 1.25rem 1.25rem;
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+  }
+  .CardFooter {
+    background-color: rgba(0, 0, 0, 0);
+    border-top: 0 solid rgba(34, 34, 34, 0.125);
+    padding: 0.625rem 1.25rem;
+    [class*='link-arrow'] {
+      &:after {
+        top: 8px;
+      }
+    }
+  }
+}

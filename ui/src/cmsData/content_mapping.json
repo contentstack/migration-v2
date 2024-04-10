@@ -1,0 +1,150 @@
+{
+  "_version": 3,
+  "locale": "en-us",
+  "uid": "blt19a24c3bedc19786",
+  "_in_progress": false,
+  "action_cta": [
+    {
+      "title": "Reset",
+      "_metadata": {
+        "uid": "csddef56dceb9c078a"
+      },
+      "url": "",
+      "theme": "tertiary",
+      "with_icon": false,
+      "open_in_new_tab": false
+    },
+    {
+      "title": "Save",
+      "_metadata": {
+        "uid": "csfa3055bc3ea9a3c4"
+      },
+      "url": "",
+      "theme": "secondary",
+      "with_icon": false,
+      "open_in_new_tab": false
+    },
+    {
+      "title": "Save & Next",
+      "_metadata": {
+        "uid": "cse517b2866831c9d6"
+      },
+      "url": "",
+      "theme": "primary",
+      "with_icon": false,
+      "open_in_new_tab": false
+    }
+  ],
+  "content_types_heading": "Content Types",
+  "contentstack_fields": {
+    "title": "Contentstack Field Types",
+    "field_types": [
+      {
+        "label": "Url",
+        "_metadata": {
+          "uid": "csdfaa08bbbc0a4a5c"
+        },
+        "value": "Url"
+      },
+      {
+        "label": "Single Line Textbox",
+        "_metadata": {
+          "uid": "cs0ed634ad75d826dd"
+        },
+        "value": "Single Line Textbox"
+      },
+      {
+        "label": "Multi Line Textbox",
+        "_metadata": {
+          "uid": "csc2f22eb0ab818f60"
+        },
+        "value": "Multi Line Textbox"
+      },
+      {
+        "label": "Rich Text Editor",
+        "_metadata": {
+          "uid": "cs233a55e75d2fdd8d"
+        },
+        "value": "Rich Text Editor"
+      },
+      {
+        "label": "JSON Rich Text Editor",
+        "_metadata": {
+          "uid": "csa4e26de838f0f899"
+        },
+        "value": "JSON Rich Text Editor"
+      },
+      {
+        "label": "Boolean",
+        "_metadata": {
+          "uid": "cs008dc827af40f524"
+        },
+        "value": "Boolean"
+      },
+      {
+        "label": "Date",
+        "_metadata": {
+          "uid": "csca2fae1dfa2c4833"
+        },
+        "value": "Date"
+      },
+      {
+        "label": "File",
+        "_metadata": {
+          "uid": "cs31a9d94363e7b0e1"
+        },
+        "value": "File"
+      },
+      {
+        "label": "Link",
+        "_metadata": {
+          "uid": "cs350b65c870d49337"
+        },
+        "value": "Link"
+      },
+      {
+        "label": "Reference",
+        "_metadata": {
+          "uid": "cs90f15cf08c4b3bec"
+        },
+        "value": "Reference"
+      }
+    ]
+  },
+  "created_at": "2024-01-24T11:52:23.453Z",
+  "created_by": "bltb317ebe35429ebe6",
+  "cta": {
+    "open_in_new_tab": false,
+    "theme": "primary",
+    "title": "Validate",
+    "url": "",
+    "with_icon": false
+  },
+  "description": {
+    "type": "doc",
+    "attrs": {},
+    "uid": "874c01591b1046c387788fdca7b5c9b7",
+    "children": [
+      {
+        "uid": "1f5c07f05f294910a54ba1a1e8df0211",
+        "type": "p",
+        "attrs": {
+          "style": {},
+          "redactor-attributes": {},
+          "dir": "ltr"
+        },
+        "children": [
+          {
+            "text": "Select Content type to remap existing fields with pre-defined Contentstack fields"
+          }
+        ]
+      }
+    ],
+    "_version": 3
+  },
+  "search_placeholder": "Search",
+  "tags": [],
+  "title": "Content Mapping",
+  "updated_at": "2024-01-25T12:13:32.967Z",
+  "updated_by": "bltb317ebe35429ebe6"
+}

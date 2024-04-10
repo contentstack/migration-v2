@@ -1,0 +1,12 @@
+{
+  "title": "Test Migration",
+  "subtitle": "Link to the Demo Stack",
+  "locale": "en-us",
+  "cta": {
+    "open_in_new_tab": false,
+    "theme": "primary",
+    "title": "Start Migration",
+    "url": "",
+    "with_icon": false
+  }
+}
