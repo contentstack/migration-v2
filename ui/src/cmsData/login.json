@@ -1,0 +1,47 @@
+{
+  "_version": 1,
+  "locale": "en-us",
+  "uid": "blt058427c4131df78a",
+  "_in_progress": false,
+  "created_at": "2024-02-22T11:20:53.435Z",
+  "created_by": "bltb317ebe35429ebe6",
+  "heading": "Stacks Not Suites",
+  "login": {
+    "title": "Log in to Contentstack",
+    "email": "Email",
+    "password": "Password",
+    "placeholder": { "email": "Enter your email address", "password": "Enter your password" },
+    "validation_messages": {
+      "email": "Please enter a valid email address",
+      "password": "Please enter a password"
+    },
+    "notification": { "wrong_password": "Your email ID or password is incorrect" },
+    "cta": {
+      "title": "Log In",
+      "url": "",
+      "theme": "primary",
+      "with_icon": true,
+      "open_in_new_tab": false
+    }
+  },
+  "subtitle": "Content Experience Platform at its best",
+  "tags": [],
+  "title": "Login",
+  "two_factor_authentication": {
+    "title": "Two-factor Authentication",
+    "security_code": {
+      "title": "Enter the security code generated in Authy app",
+      "placeholder": "Enter the security code"
+    },
+    "send_sms": { "pre_link_text": "I don't have the app.", "link_text": "Send me an SMS" },
+    "cta": {
+      "title": "Verify",
+      "url": "",
+      "theme": "primary",
+      "with_icon": true,
+      "open_in_new_tab": false
+    }
+  },
+  "updated_at": "2024-02-22T11:20:53.435Z",
+  "updated_by": "bltb317ebe35429ebe6"
+}

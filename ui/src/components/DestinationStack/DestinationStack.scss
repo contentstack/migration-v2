@@ -1,0 +1,47 @@
+@import '../../scss/variables';
+
+.service_list {
+  text-align: left;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+}
+
+.title {
+  font-family: $font-family-primary;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 135%;
+  letter-spacing: 0.02em;
+  color: $color-font-black;
+  margin-top: 3px;
+}
+
+.pl-40 {
+  padding-left: $px-40;
+}
+
+.stackselect {
+  min-width: $px-440 !important;
+  max-width: $px-440 !important;
+}
+.destination-stack-container {
+  margin-top: $px-108 !important;
+  width: $px-850 !important;
+  margin-left: 10% !important;
+}
+
+.TextInput--disabled .TextInput__v2 {
+  background-color: $color-base-white-5 !important;
+  color: $color-font-black;
+}
+
+.locale-container {
+  display: flex;
+  background-color: $color-base-white-5;
+  height: $px-40;
+  align-items: center;
+  padding: $px-10;
+}

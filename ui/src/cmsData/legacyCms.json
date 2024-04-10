@@ -1,0 +1,272 @@
+{
+  "title": "Legacy CMS",
+  "all_cms": [
+    {
+      "cms_id": "contentstack",
+      "_metadata": {
+        "uid": "cs9c95459aed052ad1"
+      },
+      "title": "Contentstack",
+      "description": "",
+      "group_name": "contentstack",
+      "doc_url": {
+        "title": "https://www.contentstack.com/",
+        "href": "https://www.contentstack.com/"
+      },
+      "parent": "",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "json",
+          "_metadata": {
+            "uid": "csca365aaff65777df"
+          },
+          "title": "JSON",
+          "description": "",
+          "group_name": "json",
+          "isactive": true
+        },
+        {
+          "fileformat_id": "zip",
+          "_metadata": {
+            "uid": "cse756d18ac1ebd96e"
+          },
+          "title": "Zip",
+          "description": "",
+          "group_name": "zip",
+          "isactive": true
+        }
+      ]
+    },
+    {
+      "cms_id": "contentful",
+      "_metadata": {
+        "uid": "cs9679baa59c479a3f"
+      },
+      "title": "Contentful",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://www.contentful.com/",
+        "href": "https://www.contentful.com/"
+      },
+      "parent": "",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "json",
+          "_metadata": {
+            "uid": "csb18c80d7272e36ba"
+          },
+          "title": "JSON",
+          "description": "",
+          "group_name": "json",
+          "isactive": true
+        }
+      ]
+    },
+    {
+      "cms_id": "wordpress",
+      "_metadata": {
+        "uid": "cs283996da0ebaa8c6"
+      },
+      "title": "Wordpress",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://wordpress.com/",
+        "href": "https://wordpress.com/"
+      },
+      "parent": "",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "xml",
+          "_metadata": {
+            "uid": "csacaafbc5e52ee0ef"
+          },
+          "title": "XML",
+          "description": "",
+          "group_name": "xml",
+          "isactive": true
+        }
+      ]
+    },
+    {
+      "cms_id": "drupal",
+      "_metadata": {
+        "uid": "csb96887a2cfee9e8c"
+      },
+      "title": "Drupal",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://www.drupal.org/",
+        "href": "https://www.drupal.org/"
+      },
+      "parent": "Drupal",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "sql",
+          "_metadata": {
+            "uid": "cs5d9c8914dc21ea80"
+          },
+          "title": "SQL",
+          "description": "",
+          "group_name": "sql",
+          "isactive": true
+        }
+      ]
+    },
+    {
+      "cms_id": "aem",
+      "_metadata": {
+        "uid": "csb6c6c19ce26057f3"
+      },
+      "title": "AEM",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://business.adobe.com/",
+        "href": "https://business.adobe.com/"
+      },
+      "parent": "",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "json",
+          "_metadata": {
+            "uid": "cs08dadd206cfa53b4"
+          },
+          "title": "JSON",
+          "description": "",
+          "group_name": "json",
+          "isactive": true
+        }
+      ]
+    },
+    {
+      "cms_id": "sitecore",
+      "_metadata": {
+        "uid": "cs1c20c0a62eaf4b89"
+      },
+      "title": "Sitecore",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://www.sitecore.com/",
+        "href": "https://www.sitecore.com/"
+      },
+      "parent": "Sitecore",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "zip",
+          "_metadata": {
+            "uid": "csd2c76964ab6c1fdb"
+          },
+          "title": "Zip",
+          "description": "",
+          "group_name": "zip",
+          "isactive": true
+        }
+      ]
+    },
+    {
+      "cms_id": "othercms",
+      "_metadata": {
+        "uid": "cs7ba494f572446215"
+      },
+      "title": "Other Cms",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://www.contentstack.com/",
+        "href": "https://www.contentstack.com/"
+      },
+      "parent": "",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "json",
+          "_metadata": {
+            "uid": "cs751db98402e685fe"
+          },
+          "title": "JSON",
+          "description": "",
+          "group_name": "json",
+          "isactive": true
+        }
+      ]
+    }
+  ],
+  "tags": [],
+  "locale": "en-us",
+  "uid": "blt1f83a8b93dd822ae",
+  "created_by": "blt7710245564fbf52b",
+  "updated_by": "blt7710245564fbf52b",
+  "created_at": "2024-01-23T09:41:52.061Z",
+  "updated_at": "2024-02-22T11:28:29.742Z",
+  "_version": 24,
+  "_in_progress": false,
+  "cta": "Proceed to Destination Stack",
+  "all_steps": [
+    {
+      "step_id": "Step1",
+      "_metadata": {
+        "uid": "cs752bfd62296e4791"
+      },
+      "title": "Select CMS",
+      "description": "Select your current Content Management System from available options.",
+      "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
+      "lock": false,
+      "active": true,
+      "empty_step_placeholder": "No CMS selected..."
+    },
+    {
+      "step_id": "Step2",
+      "_metadata": {
+        "uid": "cs6c761d71844ac800"
+      },
+      "title": "Enter Affix",
+      "description": "Please enter the keyword to be affixed to the source. Minimum 2 characters, maximum 5 characters and should not start with numbers and not include special characters",
+      "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
+      "lock": false,
+      "active": false,
+      "empty_step_placeholder": "No Prefix Entered..."
+    },
+    {
+      "step_id": "Step3",
+      "_metadata": {
+        "uid": "cs7c935e15de9ea7c8"
+      },
+      "title": "Select CMS File Format",
+      "description": "Click to read the document and subsequently continue with migration process.",
+      "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
+      "lock": false,
+      "active": true,
+      "empty_step_placeholder": "No File Format selected..."
+    },
+    {
+      "step_id": "Step4",
+      "_metadata": {
+        "uid": "cs0279f1f0ce13e83e"
+      },
+      "title": "Upload File",
+      "description": "Select File to upload CMS Data.",
+      "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
+      "lock": false,
+      "active": true,
+      "empty_step_placeholder": "No File Uploaded..."
+    }
+  ],
+  "restricted_keyword_link": {
+    "title": "https://www.contentstack.com/docs/developers/create-content-types/restricted-keywords-for-uids",
+    "href": "https://www.contentstack.com/docs/developers/create-content-types/restricted-keywords-for-uids"
+  },
+  "file_format_checkbox_text": "Please acknowledge that you have read the file export guidelines.",
+  "restricted_keyword_checkbox_text": "Please acknowledge that you have referred to the Contentstack restricted keywords",
+  "affix_cta": "Continue",
+  "file_format_cta": "Continue"
+}
