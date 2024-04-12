@@ -55,6 +55,7 @@ export interface FieldMapType {
   otherCmsType: string;
   uid: string;
   _id: string;
+  _invalid?: boolean;
 }
 
 export interface ItemStatus {
