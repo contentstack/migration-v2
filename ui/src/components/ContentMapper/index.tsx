@@ -132,6 +132,12 @@ const ContentMapper = () => {
 
     fetchExistingContentTypes();
     stackStatus();
+
+    tableData?.forEach((field) => {
+      if (field?.otherCmsField === 'title' || field?.otherCmsField === 'url') {
+        field._invalid = true;
+      }
+    });
   }, []);
 
   // Method to fetch content types
@@ -150,12 +156,18 @@ const ContentMapper = () => {
       newMigrationData?.destination_stack?.selectedStack?.value
     );
 
+    console.log("empty stack", IsEmptyStack, contentTypeCount);
+
+
     if (contentTypeCount > 0) {
-      setIsEmptyStack(true);
-    } else {
       setIsEmptyStack(false);
+    } else {
+      setIsEmptyStack(true);
     }
   };
+
+  console.log("empty stack", IsEmptyStack);
+  
   // Method to search content types
   const handleSearch = async (search: string) => {
     setSearchText(search);
@@ -617,23 +629,32 @@ const ContentMapper = () => {
     },
     {
       disableSortBy: true,
-      Header: contentstackFields.title,
-      id: 'contenstatck',
-      //id: contentstackFields.title.replace(/\W+/g, '_').toLowerCase(),
-      accessor: SelectAccessor
+      Header: `Contentstack: ${IsEmptyStack ? `Blog` : newMigrationData?.destination_stack?.selectedStack?.label}`,
+      accessor: SelectAccessor,
+      id: 'contentstack_cms_field'
     }
+    // {
+    //   disableSortBy: true,
+    //   Header: contentstackFields.title,
+    //   id: 'contenstatck',
+    //   //id: contentstackFields.title.replace(/\W+/g, '_').toLowerCase(),
+    //   accessor: SelectAccessor
+    // }
   ];
 
-  if (!IsEmptyStack) {
-    columns?.splice(1, 0, {
-      disableSortBy: true,
-      Header: `Contentstack: Home`,
-      // accessor: 'ct_field',
-      accessor: SelectAccessorOfColumn,
-      id: 'contentstack_cms_field'
-      //default: false
-    });
-  }
+  console.log("================ stack", newMigrationData);
+  
+
+  // if (!IsEmptyStack) {
+  //   columns?.splice(1, 0, {
+  //     disableSortBy: true,
+  //     Header: `Contentstack: ${newMigrationData?.destination_stack?.selectedStack?.label}`,
+  //     // accessor: 'ct_field',
+  //     accessor: SelectAccessor,
+  //     id: 'contentstack_cms_field'
+  //     //default: false
+  //   });
+  // }
   const nextButtonLabel =
     currentIndex < contentTypes?.length - 1 ? contentTypes[currentIndex + 1]?.otherCmsTitle : '';
 
@@ -675,6 +696,8 @@ const ContentMapper = () => {
                   onClick={(e) => openContentType(e, index)}
                 >
                   {content?.otherCmsTitle}
+
+                  <span>{'Schema preview'}</span>
                 </li>
               ))}
             </ul>
