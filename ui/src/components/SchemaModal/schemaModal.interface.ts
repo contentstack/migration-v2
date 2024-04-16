@@ -1,4 +1,4 @@
-import { FieldMapType } from "../ContentMapper/contentMapper.interface"; 
+import { FieldMapType } from '../ContentMapper/contentMapper.interface';
 
 export interface Icons {
   title?: string;
@@ -22,12 +22,12 @@ export interface Icons {
   tag?: string;
   experience_container?: string;
 }
- export interface SchemaProps {
+export interface SchemaProps {
   contentType?: string;
   closeModal: () => void;
   schemaData: FieldMapType[];
- }
+}
 
- export interface schemaType {
+export interface schemaType {
   schema: FieldMapType[];
- }
+}

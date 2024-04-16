@@ -589,7 +589,9 @@ const ContentMapper = () => {
     },
     {
       disableSortBy: true,
-      Header: `Contentstack: ${IsEmptyStack ? `Blog` : newMigrationData?.destination_stack?.selectedStack?.label}`,
+      Header: `Contentstack: ${
+        IsEmptyStack ? `Blog` : newMigrationData?.destination_stack?.selectedStack?.label
+      }`,
       accessor: SelectAccessor,
       id: 'contentstack_cms_field'
     }
@@ -658,13 +660,13 @@ const ContentMapper = () => {
                   {active == index && (
                     <span>
                       <Tooltip content={'Schema Preview'} position="left">
-                          <Icon
-                            icon="LivePreview"
-                            size="small"
-                            version="v2"
-                            onClick={() => handleOnClick(content?.otherCmsTitle)}
-                          />
-                        </Tooltip>
+                        <Icon
+                          icon="LivePreview"
+                          size="small"
+                          version="v2"
+                          onClick={() => handleOnClick(content?.otherCmsTitle)}
+                        />
+                      </Tooltip>
                     </span>
                   )}
                 </li>
@@ -796,9 +798,7 @@ const ContentMapper = () => {
 
       {cta?.title && (
         <div className="cta-wrapper">
-          <Button buttonType={cta?.theme}>
-            {cta?.title}
-          </Button>
+          <Button buttonType={cta?.theme}>{cta?.title}</Button>
         </div>
       )}
     </div>
