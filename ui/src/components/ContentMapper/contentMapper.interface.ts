@@ -89,3 +89,9 @@ export interface ContentTypeList {
   title: string;
   schema: [];
 }
+
+export interface optionsType {
+  label?: string;
+  value?: string;
+  isDisabled?: boolean;
+}

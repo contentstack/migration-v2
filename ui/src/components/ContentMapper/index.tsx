@@ -9,11 +9,8 @@ import {
   Button,
   Search,
   Icon,
-  ModalHeader,
-  ModalFooter,
   Tooltip,
   Notification,
-  ModalBody,
   cbModal
 } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
@@ -47,9 +44,14 @@ import {
   Mapping,
   ExistingFieldType,
   ContentTypeList,
-  ContentTypesSchema
+  ContentTypesSchema,
+  optionsType
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
+import { ModalObj } from '../Modal/modal.interface';
+
+// Components
+import SchemaModal from '../SchemaModal';
 
 // Styles
 import './index.scss';
@@ -83,7 +85,6 @@ const ContentMapper = () => {
   const {
     contentMappingData: {
       content_types_heading: contentTypesHeading,
-      contentstack_fields: contentstackFields,
       description,
       action_cta: actionCta,
       cta,
@@ -110,6 +111,8 @@ const ContentMapper = () => {
   const [OtherContentType, setOtherContentType] = useState<FieldTypes>();
   const [exstingField, setexsitingField] = useState<ExistingFieldType>({});
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+
+  const [active, setActive] = useState<number>(null ?? 0);
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -156,9 +159,6 @@ const ContentMapper = () => {
       newMigrationData?.destination_stack?.selectedStack?.value
     );
 
-    console.log("empty stack", IsEmptyStack, contentTypeCount);
-
-
     if (contentTypeCount > 0) {
       setIsEmptyStack(false);
     } else {
@@ -166,8 +166,6 @@ const ContentMapper = () => {
     }
   };
 
-  console.log("empty stack", IsEmptyStack);
-  
   // Method to search content types
   const handleSearch = async (search: string) => {
     setSearchText(search);
@@ -214,7 +212,6 @@ const ContentMapper = () => {
     startIndex,
     stopIndex
   }: TableTypes) => {
-    console.log('');
     fetchContentTypes();
   };
 
@@ -257,13 +254,7 @@ const ContentMapper = () => {
 
   // Method to change the content type
   const openContentType = (e: React.MouseEvent<HTMLElement>, i: number) => {
-    document.querySelectorAll('.ct-list li').forEach((ctLi) => {
-      ctLi?.classList?.remove('active-ct');
-    });
-    if (e.target instanceof HTMLLIElement) {
-      e?.target?.classList?.add('active-ct');
-    }
-
+    setActive(i);
     setOtherCmsTitle(contentTypes?.[i]?.otherCmsTitle);
     setContentTypeUid(contentTypes?.[i]?.id);
     setCurrentIndex(i);
@@ -308,47 +299,15 @@ const ContentMapper = () => {
   //   setSelectedContentType(value);
   // };
 
-  const Modalomponent = (props: any) => {
-    return (
-      <>
-        <ModalHeader title="" closeModal={props.closeModal} />
-        <ModalBody>
-          {contentTypes && validateArray(contentTypes) && (
-            <ul>
-              {contentTypes?.map((content: ContentType, index: number) => (
-                <div
-                  key={index}
-                  style={{ display: 'flex', gap: '80px', justifyContent: 'space-between' }}
-                >
-                  <li style={{ paddingBottom: '20px' }} key={`${index.toString()}`}>
-                    {content?.otherCmsTitle}
-                  </li>
-                  <Tooltip content={'valid content-type'} position="left">
-                    <Icon icon="CheckCircle" size="small" version="v2" />
-                  </Tooltip>
-                </div>
-              ))}
-            </ul>
-          )}
-        </ModalBody>
-        <ModalFooter>
-          <ButtonGroup>
-            <Button buttonType="light" onClick={() => props.closeModal()}>
-              Cancel
-            </Button>
-            <Button>Save and proceed</Button>
-          </ButtonGroup>
-        </ModalFooter>
-      </>
-    );
-  };
-  const handleOnClick = () => {
+  const handleOnClick = (title: string) => {
     return cbModal({
-      component: (props: any) => (
-        <Modalomponent
-          closeModal={() => {
-            return;
-          }}
+      component: (props: ModalObj) => (
+        <SchemaModal
+          schemaData={tableData}
+          contentType={title}
+          // closeModal={() => {
+          //   return;
+          // }}
           {...props}
         />
       ),
@@ -396,7 +355,7 @@ const ContentMapper = () => {
       <div className="select">
         <Select
           id={data.uid}
-          value={{ label: data.ContentstackFieldType, value: data.ContentstackFieldType }}
+          value={{ label: data.ContentstackFieldType, value: fieldValue }}
           onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data.uid)}
           placeholder="Select Field"
           version={'v2'}
@@ -445,13 +404,14 @@ const ContentMapper = () => {
       radio: 'enum',
       CheckBox: 'enum'
     };
-    const OptionsForRow: any = [];
+    const OptionsForRow: optionsType[] = [];
     let ContentTypeSchema: ContentTypesSchema | undefined;
 
     if (OtherContentType?.label && contentTypesList) {
       const ContentType: any = contentTypesList?.find(
         ({ title }) => title === OtherContentType?.label
       );
+
       ContentTypeSchema = ContentType?.schema;
     }
     if (ContentTypeSchema && typeof ContentTypeSchema === 'object') {
@@ -527,16 +487,16 @@ const ContentMapper = () => {
         ? { label: 'No matches found', value: 'No matches found' }
         : { label: `${selectedOption} matches`, value: `${selectedOption} matches` };
 
-    const adjustedOptions = OptionsForRow.map((option: any) => ({
+    const adjustedOptions = OptionsForRow.map((option: optionsType) => ({
       ...option,
-      isDisabled: selectedOptions?.includes(option?.label)
+      isDisabled: selectedOptions?.includes(option?.label ?? '')
     }));
 
     return (
       <div className="select">
         <Select
           value={exstingField[data?.uid] || OptionValue}
-          onChange={(selectedOption: any) => handleFieldChange(selectedOption, data?.uid)}
+          onChange={(selectedOption: FieldTypes) => handleFieldChange(selectedOption, data?.uid)}
           placeholder="Select Field"
           version={'v2'}
           maxWidth="290px"
@@ -642,9 +602,6 @@ const ContentMapper = () => {
     // }
   ];
 
-  console.log("================ stack", newMigrationData);
-  
-
   // if (!IsEmptyStack) {
   //   columns?.splice(1, 0, {
   //     disableSortBy: true,
@@ -668,7 +625,7 @@ const ContentMapper = () => {
 
   return (
     <div className="step-container">
-      <div className="d-flex flex-wrap">
+      <div className="d-flex flex-wrap table-container">
         {/* Content Types List */}
         <div className="content-types-list-wrapper">
           <div className="content-types-list-header">
@@ -692,12 +649,24 @@ const ContentMapper = () => {
               {contentTypes?.map((content: ContentType, index: number) => (
                 <li
                   key={`${index.toString()}`}
-                  className={index === 0 ? 'active-ct' : ''}
+                  // className={index === 0 ? 'active-ct' : ''}
+                  className={`${active == index && 'active-ct'}`}
                   onClick={(e) => openContentType(e, index)}
                 >
-                  {content?.otherCmsTitle}
+                  <span>{content?.otherCmsTitle}</span>
 
-                  <span>{'Schema preview'}</span>
+                  {active == index && (
+                    <span>
+                      <Tooltip content={'Schema Preview'} position="left">
+                          <Icon
+                            icon="LivePreview"
+                            size="small"
+                            version="v2"
+                            onClick={() => handleOnClick(content?.otherCmsTitle)}
+                          />
+                        </Tooltip>
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -827,7 +796,7 @@ const ContentMapper = () => {
 
       {cta?.title && (
         <div className="cta-wrapper">
-          <Button buttonType={cta?.theme} onClick={handleOnClick}>
+          <Button buttonType={cta?.theme}>
             {cta?.title}
           </Button>
         </div>
