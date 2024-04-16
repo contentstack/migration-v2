@@ -12,8 +12,9 @@
 }
 
 .step-component .action-component-body {
-  width: 100% !important;
+  display: flex;
   margin-left: 0px !important;
+  width: 100% !important;
 }
 
 .step-component .step-name-icon {
@@ -58,9 +59,10 @@
   width: auto;
 }
 #newMigration .PageLayout__body {
+  background-color: $color-base-white-10 !important;
+  display: flex;
   margin: 0;
   position: relative;
+  padding: 0;
   width: auto;
-  background-color: #f7f9fc !important;
-  padding-top: 0;
 }
