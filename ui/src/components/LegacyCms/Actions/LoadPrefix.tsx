@@ -117,7 +117,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         />
       </div>
       <div className="col-12">
-        <Button version="v2" onClick={handleOnBlur}>
+        <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleOnBlur}>
           {migrationData?.legacyCMSData?.affix_cta}
         </Button>
       </div>
