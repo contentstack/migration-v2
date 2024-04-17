@@ -8,7 +8,9 @@
     "start": "NODE_ENV=production node dist/server.js",
     "dev": "NODE_ENV=production tsx watch ./src/server.ts",
     "prettify": "prettier --write .",
-    "lint:fix": "eslint --fix --ext .ts . --ignore-pattern './node_modules/' --ignore-pattern './dist/'",
+    "windev": "SET NODE_ENV=production&& tsx watch ./src/server.ts",
+    "winstart": "SET NODE_ENV=production&& node dist/server.js",
+    "lint:fix": "npx eslint --ext .ts --ignore-pattern './node_modules/' --ignore-pattern './dist/'",
     "precommit": "npm run prettify && npm run lint:fix"
   },
   "type": "module",
