@@ -159,7 +159,7 @@ const ContentMapper = () => {
       newMigrationData?.destination_stack?.selectedStack?.value
     );
 
-    if (contentTypeCount > 0) {
+    if (contentTypeCount?.data?.contenttype_count > 0) {
       setIsEmptyStack(false);
     } else {
       setIsEmptyStack(true);
