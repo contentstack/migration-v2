@@ -351,3 +351,4 @@ MigrationBackup/
 
 uploade-api/node_modules
 uploade-api/build
+package-lock.json
