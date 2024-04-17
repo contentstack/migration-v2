@@ -116,13 +116,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         };
 
         updateNewMigrationData(newMigrationDataObj);
-
-        //API call for saving selected CMS
-        if (data?.value) {
-          updateDestinationStack(selectedOrganisation?.value, projectId, {
-            stack_api_key: data?.value
-          });
-        }
       }
 
       //call for Step Change

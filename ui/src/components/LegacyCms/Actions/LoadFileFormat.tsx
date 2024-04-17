@@ -125,7 +125,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
         </div>
       </div>
       <div className="col-12 pt-2">
-        <Button version="v2" onClick={handleBtnClick}>
+        <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleBtnClick}>
           {migrationData?.legacyCMSData?.file_format_cta}
         </Button>
       </div>
