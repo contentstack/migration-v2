@@ -16,7 +16,10 @@ import './DestinationStack.scss';
 import { isEmptyString, validateArray } from '../../utilities/functions';
 import { getAllStacksInOrg } from '../../services/api/stacks.service';
 import { MigrationResponse, StackResponse } from '../../services/api/service.interface';
-import { updateCurrentStepData } from '../../services/api/migration.service';
+import {
+  updateCurrentStepData,
+  updateDestinationStack
+} from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 type DestinationStackComponentProps = {
@@ -59,6 +62,10 @@ const DestinationStackComponent = ({
   const handleOnClick = async (event: MouseEvent) => {
     event.preventDefault();
     //Update Data in backend
+    await updateDestinationStack(selectedOrganisation?.value, projectId, {
+      stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
+    });
+
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
     if (res) {
       const url = `/projects/${projectId}/migration/steps/3`;
