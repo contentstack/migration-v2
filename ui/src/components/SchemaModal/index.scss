@@ -1,0 +1,53 @@
+@import '../../scss/variables';
+
+.entries-outline {
+  ul {
+    padding: 0.625rem;
+    padding-bottom: 0.3125rem;
+    padding-top: 0;
+    transition: opacity 0.2s linear;
+    li {
+      color: #475161;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 0;
+      white-space: nowrap;
+      .iconsholder {
+        align-items: center;
+        display: flex;
+        justify-content: flex-start;
+        padding: 0;
+        &:hover {
+          .title {
+            color: $color-brand-primary-base;
+          }
+          .icons {
+            svg {
+              path {
+                stroke: $color-brand-primary-base;
+              }
+            }
+          }
+        }
+      }
+      .title {
+        color: #475161;
+        font-weight: 400;
+        opacity: 1;
+        text-transform: capitalize;
+        transition: opacity 0.5s linear, width 300ms linear;
+        width: 12.5rem;
+      }
+      .icons {
+        align-items: center;
+        display: inline-flex;
+        justify-content: flex-start;
+        padding: 0.625rem 0;
+        svg {
+          margin-right: 0.625rem;
+        }
+      }
+    }
+  }
+}
