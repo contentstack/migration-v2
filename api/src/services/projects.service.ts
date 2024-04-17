@@ -491,7 +491,7 @@ const updateDestinationStack = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.CANNOT_UPDATE_DESTINATION_STACK);
   }
 
-  if (project.current_step > STEPPER_STEPS.DESTINATION_STACK) {
+  if (project.current_step > STEPPER_STEPS.LEGACY_CMS) {
     await contentMapperService.resetAllContentTypesMapping(projectId);
     logger.info(
       getLogMessage(
@@ -501,7 +501,6 @@ const updateDestinationStack = async (req: Request) => {
       )
     );
   }
-
   try {
     const [err, res] = await safePromise(
       https({
