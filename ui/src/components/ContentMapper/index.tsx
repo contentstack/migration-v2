@@ -11,7 +11,8 @@ import {
   Icon,
   Tooltip,
   Notification,
-  cbModal
+  cbModal,
+  InstructionText
 } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
@@ -318,7 +319,14 @@ const ContentMapper = () => {
   };
 
   const accessorCall = (data: FieldMapType) => {
-    return <div>{data?.otherCmsField}</div>;
+    return ( <div>
+        <div className='cms-field'>{data?.otherCmsField}</div>
+        <InstructionText>
+          Other CMS Type: {data?.otherCmsType}<br />
+          UID: {data?.uid} 
+        </InstructionText>
+      </div>
+    )
   };
   interface UidMap {
     [key: string]: boolean;
@@ -590,7 +598,7 @@ const ContentMapper = () => {
     {
       disableSortBy: true,
       Header: `Contentstack: ${
-        IsEmptyStack ? `Blog` : newMigrationData?.destination_stack?.selectedStack?.label
+        IsEmptyStack ? otherCmsTitle : newMigrationData?.destination_stack?.selectedStack?.label
       }`,
       accessor: SelectAccessor,
       id: 'contentstack_cms_field'

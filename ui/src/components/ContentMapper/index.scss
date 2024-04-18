@@ -62,6 +62,15 @@
 .table-wrapper {
   .Table {
     min-height: inherit;
+    .Table__body__column {
+      padding: 0 1.25rem;
+    }
+    .cms-field {
+      font-weight: $font-weight-semi-bold;
+    }
+    .InstructionText {
+      margin: 0;
+    }
   }
 }
 .action-btn-wrapper {
