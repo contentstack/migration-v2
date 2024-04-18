@@ -77,6 +77,8 @@ const createProject = async (req: Request) => {
     status: PROJECT_STATUS.DRAFT,
     current_step: STEPPER_STEPS.LEGACY_CMS,
     destination_stack_id: "",
+    test_stacks: [],
+    current_test_stack_id: "",
     legacy_cms: {},
     content_mapper: [],
     execution_log: [],
