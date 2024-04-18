@@ -282,8 +282,14 @@ const Login: FC<IProps> = (props: any) => {
                                 </FieldLabel>
                                 <TextInput
                                   {...input}
-                                  onChange={(event: React.MouseEvent<HTMLElement>): void => {
-                                    input.onChange(event);
+                                  onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
+                                    setLoginStates((prevState: IStates) => ({
+                                      ...prevState,
+                                      user: {
+                                        ...prevState.user,
+                                        email: event.target.value
+                                      }
+                                    }))
                                   }}
                                   name="email"
                                   width="large"
@@ -325,8 +331,14 @@ const Login: FC<IProps> = (props: any) => {
                                 </FieldLabel>
                                 <TextInput
                                   {...input}
-                                  onChange={(event: React.MouseEvent<HTMLElement>): void => {
-                                    input.onChange(event);
+                                  onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
+                                    setLoginStates((prevState: IStates) => ({
+                                      ...prevState,
+                                      user: {
+                                        ...prevState.user,
+                                        password: event.target.value
+                                      }
+                                    }))
                                   }}
                                   width="large"
                                   canShowPassword={true}
