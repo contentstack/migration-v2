@@ -23,7 +23,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npx validate-branch-name && cd api && npm run precommit && cd ../ui && npm run precommit && cd .. && git add ."
+      "pre-commit": "npx validate-branch-name && cd ./api && npm run precommit && cd ./ui && npm run precommit && npm run precommit && cd ./ && cd .. && git add ."
     }
   },
   "validate-branch-name": {
