@@ -1,6 +1,6 @@
 // Libraries
 import { useEffect, useState, useContext } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Heading,
   InfiniteScrollTable,
@@ -52,6 +52,7 @@ import { ModalObj } from '../Modal/modal.interface';
 
 // Components
 import SchemaModal from '../SchemaModal';
+import AdvanceSettings from '../AdvanceSettings';
 
 // Styles
 import './index.scss';
@@ -116,6 +117,7 @@ const ContentMapper = () => {
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
+  const navigate = useNavigate();
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -149,8 +151,9 @@ const ContentMapper = () => {
 
     setContentTypes(data?.contentTypes);
     setSelectedContentType(data?.contentTypes?.[0]);
+    setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
     setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
-    setContentTypeUid(data?.contentTypes?.[0]?.otherCmsUid);
+    setContentTypeUid(data?.contentTypes?.[0]?.id);
     fetchFields(data?.contentTypes?.[0]?.id);
   };
   const stackStatus = async () => {
@@ -234,7 +237,7 @@ const ContentMapper = () => {
       updateItemStatusMap({ ...itemStatusMapCopy });
       setLoading(true);
 
-      const { data } = await getFieldMapping(contentTypeUid, startIndex, limit, searchText || '');
+      const { data } = await getFieldMapping(contentTypeUid, skip, limit, '');
 
       const updateditemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
 
@@ -324,7 +327,7 @@ const ContentMapper = () => {
     [key: string]: boolean;
   }
   const rowIds = tableData.reduce<UidMap>((acc, item) => {
-    acc[item.uid] = true;
+    acc[item.id] = true;
     return acc;
   }, {});
 
@@ -344,6 +347,20 @@ const ContentMapper = () => {
     setOtherContentType(value);
   };
 
+  const handleAdvancedSetting = (fieldtype: string) => {
+    return cbModal({
+      component: (props: ModalObj) => <AdvanceSettings fieldtype={fieldtype} {...props} />,
+      modalProps: {
+        shouldCloseOnOverlayClick: true
+      }
+    });
+  };
+
+  const handleValidateOnClick = () => {
+    const url = `/projects/${projectId}/migration/steps/3`;
+    navigate(url, { replace: true });
+  };
+
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
 
@@ -352,16 +369,24 @@ const ContentMapper = () => {
       : [{ label: OptionsForRow, value: OptionsForRow }];
 
     return (
-      <div className="select">
-        <Select
-          id={data.uid}
-          value={{ label: data.ContentstackFieldType, value: fieldValue }}
-          onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data.uid)}
-          placeholder="Select Field"
-          version={'v2'}
-          maxWidth="290px"
-          isClearable={false}
-          options={option}
+      <div className="table-row">
+        <div className="select">
+          <Select
+            id={data.uid}
+            value={{ label: data.ContentstackFieldType, value: fieldValue }}
+            onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data.uid)}
+            placeholder="Select Field"
+            version={'v2'}
+            maxWidth="290px"
+            isClearable={false}
+            options={option}
+          />
+        </div>
+        <Icon
+          version="v2"
+          icon="Setting"
+          size="small"
+          onClick={() => handleAdvancedSetting(data?.ContentstackFieldType)}
         />
       </div>
     );
@@ -585,7 +610,7 @@ const ContentMapper = () => {
       accessor: accessorCall,
       // accessor: 'otherCmsField',
       // default: true
-      id: 'uid'
+      id: 'uuid'
     },
     {
       disableSortBy: true,
@@ -696,7 +721,7 @@ const ContentMapper = () => {
               loading={loading}
               data={tableData}
               columns={columns}
-              uniqueKey={'uid'}
+              uniqueKey={'id'}
               canSearch
               isRowSelect={true}
               itemStatusMap={itemStatusMap}
@@ -798,7 +823,9 @@ const ContentMapper = () => {
 
       {cta?.title && (
         <div className="cta-wrapper">
-          <Button buttonType={cta?.theme}>{cta?.title}</Button>
+          <Button buttonType={cta?.theme} onClick={handleValidateOnClick}>
+            {cta?.title}
+          </Button>
         </div>
       )}
     </div>
