@@ -149,7 +149,7 @@ const ContentMapper = () => {
   }, []);
 
   // Method to fetch content types
-  const fetchContentTypes = async () => {
+  const fetchContentTypes = async (searchText: string) => {
     const { data } = await getContentTypes(projectId || '', 0, 10, ''); //org id will always present
 
     setContentTypes(data?.contentTypes);
@@ -157,7 +157,7 @@ const ContentMapper = () => {
     setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
     setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
     setContentTypeUid(data?.contentTypes?.[0]?.id);
-    fetchFields(data?.contentTypes?.[0]?.id);
+    fetchFields(data?.contentTypes?.[0]?.id, searchText);
   };
   const stackStatus = async () => {
     const contentTypeCount = await getStackStatus(
@@ -178,12 +178,12 @@ const ContentMapper = () => {
     const { data } = await getContentTypes(projectId, 0, 5, search); //org id will always present
     setContentTypes(data?.contentTypes);
     setContentTypeUid(data?.contentTypes[0]?.id);
-    fetchFields(data?.contentTypes[0]?.id);
+    fetchFields(data?.contentTypes[0]?.id, searchText);
   };
 
   // Method to get fieldmapping
-  const fetchFields = async (contentTypeId: string) => {
-    const { data } = await getFieldMapping(contentTypeId, 0, 30, '');
+  const fetchFields = async (contentTypeId: string, searchText: string) => {
+    const { data } = await getFieldMapping(contentTypeId, 0, 30, searchText);
 
     try {
       const itemStatusMap: ItemStatusMapProp = {};
@@ -218,7 +218,7 @@ const ContentMapper = () => {
     startIndex,
     stopIndex
   }: TableTypes) => {
-    fetchContentTypes();
+    fetchContentTypes(searchText);
   };
 
   // Method for Load more table data
@@ -240,7 +240,7 @@ const ContentMapper = () => {
       updateItemStatusMap({ ...itemStatusMapCopy });
       setLoading(true);
 
-      const { data } = await getFieldMapping(contentTypeUid, skip, limit, '');
+      const { data } = await getFieldMapping(contentTypeUid, skip, limit, searchText || '');
 
       const updateditemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
 
@@ -264,7 +264,7 @@ const ContentMapper = () => {
     setOtherCmsTitle(contentTypes?.[i]?.otherCmsTitle);
     setContentTypeUid(contentTypes?.[i]?.id);
     setCurrentIndex(i);
-    fetchFields(contentTypes?.[i]?.id);
+    fetchFields(contentTypes?.[i]?.id, searchText);
   };
 
   //function to handle previous content type navigation
@@ -632,7 +632,7 @@ const ContentMapper = () => {
       Header: `${newMigrationData?.legacy_cms?.selectedCms?.title}: ${otherCmsTitle}`,
       accessor: accessorCall,
       // accessor: 'otherCmsField',
-      // default: true
+      default: false,
       id: 'uuid'
     },
     {
@@ -742,10 +742,10 @@ const ContentMapper = () => {
           <div className="table-wrapper">
             <InfiniteScrollTable
               loading={loading}
+              canSearch={true}
               data={tableData}
               columns={columns}
               uniqueKey={'id'}
-              canSearch
               isRowSelect={true}
               itemStatusMap={itemStatusMap}
               totalCounts={totalCounts}
