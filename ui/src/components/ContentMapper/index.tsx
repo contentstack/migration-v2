@@ -23,7 +23,8 @@ import {
   getFieldMapping,
   getExistingContentTypes,
   updateContentType,
-  resetToInitialMapping
+  resetToInitialMapping,
+  createTestStack
 } from '../../services/api/migration.service';
 import { getStackStatus } from '../../services/api/stacks.service';
 
@@ -35,7 +36,7 @@ import { validateArray } from '../../utilities/functions';
 import { AppContext } from '../../context/app/app.context';
 
 // Interface
-import { DEFAULT_CONTENT_MAPPING_DATA } from '../../context/app/app.interface';
+import { DEFAULT_CONTENT_MAPPING_DATA, INewMigration } from '../../context/app/app.interface';
 import {
   ContentType,
   FieldMapType,
@@ -81,7 +82,8 @@ const Fields: Mapping = {
 
 const ContentMapper = () => {
   /** ALL CONTEXT HERE */
-  const { migrationData, updateMigrationData, newMigrationData } = useContext(AppContext);
+  const { migrationData, updateMigrationData, newMigrationData, updateNewMigrationData } =
+    useContext(AppContext);
 
   const {
     contentMappingData: {
@@ -112,6 +114,7 @@ const ContentMapper = () => {
   const [OtherContentType, setOtherContentType] = useState<FieldTypes>();
   const [exstingField, setexsitingField] = useState<ExistingFieldType>({});
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [isButtonLoading, setisButtonLoading] = useState(false);
 
   const [active, setActive] = useState<number>(null ?? 0);
 
@@ -356,9 +359,29 @@ const ContentMapper = () => {
     });
   };
 
-  const handleValidateOnClick = () => {
-    const url = `/projects/${projectId}/migration/steps/3`;
-    navigate(url, { replace: true });
+  const handleValidateOnClick = async () => {
+    setisButtonLoading(true);
+    const data = {
+      name: newMigrationData?.destination_stack?.selectedStack?.label,
+      description: 'test migration stack',
+      master_locale: newMigrationData?.destination_stack?.selectedStack?.locale
+    };
+    const res = await createTestStack(
+      newMigrationData?.destination_stack?.selectedOrg?.value,
+      projectId,
+      data
+    );
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      test_migration: { stack_link: res?.data?.data?.url }
+    };
+
+    updateNewMigrationData(newMigrationDataObj);
+    if (res?.status) {
+      setisButtonLoading(false);
+      const url = `/projects/${projectId}/migration/steps/4`;
+      navigate(url, { replace: true });
+    }
   };
 
   const SelectAccessor = (data: FieldMapType) => {
@@ -823,7 +846,11 @@ const ContentMapper = () => {
 
       {cta?.title && (
         <div className="cta-wrapper">
-          <Button buttonType={cta?.theme} onClick={handleValidateOnClick}>
+          <Button
+            buttonType={cta?.theme}
+            isLoading={isButtonLoading}
+            onClick={handleValidateOnClick}
+          >
             {cta?.title}
           </Button>
         </div>
