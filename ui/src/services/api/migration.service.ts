@@ -133,3 +133,15 @@ export const resetToInitialMapping = async (
     return error;
   }
 };
+
+export const createTestStack = async (orgId: string, projectId: string, data: any) => {
+  try {
+    return await postCall(
+      `${API_VERSION}/migration/test-stack/${orgId}/${projectId}`,
+      data,
+      options
+    );
+  } catch (error) {
+    return error;
+  }
+};
