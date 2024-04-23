@@ -41,9 +41,9 @@ export type IStates = {
   error: any;
   activeTab: any;
   redirect?: 'none' | 'forgot' | any;
-  user: any;
-  sso_id: any;
-  sso_err: any;
+  user: User;
+  sso_id: string;
+  sso_err: string;
   tfa: boolean;
   isLoginViaSSO: boolean;
   submitted: boolean;
@@ -82,6 +82,6 @@ export interface UserRes {
 
 export interface SmsToken {
   email: string;
-  password: any;
+  password: string;
   region: string | null;
 }
