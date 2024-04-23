@@ -54,7 +54,7 @@ export interface FieldMapType {
   otherCmsField: string;
   otherCmsType: string;
   uid: string;
-  _id: string;
+  id: string;
   _invalid?: boolean;
 }
 

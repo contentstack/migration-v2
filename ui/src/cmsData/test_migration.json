@@ -6,7 +6,7 @@
     "open_in_new_tab": false,
     "theme": "primary",
     "title": "Start Migration",
-    "url": "",
+    "url": "/projects/${projectId}/migration/steps/5",
     "with_icon": false
   }
 }
