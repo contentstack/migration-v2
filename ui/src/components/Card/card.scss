@@ -11,6 +11,13 @@
   margin-bottom: 2.125rem;
   padding: 1.75rem 2rem 0.688rem;
 }
+.ProjectCard__title {
+  color: $color-font-black;
+  font-size: $size-font-2-xl;
+  font-weight: $font-weight-extra-bold;
+  height: 1.563rem;
+  line-height: $line-height-reset;
+}
 .ProjectCard__footer {
   display: flex;
   position: relative;
@@ -37,22 +44,33 @@
   flex-wrap: nowrap;
   justify-content: center;
 }
+.ProjectCard__stats-category {
+  color: $color-font-active;
+  font-size: $size-font-small;
+  font-weight: $font-weight-regular;
+  line-height: 1.42;
+}
 .ProjectCard__stats-number {
-  font-size: 14px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.14px;
+  display: block;
+  font-size: $size-font-large;
+  font-weight: $font-weight-semi-bold;
   letter-spacing: 0.00875rem;
   line-height: 150%;
+  margin-bottom: $space-4;
 }
 .validation-color {
   color: $color-brand-warning-medium;
 }
 .ProjectCard__cms {
-  font-size: 12px;
+  font-size: $size-font-small;
   color: $color-font-black;
   text-transform: capitalize;
 }
 .ProjectCard__modified-date {
+  color: $color-font-base;
+  display:block;
+  font-size:$size-font-small;
+  font-weight: $font-weight-regular;
+  line-height: $line-height-reset;
   padding-left: 8px;
 }

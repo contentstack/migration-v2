@@ -15,15 +15,15 @@ import {
 import { Field as FinalField, Form as FinalForm } from 'react-final-form';
 
 // Interface
-import { ModalObj } from './modal.interface';
+import { ProjectModalProps } from './modal.interface';
 
 // Services
 import { createProject } from '../../services/api/project.service';
 
-const Modal = (props: ModalObj) => {
+const Modal = (props: ProjectModalProps) => {
   const {
     closeModal,
-    data: {
+    modalData: {
       description,
       description_placeholder: descriptionPlaceholder,
       name,
