@@ -53,7 +53,7 @@ import { ModalObj } from '../Modal/modal.interface';
 
 // Components
 import SchemaModal from '../SchemaModal';
-import AdvanceSettings from '../AdvanceSettings';
+import AdvanceSettings from '../AdvancePropertise';
 
 // Styles
 import './index.scss';
@@ -395,9 +395,9 @@ const ContentMapper = () => {
       <div className="table-row">
         <div className="select">
           <Select
-            id={data.uid}
-            value={{ label: data.ContentstackFieldType, value: fieldValue }}
-            onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data.uid)}
+            id={data?.uid}
+            value={{ label: data?.ContentstackFieldType, value: fieldValue }}
+            onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid)}
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"

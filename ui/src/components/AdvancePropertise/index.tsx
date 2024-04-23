@@ -15,7 +15,7 @@ export interface SchemaProps {
   fieldtype: string;
   closeModal: () => void;
 }
-const AdvanceSettings = (props: SchemaProps) => {
+const AdvancePropertise = (props: SchemaProps) => {
   return (
     <>
       <ModalHeader title={`${props.fieldtype} propertise`} closeModal={props.closeModal} />
@@ -55,4 +55,4 @@ const AdvanceSettings = (props: SchemaProps) => {
   );
 };
 
-export default AdvanceSettings;
+export default AdvancePropertise;
