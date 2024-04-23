@@ -12,7 +12,9 @@ import './scss/App.scss';
 function App() {
   return (
     <ErrorBoundary>
-      <Suspense fallback={<FullPageLoader resourceName="Migration" />}>
+      <Suspense>
+      {/* <Suspense fallback={<FullPageLoader resourceName="Migration" />}> */}
+
         <AppContextProvider>
           <AppLayout>
             <AppRouter />

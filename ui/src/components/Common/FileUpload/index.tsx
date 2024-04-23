@@ -1,7 +1,7 @@
 import { ChangeEvent, DragEvent, useRef, useState } from 'react';
-import { InfoModal } from '@contentstack/venus-components';
+// import { InfoModal } from '@contentstack/venus-components';
 import { IFile } from '../../../context/app/app.interface';
-import Upload from './upload';
+// import Upload from './upload';
 import './fileupload.scss';
 
 type FileUploadProps = {
@@ -27,24 +27,24 @@ const FileUpload = (props: FileUploadProps) => {
 
     const filesArray = Array.from(filesList);
 
-    InfoModal({
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      component: (props: any) => (
-        <Upload
-          fileList={filesArray}
-          {...props}
-          onCloseAfterUpload={onCloseAfterUpload}
-          projectId={props?.projectId}
-        />
-      ),
-      modalProps: {
-        targetNodeOrId: targetRef.current,
+    // InfoModal({
+    //   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //   // @ts-ignore
+    //   component: (props: any) => (
+    //     <Upload
+    //       fileList={filesArray}
+    //       {...props}
+    //       onCloseAfterUpload={onCloseAfterUpload}
+    //       projectId={props?.projectId}
+    //     />
+    //   ),
+    //   modalProps: {
+    //     targetNodeOrId: targetRef.current,
 
-        onClose: handleSetUploadModalFalse
-      },
-      alignment: 'bottom-right'
-    });
+    //     onClose: handleSetUploadModalFalse
+    //   },
+    //   alignment: 'bottom-right'
+    // });
 
     setIsDragOver(false);
   };

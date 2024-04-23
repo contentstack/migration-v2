@@ -80,182 +80,172 @@ const AddStack = (props: any): JSX.Element => {
   }, []);
 
   return (
-    <>
-      {isLoading ? (
-        <div className="row">
-          <div className="col-12 text-center ">
-            <CircularLoader />
-          </div>
-        </div>
-      ) : (
-        <FinalForm
-          onSubmit={onSubmit}
-          keepDirtyOnReinitialize={true}
-          validate={(values): any => {
-            const errors: any = {};
-            if (!values.name || values.name.trim().lenght < 1) {
-              errors.name = 'Stack name required';
-            }
-            if (!values.locale || values.locale === '') {
-              errors.locale = 'Required';
-            }
-            return errors;
-          }}
-          initialValues={{
-            locale: { label: 'English - United States', value: 'en-us' }
-          }}
-          render={({ handleSubmit }): JSX.Element => {
-            return (
-              <>
-                <div className="ReactModal__add-stack">
-                  <form onSubmit={handleSubmit}>
-                    <ModalHeader title={addStackCMSData?.title} closeModal={props.closeModal} />
-                    <ModalBody className="no-scroll">
-                      <Field>
-                        <ReactFinalField name="name" type="input">
-                          {({ input, meta }): JSX.Element => {
-                            return (
-                              <>
-                                <FieldLabel
-                                  required
-                                  testId="cs-stack-create-title"
-                                  version="v2"
-                                  error={meta.error && meta.touched && true}
-                                  htmlFor="name"
-                                >
-                                  {addStackCMSData.stack_name}
-                                </FieldLabel>
-                                <TextInput
-                                  testId="cs-stack-create-title-input"
-                                  version="v2"
-                                  {...input}
-                                  onChange={(event: any): any => {
-                                    input.onChange(event);
-                                  }}
-                                  name="name"
-                                  autoComplete="off"
-                                  type="text"
-                                  placeholder={addStackCMSData.stack_name_placeholder}
-                                  error={(meta.error || meta.submitError) && meta.touched}
-                                />
-                                {meta.error && meta.touched && (
-                                  <ValidationMessage
-                                    version="v2"
-                                    testId="cs-stack-create-title-validation"
-                                  >
-                                    {meta.error}
-                                  </ValidationMessage>
-                                )}
-                              </>
-                            );
-                          }}
-                        </ReactFinalField>
-                      </Field>
-                      <Field>
-                        <ReactFinalField name={'description'} type="textarea">
-                          {({ input }): any => {
-                            return (
-                              <div className="input-description">
-                                <Field>
-                                  <FieldLabel
-                                    testId="cs-stack-create-description"
-                                    version="v2"
-                                    htmlFor="description"
-                                  >
-                                    {addStackCMSData.stack_description}
-                                  </FieldLabel>
-                                  <Textarea
-                                    testId="cs-stack-create-description-input"
-                                    version="v2"
-                                    className="Description-field"
-                                    {...input}
-                                    name="description"
-                                    onChange={(event: any): any => {
-                                      input.onChange(event);
-                                    }}
-                                    placeholder={addStackCMSData.stack_description_placeholder}
-                                  />
-                                </Field>
-                              </div>
-                            );
-                          }}
-                        </ReactFinalField>
-                      </Field>
-                      <Field>
-                        <ReactFinalField name={'locale'}>
-                          {({ input, meta }): any => {
-                            return (
-                              <>
-                                <FieldLabel
-                                  required
-                                  testId="cs-stack-create-language"
-                                  version="v2"
-                                  error={meta.error && meta.touched && true}
-                                  htmlFor="locale"
-                                >
-                                  {addStackCMSData.stack_locales}
-                                </FieldLabel>
-                                <Select
-                                  value={input.value}
-                                  isSearchable={true}
-                                  onChange={(event: any): any => {
-                                    input.onChange(event);
-                                  }}
-                                  name="locale"
-                                  width="300px"
-                                  options={props.locales}
-                                  isClearable={true}
-                                  version={'v2'}
-                                  placeholder={addStackCMSData.stack_locale_description}
-                                />
-                                {meta.error && meta.touched && (
-                                  <ValidationMessage
-                                    testId="cs-stack-create-language-validation"
-                                    version="v2"
-                                  >
-                                    {meta.error}
-                                  </ValidationMessage>
-                                )}
-                              </>
-                            );
-                          }}
-                        </ReactFinalField>
-                      </Field>
-                    </ModalBody>
-                    <ModalFooter>
-                      <ButtonGroup>
-                        <Button
-                          aria-label="Cancel"
-                          version="v2"
-                          testId="cs-cancel-create-stack"
-                          buttonType="tertiary"
-                          onClick={(): any => {
-                            props.closeModal();
-                          }}
-                        >
-                          {addStackCMSData.secondary_cta.title}
-                        </Button>
-                        <Button
-                          aria-label="Create New Stack"
-                          version="v2"
-                          testId="cs-create-stack"
-                          buttonType="primary"
-                          name="submit"
-                          type="submit"
-                          loading={isProcessing}
-                        >
-                          {addStackCMSData.primary_cta.title}
-                        </Button>
-                      </ButtonGroup>
-                    </ModalFooter>
-                  </form>
-                </div>
-              </>
-            );
-          }}
-        />
-      )}
-    </>
+    <FinalForm
+      onSubmit={onSubmit}
+      keepDirtyOnReinitialize={true}
+      validate={(values): any => {
+        const errors: any = {};
+        if (!values.name || values.name.trim().lenght < 1) {
+          errors.name = 'Stack name required';
+        }
+        if (!values.locale || values.locale === '') {
+          errors.locale = 'Required';
+        }
+        return errors;
+      }}
+      initialValues={{
+        locale: { label: 'English - United States', value: 'en-us' }
+      }}
+      render={({ handleSubmit }): JSX.Element => {
+        return (
+          <>
+            <div className="ReactModal__add-stack">
+              <form onSubmit={handleSubmit}>
+                <ModalHeader title={addStackCMSData?.title} closeModal={props.closeModal} />
+                <ModalBody className="no-scroll">
+                  <Field>
+                    <ReactFinalField name="name" type="input">
+                      {({ input, meta }): JSX.Element => {
+                        return (
+                          <>
+                            <FieldLabel
+                              required
+                              testId="cs-stack-create-title"
+                              version="v2"
+                              error={meta.error && meta.touched && true}
+                              htmlFor="name"
+                            >
+                              {addStackCMSData.stack_name}
+                            </FieldLabel>
+                            <TextInput
+                              testId="cs-stack-create-title-input"
+                              version="v2"
+                              {...input}
+                              onChange={(event: any): any => {
+                                input.onChange(event);
+                              }}
+                              name="name"
+                              autoComplete="off"
+                              type="text"
+                              placeholder={addStackCMSData.stack_name_placeholder}
+                              error={(meta.error || meta.submitError) && meta.touched}
+                            />
+                            {meta.error && meta.touched && (
+                              <ValidationMessage
+                                version="v2"
+                                testId="cs-stack-create-title-validation"
+                              >
+                                {meta.error}
+                              </ValidationMessage>
+                            )}
+                          </>
+                        );
+                      }}
+                    </ReactFinalField>
+                  </Field>
+                  <Field>
+                    <ReactFinalField name={'description'} type="textarea">
+                      {({ input }): any => {
+                        return (
+                          <div className="input-description">
+                            <Field>
+                              <FieldLabel
+                                testId="cs-stack-create-description"
+                                version="v2"
+                                htmlFor="description"
+                              >
+                                {addStackCMSData.stack_description}
+                              </FieldLabel>
+                              <Textarea
+                                testId="cs-stack-create-description-input"
+                                version="v2"
+                                className="Description-field"
+                                {...input}
+                                name="description"
+                                onChange={(event: any): any => {
+                                  input.onChange(event);
+                                }}
+                                placeholder={addStackCMSData.stack_description_placeholder}
+                              />
+                            </Field>
+                          </div>
+                        );
+                      }}
+                    </ReactFinalField>
+                  </Field>
+                  <Field>
+                    <ReactFinalField name={'locale'}>
+                      {({ input, meta }): any => {
+                        return (
+                          <>
+                            <FieldLabel
+                              required
+                              testId="cs-stack-create-language"
+                              version="v2"
+                              error={meta.error && meta.touched && true}
+                              htmlFor="locale"
+                            >
+                              {addStackCMSData.stack_locales}
+                            </FieldLabel>
+                            <Select
+                              value={input.value}
+                              isSearchable={true}
+                              onChange={(event: any): any => {
+                                input.onChange(event);
+                              }}
+                              name="locale"
+                              width="300px"
+                              options={props.locales}
+                              isClearable={true}
+                              version={'v2'}
+                              placeholder={addStackCMSData.stack_locale_description}
+                            />
+                            {meta.error && meta.touched && (
+                              <ValidationMessage
+                                testId="cs-stack-create-language-validation"
+                                version="v2"
+                              >
+                                {meta.error}
+                              </ValidationMessage>
+                            )}
+                          </>
+                        );
+                      }}
+                    </ReactFinalField>
+                  </Field>
+                </ModalBody>
+                <ModalFooter>
+                  <ButtonGroup>
+                    <Button
+                      aria-label="Cancel"
+                      version="v2"
+                      testId="cs-cancel-create-stack"
+                      buttonType="tertiary"
+                      onClick={(): any => {
+                        props.closeModal();
+                      }}
+                    >
+                      {addStackCMSData.secondary_cta.title}
+                    </Button>
+                    <Button
+                      aria-label="Create New Stack"
+                      version="v2"
+                      testId="cs-create-stack"
+                      buttonType="primary"
+                      name="submit"
+                      type="submit"
+                      loading={isProcessing}
+                    >
+                      {addStackCMSData.primary_cta.title}
+                    </Button>
+                  </ButtonGroup>
+                </ModalFooter>
+              </form>
+            </div>
+          </>
+        );
+      }}
+    />
   );
 };
 
