@@ -137,6 +137,7 @@ export interface IDestinationStack {
 export interface INewMigration {
   legacy_cms: ILegacyCms;
   destination_stack: IDestinationStack;
+  test_migration: ITestMigration;
 }
 
 export interface IMigrationData {
@@ -148,6 +149,7 @@ export interface IMigrationData {
   migrationexecution: IMigrationExecution;
   settings: string;
   migration_steps_heading: string;
+  testmigrationData: ITestMigration;
 }
 
 export interface IDropDown {
@@ -158,7 +160,9 @@ export interface IDropDown {
   locale: string;
   created_at: string;
 }
-
+export interface ITestMigration {
+  stack_link: string;
+}
 export interface IAppContext {
   authToken: string;
   setAuthToken: (token: string) => void;
@@ -240,9 +244,14 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
   selectedStack: DEFAULT_DROPDOWN
 };
 
+export const DEFAULT_TEST_MIGRATION: ITestMigration = {
+  stack_link: ''
+};
+
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
   legacy_cms: DEFAULT_LEGACY_CMS,
-  destination_stack: DEFAULT_DESTINATION_STACK
+  destination_stack: DEFAULT_DESTINATION_STACK,
+  test_migration: DEFAULT_TEST_MIGRATION
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {
@@ -298,6 +307,7 @@ export const DEFAULT_MIGRATION_EXECUTION: IMigrationExecution = {
     }
   ]
 };
+
 export const DEFAULT_MIGRATION_DATA: IMigrationData = {
   allFlowSteps: [],
   currentFlowStep: DEFAULT_IFLOWSTEP,
@@ -306,7 +316,8 @@ export const DEFAULT_MIGRATION_DATA: IMigrationData = {
   contentMappingData: DEFAULT_CONTENT_MAPPING_DATA,
   migrationexecution: DEFAULT_MIGRATION_EXECUTION,
   migration_steps_heading: '',
-  settings: ''
+  settings: '',
+  testmigrationData: DEFAULT_TEST_MIGRATION
 };
 
 export const DEFAULT_APP_CONTEXT: IAppContext = {

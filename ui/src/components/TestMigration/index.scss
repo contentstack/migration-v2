@@ -1,20 +1,14 @@
 @import '../../scss/App.scss';
 @import '../../scss/variables';
 
-.select-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  margin-left: 5px;
-}
-.terminal-container {
-  background-color: $color-base-black-base;
+.test {
+  background-color: #000000;
   color: $color-brand-white-base;
-  padding: 10px;
   height: 469px;
+  padding: 20px;
   overflow-y: auto;
   white-space: pre-wrap;
-  width: 100%;
+  width: 100% !important;
   box-sizing: border-box;
 }
 
@@ -23,7 +17,7 @@ div .step-component .action-component-body {
   width: 100% !important;
   margin-left: 0px !important;
 }
-.cta-wrapper {
+.cta-wrapper-test-migration {
   border-top: 1px solid $color-base-gray-40;
   bottom: 0;
   left: 0;
@@ -61,4 +55,7 @@ div .step-component .action-component-body {
   padding: 0 !important;
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: var(--TermCount, 5px);
+}
+.stack-link {
+  padding: 10px 10px;
 }

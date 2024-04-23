@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useContext, useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@contentstack/venus-components';
 
 // Services
@@ -13,9 +13,15 @@ import { MigrationType } from './testMigration.interface';
 
 //stylesheet
 import './index.scss';
+import { AppContext } from '../../context/app/app.context';
 
 const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
+  const { newMigrationData } = useContext(AppContext);
+
+  /** ALL HOOKS Here */
+  const { projectId = '' } = useParams();
+  const navigate = useNavigate();
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -32,18 +38,22 @@ const TestMigration = () => {
 
   return (
     <div>
-      <div className="action-component-body">
+      <div id="test-migration" className="action-component-body">
         <div className="selectedOptions d-flex">
-          <span>{subtitle}:</span>
+          <span className="stack-link">{subtitle}:</span>
           <span className="ml-6">
-            <a href="https://app.contentstack.com/#!/stack/bltd3620ec6418ad3ad/dashboard?branch=main">
-              https://app.contentstack.com/#!/stack/bltd3620ec6418ad3ad/dashboard?branch=main
+            <a
+              href={`${newMigrationData?.test_migration?.stack_link}`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {newMigrationData?.test_migration?.stack_link}
             </a>
           </span>
         </div>
       </div>
-      <div className="terminal-container"></div>
-      <div className="cta-wrapper">
+      <div className="test"></div>
+      <div className="cta-wrapper-test-migration">
         {cta && cta?.title && (
           <Link to={cta?.url as string} className="btn primary-btn">
             <Button version="v2" aria-label={cta?.title} tabindex={1}>
