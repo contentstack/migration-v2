@@ -116,15 +116,18 @@ const Login: FC<IProps> = (props: any) => {
         };
       });
     } else {
-      setLoginStates((prevState: IStates) => ({
-        ...prevState,
-        user: {
-          ...prevState.user,
-          email: values?.email,
-          password: values?.password
+      setLoginStates((prevState: IStates) => {
+        return {
+          ...prevState,
+          user: {
+            ...prevState.user,
+            email: values?.email,
+            password: values?.password
+          }
         }
-      }));
+      });
     }
+
     const userAuth = {
       user: {
         email: loginStates?.user?.email !== '' ? loginStates?.user?.email : values?.email,
@@ -262,6 +265,7 @@ const Login: FC<IProps> = (props: any) => {
           >
             <FinalForm
               onSubmit={onSubmit}
+              // onChange={onChange}
               render={({ handleSubmit }): JSX.Element => {
                 return (
                   <div className="login-wrapper">
@@ -283,13 +287,14 @@ const Login: FC<IProps> = (props: any) => {
                                 <TextInput
                                   {...input}
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
+                                    input.onChange(event);
                                     setLoginStates((prevState: IStates) => ({
-                                      ...prevState,
-                                      user: {
-                                        ...prevState.user,
-                                        email: event.target.value
-                                      }
-                                    }))
+                                        ...prevState,
+                                        user: {
+                                          ...prevState.user,
+                                          email: event.target.value
+                                        }
+                                      }))
                                   }}
                                   name="email"
                                   width="large"
@@ -332,13 +337,14 @@ const Login: FC<IProps> = (props: any) => {
                                 <TextInput
                                   {...input}
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
+                                    input.onChange(event);
                                     setLoginStates((prevState: IStates) => ({
-                                      ...prevState,
-                                      user: {
-                                        ...prevState.user,
-                                        password: event.target.value
-                                      }
-                                    }))
+                                        ...prevState,
+                                        user: {
+                                          ...prevState.user,
+                                          password: event.target.value
+                                        }
+                                      }))
                                   }}
                                   width="large"
                                   canShowPassword={true}
