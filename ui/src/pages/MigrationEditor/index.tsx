@@ -29,7 +29,9 @@ const MigrationEditor = () => {
       updateNewMigrationData(DEFAULT_NEW_MIGRATION);
       navigate(-1);
     },
-    component: <PageHeader title={{ label: projectName }} />
+    // component: <PageHeader title={{ label: projectName }} />
+    component: <div>{projectName}</div>
+
   };
 
   const bodyContent = {
