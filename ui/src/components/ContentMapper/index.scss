@@ -88,3 +88,9 @@ div .select .Select {
   width: $px-50;
   max-width: $px-50 !important;
 }
+div .table-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+}
