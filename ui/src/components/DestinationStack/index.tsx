@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getDestinationStackSteps } from './StepperSteps';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, CircularLoader } from '@contentstack/venus-components';
+import { Button } from '@contentstack/venus-components';
 //import { getEntries } from '../../services/contentstackSDK';
 import { CS_ENTRIES, PROJECT_STATUS } from '../../utilities/constants';
 import { AppContext } from '../../context/app/app.context';
@@ -34,7 +34,6 @@ const DestinationStackComponent = ({
   projectData
 }: DestinationStackComponentProps) => {
   /** ALL HOOKS HERE */
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
   const [stepperKey, setStepperKey] = useState<string>('v-mig-destination-step');
@@ -146,7 +145,6 @@ const DestinationStackComponent = ({
       //Check for null
       if (!data) {
         updateMigrationData({ destinationStackData: DEFAULT_DESTINATION_STACK_DATA });
-        setIsLoading(false);
         return;
       }
 
@@ -158,8 +156,6 @@ const DestinationStackComponent = ({
       updateDestinationStackData();
 
       updateMigrationData({ destinationStackData: destinationStackDataMapped });
-
-      setIsLoading(false);
 
       //Check for migration Status and lock.
       // Status where Migration is to be Locked:
@@ -173,7 +169,7 @@ const DestinationStackComponent = ({
 
   useEffect(() => {
     setStepperKey('destination-Vertical-stepper');
-  }, [isLoading]);
+  }, []);
 
   useEffect(() => {
     updateDestinationStackData();
@@ -195,44 +191,34 @@ const DestinationStackComponent = ({
   }, [internalActiveStepIndex]);
 
   return (
-    <>
-      {isLoading ? (
-        <div className="row">
-          <div className="col-12 text-center center-align">
-            <CircularLoader />
-          </div>
-        </div>
-      ) : (
-        <div className="destination-stack-container">
-          <div className="row">
-            <div className="col-12">
-              <AutoVerticalStepper
-                key={stepperKey}
-                steps={getDestinationStackSteps(
-                  isCompleted,
-                  isMigrationLocked,
-                  migrationData?.destinationStackData?.all_steps
-                )}
-                ref={autoVerticalStepperComponent}
-                isEdit={!isMigrationLocked}
-                handleOnAllStepsComplete={handleOnAllStepsComplete}
-              />
-            </div>
-            {isCompleted && !isMigrationLocked ? (
-              <div className="col-12">
-                <div className="pl-40">
-                  <Button version="v2" onClick={handleOnClick}>
-                    {migrationData?.destinationStackData?.cta}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <></>
+    <div className="destination-stack-container">
+      <div className="row">
+        <div className="col-12">
+          <AutoVerticalStepper
+            key={stepperKey}
+            steps={getDestinationStackSteps(
+              isCompleted,
+              isMigrationLocked,
+              migrationData?.destinationStackData?.all_steps
             )}
-          </div>
+            ref={autoVerticalStepperComponent}
+            isEdit={!isMigrationLocked}
+            handleOnAllStepsComplete={handleOnAllStepsComplete}
+          />
         </div>
-      )}
-    </>
+        {isCompleted && !isMigrationLocked ? (
+          <div className="col-12">
+            <div className="pl-40">
+              <Button version="v2" onClick={handleOnClick}>
+                {migrationData?.destinationStackData?.cta}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
   );
 };
 

@@ -2,7 +2,6 @@
 import { useContext, useEffect, useState } from 'react';
 import {
   PageLayout,
-  StackCardSkeleton,
   EmptyState,
   Button,
   Icon,
@@ -22,6 +21,7 @@ import { validateObject } from '../../utilities/functions';
 
 // Interfaces
 import { ProjectsType, ProjectsObj } from './projects.interface';
+import { ModalObj } from '../../components/Modal/modal.interface';
 
 // Context
 import { AppContext } from '../../context/app/app.context';
@@ -125,9 +125,9 @@ const Projects = () => {
   const openModal = () => {
     // setModal(true);
     cbModal({
-      component: (props: any) => (
+      component: (props: ModalObj) => (
         <Modal
-          data={createProjectModal && validateObject(createProjectModal) ? createProjectModal : {}}
+          modalData={createProjectModal && validateObject(createProjectModal) ? createProjectModal : {}}
           selectedOrg={selectedOrganisation}
           {...props}
         />
@@ -164,7 +164,7 @@ const Projects = () => {
         {loadStatus ? (
           <div className="flex-wrap">
             {[...Array(20)].map((e, i) => (
-              <StackCardSkeleton key={i} />
+              <CardList key={i} />
             ))}
           </div>
         ) : projects.length > 0 ? (
