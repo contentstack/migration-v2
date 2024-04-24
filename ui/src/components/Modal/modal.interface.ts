@@ -3,6 +3,10 @@ import { ModalType } from '../../pages/Projects/projects.interface';
 
 export interface ModalObj {
   closeModal: () => void;
-  data: ModalType;
+}
+
+export interface ProjectModalProps {
+  modalData: ModalType;
   selectedOrg: IDropDown;
+  closeModal: () => void;
 }

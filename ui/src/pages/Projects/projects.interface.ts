@@ -5,7 +5,7 @@ export interface ProjectsType {
   heading?: string;
   search_projects?: string;
   emptystate?: EmptyState;
-  create_project_modal?: ModalType[];
+  create_project_modal?: ModalType;
 }
 
 export interface ModalType {
