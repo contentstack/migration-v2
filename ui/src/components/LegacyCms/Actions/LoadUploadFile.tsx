@@ -50,7 +50,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           projectId={projectId}
         /> */}
         <div className="col-12 pb-2">
-          <div className=" validation-container">
+          <div className="validation-container">
             <span></span>
           </div>
         </div>

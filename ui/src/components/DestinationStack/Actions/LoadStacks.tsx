@@ -168,7 +168,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     stackArray.sort(
       (a: IDropDown, b: IDropDown) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
     );
 
     setAllStack(stackArray);
