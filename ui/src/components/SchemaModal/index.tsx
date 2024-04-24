@@ -128,14 +128,6 @@ const SchemaModal = (props: SchemaProps) => {
       <ModalBody>
         <TreeView schema={props?.schemaData} />
       </ModalBody>
-      <ModalFooter>
-        <ButtonGroup>
-          <Button buttonType="light" onClick={() => props.closeModal()}>
-            Cancel
-          </Button>
-          <Button>Save and proceed</Button>
-        </ButtonGroup>
-      </ModalFooter>
     </>
   );
 };

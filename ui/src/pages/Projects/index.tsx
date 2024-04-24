@@ -66,6 +66,7 @@ const Projects = () => {
   const fetchProjects = async () => {
     const { data, status } = await getAllProjects(selectedOrganisation?.value); //org id will always present
     if (status === 200) {
+      setLoadStatus(false);
       setProjects(data);
       setAllProjects(data);
     }
@@ -161,63 +162,52 @@ const Projects = () => {
   const content = {
     component: (
       <div className="flex-wrap w-100" key="project-component">
-        {loadStatus ? (
-          <div className="flex-wrap">
-            {[...Array(20)].map((e, i) => (
-              <CardList key={i} />
-            ))}
-          </div>
-        ) : projects.length > 0 ? (
-          projects.map((e) => (
-            <div key={e?.uid}>
-              <CardList project={e} />
-            </div>
-          ))
-        ) : projects.length > 0 ? (
-          projects.map((e) => (
-            <div key={e?.uid}>
-              <CardList project={e} />
-            </div>
-          ))
-        ) : !searchText ? (
-          <EmptyState
-            forPage="emptyStateV2"
-            heading={emptystate?.heading}
-            img={NO_PROJECTS}
-            description={outputIntro}
-            version="v2"
-          >
-            {emptystate?.cta &&
-              emptystate?.cta.length > 0 &&
-              emptystate?.cta.map((cta: CTA, index: number) => (
-                <Button
-                  key={`${index.toString()}`}
-                  buttonType={cta?.theme}
-                  className="mt-10 no-project-add-btn"
-                  onClick={() => openModal()}
-                >
-                  {cta?.with_icon && (
-                    <Icon icon="Plus" version="v2" size="small" fill="white" stroke="white" />
-                  )}
-                  {cta?.title}
-                </Button>
+        {loadStatus 
+          ? (
+            <div className="flex-wrap">
+              {[...Array(20)].map((e, i) => (
+                <CardList key={i} />
               ))}
-          </EmptyState>
-        ) : (
-          <EmptyState
-            forPage="emptyStateV2"
-            heading={<div className="empty_search_heading">{emptystate?.empty_search_heading}</div>}
-            img={NO_PROJECTS_SEARCH}
-            description={
-              <div className="empty_search_description">
-                {HTMLReactParser(jsonToHtml(emptystate?.empty_search_description ?? {}))}
-              </div>
-            }
-            version="v2"
-            className="no_results_found_page"
-            testId="no-results-found-page"
-          />
-        )}
+            </div>
+          ) 
+          : projects.length > 0 
+            ? (
+              projects.map((e) => (
+                <div key={e?.uid}>
+                  <CardList project={e} />
+                </div>
+              ))
+            ) 
+            : projects.length > 0 && !searchText 
+              ? (
+                <EmptyState
+                  forPage="emptyStateV2"
+                  heading={emptystate?.heading}
+                  img={NO_PROJECTS}
+                  description={outputIntro}
+                  version="v2"
+                >
+                  {emptystate?.cta &&
+                    emptystate?.cta.length > 0 &&
+                    emptystate?.cta.map((cta: CTA, index: number) => (
+                      <Button
+                        key={`${index.toString()}`}
+                        buttonType={cta?.theme}
+                        className="mt-10 no-project-add-btn"
+                        onClick={() => openModal()}
+                      >
+                        {cta?.with_icon && (
+                          <Icon icon="Plus" version="v2" size="small" fill="white" stroke="white" />
+                        )}
+                        {cta?.title}
+                      </Button>
+                    ))}
+                </EmptyState>
+              ) 
+              : (
+                <div>0</div>
+              )
+        }
       </div>
     )
   };
