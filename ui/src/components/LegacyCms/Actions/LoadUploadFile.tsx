@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import DragAndDropFileUpload from '../../../components/Common/FileUpload';
 import { AppContext } from '../../../context/app/app.context';
 import { DEFAULT_FILE, IFile, INewMigration } from '../../../context/app/app.interface';
@@ -37,15 +37,23 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const allowedFileExtentions = `.${
     newMigrationData?.legacy_cms?.selectedFileFormat?.title || 'zip'
   }`;
+  useEffect(() => {
+    handleOnFileUploadCompletion([]);
+  });
 
   return (
     <div className="row">
       <div className="col-12">
-        <DragAndDropFileUpload
+        {/* <DragAndDropFileUpload
           allowedFileExtentions={['.zip', allowedFileExtentions]}
           handleOnFileUpload={handleOnFileUploadCompletion}
           projectId={projectId}
-        />
+        /> */}
+        <div className="col-12 pb-2">
+          <div className="validation-container">
+            <span></span>
+          </div>
+        </div>
       </div>
     </div>
   );

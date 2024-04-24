@@ -61,3 +61,13 @@
   min-height: $px-40;
   top: -8px;
 }
+.validation-container {
+  display: flex;
+  background-color: $color-base-white-5;
+  height: $px-108;
+  width: 100%;
+  align-items: center;
+  padding: 0 !important;
+  border: 1px solid #dde3ee;
+  border-radius: var(--TermCount, 5px);
+}
