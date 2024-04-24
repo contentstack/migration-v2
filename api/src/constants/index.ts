@@ -111,7 +111,7 @@ export const STEPPER_STEPS = {
   LEGACY_CMS: 1,
   DESTINATION_STACK: 2,
   CONTENT_MAPPING: 3,
-  TESTING : 4,
+  TESTING: 4,
   MIGRATION: 5,
 };
 export const PREDEFINED_STATUS = [
@@ -121,4 +121,4 @@ export const PREDEFINED_STATUS = [
   "Failed",
   "Success",
 ];
-export const PREDEFINED_STEPS = [1, 2, 3, 4,5];
+export const PREDEFINED_STEPS = [1, 2, 3, 4, 5];
