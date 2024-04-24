@@ -57,7 +57,7 @@ const ProjectsHeader = ({
 
   return (
     <>
-      {/* <PageHeader title={{ label: headingText, component: SearchProject }} actions={pageActions} /> */}
+      <PageHeader title={{ label: headingText, component: SearchProject }} actions={pageActions} />
     </>
   );
 };
