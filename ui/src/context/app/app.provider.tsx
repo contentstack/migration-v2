@@ -118,6 +118,11 @@ const AppContextProvider: FC<IProps> = ({ children }) => {
   useEffect(() => {
     const token = getDataFromLocalStorage('app_token');
     setAuthToken(token || '');
+
+    const storedNewMigration = sessionStorage.getItem('newMigration');
+    if (storedNewMigration) {
+      setNewMigration(JSON.parse(storedNewMigration));
+    }
   }, []);
 
   //get User details on auth token change;
@@ -125,7 +130,9 @@ const AppContextProvider: FC<IProps> = ({ children }) => {
     if (!isEmptyString(authToken)) {
       getUserDetails();
     }
-  }, [authToken]);
+
+    sessionStorage.setItem('newMigration', JSON.stringify(newMigration));
+  }, [authToken, newMigration]);
 
   const ctxObject: IAppContext = {
     authToken: authToken,
