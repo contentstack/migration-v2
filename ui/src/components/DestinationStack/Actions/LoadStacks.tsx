@@ -3,7 +3,7 @@ import { Icon, Select, cbModal } from '@contentstack/venus-components';
 
 import { AppContext } from '../../../context/app/app.context';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
-import { isEmptyString, validateArray, validateObject } from '../../../utilities/functions';
+import { isEmptyString, validateArray } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
 import { getAllLocales } from '../../../services/api/user.service';
 import { StackResponse } from '../../../services/api/service.interface';
@@ -33,9 +33,18 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       ? newMigrationData?.destination_stack?.selectedStack
       : DEFAULT_DROPDOWN
   );
-
-  const [allStack, setAllStack] = useState<IDropDown[]>([]);
-  const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
+  const loadingOption = [
+    {
+      uid: '',
+      label: 'Loading stacks...',
+      value: 'loading',
+      default: false,
+      locale: '',
+      created_at: ''
+    }
+  ];
+  const [allStack, setAllStack] = useState<IDropDown[]>(loadingOption);
+  const [allLocales] = useState<IDropDown[]>([]);
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -90,6 +99,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         });
       }
       //call for Step Change
+
       props.handleStepChange(props?.currentStep, true);
       return true;
     }
@@ -102,7 +112,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
     const stackChanged = selectedStack?.value !== data?.value;
-    const stackCleared = data?.value === undefined || data?.value === '';
+    const stackCleared = data?.value === '';
     if (name === 'stacks') {
       if (stackChanged || stackCleared) {
         setSelectedStack(() => ({ ...data }));
@@ -116,15 +126,15 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         };
 
         updateNewMigrationData(newMigrationDataObj);
-      }
 
-      //call for Step Change
-      props.handleStepChange(props?.currentStep, true);
+        //call for Step Change
+        props.handleStepChange(props?.currentStep, true);
+      }
     }
   };
 
   const fetchData = async () => {
-    const stackData: any = await getAllStacksInOrg(
+    const stackData = await getAllStacksInOrg(
       newMigrationData?.destination_stack?.selectedOrg?.value
     ); //org id will always be there
 
@@ -155,8 +165,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           created_at: stack?.created_at
         }))
       : [];
+
     stackArray.sort(
-      (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      (a: IDropDown, b: IDropDown) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
     setAllStack(stackArray);
@@ -184,7 +196,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
   const handleCreateNewStack = () => {
     cbModal({
-      component: (props: any) => (
+      component: (props: LoadFileFormatProps) => (
         <AddStack
           locales={allLocales}
           closeModal={() => {
