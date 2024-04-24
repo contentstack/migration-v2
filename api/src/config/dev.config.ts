@@ -9,6 +9,5 @@ export const devConfig = {
     EU: "https://eu-app.contentstack.com/#!",
     AZURE_NA: "https://azure-na-app.contentstack.com/#!",
     AZURE_EU: "https://azure-eu-app.contentstack.com/#!",
-  }
-
+  },
 };
