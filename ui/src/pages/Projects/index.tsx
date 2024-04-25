@@ -170,7 +170,7 @@ const Projects = () => {
               ))}
             </div>
           ) 
-          : projects.length > 0 
+          : projects && projects?.length > 0 
             ? (
               projects.map((e) => (
                 <div key={e?.uid}>
@@ -178,8 +178,23 @@ const Projects = () => {
                 </div>
               ))
             ) 
-            : projects.length > 0 && !searchText 
+            : projects && projects?.length > 0 && !searchText 
               ? (
+                <EmptyState
+                  forPage="emptyStateV2"
+                  heading={<div className="empty_search_heading">{emptystate?.empty_search_heading}</div>}
+                  img={NO_PROJECTS_SEARCH}
+                  description={
+                    <div className="empty_search_description">
+                      {HTMLReactParser(jsonToHtml(emptystate?.empty_search_description ?? {}))}
+                    </div>
+                  }
+                  version="v2"
+                  className="no_results_found_page"
+                  testId="no-results-found-page"
+                />
+              ) 
+              : (
                 <EmptyState
                   forPage="emptyStateV2"
                   heading={emptystate?.heading}
@@ -202,11 +217,8 @@ const Projects = () => {
                         {cta?.title}
                       </Button>
                     ))}
-                </EmptyState>
-              ) 
-              : (
-                <div>0</div>
-              )
+                  </EmptyState>
+                )
         }
       </div>
     )
