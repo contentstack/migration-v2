@@ -103,29 +103,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     setIsCheckedBoxChecked(checked);
   };
 
-  useEffect(() => {
-    localStorage.setItem('isRestictedKeywordCheckboxChecked', isCheckedBoxChecked.toString());
-  }, [isCheckedBoxChecked]);
 
-  useEffect(() => {
-    const isChecked = localStorage.getItem('isRestictedKeywordCheckboxChecked');
-    if (isChecked) {
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData.legacy_cms,
-          isRestictedKeywordCheckboxChecked: true
-        }
-      };
-      console.log('Updating newMigrationData with', newMigrationDataObj);
-      updateNewMigrationData(newMigrationDataObj);
-      console.log('newMigrationData after update', newMigrationData);
-
-      setIsCheckedBoxChecked(true);
-    }
-  }, []);
-
-  console.log('new mig : ', newMigrationData);
 
   /****  ALL USEEffects  HERE  ****/
 
