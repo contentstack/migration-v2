@@ -3,10 +3,7 @@ import { useState, useEffect } from 'react';
 import {
   ModalBody,
   ModalHeader,
-  ModalFooter,
   Icon,
-  ButtonGroup,
-  Button
 } from '@contentstack/venus-components';
 
 // Interface
@@ -121,6 +118,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
     </div>
   );
 };
+
 const SchemaModal = (props: SchemaProps) => {
   return (
     <>
