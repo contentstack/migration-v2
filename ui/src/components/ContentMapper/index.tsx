@@ -210,26 +210,12 @@ const ContentMapper = () => {
   };
 
   // Fetch table data
-  const fetchData = async ({
-    sortBy,
-    searchText,
-    skip,
-    limit,
-    startIndex,
-    stopIndex
-  }: TableTypes) => {
+  const fetchData = async ({ searchText }: TableTypes) => {
     fetchContentTypes(searchText);
   };
 
   // Method for Load more table data
-  const loadMoreItems = async ({
-    sortBy,
-    searchText,
-    skip,
-    limit,
-    startIndex,
-    stopIndex
-  }: TableTypes) => {
+  const loadMoreItems = async ({ searchText, skip, limit, startIndex, stopIndex }: TableTypes) => {
     try {
       const itemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
 
@@ -634,44 +620,38 @@ const ContentMapper = () => {
       // accessor: 'otherCmsField',
       default: false,
       id: 'uuid'
-    },
-    {
+    }
+  ];
+
+  if (!IsEmptyStack) {
+    columns.push({
+      disableSortBy: true,
+      Header: `Contentstack: ${newMigrationData?.destination_stack?.selectedStack?.label}`,
+      // accessor: 'ct_field',
+      accessor: SelectAccessorOfColumn,
+      id: 'contentstack_field',
+      default: false
+    });
+  } else {
+    columns.push({
       disableSortBy: true,
       Header: `Contentstack: ${
         IsEmptyStack ? `Blog` : newMigrationData?.destination_stack?.selectedStack?.label
       }`,
       accessor: SelectAccessor,
-      id: 'contentstack_cms_field'
-    }
-    // {
-    //   disableSortBy: true,
-    //   Header: contentstackFields.title,
-    //   id: 'contenstatck',
-    //   //id: contentstackFields.title.replace(/\W+/g, '_').toLowerCase(),
-    //   accessor: SelectAccessor
-    // }
-  ];
-
-  // if (!IsEmptyStack) {
-  //   columns?.splice(1, 0, {
-  //     disableSortBy: true,
-  //     Header: `Contentstack: ${newMigrationData?.destination_stack?.selectedStack?.label}`,
-  //     // accessor: 'ct_field',
-  //     accessor: SelectAccessor,
-  //     id: 'contentstack_cms_field'
-  //     //default: false
-  //   });
-  // }
+      id: 'contentstack_cms_field',
+      default: false
+    });
+  }
   const nextButtonLabel =
     currentIndex < contentTypes?.length - 1 ? contentTypes[currentIndex + 1]?.otherCmsTitle : '';
 
   const prevButtonLabel = currentIndex > 0 ? contentTypes[currentIndex - 1]?.otherCmsTitle : '';
 
-  const options =
-    contentTypesList &&
-    contentTypesList.map((item) => ({
-      label: item?.title
-    }));
+  const options = contentTypesList?.map((item) => ({
+    label: item?.title,
+    value: item?.title
+  }));
 
   return (
     <div className="step-container">

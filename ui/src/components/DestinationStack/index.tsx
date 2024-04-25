@@ -137,7 +137,6 @@ const DestinationStackComponent = ({
     const fetchCMSData = async () => {
       //check if offline CMS data field is set to true, if then read data from cms data file.
       const data = await getCMSDataFromFile(CS_ENTRIES.DESTINATION_STACK);
-      console.log(':::::::::::::::::::::', data);
 
       //fetch Legacy CMS Component Data from Contentstack CMS
       //const data = await getEntries({ contentType: CS_ENTRIES.DESTINATION_STACK })

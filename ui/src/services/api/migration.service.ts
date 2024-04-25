@@ -60,6 +60,30 @@ export const updateCurrentStepData = (orgId: string, projectId: string, data: an
   }
 };
 
+export const affixConfirmation = (orgId: string, projectId: string, data: any = {}) => {
+  try {
+    return putCall(
+      `${API_VERSION}/org/${orgId}/project/${projectId}/affix_confirmation`,
+      data,
+      options
+    );
+  } catch (error) {
+    return error;
+  }
+};
+
+export const fileformatConfirmation = (orgId: string, projectId: string, data: any = {}) => {
+  try {
+    return putCall(
+      `${API_VERSION}/org/${orgId}/project/${projectId}/fileformat_confirmation`,
+      data,
+      options
+    );
+  } catch (error) {
+    return error;
+  }
+};
+
 export const getContentTypes = (
   projectId: string,
   skip: number,
