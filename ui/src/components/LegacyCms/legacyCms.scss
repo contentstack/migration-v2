@@ -25,9 +25,8 @@
   border-top: $px-5 solid $color-brand-primary-base !important;
 }
 .legacy-cms-container {
-  margin-top: $px-60 !important;
+  padding: $px-60 0 $px-60 10% !important;
   width: $px-850 !important;
-  margin-left: 10% !important;
 }
 
 .service_list_search {

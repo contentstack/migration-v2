@@ -11,7 +11,8 @@ import {
   Icon,
   Tooltip,
   Notification,
-  cbModal
+  cbModal,
+  InstructionText
 } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
@@ -310,7 +311,15 @@ const ContentMapper = () => {
   };
 
   const accessorCall = (data: FieldMapType) => {
-    return <div>{data?.otherCmsField}</div>;
+    return (
+      <div>
+        <div className='cms-field'>{data?.otherCmsField}</div>
+        <InstructionText>
+          Other CMS Type: {data?.otherCmsType}<br />
+          UID: {data?.uid} 
+        </InstructionText>
+      </div>
+    )
   };
   interface UidMap {
     [key: string]: boolean;
@@ -334,6 +343,8 @@ const ContentMapper = () => {
 
   const handleDropDownChange = (value: FieldTypes) => {
     setOtherContentType(value);
+    // fetchFields(contentTypes?.[i]?.id, searchText);
+    
   };
 
   const handleAdvancedSetting = (fieldtype: string) => {
@@ -561,7 +572,7 @@ const ContentMapper = () => {
       const { status } = await updateContentType(orgId, projectID, selectedContentType.id, dataCs);
       if (status == 200) {
         Notification({
-          notificationContent: { text: 'conetent type saved successfully' },
+          notificationContent: { text: 'Content type saved successfully' },
           notificationProps: {
             position: 'bottom-center',
             hideProgressBar: false
@@ -601,7 +612,7 @@ const ContentMapper = () => {
       );
       if (status == 200) {
         Notification({
-          notificationContent: { text: 'conetent type reset successfully' },
+          notificationContent: { text: 'Content type reset successfully' },
           notificationProps: {
             position: 'bottom-center',
             hideProgressBar: false
@@ -636,7 +647,7 @@ const ContentMapper = () => {
     columns.push({
       disableSortBy: true,
       Header: `Contentstack: ${
-        IsEmptyStack ? `Blog` : newMigrationData?.destination_stack?.selectedStack?.label
+        IsEmptyStack ? otherCmsTitle : OtherContentType?.label ?? ''
       }`,
       accessor: SelectAccessor,
       id: 'contentstack_cms_field',
@@ -652,6 +663,8 @@ const ContentMapper = () => {
     label: item?.title,
     value: item?.title
   }));
+
+  // console.log("==============", contentTypesList);
 
   return (
     <div className="step-container">
