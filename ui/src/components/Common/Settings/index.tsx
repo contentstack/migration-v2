@@ -402,20 +402,18 @@ const Settings = () => {
     component: (
       <div>
         {Active === CmsData?.project?.title ? (
-          <></>
-          // <PageHeader
-          //   testId="header"
-          //   className="action-component-title"
-          //   title={{ label: currentHeader }}
-          //   actions={pageActions}
-          // />
+          <PageHeader
+            testId="header"
+            className="action-component-title"
+            title={{ label: currentHeader }}
+            actions={pageActions}
+          />
         ) : (
-          <></>
-          // <PageHeader
-          //   testId="header"
-          //   className="action-component-title"
-          //   title={{ label: currentHeader }}
-          // />
+          <PageHeader
+            testId="header"
+            className="action-component-title"
+            title={{ label: currentHeader }}
+          />
         )}
       </div>
     )
