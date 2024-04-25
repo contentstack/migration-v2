@@ -19,6 +19,7 @@ import { ProjectModalProps } from './modal.interface';
 
 // Services
 import { createProject } from '../../services/api/project.service';
+import { useState } from 'react';
 
 const Modal = (props: ProjectModalProps) => {
   const {
@@ -35,6 +36,8 @@ const Modal = (props: ProjectModalProps) => {
     selectedOrg
   } = props;
 
+  const [inputValue, setInputValue] = useState<boolean>(false);
+
   const handleSubmit = async (values: FormData): Promise<boolean> => {
     // const payload = {name: values?.name, description: values?.description || ''}
 
@@ -45,18 +48,20 @@ const Modal = (props: ProjectModalProps) => {
 
   const nameValidation = (value: string) => {
     if (!value || value === '') {
+      setInputValue(false);
       return 'Please enter project name.';
-    } else if (value && value.length >= 200) {
+    } else if (value && value.length > 200) {
+      setInputValue(false);
       return 'Project Name should not be more than 200 chars';
     } else {
+      setInputValue(true);
       return '';
     }
   };
 
   const descValidation = (value: string) => {
-    if (!value || value === '') {
-      return 'Please enter description.';
-    } else if (value && value.length >= 255) {
+    if (value && value.length > 255) {
+      setInputValue(false);
       return 'Description should not be more than 255 chars';
     } else {
       return '';
@@ -138,8 +143,6 @@ const Modal = (props: ProjectModalProps) => {
                         <>
                           <FieldLabel
                             htmlFor="description"
-                            required
-                            requiredText={'(required)'}
                             version="v2"
                           >
                             {description}
@@ -181,7 +184,7 @@ const Modal = (props: ProjectModalProps) => {
                     )}
 
                     {primaryCta && primaryCta?.title && (
-                      <Button type="submit" buttonType={primaryCta?.theme}>
+                      <Button type="submit" buttonType={primaryCta?.theme} disabled={!inputValue}>
                         {primaryCta?.title}
                       </Button>
                     )}
