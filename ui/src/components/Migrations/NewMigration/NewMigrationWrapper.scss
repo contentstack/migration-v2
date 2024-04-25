@@ -41,28 +41,38 @@
   font-weight: $font-weight-semi-bold;
   flex: 2;
 }
-#newMigration .PageLayout__leftSidebar {
-  border-top: 0 none;
-  display: flex;
-  width: initial;
-  position: relative;
-  padding: 10px 0 0;
-  border-right: 0 none;
-}
-#newMigration .PageLayout__head {
-  position: relative;
-  top: 0 !important;
-  z-index: 12;
-  height: 60px;
-  background: $color-brand-white-base;
-  margin-left: auto;
-  width: auto;
-}
-#newMigration .PageLayout__body {
-  background-color: $color-base-white-10 !important;
-  display: flex;
-  margin: 0;
-  position: relative;
-  padding: 0;
-  width: auto;
-}
+#newMigration {
+  .PageLayout.PageLayout--primary {
+    display: flex;
+  }
+  .PageLayout__leftSidebar {
+    border-top: 0 none;
+    display: flex;
+    width: initial;
+    position: relative;
+    padding: 0;
+    border-right: 0 none;
+  }
+  .PageLayout__content {
+    width: calc(100% - 380px);
+  }
+  .PageLayout__head {
+    position: relative;
+    top: 0 !important;
+    z-index: 12;
+    height: 60px;
+    background: $color-brand-white-base;
+    margin-left: auto;
+    width: auto;
+  }
+  .PageLayout__body {
+    background-color: $color-base-white-10 !important;
+    display: flex;
+    margin: 0;
+    position: relative;
+    padding: 0;
+    width: auto;
+    height: calc(100vh - 7.25rem)!important;
+  }
+} 
+
