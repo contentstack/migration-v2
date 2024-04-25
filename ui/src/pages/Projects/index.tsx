@@ -124,7 +124,6 @@ const Projects = () => {
 
   // Function for open modal
   const openModal = () => {
-    // setModal(true);
     cbModal({
       component: (props: ModalObj) => (
         <Modal
@@ -135,9 +134,6 @@ const Projects = () => {
       ),
       modalProps: {
         onClose
-        // onOpen: () => {
-        //   console.log('onOpen gets called')
-        // }
       },
       testId: 'cs-modal-storybook'
     });
@@ -152,7 +148,6 @@ const Projects = () => {
           searchPlaceholder={searchProjects as string}
           setSearchText={setSearchText}
           cta={cta}
-          // modalData={createProjectModal && validateArray(createProjectModal) ? createProjectModal[0] : {}}
           handleModal={openModal}
         />
       </>
@@ -172,7 +167,7 @@ const Projects = () => {
           ) 
           : projects && projects?.length > 0 
             ? (
-              projects.map((e) => (
+              projects?.map((e) => (
                 <div key={e?.uid}>
                   <CardList project={e} />
                 </div>
@@ -203,8 +198,8 @@ const Projects = () => {
                   version="v2"
                 >
                   {emptystate?.cta &&
-                    emptystate?.cta.length > 0 &&
-                    emptystate?.cta.map((cta: CTA, index: number) => (
+                    emptystate?.cta?.length > 0 &&
+                    emptystate?.cta?.map((cta: CTA, index: number) => (
                       <Button
                         key={`${index.toString()}`}
                         buttonType={cta?.theme}
