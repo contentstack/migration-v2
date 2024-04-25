@@ -128,7 +128,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         updateNewMigrationData(newMigrationDataObj);
 
         //call for Step Change
-        props.handleStepChange(props?.currentStep, true);
+        if (props?.handleStepChange) {
+          props.handleStepChange(props?.currentStep, true);
+        }
+        //.handleStepChange(props?.currentStep, true);
       }
     }
   };
@@ -140,8 +143,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     //fetch all locales
     const response = await getAllLocales(newMigrationData?.destination_stack?.selectedOrg?.value); //org id will always be there
-
-    console.log('getAllLocales =============', newMigrationData, response, stackData);
 
     // const rawMappedLocalesMapped =
     //   validateObject(response?.data) && response?.data?.locales
