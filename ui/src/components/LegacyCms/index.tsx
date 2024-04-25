@@ -157,8 +157,12 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
           selectedFileFormat: selectedFileFormatData || defaultCardType,
           uploadedFile: newMigrationData?.legacy_cms?.uploadedFile, //need to add backend data once endpoint exposed.
           affix: legacyCMSData?.affix || newMigrationData?.legacy_cms?.affix || '',
-          isFileFormatCheckboxChecked: false, //need to add backend data once endpoint exposed.
-          isRestictedKeywordCheckboxChecked: false //need to add backend data once endpoint exposed.
+          isFileFormatCheckboxChecked:
+            legacyCMSData?.affix_confirmation ||
+            newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked, //need to add backend data once endpoint exposed.
+          isRestictedKeywordCheckboxChecked:
+            legacyCMSData?.file_format_confirmation ||
+            newMigrationData?.legacy_cms?.isRestictedKeywordCheckboxChecked //need to add backend data once endpoint exposed.
         }
       });
 

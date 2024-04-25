@@ -130,9 +130,11 @@ const AppContextProvider: FC<IProps> = ({ children }) => {
     if (!isEmptyString(authToken)) {
       getUserDetails();
     }
+  }, [authToken]);
 
+  useEffect(() => {
     sessionStorage.setItem('newMigration', JSON.stringify(newMigration));
-  }, [authToken, newMigration]);
+  }, [newMigration]);
 
   const ctxObject: IAppContext = {
     authToken: authToken,
