@@ -635,7 +635,7 @@ const ContentMapper = () => {
   ];
 
   if (!IsEmptyStack) {
-    columns.push({
+    columns?.push({
       disableSortBy: true,
       Header: `Contentstack: ${newMigrationData?.destination_stack?.selectedStack?.label}`,
       // accessor: 'ct_field',
@@ -644,7 +644,7 @@ const ContentMapper = () => {
       default: false
     });
   } else {
-    columns.push({
+    columns?.push({
       disableSortBy: true,
       Header: `Contentstack: ${
         IsEmptyStack ? otherCmsTitle : OtherContentType?.label ?? ''
