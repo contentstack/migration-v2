@@ -1,23 +1,30 @@
 import sitecoreValidator from './sitecore';
+import contentfulValidator from './contentful';
+import wordpressValidator from './wordpress';
+import aemValidator from './aem';
 
-
-const validator = ({ data, type }: { data: any, type: string }) => {
-  switch (type) {
-    case 'sitecore': {
+const validator = ({ data, type, extension }: { data: any; type: string; extension: string }) => {
+  const CMSIdentifier = `${type}-${extension}`;
+  switch (CMSIdentifier) {
+    case 'sitecore-zip': {
       sitecoreValidator({ data });
       return;
     }
 
-    case 'contentful': {
-      return;
+    case 'contentful-json': {
+      return contentfulValidator(data);
     }
 
-    case 'wordpress': {
-      return;
+    case 'wordpress-xml': {
+      return wordpressValidator(data);
+    }
+
+    case 'aem-zip': {
+      return aemValidator({ data });
     }
 
     default:
-      return;
+      return false;
   }
 };
 

@@ -14,11 +14,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import routes from './routes/index';
 
-
-
 const PORT = process.env.PORT;
 const app = express();
-
 
 app.use(cors());
 
@@ -27,7 +24,6 @@ app.use(helmet());
 
 // for the routes creation create in routes/index.ts
 app.use('/', routes);
-
 
 app.listen(PORT, () => {
   console.info(`Server is running at http://localhost:${PORT}`);
