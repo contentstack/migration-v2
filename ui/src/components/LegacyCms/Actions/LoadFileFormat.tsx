@@ -7,7 +7,10 @@ import { Button } from '@contentstack/venus-components';
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 
 // Services
-import { updateFileFormatData } from '../../../services/api/migration.service';
+import {
+  updateFileFormatData,
+  fileformatConfirmation
+} from '../../../services/api/migration.service';
 
 // Interface
 import { ICardType, defaultCardType } from '../../../components/Common/Card/card.interface';
@@ -55,6 +58,9 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       });
       updateFileFormatData(selectedOrganisation.value, projectId, {
         file_format: selectedCard?.fileformat_id
+      });
+      fileformatConfirmation(selectedOrganisation?.value, projectId, {
+        fileformat_confirmation: isCheckedBoxChecked
       });
 
       //call for Step Change
