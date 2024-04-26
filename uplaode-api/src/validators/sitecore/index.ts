@@ -2,9 +2,8 @@
 sitecore Validator
  */
 interface items {
-  files: object
+  files: object;
 }
-
 
 interface props {
   data: items;
@@ -19,27 +18,30 @@ function sitecoreValidator({ data }: props) {
     const mediaLibrary: any[] = [];
     Object.keys(data?.files).forEach(async function (filename: any) {
       if (await filename?.includes?.('/templates')) {
-        templates?.push(await filename)
+        templates?.push(await filename);
       }
       if (await filename?.includes?.('/content')) {
-        content?.push(await filename)
+        content?.push(await filename);
       }
-      //?
+      //optional
       if (await filename?.includes?.('/Configuration')) {
-        configuration?.push(await filename)
+        configuration?.push(await filename);
       }
       if (await filename?.includes?.('/Blob')) {
-        blob?.push(await filename)
+        blob?.push(await filename);
       }
       if (await filename?.includes?.('/media library')) {
-        mediaLibrary?.push(await filename)
+        mediaLibrary?.push(await filename);
       }
     });
-    console.log(templates, content)
+    if (templates?.length > 0 || content?.length > 0 || blob?.length > 0 || mediaLibrary?.length > 0) {
+      return true;
+    }
+    return false;
   } catch (err) {
     console.info('🚀 ~ sitecoreValidator ~ err:', err);
+    return false;
   }
 }
-
 
 export default sitecoreValidator;

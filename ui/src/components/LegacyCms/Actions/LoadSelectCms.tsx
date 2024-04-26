@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 
 // Service
 import { updateLegacyCMSData } from '../../../services/api/migration.service';
+import { fileValidation } from '../../../services/api/upload.service';
 
 // Utilities
 import { isEmptyString, validateArray } from '../../../utilities/functions';
@@ -88,43 +89,58 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     updateCMSFilters(cmsFilter);
   };
 
+  const getCmsType = async() => {
+    const res:any = await fileValidation();
+    const cmsType = res?.data?.file_details?.cmsType;
+    return cmsType;
+  }
   // Filter CMS Data
-  const filterCMSData = (searchText: string) => {
+  const filterCMSData = async (searchText: string) => {
     const { all_cms = [] } = migrationData.legacyCMSData;
-
-    //Default set to all CMS if Filter and search text is empty
-    if (isEmptyString(searchText) && !validateArray(cmsFilter)) {
-      setCmsData(all_cms);
-      return;
+    const cmsType = await getCmsType(); // Fetch the specific CMS type 
+  
+    let filteredCmsData: ICMSType[] = [];
+    if (isEmptyString(searchText) && !validateArray(cmsFilter) && !cmsType) {
+      filteredCmsData = all_cms;
+    } else {
+      if (cmsType) {
+        filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.cms_id === cmsType);
+      }
+  
+      if (validateArray(cmsFilter) || !isEmptyString(searchText)) {
+        const searchTextLower = searchText?.toLowerCase();
+        filteredCmsData = all_cms
+          .filter(({ parent }: ICMSType) => !cmsFilter?.length || cmsFilter?.includes(parent))
+          .filter(({ title, cms_id }: ICMSType) =>
+            title?.toLowerCase()?.includes(searchTextLower) ||
+            cms_id?.toLowerCase()?.includes(searchTextLower)
+          );
+      }
     }
+  
+    setCmsData(filteredCmsData); // Set filtered CMS data
+  
+    // Determine if a new card should be selected
+    const newSelectedCard = filteredCmsData?.find(cms => cms?.cms_id === selectedCard?.cms_id) || filteredCmsData[0] || null;
+    
+    if (newSelectedCard?.cms_id !== selectedCard?.cms_id) {
+      setSelectedCard(newSelectedCard); 
 
-    //search base on filter applied
-    if (validateArray(cmsFilter)) {
-      const _filterCmsData = validateArray(all_cms)
-        ? all_cms
-            ?.filter(({ parent }: ICMSType) => cmsFilter?.includes(parent))
-            .filter(
-              ({ title, cms_id }: ICMSType) =>
-                //Filtering Criteria base on SearchText
-                title?.toLowerCase()?.includes(searchText) ||
-                cms_id?.toLowerCase().includes(searchText)
-            )
-        : [];
-      setCmsData(_filterCmsData);
-
-      return;
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData?.legacy_cms,
+          selectedCms: newSelectedCard
+        }
+      };
+  
+      updateNewMigrationData(newMigrationDataObj); 
+  
+      // API call for saving selected CMS, if a new card is selected
+      if (newSelectedCard) {
+        updateLegacyCMSData(selectedOrganisation?.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
+      }
     }
-
-    //Normal Search
-    const _filterCmsData = validateArray(all_cms)
-      ? all_cms?.filter(
-          ({ title, cms_id }: ICMSType) =>
-            //Filtering Criteria base on SearchText
-            title?.toLowerCase()?.includes(searchText) || cms_id?.toLowerCase().includes(searchText)
-        )
-      : [];
-
-    setCmsData(_filterCmsData);
   };
 
   /****  ALL USEEffects  HERE  ****/
@@ -138,7 +154,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
   return (
     <div className="row bg-white action-content-wrapper p-3">
-      <div className="col-12">
+      {/* <div className="col-12">
         <div className="service_list_search">
           <Search
             className="service_list_search_bar"
@@ -168,8 +184,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           </div>
         </div>
         <Line type="solid" />
-      </div>
-      <div className="col-12 mt-2">
+      </div> */}
+      <div className="col-12">
         {validateArray(cmsData) ? (
           <div className="service_list">
             {cmsData?.map((data: ICMSType) => (
