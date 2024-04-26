@@ -1,9 +1,9 @@
 // Libraries
-import { ChangeEvent, useContext, useState } from 'react';
+import { ChangeEvent, useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 
 // Service
-import { updateAffixData } from '../../../services/api/migration.service';
+import { updateAffixData, affixConfirmation } from '../../../services/api/migration.service';
 
 // Utilities
 import { isEmptyString, isValidPrefix } from '../../../utilities/functions';
@@ -61,6 +61,9 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
 
       //API call for saving Affix
       updateAffixData(selectedOrganisation.value, projectId, { affix: prefix });
+      affixConfirmation(selectedOrganisation?.value, projectId, {
+        affix_confirmation: isCheckedBoxChecked
+      });
 
       //call for Step Change
       props.handleStepChange(props.currentStep);
@@ -87,8 +90,20 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
   // Toggles checkbox selection
   const handleCheckBoxChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { checked } = e.target;
+
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        isRestictedKeywordCheckboxChecked: checked
+      }
+    };
+    updateNewMigrationData(newMigrationDataObj);
+
     setIsCheckedBoxChecked(checked);
   };
+
+
 
   /****  ALL USEEffects  HERE  ****/
 
