@@ -94,7 +94,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       legacy_cms: {
-        ...newMigrationData.legacy_cms,
+        ...newMigrationData?.legacy_cms,
         isRestictedKeywordCheckboxChecked: checked
       }
     };
