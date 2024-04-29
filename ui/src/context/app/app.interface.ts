@@ -32,13 +32,25 @@ export interface User {
   country_code: string;
   organizations: Organization[];
 }
-
+export interface FileDetails {
+  isLocalPath:boolean;
+  cmsType: string;
+  localPath: string;
+  awsData: {
+  awsRegion: string;
+  bucketName:string
+  buketKey:string
+  }
+}
 export interface IFile {
   id?: string;
   name: string;
   size?: number;
   type?: string;
   url?: string;
+  validation?: string;
+  file_details: FileDetails;
+  isValidated?: boolean;
 }
 
 export interface ICMSType extends ICardType {
@@ -215,7 +227,18 @@ export const DEFAULT_FILE: IFile = {
   id: '',
   name: '',
   size: 0,
-  type: ''
+  type: '',
+  file_details:{
+    isLocalPath:false,
+    cmsType: '',
+    localPath: '',
+    awsData: {
+    awsRegion: '',
+    bucketName:'',
+    buketKey:'',
+  },
+  },
+  isValidated:false
 };
 
 export const DEFAULT_CMS_TYPE: ICMSType = {

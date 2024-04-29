@@ -1,10 +1,9 @@
 import { cliux, messageHandler } from '@contentstack/cli-utilities';
-import isEmpty from "lodash.isempty";
-
+import isEmpty from 'lodash.isempty';
 
 const migFunction = () => {
-  console.log("test");
-}
+  console.log('test');
+};
 
 function inquireRequireFieldValidation(input: any): string | boolean {
   if (isEmpty(input)) {
@@ -15,14 +14,14 @@ function inquireRequireFieldValidation(input: any): string | boolean {
 
 async function typeSwitcher(type: any) {
   switch (type) {
-    case "Aws S3": {
+    case 'Aws S3': {
       const awsData: {
         awsRegion?: string;
         awsAccessKeyId?: string;
         awsSecretAccessKey?: string;
         isSessionToken?: string;
         awsSessionToken?: string;
-      } = {}
+      } = {};
       awsData.awsRegion = await cliux.inquire<string>({
         type: 'input',
         message: 'Entre the Aws Region',
@@ -42,15 +41,12 @@ async function typeSwitcher(type: any) {
         validate: inquireRequireFieldValidation
       });
       awsData.isSessionToken = await cliux.inquire({
-        choices: [
-          'yes',
-          'no',
-        ],
+        choices: ['yes', 'no'],
         type: 'list',
         name: 'isSessionToken',
-        message: 'Do you have Session Token',
-      })
-      if (awsData?.isSessionToken === "yes") {
+        message: 'Do you have Session Token'
+      });
+      if (awsData?.isSessionToken === 'yes') {
         awsData.awsSessionToken = await cliux.inquire<string>({
           type: 'input',
           message: 'Entre the Aws Session Token',
@@ -60,7 +56,7 @@ async function typeSwitcher(type: any) {
       }
       return awsData;
     }
-    case "Locale Path": {
+    case 'Locale Path': {
       return await cliux.inquire<string>({
         type: 'input',
         message: 'Entre the file path',
@@ -73,22 +69,16 @@ async function typeSwitcher(type: any) {
   }
 }
 
-
 async function XMLMigration() {
   const typeOfImport = await cliux.inquire({
-    choices: [
-      'Aws S3',
-      'Locale Path',
-      'Exit',
-    ],
+    choices: ['Aws S3', 'Locale Path', 'Exit'],
     type: 'list',
     name: 'value',
-    message: 'Choose the option to proceed',
+    message: 'Choose the option to proceed'
   });
   const data = await typeSwitcher(typeOfImport);
-  console.log("🚀 ~ XMLMigration ~ data:", data)
+  console.log('🚀 ~ XMLMigration ~ data:', data);
 }
 
-
-// calling  the function 
-XMLMigration()
+// calling  the function
+XMLMigration();

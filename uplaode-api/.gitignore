@@ -1,0 +1,19 @@
+# Node modules folder
+node_modules
+
+# Build folder
+build
+
+# data folder
+data
+
+# Environment variables
+.env
+
+# Package lock file
+package-lock.json
+
+#Log files 
+error.log
+combine.log
+
