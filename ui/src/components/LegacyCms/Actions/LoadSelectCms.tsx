@@ -96,7 +96,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   }
   // Filter CMS Data
   const filterCMSData = async (searchText: string) => {
-    const { all_cms = [] } = migrationData.legacyCMSData;
+    const { all_cms = [] } = migrationData?.legacyCMSData || {};
     const cmsType = await getCmsType(); // Fetch the specific CMS type 
   
     let filteredCmsData: ICMSType[] = [];
@@ -186,7 +186,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         <Line type="solid" />
       </div> */}
       <div className="col-12">
-        {validateArray(cmsData) ? (
+        {cmsData && validateArray(cmsData) ? (
           <div className="service_list">
             {cmsData?.map((data: ICMSType) => (
               <Card

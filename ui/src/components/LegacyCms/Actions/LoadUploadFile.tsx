@@ -44,7 +44,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         } 
       }
     updateNewMigrationData(newMigrationDataObj);
-    console.log(newMigrationData);
     
   
      props.handleStepChange(props.currentStep, true);
