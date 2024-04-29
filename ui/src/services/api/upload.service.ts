@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { UPLOAD_FILE_RELATIVE_URL } from '../../utilities/constants';
 import { User, SmsToken } from '../../pages/Login/login.interface';
+import { API_VERSION } from '../../utilities/constants';
 
 //Axios Calls for Upload server
 export const getCall = async (url: string, options?: any) => {
@@ -34,3 +35,14 @@ export const putCall = async (url: string, data: User, options?: any) => {
 export const uploadFilePath = () => {
   return `${UPLOAD_FILE_RELATIVE_URL}upload`;
 };
+
+
+export const fileValidation = () => {
+  try {
+    return getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`)
+    
+  } catch (error) {
+    return error;
+    
+  }
+}

@@ -1,8 +1,6 @@
 import { useContext } from 'react';
 import { AppContext } from '../../../context/app/app.context';
-import { Icon } from '@contentstack/venus-components';
 import './summary.scss';
-import { TRASH } from '../../../common/assets';
 import { isEmptyString } from '../../../utilities/functions';
 import { IStep } from '../../../context/app/app.interface';
 
@@ -11,31 +9,60 @@ interface UploadFileSummaryProps {
   stepData: IStep;
 }
 
+import { FileDetails } from '../../../context/app/app.interface';
+
+interface Props {
+  fileDetails: FileDetails;
+}
+
+const FileComponent : React.FC<Props>= ({fileDetails}) => {
+  return (
+    <div className='col-11'>
+      <p className="summary-title">Is Local Path: {fileDetails?.isLocalPath ? 'Yes' : 'No'}</p>
+      <p className="summary-title">CMS Type: {fileDetails?.cmsType}</p>
+      <p className="summary-title">Local Path: {fileDetails?.localPath}</p>
+      <p className="summary-title">AWS Region: {fileDetails?.awsData?.awsRegion}</p>
+      <p className="summary-title">Bucket Name: {fileDetails?.awsData?.bucketName}</p>
+      <p className="summary-title">Bucket Key: {fileDetails?.awsData?.buketKey}</p>
+    </div>
+  );
+
+
+}
+
 const UploadFileSummary = ({
   stepComponentProps,
   stepData
 }: UploadFileSummaryProps): JSX.Element => {
   const { newMigrationData } = useContext(AppContext);
+  
 
   return (
     <div className="row bg-white">
-      {!isEmptyString(newMigrationData?.legacy_cms?.uploadedFile?.name) ? (
-        <>
+      {!isEmptyString(newMigrationData?.legacy_cms?.uploadedFile?.name) 
+      ? (       
           <div className="col-11 ">
-            <Icon icon="File" size="medium" className="configure_action_logo" />
-            <span className="summary-title">
-              {newMigrationData?.legacy_cms?.uploadedFile?.name || ''}
-            </span>
+            <FileComponent fileDetails={newMigrationData?.legacy_cms?.uploadedFile?.file_details}/>
+            <br></br> 
+            <span className="summary-title">{newMigrationData?.legacy_cms?.uploadedFile?.validation}</span>
+
+            {!newMigrationData?.legacy_cms?.uploadedFile?.isValidated 
+            ? 
+            (<p className=' ValidationMessage__v2'>Please upload the correct file</p>) : 
+            (<></>)
+          }
+        
           </div>
-          <div className="col-1 ">
-            <button className="btn p-0" onClick={stepComponentProps?.handleDeleteFile}>
-              {TRASH}
-            </button>
-          </div>
-        </>
+         
+        
       ) : (
         <div className="col-12 bg-white">
           <span className="summary-title">{stepData?.empty_step_placeholder}</span>
+          {!newMigrationData?.legacy_cms?.uploadedFile?.isValidated 
+            ? 
+            (<p className=' ValidationMessage__v2'>Please upload the correct file</p>) : 
+            (<></>)
+          }
         </div>
       )}
     </div>

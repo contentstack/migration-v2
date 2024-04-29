@@ -1,0 +1,34 @@
+{
+  "contentTypes": {
+    "name": "contentTypes",
+    "required": "true"
+  },
+  "tags": {
+    "name": "tags",
+    "required": "false"
+  },
+  "editorInterfaces": {
+    "name": "editorInterfaces",
+    "required": "true"
+  },
+  "entries": {
+    "name": "entries",
+    "required": "true"
+  },
+  "assets": {
+    "name": "assets",
+    "required": "true"
+  },
+  "locales": {
+    "name": "locales",
+    "required": "true"
+  },
+  "webhooks": {
+    "name": "webhooks",
+    "required": "false"
+  },
+  "roles": {
+    "name": "roles",
+    "required": "false"
+  }
+}
