@@ -78,6 +78,13 @@ export interface User {
 
 export interface UserRes {
   message?: string;
+  status?: number;
+  data?: Response;
+}
+
+interface Response {
+  notice?: string;
+  error_message?: string;
 }
 
 export interface SmsToken {

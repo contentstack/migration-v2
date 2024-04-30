@@ -159,7 +159,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           <Search
             className="service_list_search_bar"
             width="full"
-            placeholder="Search for connectors"
+            placeholder="Search for CMS"
             debounceSearch
             onClear
             version="v2"
