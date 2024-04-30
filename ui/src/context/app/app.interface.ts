@@ -11,6 +11,10 @@ export interface ICTA {
   href: string;
 }
 
+interface ContentTypeMap {
+  [key: string]: string;
+}
+
 export interface Organization {
   uid: string;
   name: string;
@@ -145,10 +149,14 @@ export interface IDestinationStack {
   selectedOrg: IDropDown;
   selectedStack: IDropDown;
 }
+export interface IContentMapper{
+  content_type_mapping: ContentTypeMap
+}
 
 export interface INewMigration {
   legacy_cms: ILegacyCms;
   destination_stack: IDestinationStack;
+  content_mapping: IContentMapper;
   test_migration: ITestMigration;
 }
 
@@ -267,6 +275,11 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
   selectedStack: DEFAULT_DROPDOWN
 };
 
+export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
+  content_type_mapping: {}
+
+}
+
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   stack_link: ''
 };
@@ -274,6 +287,7 @@ export const DEFAULT_TEST_MIGRATION: ITestMigration = {
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
   legacy_cms: DEFAULT_LEGACY_CMS,
   destination_stack: DEFAULT_DESTINATION_STACK,
+  content_mapping: DEFAULT_CONTENT_MAPPER,
   test_migration: DEFAULT_TEST_MIGRATION
 };
 
