@@ -143,8 +143,8 @@ const ContentMapper = () => {
     stackStatus();
 
     tableData?.forEach((field) => {
-      if (field?.otherCmsField === 'title' || field?.otherCmsField === 'url') {
-        field._invalid = true;
+      if (field?.otherCmsField === 'title') {
+        field._canFreezeCheckbox = true;
       }
     });
   }, []);
@@ -400,6 +400,7 @@ const ContentMapper = () => {
             maxWidth="290px"
             isClearable={false}
             options={option}
+            isDisabled={data?.otherCmsField === 'title' || data?.otherCmsField === 'url'}
           />
         </div>
         <Icon
@@ -637,7 +638,7 @@ const ContentMapper = () => {
   if (!IsEmptyStack) {
     columns?.push({
       disableSortBy: true,
-      Header: `Contentstack: ${newMigrationData?.destination_stack?.selectedStack?.label}`,
+      Header: `Contentstack: ${OtherContentType?.label ?? ''}`,
       // accessor: 'ct_field',
       accessor: SelectAccessorOfColumn,
       id: 'contentstack_field',
@@ -664,7 +665,17 @@ const ContentMapper = () => {
     value: item?.title
   }));
 
-  // console.log("==============", contentTypesList);
+  const [SelectedAssets, updateSelectedAssets] = useState({});
+  const [resetRowSelection, updateResetRowSelection] = useState(false);
+
+  const onRowSelectProp = [
+    {
+      label: 'Log selected Items',
+      cb: (data: any) => {
+        updateResetRowSelection(true)
+      }
+    }
+  ]
 
   return (
     <div className="step-container">
@@ -771,10 +782,7 @@ const ContentMapper = () => {
                 ),
                 showExportCta: true
               }}
-              rowDisableProp={{
-                key: '_invalid',
-                value: true
-              }}
+              v2Features={{ key: 'canFreezeCheckbox', value: true }}
             />
           </div>
 
