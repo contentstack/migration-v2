@@ -92,6 +92,10 @@ export interface ContentTypeList {
 
 export interface optionsType {
   label?: string;
-  value?: string;
+  value?: object;
   isDisabled?: boolean;
+}
+
+export interface ExstingContentTypeMatch {
+  [key: string]: string;
 }
