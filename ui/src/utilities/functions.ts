@@ -1,4 +1,5 @@
 import { Notification } from '@contentstack/venus-components';
+import { WEBSITE_BASE_URL } from './constants';
 
 export const Locales = {
   en: 'en-us',
@@ -28,17 +29,17 @@ export const validateImage = (image: any) => image && image?.url;
 export const validateLink = (link: any) => link && link?.url;
 
 export const imageWithSiteDomainUrl = (url: string) => {
-  if (process?.env?.WEBSITE_BASE_URL && url?.indexOf('https://images.contentstack.io') > -1) {
-    return url.replace('https://images.contentstack.io', process.env.WEBSITE_BASE_URL);
+  if (WEBSITE_BASE_URL && url?.indexOf('https://images.contentstack.io') > -1) {
+    return url.replace('https://images.contentstack.io', WEBSITE_BASE_URL);
   }
-  if (process?.env?.WEBSITE_BASE_URL && url?.indexOf('https://assets.contentstack.io/') > -1) {
-    return url.replace('https://assets.contentstack.io', process.env.WEBSITE_BASE_URL);
+  if (WEBSITE_BASE_URL && url?.indexOf('https://assets.contentstack.io/') > -1) {
+    return url.replace('https://assets.contentstack.io', WEBSITE_BASE_URL);
   }
   return url;
 };
 
 export const addDomainInPath = (path: string) => {
-  return `${process.env.REACT_APP_WEBSITE_BASE_URL}${path}`;
+  return `${WEBSITE_BASE_URL}${path}`;
 };
 
 export const failtureNotification = (errorMessage: string) => {
