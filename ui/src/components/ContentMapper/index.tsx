@@ -665,19 +665,13 @@ const ContentMapper = () => {
     value: item?.title
   }));
 
-  const [SelectedAssets, updateSelectedAssets] = useState({})
-  const [resetRowSelection, updateResetRowSelection] = useState(false)
-
-  const getSelectedRow = (singleSelectedRowIds: any, selectedData: any) => {
-    console.log("singleSelectedRowIds, selectedData", singleSelectedRowIds, selectedData);
-    
-  }
+  const [SelectedAssets, updateSelectedAssets] = useState({});
+  const [resetRowSelection, updateResetRowSelection] = useState(false);
 
   const onRowSelectProp = [
     {
       label: 'Log selected Items',
       cb: (data: any) => {
-        console.log('selected data', data)
         updateResetRowSelection(true)
       }
     }
@@ -767,7 +761,6 @@ const ContentMapper = () => {
               columnSelector={false}
               initialRowSelectedData={tableData}
               initialSelectedRowIds={rowIds}
-              // getSelectedRow={getSelectedRow}
               withExportCta={{
                 component: (
                   <div style={{ display: 'flex', gap: '10px' }}>
@@ -789,8 +782,6 @@ const ContentMapper = () => {
                 ),
                 showExportCta: true
               }}
-              // onRowSelectProp={onRowSelectProp}
-              // rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
               v2Features={{ key: 'canFreezeCheckbox', value: true }}
             />
           </div>

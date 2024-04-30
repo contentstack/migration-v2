@@ -1,4 +1,4 @@
-export const BASE_API_URL = 'http://localhost:5001/';
+export const BASE_API_URL = process.env.REACT_APP_BASE_API_URL;
 export const assetsRelativeUrl = 'v3/assets';
 export const WEBSITE_BASE_URL = process.env.REACT_APP_WEBSITE_BASE_URL;
 export const TOKEN_KEY = 'access_token';
