@@ -42,9 +42,9 @@ const AddStack = (props: any): JSX.Element => {
   const onSubmit = async (formData: any) => {
     setIsProcessing(true);
     const resp = await props.onSubmit({
-      name: formData?.name || props.defaultValues.name,
-      description: formData?.description || props.defaultValues.description,
-      locale: formData?.locale?.value || props.defaultValues.locale
+      name: formData?.name || props?.defaultValues?.name,
+      description: formData?.description || props?.defaultValues?.description,
+      locale: formData?.locale?.value || props?.defaultValues?.locale
     });
 
     if (resp) {
@@ -61,7 +61,7 @@ const AddStack = (props: any): JSX.Element => {
 
   useEffect(() => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
-    getCMSDataFromFile(CS_ENTRIES.ADD_STACK)
+    getCMSDataFromFile(CS_ENTRIES?.ADD_STACK)
       .then((data: AddStackCMSData) => {
         //Check for null
         if (!data) {
@@ -93,10 +93,10 @@ const AddStack = (props: any): JSX.Element => {
           keepDirtyOnReinitialize={true}
           validate={(values): any => {
             const errors: any = {};
-            if (!values.name || values.name.trim().lenght < 1) {
+            if (!values?.name || values?.name?.trim().lenght < 1) {
               errors.name = 'Stack name required';
             }
-            if (!values.locale || values.locale === '') {
+            if (!values?.locale || values?.locale === '') {
               errors.locale = 'Required';
             }
             return errors;
@@ -109,7 +109,7 @@ const AddStack = (props: any): JSX.Element => {
               <>
                 <div className="ReactModal__add-stack">
                   <form onSubmit={handleSubmit}>
-                    <ModalHeader title={addStackCMSData?.title} closeModal={props.closeModal} />
+                    <ModalHeader title={addStackCMSData?.title} closeModal={props?.closeModal} />
                     <ModalBody className="no-scroll">
                       <Field>
                         <ReactFinalField name="name" type="input">
@@ -120,30 +120,30 @@ const AddStack = (props: any): JSX.Element => {
                                   required
                                   testId="cs-stack-create-title"
                                   version="v2"
-                                  error={meta.error && meta.touched && true}
+                                  error={meta?.error && meta?.touched && true}
                                   htmlFor="name"
                                 >
-                                  {addStackCMSData.stack_name}
+                                  {addStackCMSData?.stack_name}
                                 </FieldLabel>
                                 <TextInput
                                   testId="cs-stack-create-title-input"
                                   version="v2"
                                   {...input}
                                   onChange={(event: any): any => {
-                                    input.onChange(event);
+                                    input?.onChange(event);
                                   }}
                                   name="name"
                                   autoComplete="off"
                                   type="text"
-                                  placeholder={addStackCMSData.stack_name_placeholder}
-                                  error={(meta.error || meta.submitError) && meta.touched}
+                                  placeholder={addStackCMSData?.stack_name_placeholder}
+                                  error={(meta?.error || meta?.submitError) && meta?.touched}
                                 />
-                                {meta.error && meta.touched && (
+                                {meta?.error && meta?.touched && (
                                   <ValidationMessage
                                     version="v2"
                                     testId="cs-stack-create-title-validation"
                                   >
-                                    {meta.error}
+                                    {meta?.error}
                                   </ValidationMessage>
                                 )}
                               </>
@@ -162,7 +162,7 @@ const AddStack = (props: any): JSX.Element => {
                                     version="v2"
                                     htmlFor="description"
                                   >
-                                    {addStackCMSData.stack_description}
+                                    {addStackCMSData?.stack_description}
                                   </FieldLabel>
                                   <Textarea
                                     testId="cs-stack-create-description-input"
@@ -171,9 +171,9 @@ const AddStack = (props: any): JSX.Element => {
                                     {...input}
                                     name="description"
                                     onChange={(event: any): any => {
-                                      input.onChange(event);
+                                      input?.onChange(event);
                                     }}
-                                    placeholder={addStackCMSData.stack_description_placeholder}
+                                    placeholder={addStackCMSData?.stack_description_placeholder}
                                   />
                                 </Field>
                               </div>
@@ -190,30 +190,30 @@ const AddStack = (props: any): JSX.Element => {
                                   required
                                   testId="cs-stack-create-language"
                                   version="v2"
-                                  error={meta.error && meta.touched && true}
+                                  error={meta?.error && meta?.touched && true}
                                   htmlFor="locale"
                                 >
-                                  {addStackCMSData.stack_locales}
+                                  {addStackCMSData?.stack_locales}
                                 </FieldLabel>
                                 <Select
-                                  value={input.value}
+                                  value={input?.value}
                                   isSearchable={true}
                                   onChange={(event: any): any => {
-                                    input.onChange(event);
+                                    input?.onChange(event);
                                   }}
                                   name="locale"
                                   width="300px"
-                                  options={props.locales}
+                                  options={props?.locales}
                                   isClearable={true}
                                   version={'v2'}
-                                  placeholder={addStackCMSData.stack_locale_description}
+                                  placeholder={addStackCMSData?.stack_locale_description}
                                 />
-                                {meta.error && meta.touched && (
+                                {meta?.error && meta?.touched && (
                                   <ValidationMessage
                                     testId="cs-stack-create-language-validation"
                                     version="v2"
                                   >
-                                    {meta.error}
+                                    {meta?.error}
                                   </ValidationMessage>
                                 )}
                               </>
@@ -230,10 +230,10 @@ const AddStack = (props: any): JSX.Element => {
                           testId="cs-cancel-create-stack"
                           buttonType="tertiary"
                           onClick={(): any => {
-                            props.closeModal();
+                            props?.closeModal();
                           }}
                         >
-                          {addStackCMSData.secondary_cta.title}
+                          {addStackCMSData?.secondary_cta?.title}
                         </Button>
                         <Button
                           aria-label="Create New Stack"
@@ -244,7 +244,7 @@ const AddStack = (props: any): JSX.Element => {
                           type="submit"
                           loading={isProcessing}
                         >
-                          {addStackCMSData.primary_cta.title}
+                          {addStackCMSData?.primary_cta?.title}
                         </Button>
                       </ButtonGroup>
                     </ModalFooter>
