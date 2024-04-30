@@ -1,4 +1,4 @@
-export const BASE_API_URL = 'http://localhost:5000/';
+export const BASE_API_URL = process.env.REACT_APP_BASE_API_URL;
 export const assetsRelativeUrl = 'v3/assets';
 export const WEBSITE_BASE_URL = process.env.REACT_APP_WEBSITE_BASE_URL;
 export const TOKEN_KEY = 'access_token';
@@ -10,6 +10,7 @@ export const AUTH_ROUTES = `${API_VERSION}/auth`;
 
 export const LOGIN_SUCCESSFUL_MESSAGE = 'Login Successful.';
 export const TFA_MESSAGE = 'Please login using the Two-Factor verification Token';
+export const TFA_VIA_SMS_MESSAGE = 'Two-Factor Authentication Token sent via SMS.';
 
 export const API_METHOD = {
   GET: 'GET',
