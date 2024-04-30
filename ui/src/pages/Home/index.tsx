@@ -33,17 +33,15 @@ const Home = () => {
   const { cta, description, heading } = data;
 
   return (
-    <div className="container">
-      <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
-        {heading && <Heading tagName="h0" text={heading} className="pb-2" />}
-        {description && <p className="pb-5">{parse(description)}</p>}
+    <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
+      {heading && <Heading tagName="h0" text={heading} className="pb-2" />}
+      {description && <p className="pb-4">{parse(description)}</p>}
 
-        {cta && cta?.title && (
-          <Link to={cta?.url as string} className="btn primary-btn">
-            <Button version="v2">{cta?.title}</Button>
-          </Link>
-        )}
-      </div>
+      {cta && cta?.title && (
+        <Link to={cta?.url as string} className="btn primary-btn pb-0">
+          <Button version="v2">{cta?.title}</Button>
+        </Link>
+      )}
     </div>
   );
 };
