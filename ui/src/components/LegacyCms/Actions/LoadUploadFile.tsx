@@ -45,7 +45,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     };
     updateNewMigrationData(newMigrationDataObj);
 
-    props.handleStepChange(props.currentStep, true);
+    props.handleStepChange(props?.currentStep, true);
   };
 
   const allowedFileExtentions = `.${

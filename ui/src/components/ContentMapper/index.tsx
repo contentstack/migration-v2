@@ -182,7 +182,7 @@ const ContentMapper = () => {
     if (isContentTypeSaved) {
       tableData?.forEach((row) => {
         if (row?.contentstackField) {
-          updatedExstingField[row.uid] = {
+          updatedExstingField[row?.uid] = {
             label: row?.contentstackField,
             value: row?.contentstackField
           };
@@ -295,7 +295,7 @@ const ContentMapper = () => {
 
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
-    const option = contentTypeMapped?.[otherTitle] ?? 'select Content Type';
+    const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
     setOtherContentType({ label: option, value: option });
 
     setContentTypeUid(contentTypes?.[i]?.id);
@@ -386,8 +386,8 @@ const ContentMapper = () => {
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
     setisDropDownCHanged(true);
     setFieldValue(value);
-    const updatedRows = tableData.map((row) => {
-      if (row.uid === rowIndex) {
+    const updatedRows = tableData?.map((row) => {
+      if (row?.uid === rowIndex) {
         return { ...row, ContentstackFieldType: value?.value };
       }
       return row;
@@ -489,12 +489,12 @@ const ContentMapper = () => {
     if (isDropDownChanged && isContentTypeSaved) {
       setSelectedOptions((prevSelected) => {
         const newValue = selectedValue?.label;
-        return prevSelected.includes(newValue) ? prevSelected : [...prevSelected, newValue];
+        return prevSelected?.includes(newValue) ? prevSelected : [...prevSelected, newValue];
       });
     }
 
     const updatedRows = tableData.map((row) => {
-      if (row.uid === rowIndex) {
+      if (row?.uid === rowIndex) {
         return { ...row, contentstackField: selectedValue?.label };
       }
       return row;
@@ -786,7 +786,7 @@ const ContentMapper = () => {
 
   const adjustedOption = options.map((option: any) => ({
     ...option,
-    isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option.label)
+    isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
   }));
 
   const [SelectedAssets, updateSelectedAssets] = useState({});
