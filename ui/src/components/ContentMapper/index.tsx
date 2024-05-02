@@ -119,6 +119,8 @@ const ContentMapper = () => {
 
   const [active, setActive] = useState<number>(null ?? 0);
 
+  const [searchContentType, setSearchContentType] = useState('');
+
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
   const navigate = useNavigate();
@@ -141,25 +143,30 @@ const ContentMapper = () => {
 
     fetchExistingContentTypes();
     stackStatus();
+  }, []);
 
+  // Make title and url field non editable
+  useEffect(() => {
     tableData?.forEach((field) => {
-      if (field?.otherCmsField === 'title') {
-        field._canFreezeCheckbox = true;
+      if (field?.otherCmsField === 'title' || field?.otherCmsField === 'url') {
+        field._invalid = true;
       }
     });
-  }, []);
+  })
 
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
-    const { data } = await getContentTypes(projectId || '', 0, 10, ''); //org id will always present
+    const { data } = await getContentTypes(projectId || '', 0, 10, searchContentType || ''); //org id will always present
 
     setContentTypes(data?.contentTypes);
     setSelectedContentType(data?.contentTypes?.[0]);
     setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
     setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
     setContentTypeUid(data?.contentTypes?.[0]?.id);
-    fetchFields(data?.contentTypes?.[0]?.id, searchText);
+    fetchFields(data?.contentTypes?.[0]?.id, searchText || '');
   };
+
+  // Get the stack status if it is empty or not
   const stackStatus = async () => {
     const contentTypeCount = await getStackStatus(
       newMigrationData?.destination_stack?.selectedOrg?.value,
@@ -174,17 +181,24 @@ const ContentMapper = () => {
   };
 
   // Method to search content types
-  const handleSearch = async (search: string) => {
-    setSearchText(search);
-    const { data } = await getContentTypes(projectId, 0, 5, search); //org id will always present
+  const handleSearch = async (searchCT: string) => {
+    console.log("searchCT", searchCT);
+    
+    setSearchContentType(searchCT)
+      
+    const { data } = await getContentTypes(projectId, 0, 5, searchCT || ''); //org id will always present
+    
     setContentTypes(data?.contentTypes);
-    setContentTypeUid(data?.contentTypes[0]?.id);
-    fetchFields(data?.contentTypes[0]?.id, searchText);
+    setSelectedContentType(data?.contentTypes?.[0]);
+    setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
+    setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
+    setContentTypeUid(data?.contentTypes?.[0]?.id);
+    fetchFields(data?.contentTypes[0]?.id, searchText || '');
   };
 
   // Method to get fieldmapping
   const fetchFields = async (contentTypeId: string, searchText: string) => {
-    const { data } = await getFieldMapping(contentTypeId, 0, 30, searchText);
+    const { data } = await getFieldMapping(contentTypeId, 0, 30, searchText || '');
 
     try {
       const itemStatusMap: ItemStatusMapProp = {};
@@ -212,7 +226,8 @@ const ContentMapper = () => {
 
   // Fetch table data
   const fetchData = async ({ searchText }: TableTypes) => {
-    fetchContentTypes(searchText);
+    setSearchText(searchText);
+    fetchContentTypes(searchText || '');
   };
 
   // Method for Load more table data
@@ -251,7 +266,7 @@ const ContentMapper = () => {
     setOtherCmsTitle(contentTypes?.[i]?.otherCmsTitle);
     setContentTypeUid(contentTypes?.[i]?.id);
     setCurrentIndex(i);
-    fetchFields(contentTypes?.[i]?.id, searchText);
+    fetchFields(contentTypes?.[i]?.id, searchText || '');
   };
 
   //function to handle previous content type navigation
@@ -287,10 +302,6 @@ const ContentMapper = () => {
       setContentTypesList(data?.contentTypes);
     }
   };
-
-  // const handleDropDownChange = (value: ContentType) => {
-  //   setSelectedContentType(value);
-  // };
 
   const handleOnClick = (title: string) => {
     return cbModal({
@@ -400,7 +411,7 @@ const ContentMapper = () => {
             maxWidth="290px"
             isClearable={false}
             options={option}
-            isDisabled={data?.otherCmsField === 'title' || data?.otherCmsField === 'url'}
+            // isDisabled={data?.otherCmsField === 'title' || data?.otherCmsField === 'url'}
           />
         </div>
         <Icon
@@ -665,18 +676,6 @@ const ContentMapper = () => {
     value: item?.title
   }));
 
-  const [SelectedAssets, updateSelectedAssets] = useState({});
-  const [resetRowSelection, updateResetRowSelection] = useState(false);
-
-  const onRowSelectProp = [
-    {
-      label: 'Log selected Items',
-      cb: (data: any) => {
-        updateResetRowSelection(true)
-      }
-    }
-  ]
-
   return (
     <div className="step-container">
       <div className="d-flex flex-wrap table-container">
@@ -684,7 +683,6 @@ const ContentMapper = () => {
         <div className="content-types-list-wrapper">
           <div className="content-types-list-header">
             <Heading tagName="h6" text={contentTypesHeading} />
-            {/* <Paragraph text={parseDescription} tagName='div' /> */}
             <p>{parseDescription}</p>
 
             <Search
@@ -693,7 +691,7 @@ const ContentMapper = () => {
               version="v2"
               onChange={(search: string) => handleSearch(search)}
               onClear={true}
-              value={searchText}
+              value={searchContentType}
               debounceSearch={true}
             />
           </div>
@@ -703,8 +701,7 @@ const ContentMapper = () => {
               {contentTypes?.map((content: ContentType, index: number) => (
                 <li
                   key={`${index.toString()}`}
-                  // className={index === 0 ? 'active-ct' : ''}
-                  className={`${active == index && 'active-ct'}`}
+                  className={`${active == index ? 'active-ct' : ''}`}
                   onClick={(e) => openContentType(e, index)}
                 >
                   <span>{content?.otherCmsTitle}</span>
@@ -782,7 +779,7 @@ const ContentMapper = () => {
                 ),
                 showExportCta: true
               }}
-              v2Features={{ key: 'canFreezeCheckbox', value: true }}
+              rowDisableProp={{ key: '_invalid', value: true }}
             />
           </div>
 

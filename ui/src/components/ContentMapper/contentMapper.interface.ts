@@ -55,8 +55,7 @@ export interface FieldMapType {
   otherCmsType: string;
   uid: string;
   id: string;
-  _canFreezeCheckbox?: boolean;
-  _canSelect?: boolean;
+  _invalid?: boolean;
 }
 
 export interface ItemStatus {
