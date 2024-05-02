@@ -33,8 +33,17 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       ? newMigrationData?.destination_stack?.selectedStack
       : DEFAULT_DROPDOWN
   );
-
-  const [allStack, setAllStack] = useState<IDropDown[]>([]);
+  const loadingOption = [
+    {
+      uid: '',
+      label: 'Loading stacks...',
+      value: 'loading',
+      default: false,
+      locale: '',
+      created_at: ''
+    }
+  ];
+  const [allStack, setAllStack] = useState<IDropDown[]>(loadingOption);
   const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -90,6 +99,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         });
       }
       //call for Step Change
+
       props.handleStepChange(props?.currentStep, true);
       return true;
     }
@@ -102,7 +112,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
     const stackChanged = selectedStack?.value !== data?.value;
-    const stackCleared = data?.value === undefined || data?.value === '';
+    const stackCleared = data?.value === '';
     if (name === 'stacks') {
       if (stackChanged || stackCleared) {
         setSelectedStack(() => ({ ...data }));
@@ -117,41 +127,34 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
         updateNewMigrationData(newMigrationDataObj);
 
-        //API call for saving selected CMS
-        if (data?.value) {
-          updateDestinationStack(selectedOrganisation?.value, projectId, {
-            stack_api_key: data?.value
-          });
+        //call for Step Change
+        if (props?.handleStepChange) {
+          props.handleStepChange(props?.currentStep, true);
         }
+        //.handleStepChange(props?.currentStep, true);
       }
-
-      //call for Step Change
-      props.handleStepChange(props?.currentStep, true);
     }
   };
 
   const fetchData = async () => {
-    const stackData: any = await getAllStacksInOrg(
+    const stackData = await getAllStacksInOrg(
       newMigrationData?.destination_stack?.selectedOrg?.value
     ); //org id will always be there
 
     //fetch all locales
     const response = await getAllLocales(newMigrationData?.destination_stack?.selectedOrg?.value); //org id will always be there
+    const rawMappedLocalesMapped =
+      validateObject(response?.data) && response?.data?.locales
+        ? Object?.keys(response?.data?.locales)?.map((key) => ({
+            uid: key,
+            label: response?.data?.locales[key],
+            value: key,
+            locale: key,
+            created_at: key
+          }))
+        : [];
 
-    console.log('getAllLocales =============', newMigrationData, response, stackData);
-
-    // const rawMappedLocalesMapped =
-    //   validateObject(response?.data) && response?.data?.locales
-    //     ? Object.keys(data?.locales)?.map((key) => ({
-    //         uid: key,
-    //         label: data?.locales[key],
-    //         value: key,
-    //         locale: key,
-    //         created_at: key
-    //       }))
-    //     : [];
-
-    // setAllLocales(rawMappedLocalesMapped);
+    setAllLocales(rawMappedLocalesMapped);
 
     const stackArray = validateArray(stackData?.data?.stacks)
       ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
@@ -162,8 +165,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           created_at: stack?.created_at
         }))
       : [];
+
     stackArray.sort(
-      (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      (a: IDropDown, b: IDropDown) =>
+        new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
     );
 
     setAllStack(stackArray);
@@ -188,10 +193,9 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     updateNewMigrationData(newMigrationDataObj);
   };
-
   const handleCreateNewStack = () => {
     cbModal({
-      component: (props: any) => (
+      component: (props: LoadFileFormatProps) => (
         <AddStack
           locales={allLocales}
           closeModal={() => {
@@ -212,7 +216,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       }
     });
   };
-
   /****  ALL USEEffects  HERE  ****/
 
   useEffect(() => {

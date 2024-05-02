@@ -60,6 +60,30 @@ export const updateCurrentStepData = (orgId: string, projectId: string, data: an
   }
 };
 
+export const affixConfirmation = (orgId: string, projectId: string, data: any = {}) => {
+  try {
+    return putCall(
+      `${API_VERSION}/org/${orgId}/project/${projectId}/affix_confirmation`,
+      data,
+      options
+    );
+  } catch (error) {
+    return error;
+  }
+};
+
+export const fileformatConfirmation = (orgId: string, projectId: string, data: any = {}) => {
+  try {
+    return putCall(
+      `${API_VERSION}/org/${orgId}/project/${projectId}/fileformat_confirmation`,
+      data,
+      options
+    );
+  } catch (error) {
+    return error;
+  }
+};
+
 export const getContentTypes = (
   projectId: string,
   skip: number,
@@ -130,6 +154,18 @@ export const resetToInitialMapping = async (
       options
     );
   } catch (error: any) {
+    return error;
+  }
+};
+
+export const createTestStack = async (orgId: string, projectId: string, data: any) => {
+  try {
+    return await postCall(
+      `${API_VERSION}/migration/test-stack/${orgId}/${projectId}`,
+      data,
+      options
+    );
+  } catch (error) {
     return error;
   }
 };

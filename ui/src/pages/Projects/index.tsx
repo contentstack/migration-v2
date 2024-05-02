@@ -1,13 +1,6 @@
 // Libraries
 import { useContext, useEffect, useState } from 'react';
-import {
-  PageLayout,
-  StackCardSkeleton,
-  EmptyState,
-  Button,
-  Icon,
-  cbModal
-} from '@contentstack/venus-components';
+import { PageLayout, EmptyState, Button, Icon, cbModal } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
@@ -22,6 +15,7 @@ import { validateObject } from '../../utilities/functions';
 
 // Interfaces
 import { ProjectsType, ProjectsObj } from './projects.interface';
+import { ModalObj } from '../../components/Modal/modal.interface';
 
 // Context
 import { AppContext } from '../../context/app/app.context';
@@ -64,10 +58,13 @@ const Projects = () => {
   const { selectedOrganisation } = useContext(AppContext);
 
   const fetchProjects = async () => {
-    const { data, status } = await getAllProjects(selectedOrganisation?.value); //org id will always present
-    if (status === 200) {
-      setProjects(data);
-      setAllProjects(data);
+    if (selectedOrganisation?.value) {
+      const { data, status } = await getAllProjects(selectedOrganisation?.value || ''); //org id will always present
+      if (status === 200) {
+        setLoadStatus(false);
+        setProjects(data);
+        setAllProjects(data);
+      }
     }
   };
 
@@ -123,20 +120,18 @@ const Projects = () => {
 
   // Function for open modal
   const openModal = () => {
-    // setModal(true);
     cbModal({
-      component: (props: any) => (
+      component: (props: ModalObj) => (
         <Modal
-          data={createProjectModal && validateObject(createProjectModal) ? createProjectModal : {}}
+          modalData={
+            createProjectModal && validateObject(createProjectModal) ? createProjectModal : {}
+          }
           selectedOrg={selectedOrganisation}
           {...props}
         />
       ),
       modalProps: {
         onClose
-        // onOpen: () => {
-        //   console.log('onOpen gets called')
-        // }
       },
       testId: 'cs-modal-storybook'
     });
@@ -151,7 +146,6 @@ const Projects = () => {
           searchPlaceholder={searchProjects as string}
           setSearchText={setSearchText}
           cta={cta}
-          // modalData={createProjectModal && validateArray(createProjectModal) ? createProjectModal[0] : {}}
           handleModal={openModal}
         />
       </>
@@ -164,46 +158,16 @@ const Projects = () => {
         {loadStatus ? (
           <div className="flex-wrap">
             {[...Array(20)].map((e, i) => (
-              <StackCardSkeleton key={i} />
+              <CardList key={i} />
             ))}
           </div>
-        ) : projects.length > 0 ? (
-          projects.map((e) => (
+        ) : projects && projects?.length > 0 ? (
+          projects?.map((e) => (
             <div key={e?.uid}>
               <CardList project={e} />
             </div>
           ))
-        ) : projects.length > 0 ? (
-          projects.map((e) => (
-            <div key={e?.uid}>
-              <CardList project={e} />
-            </div>
-          ))
-        ) : !searchText ? (
-          <EmptyState
-            forPage="emptyStateV2"
-            heading={emptystate?.heading}
-            img={NO_PROJECTS}
-            description={outputIntro}
-            version="v2"
-          >
-            {emptystate?.cta &&
-              emptystate?.cta.length > 0 &&
-              emptystate?.cta.map((cta: CTA, index: number) => (
-                <Button
-                  key={`${index.toString()}`}
-                  buttonType={cta?.theme}
-                  className="mt-10 no-project-add-btn"
-                  onClick={() => openModal()}
-                >
-                  {cta?.with_icon && (
-                    <Icon icon="Plus" version="v2" size="small" fill="white" stroke="white" />
-                  )}
-                  {cta?.title}
-                </Button>
-              ))}
-          </EmptyState>
-        ) : (
+        ) : projects && projects?.length > 0 && !searchText ? (
           <EmptyState
             forPage="emptyStateV2"
             heading={<div className="empty_search_heading">{emptystate?.empty_search_heading}</div>}
@@ -217,6 +181,30 @@ const Projects = () => {
             className="no_results_found_page"
             testId="no-results-found-page"
           />
+        ) : (
+          <EmptyState
+            forPage="emptyStateV2"
+            heading={emptystate?.heading}
+            img={NO_PROJECTS}
+            description={outputIntro}
+            version="v2"
+          >
+            {emptystate?.cta &&
+              emptystate?.cta?.length > 0 &&
+              emptystate?.cta?.map((cta: CTA, index: number) => (
+                <Button
+                  key={`${index.toString()}`}
+                  buttonType={cta?.theme}
+                  className="mt-10 no-project-add-btn"
+                  onClick={() => openModal()}
+                >
+                  {cta?.with_icon && (
+                    <Icon icon="Plus" version="v2" size="small" fill="white" stroke="white" />
+                  )}
+                  {cta?.title}
+                </Button>
+              ))}
+          </EmptyState>
         )}
       </div>
     )

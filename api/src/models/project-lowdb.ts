@@ -31,9 +31,11 @@ interface Project {
   former_owner_ids: [];
   name: string;
   description: string;
-  status: string;
+  status: number;
   current_step: number;
   destination_stack_id: string;
+  test_stacks: [];
+  current_test_stack_id: string;
   legacy_cms: LegacyCMS;
   content_mapper: [];
   execution_log: [ExecutionLog];

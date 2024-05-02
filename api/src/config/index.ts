@@ -20,6 +20,12 @@ export type ConfigType = {
     AZURE_NA: string;
     AZURE_EU?: string;
   };
+  CS_URL: {
+    NA: string;
+    EU: string;
+    AZURE_NA: string;
+    AZURE_EU?: string;
+  };
 };
 
 export const config: ConfigType = {
