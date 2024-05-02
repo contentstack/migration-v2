@@ -18,9 +18,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const { projectId = '' } = useParams();
 
   //Handle further action on file is uploaded to server
-  const handleOnFileUploadCompletion = async() => {
-
-    const res : any  = await fileValidation();
+  const handleOnFileUploadCompletion = async () => {
+    const res: any = await fileValidation();
 
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
@@ -28,27 +27,25 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         ...newMigrationData.legacy_cms,
         uploadedFile: {
           name: res?.data?.file_details?.localPath,
-          url : res?.data?.file_details?.localPath,
+          url: res?.data?.file_details?.localPath,
           validation: res?.data?.message,
-          isValidated: res?.data?.status== 200 ? true : false,
+          isValidated: res?.data?.status == 200 ? true : false,
           file_details: {
-            isLocalPath:res?.data?.file_details?.isLocalPath,
+            isLocalPath: res?.data?.file_details?.isLocalPath,
             cmsType: res?.data?.file_details?.cmsType,
             localPath: res?.data?.file_details?.localPath,
             awsData: {
               awsRegion: res?.data?.file_details?.awsData?.awsRegion,
-              bucketName:res?.data?.file_details?.awsData?.bucketName,
-              buketKey:res?.data?.file_details?.awsData?.buketKey,
+              bucketName: res?.data?.file_details?.awsData?.bucketName,
+              buketKey: res?.data?.file_details?.awsData?.buketKey
             }
-          }},
-        } 
+          }
+        }
       }
+    };
     updateNewMigrationData(newMigrationDataObj);
-    
-  
-     props.handleStepChange(props.currentStep, true);
 
-    
+    props.handleStepChange(props?.currentStep, true);
   };
 
   const allowedFileExtentions = `.${
@@ -56,7 +53,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   }`;
   useEffect(() => {
     handleOnFileUploadCompletion();
-  },[newMigrationData]);
+  }, [newMigrationData]);
 
   return (
     <div className="row">
