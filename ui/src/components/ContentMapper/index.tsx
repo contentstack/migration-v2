@@ -134,6 +134,7 @@ const ContentMapper = () => {
   });
   const [otherCmsUid, setotherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
   const [isContentTypeMapped, setisContentTypeMapped] = useState<boolean>(false);
+  const [isContentTypeSaved, setisContentTypeSaved] = useState<boolean>(false);
 
   const [active, setActive] = useState<number>(null ?? 0);
 
@@ -170,15 +171,15 @@ const ContentMapper = () => {
   useEffect(() => {
     if (contentTypeMapped && otherCmsTitle) {
       setOtherContentType({
-        label: contentTypeMapped?.[otherCmsTitle] ?? 'select Content Type',
-        value: contentTypeMapped?.[otherCmsTitle] ?? 'select Content Type'
+        label: contentTypeMapped?.[otherCmsTitle] ?? 'Select Content Type',
+        value: contentTypeMapped?.[otherCmsTitle] ?? 'Select Content Type'
       });
     }
   }, [contentTypeMapped, otherCmsTitle]);
 
   useEffect(() => {
     const updatedExstingField: any = {};
-    if (isContentTypeMapped) {
+    if (isContentTypeSaved) {
       tableData?.forEach((row) => {
         if (row?.contentstackField) {
           updatedExstingField[row.uid] = {
@@ -189,7 +190,7 @@ const ContentMapper = () => {
       });
       setexsitingField(updatedExstingField);
     }
-  }, [tableData, isContentTypeMapped]);
+  }, [tableData, isContentTypeSaved]);
 
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
@@ -377,7 +378,7 @@ const ContentMapper = () => {
     [key: string]: boolean;
   }
   const rowIds = tableData.reduce<UidMap>((acc, item) => {
-    acc[item.id] = true;
+    acc[item?.id] = true;
     return acc;
   }, {});
 
@@ -485,11 +486,12 @@ const ContentMapper = () => {
       [rowIndex]: { label: selectedValue?.label, value: selectedValue?.value }
     }));
 
-    isContentTypeMapped &&
+    if (isDropDownChanged && isContentTypeSaved) {
       setSelectedOptions((prevSelected) => {
         const newValue = selectedValue?.label;
         return prevSelected.includes(newValue) ? prevSelected : [...prevSelected, newValue];
       });
+    }
 
     const updatedRows = tableData.map((row) => {
       if (row.uid === rowIndex) {
@@ -637,12 +639,12 @@ const ContentMapper = () => {
     if (
       selectedContentType &&
       OtherContentType &&
-      selectedContentType.otherCmsUid &&
-      OtherContentType.label
+      selectedContentType?.otherCmsUid &&
+      OtherContentType?.label
     ) {
       setcontentTypeMapped((prevSelected) => ({
         ...prevSelected,
-        [otherCmsTitle]: OtherContentType.label
+        [otherCmsTitle]: OtherContentType?.label
       }));
 
       const newMigrationDataObj: INewMigration = {
@@ -687,6 +689,7 @@ const ContentMapper = () => {
         });
         setisDropDownCHanged(false);
         setisContentTypeMapped(true);
+        setisContentTypeSaved(true);
       } else {
         Notification({
           notificationContent: { text: data?.error?.message },
