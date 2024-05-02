@@ -13,12 +13,19 @@
 .Checkbox input:disabled ~ .Checkbox__label {
   opacity: 1;
 }
-
+.Checkbox.Checkbox--state-checked {
+  display: flex;
+}
+.Checkbox .Checkbox__tick svg {
+  display: block;
+}
 .Checkbox.Checkbox--state-checked.Checkbox--state-disabled {
   color: #212121;
   opacity: 1;
 }
-
+.Checkbox-wrapper .Checkbox {
+  display: flex;
+}
 .Checkbox input:disabled:checked ~ .Checkbox__label,
 .Checkbox input:disabled:indeterminate ~ .Checkbox__label {
   color: #212121;

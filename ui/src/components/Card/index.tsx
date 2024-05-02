@@ -32,7 +32,6 @@ const CardList = ({ project }: ProjectType) => {
     };
     fetchProject();
   }, [projectDetails]);
-
   return (
     <div style={{ padding: '0 20px 20px 0' }}>
       <div onClick={() => onClickProject(project?.id || '')}>
@@ -45,12 +44,6 @@ const CardList = ({ project }: ProjectType) => {
               <div className="ProjectCard__unit">
                 <span className="ProjectCard__stats-number">Project Status</span>
                 <span className="ProjectCard__stats-category">{project?.status}</span>
-              </div>
-              <div className="ProjectCard__unit">
-                <span className="ProjectCard__stats-number">Current Status</span>
-                <span className="ProjectCard__stats-category validation-color">
-                  Validation Failed
-                </span>
               </div>
             </div>
           </div>
