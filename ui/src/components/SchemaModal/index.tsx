@@ -1,10 +1,6 @@
 // Libraries
 import { useState, useEffect } from 'react';
-import {
-  ModalBody,
-  ModalHeader,
-  Icon,
-} from '@contentstack/venus-components';
+import { ModalBody, ModalHeader, Icon } from '@contentstack/venus-components';
 
 // Interface
 import { Icons, SchemaProps, schemaType } from './schemaModal.interface';

@@ -15,7 +15,12 @@ import {
 import { Field as FinalField, Form as FinalForm } from 'react-final-form';
 
 // Utilities
-import { LOGIN_SUCCESSFUL_MESSAGE, TFA_MESSAGE, TFA_VIA_SMS_MESSAGE, CS_ENTRIES } from '../../utilities/constants';
+import {
+  LOGIN_SUCCESSFUL_MESSAGE,
+  TFA_MESSAGE,
+  TFA_VIA_SMS_MESSAGE,
+  CS_ENTRIES
+} from '../../utilities/constants';
 import {
   failtureNotification,
   clearMarks,
@@ -96,24 +101,24 @@ const Login: FC<IProps> = (props: any) => {
     };
 
     await requestSMSToken(userAuth?.user)
-    .then((res: UserRes) => {
-      if (res?.status === 200 && res?.data?.notice === TFA_VIA_SMS_MESSAGE) {
-        Notification({
-          notificationContent: { text: res?.data?.notice },
-          type: 'success'
-        });
-      }
-      
-      if (res?.message === LOGIN_SUCCESSFUL_MESSAGE) {
-        setLoginStates((prev) => ({ ...prev, submitted: true }));
-      }
+      .then((res: UserRes) => {
+        if (res?.status === 200 && res?.data?.notice === TFA_VIA_SMS_MESSAGE) {
+          Notification({
+            notificationContent: { text: res?.data?.notice },
+            type: 'success'
+          });
+        }
 
-      if (res?.status === 422) {
-        failtureNotification(res?.data?.error_message as string);
-      }
-    })
-    .catch((err: string) => console.error(err)); 
- };
+        if (res?.message === LOGIN_SUCCESSFUL_MESSAGE) {
+          setLoginStates((prev) => ({ ...prev, submitted: true }));
+        }
+
+        if (res?.status === 422) {
+          failtureNotification(res?.data?.error_message as string);
+        }
+      })
+      .catch((err: string) => console.error(err));
+  };
 
   // ************* Login submit ************
   const onSubmit = async (values: User) => {
@@ -136,7 +141,7 @@ const Login: FC<IProps> = (props: any) => {
             email: values?.email,
             password: values?.password
           }
-        }
+        };
       });
     }
 
@@ -301,12 +306,12 @@ const Login: FC<IProps> = (props: any) => {
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                                     input.onChange(event);
                                     setLoginStates((prevState: IStates) => ({
-                                        ...prevState,
-                                        user: {
-                                          ...prevState.user,
-                                          email: event.target.value
-                                        }
-                                      }))
+                                      ...prevState,
+                                      user: {
+                                        ...prevState.user,
+                                        email: event.target.value
+                                      }
+                                    }));
                                   }}
                                   name="email"
                                   width="large"
@@ -351,12 +356,12 @@ const Login: FC<IProps> = (props: any) => {
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                                     input.onChange(event);
                                     setLoginStates((prevState: IStates) => ({
-                                        ...prevState,
-                                        user: {
-                                          ...prevState.user,
-                                          password: event.target.value
-                                        }
-                                      }))
+                                      ...prevState,
+                                      user: {
+                                        ...prevState.user,
+                                        password: event.target.value
+                                      }
+                                    }));
                                   }}
                                   width="large"
                                   canShowPassword={true}
