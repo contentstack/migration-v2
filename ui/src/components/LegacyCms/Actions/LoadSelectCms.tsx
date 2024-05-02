@@ -89,16 +89,16 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     updateCMSFilters(cmsFilter);
   };
 
-  const getCmsType = async() => {
-    const res:any = await fileValidation();
+  const getCmsType = async () => {
+    const res: any = await fileValidation();
     const cmsType = res?.data?.file_details?.cmsType;
     return cmsType;
-  }
+  };
   // Filter CMS Data
   const filterCMSData = async (searchText: string) => {
     const { all_cms = [] } = migrationData?.legacyCMSData || {};
-    const cmsType = await getCmsType(); // Fetch the specific CMS type 
-  
+    const cmsType = await getCmsType(); // Fetch the specific CMS type
+
     let filteredCmsData: ICMSType[] = [];
     if (isEmptyString(searchText) && !validateArray(cmsFilter) && !cmsType) {
       filteredCmsData = all_cms;
@@ -106,25 +106,29 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       if (cmsType) {
         filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.cms_id === cmsType);
       }
-  
+
       if (validateArray(cmsFilter) || !isEmptyString(searchText)) {
         const searchTextLower = searchText?.toLowerCase();
         filteredCmsData = all_cms
           .filter(({ parent }: ICMSType) => !cmsFilter?.length || cmsFilter?.includes(parent))
-          .filter(({ title, cms_id }: ICMSType) =>
-            title?.toLowerCase()?.includes(searchTextLower) ||
-            cms_id?.toLowerCase()?.includes(searchTextLower)
+          .filter(
+            ({ title, cms_id }: ICMSType) =>
+              title?.toLowerCase()?.includes(searchTextLower) ||
+              cms_id?.toLowerCase()?.includes(searchTextLower)
           );
       }
     }
-  
+
     setCmsData(filteredCmsData); // Set filtered CMS data
-  
+
     // Determine if a new card should be selected
-    const newSelectedCard = filteredCmsData?.find(cms => cms?.cms_id === selectedCard?.cms_id) || filteredCmsData[0] || null;
-    
+    const newSelectedCard =
+      filteredCmsData?.find((cms) => cms?.cms_id === selectedCard?.cms_id) ||
+      filteredCmsData[0] ||
+      null;
+
     if (newSelectedCard?.cms_id !== selectedCard?.cms_id) {
-      setSelectedCard(newSelectedCard); 
+      setSelectedCard(newSelectedCard);
 
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
@@ -133,12 +137,14 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           selectedCms: newSelectedCard
         }
       };
-  
-      updateNewMigrationData(newMigrationDataObj); 
-  
+
+      updateNewMigrationData(newMigrationDataObj);
+
       // API call for saving selected CMS, if a new card is selected
       if (newSelectedCard) {
-        updateLegacyCMSData(selectedOrganisation?.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
+        updateLegacyCMSData(selectedOrganisation?.value, projectId, {
+          legacy_cms: newSelectedCard?.cms_id
+        });
       }
     }
   };

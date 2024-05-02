@@ -1,9 +1,6 @@
 import {
   ModalBody,
-  ModalFooter,
   ModalHeader,
-  Button,
-  ButtonGroup,
   FieldLabel,
   TextInput,
   ToggleSwitch
@@ -13,6 +10,8 @@ import './index.scss';
 
 export interface SchemaProps {
   fieldtype: string;
+  value: any;
+  rowId: string;
   closeModal: () => void;
 }
 const AdvancePropertise = (props: SchemaProps) => {
@@ -33,24 +32,36 @@ const AdvancePropertise = (props: SchemaProps) => {
           Options
         </FieldLabel>
         <div className="options-class">
-          <ToggleSwitch label="Mandatory" labelColor="primary" labelPosition="right" />
-          <ToggleSwitch label="Multiple" labelColor="primary" labelPosition="right" />
-          <ToggleSwitch label="Unique" labelColor="primary" labelPosition="right" />
-          <ToggleSwitch label="Non-localizable" labelColor="primary" labelPosition="right" />
+          <ToggleSwitch
+            label="Mandatory"
+            labelColor="primary"
+            labelPosition="right"
+            checked={props?.value?.mandatory}
+          />
+          <ToggleSwitch
+            label="Multiple"
+            labelColor="primary"
+            labelPosition="right"
+            checked={props?.value?.multiple}
+          />
+          <ToggleSwitch
+            label="Unique"
+            labelColor="primary"
+            labelPosition="right"
+            checked={props?.value?.unique}
+          />
+          <ToggleSwitch
+            label="Non-localizable"
+            labelColor="primary"
+            labelPosition="right"
+            checked={props?.value?.non_localizable}
+          />
           <p className="non-localizable-message">
             If enabled, editing this field is restricted in localized entries. The field will use
             the value of the master-language entry in all localized entries.
           </p>
         </div>
       </ModalBody>
-      {/* <ModalFooter>
-            <ButtonGroup>
-              <Button buttonType="light" onClick={() => props.closeModal()}>
-                Cancel
-              </Button>
-              <Button>Save and proceed</Button>
-            </ButtonGroup>
-          </ModalFooter> */}
     </>
   );
 };
