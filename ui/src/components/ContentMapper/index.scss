@@ -20,18 +20,19 @@
   list-style-type: none;
   margin: 5px 15px 0;
   li {
+    align-items: center;
     border: 1px solid transparent;
     cursor: pointer;
+    display: flex;
     font-size: $size-font-large;
+    justify-content: space-between;
     line-height: normal;
+    min-height: 42px;
     padding: $space-10 35px;
     &.active-ct {
-      align-items: center;
       background-color: $color-brand-white-base;
       border: 1px solid $color-brand-primary-base;
       color: $color-brand-primary-base;
-      display: flex;
-      justify-content: space-between;
     }
   }
 }
@@ -72,6 +73,9 @@
       margin: 0;
     }
   }
+}
+.disabled-field {
+  color: $color-font-disabled; 
 }
 .action-btn-wrapper {
   background-color: $color-brand-white-base;
