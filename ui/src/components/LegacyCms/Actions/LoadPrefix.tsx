@@ -103,8 +103,6 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     setIsCheckedBoxChecked(checked);
   };
 
-
-
   /****  ALL USEEffects  HERE  ****/
 
   const { restricted_keyword_link = DEFAULT_URL_TYPE, restricted_keyword_checkbox_text = '' } =

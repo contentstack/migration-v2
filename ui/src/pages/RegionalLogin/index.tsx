@@ -59,9 +59,9 @@ const RegionalLogin = () => {
   const { description, heading, regions } = data;
 
   return (
-    <div className='d-flex vh-100 align-items-center justify-content-center flex-column'>
+    <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
       <div className="container mx-auto">
-        <div className='text-center'>
+        <div className="text-center">
           {heading && <Heading tagName="h0" text={heading} className="pb-2" />}
           {description && description != '' && (
             <div className="textStone600 pt-3">{parse(description as string)}</div>
@@ -114,8 +114,6 @@ const RegionalLogin = () => {
           </div>
         </div>
       </div>
-    
-      
     </div>
   );
 };
