@@ -1,0 +1,19 @@
+.options-class {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+.validation-input {
+  margin-bottom: 20px;
+}
+.option-label {
+  margin-bottom: 20px;
+}
+.non-localizable-message {
+  margin-top: 0;
+  margin-left: 30px;
+}

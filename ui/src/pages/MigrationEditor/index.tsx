@@ -35,8 +35,6 @@ const MigrationEditor = () => {
   const bodyContent = {
     component: <NewMigrationWrapper />
   };
-  console.log('selectedOrganisation', selectedOrganisation, params);
-
   /******** Function to get project  ********/
   const fetchProject = async () => {
     const response = await getProject(selectedOrganisation?.value || '', params?.projectId || '');

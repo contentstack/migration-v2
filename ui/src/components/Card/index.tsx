@@ -19,19 +19,17 @@ const CardList = ({ project }: ProjectType) => {
     if (isEmptyString(id)) return;
     navigate(`/projects/${id}/migration/steps/1`);
   };
-
   useEffect(() => {
     const fetchProject = async () => {
-      const { data, status } = await getProject(
-        selectedOrganisation?.value || '',
-        project?.id || ''
-      );
-      if (data?.legacy_cms && status === 200) {
-        setprojectDetails(data?.legacy_cms?.cms);
+      if (selectedOrganisation?.value && project?.id) {
+        const { data, status } = await getProject(selectedOrganisation?.value, project?.id);
+        if (status === 200 && data?.legacy_cms) {
+          setprojectDetails(data?.legacy_cms.cms);
+        }
       }
     };
     fetchProject();
-  }, [projectDetails]);
+  }, [selectedOrganisation?.value, project?.id]);
 
   return (
     <div style={{ padding: '0 20px 20px 0' }}>
@@ -45,12 +43,6 @@ const CardList = ({ project }: ProjectType) => {
               <div className="ProjectCard__unit">
                 <span className="ProjectCard__stats-number">Project Status</span>
                 <span className="ProjectCard__stats-category">{project?.status}</span>
-              </div>
-              <div className="ProjectCard__unit">
-                <span className="ProjectCard__stats-number">Current Status</span>
-                <span className="ProjectCard__stats-category validation-color">
-                  Validation Failed
-                </span>
               </div>
             </div>
           </div>

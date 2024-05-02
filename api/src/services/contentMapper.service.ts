@@ -1,5 +1,4 @@
 import { Request } from "express";
-import ProjectModel from "../models/project.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
 import {
   BadRequestError,
@@ -8,10 +7,8 @@ import {
 import {
   HTTP_TEXTS,
   HTTP_CODES,
-  POPULATE_CONTENT_MAPPER,
-  POPULATE_FIELD_MAPPING,
-  PROJECT_STATUS,
   STEPPER_STEPS,
+  NEW_PROJECT_STATUS
 } from "../constants/index.js";
 import logger from "../utils/logger.js";
 import { config } from "../config/index.js";
@@ -254,12 +251,13 @@ const updateContentType = async (req: Request) => {
 
   if (
     [
-      PROJECT_STATUS.DRAFT,
-      PROJECT_STATUS.SUCCESS,
-      PROJECT_STATUS.INPROGRESS,
+      NEW_PROJECT_STATUS[0],
+      NEW_PROJECT_STATUS[5],
+      NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
-  ) {
+  ) 
+   {
     logger.error(
       getLogMessage(
         srcFun,
@@ -369,9 +367,9 @@ const resetToInitialMapping = async (req: Request) => {
 
   if (
     [
-      PROJECT_STATUS.DRAFT,
-      PROJECT_STATUS.SUCCESS,
-      PROJECT_STATUS.INPROGRESS,
+      NEW_PROJECT_STATUS[0],
+      NEW_PROJECT_STATUS[5],
+      NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
   ) {
@@ -457,14 +455,7 @@ const resetToInitialMapping = async (req: Request) => {
 };
 const resetAllContentTypesMapping = async (projectId: string) => {
   const srcFunc = "resetAllContentTypesMapping";
-  // const projectId = req?.params?.projectId;
 
-  // const projectDetails: any = await ProjectModel.findOne({
-  //   _id: projectId,
-  // }).populate({
-  //   path: POPULATE_CONTENT_MAPPER,
-  //   populate: { path: POPULATE_FIELD_MAPPING },
-  // });
   await ProjectModelLowdb.read();
   const projectDetails = ProjectModelLowdb.chain
     .get("projects")
@@ -481,15 +472,6 @@ const resetAllContentTypesMapping = async (projectId: string) => {
     );
     throw new BadRequestError(HTTP_TEXTS.CONTENTMAPPER_NOT_FOUND);
   }
-  await ContentTypesMapperModelLowdb.read();
-  const data = contentMapperId.map((id: any) => {
-    const getFeildMappingData = ContentTypesMapperModelLowdb.chain
-      .get("ContentTypesMappers")
-      .find({ id: id })
-      .value();
-    return getFeildMappingData;
-  });
-
   if (isEmpty(projectDetails)) {
     logger.error(
       getLogMessage(
@@ -499,48 +481,57 @@ const resetAllContentTypesMapping = async (projectId: string) => {
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
+  await ContentTypesMapperModelLowdb.read();
+  const cData = contentMapperId.map((cId: any) => {
+    const contentTypeData = ContentTypesMapperModelLowdb.chain
+      .get("ContentTypesMappers")
+      .find({ id: cId })
+      .value();
+    return contentTypeData;
+  });
 
   try {
-    // const contentTypes = projectDetails?.content_mapper;
-    const contentTypes = data;
-    const contentTypesbulkWriteOperations: any = await Promise.all(
-      contentTypes?.map(async (contentType: any) => {
-        if (!isEmpty(contentType?.fieldMapping)) {
+    const contentTypes = cData;
+    for (const contentType of contentTypes) {
+      if (!isEmpty(contentType.fieldMapping)) {
+        for (const field of contentType.fieldMapping) {
           await FieldMapperModel.read();
-          (contentType?.fieldMapping || []).forEach((field: any) => {
-            const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
-              (f: any) => f?.id === field?.id
-            );
-            if (fieldIndex > -1) {
-              FieldMapperModel.update((data: any) => {
-                data.field_mapper[fieldIndex] = {
-                  ...field,
-                  contentstackField: "",
-                  contentstackFieldUid: "",
-                  ContentstackFieldType: field.backupFieldType,
-                };
-              });
-            }
+          const fieldData = FieldMapperModel.chain
+            .get("field_mapper")
+            .find({ id: field })
+            .value();
+          const fieldIndex = FieldMapperModel.chain
+            .get("field_mapper")
+            .findIndex({ id: field })
+            .value();
+
+          if (fieldIndex > -1) {
+            await FieldMapperModel.update((fData: any) => {
+              fData.field_mapper[fieldIndex] = {
+                ...fieldData,
+                contentstackField: "",
+                contentstackFieldUid: "",
+                ContentstackFieldType: fieldData.backupFieldType,
+              };
+            });
+          }
+        }
+      }
+      await ContentTypesMapperModelLowdb.read();
+      if (!isEmpty(contentType?.id)) {
+        const cIndex = ContentTypesMapperModelLowdb.chain
+          .get("ContentTypesMappers")
+          .findIndex({ id: contentType?.id })
+          .value();
+        if (cIndex > -1) {
+          await ContentTypesMapperModelLowdb.update((data: any) => {
+            data.ContentTypesMappers[cIndex].contentstackTitle = "";
+            data.ContentTypesMappers[cIndex].contentstackUid = "";
           });
         }
-        return {
-          updateOne: {
-            filter: { _id: contentType._id },
-            update: {
-              $set: {
-                contentstackTitle: "",
-                contentstackUid: "",
-              },
-            },
-          },
-        };
-      })
-    );
+      }
+    }
 
-    await ContentTypesMapperModelLowdb.read();
-    ContentTypesMapperModelLowdb.update((data: any) => {
-      data.ContentTypesMappers.push(contentTypesbulkWriteOperations);
-    });
     return projectDetails;
   } catch (error: any) {
     logger.error(
@@ -559,13 +550,11 @@ const resetAllContentTypesMapping = async (projectId: string) => {
 };
 const removeMapping = async (projectId: string) => {
   const srcFunc = "removeMapping";
-
-  const projectDetails: any = await ProjectModel.findOne({
-    _id: projectId,
-  }).populate({
-    path: POPULATE_CONTENT_MAPPER,
-    populate: { path: POPULATE_FIELD_MAPPING },
-  });
+  await ProjectModelLowdb.read();
+  const projectDetails = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .value();
 
   if (isEmpty(projectDetails)) {
     logger.error(
@@ -576,40 +565,59 @@ const removeMapping = async (projectId: string) => {
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
+  await ContentTypesMapperModelLowdb.read();
+  const cData = projectDetails?.content_mapper.map((cId: any) => {
+    const contentTypeData = ContentTypesMapperModelLowdb.chain
+      .get("ContentTypesMappers")
+      .find({ id: cId })
+      .value();
+    return contentTypeData;
+  });
 
   try {
-    const contentTypes = projectDetails?.content_mapper;
-
+    const contentTypes = cData;
     //TODO: remove fieldMapping ids in ContentTypesMapperModel for each content types
-    const contentTypesbulkWriteOperations: any = await Promise.all(
-      contentTypes?.map(async (contentType: any) => {
-        if (!isEmpty(contentType?.fieldMapping)) {
+
+    for (const contentType of contentTypes) {
+      if (!isEmpty(contentType.fieldMapping)) {
+        for (const field of contentType.fieldMapping) {
           await FieldMapperModel.read();
-          (contentType?.fieldMapping || []).forEach((field: any) => {
-            const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
-              (f: any) => f?.id === field?.id
-            );
-            if (fieldIndex > -1) {
-              FieldMapperModel.update((data: any) => {
-                delete data.field_mapper[fieldIndex];
-              });
-            }
+          const fieldIndex = FieldMapperModel.chain
+            .get("field_mapper")
+            .findIndex({ id: field })
+            .value();
+          if (fieldIndex > -1) {
+            await FieldMapperModel.update((fData: any) => {
+              delete fData.field_mapper[fieldIndex];
+            });
+          }
+        }
+      }
+      await ContentTypesMapperModelLowdb.read();
+      if (!isEmpty(contentType?.id)) {
+        const cIndex = ContentTypesMapperModelLowdb.chain
+          .get("ContentTypesMappers")
+          .findIndex({ id: contentType?.id })
+          .value();
+        if (cIndex > -1) {
+          await ContentTypesMapperModelLowdb.update((data: any) => {
+            delete data.ContentTypesMappers[cIndex];
           });
         }
-        return {
-          deleteOne: {
-            filter: { _id: contentType._id },
-          },
-        };
-      })
-    );
+      }
+    }
 
-    await ContentTypesMapperModelLowdb.read();
-    ContentTypesMapperModelLowdb.update((data: any) => {
-      data.ContentTypesMappers.push(contentTypesbulkWriteOperations);
-    });
-    projectDetails.content_mapper = [];
-    await projectDetails?.save();
+    await ProjectModelLowdb.read();
+    const projectIndex = ProjectModelLowdb.chain
+      .get("projects")
+      .findIndex({ id: projectId })
+      .value();
+
+    if (projectIndex > -1) {
+      ProjectModelLowdb.update((data: any) => {
+        data.projects[projectIndex].content_mapper = [];
+      });
+    }
     return projectDetails;
   } catch (error: any) {
     logger.error(
@@ -626,6 +634,7 @@ const removeMapping = async (projectId: string) => {
     );
   }
 };
+
 export const contentMapperService = {
   putTestData,
   getContentTypes,

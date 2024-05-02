@@ -1,0 +1,26 @@
+{
+  "author": {
+    "name": "wp\\:author",
+    "required": "false"
+  },
+  "category": {
+    "name": "wp\\:category",
+    "required": "false"
+  },
+  "tag": {
+    "name": "wp\\:tag",
+    "required": "false"
+  },
+  "term": {
+    "name": "wp\\:term",
+    "required": "false"
+  },
+  "item": {
+    "name": "item",
+    "required": "true"
+  },
+  "asset": {
+    "name": "wp\\:attachment_url",
+    "required": "false"
+  }
+}

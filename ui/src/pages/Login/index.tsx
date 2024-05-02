@@ -9,12 +9,18 @@ import {
   Heading,
   ValidationMessage,
   Paragraph,
-  Link
+  Link,
+  Notification
 } from '@contentstack/venus-components';
 import { Field as FinalField, Form as FinalForm } from 'react-final-form';
 
 // Utilities
-import { LOGIN_SUCCESSFUL_MESSAGE, TFA_MESSAGE, CS_ENTRIES } from '../../utilities/constants';
+import {
+  LOGIN_SUCCESSFUL_MESSAGE,
+  TFA_MESSAGE,
+  TFA_VIA_SMS_MESSAGE,
+  CS_ENTRIES
+} from '../../utilities/constants';
 import {
   failtureNotification,
   clearMarks,
@@ -85,7 +91,7 @@ const Login: FC<IProps> = (props: any) => {
   }, []);
 
   // ************* send SMS token ************
-  const sendSMS = async (): Promise<void> => {
+  const sendSMS = async () => {
     const userAuth = {
       user: {
         email: loginStates?.user?.email,
@@ -94,10 +100,21 @@ const Login: FC<IProps> = (props: any) => {
       }
     };
 
-    requestSMSToken(userAuth?.user)
+    await requestSMSToken(userAuth?.user)
       .then((res: UserRes) => {
+        if (res?.status === 200 && res?.data?.notice === TFA_VIA_SMS_MESSAGE) {
+          Notification({
+            notificationContent: { text: res?.data?.notice },
+            type: 'success'
+          });
+        }
+
         if (res?.message === LOGIN_SUCCESSFUL_MESSAGE) {
           setLoginStates((prev) => ({ ...prev, submitted: true }));
+        }
+
+        if (res?.status === 422) {
+          failtureNotification(res?.data?.error_message as string);
         }
       })
       .catch((err: string) => console.error(err));
@@ -116,15 +133,18 @@ const Login: FC<IProps> = (props: any) => {
         };
       });
     } else {
-      setLoginStates((prevState: IStates) => ({
-        ...prevState,
-        user: {
-          ...prevState.user,
-          email: values?.email,
-          password: values?.password
-        }
-      }));
+      setLoginStates((prevState: IStates) => {
+        return {
+          ...prevState,
+          user: {
+            ...prevState.user,
+            email: values?.email,
+            password: values?.password
+          }
+        };
+      });
     }
+
     const userAuth = {
       user: {
         email: loginStates?.user?.email !== '' ? loginStates?.user?.email : values?.email,
@@ -262,6 +282,7 @@ const Login: FC<IProps> = (props: any) => {
           >
             <FinalForm
               onSubmit={onSubmit}
+              // onChange={onChange}
               render={({ handleSubmit }): JSX.Element => {
                 return (
                   <div className="login-wrapper">
@@ -282,8 +303,15 @@ const Login: FC<IProps> = (props: any) => {
                                 </FieldLabel>
                                 <TextInput
                                   {...input}
-                                  onChange={(event: React.MouseEvent<HTMLElement>): void => {
+                                  onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                                     input.onChange(event);
+                                    setLoginStates((prevState: IStates) => ({
+                                      ...prevState,
+                                      user: {
+                                        ...prevState.user,
+                                        email: event.target.value
+                                      }
+                                    }));
                                   }}
                                   name="email"
                                   width="large"
@@ -325,8 +353,15 @@ const Login: FC<IProps> = (props: any) => {
                                 </FieldLabel>
                                 <TextInput
                                   {...input}
-                                  onChange={(event: React.MouseEvent<HTMLElement>): void => {
+                                  onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                                     input.onChange(event);
+                                    setLoginStates((prevState: IStates) => ({
+                                      ...prevState,
+                                      user: {
+                                        ...prevState.user,
+                                        password: event.target.value
+                                      }
+                                    }));
                                   }}
                                   width="large"
                                   canShowPassword={true}

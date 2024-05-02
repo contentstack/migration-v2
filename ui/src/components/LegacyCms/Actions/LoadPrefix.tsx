@@ -1,9 +1,9 @@
 // Libraries
-import { ChangeEvent, useContext, useState } from 'react';
+import { ChangeEvent, useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 
 // Service
-import { updateAffixData } from '../../../services/api/migration.service';
+import { updateAffixData, affixConfirmation } from '../../../services/api/migration.service';
 
 // Utilities
 import { isEmptyString, isValidPrefix } from '../../../utilities/functions';
@@ -60,7 +60,10 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       setIsError(false);
 
       //API call for saving Affix
-      updateAffixData(selectedOrganisation.value, projectId, { affix: prefix });
+      updateAffixData(selectedOrganisation?.value, projectId, { affix: prefix });
+      affixConfirmation(selectedOrganisation?.value, projectId, {
+        affix_confirmation: isCheckedBoxChecked
+      });
 
       //call for Step Change
       props.handleStepChange(props.currentStep);
@@ -87,6 +90,16 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
   // Toggles checkbox selection
   const handleCheckBoxChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { checked } = e.target;
+
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        isRestictedKeywordCheckboxChecked: checked
+      }
+    };
+    updateNewMigrationData(newMigrationDataObj);
+
     setIsCheckedBoxChecked(checked);
   };
 
@@ -116,8 +129,8 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           error={isError}
         />
       </div>
-      <div className="col-12">
-        <Button version="v2" onClick={handleOnBlur}>
+      <div className="col-12 pt-2">
+        <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleOnBlur}>
           {migrationData?.legacyCMSData?.affix_cta}
         </Button>
       </div>

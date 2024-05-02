@@ -27,7 +27,7 @@ const PreFixSummary = (props: PreFixSummaryProps): JSX.Element => {
       {!isEmptyString(newMigrationData?.legacy_cms?.affix) ? (
         <div className="col-12  pb-2">
           <div className="stackselect affix-container">
-            <span className="summary-title">{newMigrationData?.legacy_cms?.affix || ''}</span>
+            <span className="summary-title px-2">{newMigrationData?.legacy_cms?.affix || ''}</span>
           </div>
         </div>
       ) : (

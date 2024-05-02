@@ -7,7 +7,10 @@ import { Button } from '@contentstack/venus-components';
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 
 // Services
-import { updateFileFormatData } from '../../../services/api/migration.service';
+import {
+  updateFileFormatData,
+  fileformatConfirmation
+} from '../../../services/api/migration.service';
 
 // Interface
 import { ICardType, defaultCardType } from '../../../components/Common/Card/card.interface';
@@ -45,7 +48,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   const handleBtnClick = (e: MouseEvent) => {
     e.preventDefault();
-    if (!isEmptyString(selectedCard.fileformat_id) && isCheckedBoxChecked) {
+    if (!isEmptyString(selectedCard?.fileformat_id) && isCheckedBoxChecked) {
       updateNewMigrationData({
         ...newMigrationData,
         legacy_cms: {
@@ -56,9 +59,12 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       updateFileFormatData(selectedOrganisation.value, projectId, {
         file_format: selectedCard?.fileformat_id
       });
+      fileformatConfirmation(selectedOrganisation?.value, projectId, {
+        fileformat_confirmation: isCheckedBoxChecked
+      });
 
       //call for Step Change
-      props.handleStepChange(props.currentStep);
+      props.handleStepChange(props?.currentStep);
     }
   };
 
@@ -110,7 +116,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           {validateArray(allowed_file_formats) ? (
             allowed_file_formats?.map((data: ICardType, index: number) => (
               <Card
-                key={data.fileformat_id || index}
+                key={data?.fileformat_id || index}
                 data={data}
                 selectedCard={data?.fileformat_id}
                 idField="fileformat_id"
@@ -124,8 +130,8 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           )}
         </div>
       </div>
-      <div className="col-12 pt-2">
-        <Button version="v2" onClick={handleBtnClick}>
+      <div className="col-12 pt-3 pl-0">
+        <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleBtnClick}>
           {migrationData?.legacyCMSData?.file_format_cta}
         </Button>
       </div>

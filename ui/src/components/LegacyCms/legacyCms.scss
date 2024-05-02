@@ -25,9 +25,8 @@
   border-top: $px-5 solid $color-brand-primary-base !important;
 }
 .legacy-cms-container {
-  margin-top: $px-60 !important;
+  padding: $px-60 0 $px-60 10% !important;
   width: $px-850 !important;
-  margin-left: 10% !important;
 }
 
 .service_list_search {
@@ -60,4 +59,14 @@
 .service_list_search_button .Filter__icon {
   min-height: $px-40;
   top: -8px;
+}
+.validation-container {
+  display: flex;
+  background-color: $color-base-white-5;
+  height: $px-108;
+  width: 100%;
+  align-items: center;
+  padding: 0 !important;
+  border: 1px solid #dde3ee;
+  border-radius: var(--TermCount, 5px);
 }

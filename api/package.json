@@ -8,7 +8,9 @@
     "start": "NODE_ENV=production node dist/server.js",
     "dev": "NODE_ENV=production tsx watch ./src/server.ts",
     "prettify": "prettier --write .",
-    "lint:fix": "eslint --fix --ext .ts . --ignore-pattern './node_modules/' --ignore-pattern './dist/'",
+    "windev": "SET NODE_ENV=production&& tsx watch ./src/server.ts",
+    "winstart": "SET NODE_ENV=production&& node dist/server.js",
+    "lint:fix": "eslint --ext .ts --ignore-pattern './node_modules/' --ignore-pattern './dist/'",
     "precommit": "npm run prettify && npm run lint:fix"
   },
   "type": "module",
@@ -32,7 +34,6 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "lowdb": "^7.0.1",
-    "mongoose": "^8.0.4",
     "uuid": "^9.0.1",
     "winston": "^3.11.0"
   },

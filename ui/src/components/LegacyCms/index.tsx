@@ -43,6 +43,9 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
   const [stepperKey, setStepperKey] = useState<string>('v-mig-step');
   const { projectId = '' } = useParams();
+  const [isValidated, setisValidated] = useState<boolean>(
+    newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false
+  );
 
   const navigate = useNavigate();
   const autoVerticalStepper = useRef<any>(null);
@@ -161,8 +164,12 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
           selectedFileFormat: selectedFileFormatData || defaultCardType,
           uploadedFile: newMigrationData?.legacy_cms?.uploadedFile, //need to add backend data once endpoint exposed.
           affix: legacyCMSData?.affix || newMigrationData?.legacy_cms?.affix || '',
-          isFileFormatCheckboxChecked: false, //need to add backend data once endpoint exposed.
-          isRestictedKeywordCheckboxChecked: false //need to add backend data once endpoint exposed.
+          isFileFormatCheckboxChecked:
+            legacyCMSData?.affix_confirmation ||
+            newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked, //need to add backend data once endpoint exposed.
+          isRestictedKeywordCheckboxChecked:
+            legacyCMSData?.file_format_confirmation ||
+            newMigrationData?.legacy_cms?.isRestictedKeywordCheckboxChecked //need to add backend data once endpoint exposed.
         }
       });
 
@@ -181,6 +188,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
 
   useEffect(() => {
     setStepperKey('legacy-Vertical-stepper');
+    setisValidated(newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false);
   }, [isLoading]);
 
   useEffect(() => {
@@ -216,7 +224,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
                 steps={getLegacyCMSSteps(
                   isCompleted,
                   isMigrationLocked,
-                  migrationData.legacyCMSData.all_steps
+                  migrationData?.legacyCMSData?.all_steps
                 )}
                 isEdit={!isMigrationLocked}
                 handleOnAllStepsComplete={handleOnAllStepsComplete}
@@ -228,7 +236,11 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
             {isCompleted && !isMigrationLocked ? (
               <div className="col-12">
                 <div className="pl-40">
-                  <Button version="v2" onClick={handleOnClick}>
+                  <Button
+                    version="v2"
+                    disabled={!newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
+                    onClick={handleOnClick}
+                  >
                     {migrationData?.legacyCMSData?.cta}
                   </Button>
                 </div>

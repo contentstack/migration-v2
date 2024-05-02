@@ -26,7 +26,10 @@ export const createStacksInOrg = async (orgId: string, data: any) => {
 
 export const getStackStatus = async (orgId: string, data: string) => {
   try {
-    return await postCall(`${API_VERSION}/org/${orgId}/stack_status`, data, options);
+    const stack_api = {
+      stack_api_key: data
+    };
+    return await postCall(`${API_VERSION}/org/${orgId}/stack_status`, stack_api, options);
   } catch (error: any) {
     return error;
   }
