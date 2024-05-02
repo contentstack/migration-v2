@@ -3,7 +3,7 @@ import { Icon, Select, cbModal } from '@contentstack/venus-components';
 
 import { AppContext } from '../../../context/app/app.context';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
-import { isEmptyString, validateArray } from '../../../utilities/functions';
+import { isEmptyString, validateArray, validateObject } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
 import { getAllLocales } from '../../../services/api/user.service';
 import { StackResponse } from '../../../services/api/service.interface';
@@ -44,7 +44,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     }
   ];
   const [allStack, setAllStack] = useState<IDropDown[]>(loadingOption);
-  const [allLocales] = useState<IDropDown[]>([]);
+  const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -143,19 +143,18 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     //fetch all locales
     const response = await getAllLocales(newMigrationData?.destination_stack?.selectedOrg?.value); //org id will always be there
+    const rawMappedLocalesMapped =
+      validateObject(response?.data) && response?.data?.locales
+        ? Object?.keys(response?.data?.locales)?.map((key) => ({
+            uid: key,
+            label: response?.data?.locales[key],
+            value: key,
+            locale: key,
+            created_at: key
+          }))
+        : [];
 
-    // const rawMappedLocalesMapped =
-    //   validateObject(response?.data) && response?.data?.locales
-    //     ? Object.keys(data?.locales)?.map((key) => ({
-    //         uid: key,
-    //         label: data?.locales[key],
-    //         value: key,
-    //         locale: key,
-    //         created_at: key
-    //       }))
-    //     : [];
-
-    // setAllLocales(rawMappedLocalesMapped);
+    setAllLocales(rawMappedLocalesMapped);
 
     const stackArray = validateArray(stackData?.data?.stacks)
       ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
@@ -194,7 +193,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     updateNewMigrationData(newMigrationDataObj);
   };
-
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
@@ -218,7 +216,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       }
     });
   };
-
   /****  ALL USEEffects  HERE  ****/
 
   useEffect(() => {
