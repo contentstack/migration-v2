@@ -36,13 +36,10 @@ export const uploadFilePath = () => {
   return `${UPLOAD_FILE_RELATIVE_URL}upload`;
 };
 
-
 export const fileValidation = () => {
   try {
-    return getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`)
-    
+    return getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`);
   } catch (error) {
     return error;
-    
   }
-}
+};

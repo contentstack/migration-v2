@@ -37,14 +37,14 @@ export interface User {
   organizations: Organization[];
 }
 export interface FileDetails {
-  isLocalPath:boolean;
+  isLocalPath: boolean;
   cmsType: string;
   localPath: string;
   awsData: {
-  awsRegion: string;
-  bucketName:string
-  buketKey:string
-  }
+    awsRegion: string;
+    bucketName: string;
+    buketKey: string;
+  };
 }
 export interface IFile {
   id?: string;
@@ -149,8 +149,8 @@ export interface IDestinationStack {
   selectedOrg: IDropDown;
   selectedStack: IDropDown;
 }
-export interface IContentMapper{
-  content_type_mapping: ContentTypeMap
+export interface IContentMapper {
+  content_type_mapping: ContentTypeMap;
 }
 
 export interface INewMigration {
@@ -236,17 +236,17 @@ export const DEFAULT_FILE: IFile = {
   name: '',
   size: 0,
   type: '',
-  file_details:{
-    isLocalPath:false,
+  file_details: {
+    isLocalPath: false,
     cmsType: '',
     localPath: '',
     awsData: {
-    awsRegion: '',
-    bucketName:'',
-    buketKey:'',
+      awsRegion: '',
+      bucketName: '',
+      buketKey: ''
+    }
   },
-  },
-  isValidated:false
+  isValidated: false
 };
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
@@ -277,8 +277,7 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
 
 export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
   content_type_mapping: {}
-
-}
+};
 
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   stack_link: ''
