@@ -43,9 +43,9 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
   const [stepperKey, setStepperKey] = useState<string>('v-mig-step');
   const { projectId = '' } = useParams();
-  const [isValidated,setisValidated] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false);
-
-  
+  const [isValidated, setisValidated] = useState<boolean>(
+    newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false
+  );
 
   const navigate = useNavigate();
   const autoVerticalStepper = useRef<any>(null);
@@ -208,50 +208,49 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
 
   return (
     <>
-      {isLoading 
-        ? (
+      {isLoading ? (
+        <div className="row">
+          <div className="col-12 text-center center-align">
+            <CircularLoader />
+          </div>
+        </div>
+      ) : (
+        <div className="legacy-cms-container">
           <div className="row">
-            <div className="col-12 text-center center-align">
-              <CircularLoader />
+            <div className="col-12">
+              <AutoVerticalStepper
+                ref={autoVerticalStepper}
+                key={stepperKey}
+                steps={getLegacyCMSSteps(
+                  isCompleted,
+                  isMigrationLocked,
+                  migrationData.legacyCMSData.all_steps
+                )}
+                isEdit={!isMigrationLocked}
+                handleOnAllStepsComplete={handleOnAllStepsComplete}
+                stepComponentProps={{
+                  handleDeleteFile: handleOnClickDeleteUploadedFile
+                }}
+              />
             </div>
-          </div>
-        ) 
-        : (
-          <div className="legacy-cms-container">
-            <div className="row">
+            {isCompleted && !isMigrationLocked ? (
               <div className="col-12">
-                <AutoVerticalStepper
-                  ref={autoVerticalStepper}
-                  key={stepperKey}
-                  steps={getLegacyCMSSteps(
-                    isCompleted,
-                    isMigrationLocked,
-                    migrationData.legacyCMSData.all_steps
-                  )}
-                  isEdit={!isMigrationLocked}
-                  handleOnAllStepsComplete={handleOnAllStepsComplete}
-                  stepComponentProps={{
-                    handleDeleteFile: handleOnClickDeleteUploadedFile
-                  }}
-                />
-              </div>
-              {isCompleted && !isMigrationLocked ? (
-                <div className="col-12">
-                  <div className="pl-40">
-                    <Button version="v2"
-                    disabled={! newMigrationData?.legacy_cms?.uploadedFile?.isValidated} 
-                    onClick={handleOnClick}>
-                      {migrationData?.legacyCMSData?.cta}
-                    </Button>
-                  </div>
+                <div className="pl-40">
+                  <Button
+                    version="v2"
+                    disabled={!newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
+                    onClick={handleOnClick}
+                  >
+                    {migrationData?.legacyCMSData?.cta}
+                  </Button>
                 </div>
-              ) : (
-                <></>
-              )}
-            </div>
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
-        )
-      }
+        </div>
+      )}
     </>
   );
 };
