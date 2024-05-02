@@ -31,7 +31,7 @@ interface Project {
   former_owner_ids: [];
   name: string;
   description: string;
-  status: string;
+  status: number;
   current_step: number;
   destination_stack_id: string;
   test_stacks: [];
