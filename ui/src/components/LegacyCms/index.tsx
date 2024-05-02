@@ -224,7 +224,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
                 steps={getLegacyCMSSteps(
                   isCompleted,
                   isMigrationLocked,
-                  migrationData.legacyCMSData.all_steps
+                  migrationData?.legacyCMSData.all_steps
                 )}
                 isEdit={!isMigrationLocked}
                 handleOnAllStepsComplete={handleOnAllStepsComplete}

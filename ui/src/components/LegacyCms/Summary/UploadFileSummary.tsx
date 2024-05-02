@@ -45,7 +45,7 @@ const UploadFileSummary = ({
           </span>
 
           {!newMigrationData?.legacy_cms?.uploadedFile?.isValidated ? (
-            <p className=" ValidationMessage__v2">Please upload the correct file</p>
+            <p className="ValidationMessage__v2">Please upload the correct file</p>
           ) : (
             <></>
           )}
@@ -54,7 +54,7 @@ const UploadFileSummary = ({
         <div className="col-12 bg-white">
           <span className="summary-title">{stepData?.empty_step_placeholder}</span>
           {!newMigrationData?.legacy_cms?.uploadedFile?.isValidated ? (
-            <p className=" ValidationMessage__v2">Please upload the correct file</p>
+            <p className="ValidationMessage__v2">Please upload the correct file</p>
           ) : (
             <></>
           )}
