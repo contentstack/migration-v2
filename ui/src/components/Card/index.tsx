@@ -22,9 +22,9 @@ const CardList = ({ project }: ProjectType) => {
   useEffect(() => {
     const fetchProject = async () => {
       if (selectedOrganisation?.value && project?.id) {
-        const { data, status } = await getProject(selectedOrganisation.value, project.id);
+        const { data, status } = await getProject(selectedOrganisation?.value, project?.id);
         if (status === 200 && data?.legacy_cms) {
-          setprojectDetails(data.legacy_cms.cms);
+          setprojectDetails(data?.legacy_cms.cms);
         }
       }
     };
