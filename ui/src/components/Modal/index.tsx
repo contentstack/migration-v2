@@ -141,10 +141,7 @@ const Modal = (props: ProjectModalProps) => {
                     {({ input, meta }): JSX.Element => {
                       return (
                         <>
-                          <FieldLabel
-                            htmlFor="description"
-                            version="v2"
-                          >
+                          <FieldLabel htmlFor="description" version="v2">
                             {description}
                           </FieldLabel>
                           <Textarea

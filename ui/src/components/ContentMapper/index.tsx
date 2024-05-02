@@ -313,13 +313,14 @@ const ContentMapper = () => {
   const accessorCall = (data: FieldMapType) => {
     return (
       <div>
-        <div className='cms-field'>{data?.otherCmsField}</div>
+        <div className="cms-field">{data?.otherCmsField}</div>
         <InstructionText>
-          Other CMS Type: {data?.otherCmsType}<br />
-          UID: {data?.uid} 
+          Other CMS Type: {data?.otherCmsType}
+          <br />
+          UID: {data?.uid}
         </InstructionText>
       </div>
-    )
+    );
   };
   interface UidMap {
     [key: string]: boolean;
@@ -344,7 +345,6 @@ const ContentMapper = () => {
   const handleDropDownChange = (value: FieldTypes) => {
     setOtherContentType(value);
     // fetchFields(contentTypes?.[i]?.id, searchText);
-    
   };
 
   const handleAdvancedSetting = (fieldtype: string) => {
@@ -647,9 +647,7 @@ const ContentMapper = () => {
   } else {
     columns?.push({
       disableSortBy: true,
-      Header: `Contentstack: ${
-        IsEmptyStack ? otherCmsTitle : OtherContentType?.label ?? ''
-      }`,
+      Header: `Contentstack: ${IsEmptyStack ? otherCmsTitle : OtherContentType?.label ?? ''}`,
       accessor: SelectAccessor,
       id: 'contentstack_cms_field',
       default: false
@@ -672,10 +670,10 @@ const ContentMapper = () => {
     {
       label: 'Log selected Items',
       cb: (data: any) => {
-        updateResetRowSelection(true)
+        updateResetRowSelection(true);
       }
     }
-  ]
+  ];
 
   return (
     <div className="step-container">
