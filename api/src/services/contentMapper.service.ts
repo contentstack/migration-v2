@@ -7,8 +7,8 @@ import {
 import {
   HTTP_TEXTS,
   HTTP_CODES,
-  PROJECT_STATUS,
   STEPPER_STEPS,
+  NEW_PROJECT_STATUS
 } from "../constants/index.js";
 import logger from "../utils/logger.js";
 import { config } from "../config/index.js";
@@ -251,12 +251,13 @@ const updateContentType = async (req: Request) => {
 
   if (
     [
-      PROJECT_STATUS.DRAFT,
-      PROJECT_STATUS.SUCCESS,
-      PROJECT_STATUS.INPROGRESS,
+      NEW_PROJECT_STATUS[0],
+      NEW_PROJECT_STATUS[5],
+      NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
-  ) {
+  ) 
+   {
     logger.error(
       getLogMessage(
         srcFun,
@@ -366,9 +367,9 @@ const resetToInitialMapping = async (req: Request) => {
 
   if (
     [
-      PROJECT_STATUS.DRAFT,
-      PROJECT_STATUS.SUCCESS,
-      PROJECT_STATUS.INPROGRESS,
+      NEW_PROJECT_STATUS[0],
+      NEW_PROJECT_STATUS[5],
+      NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
   ) {
