@@ -59,18 +59,17 @@ const RegionalLogin = () => {
   const { description, heading, regions } = data;
 
   return (
-    <>
-      <div className="pb-6">
-        <div className="container mx-auto text-center">
+    <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
+      <div className="container mx-auto">
+        <div className="text-center">
           {heading && <Heading tagName="h0" text={heading} className="pb-2" />}
           {description && description != '' && (
             <div className="textStone600 pt-3">{parse(description as string)}</div>
           )}
         </div>
-      </div>
-      <div className="container">
+
         <div className="mw-1100 mx-auto">
-          <div className="row">
+          <div className="row pt-6">
             {regions &&
               validateArray(regions) &&
               regions?.map((region, index) => (
@@ -115,7 +114,7 @@ const RegionalLogin = () => {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

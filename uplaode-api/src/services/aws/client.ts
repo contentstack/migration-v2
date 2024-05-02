@@ -20,8 +20,8 @@ const clientConfig: S3ClientConfig = {
   credentials: {
     accessKeyId: config?.awsData?.awsAccessKeyId,
     secretAccessKey: config?.awsData?.awsSecretAccessKey,
-    sessionToken: config?.awsData?.awsSessionToken,
-  },
+    sessionToken: config?.awsData?.awsSessionToken
+  }
 };
 
 // This relies on a Region being set up in your local AWS config.

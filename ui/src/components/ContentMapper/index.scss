@@ -18,13 +18,16 @@
 }
 .ct-list {
   list-style-type: none;
-  margin-right: 15px;
-  margin-top: 5px;
+  margin: 5px 15px 0;
   li {
+    align-items: center;
     border: 1px solid transparent;
     cursor: pointer;
+    display: flex;
     font-size: $size-font-large;
+    justify-content: space-between;
     line-height: normal;
+    min-height: 42px;
     padding: $space-10 35px;
     &.active-ct {
       background-color: $color-brand-white-base;
@@ -44,6 +47,7 @@
 }
 .cta-wrapper {
   border-top: 1px solid $color-base-gray-40;
+  flex: 1 0 auto;
   // bottom: 0;
   padding: $space-12 $space-24 $space-12 $space-12;
   // position: fixed;
@@ -53,10 +57,25 @@
   z-index: 1;
   position: relative;
 }
+.table-container {
+  flex: 1 0 auto;
+}
 .table-wrapper {
   .Table {
     min-height: inherit;
+    .Table__body__column {
+      padding: 0 1.25rem;
+    }
+    .cms-field {
+      font-weight: $font-weight-semi-bold;
+    }
+    .InstructionText {
+      margin: 0;
+    }
   }
+}
+.disabled-field {
+  color: $color-font-disabled; 
 }
 .action-btn-wrapper {
   background-color: $color-brand-white-base;
@@ -65,10 +84,12 @@
   padding: 12px;
 }
 .step-container {
+  display: flex;
+  flex-direction: column;
   margin-top: 0;
-  width: 100%;
   margin-left: 0px;
   margin-bottom: 20px;
+  width: 100%;
 }
 .saveButton {
   padding: 5px 30px;
@@ -79,4 +100,10 @@
 div .select .Select {
   width: $px-50;
   max-width: $px-50 !important;
+}
+div .table-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
 }

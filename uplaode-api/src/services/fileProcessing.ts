@@ -1,0 +1,65 @@
+import JSZip from 'jszip';
+import validator from '../validators';
+import { HTTP_TEXTS, HTTP_CODES } from '../constants';
+import config from '../config/index';
+import logger from '../utils/logger.js';
+
+const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: string) => {
+  if (fileExt === 'zip') {
+    const zip = new JSZip();
+    await zip.loadAsync(zipBuffer);
+
+    const validation_result = validator({
+      data: zip,
+      type: cmsType,
+      extension: fileExt
+    });
+    if (validator({ data: zip, type: cmsType, extension: fileExt })) {
+      logger.info('Validation success:', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
+      });
+      return {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
+      };
+    } else {
+      logger.warn('Validation error:', {
+        status: HTTP_CODES?.UNAUTHORIZED,
+        message: HTTP_TEXTS?.VALIDATION_ERROR
+      });
+      return {
+        status: HTTP_CODES?.UNAUTHORIZED,
+        message: HTTP_TEXTS?.VALIDATION_ERROR
+      };
+    }
+  } else {
+    // if file is not zip
+    // Convert the buffer to a string assuming it's UTF-8 encoded
+    const jsonString = Buffer?.from?.(zipBuffer)?.toString?.('utf8');
+
+    if (validator({ data: jsonString, type: cmsType, extension: fileExt })) {
+      logger.info('Validation success:', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
+      });
+      return {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
+        file_details: config
+      };
+    } else {
+      logger.warn('Validation error:', {
+        status: HTTP_CODES?.UNAUTHORIZED,
+        message: HTTP_TEXTS?.VALIDATION_ERROR
+      });
+      return {
+        status: HTTP_CODES?.UNAUTHORIZED,
+        message: HTTP_TEXTS?.VALIDATION_ERROR,
+        file_details: config
+      };
+    }
+  }
+};
+
+export default handleFileProcessing;

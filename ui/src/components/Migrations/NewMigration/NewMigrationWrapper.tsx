@@ -6,6 +6,7 @@ import { Navigate, Outlet, Params, useNavigate, useParams } from 'react-router';
 import { PageLayout } from '@contentstack/venus-components';
 
 // Services
+import { getMigrationData } from '../../../services/api/migration.service';
 //import { getEntries } from '../../../services/contentstackSDK';
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 
@@ -25,14 +26,10 @@ import {
 // Components
 import { ActionTitle } from './ActionTitle';
 import MigrationFlow from '../../../components/MigrationFlow';
-import Settings from '../../Common/Settings';
 
 // Styles
 import './NewMigrationWrapper.scss';
 
-import contentData from './DummyJSON.json';
-
-import { getMigrationData } from '../../../services/api/migration.service';
 import {
   MigrationResponse,
   defaultMigrationResponse

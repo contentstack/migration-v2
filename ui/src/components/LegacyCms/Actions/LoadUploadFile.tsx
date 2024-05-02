@@ -1,10 +1,10 @@
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import DragAndDropFileUpload from '../../../components/Common/FileUpload';
 import { AppContext } from '../../../context/app/app.context';
 import { DEFAULT_FILE, IFile, INewMigration } from '../../../context/app/app.interface';
 import { validateArray } from '../../../utilities/functions';
 import { useParams } from 'react-router';
-
+import { fileValidation } from '../../../services/api/upload.service';
 interface LoadUploadFileProps {
   stepComponentProps: any;
   currentStep: number;
@@ -18,34 +18,56 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const { projectId = '' } = useParams();
 
   //Handle further action on file is uploaded to server
-  const handleOnFileUploadCompletion = (files: IFile[]) => {
-    const file = validateArray(files) ? files?.[0] : DEFAULT_FILE;
+  const handleOnFileUploadCompletion = async () => {
+    const res: any = await fileValidation();
 
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       legacy_cms: {
         ...newMigrationData.legacy_cms,
-        uploadedFile: { ...file }
+        uploadedFile: {
+          name: res?.data?.file_details?.localPath,
+          url: res?.data?.file_details?.localPath,
+          validation: res?.data?.message,
+          isValidated: res?.data?.status == 200 ? true : false,
+          file_details: {
+            isLocalPath: res?.data?.file_details?.isLocalPath,
+            cmsType: res?.data?.file_details?.cmsType,
+            localPath: res?.data?.file_details?.localPath,
+            awsData: {
+              awsRegion: res?.data?.file_details?.awsData?.awsRegion,
+              bucketName: res?.data?.file_details?.awsData?.bucketName,
+              buketKey: res?.data?.file_details?.awsData?.buketKey
+            }
+          }
+        }
       }
     };
-
     updateNewMigrationData(newMigrationDataObj);
 
-    props.handleStepChange(props.currentStep, true);
+    props.handleStepChange(props?.currentStep, true);
   };
 
   const allowedFileExtentions = `.${
     newMigrationData?.legacy_cms?.selectedFileFormat?.title || 'zip'
   }`;
+  useEffect(() => {
+    handleOnFileUploadCompletion();
+  }, [newMigrationData]);
 
   return (
     <div className="row">
       <div className="col-12">
-        <DragAndDropFileUpload
+        {/* <DragAndDropFileUpload
           allowedFileExtentions={['.zip', allowedFileExtentions]}
           handleOnFileUpload={handleOnFileUploadCompletion}
           projectId={projectId}
-        />
+        /> */}
+        <div className="col-12 pb-2">
+          <div className="validation-container">
+            <span></span>
+          </div>
+        </div>
       </div>
     </div>
   );

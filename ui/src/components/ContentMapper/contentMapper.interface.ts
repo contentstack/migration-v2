@@ -54,7 +54,8 @@ export interface FieldMapType {
   otherCmsField: string;
   otherCmsType: string;
   uid: string;
-  _id: string;
+  id: string;
+  _invalid?: boolean;
 }
 
 export interface ItemStatus {
@@ -87,4 +88,14 @@ export interface Mapping {
 export interface ContentTypeList {
   title: string;
   schema: [];
+}
+
+export interface optionsType {
+  label?: string;
+  value?: object;
+  isDisabled?: boolean;
+}
+
+export interface ExstingContentTypeMatch {
+  [key: string]: string;
 }

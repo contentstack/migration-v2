@@ -41,7 +41,7 @@
 }
 
 .page-wrapper {
-  align-items: center;
+  // align-items: center;
   background-color: $color-base-white-10;
   display: flex;
   height: 100vh;
@@ -274,7 +274,7 @@
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: #9a9a9b;
+  background: #4d4d58;
 }
 
 html,
@@ -323,4 +323,11 @@ p {
 }
 .PageLayout__body__container {
   display: flex;
+}
+.PageLayout--primary {
+  .PageLayout__content {
+    .PageLayout__head__hamburger {
+      display: none;
+    }
+  }
 }

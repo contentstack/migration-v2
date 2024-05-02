@@ -11,6 +11,10 @@ export interface ICTA {
   href: string;
 }
 
+interface ContentTypeMap {
+  [key: string]: string;
+}
+
 export interface Organization {
   uid: string;
   name: string;
@@ -32,13 +36,25 @@ export interface User {
   country_code: string;
   organizations: Organization[];
 }
-
+export interface FileDetails {
+  isLocalPath: boolean;
+  cmsType: string;
+  localPath: string;
+  awsData: {
+    awsRegion: string;
+    bucketName: string;
+    buketKey: string;
+  };
+}
 export interface IFile {
   id?: string;
   name: string;
   size?: number;
   type?: string;
   url?: string;
+  validation?: string;
+  file_details: FileDetails;
+  isValidated?: boolean;
 }
 
 export interface ICMSType extends ICardType {
@@ -133,10 +149,15 @@ export interface IDestinationStack {
   selectedOrg: IDropDown;
   selectedStack: IDropDown;
 }
+export interface IContentMapper {
+  content_type_mapping: ContentTypeMap;
+}
 
 export interface INewMigration {
   legacy_cms: ILegacyCms;
   destination_stack: IDestinationStack;
+  content_mapping: IContentMapper;
+  test_migration: ITestMigration;
 }
 
 export interface IMigrationData {
@@ -148,6 +169,7 @@ export interface IMigrationData {
   migrationexecution: IMigrationExecution;
   settings: string;
   migration_steps_heading: string;
+  testmigrationData: ITestMigration;
 }
 
 export interface IDropDown {
@@ -158,7 +180,9 @@ export interface IDropDown {
   locale: string;
   created_at: string;
 }
-
+export interface ITestMigration {
+  stack_link: string;
+}
 export interface IAppContext {
   authToken: string;
   setAuthToken: (token: string) => void;
@@ -211,7 +235,18 @@ export const DEFAULT_FILE: IFile = {
   id: '',
   name: '',
   size: 0,
-  type: ''
+  type: '',
+  file_details: {
+    isLocalPath: false,
+    cmsType: '',
+    localPath: '',
+    awsData: {
+      awsRegion: '',
+      bucketName: '',
+      buketKey: ''
+    }
+  },
+  isValidated: false
 };
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
@@ -240,9 +275,19 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
   selectedStack: DEFAULT_DROPDOWN
 };
 
+export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
+  content_type_mapping: {}
+};
+
+export const DEFAULT_TEST_MIGRATION: ITestMigration = {
+  stack_link: ''
+};
+
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
   legacy_cms: DEFAULT_LEGACY_CMS,
-  destination_stack: DEFAULT_DESTINATION_STACK
+  destination_stack: DEFAULT_DESTINATION_STACK,
+  content_mapping: DEFAULT_CONTENT_MAPPER,
+  test_migration: DEFAULT_TEST_MIGRATION
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {
@@ -298,6 +343,7 @@ export const DEFAULT_MIGRATION_EXECUTION: IMigrationExecution = {
     }
   ]
 };
+
 export const DEFAULT_MIGRATION_DATA: IMigrationData = {
   allFlowSteps: [],
   currentFlowStep: DEFAULT_IFLOWSTEP,
@@ -306,7 +352,8 @@ export const DEFAULT_MIGRATION_DATA: IMigrationData = {
   contentMappingData: DEFAULT_CONTENT_MAPPING_DATA,
   migrationexecution: DEFAULT_MIGRATION_EXECUTION,
   migration_steps_heading: '',
-  settings: ''
+  settings: '',
+  testmigrationData: DEFAULT_TEST_MIGRATION
 };
 
 export const DEFAULT_APP_CONTEXT: IAppContext = {

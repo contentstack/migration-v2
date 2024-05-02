@@ -8,7 +8,14 @@
   margin: 0 !important;
 }
 #setting-page {
-  width: 100% !important;
+  display: flex;
+  width: 100%;
+  .PageLayout {
+    width: 100%;
+  }
+  .PageLayout__head {
+    border-left: 0 none;
+  }
 }
 .deleteButton {
   position: fixed !important;
@@ -49,19 +56,6 @@
   position: relative;
   z-index: 10;
   height: 600px;
-}
-.PageLayout {
-  display: flex;
-  width: 100%;
-}
-.PageLayout__content {
-  // flex-grow: 1;
-  width: 100%;
-}
-.PageLayout--primary .PageLayout__content.PageLayout__content--full > div {
-  display: flex;
-  width: 100%;
-  margin-left: $px-80;
 }
 
 .stack-settings__heading {

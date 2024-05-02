@@ -111,7 +111,8 @@ export const STEPPER_STEPS = {
   LEGACY_CMS: 1,
   DESTINATION_STACK: 2,
   CONTENT_MAPPING: 3,
-  MIGRATION: 4,
+  TESTING: 4,
+  MIGRATION: 5,
 };
 export const PREDEFINED_STATUS = [
   "Draft",
@@ -120,4 +121,14 @@ export const PREDEFINED_STATUS = [
   "Failed",
   "Success",
 ];
-export const PREDEFINED_STEPS = [1, 2, 3, 4];
+export const PREDEFINED_STEPS = [1, 2, 3, 4, 5];
+
+export const NEW_PROJECT_STATUS = {
+  0: 0,                   //DRAFT
+  1: 1,                  //READY_TO_TEST
+  2: 2,                 //TESTING_IN_PROGRESS
+  3: 3,                //READY_FOR_MIGRATION
+  4: 4,               //MIGRATION_IN_PROGRESS
+  5: 5,              //MIGRATION_SUCCESSFUL
+  6: 6              //MIGRATION_TERMINATED
+};

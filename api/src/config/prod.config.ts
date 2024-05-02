@@ -5,4 +5,10 @@ export const prodConfig = {
     AZURE_NA: "https://azure-na-api.contentstack.com/v3",
     AZURE_EU: "https://azure-eu-api.contentstack.com/v3",
   },
+  CS_URL: {
+    NA: "https://app.contentstack.com/#!",
+    EU: "https://eu-app.contentstack.com/#!",
+    AZURE_NA: "https://azure-na-app.contentstack.com/#!",
+    AZURE_EU: "https://azure-eu-app.contentstack.com/#!",
+  },
 };
