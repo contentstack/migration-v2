@@ -9,5 +9,5 @@ export default {
     bucketName: 'migartion-test',
     buketKey: 'project/package 45.zip'
   },
-  localPath: '/Users/aishwarya.dani/Desktop/contentful.json'
+  localPath: '/Users/snehal.pimple/Desktop/contentful.json'
 };

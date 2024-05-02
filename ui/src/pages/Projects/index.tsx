@@ -1,12 +1,6 @@
 // Libraries
 import { useContext, useEffect, useState } from 'react';
-import {
-  PageLayout,
-  EmptyState,
-  Button,
-  Icon,
-  cbModal
-} from '@contentstack/venus-components';
+import { PageLayout, EmptyState, Button, Icon, cbModal } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
@@ -127,7 +121,9 @@ const Projects = () => {
     cbModal({
       component: (props: ModalObj) => (
         <Modal
-          modalData={createProjectModal && validateObject(createProjectModal) ? createProjectModal : {}}
+          modalData={
+            createProjectModal && validateObject(createProjectModal) ? createProjectModal : {}
+          }
           selectedOrg={selectedOrganisation}
           {...props}
         />
@@ -157,64 +153,57 @@ const Projects = () => {
   const content = {
     component: (
       <div className="flex-wrap w-100" key="project-component">
-        {loadStatus 
-          ? (
-            <div className="flex-wrap">
-              {[...Array(20)].map((e, i) => (
-                <CardList key={i} />
-              ))}
+        {loadStatus ? (
+          <div className="flex-wrap">
+            {[...Array(20)].map((e, i) => (
+              <CardList key={i} />
+            ))}
+          </div>
+        ) : projects && projects?.length > 0 ? (
+          projects?.map((e) => (
+            <div key={e?.uid}>
+              <CardList project={e} />
             </div>
-          ) 
-          : projects && projects?.length > 0 
-            ? (
-              projects?.map((e) => (
-                <div key={e?.uid}>
-                  <CardList project={e} />
-                </div>
-              ))
-            ) 
-            : projects && projects?.length > 0 && !searchText 
-              ? (
-                <EmptyState
-                  forPage="emptyStateV2"
-                  heading={<div className="empty_search_heading">{emptystate?.empty_search_heading}</div>}
-                  img={NO_PROJECTS_SEARCH}
-                  description={
-                    <div className="empty_search_description">
-                      {HTMLReactParser(jsonToHtml(emptystate?.empty_search_description ?? {}))}
-                    </div>
-                  }
-                  version="v2"
-                  className="no_results_found_page"
-                  testId="no-results-found-page"
-                />
-              ) 
-              : (
-                <EmptyState
-                  forPage="emptyStateV2"
-                  heading={emptystate?.heading}
-                  img={NO_PROJECTS}
-                  description={outputIntro}
-                  version="v2"
+          ))
+        ) : projects && projects?.length > 0 && !searchText ? (
+          <EmptyState
+            forPage="emptyStateV2"
+            heading={<div className="empty_search_heading">{emptystate?.empty_search_heading}</div>}
+            img={NO_PROJECTS_SEARCH}
+            description={
+              <div className="empty_search_description">
+                {HTMLReactParser(jsonToHtml(emptystate?.empty_search_description ?? {}))}
+              </div>
+            }
+            version="v2"
+            className="no_results_found_page"
+            testId="no-results-found-page"
+          />
+        ) : (
+          <EmptyState
+            forPage="emptyStateV2"
+            heading={emptystate?.heading}
+            img={NO_PROJECTS}
+            description={outputIntro}
+            version="v2"
+          >
+            {emptystate?.cta &&
+              emptystate?.cta?.length > 0 &&
+              emptystate?.cta?.map((cta: CTA, index: number) => (
+                <Button
+                  key={`${index.toString()}`}
+                  buttonType={cta?.theme}
+                  className="mt-10 no-project-add-btn"
+                  onClick={() => openModal()}
                 >
-                  {emptystate?.cta &&
-                    emptystate?.cta?.length > 0 &&
-                    emptystate?.cta?.map((cta: CTA, index: number) => (
-                      <Button
-                        key={`${index.toString()}`}
-                        buttonType={cta?.theme}
-                        className="mt-10 no-project-add-btn"
-                        onClick={() => openModal()}
-                      >
-                        {cta?.with_icon && (
-                          <Icon icon="Plus" version="v2" size="small" fill="white" stroke="white" />
-                        )}
-                        {cta?.title}
-                      </Button>
-                    ))}
-                  </EmptyState>
-                )
-        }
+                  {cta?.with_icon && (
+                    <Icon icon="Plus" version="v2" size="small" fill="white" stroke="white" />
+                  )}
+                  {cta?.title}
+                </Button>
+              ))}
+          </EmptyState>
+        )}
       </div>
     )
   };

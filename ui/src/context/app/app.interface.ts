@@ -33,14 +33,14 @@ export interface User {
   organizations: Organization[];
 }
 export interface FileDetails {
-  isLocalPath:boolean;
+  isLocalPath: boolean;
   cmsType: string;
   localPath: string;
   awsData: {
-  awsRegion: string;
-  bucketName:string
-  buketKey:string
-  }
+    awsRegion: string;
+    bucketName: string;
+    buketKey: string;
+  };
 }
 export interface IFile {
   id?: string;
@@ -228,17 +228,17 @@ export const DEFAULT_FILE: IFile = {
   name: '',
   size: 0,
   type: '',
-  file_details:{
-    isLocalPath:false,
+  file_details: {
+    isLocalPath: false,
     cmsType: '',
     localPath: '',
     awsData: {
-    awsRegion: '',
-    bucketName:'',
-    buketKey:'',
+      awsRegion: '',
+      bucketName: '',
+      buketKey: ''
+    }
   },
-  },
-  isValidated:false
+  isValidated: false
 };
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
