@@ -60,7 +60,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       setIsError(false);
 
       //API call for saving Affix
-      updateAffixData(selectedOrganisation.value, projectId, { affix: prefix });
+      updateAffixData(selectedOrganisation?.value, projectId, { affix: prefix });
       affixConfirmation(selectedOrganisation?.value, projectId, {
         affix_confirmation: isCheckedBoxChecked
       });
@@ -129,7 +129,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           error={isError}
         />
       </div>
-      <div className="col-12">
+      <div className="col-12 pt-2">
         <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleOnBlur}>
           {migrationData?.legacyCMSData?.affix_cta}
         </Button>

@@ -48,7 +48,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   const handleBtnClick = (e: MouseEvent) => {
     e.preventDefault();
-    if (!isEmptyString(selectedCard.fileformat_id) && isCheckedBoxChecked) {
+    if (!isEmptyString(selectedCard?.fileformat_id) && isCheckedBoxChecked) {
       updateNewMigrationData({
         ...newMigrationData,
         legacy_cms: {
@@ -64,7 +64,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       });
 
       //call for Step Change
-      props.handleStepChange(props.currentStep);
+      props.handleStepChange(props?.currentStep);
     }
   };
 
@@ -116,7 +116,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           {validateArray(allowed_file_formats) ? (
             allowed_file_formats?.map((data: ICardType, index: number) => (
               <Card
-                key={data.fileformat_id || index}
+                key={data?.fileformat_id || index}
                 data={data}
                 selectedCard={data?.fileformat_id}
                 idField="fileformat_id"
@@ -130,7 +130,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           )}
         </div>
       </div>
-      <div className="col-12 pt-2">
+      <div className="col-12 pt-3 pl-0">
         <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleBtnClick}>
           {migrationData?.legacyCMSData?.file_format_cta}
         </Button>
