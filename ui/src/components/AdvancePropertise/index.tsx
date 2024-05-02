@@ -10,13 +10,13 @@ import './index.scss';
 
 export interface SchemaProps {
   fieldtype: string;
-  value: any,
-  rowId:string
+  value: any;
+  rowId: string;
   closeModal: () => void;
 }
 const AdvancePropertise = (props: SchemaProps) => {
-  console.log("prope : ",props);
-  
+  console.log('prope : ', props);
+
   return (
     <>
       <ModalHeader title={`${props.fieldtype} propertise`} closeModal={props.closeModal} />
@@ -34,10 +34,30 @@ const AdvancePropertise = (props: SchemaProps) => {
           Options
         </FieldLabel>
         <div className="options-class">
-          <ToggleSwitch label="Mandatory" labelColor="primary" labelPosition="right" checked={props?.value?.mandatory}/>
-          <ToggleSwitch label="Multiple" labelColor="primary" labelPosition="right" checked={props?.value?.multiple} />
-          <ToggleSwitch label="Unique" labelColor="primary" labelPosition="right" checked={props?.value?.unique}/>
-          <ToggleSwitch label="Non-localizable" labelColor="primary" labelPosition="right" checked={props?.value?.non_localizable}/>
+          <ToggleSwitch
+            label="Mandatory"
+            labelColor="primary"
+            labelPosition="right"
+            checked={props?.value?.mandatory}
+          />
+          <ToggleSwitch
+            label="Multiple"
+            labelColor="primary"
+            labelPosition="right"
+            checked={props?.value?.multiple}
+          />
+          <ToggleSwitch
+            label="Unique"
+            labelColor="primary"
+            labelPosition="right"
+            checked={props?.value?.unique}
+          />
+          <ToggleSwitch
+            label="Non-localizable"
+            labelColor="primary"
+            labelPosition="right"
+            checked={props?.value?.non_localizable}
+          />
           <p className="non-localizable-message">
             If enabled, editing this field is restricted in localized entries. The field will use
             the value of the master-language entry in all localized entries.
