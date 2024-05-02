@@ -15,8 +15,6 @@ export interface SchemaProps {
   closeModal: () => void;
 }
 const AdvancePropertise = (props: SchemaProps) => {
-  console.log('prope : ', props);
-
   return (
     <>
       <ModalHeader title={`${props.fieldtype} propertise`} closeModal={props.closeModal} />
