@@ -20,7 +20,7 @@
         "is_dir": false,
         "parent_uid": null,
         "_version": 1,
-        "title": "aws.svg"
+        "title": "AWS"
       },
       "service_title": "Amazon Web Services",
       "region_title": "North America",
@@ -43,7 +43,7 @@
         "is_dir": false,
         "parent_uid": null,
         "_version": 1,
-        "title": "Azure_icon.svg"
+        "title": "Azure"
       },
       "service_title": "Microsoft Azure",
       "region_title": "North America",
@@ -66,7 +66,7 @@
         "is_dir": false,
         "parent_uid": null,
         "_version": 1,
-        "title": "aws.svg"
+        "title": "AWS"
       },
       "service_title": "Amazon Web Services",
       "region_title": "Europe",
@@ -89,7 +89,7 @@
         "is_dir": false,
         "parent_uid": null,
         "_version": 1,
-        "title": "Azure_icon.svg"
+        "title": "Azure"
       },
       "service_title": "Microsoft Azure",
       "region_title": "Europe",
