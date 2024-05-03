@@ -3,6 +3,7 @@ import { useContext, useEffect, useState } from 'react';
 import { Tooltip } from '@contentstack/venus-components';
 import { useNavigate } from 'react-router-dom';
 // Utilities
+import { PROJECT_STATUS } from '../../utilities/constants';
 import { getDays, isEmptyString } from '../../utilities/functions';
 import { AppContext } from '../../context/app/app.context';
 // Interface
@@ -42,7 +43,7 @@ const CardList = ({ project }: ProjectType) => {
             <div className="ProjectCard__stats">
               <div className="ProjectCard__unit">
                 <span className="ProjectCard__stats-number">Project Status</span>
-                <span className="ProjectCard__stats-category">{project?.status}</span>
+                <span className="ProjectCard__stats-category">{PROJECT_STATUS?.[project?.status !== undefined ? project?.status : 0]}</span>
               </div>
             </div>
           </div>
