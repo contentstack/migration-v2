@@ -163,8 +163,8 @@ const DestinationStackComponent = ({
       //Check for migration Status and lock.
       // Status where Migration is to be Locked:
       setIsMigrationLocked(
-        projectData.status === PROJECT_STATUS.INPROGRESS ||
-          projectData.status === PROJECT_STATUS.SUCCESS
+        projectData.status === 2 ||
+          projectData.status === 5
       );
     };
     fetchCMSData();
