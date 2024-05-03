@@ -62,7 +62,7 @@ const RegionalLogin = () => {
     <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
       <div className="container mx-auto">
         <div className="text-center">
-          {heading && <Heading tagName="h1" text={heading} className="pb-2" />}
+          {heading && <Heading tagName="h1" text={heading} className="pb-2 large-font" />}
           {description && description != '' && (
             <div className="textStone600 pt-3">{parse(description as string)}</div>
           )}
