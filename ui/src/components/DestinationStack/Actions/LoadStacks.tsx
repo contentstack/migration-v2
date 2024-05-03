@@ -141,8 +141,9 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       newMigrationData?.destination_stack?.selectedOrg?.value
     ); //org id will always be there
 
+
     //fetch all locales
-    const response = await getAllLocales(newMigrationData?.destination_stack?.selectedOrg?.value); //org id will always be there
+    const response = await getAllLocales(selectedOrganisation?.value); //org id will always be there
     const rawMappedLocalesMapped =
       validateObject(response?.data) && response?.data?.locales
         ? Object?.keys(response?.data?.locales)?.map((key) => ({
@@ -153,7 +154,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
             created_at: key
           }))
         : [];
-
     setAllLocales(rawMappedLocalesMapped);
 
     const stackArray = validateArray(stackData?.data?.stacks)
@@ -193,6 +193,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     updateNewMigrationData(newMigrationDataObj);
   };
+
+  /****  ALL USEEffects  HERE  ****/
+  useEffect(() => {
+    fetchData();
+  }, []);
+  
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
@@ -216,12 +222,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       }
     });
   };
-  /****  ALL USEEffects  HERE  ****/
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   return (
     <div className="">
       <div className="action-summary-wrapper ">
