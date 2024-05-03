@@ -179,7 +179,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
       // Status where Migration is to be Locked:
       setIsMigrationLocked(
         projectData?.status === 2 ||
-          projectData.status === 5
+          projectData?.status === 5
       );
     };
 

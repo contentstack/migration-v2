@@ -128,7 +128,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           version="v2"
           error={isError}
         />
-        {isError && <p className='errorMessage'>Project Name should not be more than 5 chars</p>}
+        {isError && <p className='errorMessage'>Affix should not be more than 5 chars</p>}
       </div>
       <div className="col-12 pt-2">
         <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleOnBlur}>

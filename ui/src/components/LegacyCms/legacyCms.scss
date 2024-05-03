@@ -67,7 +67,7 @@
   width: 100%;
   align-items: center;
   padding: 0 !important;
-  border: 1px solid #dde3ee;
+  border: 1px solid $color-brand-secondary-lightest;
   border-radius: var(--TermCount, 5px);
 }
 .errorMessage {
