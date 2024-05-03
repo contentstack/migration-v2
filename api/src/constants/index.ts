@@ -70,7 +70,10 @@ export const HTTP_TEXTS = {
     "Reseting the content mapping is restricted. Please verify the status and review preceding actions.",
   CONTENTMAPPER_NOT_FOUND:
     "Sorry, the requested content mapper id does not exists.",
+    ADMIN_LOGIN_ERROR:
+    "Sorry, You Don't have admin access in any of the Organisation" 
 };
+
 export const HTTP_RESPONSE_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Content-Type": "application/json",
