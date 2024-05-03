@@ -62,7 +62,7 @@ const RegionalLogin = () => {
     <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
       <div className="container mx-auto">
         <div className="text-center">
-          {heading && <Heading tagName="h0" text={heading} className="pb-2" />}
+          {heading && <Heading tagName="h1" text={heading} className="pb-2" />}
           {description && description != '' && (
             <div className="textStone600 pt-3">{parse(description as string)}</div>
           )}
@@ -103,6 +103,7 @@ const RegionalLogin = () => {
                               region?.service_title as string
                             )
                           }
+                          aria-label={`${region?.cta?.title} with ${region?.service_title} ${region?.region_title}`}
                         >
                           <span className="link-basic-icon link-arrow">{region?.cta?.title}</span>
                         </a>
