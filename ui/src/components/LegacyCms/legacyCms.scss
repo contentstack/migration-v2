@@ -1,4 +1,4 @@
-@import '../../scss/variables';
+@import '../../scss/variables'; 
 .service_list {
   text-align: center;
   display: flex;
@@ -69,4 +69,8 @@
   padding: 0 !important;
   border: 1px solid #dde3ee;
   border-radius: var(--TermCount, 5px);
+}
+.errorMessage {
+  color: $color-brand-warning-medium;
+  font-size: 12px;
 }
