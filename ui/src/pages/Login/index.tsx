@@ -23,8 +23,6 @@ import {
 } from '../../utilities/constants';
 import {
   failtureNotification,
-  clearMarks,
-  clearMeasures,
   setDataInLocalStorage
 } from '../../utilities/functions';
 
@@ -43,9 +41,7 @@ import './index.scss';
 
 import { AppContext } from '../../context/app/app.context';
 
-// const { account_page } = mainString;
-
-const Login: FC<IProps> = (props: any) => {
+const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
 
   // ************* Fetch Login Data ************
@@ -77,18 +73,9 @@ const Login: FC<IProps> = (props: any) => {
   const location = useLocation();
 
   // Get the region
-  const urlParams = new URLSearchParams(location.search);
+  const urlParams = new URLSearchParams(location?.search);
   const region = urlParams?.get?.('region');
-
-  // ************* ALL UseEffect Here ************
-  useEffect(() => {
-    clearMarks('', true);
-    clearMeasures('', true);
-    if (props?.error?.error_message) {
-      failtureNotification(props?.error?.error_message);
-      props.setError();
-    }
-  }, []);
+  
 
   // ************* send SMS token ************
   const sendSMS = async () => {
@@ -160,7 +147,7 @@ const Login: FC<IProps> = (props: any) => {
       setLoginStates((prev) => ({ ...prev, tfa: true }));
     }
 
-    if (response?.status === 422) {
+    if (response?.status === 400 || response?.status === 422) {
       failtureNotification(response?.data?.error_message || response?.data?.error?.message);
     }
 
@@ -181,15 +168,16 @@ const Login: FC<IProps> = (props: any) => {
 
   const passwordValidation = (value: string): string | undefined => {
     // const passwordRegex = /[0-1A-Za-z]/
-    if (value && value.length) {
+    if (value && value?.length) {
       return undefined;
     } else {
       return 'Please enter a password';
     }
   };
 
+  // Function for TFA validation
   const TFAValidation = (value: string): string | undefined => {
-    if (value && value.length) {
+    if (value && value?.length) {
       return undefined;
     } else {
       return 'Please enter two factor authentication code.';
@@ -198,7 +186,7 @@ const Login: FC<IProps> = (props: any) => {
 
   return (
     <AccountPage data={accountData}>
-      {loginStates.tfa ? (
+      {loginStates?.tfa ? (
         <div className="AccountForm AccountForm_login">
           <Heading
             testId="cs-tfa-title"
@@ -226,17 +214,17 @@ const Login: FC<IProps> = (props: any) => {
                           {...input}
                           version="v2"
                           placeholder={twoFactorAuthentication?.security_code?.placeholder}
-                          error={meta.error && meta.touched}
+                          error={meta?.error && meta?.touched}
                           width="large"
                           testId="cs-tfa-token-input-field"
                         />
-                        {meta.error && meta.touched && (
+                        {meta?.error && meta?.touched && (
                           <ValidationMessage
                             testId="cs-tfa-token-error"
                             className="mt-2"
                             version="v2"
                           >
-                            {meta.error}
+                            {meta?.error}
                           </ValidationMessage>
                         )}
                       </>
@@ -275,14 +263,10 @@ const Login: FC<IProps> = (props: any) => {
             <Heading testId="cs-login-title" tagName="h1" className="mb-40" text={login?.title} />
           )}
           <div
-            className={`ml-16 AccountForm__tab_content ${
-              loginStates.activeTab === 0 ? 'AccountForm__tab_content_active' : ''
-            }`}
-            data-testid={loginStates.activeTab === 0 ? 'account-tab-content-active' : ''}
+            className='ml-16'
           >
             <FinalForm
               onSubmit={onSubmit}
-              // onChange={onChange}
               render={({ handleSubmit }): JSX.Element => {
                 return (
                   <div className="login-wrapper">
@@ -304,12 +288,12 @@ const Login: FC<IProps> = (props: any) => {
                                 <TextInput
                                   {...input}
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
-                                    input.onChange(event);
+                                    input?.onChange(event);
                                     setLoginStates((prevState: IStates) => ({
                                       ...prevState,
                                       user: {
-                                        ...prevState.user,
-                                        email: event.target.value
+                                        ...prevState?.user,
+                                        email: event?.target?.value
                                       }
                                     }));
                                   }}
@@ -320,7 +304,7 @@ const Login: FC<IProps> = (props: any) => {
                                   type="email"
                                   data-testid="cs-login-email-input-field"
                                   placeholder={login?.placeholder?.email}
-                                  error={(meta.error || meta.submitError) && meta.touched}
+                                  error={(meta?.error || meta?.submitError) && meta?.touched}
                                 />
                                 {meta.error && meta.touched && (
                                   <ValidationMessage
@@ -328,7 +312,7 @@ const Login: FC<IProps> = (props: any) => {
                                     className="mt-2"
                                     version="v2"
                                   >
-                                    {meta.error}
+                                    {meta?.error}
                                   </ValidationMessage>
                                 )}
                               </>
@@ -354,12 +338,12 @@ const Login: FC<IProps> = (props: any) => {
                                 <TextInput
                                   {...input}
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
-                                    input.onChange(event);
+                                    input?.onChange(event);
                                     setLoginStates((prevState: IStates) => ({
                                       ...prevState,
                                       user: {
-                                        ...prevState.user,
-                                        password: event.target.value
+                                        ...prevState?.user,
+                                        password: event?.target?.value
                                       }
                                     }));
                                   }}
@@ -371,15 +355,15 @@ const Login: FC<IProps> = (props: any) => {
                                   version="v2"
                                   testId="cs-login-password-input-field"
                                   placeholder={login?.placeholder?.password}
-                                  error={(meta.error || meta.submitError) && meta.touched}
+                                  error={(meta?.error || meta?.submitError) && meta?.touched}
                                 />
-                                {meta.error && meta.touched && (
+                                {meta?.error && meta?.touched && (
                                   <ValidationMessage
                                     testId="cs-login-password-error"
                                     className="mt-2"
                                     version="v2"
                                   >
-                                    {meta.error}
+                                    {meta?.error}
                                   </ValidationMessage>
                                 )}
                               </>
@@ -399,7 +383,6 @@ const Login: FC<IProps> = (props: any) => {
                             buttonType="primary"
                             type="submit"
                             icon="v2-Login"
-                            isLoading={props.loading}
                           >
                             {login?.cta?.title}
                           </Button>
