@@ -158,8 +158,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   useEffect(()=>{
    handleDirectSelection(selectedCard)
   },[cmsType,selectedCard])
-
-  console.log("selected card : ", newMigrationData?.legacy_cms?.selectedCms?.title);
   
 
   return (    
@@ -212,17 +210,18 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
             />
           </div>
       )}
+      </div>
+      </div>)}
+
       {isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) &&
-        <div className="col-12 bg-white p-3">
+        (<div className="col-12 bg-white p-3">
           <span className="summary-title">Please enter the correct CMS</span>
-        </div>
-      }
-    </div>
         </div>)
       }
-        
-     
+    
     </div>
+      
+        
   );
 };
 
