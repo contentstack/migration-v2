@@ -26,7 +26,7 @@ export interface MigrationResponse {
   prefix: string;
   name: string;
   description: string;
-  status: string;
+  status: number;
   created_at: string;
   updated_at: string;
   destination_stack_id: string;
@@ -51,7 +51,7 @@ export const defaultMigrationResponse: MigrationResponse = {
   former_owner_ids: [],
   name: '',
   description: '',
-  status: '',
+  status: 0,
   created_at: '',
   updated_at: '',
   destination_stack_id: '',

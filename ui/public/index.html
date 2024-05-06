@@ -46,9 +46,27 @@
       src="https://ui.contentstack.com/contentstack.min.js"
       async
     ></script>
+
+    <style type="text/css">
+      .skip-to-main-content-link {
+        position: absolute;
+        left: -9999px;
+        z-index: 999;
+        padding: 1em;
+        color: white;
+        opacity: 0;
+      }
+      .skip-to-main-content-link:focus {
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 1;
+      }
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+    <a  href="#root" class="skip-to-main-content-link">Skip to main content</a>
+
     <div id="root"></div>
   </body>
 </html>
