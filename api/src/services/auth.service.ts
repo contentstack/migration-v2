@@ -48,11 +48,18 @@ const login = async (req: Request): Promise<LoginServiceType> => {
         status: err?.response?.status,
       };
     }
-    const orgs = (res?.data?.user?.organizations || [])
-    ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
-    ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
-    if (!orgs.length) {
-      throw new BadRequestError(HTTP_TEXTS.ADMIN_LOGIN_ERROR);
+    if (res?.data?.user?.organizations === undefined) {
+      return {
+        data: res?.data,
+        status: res?.status,
+      };
+    } else {
+      const orgs = (res?.data?.user?.organizations || [])
+        ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
+        ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
+      if (!orgs.length) {
+        throw new BadRequestError(HTTP_TEXTS.ADMIN_LOGIN_ERROR);
+      }
     }
 
     if (res?.status === HTTP_CODES.SUPPORT_DOC)
