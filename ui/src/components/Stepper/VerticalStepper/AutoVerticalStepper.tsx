@@ -46,11 +46,11 @@ const AutoVerticalStepper = React.forwardRef<
       }
     } = props;
 
-    const [stepStatus, setStepStatus] = useState(steps.map((s: any) => s.status));
+    const [stepStatus, setStepStatus] = useState(steps?.map((s: any) => s.status));
 
     useEffect(() => {
       if (!stepComponentProps?.step?.step_id && !stepComponentProps?.connector?.group_name) {
-        setStepStatus(steps.map((s: any) => s.status));
+        setStepStatus(steps?.map((s: any) => s.status));
       }
     }, [stepComponentProps?.step?.step_id, stepComponentProps?.connector?.group_name]);
 
@@ -164,21 +164,21 @@ const AutoVerticalStepper = React.forwardRef<
       return (
         <div className={`migration-vertical-stepper StepperWrapper ${className}`}>
           <ol className="Vertical">
-            {steps.map((step: any, index: number) => {
-              const shouldShowIcon = step?.title !== 'Select Stack' ? !step?.lock : false;
+            {steps?.map((step: any, index: number) => {             
+              const shouldShowIcon = (step?.title !== 'Select Stack' && step?.title !== 'Upload File' ) ? !step?.lock : false;
 
-              const DataComponent = step.data as React.ElementType;
-              const SummeryComponent = step.summery as React.ElementType;
+              const DataComponent = step?.data as React.ElementType;
+              const SummeryComponent = step?.summery as React.ElementType;
 
               let stepClassName = stepClassNameObject[getStepStatus(index)];
-              if (step.lock) stepClassName = 'completed';
+              if (step?.lock) stepClassName = 'completed';
               const getGridientClass =
                 stepClassNameObject[`${getStepStatus(index)}__${getStepStatus(index + 1)}`];
               return (
                 <li
-                  id={step.step_id}
+                  id={step?.step_id}
                   className={`${stepClassName} ${getGridientClass}`}
-                  key={step.step_id}
+                  key={step?.step_id}
                   style={{ paddingBottom: '40px' }}
                 >
                   <div className={`step__title ${stepTitleClassName}`}>
@@ -193,9 +193,9 @@ const AutoVerticalStepper = React.forwardRef<
                           <div className="action-content step-content">
                             <div
                               className={
-                                step.step_id === 'Step1' ||
-                                step.step_id === 'Step2' ||
-                                step.step_id === 'Step3'
+                                step?.step_id === 'Step1' ||
+                                step?.step_id === 'Step2' ||
+                                step?.step_id === 'Step3'
                                   ? ''
                                   : 'StepperWrapper__step'
                               }
