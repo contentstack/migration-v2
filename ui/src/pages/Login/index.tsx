@@ -23,8 +23,6 @@ import {
 } from '../../utilities/constants';
 import {
   failtureNotification,
-  clearMarks,
-  clearMeasures,
   setDataInLocalStorage
 } from '../../utilities/functions';
 
@@ -42,8 +40,6 @@ import AccountPage from '../../components/AccountPage';
 import './index.scss';
 
 import { AppContext } from '../../context/app/app.context';
-
-// const { account_page } = mainString;
 
 const Login: FC<IProps> = (props: any) => {
   const [data, setData] = useState<LoginType>({});
@@ -79,16 +75,7 @@ const Login: FC<IProps> = (props: any) => {
   // Get the region
   const urlParams = new URLSearchParams(location.search);
   const region = urlParams?.get?.('region');
-
-  // ************* ALL UseEffect Here ************
-  useEffect(() => {
-    clearMarks('', true);
-    clearMeasures('', true);
-    if (props?.error?.error_message) {
-      failtureNotification(props?.error?.error_message);
-      props.setError();
-    }
-  }, []);
+  
 
   // ************* send SMS token ************
   const sendSMS = async () => {
@@ -160,7 +147,7 @@ const Login: FC<IProps> = (props: any) => {
       setLoginStates((prev) => ({ ...prev, tfa: true }));
     }
 
-    if (response?.status === 422) {
+    if (response?.status === 400 || response?.status === 422) {
       failtureNotification(response?.data?.error_message || response?.data?.error?.message);
     }
 
@@ -188,6 +175,7 @@ const Login: FC<IProps> = (props: any) => {
     }
   };
 
+  // Function for TFA validation
   const TFAValidation = (value: string): string | undefined => {
     if (value && value.length) {
       return undefined;
