@@ -14,12 +14,11 @@ import { AppContext } from '../../../context/app/app.context';
 
 // Interface
 import { defaultCardType } from '../../../components/Common/Card/card.interface';
-import { ICMSType, INewMigration } from '../../../context/app/app.interface';
+import { DEFAULT_CMS_TYPE, ICMSType, INewMigration } from '../../../context/app/app.interface';
 
 // Components
 import Card from '../../../components/Common/Card/card';
 import { EmptyState, Line, Search } from '@contentstack/venus-components';
-import { FilterModal } from '../../../components/Common/Modal/FilterModal/FilterModal';
 
 // Style
 import '../legacyCms.scss';
@@ -34,6 +33,7 @@ interface LoadSelectCmsProps {
 }
 
 const LoadSelectCms = (props: LoadSelectCmsProps) => {
+  
   /****  ALL HOOKS HERE  ****/
   const { migrationData, newMigrationData, updateNewMigrationData, selectedOrganisation } =
     useContext(AppContext);
@@ -45,38 +45,33 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [searchText, setSearchText] = useState<string>('');
   const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
   const [cmsFilter, setCmsFilter] = useState<string[]>([]);
+  const [cmsType, setCmsType] = useState<string | null>(null);
 
   const { projectId = '' } = useParams();
 
   /****  ALL METHODS HERE  ****/
 
   //Handle Legacy cms selection
-  const handleCardClick = (data: ICMSType) => {
-    if (selectedCard?.cms_id !== data?.cms_id) {
-      setSelectedCard((prevState) => ({ ...data }));
-
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData.legacy_cms,
-          selectedCms: { ...data }
-        }
-      };
-
-      updateNewMigrationData(newMigrationDataObj);
+  const handleDirectSelection = (cms:any) => {
+    
+    setSelectedCard(cms);
+    updateNewMigrationData({
+      ...newMigrationData?.legacy_cms,
+      legacy_cms: { 
+        ...newMigrationData?.legacy_cms,
+        selectedCms: cms }
+    });
+    updateLegacyCMSData(selectedOrganisation?.value, projectId, { legacy_cms: cms?.cms_id });
+    if(selectedCard?.title){     
+      props?.handleStepChange(props?.currentStep);
     }
-    //API call for saving selected CMS
-    updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
-
-    //call for Step Change
-    props.handleStepChange(props.currentStep);
   };
 
-  //Handle CMS Filter Updation in local storage.
+ //Handle CMS Filter Updation in local storage.
   const updateCMSFilters = (cmsFilter: IFilterStatusType) => {
     //Get Applied CMS Parent Filters
     const cmsParentFilter: string[] = cmsFilter
-      ? Object.keys(cmsFilter).filter((key) => cmsFilter[key])
+      ? Object.keys(cmsFilter)?.filter((key) => cmsFilter?.[key])
       : [];
 
     //Update state
@@ -91,11 +86,13 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
   const getCmsType = async () => {
     const res: any = await fileValidation();
-    const cmsType = res?.data?.file_details?.cmsType;
+    const cmsType = res?.data?.file_details?.cmsType?.toLowerCase();
+    setCmsType(cmsType);
     return cmsType;
   };
   // Filter CMS Data
   const filterCMSData = async (searchText: string) => {
+   
     const { all_cms = [] } = migrationData?.legacyCMSData || {};
     const cmsType = await getCmsType(); // Fetch the specific CMS type
 
@@ -106,28 +103,29 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       if (cmsType) {
         filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.cms_id === cmsType);
       }
-
-      if (validateArray(cmsFilter) || !isEmptyString(searchText)) {
-        const searchTextLower = searchText?.toLowerCase();
-        filteredCmsData = all_cms
-          .filter(({ parent }: ICMSType) => !cmsFilter?.length || cmsFilter?.includes(parent))
-          .filter(
-            ({ title, cms_id }: ICMSType) =>
-              title?.toLowerCase()?.includes(searchTextLower) ||
-              cms_id?.toLowerCase()?.includes(searchTextLower)
-          );
-      }
     }
 
-    setCmsData(filteredCmsData); // Set filtered CMS data
+    setCmsData(filteredCmsData); 
 
-    // Determine if a new card should be selected
-    const newSelectedCard =
-      filteredCmsData?.find((cms) => cms?.cms_id === selectedCard?.cms_id) ||
-      filteredCmsData[0] ||
-      null;
+    //Normal Search
+    const _filterCmsData = validateArray(all_cms)
+      ? filteredCmsData?.filter(
+          ({ title, cms_id }: ICMSType) =>
+            //Filtering Criteria base on SearchText
+            title?.toLowerCase()?.includes(searchText) || cms_id?.toLowerCase()?.includes(searchText)
+        )
+      : [];
 
-    if (newSelectedCard?.cms_id !== selectedCard?.cms_id) {
+    setCmsData(_filterCmsData);
+
+
+    
+
+    const newSelectedCard = filteredCmsData?.some((cms) => cms?.cms_id === cmsType)  ? filteredCmsData?.[0] : DEFAULT_CMS_TYPE
+      
+   setSelectedCard(newSelectedCard);
+   
+    if (newSelectedCard && selectedCard?.cms_id) {
       setSelectedCard(newSelectedCard);
 
       const newMigrationDataObj: INewMigration = {
@@ -140,12 +138,11 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
       updateNewMigrationData(newMigrationDataObj);
 
-      // API call for saving selected CMS, if a new card is selected
-      if (newSelectedCard) {
+      // API call for saving selected CMS, if a new card is selected 
         updateLegacyCMSData(selectedOrganisation?.value, projectId, {
           legacy_cms: newSelectedCard?.cms_id
         });
-      }
+      
     }
   };
 
@@ -158,9 +155,19 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     filterCMSData(searchText);
   }, [cmsFilter]);
 
-  return (
-    <div className="row bg-white action-content-wrapper p-3">
-      {/* <div className="col-12">
+  useEffect(()=>{
+   handleDirectSelection(selectedCard)
+  },[cmsType,selectedCard])
+
+  console.log("selected card : ", newMigrationData?.legacy_cms?.selectedCms?.title);
+  
+
+  return (    
+    <div>
+      
+      {(cmsType === 'sitecore' || cmsType === 'drupal') && (
+        <div className="row bg-white action-content-wrapper p-3">
+        <div className="col-12">
         <div className="service_list_search">
           <Search
             className="service_list_search_bar"
@@ -171,41 +178,29 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
             version="v2"
             type="secondary"
             onChange={(text: string) => {
-              setSearchText(text.toLowerCase());
-              filterCMSData(text.toLowerCase());
-            }}
+                        setSearchText(text?.toLowerCase());
+                        filterCMSData(text?.toLowerCase());
+                     }}
           />
-
-          <div className="service_list_search_button">
-            <FilterModal
-              title="CMS"
-              list={migrationData?.legacyCMSData?.cmsFilterList}
-              status={cmsFilterStatus}
-              applyFilter={applyCMSFilter}
-              isMulti={true}
-              canSearch={true}
-              searchPlaceholder="Search CMS"
-              iconSize="small"
-            />
-          </div>
         </div>
-        <Line type="solid" />
-      </div> */}
-      <div className="col-12">
+         <Line type="solid" />
+        </div>
+
+        <div className="col-12">
         {cmsData && validateArray(cmsData) ? (
           <div className="service_list">
             {cmsData?.map((data: ICMSType) => (
               <Card
                 key={data?.title}
                 data={data}
-                onCardClick={handleCardClick}
+                onCardClick={()=>{return}}
                 selectedCard={selectedCard}
                 idField="cms_id"
               />
             ))}
           </div>
         ) : (
-          <div className="action-search-not-found-container" style={{ maxHeight: '32rem' }}>
+        <div className="action-search-not-found-container" style={{ maxHeight: '32rem' }}>
             <EmptyState
               heading={<div className="empty_search_heading">No matching CMS found!</div>}
               img={SEARCH_ICON}
@@ -216,8 +211,17 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
               }
             />
           </div>
-        )}
-      </div>
+      )}
+      {isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) &&
+        <div className="col-12 bg-white p-3">
+          <span className="summary-title">Please enter the correct CMS</span>
+        </div>
+      }
+    </div>
+        </div>)
+      }
+        
+     
     </div>
   );
 };
