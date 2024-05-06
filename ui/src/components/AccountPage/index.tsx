@@ -8,7 +8,7 @@ import { AccountObj } from './accountPage.interface';
 import './index.scss';
 
 const AccountPage = (props: AccountObj): JSX.Element => {
-  const { heading, subtitle } = props.data;
+  const { heading, subtitle, copyrightText } = props.data;
 
   return (
     // eslint-disable-next-line react/no-unknown-property
@@ -33,6 +33,7 @@ const AccountPage = (props: AccountObj): JSX.Element => {
       </div>
       <div className="AccountPage__action">
         <div className="AccountPage__content">{props.children}</div>
+        <p className='copyright_text'>{copyrightText}</p>
       </div>
     </div>
   );

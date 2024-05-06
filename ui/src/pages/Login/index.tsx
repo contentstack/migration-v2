@@ -41,7 +41,7 @@ import './index.scss';
 
 import { AppContext } from '../../context/app/app.context';
 
-const Login: FC<IProps> = () => {
+const Login: FC<IProps> = (props: any) => {
   const [data, setData] = useState<LoginType>({});
 
   // ************* Fetch Login Data ************
@@ -61,7 +61,7 @@ const Login: FC<IProps> = () => {
 
   const { login, two_factor_authentication: twoFactorAuthentication } = data;
 
-  const accountData = { heading: data?.heading, subtitle: data?.subtitle };
+  const accountData = { heading: data?.heading, subtitle: data?.subtitle, copyrightText: data?.copyrightText };
 
   // ************* Context Here ************
   const { setAuthToken, setIsAuthenticated } = useContext(AppContext);
@@ -168,7 +168,7 @@ const Login: FC<IProps> = () => {
 
   const passwordValidation = (value: string): string | undefined => {
     // const passwordRegex = /[0-1A-Za-z]/
-    if (value && value?.length) {
+    if (value?.length) {
       return undefined;
     } else {
       return 'Please enter a password';
@@ -177,7 +177,7 @@ const Login: FC<IProps> = () => {
 
   // Function for TFA validation
   const TFAValidation = (value: string): string | undefined => {
-    if (value && value?.length) {
+    if (value?.length) {
       return undefined;
     } else {
       return 'Please enter two factor authentication code.';
@@ -260,7 +260,7 @@ const Login: FC<IProps> = () => {
       ) : (
         <div className="AccountForm AccountForm_login app-login">
           {login?.title && (
-            <Heading testId="cs-login-title" tagName="h1" className="mb-40" text={login?.title} />
+            <h2 className="mb-40">{login?.title}</h2>
           )}
           <div
             className='ml-16'
