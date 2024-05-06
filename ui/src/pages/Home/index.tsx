@@ -34,7 +34,7 @@ const Home = () => {
 
   return (
     <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
-      {heading && <Heading tagName="h1" text={heading} className="pb-2" />}
+      {heading && <Heading tagName="h1" text={heading} className="pb-2 large-font" />}
       {description && parse(description)}
 
       {cta && cta?.title && (

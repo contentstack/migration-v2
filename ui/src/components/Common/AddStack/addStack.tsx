@@ -78,7 +78,6 @@ const AddStack = (props: any): JSX.Element => {
         setIsLoading(false);
       });
   }, []);
-
   return (
     <>
       {isLoading ? (
@@ -110,7 +109,7 @@ const AddStack = (props: any): JSX.Element => {
                 <div className="ReactModal__add-stack">
                   <form onSubmit={handleSubmit}>
                     <ModalHeader title={addStackCMSData?.title} closeModal={props?.closeModal} />
-                    <ModalBody className="no-scroll">
+                    <ModalBody className="no-scroll selectWrapperBody">
                       <Field>
                         <ReactFinalField name="name" type="input">
                           {({ input, meta }): JSX.Element => {
@@ -204,6 +203,7 @@ const AddStack = (props: any): JSX.Element => {
                                   name="locale"
                                   width="300px"
                                   options={props?.locales}
+                                  maxMenuHeight={200}
                                   isClearable={true}
                                   version={'v2'}
                                   placeholder={addStackCMSData?.stack_locale_description}

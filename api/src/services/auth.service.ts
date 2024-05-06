@@ -24,7 +24,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
         method: "POST",
         url: `${config.CS_API[
           userData?.region as keyof typeof config.CS_API
-        ]!}/user-session`,
+        ]!}/user-session?include_orgs_roles=true`,
         headers: {
           "Content-Type": "application/json",
         },
@@ -47,6 +47,12 @@ const login = async (req: Request): Promise<LoginServiceType> => {
         data: err?.response?.data,
         status: err?.response?.status,
       };
+    }
+    const orgs = (res?.data?.user?.organizations || [])
+    ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
+    ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
+    if (!orgs.length) {
+      throw new BadRequestError(HTTP_TEXTS.ADMIN_LOGIN_ERROR);
     }
 
     if (res?.status === HTTP_CODES.SUPPORT_DOC)
