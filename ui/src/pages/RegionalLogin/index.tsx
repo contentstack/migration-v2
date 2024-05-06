@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import parse from 'html-react-parser';
 import { useNavigate } from 'react-router-dom';
-import { Heading } from '@contentstack/venus-components';
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -61,10 +60,10 @@ const RegionalLogin = () => {
   return (
     <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
       <div className="container mx-auto">
-        <div className="text-center">
-          {heading && <Heading tagName="h1" text={heading} className="pb-2 large-font" />}
+        <div className="text-center mt-4">
+          {heading && <h1>{heading}</h1>}
           {description && description != '' && (
-            <div className="textStone600 pt-3">{parse(description as string)}</div>
+            <div className="textStone600 pt-3">{parse(description)}</div>
           )}
         </div>
 
@@ -73,7 +72,7 @@ const RegionalLogin = () => {
             {regions &&
               validateArray(regions) &&
               regions?.map((region, index) => (
-                <div key={`${index.toString()}`} className="col-md-6 col-lg-3">
+                <div key={`${index.toString()}`} className="col-md-6 col-lg-3 mb-4">
                   <div className="card h-100">
                     <div className="cardBody">
                       <div className="mb-4 d-flex align-items-center">
@@ -89,7 +88,7 @@ const RegionalLogin = () => {
                         )}
                       </div>
                       {region?.region_title && (
-                        <Heading tagName="h3" text={region?.region_title} className="py-2" />
+                        <h2 className='py-2'>{region?.region_title}</h2>
                       )}
                     </div>
                     {region?.cta?.title && (
