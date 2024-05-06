@@ -45,7 +45,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [searchText, setSearchText] = useState<string>('');
   const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
   const [cmsFilter, setCmsFilter] = useState<string[]>([]);
-  const [cmsType, setCmsType] = useState<string | null>(null);
+  const [cmsType, setCmsType] = useState<string | null>(newMigrationData?.legacy_cms?.selectedCms?.title?.toLowerCase());
 
   const { projectId = '' } = useParams();
 
