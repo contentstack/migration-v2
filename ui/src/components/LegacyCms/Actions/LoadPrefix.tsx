@@ -43,7 +43,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
   /****  ALL METHODS HERE  ****/
 
   //Handle Prefix Change
-  const handleOnBlur = (e: MouseEvent) => {
+  const handleOnBlur = async(e: MouseEvent) => {
     e.preventDefault();
     if (!isEmptyString(prefix) && !isError && isCheckedBoxChecked) {
       const newMigrationDataObj: INewMigration = {
@@ -60,8 +60,8 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       setIsError(false);
 
       //API call for saving Affix
-      updateAffixData(selectedOrganisation?.value, projectId, { affix: prefix });
-      affixConfirmation(selectedOrganisation?.value, projectId, {
+      await updateAffixData(selectedOrganisation?.value, projectId, { affix: prefix });
+      await affixConfirmation(selectedOrganisation?.value, projectId, {
         affix_confirmation: isCheckedBoxChecked
       });
 
