@@ -1,7 +1,7 @@
 // Libraries
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heading, Button } from '@contentstack/venus-components';
+import { Button } from '@contentstack/venus-components';
 import parse from 'html-react-parser';
 
 // Services
@@ -34,12 +34,13 @@ const Home = () => {
 
   return (
     <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
-      {heading && <Heading tagName="h1" text={heading} className="pb-2 large-font" />}
+      {heading && <h1 className="pb-3">{heading}</h1>}
+
       {description && parse(description)}
 
-      {cta && cta?.title && (
+      {cta?.title && (
         <Link to={cta?.url as string} className="btn primary-btn pb-0 mt-3">
-          <Button version="v2">{cta?.title}</Button>
+          <Button version="v2" aria-label={cta?.title} tabIndex={0}>{cta?.title}</Button>
         </Link>
       )}
     </div>

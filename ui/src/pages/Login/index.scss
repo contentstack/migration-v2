@@ -56,28 +56,6 @@
       width: 26.25rem;
     }
   }
-  /* &.tf-authentication {
-		.app-login {
-			width: auto;
-		}
-		.Field {
-			margin-left: -$space-10;
-		}
-		.tf-authentication-helptext {
-			font-size:$size-font-small;
-			font-weight: $font-weight-regular;
-			margin: $space-20 0 $space-40;
-			span {
-				color: $color-font-link;
-				cursor: pointer;
-			}
-		}
-	} */
-  /* &__tabs-content {
-		.Field {
-			margin-left: -$space-10;
-		}
-	} */
   &__cnf-text {
     color: $color-font-black;
     font-size: $size-font-small;
@@ -147,14 +125,6 @@
     }
   }
 
-  // &__tab_content {
-  // 	display: none;
-
-  // 	&_active {
-  // 	display: block;
-  // 	}
-  // }
-
   &__actions {
     width: 26.25rem;
     .Button {
@@ -209,91 +179,11 @@
     }
   }
 }
-
-/* DataCenter Dropdown CSS (Do NOT REMOVE)*/
-
-/* .AccountForm--login {
-	div {
-		.dropdown {
-			.globeIcon {
-				left: 5.75rem;
-				position: absolute;
-				top: $space-8;
-			}
-			&:hover {
-				.globeIcon {
-					path {
-						fill: $color-brand-primary-base;
-					}
-				}
-			}
-		}
-	}
+.pre-text-color {
+  color: $color-black-2121;
 }
-
-.DataCenterDropdown {
-	align-items: 'center';
-	border: 1px solid $color-border-light;
-	border-radius: $radii-4;
-	display: flex;
-	height: $space-30;
-	justify-content: center;
-	margin-left: 1.688rem;
-	.Dropdown__header{
-		padding: 0 $space-10;
-	}
-	&:hover {
-		border: 1px solid $color-brand-primary-base;
-		.Dropdown__header__value {
-			color: $color-brand-primary-base;
-		}
-		.Dropdown__chevron {
-			path {
-				fill: $color-brand-primary-base;
-			}
-		}
-		.Dropdown__header__value {
-			svg {
-				path {
-					fill: $color-brand-primary-base;
-				}
-			}
-		}
-	}
-	.Dropdown__header__value {
-		font-size: $size-font-tiny;
-		font-weight: $font-weight-medium;
-		height: 0.75rem;
-		line-height: 0.832rem;
-	}
-	&.Dropdown--primary {
-		> .Dropdown__menu--primary {
-			left: 0;
-			top: $space-30;
-			width: 8.125rem;
-			li {
-				font-size: $size-font-medium;
-				font-weight: $font-weight-regular;
-				svg {
-					display: none;
-				}
-			}
-		}
-	}
-	&.Dropdown--open {
-		border: 1px solid $color-brand-primary-base;
-		.Dropdown__header__value {
-			color: $color-brand-primary-base;
-			svg {
-				path {
-					fill: $color-brand-primary-base;
-				}
-			}
-		}
-		.toggle-icon {
-			path {
-				fill: $color-brand-primary-base !important;
-			}
-		}
-	}
-} */
+.send-sms {
+  span {
+    line-height: 1!important;
+  }
+}

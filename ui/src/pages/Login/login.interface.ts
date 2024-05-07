@@ -7,6 +7,7 @@ export interface LoginType {
   login?: Login;
   subtitle?: string;
   two_factor_authentication?: TFA;
+  copyrightText?: string;
 }
 interface Login {
   cta: CTA;
