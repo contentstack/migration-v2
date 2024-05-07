@@ -46,20 +46,21 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   /****  ALL METHODS HERE  ****/
 
-  const handleBtnClick = (e: MouseEvent) => {
+  const handleBtnClick = async(e: MouseEvent) => {
     e.preventDefault();
     if (!isEmptyString(selectedCard?.fileformat_id) && isCheckedBoxChecked) {
       updateNewMigrationData({
         ...newMigrationData,
         legacy_cms: {
-          ...newMigrationData.legacy_cms,
+          ...newMigrationData?.legacy_cms,
           isFileFormatCheckboxChecked: isCheckedBoxChecked
         }
       });
-      updateFileFormatData(selectedOrganisation.value, projectId, {
+      await updateFileFormatData(selectedOrganisation?.value, projectId, {
         file_format: selectedCard?.fileformat_id
       });
-      fileformatConfirmation(selectedOrganisation?.value, projectId, {
+      
+      await fileformatConfirmation(selectedOrganisation?.value, projectId, {
         fileformat_confirmation: isCheckedBoxChecked
       });
 
@@ -78,16 +79,16 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   useEffect(() => {
     if (validateArray(allowed_file_formats)) {
       const initialFormat = {
-        description: allowed_file_formats[0]?.description,
-        group_name: allowed_file_formats[0]?.group_name,
-        title: allowed_file_formats[0]?.title,
-        fileformat_id: allowed_file_formats[0]?.fileformat_id
+        description: allowed_file_formats?.[0]?.description,
+        group_name: allowed_file_formats?.[0]?.group_name,
+        title: allowed_file_formats?.[0]?.title,
+        fileformat_id: allowed_file_formats?.[0]?.fileformat_id
       };
       setSelectedCard(initialFormat);
       const newMigrationDataObj = {
         ...newMigrationData,
         legacy_cms: {
-          ...newMigrationData.legacy_cms,
+          ...newMigrationData?.legacy_cms,
           selectedFileFormat: initialFormat
         }
       };
