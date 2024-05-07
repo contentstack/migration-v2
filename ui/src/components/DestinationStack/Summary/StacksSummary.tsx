@@ -15,7 +15,7 @@ interface StacksSummaryProps {
 const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
   const { newMigrationData } = useContext(AppContext);
   const [selectedStack, setSelectedStack] = useState<IDropDown>(
-    !isEmptyString(newMigrationData.destination_stack.selectedOrg.value)
+    !isEmptyString(newMigrationData?.destination_stack?.selectedOrg?.value)
       ? newMigrationData?.destination_stack?.selectedStack
       : DEFAULT_DROPDOWN
   );

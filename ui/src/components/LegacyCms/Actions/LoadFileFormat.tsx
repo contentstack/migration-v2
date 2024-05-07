@@ -56,7 +56,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           isFileFormatCheckboxChecked: isCheckedBoxChecked
         }
       });
-      await updateFileFormatData(selectedOrganisation.value, projectId, {
+      await updateFileFormatData(selectedOrganisation?.value, projectId, {
         file_format: selectedCard?.fileformat_id
       });
       
