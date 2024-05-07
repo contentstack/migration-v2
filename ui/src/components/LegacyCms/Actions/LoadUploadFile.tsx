@@ -53,7 +53,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   }`;
   useEffect(() => {
     handleOnFileUploadCompletion();
-  }, [newMigrationData]);
+  }, []);
 
   return (
     <div className="row">
