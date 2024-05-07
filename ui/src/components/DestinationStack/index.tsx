@@ -60,13 +60,13 @@ const DestinationStackComponent = ({
   };
 
   const handleOnClick = async (event: MouseEvent) => {
-    event.preventDefault();
+    event?.preventDefault();
     //Update Data in backend
     await updateDestinationStack(selectedOrganisation?.value, projectId, {
       stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
     });
 
-    const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+    const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
     if (res) {
       const url = `/projects/${projectId}/migration/steps/3`;
       navigate(url, { replace: true });
@@ -77,7 +77,7 @@ const DestinationStackComponent = ({
     //Update New Migration data
 
     const selectedOrganisationData = validateArray(organisationsList)
-      ? organisationsList.find((org: IDropDown) => org.value === org_id)
+      ? organisationsList?.find((org: IDropDown) => org?.value === org_id)
       : selectedOrganisation;
 
     let selectedStackData: IDropDown = {
@@ -90,13 +90,13 @@ const DestinationStackComponent = ({
     //If stack is already selected and exist in backend, then fetch all stack list and filter selected stack.
     if (!isEmptyString(destination_stack)) {
       const stackData: any = await getAllStacksInOrg(
-        selectedOrganisationData?.value || selectedOrganisation.value
+        selectedOrganisationData?.value || selectedOrganisation?.value
       );
 
       const stack =
         validateArray(stackData?.data?.stacks) &&
         stackData?.data?.stacks?.find(
-          (stack: StackResponse) => stack.api_key === destination_stack
+          (stack: StackResponse) => stack?.api_key === destination_stack
         );
 
       if (stack) {
@@ -125,7 +125,7 @@ const DestinationStackComponent = ({
 
     //Update newMigration Data for destination stack
     const newMigData: IDestinationStack = {
-      ...newMigrationData.destination_stack,
+      ...newMigrationData?.destination_stack,
       selectedOrg: selectedOrganisationData || selectedOrganisation,
       selectedStack: selectedStackData
     };
@@ -137,7 +137,7 @@ const DestinationStackComponent = ({
   useEffect(() => {
     const fetchCMSData = async () => {
       //check if offline CMS data field is set to true, if then read data from cms data file.
-      const data = await getCMSDataFromFile(CS_ENTRIES.DESTINATION_STACK);
+      const data = await getCMSDataFromFile(CS_ENTRIES?.DESTINATION_STACK);
 
       //fetch Legacy CMS Component Data from Contentstack CMS
       //const data = await getEntries({ contentType: CS_ENTRIES.DESTINATION_STACK })
@@ -151,10 +151,10 @@ const DestinationStackComponent = ({
 
       const destinationStackDataMapped: IDestinationStackComponent = {
         ...data,
-        all_steps: getDestinationStackSteps(isCompleted, isMigrationLocked, data.all_steps)
+        all_steps: getDestinationStackSteps(isCompleted, isMigrationLocked, data?.all_steps)
       };
 
-      updateDestinationStackData();
+      //updateDestinationStackData();
 
       updateMigrationData({ destinationStackData: destinationStackDataMapped });
 
@@ -181,14 +181,14 @@ const DestinationStackComponent = ({
   useEffect(() => {
     if (autoVerticalStepperComponent?.current) {
       if (internalActiveStepIndex > -1) {
-        autoVerticalStepperComponent.current.handleDynamicStepChange(internalActiveStepIndex);
+        autoVerticalStepperComponent?.current?.handleDynamicStepChange(internalActiveStepIndex);
       }
 
       if (
         internalActiveStepIndex > -1 &&
         internalActiveStepIndex === migrationData?.destinationStackData?.all_steps?.length - 1
       ) {
-        autoVerticalStepperComponent.current.handleDynamicStepChange(internalActiveStepIndex, true);
+        autoVerticalStepperComponent?.current?.handleDynamicStepChange(internalActiveStepIndex, true);
       }
     }
   }, [internalActiveStepIndex]);

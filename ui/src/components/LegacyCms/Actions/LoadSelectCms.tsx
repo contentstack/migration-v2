@@ -84,24 +84,19 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     updateCMSFilters(cmsFilter);
   };
 
-  const getCmsType = async () => {
-    const res: any = await fileValidation();
-    const cmsType = res?.data?.file_details?.cmsType?.toLowerCase();
-    setCmsType(cmsType);
-    return cmsType;
-  };
+ 
   // Filter CMS Data
   const filterCMSData = async (searchText: string) => {
    
     const { all_cms = [] } = migrationData?.legacyCMSData || {};
-    const cmsType = await getCmsType(); // Fetch the specific CMS type
+    const cmstype = cmsType // Fetch the specific CMS type
 
     let filteredCmsData: ICMSType[] = [];
-    if (isEmptyString(searchText) && !validateArray(cmsFilter) && !cmsType) {
+    if (isEmptyString(searchText) && !validateArray(cmsFilter) && !cmstype) {
       filteredCmsData = all_cms;
     } else {
-      if (cmsType) {
-        filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.cms_id === cmsType);
+      if (cmstype) {
+        filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.cms_id === cmstype);
       }
     }
 
@@ -121,7 +116,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
     
 
-    const newSelectedCard = filteredCmsData?.some((cms) => cms?.cms_id === cmsType)  ? filteredCmsData?.[0] : DEFAULT_CMS_TYPE
+    const newSelectedCard = filteredCmsData?.some((cms) => cms?.cms_id === cmstype)  ? filteredCmsData?.[0] : DEFAULT_CMS_TYPE
       
    setSelectedCard(newSelectedCard);
    
@@ -139,9 +134,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       updateNewMigrationData(newMigrationDataObj);
 
       // API call for saving selected CMS, if a new card is selected 
-        updateLegacyCMSData(selectedOrganisation?.value, projectId, {
-          legacy_cms: newSelectedCard?.cms_id
-        });
+        // updateLegacyCMSData(selectedOrganisation?.value, projectId, {
+        //   legacy_cms: newSelectedCard?.cms_id
+        // });
       
     }
   };
@@ -157,9 +152,17 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
   useEffect(()=>{
    handleDirectSelection(selectedCard)
-  },[cmsType,selectedCard])
-  
+  },[cmsType,selectedCard]);
 
+  useEffect(() => {
+    const getCmsType = async () => {
+      const res: any = await fileValidation();
+      const cmsType = res?.data?.file_details?.cmsType?.toLowerCase();
+      setCmsType(cmsType);
+      return cmsType;
+    }; 
+  }, []); 
+  
   return (    
     <div>
       

@@ -6,9 +6,7 @@ import {
   Field,
   FieldLabel,
   TextInput,
-  Heading,
   ValidationMessage,
-  Paragraph,
   Link,
   Notification
 } from '@contentstack/venus-components';
@@ -23,8 +21,6 @@ import {
 } from '../../utilities/constants';
 import {
   failtureNotification,
-  clearMarks,
-  clearMeasures,
   setDataInLocalStorage
 } from '../../utilities/functions';
 
@@ -43,9 +39,7 @@ import './index.scss';
 
 import { AppContext } from '../../context/app/app.context';
 
-// const { account_page } = mainString;
-
-const Login: FC<IProps> = (props: any) => {
+const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
 
   // ************* Fetch Login Data ************
@@ -65,7 +59,7 @@ const Login: FC<IProps> = (props: any) => {
 
   const { login, two_factor_authentication: twoFactorAuthentication } = data;
 
-  const accountData = { heading: data?.heading, subtitle: data?.subtitle };
+  const accountData = { heading: data?.heading, subtitle: data?.subtitle, copyrightText: data?.copyrightText };
 
   // ************* Context Here ************
   const { setAuthToken, setIsAuthenticated } = useContext(AppContext);
@@ -77,18 +71,9 @@ const Login: FC<IProps> = (props: any) => {
   const location = useLocation();
 
   // Get the region
-  const urlParams = new URLSearchParams(location.search);
+  const urlParams = new URLSearchParams(location?.search);
   const region = urlParams?.get?.('region');
-
-  // ************* ALL UseEffect Here ************
-  useEffect(() => {
-    clearMarks('', true);
-    clearMeasures('', true);
-    if (props?.error?.error_message) {
-      failtureNotification(props?.error?.error_message);
-      props.setError();
-    }
-  }, []);
+  
 
   // ************* send SMS token ************
   const sendSMS = async () => {
@@ -151,7 +136,7 @@ const Login: FC<IProps> = (props: any) => {
         password:
           loginStates?.user?.password !== '' ? loginStates?.user?.password : values?.password,
         region: region,
-        tfa_token: values?.tfa_token || ''
+        tfa_token: values?.tfa_token ?? ''
       }
     };
 
@@ -160,7 +145,7 @@ const Login: FC<IProps> = (props: any) => {
       setLoginStates((prev) => ({ ...prev, tfa: true }));
     }
 
-    if (response?.status === 422) {
+    if (response?.status === 104 || response?.status === 400 || response?.status === 422) {
       failtureNotification(response?.data?.error_message || response?.data?.error?.message);
     }
 
@@ -181,31 +166,28 @@ const Login: FC<IProps> = (props: any) => {
 
   const passwordValidation = (value: string): string | undefined => {
     // const passwordRegex = /[0-1A-Za-z]/
-    if (value && value.length) {
+    if (value?.length) {
       return undefined;
     } else {
       return 'Please enter a password';
     }
   };
 
+  // Function for TFA validation
   const TFAValidation = (value: string): string | undefined => {
-    if (value && value.length) {
+    if (value?.length) {
       return undefined;
     } else {
-      return 'Please enter two factor authentication code.';
+      return 'Please enter Two Factor Authentication code.';
     }
   };
 
   return (
     <AccountPage data={accountData}>
-      {loginStates.tfa ? (
+      {loginStates?.tfa ? (
         <div className="AccountForm AccountForm_login">
-          <Heading
-            testId="cs-tfa-title"
-            tagName="h1"
-            className="mb-40"
-            text={twoFactorAuthentication?.title}
-          />
+          {twoFactorAuthentication?.title && <h2 className="mb-40">{twoFactorAuthentication?.title}</h2> }
+
           <FinalForm
             onSubmit={onSubmit}
             render={({ handleSubmit }): JSX.Element => (
@@ -214,29 +196,31 @@ const Login: FC<IProps> = (props: any) => {
                   <FinalField name="tfa_token" validate={TFAValidation}>
                     {({ input, meta }): JSX.Element => (
                       <>
-                        <FieldLabel
-                          testId="cs-tfa-token"
-                          className="mb-2"
-                          version="v2"
-                          htmlFor="tfa_token"
-                        >
-                          {twoFactorAuthentication?.security_code?.title}
-                        </FieldLabel>
+                        {twoFactorAuthentication?.security_code?.title && (
+                          <FieldLabel
+                            testId="cs-tfa-token"
+                            className="mb-2"
+                            version="v2"
+                            htmlFor="tfa_token"
+                          >
+                            {twoFactorAuthentication?.security_code?.title}
+                          </FieldLabel>
+                        )}
                         <TextInput
                           {...input}
                           version="v2"
                           placeholder={twoFactorAuthentication?.security_code?.placeholder}
-                          error={meta.error && meta.touched}
+                          error={meta?.error && meta?.touched}
                           width="large"
                           testId="cs-tfa-token-input-field"
                         />
-                        {meta.error && meta.touched && (
+                        {meta?.error && meta?.touched && (
                           <ValidationMessage
                             testId="cs-tfa-token-error"
                             className="mt-2"
                             version="v2"
                           >
-                            {meta.error}
+                            {meta?.error}
                           </ValidationMessage>
                         )}
                       </>
@@ -244,27 +228,34 @@ const Login: FC<IProps> = (props: any) => {
                   </FinalField>
                 </Field>
                 <div className="flex-v-center mb-40">
-                  <Paragraph variant="p1" text={twoFactorAuthentication?.send_sms?.pre_link_text} />
-                  <Link
-                    className="ml-8"
-                    testId="cs-tfa-send-sms"
-                    cbOnClick={sendSMS}
-                    fontWeight="semi-bold"
-                    underline={true}
-                  >
-                    {twoFactorAuthentication?.send_sms?.link_text}
-                  </Link>
+                  {twoFactorAuthentication?.send_sms?.pre_link_text && 
+                    <p className='pre-text-color'>{twoFactorAuthentication?.send_sms?.pre_link_text}</p> 
+                  }
+                  {twoFactorAuthentication?.send_sms?.link_text && (
+                    <Link
+                      className="ml-8 send-sms"
+                      testId="cs-tfa-send-sms"
+                      cbOnClick={sendSMS}
+                      fontWeight="semi-bold"
+                      underline={true}
+                    >
+                      {twoFactorAuthentication?.send_sms?.link_text}
+                    </Link>
+                  )}
                 </div>
-                <Button
-                  version="v2"
-                  className="AccountForm__actions AccountForm__actions__verify_button"
-                  isFullWidth={true}
-                  testId="cs-verfication"
-                  type="submit"
-                  icon="v2-Check"
-                >
-                  {twoFactorAuthentication?.cta?.title}
-                </Button>
+                {twoFactorAuthentication?.cta?.title && (
+                  <Button
+                    version="v2"
+                    className="AccountForm__actions AccountForm__actions__verify_button"
+                    isFullWidth={true}
+                    testId="cs-verfication"
+                    type="submit"
+                    icon="v2-Check"
+                    tabIndex={0}
+                  >
+                    {twoFactorAuthentication?.cta?.title}
+                  </Button>
+                )}
               </form>
             )}
           />
@@ -272,17 +263,13 @@ const Login: FC<IProps> = (props: any) => {
       ) : (
         <div className="AccountForm AccountForm_login app-login">
           {login?.title && (
-            <Heading testId="cs-login-title" tagName="h1" className="mb-40" text={login?.title} />
+            <h2 className="mb-40">{login?.title}</h2>
           )}
           <div
-            className={`ml-16 AccountForm__tab_content ${
-              loginStates.activeTab === 0 ? 'AccountForm__tab_content_active' : ''
-            }`}
-            data-testid={loginStates.activeTab === 0 ? 'account-tab-content-active' : ''}
+            className='ml-16'
           >
             <FinalForm
               onSubmit={onSubmit}
-              // onChange={onChange}
               render={({ handleSubmit }): JSX.Element => {
                 return (
                   <div className="login-wrapper">
@@ -292,24 +279,26 @@ const Login: FC<IProps> = (props: any) => {
                           {({ input, meta }): JSX.Element => {
                             return (
                               <>
-                                <FieldLabel
-                                  testId="cs-login-email"
-                                  className="mb-2"
-                                  required={true}
-                                  version="v2"
-                                  htmlFor="email"
-                                >
-                                  {login?.email}
-                                </FieldLabel>
+                                {login?.email && (
+                                  <FieldLabel
+                                    testId="cs-login-email"
+                                    className="mb-2"
+                                    required={true}
+                                    version="v2"
+                                    htmlFor="email"
+                                  >
+                                    {login?.email}
+                                  </FieldLabel>
+                                )}
                                 <TextInput
                                   {...input}
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
-                                    input.onChange(event);
+                                    input?.onChange(event);
                                     setLoginStates((prevState: IStates) => ({
                                       ...prevState,
                                       user: {
-                                        ...prevState.user,
-                                        email: event.target.value
+                                        ...prevState?.user,
+                                        email: event?.target?.value
                                       }
                                     }));
                                   }}
@@ -320,7 +309,7 @@ const Login: FC<IProps> = (props: any) => {
                                   type="email"
                                   data-testid="cs-login-email-input-field"
                                   placeholder={login?.placeholder?.email}
-                                  error={(meta.error || meta.submitError) && meta.touched}
+                                  error={(meta?.error || meta?.submitError) && meta?.touched}
                                 />
                                 {meta.error && meta.touched && (
                                   <ValidationMessage
@@ -328,7 +317,7 @@ const Login: FC<IProps> = (props: any) => {
                                     className="mt-2"
                                     version="v2"
                                   >
-                                    {meta.error}
+                                    {meta?.error}
                                   </ValidationMessage>
                                 )}
                               </>
@@ -342,24 +331,26 @@ const Login: FC<IProps> = (props: any) => {
                           {({ input, meta }): JSX.Element => {
                             return (
                               <>
-                                <FieldLabel
-                                  testId="cs-login-password"
-                                  className="mb-2"
-                                  required={true}
-                                  version="v2"
-                                  htmlFor="password"
-                                >
-                                  {login?.password}
-                                </FieldLabel>
+                                {login?.password && (
+                                  <FieldLabel
+                                    testId="cs-login-password"
+                                    className="mb-2"
+                                    required={true}
+                                    version="v2"
+                                    htmlFor="password"
+                                  >
+                                    {login?.password}
+                                  </FieldLabel>
+                                )}
                                 <TextInput
                                   {...input}
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
-                                    input.onChange(event);
+                                    input?.onChange(event);
                                     setLoginStates((prevState: IStates) => ({
                                       ...prevState,
                                       user: {
-                                        ...prevState.user,
-                                        password: event.target.value
+                                        ...prevState?.user,
+                                        password: event?.target?.value
                                       }
                                     }));
                                   }}
@@ -371,15 +362,15 @@ const Login: FC<IProps> = (props: any) => {
                                   version="v2"
                                   testId="cs-login-password-input-field"
                                   placeholder={login?.placeholder?.password}
-                                  error={(meta.error || meta.submitError) && meta.touched}
+                                  error={(meta?.error || meta?.submitError) && meta?.touched}
                                 />
-                                {meta.error && meta.touched && (
+                                {meta?.error && meta?.touched && (
                                   <ValidationMessage
                                     testId="cs-login-password-error"
                                     className="mt-2"
                                     version="v2"
                                   >
-                                    {meta.error}
+                                    {meta?.error}
                                   </ValidationMessage>
                                 )}
                               </>
@@ -399,7 +390,7 @@ const Login: FC<IProps> = (props: any) => {
                             buttonType="primary"
                             type="submit"
                             icon="v2-Login"
-                            isLoading={props.loading}
+                            tabIndex={0}
                           >
                             {login?.cta?.title}
                           </Button>
