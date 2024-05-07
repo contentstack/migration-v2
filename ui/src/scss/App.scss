@@ -280,6 +280,11 @@
 html,
 body {
   color: $color-font-base;
+  font-family: $font-family-primary;
+  line-height: 1.3rem;
+  span, p {
+    line-height: $line-height-default!important;
+  }
 }
 h1,
 h2,
@@ -290,13 +295,21 @@ h6 {
   color: $color-font-black;
 }
 p {
-  color: $color-font-base;
+  color: $color-font-gray;
+  line-height: $line-height-default!important;
+  margin: 0;
 }
 h1 {
-  &.large-font {
-    font-size: 2.125rem;
-    font-weight: $font-weight-bold;
-  }
+  color: $color-font-black;
+  font-size: $size-font-6-xl;
+  font-weight: $font-weight-bold;
+  line-height: 1.1;
+}
+h2 {
+  color: $color-base-black-base;
+  font-size: $size-font-5-xl;
+  font-weight: $font-weight-semi-bold;
+  line-height: 1.5;
 }
 .pb-32 {
   padding-bottom: $px-32;
