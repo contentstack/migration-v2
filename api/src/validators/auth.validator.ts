@@ -50,6 +50,6 @@ export default checkSchema({
       errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "2FA Token"),
       bail: true,
     },
-    trim: true,
+    trim: false,
   },
 });
