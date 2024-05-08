@@ -3,9 +3,8 @@ import { Icon, Select, cbModal } from '@contentstack/venus-components';
 
 import { AppContext } from '../../../context/app/app.context';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
-import { isEmptyString, validateArray, validateObject } from '../../../utilities/functions';
+import { isEmptyString, validateArray } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
-import { getAllLocales } from '../../../services/api/user.service';
 import { StackResponse } from '../../../services/api/service.interface';
 import AddStack, { Stack } from '../../../components/Common/AddStack/addStack';
 import { updateDestinationStack } from '../../../services/api/migration.service';
@@ -141,21 +140,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       newMigrationData?.destination_stack?.selectedOrg?.value
     ); //org id will always be there
 
-
-    //fetch all locales
-    const response = await getAllLocales(selectedOrganisation?.value); //org id will always be there
-    const rawMappedLocalesMapped =
-      validateObject(response?.data) && response?.data?.locales
-        ? Object?.keys(response?.data?.locales)?.map((key) => ({
-            uid: key,
-            label: response?.data?.locales[key],
-            value: key,
-            locale: key,
-            created_at: key
-          }))
-        : [];
-    setAllLocales(rawMappedLocalesMapped);
-
     const stackArray = validateArray(stackData?.data?.stacks)
       ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
           label: stack?.name,
@@ -175,12 +159,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     //Set selected Stack
     const selectedStackData = validateArray(stackArray)
-      ? stackArray.find(
-          (stack: IDropDown) =>
-            stack.value === newMigrationData?.destination_stack?.selectedStack?.value
-        )
-      : DEFAULT_DROPDOWN;
-
+    ? stackArray.find(
+      (stack: IDropDown) =>
+        stack.value === newMigrationData?.destination_stack?.selectedStack?.value
+    )
+    : DEFAULT_DROPDOWN;
+  
     setSelectedStack(selectedStackData);
 
     const newMigrationDataObj: INewMigration = {
@@ -198,7 +182,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   useEffect(() => {
     fetchData();
   }, []);
-  
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
@@ -209,6 +192,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           }}
           onSubmit={handleOnSave}
           defaultValues={defaultStack}
+          selectedOrganisation=  {selectedOrganisation?.value}
           {...props}
         />
       ),
