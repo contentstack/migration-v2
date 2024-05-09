@@ -10,6 +10,9 @@ import './index.scss';
 const AccountPage = (props: AccountObj): JSX.Element => {
   const { heading, subtitle, copyrightText } = props.data;
 
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1
+
   return (
     // eslint-disable-next-line react/no-unknown-property
     <div className="AccountPage" heap-ignore="true">
@@ -33,7 +36,7 @@ const AccountPage = (props: AccountObj): JSX.Element => {
       </div>
       <div className="AccountPage__action">
         <div className="AccountPage__content">{props.children}</div>
-        <p className='copyright_text'>{copyrightText}</p>
+        <p className='copyright_text'>{`© ${previousYear}-${currentYear} ${copyrightText}`}</p>
       </div>
     </div>
   );
