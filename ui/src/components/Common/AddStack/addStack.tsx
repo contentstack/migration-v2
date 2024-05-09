@@ -93,7 +93,11 @@ const AddStack = (props: any): JSX.Element => {
           }))
         : [];
         setAllLocales(rawMappedLocalesMapped);
-      }); //org id will always be there
+      })
+      .catch((err: any) => {
+        console.error(err);
+      });
+      //org id will always be there
   }, []);
   return (
     <>

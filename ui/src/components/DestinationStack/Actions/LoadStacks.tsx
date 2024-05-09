@@ -161,7 +161,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     const selectedStackData = validateArray(stackArray)
     ? stackArray.find(
       (stack: IDropDown) =>
-        stack.value === newMigrationData?.destination_stack?.selectedStack?.value
+        stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
     )
     : DEFAULT_DROPDOWN;
   
@@ -170,7 +170,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       destination_stack: {
-        ...newMigrationData.destination_stack,
+        ...newMigrationData?.destination_stack,
         selectedStack: selectedStackData
       }
     };
