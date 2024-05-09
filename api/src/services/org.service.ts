@@ -48,15 +48,10 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
         status: err.response.status,
       };
     }
-
+    let locale = await getStackLocal(token_payload, res.data.stacks);
     return {
       data: {
-        stacks:
-          res.data.stacks?.map((stack: any) => ({
-            name: stack.name,
-            api_key: stack.api_key,
-            master_locale: stack.master_locale,
-          })) || [],
+        stacks: locale,
       },
       status: res.status,
     };
@@ -279,6 +274,62 @@ const getStackStatus = async (req: Request) => {
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
+};
+//get all locals of particular stack
+const getStackLocal = async (token_payload: any, data: any) => {
+  const srcFun = "getStackLocal";
+  return new Promise(async (resolve, reject) => {
+    const authtoken = await getAuthtoken(
+      token_payload?.region,
+      token_payload?.user_id
+    );
+    let stacks = [];
+    for (let stack of data) {
+      const [err, res] = await safePromise(
+        https({
+          method: "GET",
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/locales`,
+          headers: {
+            api_key: stack.api_key,
+            authtoken,
+          },
+        })
+      );
+      if (err) {
+        logger.error(
+          getLogMessage(
+            srcFun,
+            HTTP_TEXTS.CS_ERROR,
+            token_payload,
+            err.response.data
+          )
+        );
+
+        return {
+          data: err.response.data,
+          status: err.response.status,
+        };
+      }
+      let localesArr:any =[]
+      res?.data?.locales.map((lang:any)=>{
+        return localesArr.push({
+          code:lang.code,
+          name:lang.name
+        })
+      })
+
+      let obj = {
+        name: stack.name,
+        api_key: stack.api_key,
+        master_locale: stack.master_locale,
+        locales: localesArr
+      };
+      stacks.push(obj);
+    }
+    resolve(stacks);
+  });
 };
 
 export const orgService = {
