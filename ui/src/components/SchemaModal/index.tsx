@@ -9,6 +9,7 @@ import { FieldMapType } from '../ContentMapper/contentMapper.interface';
 // Styles
 import './index.scss';
 
+// Function for get icons
 const getTopLevelIcons = (field: FieldMapType) => {
   const icons: Icons = {
     title: 'StarSmall',
@@ -61,7 +62,7 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['rte'];
   }
 
-  if (field?.ContentstackFieldType === 'JSON Rich Text Editor') {
+  if (field?.ContentstackFieldType === 'JSON Rich Text Editor' || field?.ContentstackFieldType === 'json') {
     return icons['jsonRte'];
   }
 
@@ -85,31 +86,156 @@ const getTopLevelIcons = (field: FieldMapType) => {
 };
 
 const TreeView = ({ schema = [] }: schemaType) => {
-  const [list, setList] = useState<FieldMapType[]>([]);
+  const [nestedList, setNestedList] = useState<FieldMapType[]>([]);
 
   useEffect(() => {
-    setList(schema);
+    let groupId = ''
+    const data: FieldMapType[] = []
+    schema?.forEach((field) => {
+      if (field?.ContentstackFieldType === "group") {
+        groupId = field.uid 
+        data?.push({...field, child: []})
+      }
+      else{
+        if(field?.uid?.startsWith(groupId+'.')){
+          const obj = data[data?.length - 1]
+          if(Object.prototype.hasOwnProperty.call(obj, 'child')){
+            obj?.child?.push(field)
+          }
+          else{
+            obj.child = [field]
+          }
+        }
+        else{
+          data.push({...field, child: []})
+        }
+      }
+    });
+    setNestedList(data);
   }, [schema]);
+
+  // Check if schema is nested
+  const hasNestedValue = (field: FieldMapType) => field && field?.child && field?.child?.length > 0;
+
+  // Remove Group name from its child
+  const getChildFieldName = (text?: string, groupName?: string) => {
+    if (text?.startsWith(groupName+' > ')) {
+      return text?.replace(groupName+' > ', '')
+    }
+  };
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    if (document?.querySelector('.iconsholder.active')) {
+      document?.querySelector('.iconsholder.active')
+        ?.classList.remove('active');
+    }
+    if (event?.target instanceof HTMLElement) {
+      if (event?.target?.classList.contains('icons')) {
+        if (event?.target?.parentElement?.parentElement?.querySelector('ul')) {
+          event?.target?.parentElement?.parentElement
+            ?.querySelector('ul')
+            ?.classList.toggle('close');
+        }
+
+        if (event?.target?.querySelector('.chevron')) {
+          event?.target?.querySelector('.chevron')?.classList.toggle('close');
+        }
+      }
+
+      event?.target?.parentElement?.classList.add('active');
+    }
+  };
+  
+  const generateNestedOutline = (item: FieldMapType, index: number) => {
+    return (
+      <ul
+        className={item && item?.child && item?.child?.length > 0 ? '' : 'close'}
+      >
+        {item?.child?.map((field: FieldMapType, nestedIndex: number) => {
+          let fieldname = '';
+          if (field?.uid) {
+            fieldname = field?.uid?.replace(/\.+/g, '_');
+          }
+          return (
+            <li key={`${field?.otherCmsField}${field?.ContentstackFieldType}`}>
+              <div
+                data-outlinename={fieldname}
+                onClick={(e: React.MouseEvent<HTMLElement>) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleClick(e);
+                }}
+                className={`iconsholder`}
+              >
+                <span className="icons">
+                  {hasNestedValue(field) && (
+                    <Icon
+                      className={`chevron ${index ? '' : 'close'} `}
+                      icon="ChevronExtraSmall"
+                    />
+                  )}
+                  <Icon icon={getTopLevelIcons(field) as string} className='field-icon' />
+                </span>
+                <span className="title">
+                  {getChildFieldName(field?.otherCmsField, item?.otherCmsField)}
+                </span>
+              </div>
+
+              {hasNestedValue(field) &&
+                generateNestedOutline(field, nestedIndex)}
+            </li>
+          )
+        })}
+      </ul>
+    );
+  };
 
   return (
     <div className="schema">
-      <div className={`PageLayout__leftSidebar-wrapper pinned`}>
-        <div className="entries-outline">
-          {list?.length > 0 && (
-            <ul>
-              {list?.map((item: FieldMapType) => (
-                <li key={`${item?.otherCmsField}${item?.ContentstackFieldType}`}>
-                  <div className={`iconsholder`}>
-                    <span className={`icons`}>
-                      <Icon className={'fieldicon'} icon={getTopLevelIcons(item) as string} />
-                    </span>
-                    <span className={`title`}>{item?.otherCmsField}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      <div className="entries-outline">
+        {nestedList?.length > 0 && (
+          <ul>
+            {nestedList?.map((item: FieldMapType, index: number) => {
+              let outlineName = "";
+              if (item.uid) {
+                outlineName = item?.uid?.replace(/\.+/g, "_");
+              }
+              const hasNested = hasNestedValue(item);
+              
+              return (
+              <li key={`${item?.otherCmsField}${item?.ContentstackFieldType}`} className={`${hasNested ? 'nested-child' : ''}`}>
+                <div 
+                  data-outlinename={outlineName} 
+                  className={`iconsholder`}
+                  onClick={(e: React.MouseEvent<HTMLElement>) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleClick(e);
+                  }}
+                >
+                  <span 
+                    className={`icons ${hasNested ? "nested" : ""}`} 
+                    onMouseOver={() => {
+                      document
+                        ?.querySelector('.PageLayout__leftSidebar')
+                        ?.classList.add('hovered');
+                    }}
+                  >
+                    {hasNested && (
+                      <Icon className={'chevron'} icon="ChevronExtraSmall" />
+                    )}
+                    <Icon
+                      className={"fieldicon"}
+                      icon={getTopLevelIcons(item) as string}
+                    />
+                  </span>
+                  <span className={`title`}>{item?.otherCmsField}</span>
+                </div>
+                {hasNested && generateNestedOutline(item, index)}
+              </li>
+            )})}
+          </ul>
+        )}
       </div>
     </div>
   );
