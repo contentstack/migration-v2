@@ -1,7 +1,7 @@
 // Libraries
 import { useContext, useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Dropdown } from '@contentstack/venus-components';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Dropdown, Tooltip } from '@contentstack/venus-components';
 
 // Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -100,21 +100,20 @@ const MainHeader = () => {
           <div className="col-6 d-flex align-items-center">
             {logo?.image?.url ? (
               <div className="logo">
-                <a
-                  className="navbar-brand"
-                  title="contentstack.com"
-                  href={`${logo?.url}?region=${newParam}`}
-                >
-                  <img src={logo?.image?.url} className="w-100" alt="Contentstack Logo" />
-                </a>
+                <Tooltip position="right" content="Stacks" wrapperElementType="div">
+                  <Link to={`${logo?.url}`}>
+                    <img src={logo?.image?.url} className="w-100" alt="Contentstack Logo"/>
+                  </Link>
+                </Tooltip>
               </div>
             ) : (
               ''
             )}
 
-            <div>
-              <div className="Dropdown__header__label">{organizationLabel}</div>
+            <div className='organisationWrapper'>
               <Dropdown
+                withSearch
+                headerLabel={organizationLabel}
                 closeAfterSelect
                 highlightActive
                 list={orgsList}
