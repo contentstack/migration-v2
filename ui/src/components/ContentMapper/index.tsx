@@ -420,7 +420,8 @@ const ContentMapper = () => {
         />
       ),
       modalProps: {
-        shouldCloseOnOverlayClick: true
+        shouldCloseOnOverlayClick: true,
+        size: 'small'
       }
     });
   }
