@@ -12,6 +12,7 @@ export interface StackResponse {
   name: string;
   api_key: string;
   master_locale: string;
+  locales:[];
   created_at: string;
 }
 

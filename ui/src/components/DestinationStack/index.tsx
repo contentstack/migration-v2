@@ -83,7 +83,8 @@ const DestinationStackComponent = ({
     let selectedStackData: IDropDown = {
       value: destination_stack,
       label: '',
-      locale: '',
+      master_locale: '',
+      locales:[],
       created_at: ''
     };
 
@@ -103,7 +104,8 @@ const DestinationStackComponent = ({
         selectedStackData = {
           label: stack?.name,
           value: stack?.api_key,
-          locale: stack?.master_locale,
+          master_locale: stack?.master_locale,
+          locales: stack?.locales,
           created_at: stack?.created_at
         };
       }
