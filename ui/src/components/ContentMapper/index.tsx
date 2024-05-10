@@ -157,6 +157,8 @@ const ContentMapper = () => {
 
   const [searchContentType, setSearchContentType] = useState('');
 
+  const [selectedFields, setSelectedFields] = useState<FieldMapType[]>([]);
+
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
   const navigate = useNavigate();
@@ -483,6 +485,7 @@ const ContentMapper = () => {
   interface UidMap {
     [key: string]: boolean;
   }
+
   const rowIds = tableData.reduce<UidMap>((acc, item) => {
     acc[item?.id] = true;
     return acc;
@@ -575,7 +578,7 @@ const ContentMapper = () => {
             maxWidth="290px"
             isClearable={false}
             options={option}
-            // isDisabled={data?.otherCmsField === 'title' || data?.otherCmsField === 'url'}
+            isDisabled={data?.ContentstackFieldType === "group"}
           />
         </div>
         <Tooltip content='Advance propertise' position='top'>
@@ -782,6 +785,7 @@ const ContentMapper = () => {
       selectedContentType?.otherCmsUid &&
       OtherContentType?.label
     ) {
+      
       setcontentTypeMapped((prevSelected) => ({
         ...prevSelected,
         [otherCmsTitle]: OtherContentType?.label
@@ -997,10 +1001,11 @@ const ContentMapper = () => {
             <InfiniteScrollTable
               loading={loading}
               canSearch={true}
-              data={tableData}
+              data={tableData?.length ? [...tableData] : []}
               columns={columns}
               uniqueKey={'id'}
-              isRowSelect={true}
+              isRowSelect
+              // fullRowSelect
               itemStatusMap={itemStatusMap}
               totalCounts={totalCounts}
               searchPlaceholder={searchPlaceholder}
@@ -1033,7 +1038,6 @@ const ContentMapper = () => {
                 ),
                 showExportCta: true
               }}
-              rowDisableProp={{ key: '_invalid', value: true }}
             />
           </div>
 
