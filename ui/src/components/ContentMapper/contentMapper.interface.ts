@@ -9,6 +9,13 @@ interface mapDataType {
   contentTypes: ContentType[];
   projectId: string;
 }
+interface Advanced {
+  ValidationRegex: string,
+  mandatory:boolean,
+  multiple:boolean,
+  unique:boolean,
+  nonLocalizable:boolean
+}
 export interface ContentMapperType {
   content_types_heading?: string;
   cta: CTA;
@@ -24,7 +31,7 @@ export interface ContentstackFields {
 
 export interface FieldTypes {
   label: string;
-  value: string;
+  value: any;
 }
 export interface TableTypes {
   sortBy: any;
@@ -56,6 +63,7 @@ export interface FieldMapType {
   uid: string;
   id: string;
   _invalid?: boolean;
+  advanced:Advanced
 }
 
 export interface ItemStatus {
