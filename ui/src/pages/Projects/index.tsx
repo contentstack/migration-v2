@@ -147,6 +147,7 @@ const Projects = () => {
           setSearchText={setSearchText}
           cta={cta}
           handleModal={openModal}
+          allProject={projects}
         />
       </>
     )
