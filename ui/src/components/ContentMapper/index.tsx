@@ -835,9 +835,6 @@ const ContentMapper = () => {
         dataCs
       );
 
-      console.log('dataCs', dataCs);
-      
-
       if (status == 200) {
         Notification({
           notificationContent: { text: 'Content type saved successfully' },
