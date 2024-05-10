@@ -78,7 +78,7 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['reference'];
   }
 
-  if (!field.ContentstackFieldType) {
+  if (!field?.ContentstackFieldType) {
     return icons['blocks'];
   }
 
@@ -93,7 +93,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
     const data: FieldMapType[] = []
     schema?.forEach((field) => {
       if (field?.ContentstackFieldType === "group") {
-        groupId = field.uid 
+        groupId = field?.uid 
         data?.push({...field, child: []})
       }
       else{
@@ -197,7 +197,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
           <ul>
             {nestedList?.map((item: FieldMapType, index: number) => {
               let outlineName = "";
-              if (item.uid) {
+              if (item?.uid) {
                 outlineName = item?.uid?.replace(/\.+/g, "_");
               }
               const hasNested = hasNestedValue(item);
