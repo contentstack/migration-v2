@@ -43,14 +43,15 @@ const Modal = (props: ProjectModalProps) => {
 
     const res = await createProject(selectedOrg?.uid || '', values);
 
-    return res.error ? false : res;
+    return res?.error ? false : res;
   };
 
   const nameValidation = (value: string) => {
-    if (!value || value === '') {
+
+    if (value === '') {
       setInputValue(false);
       return 'Please enter project name.';
-    } else if (value && value.length > 200) {
+    } else if (value && value?.length > 200) {
       setInputValue(false);
       return 'Project Name should not be more than 200 chars';
     } else {
@@ -60,7 +61,7 @@ const Modal = (props: ProjectModalProps) => {
   };
 
   const descValidation = (value: string) => {
-    if (value && value.length > 255) {
+    if (value && value?.length > 255) {
       setInputValue(false);
       return 'Description should not be more than 255 chars';
     } else {
@@ -124,11 +125,11 @@ const Modal = (props: ProjectModalProps) => {
                             placeholder={namePlaceholder}
                             data-testid="title-input"
                             name="name"
-                            error={(meta.error || meta.submitError) && meta.touched}
+                            error={(meta?.error || meta?.submitError) && meta?.touched}
                           />
-                          {meta.error && meta.touched && (
+                          {meta?.error && meta?.touched && (
                             <ValidationMessage testId="cs-name-error" className="mt-2" version="v2">
-                              {meta.error}
+                              {meta?.error}
                             </ValidationMessage>
                           )}
                         </>
@@ -154,15 +155,15 @@ const Modal = (props: ProjectModalProps) => {
                             placeholder={descriptionPlaceholder}
                             version="v2"
                             data-testid="description-input"
-                            error={(meta.error || meta.submitError) && meta.touched}
+                            error={(meta?.error || meta?.submitError) && meta?.touched}
                           />
-                          {meta.error && meta.touched && (
+                          {meta?.error && meta?.touched && (
                             <ValidationMessage
                               testId="cs-description-error"
                               className="mt-2"
                               version="v2"
                             >
-                              {meta.error}
+                              {meta?.error}
                             </ValidationMessage>
                           )}
                         </>
