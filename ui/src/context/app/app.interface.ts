@@ -136,7 +136,10 @@ interface FieldTypes {
   label: string;
   value: string;
 }
-
+interface locales {
+  code:string;
+  name:string
+}
 export interface ILegacyCms {
   selectedCms: ICMSType;
   selectedFileFormat: ICardType;
@@ -177,7 +180,8 @@ export interface IDropDown {
   label: string;
   value: string;
   default?: boolean;
-  locale: string;
+  master_locale: string;
+  locales:locales[];
   created_at: string;
 }
 export interface ITestMigration {
@@ -205,7 +209,8 @@ export const DEFAULT_DROPDOWN: IDropDown = {
   value: '',
   default: false,
   uid: '',
-  locale: '',
+  master_locale: '',
+  locales:[],
   created_at: ''
 };
 
