@@ -25,7 +25,8 @@ const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
       label: 'Loading stacks...',
       value: 'loading',
       default: false,
-      locale: '',
+      master_locale: '',
+      locales:[],
       created_at: ''
     }
   ];
@@ -57,7 +58,7 @@ const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
             </div>
             <div className="col-12 pb-2">
               <div className="stackselect locale-container">
-                <span>{selectedStack?.locale}</span>
+                <span>{selectedStack?.master_locale}</span>
               </div>
             </div>
           </div>

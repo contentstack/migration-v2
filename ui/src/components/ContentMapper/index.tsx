@@ -12,7 +12,10 @@ import {
   Tooltip,
   Notification,
   cbModal,
-  InstructionText
+  InstructionText,
+  ModalHeader,
+  ModalBody,
+  ModalFooter
 } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
@@ -83,6 +86,11 @@ const Fields: Mapping = {
   CheckBox: 'Select'
 };
 
+interface ModalProps {
+  e:React.MouseEvent<HTMLElement>;
+  newIndex:number;
+  closeModal: () => void;
+}
 const ContentMapper = () => {
   /** ALL CONTEXT HERE */
   const {
@@ -133,6 +141,16 @@ const ContentMapper = () => {
   const [otherCmsUid, setotherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
   const [isContentTypeMapped, setisContentTypeMapped] = useState<boolean>(false);
   const [isContentTypeSaved, setisContentTypeSaved] = useState<boolean>(false);
+  const [advancePropertise, setadvancePropertise] = useState({
+    validationRegex:'',
+    Mandatory: false,
+    Multiple: false,
+    Unique: false,
+    NonLocalizable: false
+  });
+  const [isLocalised, setisLocalised] = useState<boolean>(newMigrationData?.destination_stack?.selectedStack?.locales?.length > 1 ? true : false);
+
+  
 
   const [active, setActive] = useState<number>(null ?? 0);
 
@@ -334,28 +352,89 @@ const ContentMapper = () => {
   //function to handle previous content type navigation
   const handlePrevClick = (e: React.MouseEvent<HTMLElement>) => {
     const newIndex = currentIndex > 0 ? currentIndex - 1 : 0;
-    setCurrentIndex(newIndex);
-    openContentType(e, newIndex);
-    document.querySelectorAll('.ct-list li').forEach((ctLi, ind) => {
-      if (newIndex === ind) {
-        ctLi?.classList?.add('active-ct');
-      }
-    });
-  };
+    if(isDropDownChanged){
+      handleSaveContentTypeModal(e, newIndex) 
 
-  // function to handle next content type navigation
-  const handleNextClick = (e: React.MouseEvent<HTMLElement>) => {
-    if (currentIndex < contentTypes?.length - 1) {
-      const newIndex = currentIndex + 1;
+    }else{
       setCurrentIndex(newIndex);
       openContentType(e, newIndex);
       document.querySelectorAll('.ct-list li').forEach((ctLi, ind) => {
         if (newIndex === ind) {
           ctLi?.classList?.add('active-ct');
         }
-      });
+      })
+
+    } 
+  };
+
+  // function to handle next content type navigation
+  const handleNextClick = (e: React.MouseEvent<HTMLElement>) => {
+    if (currentIndex < contentTypes?.length - 1) {
+      const newIndex = currentIndex + 1;
+
+      if(isDropDownChanged){
+        handleSaveContentTypeModal(e, newIndex) 
+
+      }else{
+        setCurrentIndex(newIndex);
+        openContentType(e, newIndex);
+        document.querySelectorAll('.ct-list li').forEach((ctLi, ind) => {
+          if (newIndex === ind) {
+            ctLi?.classList?.add('active-ct');
+          }
+        })
+
+      } 
+      
     }
   };
+  const SaveContentType = (props:ModalProps) => {
+      
+    return (
+      <>
+        <ModalHeader title={'Save changes'} closeModal={props?.closeModal} />
+        <ModalBody>
+          <p>Hey there! You have unsaved changes on this page.</p>
+        </ModalBody>
+        <ModalFooter>
+        <ButtonGroup>
+           <Button buttonType="light" onClick={() => props?.closeModal()}>
+              Cancel
+            </Button>
+            <Button buttonType="secondary" onClick={() => {
+              setCurrentIndex(props?.newIndex);
+              setisDropDownCHanged(false);
+              openContentType(props?.e, props?.newIndex);
+              props?.closeModal()
+              document.querySelectorAll('.ct-list li').forEach((ctLi, ind) => {
+                if (props.newIndex === ind) {
+                  ctLi?.classList?.add('active-ct');
+                }
+              });
+              }}>Dont&apos;s Save</Button>
+            <Button onClick={()=>{
+              handleSaveContentType();             
+              props?.closeModal()}}>Save</Button>
+         </ButtonGroup>
+        </ModalFooter>
+      </>
+    );
+  }
+  const handleSaveContentTypeModal = (e:any, newIndex:number) => {
+    return cbModal({
+      component: (props: ModalObj) => (
+        <SaveContentType
+         e={e}
+         newIndex={newIndex}
+          {...props}
+        />
+      ),
+      modalProps: {
+        shouldCloseOnOverlayClick: true,
+        size: 'small'
+      }
+    });
+  }
 
   // Function to get exisiting content types list
   const fetchExistingContentTypes = async () => {
@@ -364,7 +443,26 @@ const ContentMapper = () => {
       setContentTypesList(data?.contentTypes);
     }
   };
+  
+  const updateFieldSettings = (rowId:string, updatedSettings:any, checkBoxChanged:boolean) => {
+    setisDropDownCHanged(checkBoxChanged);
+    //setadvancePropertise(...updatedSettings);
+    
+    const newTableData = tableData?.map(row => {
+      if (row?.uid === rowId) {
+        setadvancePropertise({...row?.advanced, ...updatedSettings});
+        
+          return { ...row, advanced: { ...row?.advanced, ...updatedSettings } };
+      }
+      return row;
+  });
+     
+    
+    setTableData(newTableData);
+  };
 
+  
+  
   const handleOnClick = (title: string) => {
     return cbModal({
       component: (props: ModalObj) => (
@@ -426,15 +524,20 @@ const ContentMapper = () => {
 
   const handleAdvancedSetting = (
     fieldtype: string,
-    fieldvalue: ExistingFieldType,
-    rowId: string
+    fieldvalue: any,
+    rowId: string,
+    data: any
   ) => {
+ 
     return cbModal({
       component: (props: ModalObj) => (
         <AdvanceSettings
           rowId={rowId}
-          value={fieldvalue?.[rowId]?.value}
+          value={fieldvalue}
           fieldtype={fieldtype}
+          isLocalised={isLocalised}
+          updateFieldSettings={updateFieldSettings}
+          data={data}
           {...props}
         />
       ),
@@ -449,7 +552,7 @@ const ContentMapper = () => {
     const data = {
       name: newMigrationData?.destination_stack?.selectedStack?.label,
       description: 'test migration stack',
-      master_locale: newMigrationData?.destination_stack?.selectedStack?.locale
+      master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
     };
     const res = await createTestStack(
       newMigrationData?.destination_stack?.selectedOrg?.value,
@@ -491,24 +594,35 @@ const ContentMapper = () => {
             isDisabled={data?.ContentstackFieldType === "group"}
           />
         </div>
-        <Icon
-          version="v2"
-          icon="Setting"
-          size="small"
-          onClick={() =>
-            handleAdvancedSetting(data?.ContentstackFieldType, exstingField, data?.uid)
-          }
-        />
+        <Tooltip content='Advance propertise' position='top'>
+          <Icon
+            version="v2"
+            icon="Setting"
+            size="small"
+            onClick={() =>
+              handleAdvancedSetting(data?.ContentstackFieldType, data?.advanced, data?.uid, data)
+            }
+          />
+
+        </Tooltip>
+        
       </div>
     );
   };
 
-  const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string) => {
+  const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string) => { 
     setisDropDownCHanged(true);
     setexsitingField((prevOptions) => ({
       ...prevOptions,
       [rowIndex]: { label: selectedValue?.label, value: selectedValue?.value }
     }));
+    setadvancePropertise({
+        validationRegex: selectedValue?.value?.format,
+        Mandatory: selectedValue?.value?.mandatory,
+        Multiple: selectedValue?.value?.multiple,
+        Unique: selectedValue?.value?.unique,
+        NonLocalizable: selectedValue?.value?.non_localizable
+      });
 
     if (isDropDownChanged && isContentTypeSaved) {
       setSelectedOptions((prevSelected) => {
@@ -519,11 +633,23 @@ const ContentMapper = () => {
 
     const updatedRows = tableData.map((row) => {
       if (row?.uid === rowIndex) {
-        return { ...row, contentstackField: selectedValue?.label };
+        
+        return { 
+          ...row, 
+          contentstackField: selectedValue?.label,
+          advanced:{
+            validationRegex: selectedValue?.value?.format,
+            Mandatory: selectedValue?.value?.mandatory,
+            Multiple: selectedValue?.value?.multiple,
+            Unique: selectedValue?.value?.unique,
+            NonLocalizable: selectedValue?.value?.non_localizable
+          }
+         };
       }
       return row;
     });
-    setTableData(updatedRows);
+   
+    setTableData(updatedRows as FieldMapType[]);
   };
 
   const SelectAccessorOfColumn = (data: FieldMapType) => {
@@ -629,8 +755,7 @@ const ContentMapper = () => {
     const adjustedOptions = OptionsForRow.map((option: optionsType) => ({
       ...option,
       isDisabled: selectedOptions?.includes(option?.label ?? '')
-    }));
-
+    }));   
     return (
       <div className="table-row">
         <div className="select">
@@ -648,8 +773,15 @@ const ContentMapper = () => {
           version="v2"
           icon="Setting"
           size="small"
-          onClick={() =>
-            handleAdvancedSetting(data?.ContentstackFieldType, exstingField, data?.uid)
+          onClick={() =>{
+            const value ={
+              ValidationRegex: data?.advanced?.ValidationRegex,
+              Mandatory: data?.advanced?.mandatory,
+              Multiple:  data?.advanced?.multiple,
+              Unique: data?.advanced?.unique,
+              NonLocalizable:  data?.advanced?.nonLocalizable
+            }
+            handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data)}
           }
         />
       </div>
@@ -815,7 +947,7 @@ const ContentMapper = () => {
   const adjustedOption = options.map((option: any) => ({
     ...option,
     isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
-  }));
+  })); 
 
   return (
     <div className="step-container">
