@@ -63,7 +63,7 @@ export interface FieldMapType {
   otherCmsType: string;
   uid: string;
   id: string;
-  _invalid?: boolean;
+  _canSelect?: boolean;
   advanced:Advanced
 }
 
