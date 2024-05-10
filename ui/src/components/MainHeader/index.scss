@@ -56,3 +56,10 @@
     }
   }
 }
+.Dropdown__header__label {
+  line-height: $line-height-reset;
+}
+.Dropdown__header__value {
+  color: $color-black-222!important;
+  line-height: $line-height-reset;
+}

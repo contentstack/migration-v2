@@ -108,3 +108,11 @@ export interface optionsType {
 export interface ExstingContentTypeMatch {
   [key: string]: string;
 }
+
+export interface UidMap {
+  [key: string]: boolean;
+}
+
+export interface ContentTypeMap {
+  [key: string]: string;
+}
