@@ -52,7 +52,7 @@ const MigrationExecution = () => {
         return newMigrationData?.destination_stack?.selectedStack?.label;
 
       case 'Selected locale':
-        return newMigrationData?.destination_stack?.selectedStack?.locale;
+        return newMigrationData?.destination_stack?.selectedStack?.master_locale;
     }
   };
 
