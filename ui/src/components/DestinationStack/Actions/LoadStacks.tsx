@@ -38,7 +38,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       label: 'Loading stacks...',
       value: 'loading',
       default: false,
-      locale: '',
+      master_locale:'',
+      locales:[],
       created_at: ''
     }
   ];
@@ -74,7 +75,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       const newCreatedStack: IDropDown = {
         label: resp?.data?.stack?.name,
         value: resp?.data?.stack?.api_key,
-        locale: resp?.data?.stack?.master_locale,
+        master_locale: resp?.data?.stack?.master_locale,
+        locales: resp?.data?.stack?.locales,
         created_at: resp?.data?.stack?.created_at,
         uid: resp?.data?.stack?.api_key
       };
@@ -145,7 +147,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           label: stack?.name,
           value: stack?.api_key,
           uid: stack?.api_key,
-          locale: stack?.master_locale,
+          master_locale: stack?.master_locale,
+          locales: stack?.locales,
           created_at: stack?.created_at
         }))
       : [];
@@ -231,7 +234,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
             </div>
             <div className="col-12 pb-2">
               <div className="stackselect locale-container">
-                <span>{selectedStack?.locale}</span>
+                <span>{selectedStack?.master_locale}</span>
               </div>
             </div>
           </div>

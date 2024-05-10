@@ -44,7 +44,7 @@ const AddStack = (props: any): JSX.Element => {
   const [addStackCMSData, setAddStackCMSData] = useState<AddStackCMSData>(defaultAddStackCMSData);
   const onSubmit = async (formData: any) => {
     setIsProcessing(true);
-    const resp = await props.onSubmit({
+    const resp = await props?.onSubmit({
       name: formData?.name || props?.defaultValues?.name,
       description: formData?.description || props?.defaultValues?.description,
       locale: formData?.locale?.value || props?.defaultValues?.locale
@@ -55,7 +55,7 @@ const AddStack = (props: any): JSX.Element => {
         notificationContent: { text: 'Stack created successfully' },
         type: 'success'
       });
-      props.closeModal();
+      props?.closeModal();
     } else {
       Notification({ notificationContent: { text: 'Failed to create the stack' }, type: 'error' });
     }
@@ -88,7 +88,8 @@ const AddStack = (props: any): JSX.Element => {
             uid: key,
             label: response?.data?.locales[key],
             value: key,
-            locale: key,
+            master_locale: key,
+            locales:[],
             created_at: key
           }))
         : [];
