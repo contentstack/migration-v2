@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   ModalBody,
   ModalHeader,
@@ -8,7 +10,7 @@ import {
 } from '@contentstack/venus-components';
 
 import './index.scss';
-import { useState } from 'react';
+
 
 export interface SchemaProps {
   fieldtype: string;
