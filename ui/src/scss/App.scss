@@ -339,3 +339,11 @@ h2 {
     }
   }
 }
+.ReactModal__Overlay .ReactModal__Content .ReactModal__Content__header h3 {
+  color: $color-black-2121;
+  font-weight: bold;
+}
+.ReactModal__Content__footer .Button{
+  font-size: 1rem;
+  line-height: 100%;
+}

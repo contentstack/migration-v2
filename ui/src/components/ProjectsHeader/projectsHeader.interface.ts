@@ -1,4 +1,5 @@
 import { CTA } from '../../types/common.interface';
+import { ProjectsObj } from '../../pages/Projects/projects.interface'
 
 export interface ProjectsHeaderType {
   cta?: CTA;
@@ -7,4 +8,5 @@ export interface ProjectsHeaderType {
   setSearchText: (value: string) => void;
   searchPlaceholder: string;
   handleModal?: () => void;
+  allProject?: ProjectsObj[] | null;
 }
