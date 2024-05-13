@@ -187,8 +187,8 @@ const ContentMapper = () => {
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if (field?.otherCmsField === 'title' || field?.otherCmsField === 'url') {
-        field._invalid = true;
+      if (field?.otherCmsField !== 'title' && field?.otherCmsField !== 'url') {
+        field._canSelect = true;
       }
     });
   })
@@ -255,8 +255,6 @@ const ContentMapper = () => {
 
   // Method to search content types
   const handleSearch = async (searchCT: string) => {
-    console.log("searchCT", searchCT);
-    
     setSearchContentType(searchCT)
       
     const { data } = await getContentTypes(projectId, 0, 5, searchCT || ''); //org id will always present
@@ -591,7 +589,7 @@ const ContentMapper = () => {
             maxWidth="290px"
             isClearable={false}
             options={option}
-            isDisabled={data?.ContentstackFieldType === "group"}
+            isDisabled={data?.ContentstackFieldType === "group" || data?.otherCmsField === 'title' || data?.otherCmsField === 'url'}
           />
         </div>
         <Tooltip content='Advance propertise' position='top'>
@@ -603,7 +601,6 @@ const ContentMapper = () => {
               handleAdvancedSetting(data?.ContentstackFieldType, data?.advanced, data?.uid, data)
             }
           />
-
         </Tooltip>
         
       </div>
@@ -1052,6 +1049,7 @@ const ContentMapper = () => {
                 showExportCta: true
               }}
               getSelectedRow={handleSelectedEntries}
+              rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
             />
           </div>
 
