@@ -28,6 +28,9 @@ import { AddStackCMSData, defaultAddStackCMSData } from './addStack.interface';
 
 // Styles
 import './addStack.scss';
+import { getAllLocales } from '../../../services/api/user.service';
+import { validateObject } from '../../../utilities/functions';
+import { IDropDown } from '../../../context/app/app.interface';
 export interface Stack {
   name: string;
   description: string;
@@ -37,11 +40,11 @@ export interface Stack {
 const AddStack = (props: any): JSX.Element => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
   const [addStackCMSData, setAddStackCMSData] = useState<AddStackCMSData>(defaultAddStackCMSData);
-
   const onSubmit = async (formData: any) => {
     setIsProcessing(true);
-    const resp = await props.onSubmit({
+    const resp = await props?.onSubmit({
       name: formData?.name || props?.defaultValues?.name,
       description: formData?.description || props?.defaultValues?.description,
       locale: formData?.locale?.value || props?.defaultValues?.locale
@@ -52,7 +55,7 @@ const AddStack = (props: any): JSX.Element => {
         notificationContent: { text: 'Stack created successfully' },
         type: 'success'
       });
-      props.closeModal();
+      props?.closeModal();
     } else {
       Notification({ notificationContent: { text: 'Failed to create the stack' }, type: 'error' });
     }
@@ -77,6 +80,25 @@ const AddStack = (props: any): JSX.Element => {
         console.error(err);
         setIsLoading(false);
       });
+
+      //fetch all locales
+      getAllLocales(props?.selectedOrganisation).then((response:any) => {
+      const rawMappedLocalesMapped = validateObject(response?.data) && response?.data?.locales
+        ? Object?.keys(response?.data?.locales)?.map((key) => ({
+            uid: key,
+            label: response?.data?.locales[key],
+            value: key,
+            master_locale: key,
+            locales:[],
+            created_at: key
+          }))
+        : [];
+        setAllLocales(rawMappedLocalesMapped);
+      })
+      .catch((err: any) => {
+        console.error(err);
+      });
+      //org id will always be there
   }, []);
   return (
     <>
@@ -202,7 +224,7 @@ const AddStack = (props: any): JSX.Element => {
                                   }}
                                   name="locale"
                                   width="300px"
-                                  options={props?.locales}
+                                  options={allLocales}
                                   maxMenuHeight={200}
                                   isClearable={true}
                                   version={'v2'}
