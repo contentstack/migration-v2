@@ -31,7 +31,7 @@ const putTestData = async (req: Request) => {
     const fields = type.fieldMapping.map((field: any) => {
       const id = uuidv4();
       fieldIds.push(id);
-      return { id, isDeleted: false, ...field };
+      return { id, isDeleted: true, ...field };
     });
     FieldMapperModel.update((data: any) => {
       data.field_mapper = [...data.field_mapper, ...fields];
@@ -319,6 +319,7 @@ const updateContentType = async (req: Request) => {
         if (fieldIndex > -1) {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = field;
+            data.field_mapper[fieldIndex].isDeleted = false;
           });
         }
       });
