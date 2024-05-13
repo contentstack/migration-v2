@@ -202,6 +202,8 @@ const Login: FC<IProps> = () => {
                             className="mb-2"
                             version="v2"
                             htmlFor="tfa_token"
+                          aria-label="tfa_token"
+
                           >
                             {twoFactorAuthentication?.security_code?.title}
                           </FieldLabel>
@@ -213,6 +215,7 @@ const Login: FC<IProps> = () => {
                           error={meta?.error && meta?.touched}
                           width="large"
                           testId="cs-tfa-token-input-field"
+                          id="tfa_token"
                         />
                         {meta?.error && meta?.touched && (
                           <ValidationMessage
@@ -285,7 +288,7 @@ const Login: FC<IProps> = () => {
                                     className="mb-2"
                                     required={true}
                                     version="v2"
-                                    htmlFor="email"
+                                    htmlFor={login?.email}
                                   >
                                     {login?.email}
                                   </FieldLabel>
@@ -302,7 +305,7 @@ const Login: FC<IProps> = () => {
                                       }
                                     }));
                                   }}
-                                  name="email"
+                                  name={login?.email}
                                   width="large"
                                   id="email"
                                   version="v2"
@@ -310,6 +313,7 @@ const Login: FC<IProps> = () => {
                                   data-testid="cs-login-email-input-field"
                                   placeholder={login?.placeholder?.email}
                                   error={(meta?.error || meta?.submitError) && meta?.touched}
+                                  aria-label={login?.email}
                                 />
                                 {meta.error && meta.touched && (
                                   <ValidationMessage
@@ -390,7 +394,7 @@ const Login: FC<IProps> = () => {
                             buttonType="primary"
                             type="submit"
                             icon="v2-Login"
-                            tabIndex={0}
+                            tabindex={0}
                           >
                             {login?.cta?.title}
                           </Button>

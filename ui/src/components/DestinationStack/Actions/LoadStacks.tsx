@@ -3,9 +3,8 @@ import { Icon, Select, cbModal } from '@contentstack/venus-components';
 
 import { AppContext } from '../../../context/app/app.context';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
-import { isEmptyString, validateArray, validateObject } from '../../../utilities/functions';
+import { isEmptyString, validateArray } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
-import { getAllLocales } from '../../../services/api/user.service';
 import { StackResponse } from '../../../services/api/service.interface';
 import AddStack, { Stack } from '../../../components/Common/AddStack/addStack';
 import { updateDestinationStack } from '../../../services/api/migration.service';
@@ -39,7 +38,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       label: 'Loading stacks...',
       value: 'loading',
       default: false,
-      locale: '',
+      master_locale:'',
+      locales:[],
       created_at: ''
     }
   ];
@@ -75,7 +75,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       const newCreatedStack: IDropDown = {
         label: resp?.data?.stack?.name,
         value: resp?.data?.stack?.api_key,
-        locale: resp?.data?.stack?.master_locale,
+        master_locale: resp?.data?.stack?.master_locale,
+        locales: resp?.data?.stack?.locales,
         created_at: resp?.data?.stack?.created_at,
         uid: resp?.data?.stack?.api_key
       };
@@ -141,27 +142,13 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       newMigrationData?.destination_stack?.selectedOrg?.value
     ); //org id will always be there
 
-
-    //fetch all locales
-    const response = await getAllLocales(selectedOrganisation?.value); //org id will always be there
-    const rawMappedLocalesMapped =
-      validateObject(response?.data) && response?.data?.locales
-        ? Object?.keys(response?.data?.locales)?.map((key) => ({
-            uid: key,
-            label: response?.data?.locales[key],
-            value: key,
-            locale: key,
-            created_at: key
-          }))
-        : [];
-    setAllLocales(rawMappedLocalesMapped);
-
     const stackArray = validateArray(stackData?.data?.stacks)
       ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
           label: stack?.name,
           value: stack?.api_key,
           uid: stack?.api_key,
-          locale: stack?.master_locale,
+          master_locale: stack?.master_locale,
+          locales: stack?.locales,
           created_at: stack?.created_at
         }))
       : [];
@@ -175,18 +162,18 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     //Set selected Stack
     const selectedStackData = validateArray(stackArray)
-      ? stackArray.find(
-          (stack: IDropDown) =>
-            stack.value === newMigrationData?.destination_stack?.selectedStack?.value
-        )
-      : DEFAULT_DROPDOWN;
-
+    ? stackArray.find(
+      (stack: IDropDown) =>
+        stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
+    )
+    : DEFAULT_DROPDOWN;
+  
     setSelectedStack(selectedStackData);
 
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       destination_stack: {
-        ...newMigrationData.destination_stack,
+        ...newMigrationData?.destination_stack,
         selectedStack: selectedStackData
       }
     };
@@ -198,7 +185,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   useEffect(() => {
     fetchData();
   }, []);
-  
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
@@ -209,6 +195,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           }}
           onSubmit={handleOnSave}
           defaultValues={defaultStack}
+          selectedOrganisation=  {selectedOrganisation?.value}
           {...props}
         />
       ),
@@ -247,7 +234,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
             </div>
             <div className="col-12 pb-2">
               <div className="stackselect locale-container">
-                <span>{selectedStack?.locale}</span>
+                <span>{selectedStack?.master_locale}</span>
               </div>
             </div>
           </div>

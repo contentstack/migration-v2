@@ -10,6 +10,7 @@ const ProjectsHeader = ({
   setSearchText,
   searchPlaceholder,
   cta,
+  allProject,
   handleModal
 }: ProjectsHeaderType) => {
   let interval: ReturnType<typeof setTimeout>;
@@ -21,6 +22,7 @@ const ProjectsHeader = ({
   }
   const SearchProject = (
     <>
+      {allProject && allProject?.length > 0 && ( 
       <div className="project-search-wrapper" onClick={setFocus}>
         <Search
           placeholder={searchPlaceholder}
@@ -31,6 +33,7 @@ const ProjectsHeader = ({
           id="search-project-input"
         />
       </div>
+      )}
     </>
   );
 
@@ -57,7 +60,7 @@ const ProjectsHeader = ({
 
   return (
     <>
-      <PageHeader title={{ label: headingText, component: SearchProject }} actions={pageActions} />
+      <PageHeader title={{ label: headingText, component: SearchProject }} actions={allProject && allProject?.length > 0 && pageActions} />
     </>
   );
 };
