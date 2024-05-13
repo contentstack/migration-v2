@@ -26,6 +26,9 @@
 .Checkbox-wrapper .Checkbox {
   display: flex;
 }
+.Checkbox-wrapper .Checkbox .Checkbox__label {
+  margin-top: -2px;
+}
 .Checkbox input:disabled:checked ~ .Checkbox__label,
 .Checkbox input:disabled:indeterminate ~ .Checkbox__label {
   color: #212121;

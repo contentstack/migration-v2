@@ -9,6 +9,13 @@ interface mapDataType {
   contentTypes: ContentType[];
   projectId: string;
 }
+interface Advanced {
+  ValidationRegex: string,
+  mandatory:boolean,
+  multiple:boolean,
+  unique:boolean,
+  nonLocalizable:boolean
+}
 export interface ContentMapperType {
   content_types_heading?: string;
   cta: CTA;
@@ -24,7 +31,7 @@ export interface ContentstackFields {
 
 export interface FieldTypes {
   label: string;
-  value: string;
+  value: any;
 }
 export interface TableTypes {
   sortBy: any;
@@ -47,6 +54,7 @@ export interface ContentType {
 
 export interface FieldMapType {
   ContentstackFieldType: string;
+  child?: FieldMapType[] | undefined;
   backupFieldType: string;
   contentstackField: string;
   contentstackFieldUid: string;
@@ -55,7 +63,8 @@ export interface FieldMapType {
   otherCmsType: string;
   uid: string;
   id: string;
-  _invalid?: boolean;
+  _canSelect?: boolean;
+  advanced:Advanced
 }
 
 export interface ItemStatus {
@@ -97,5 +106,13 @@ export interface optionsType {
 }
 
 export interface ExstingContentTypeMatch {
+  [key: string]: string;
+}
+
+export interface UidMap {
+  [key: string]: boolean;
+}
+
+export interface ContentTypeMap {
   [key: string]: string;
 }
