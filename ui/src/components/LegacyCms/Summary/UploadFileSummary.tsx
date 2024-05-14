@@ -18,16 +18,17 @@ interface Props {
 const FileComponent: React.FC<Props> = ({ fileDetails }) => {
   return (
     <div className="col-11">
-      {fileDetails?.isLocalPath ? 
-      (<div>
-        <p className="summary-title">Local Path: {fileDetails?.localPath}</p>
-      </div>) : 
-      (<div>
-        <p className="summary-title">AWS Region: {fileDetails?.awsData?.awsRegion}</p>
-        <p className="summary-title">Bucket Name: {fileDetails?.awsData?.bucketName}</p>
-        <p className="summary-title">Bucket Key: {fileDetails?.awsData?.buketKey}</p></div>)}
-      
-      
+      {fileDetails?.isLocalPath ? (
+        <div>
+          <p className="summary-title">Local Path: {fileDetails?.localPath}</p>
+        </div>
+      ) : (
+        <div>
+          <p className="summary-title">AWS Region: {fileDetails?.awsData?.awsRegion}</p>
+          <p className="summary-title">Bucket Name: {fileDetails?.awsData?.bucketName}</p>
+          <p className="summary-title">Bucket Key: {fileDetails?.awsData?.buketKey}</p>
+        </div>
+      )}
     </div>
   );
 };
