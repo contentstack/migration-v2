@@ -16,15 +16,18 @@ interface FlowBlockItemProps {
   isActive?: boolean;
   isCompleted?: boolean;
   step: IFlowStep;
-  onStepClick: (step: IFlowStep) => () => void;
+  onStepClick: (step: IFlowStep, isCompleted:boolean) => () => void;
 }
 
 const FlowBlockItem: FC<FlowBlockItemProps> = (props: FlowBlockItemProps) => {
+  //console.log("isComeplted : ", props?.isCompleted, props?.step);
+  
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
   const handleHoveredToggle = (flag: boolean) => () => {
     setIsHovered(flag);
   };
+
 
   return (
     <div className="ft-block-item" style={{ display: 'flex', flexDirection: 'row' }}>
@@ -38,9 +41,9 @@ const FlowBlockItem: FC<FlowBlockItemProps> = (props: FlowBlockItemProps) => {
             <span className="step_name_tested">{props?.step.name}</span>
             <Icon
               className="step_tested_check"
-              icon={props?.isCompleted || false ? 'CheckCircle' : 'WarningBold'}
+              icon={props?.isCompleted ? 'CheckCircle' : 'WarningBold'}
               version="v2"
-              stroke={props?.isCompleted || false ? 'none' : '#475161'}
+              stroke={props?.isCompleted  ? 'none' : '#475161'}
             ></Icon>
           </div>
         </Tooltip>
@@ -49,8 +52,8 @@ const FlowBlockItem: FC<FlowBlockItemProps> = (props: FlowBlockItemProps) => {
       <div
         onMouseEnter={handleHoveredToggle(true)}
         onMouseLeave={handleHoveredToggle(false)}
-        className={`ft-step-block-head ${props?.isActive ? 'ft-step-block-head-active' : ''} `}
-        onClick={props.onStepClick(props.step)}
+        className={`ft-step-block-head ${props?.isActive ? 'ft-step-block-head-active' : ''} ${!(props?.isCompleted || props?.isActive) ? 'ft-step-block-head-disabled' : ''} `}
+        onClick={props?.onStepClick(props?.step, props?.isCompleted || false)}
       >
         <div
           style={{
