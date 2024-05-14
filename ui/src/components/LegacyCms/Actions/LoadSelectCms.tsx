@@ -52,7 +52,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   /****  ALL METHODS HERE  ****/
 
   //Handle Legacy cms selection
-  const handleDirectSelection = (cms:any) => {
+  const handleDirectSelection = async (cms:any) => {   
     
     setSelectedCard(cms);
     updateNewMigrationData({
@@ -61,10 +61,11 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         ...newMigrationData?.legacy_cms,
         selectedCms: cms }
     });
-    updateLegacyCMSData(selectedOrganisation?.value, projectId, { legacy_cms: cms?.cms_id });
-    if(selectedCard?.title){     
-      props?.handleStepChange(props?.currentStep);
-    }
+       
+    await updateLegacyCMSData(selectedOrganisation?.value, projectId, { legacy_cms: cms?.cms_id });
+
+    props?.handleStepChange(props?.currentStep);
+
   };
 
  //Handle CMS Filter Updation in local storage.
@@ -89,14 +90,18 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const filterCMSData = async (searchText: string) => {
    
     const { all_cms = [] } = migrationData?.legacyCMSData || {};
-    const cmstype = cmsType // Fetch the specific CMS type
+
+    const res: any = await fileValidation();
+    const cms = res?.data?.file_details?.cmsType?.toLowerCase();  
+    setCmsType(cms);   
+    const cmstype = cms // Fetch the specific CMS type
 
     let filteredCmsData: ICMSType[] = [];
     if (isEmptyString(searchText) && !validateArray(cmsFilter) && !cmstype) {
       filteredCmsData = all_cms;
     } else {
-      if (cmstype) {
-        filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.cms_id === cmstype);
+      if (cmstype) {       
+        filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.cms_id === cmstype);        
       }
     }
 
@@ -116,11 +121,12 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
     
 
-    const newSelectedCard = filteredCmsData?.some((cms) => cms?.cms_id === cmstype)  ? filteredCmsData?.[0] : DEFAULT_CMS_TYPE
-      
-   setSelectedCard(newSelectedCard);
+  const newSelectedCard = filteredCmsData?.some((cms) => cms?.cms_id === cmstype)  ? filteredCmsData?.[0] : DEFAULT_CMS_TYPE
    
-    if (newSelectedCard && selectedCard?.cms_id) {
+   setSelectedCard(newSelectedCard);
+  
+   
+    if (newSelectedCard) {
       setSelectedCard(newSelectedCard);
 
       const newMigrationDataObj: INewMigration = {
@@ -151,21 +157,27 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   }, [cmsFilter]);
 
   useEffect(()=>{
-   handleDirectSelection(selectedCard)
+    if(selectedCard?.title !== 'Drupal' && selectedCard?.title !== 'Sitecore'){
+     handleDirectSelection(selectedCard)
+    }
   },[cmsType,selectedCard]);
 
   useEffect(() => {
     const getCmsType = async () => {
       const res: any = await fileValidation();
-      const cmsType = res?.data?.file_details?.cmsType?.toLowerCase();
-      setCmsType(cmsType);
+      const cms = res?.data?.file_details?.cmsType?.toLowerCase();        
+      setCmsType(cms);
+      filterCMSData(cms);
       return cmsType;
     }; 
-  }, []); 
+    getCmsType();
+    
+  }, [cmsType]); 
   
-  return (    
-    <div>
+  return (  
       
+    <div>  
+          
       {(cmsType === 'sitecore' || cmsType === 'drupal') && (
         <div className="row bg-white action-content-wrapper p-3">
         <div className="col-12">
@@ -194,7 +206,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
               <Card
                 key={data?.title}
                 data={data}
-                onCardClick={()=>{return}}
+                onCardClick={handleDirectSelection}
                 selectedCard={selectedCard}
                 idField="cms_id"
               />
@@ -215,7 +227,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       )}
       </div>
       </div>)}
-
+      
       {isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) &&
         (<div className="col-12 bg-white p-3">
           <span className="summary-title">Please enter the correct CMS</span>
