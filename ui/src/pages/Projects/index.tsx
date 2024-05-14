@@ -16,6 +16,7 @@ import { validateObject } from '../../utilities/functions';
 // Interfaces
 import { ProjectsType, ProjectsObj } from './projects.interface';
 import { ModalObj } from '../../components/Modal/modal.interface';
+import { CTA } from '../Home/home.interface';
 
 // Context
 import { AppContext } from '../../context/app/app.context';
@@ -30,7 +31,6 @@ import { NO_PROJECTS, NO_PROJECTS_SEARCH } from '../../common/assets';
 
 // styles
 import './index.scss';
-import { CTA } from '../Home/home.interface';
 
 const Projects = () => {
   const [data, setData] = useState<ProjectsType>({});
@@ -44,7 +44,6 @@ const Projects = () => {
 
   const outputIntro = HTMLReactParser(jsonToHtml(emptystate?.description ?? {}));
 
-  // const history = useHistory();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const search = (queryParams.get('search') ?? '').trim();
@@ -85,9 +84,6 @@ const Projects = () => {
   }, []);
 
   useEffect(() => {
-    // navigate({
-    //   search: searchText ? `?region=${newParam}?search=${searchText}` : `?region=${newParam}`
-    // });
     setLoadStatus(true);
     if (searchText) {
       setProjects(
@@ -139,50 +135,37 @@ const Projects = () => {
 
   const header = {
     component: (
-      <>
-        <ProjectsHeader
-          headingText={heading}
-          searchText={searchText}
-          searchPlaceholder={searchProjects as string}
-          setSearchText={setSearchText}
-          cta={cta}
-          handleModal={openModal}
-          allProject={projects}
-        />
-      </>
+      <ProjectsHeader
+        headingText={heading}
+        searchText={searchText}
+        searchPlaceholder={searchProjects as string}
+        setSearchText={setSearchText}
+        cta={cta}
+        handleModal={openModal}
+        allProject={projects}
+      />
     )
   };
 
   const content = {
     component: (
       <div className="flex-wrap w-100" key="project-component">
-        {loadStatus ? (
+        {loadStatus 
+          ? (
           <div className="flex-wrap">
             {[...Array(20)].map((e, i) => (
               <CardList key={i} />
             ))}
           </div>
-        ) : projects && projects?.length > 0 ? (
-          projects?.map((e) => (
+          ) 
+          : projects?.map((e) => (
             <div key={e?.uid}>
               <CardList project={e} />
             </div>
           ))
-        ) : projects && projects?.length > 0 && !searchText ? (
-          <EmptyState
-            forPage="emptyStateV2"
-            heading={<div className="empty_search_heading">{emptystate?.empty_search_heading}</div>}
-            img={NO_PROJECTS_SEARCH}
-            description={
-              <div className="empty_search_description">
-                {HTMLReactParser(jsonToHtml(emptystate?.empty_search_description ?? {}))}
-              </div>
-            }
-            version="v2"
-            className="no_results_found_page"
-            testId="no-results-found-page"
-          />
-        ) : (
+        }
+
+        {projects && projects?.length === 0 && !searchText && (
           <EmptyState
             forPage="emptyStateV2"
             heading={emptystate?.heading}
@@ -204,8 +187,25 @@ const Projects = () => {
                   )}
                   {cta?.title}
                 </Button>
-              ))}
+              ))
+            }
           </EmptyState>
+        )}
+
+        {projects && projects?.length === 0 && searchText &&  (
+          <EmptyState
+            forPage="emptyStateV2"
+            heading={<div className="empty_search_heading">{emptystate?.empty_search_heading}</div>}
+            img={NO_PROJECTS_SEARCH}
+            description={
+              <div className="empty_search_description">
+                {HTMLReactParser(jsonToHtml(emptystate?.empty_search_description ?? {}))}
+              </div>
+            }
+            version="v2"
+            className="no_results_found_page"
+            testId="no-results-found-page"
+          />
         )}
       </div>
     )
