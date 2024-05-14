@@ -177,10 +177,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
 
       //Check for migration Status and lock.
       // Status where Migration is to be Locked:
-      setIsMigrationLocked(
-        projectData?.status === 2 ||
-          projectData?.status === 5
-      );
+      setIsMigrationLocked(projectData?.status === 2 || projectData?.status === 5);
     };
 
     fetchCMSData();

@@ -46,7 +46,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   /****  ALL METHODS HERE  ****/
 
-  const handleBtnClick = async(e: MouseEvent) => {
+  const handleBtnClick = async (e: MouseEvent) => {
     e.preventDefault();
     if (!isEmptyString(selectedCard?.fileformat_id) && isCheckedBoxChecked) {
       updateNewMigrationData({
@@ -59,7 +59,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       await updateFileFormatData(selectedOrganisation?.value, projectId, {
         file_format: selectedCard?.fileformat_id
       });
-      
+
       await fileformatConfirmation(selectedOrganisation?.value, projectId, {
         fileformat_confirmation: isCheckedBoxChecked
       });
