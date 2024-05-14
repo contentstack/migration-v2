@@ -21,13 +21,14 @@ const ProjectsHeader = ({
       document.getElementById('search-project-input')?.focus();
     }, 10);
   }
+
   const SearchProject = (
     <>
       {allProject && allProject?.length > 0
         ? <div className="project-search-wrapper">
             <Search
               placeholder={searchPlaceholder}
-              onChange={(search: string) => setSearchText(search)}
+              onChange={(search: string) => search.replace(/\s/g, '').length ? setSearchText(search?.trim()) : setSearchText(search)}
               onClear={true}
               onClick={setFocus} 
               value={searchText}
