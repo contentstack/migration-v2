@@ -49,8 +49,8 @@ const Modal = (props: ProjectModalProps) => {
   const nameValidation = (value: string) => {
     if (!value || !/^[^\s].+[^\s]$/.test(value)) {
       setInputValue(false);
-      return 'Please enter project name.'
-    } else if(value && value?.length > 200) {
+      return 'Please enter project name.';
+    } else if (value && value?.length > 200) {
       setInputValue(false);
       return 'Project Name should not be more than 200 chars';
     } else {

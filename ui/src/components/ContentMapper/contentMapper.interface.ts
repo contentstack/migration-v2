@@ -10,11 +10,11 @@ interface mapDataType {
   projectId: string;
 }
 interface Advanced {
-  ValidationRegex: string,
-  mandatory:boolean,
-  multiple:boolean,
-  unique:boolean,
-  nonLocalizable:boolean
+  ValidationRegex: string;
+  mandatory: boolean;
+  multiple: boolean;
+  unique: boolean;
+  nonLocalizable: boolean;
 }
 export interface ContentMapperType {
   content_types_heading?: string;
@@ -64,7 +64,7 @@ export interface FieldMapType {
   uid: string;
   id: string;
   _canSelect?: boolean;
-  advanced:Advanced
+  advanced: Advanced;
 }
 
 export interface ItemStatus {
