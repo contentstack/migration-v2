@@ -337,13 +337,26 @@ h2 {
     .PageLayout__head__hamburger {
       display: none;
     }
+    .PageLayout__head{
+      &>.PageHeader {
+        padding-right: $px-20;
+      }
+    } 
   }
 }
-.ReactModal__Overlay .ReactModal__Content .ReactModal__Content__header h3 {
-  color: $color-black-2121;
-  font-weight: bold;
-}
+.ReactModal__Overlay {
+  .ReactModal__Content {
+    .ReactModal__Content__header h3 {
+      color: $color-black-2121;
+      font-weight: bold;
+    }
+  } 
+} 
 .ReactModal__Content__footer .Button{
   font-size: 1rem;
   line-height: 100%;
 }
+
+::-webkit-input-placeholder{color:$color-black-2121!important}
+::-ms-input-placeholder{color:$color-black-2121!important}
+::placeholder{color:$color-black-2121!important}
