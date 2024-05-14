@@ -72,7 +72,12 @@
   margin-left: -$space-10;
   min-height: 78px;
 }
-
+.ft-block-item:has(.ft-step-block-head-disabled){
+  cursor: not-allowed;
+}
+.ft-step-block-head-disabled{
+  pointer-events: none;
+}
 .ft-step-block-head-active:hover {
   background-color: white !important;
   cursor: pointer;
