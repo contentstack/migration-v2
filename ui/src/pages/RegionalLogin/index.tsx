@@ -102,7 +102,6 @@ const RegionalLogin = () => {
                               region?.service_title as string
                             )
                           }
-                          aria-label={`${region?.cta?.title} with ${region?.service_title} ${region?.region_title}`}
                         >
                           <span className="link-basic-icon link-arrow">{region?.cta?.title}</span>
                         </a>

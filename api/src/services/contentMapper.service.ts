@@ -28,13 +28,13 @@ const putTestData = async (req: Request) => {
   await FieldMapperModel.read();
   contentTypes.map((type: any, index: any) => {
     const fieldIds: string[] = [];
-    const fields = type.fieldMapping.map((field: any) => {
+    const fields = type?.fieldMapping?.map?.((field: any) => {
       const id = uuidv4();
       fieldIds.push(id);
-      return { id, isDeleted: false, ...field };
+      return { id, isDeleted: true, ...field };
     });
     FieldMapperModel.update((data: any) => {
-      data.field_mapper = [...data.field_mapper, ...fields];
+      data.field_mapper = [...data?.field_mapper, ...fields];
     });
     contentTypes[index].fieldMapping = fieldIds;
   });
@@ -319,6 +319,7 @@ const updateContentType = async (req: Request) => {
         if (fieldIndex > -1) {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = field;
+            data.field_mapper[fieldIndex].isDeleted = false;
           });
         }
       });

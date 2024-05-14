@@ -63,7 +63,7 @@ export interface FieldMapType {
   otherCmsType: string;
   uid: string;
   id: string;
-  _invalid?: boolean;
+  _canSelect?: boolean;
   advanced:Advanced
 }
 
@@ -106,5 +106,13 @@ export interface optionsType {
 }
 
 export interface ExstingContentTypeMatch {
+  [key: string]: string;
+}
+
+export interface UidMap {
+  [key: string]: boolean;
+}
+
+export interface ContentTypeMap {
   [key: string]: string;
 }
