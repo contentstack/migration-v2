@@ -50,7 +50,9 @@ import {
   ExistingFieldType,
   ContentTypeList,
   ContentTypesSchema,
-  optionsType
+  optionsType,
+  UidMap,
+  ContentTypeMap
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -84,9 +86,6 @@ const Fields: Mapping = {
   CheckBox: 'Select'
 };
 
-interface ContentTypeMap {
-  [key: string]: string;
-}
 interface ModalProps {
   e:React.MouseEvent<HTMLElement>;
   newIndex:number;
@@ -157,7 +156,9 @@ const ContentMapper = () => {
 
   const [searchContentType, setSearchContentType] = useState('');
 
-  const [selectedFields, setSelectedFields] = useState<FieldMapType[]>([]);
+  const [rowIds, setRowIds] = useState({})
+  const [selectedEntries, setSelectedEntries] = useState<FieldMapType[]>([]);
+
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -186,8 +187,8 @@ const ContentMapper = () => {
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if (field?.otherCmsField === 'title' || field?.otherCmsField === 'url') {
-        field._invalid = true;
+      if (field?.otherCmsField !== 'title' && field?.otherCmsField !== 'url') {
+        field._canSelect = true;
       }
     });
   })
@@ -215,6 +216,15 @@ const ContentMapper = () => {
       setexsitingField(updatedExstingField);
     }
   }, [tableData, isContentTypeSaved]);
+
+  // To make all the fields checked
+  useEffect(() => {
+    const selectedId = tableData.reduce<UidMap>((acc, item) => {
+      acc[item?.id] = true;
+      return acc;
+    }, {});
+    setRowIds(selectedId)
+  }, [tableData])
 
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
@@ -245,8 +255,6 @@ const ContentMapper = () => {
 
   // Method to search content types
   const handleSearch = async (searchCT: string) => {
-    console.log("searchCT", searchCT);
-    
     setSearchContentType(searchCT)
       
     const { data } = await getContentTypes(projectId, 0, 5, searchCT || ''); //org id will always present
@@ -337,7 +345,7 @@ const ContentMapper = () => {
     fetchFields(contentTypes?.[i]?.id, searchText || '');
     setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(contentTypes?.[i]);
-   };
+  };
 
   //function to handle previous content type navigation
   const handlePrevClick = (e: React.MouseEvent<HTMLElement>) => {
@@ -483,14 +491,16 @@ const ContentMapper = () => {
       </div>
     );
   };
-  interface UidMap {
-    [key: string]: boolean;
+  
+  // Function to handle selected fields
+  const handleSelectedEntries = (singleSelectedRowIds: any, selectedData: any) => {
+    const selectedObj: any = {}
+    singleSelectedRowIds.forEach((uid: any) => {
+      selectedObj[uid] = true;
+    })
+    setRowIds(selectedObj)
+    setSelectedEntries(selectedData)
   }
-
-  const rowIds = tableData.reduce<UidMap>((acc, item) => {
-    acc[item?.id] = true;
-    return acc;
-  }, {});
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
@@ -579,7 +589,7 @@ const ContentMapper = () => {
             maxWidth="290px"
             isClearable={false}
             options={option}
-            isDisabled={data?.ContentstackFieldType === "group"}
+            isDisabled={data?.ContentstackFieldType === "group" || data?.otherCmsField === 'title' || data?.otherCmsField === 'url'}
           />
         </div>
         <Tooltip content='Advance propertise' position='top'>
@@ -591,7 +601,6 @@ const ContentMapper = () => {
               handleAdvancedSetting(data?.ContentstackFieldType, data?.advanced, data?.uid, data)
             }
           />
-
         </Tooltip>
         
       </div>
@@ -812,7 +821,7 @@ const ContentMapper = () => {
           updateAt: new Date(),
           contentstackTitle: selectedContentType?.contentstackTitle,
           contentstackUid: selectedContentType?.contnetStackUid,
-          fieldMapping: tableData
+          fieldMapping: selectedEntries
         }
       };
 
@@ -1039,6 +1048,8 @@ const ContentMapper = () => {
                 ),
                 showExportCta: true
               }}
+              getSelectedRow={handleSelectedEntries}
+              rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
             />
           </div>
 
