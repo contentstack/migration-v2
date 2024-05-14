@@ -43,7 +43,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
   /****  ALL METHODS HERE  ****/
 
   //Handle Prefix Change
-  const handleOnBlur = async(e: MouseEvent) => {
+  const handleOnBlur = async (e: MouseEvent) => {
     e.preventDefault();
     if (!isEmptyString(prefix) && !isError && isCheckedBoxChecked) {
       const newMigrationDataObj: INewMigration = {
@@ -128,7 +128,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           version="v2"
           error={isError}
         />
-        {isError && <p className='errorMessage'>Affix should not be more than 5 chars</p>}
+        {isError && <p className="errorMessage">Affix should not be more than 5 chars</p>}
       </div>
       <div className="col-12 pt-2">
         <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleOnBlur}>

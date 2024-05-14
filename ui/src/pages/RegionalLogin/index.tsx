@@ -87,9 +87,7 @@ const RegionalLogin = () => {
                           <p className="mb-0 body-6 fw-bold">{region?.service_title}</p>
                         )}
                       </div>
-                      {region?.region_title && (
-                        <h2 className='py-2'>{region?.region_title}</h2>
-                      )}
+                      {region?.region_title && <h2 className="py-2">{region?.region_title}</h2>}
                     </div>
                     {region?.cta?.title && (
                       <div className="CardFooter pb-3">

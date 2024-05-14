@@ -150,20 +150,19 @@ const Projects = () => {
   const content = {
     component: (
       <div className="flex-wrap w-100" key="project-component">
-        {loadStatus 
-          ? (
+        {loadStatus ? (
           <div className="flex-wrap">
             {[...Array(20)].map((e, i) => (
               <CardList key={i} />
             ))}
           </div>
-          ) 
-          : projects?.map((e) => (
+        ) : (
+          projects?.map((e) => (
             <div key={e?.uid}>
               <CardList project={e} />
             </div>
           ))
-        }
+        )}
 
         {projects && projects?.length === 0 && !searchText && (
           <EmptyState
@@ -187,12 +186,11 @@ const Projects = () => {
                   )}
                   {cta?.title}
                 </Button>
-              ))
-            }
+              ))}
           </EmptyState>
         )}
 
-        {projects && projects?.length === 0 && searchText &&  (
+        {projects && projects?.length === 0 && searchText && (
           <EmptyState
             forPage="emptyStateV2"
             heading={<div className="empty_search_heading">{emptystate?.empty_search_heading}</div>}
