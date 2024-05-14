@@ -84,7 +84,7 @@ const DestinationStackComponent = ({
       value: destination_stack,
       label: '',
       master_locale: '',
-      locales:[],
+      locales: [],
       created_at: ''
     };
 
@@ -164,10 +164,7 @@ const DestinationStackComponent = ({
 
       //Check for migration Status and lock.
       // Status where Migration is to be Locked:
-      setIsMigrationLocked(
-        projectData?.status === 2 ||
-          projectData?.status === 5
-      );
+      setIsMigrationLocked(projectData?.status === 2 || projectData?.status === 5);
     };
     fetchCMSData();
   }, []);
@@ -190,7 +187,10 @@ const DestinationStackComponent = ({
         internalActiveStepIndex > -1 &&
         internalActiveStepIndex === migrationData?.destinationStackData?.all_steps?.length - 1
       ) {
-        autoVerticalStepperComponent?.current?.handleDynamicStepChange(internalActiveStepIndex, true);
+        autoVerticalStepperComponent?.current?.handleDynamicStepChange(
+          internalActiveStepIndex,
+          true
+        );
       }
     }
   }, [internalActiveStepIndex]);
