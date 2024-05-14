@@ -19,10 +19,7 @@ import {
   TFA_VIA_SMS_MESSAGE,
   CS_ENTRIES
 } from '../../utilities/constants';
-import {
-  failtureNotification,
-  setDataInLocalStorage
-} from '../../utilities/functions';
+import { failtureNotification, setDataInLocalStorage } from '../../utilities/functions';
 
 // API Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -59,7 +56,11 @@ const Login: FC<IProps> = () => {
 
   const { login, two_factor_authentication: twoFactorAuthentication } = data;
 
-  const accountData = { heading: data?.heading, subtitle: data?.subtitle, copyrightText: data?.copyrightText };
+  const accountData = {
+    heading: data?.heading,
+    subtitle: data?.subtitle,
+    copyrightText: data?.copyrightText
+  };
 
   // ************* Context Here ************
   const { setAuthToken, setIsAuthenticated } = useContext(AppContext);
@@ -73,7 +74,6 @@ const Login: FC<IProps> = () => {
   // Get the region
   const urlParams = new URLSearchParams(location?.search);
   const region = urlParams?.get?.('region');
-  
 
   // ************* send SMS token ************
   const sendSMS = async () => {
@@ -186,7 +186,9 @@ const Login: FC<IProps> = () => {
     <AccountPage data={accountData}>
       {loginStates?.tfa ? (
         <div className="AccountForm AccountForm_login">
-          {twoFactorAuthentication?.title && <h2 className="mb-40">{twoFactorAuthentication?.title}</h2> }
+          {twoFactorAuthentication?.title && (
+            <h2 className="mb-40">{twoFactorAuthentication?.title}</h2>
+          )}
 
           <FinalForm
             onSubmit={onSubmit}
@@ -202,8 +204,7 @@ const Login: FC<IProps> = () => {
                             className="mb-2"
                             version="v2"
                             htmlFor="tfa_token"
-                          aria-label="tfa_token"
-
+                            aria-label="tfa_token"
                           >
                             {twoFactorAuthentication?.security_code?.title}
                           </FieldLabel>
@@ -231,9 +232,11 @@ const Login: FC<IProps> = () => {
                   </FinalField>
                 </Field>
                 <div className="flex-v-center mb-40">
-                  {twoFactorAuthentication?.send_sms?.pre_link_text && 
-                    <p className='pre-text-color'>{twoFactorAuthentication?.send_sms?.pre_link_text}</p> 
-                  }
+                  {twoFactorAuthentication?.send_sms?.pre_link_text && (
+                    <p className="pre-text-color">
+                      {twoFactorAuthentication?.send_sms?.pre_link_text}
+                    </p>
+                  )}
                   {twoFactorAuthentication?.send_sms?.link_text && (
                     <Link
                       className="ml-8 send-sms"
@@ -265,12 +268,8 @@ const Login: FC<IProps> = () => {
         </div>
       ) : (
         <div className="AccountForm AccountForm_login app-login">
-          {login?.title && (
-            <h2 className="mb-40">{login?.title}</h2>
-          )}
-          <div
-            className='ml-16'
-          >
+          {login?.title && <h2 className="mb-40">{login?.title}</h2>}
+          <div className="ml-16">
             <FinalForm
               onSubmit={onSubmit}
               render={({ handleSubmit }): JSX.Element => {

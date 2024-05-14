@@ -23,8 +23,8 @@
       display: flex;
       height: 2.5rem;
       justify-content: center;
-      padding: .5rem;
-      text-decoration: none;    
+      padding: 0.5rem;
+      text-decoration: none;
     }
     a:focus {
       border-radius: 5px;
@@ -51,7 +51,9 @@
       width: auto;
       // overflow: hidden;
     }
-    .Dropdown__menu--primary .Dropdown__menu__list__item, .Dropdown__menu--secondary .Dropdown__menu__list__item, .Dropdown__menu--tertiary .Dropdown__menu__list__item {
+    .Dropdown__menu--primary .Dropdown__menu__list__item,
+    .Dropdown__menu--secondary .Dropdown__menu__list__item,
+    .Dropdown__menu--tertiary .Dropdown__menu__list__item {
       max-width: 14.5rem;
     }
   }
@@ -60,6 +62,6 @@
   line-height: $line-height-reset;
 }
 .Dropdown__header__value {
-  color: $color-black-222!important;
+  color: $color-black-222 !important;
   line-height: $line-height-reset;
 }
