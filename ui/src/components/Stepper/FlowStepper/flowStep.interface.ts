@@ -4,6 +4,7 @@ export interface IFlowStep {
   description: string;
   name: string;
   flow_id: string;
+  isCompleted: boolean
 }
 
 export const DEFAULT_IFLOWSTEP: IFlowStep = {
@@ -11,5 +12,6 @@ export const DEFAULT_IFLOWSTEP: IFlowStep = {
   description: '',
   name: '1',
   flow_id: '',
-  group_name: ''
+  group_name: '',
+  isCompleted:false
 };
