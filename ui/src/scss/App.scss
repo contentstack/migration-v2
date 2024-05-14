@@ -346,11 +346,6 @@ h2 {
 }
 .ReactModal__Overlay {
   .ReactModal__Content {
-    .TextInput--negative {
-      .TextInput__v2 {
-        ::-webkit-input-placeholder{color:black!important}
-      }
-    } 
     .ReactModal__Content__header h3 {
       color: $color-black-2121;
       font-weight: bold;
@@ -361,3 +356,7 @@ h2 {
   font-size: 1rem;
   line-height: 100%;
 }
+
+::-webkit-input-placeholder{color:$color-black-2121!important}
+::-ms-input-placeholder{color:$color-black-2121!important}
+::placeholder{color:$color-black-2121!important}
