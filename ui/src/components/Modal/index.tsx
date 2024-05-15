@@ -47,7 +47,11 @@ const Modal = (props: ProjectModalProps) => {
   };
 
   const nameValidation = (value: string) => {
-    if (!value || !/^[^\s].+[^\s]$/.test(value)) {
+    if(!value){ 
+      setInputValue(false);
+      return ;
+    }    
+    else if (!/^[^\s].+[^\s]$/.test(value)) {
       setInputValue(false);
       return 'Please enter project name.';
     } else if (value && value?.length > 200) {
