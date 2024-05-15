@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react';
-import { AsyncSelect, Icon,  cbModal } from '@contentstack/venus-components';
+import { AsyncSelect, Icon, cbModal } from '@contentstack/venus-components';
 
 import { AppContext } from '../../../context/app/app.context';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
@@ -116,27 +116,25 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     const stackChanged = selectedStack?.value !== data?.value;
     const stackCleared = data?.value === '' || data?.value === null || data === null;
 
-    if (name === 'stacks') {       
-        setSelectedStack(() => ({ ...data }));
+    if (name === 'stacks') {
+      setSelectedStack(() => ({ ...data }));
 
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          destination_stack: {
-            ...newMigrationData?.destination_stack,
-            selectedStack: stackCleared ? DEFAULT_DROPDOWN : { ...data }
-          }
-        };
-
-        updateNewMigrationData(newMigrationDataObj);      
-     
-        if (!stackCleared) {
-        
-          if (props?.handleStepChange) {
-            props?.handleStepChange(props?.currentStep, true);
-          }
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        destination_stack: {
+          ...newMigrationData?.destination_stack,
+          selectedStack: stackCleared ? DEFAULT_DROPDOWN : { ...data }
         }
+      };
+
+      updateNewMigrationData(newMigrationDataObj);
+
+      if (!stackCleared) {
+        if (props?.handleStepChange) {
+          props?.handleStepChange(props?.currentStep, true);
+        }
+      }
     }
-  
   };
 
   const fetchData = async () => {
@@ -214,88 +212,89 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     });
   };
 
-  const loadMoreOptions: any = async ({ search, skip, limit }: { search: string; skip: number; limit: number }) => {
+  const loadMoreOptions: any = async ({
+    search,
+    skip,
+    limit
+  }: {
+    search: string;
+    skip: number;
+    limit: number;
+  }) => {
+    const stackData = await getAllStacksInOrg(
+      newMigrationData?.destination_stack?.selectedOrg?.value
+    ); //org id will always be there
 
-      
-      const stackData = await getAllStacksInOrg(
-        newMigrationData?.destination_stack?.selectedOrg?.value
-      ); //org id will always be there
-  
-      const stackArray = validateArray(stackData?.data?.stacks)
-        ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
-            label: stack?.name,
-            value: stack?.api_key,
-            uid: stack?.api_key,
-            master_locale: stack?.master_locale,
-            locales: stack?.locales,
-            created_at: stack?.created_at
-          }))
-        : [];
-  
-      stackArray.sort(
-        (a: IDropDown, b: IDropDown) =>{
-          (new Date(b?.created_at)?.getTime()) - (new Date(a?.created_at)?.getTime())}
-      );
-  
-      setAllStack(stackArray);
-  
-      //Set selected Stack
-      const selectedStackData = validateArray(stackArray)
-        ? stackArray.find(
-            (stack: IDropDown) =>
-              stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
-          )
-        : DEFAULT_DROPDOWN;
-  
-      setSelectedStack(selectedStackData);
-  
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        destination_stack: {
-          ...newMigrationData?.destination_stack,
-          selectedStack: selectedStackData
-        }
-      };
-  
-      updateNewMigrationData(newMigrationDataObj);
-  
-    return {options: stackArray};
-    
-   }
-   const onBlurDropdown = () => {
-    
+    const stackArray = validateArray(stackData?.data?.stacks)
+      ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+          label: stack?.name,
+          value: stack?.api_key,
+          uid: stack?.api_key,
+          master_locale: stack?.master_locale,
+          locales: stack?.locales,
+          created_at: stack?.created_at
+        }))
+      : [];
+
+    stackArray.sort((a: IDropDown, b: IDropDown) => {
+      new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime();
+    });
+
+    setAllStack(stackArray);
+
+    //Set selected Stack
+    const selectedStackData = validateArray(stackArray)
+      ? stackArray.find(
+          (stack: IDropDown) =>
+            stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
+        )
+      : DEFAULT_DROPDOWN;
+
+    setSelectedStack(selectedStackData);
+
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      destination_stack: {
+        ...newMigrationData?.destination_stack,
+        selectedStack: selectedStackData
+      }
+    };
+
+    updateNewMigrationData(newMigrationDataObj);
+
+    return { options: stackArray };
+  };
+  const onBlurDropdown = () => {
     if (!isEmptyString(selectedStack?.value)) {
       if (props?.handleStepChange) {
         props?.handleStepChange(props?.currentStep, true);
       }
     }
   };
-   
+
   return (
     <div className="">
-      
       <div className="action-summary-wrapper ">
         <div className="service_list ">
           <div className="row">
             <div className="col-12 pb-3 ">
-             <div style={{display:'flex'}}>
-             <div className="Dropdown-wrapper p-0 active ">
-                <AsyncSelect
-                version={'v2'}
-                loadMoreOptions={loadMoreOptions}
-                onChange={handleDropdownChange('stacks')}
-                onBlur={onBlurDropdown}
-                value={selectedStack}
-                isSearchable={true}
-                isClearable={true}
-                width='440px'
-                isDisabled={props?.stepComponentProps?.isSummary || false}
-                placeholder={'Stacks'}
-                limit={10}
-                />
+              <div style={{ display: 'flex' }}>
+                <div className="Dropdown-wrapper p-0 active ">
+                  <AsyncSelect
+                    version={'v2'}
+                    loadMoreOptions={loadMoreOptions}
+                    onChange={handleDropdownChange('stacks')}
+                    onBlur={onBlurDropdown}
+                    value={selectedStack}
+                    isSearchable={true}
+                    isClearable={true}
+                    width="440px"
+                    isDisabled={props?.stepComponentProps?.isSummary || false}
+                    placeholder={'Stacks'}
+                    limit={10}
+                  />
+                </div>
               </div>
-             </div>
-
             </div>
             <div className="col-12 pb-2">
               <label className="title">Master Locale</label>
