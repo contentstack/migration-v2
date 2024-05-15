@@ -48,7 +48,7 @@
           &.nested {
             margin-left: -0.9375rem;
           }
-        } 
+        }
         &.active {
           .icons {
             svg {
@@ -73,7 +73,7 @@
         color: $color-font-base;
         font-size: $size-font-large;
         font-weight: $font-weight-regular;
-        line-height: $line-height-reset!important;
+        line-height: $line-height-reset !important;
         opacity: 1;
         overflow: hidden;
         padding: 0.625rem 0;
@@ -100,7 +100,7 @@
         transition: all 0.3s linear;
         &.close {
           transform: rotate(-90deg);
-      }
+        }
       }
       & > ul {
         padding-left: 0.125rem;

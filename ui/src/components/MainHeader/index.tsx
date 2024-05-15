@@ -102,7 +102,7 @@ const MainHeader = () => {
               <div className="logo">
                 <Tooltip position="right" content="Stacks" wrapperElementType="div">
                   <Link to={`${logo?.url}`}>
-                    <img src={logo?.image?.url} className="w-100" alt="Contentstack Logo"/>
+                    <img src={logo?.image?.url} className="w-100" alt="Contentstack Logo" />
                   </Link>
                 </Tooltip>
               </div>
@@ -110,7 +110,7 @@ const MainHeader = () => {
               ''
             )}
 
-            <div className='organisationWrapper'>
+            <div className="organisationWrapper">
               <Dropdown
                 withSearch
                 headerLabel={organizationLabel}

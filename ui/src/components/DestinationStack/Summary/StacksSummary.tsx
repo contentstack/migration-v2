@@ -2,15 +2,18 @@ import { useContext, useState } from 'react';
 import StepIcon from '../../../components/Stepper/FlowStepper/StepIcon';
 import { AppContext } from '../../../context/app/app.context';
 import { isEmptyString } from '../../../utilities/functions';
-import { DEFAULT_DROPDOWN, IDropDown, INewMigration, IStep } from '../../../context/app/app.interface';
-
+import {
+  DEFAULT_DROPDOWN,
+  IDropDown,
+  INewMigration,
+  IStep
+} from '../../../context/app/app.interface';
 
 import './summary.scss';
 import { Icon, Select } from '@contentstack/venus-components';
 interface StacksSummaryProps {
   stepData: IStep;
 }
-
 
 const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
   const { newMigrationData } = useContext(AppContext);
@@ -26,7 +29,7 @@ const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
       value: 'loading',
       default: false,
       master_locale: '',
-      locales:[],
+      locales: [],
       created_at: ''
     }
   ];
@@ -36,7 +39,7 @@ const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
     <div className="row">
       {/* {!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.label) &&
       !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) && ( */}
-       <div className="action-summary-wrapper ">
+      <div className="action-summary-wrapper ">
         <div className="service_list ">
           <div className="row">
             <div className="col-12 pb-3 ">
@@ -45,7 +48,9 @@ const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
                   className="stackselect"
                   version={'v2'}
                   options={allStack}
-                  onChange={()=>{return}}
+                  onChange={() => {
+                    return;
+                  }}
                   value={selectedStack}
                   isSearchable={true}
                   isClearable={true}
@@ -64,7 +69,12 @@ const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
           </div>
         </div>
         <div className="stackselect pb-3 text-end">
-          <a className={`link`} onClick={()=>{return}}>
+          <a
+            className={`link`}
+            onClick={() => {
+              return;
+            }}
+          >
             <span className="small">
               <Icon icon="Plus" size="extraSmall" version="v2" active={true} />
               Create New Stack

@@ -81,24 +81,26 @@ const AddStack = (props: any): JSX.Element => {
         setIsLoading(false);
       });
 
-      //fetch all locales
-      getAllLocales(props?.selectedOrganisation).then((response:any) => {
-      const rawMappedLocalesMapped = validateObject(response?.data) && response?.data?.locales
-        ? Object?.keys(response?.data?.locales)?.map((key) => ({
-            uid: key,
-            label: response?.data?.locales[key],
-            value: key,
-            master_locale: key,
-            locales:[],
-            created_at: key
-          }))
-        : [];
+    //fetch all locales
+    getAllLocales(props?.selectedOrganisation)
+      .then((response: any) => {
+        const rawMappedLocalesMapped =
+          validateObject(response?.data) && response?.data?.locales
+            ? Object?.keys(response?.data?.locales)?.map((key) => ({
+                uid: key,
+                label: response?.data?.locales[key],
+                value: key,
+                master_locale: key,
+                locales: [],
+                created_at: key
+              }))
+            : [];
         setAllLocales(rawMappedLocalesMapped);
       })
       .catch((err: any) => {
         console.error(err);
       });
-      //org id will always be there
+    //org id will always be there
   }, []);
   return (
     <>
