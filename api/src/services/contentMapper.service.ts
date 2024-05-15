@@ -8,7 +8,7 @@ import {
   HTTP_TEXTS,
   HTTP_CODES,
   STEPPER_STEPS,
-  NEW_PROJECT_STATUS
+  NEW_PROJECT_STATUS,
 } from "../constants/index.js";
 import logger from "../utils/logger.js";
 import { config } from "../config/index.js";
@@ -256,8 +256,7 @@ const updateContentType = async (req: Request) => {
       NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
-  ) 
-   {
+  ) {
     logger.error(
       getLogMessage(
         srcFun,
