@@ -312,19 +312,19 @@ const getStackLocal = async (token_payload: any, data: any) => {
           status: err.response.status,
         };
       }
-      let localesArr:any =[]
-      res?.data?.locales.map((lang:any)=>{
+      let localesArr: any = [];
+      res?.data?.locales.map((lang: any) => {
         return localesArr.push({
-          code:lang.code,
-          name:lang.name
-        })
-      })
+          code: lang.code,
+          name: lang.name,
+        });
+      });
 
       let obj = {
         name: stack.name,
         api_key: stack.api_key,
         master_locale: stack.master_locale,
-        locales: localesArr
+        locales: localesArr,
       };
       stacks.push(obj);
     }
