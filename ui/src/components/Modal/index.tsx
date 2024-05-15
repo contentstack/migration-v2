@@ -120,7 +120,7 @@ const Modal = (props: ProjectModalProps) => {
                           <TextInput
                             {...input}
                             value={input?.value}
-                            onChange={(event: any): any => {
+                            onChange={(event: React.MouseEvent<HTMLElement>): void => {
                               input.onChange(event);
                             }}
                             version="v2"
@@ -168,7 +168,7 @@ const Modal = (props: ProjectModalProps) => {
                             version="v2"
                             maxLength="255"
                             data-testid="description-input"
-                            error={(meta?.error || meta?.submitError)}
+                            error={(meta?.error || meta?.submitError) && meta?.touched}
                           />
                           {meta?.error  && (
                             <ValidationMessage
