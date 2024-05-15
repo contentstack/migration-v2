@@ -1,5 +1,5 @@
 import { CTA } from '../../types/common.interface';
-import { ProjectsObj } from '../../pages/Projects/projects.interface'
+import { ProjectsObj } from '../../pages/Projects/projects.interface';
 
 export interface ProjectsHeaderType {
   cta?: CTA;

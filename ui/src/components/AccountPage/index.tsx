@@ -36,7 +36,7 @@ const AccountPage = (props: AccountObj): JSX.Element => {
       </div>
       <div className="AccountPage__action">
         <div className="AccountPage__content">{props?.children}</div>
-        <p className='copyright_text'>{`© ${previousYear}-${currentYear} ${copyrightText}`}</p>
+        <p className="copyright_text">{`© ${previousYear}-${currentYear} ${copyrightText}`}</p>
       </div>
     </div>
   );

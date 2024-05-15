@@ -137,8 +137,8 @@ interface FieldTypes {
   value: string;
 }
 interface locales {
-  code:string;
-  name:string
+  code: string;
+  name: string;
 }
 export interface ILegacyCms {
   selectedCms: ICMSType;
@@ -181,7 +181,7 @@ export interface IDropDown {
   value: string;
   default?: boolean;
   master_locale: string;
-  locales:locales[];
+  locales: locales[];
   created_at: string;
 }
 export interface ITestMigration {
@@ -210,7 +210,7 @@ export const DEFAULT_DROPDOWN: IDropDown = {
   default: false,
   uid: '',
   master_locale: '',
-  locales:[],
+  locales: [],
   created_at: ''
 };
 
