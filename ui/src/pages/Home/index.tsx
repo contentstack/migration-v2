@@ -40,7 +40,9 @@ const Home = () => {
 
       {cta?.title && (
         <Link to={cta?.url as string} className="btn primary-btn pb-0 mt-3">
-          <Button version="v2" aria-label={cta?.title} tabIndex={0}>{cta?.title}</Button>
+          <Button version="v2" aria-label={cta?.title} tabIndex={0}>
+            {cta?.title}
+          </Button>
         </Link>
       )}
     </div>
