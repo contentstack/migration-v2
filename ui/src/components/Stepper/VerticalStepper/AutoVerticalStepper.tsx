@@ -164,8 +164,11 @@ const AutoVerticalStepper = React.forwardRef<
       return (
         <div className={`migration-vertical-stepper StepperWrapper ${className}`}>
           <ol className="Vertical">
-            {steps?.map((step: any, index: number) => {             
-              const shouldShowIcon = (step?.title !== 'Select Stack' && step?.title !== 'Upload File' ) ? !step?.lock : false;
+            {steps?.map((step: any, index: number) => {
+              const shouldShowIcon =
+                step?.title !== 'Select Stack' && step?.title !== 'Upload File'
+                  ? !step?.lock
+                  : false;
 
               const DataComponent = step?.data as React.ElementType;
               const SummeryComponent = step?.summery as React.ElementType;

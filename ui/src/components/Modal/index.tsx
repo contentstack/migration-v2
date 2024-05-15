@@ -47,8 +47,11 @@ const Modal = (props: ProjectModalProps) => {
   };
 
   const nameValidation = (value: string) => {
-
-    if (value === '') {
+    if(!value){ 
+      setInputValue(false);
+      return ;
+    }    
+    else if (!/^[^\s].+[^\s]$/.test(value)) {
       setInputValue(false);
       return 'Please enter project name.';
     } else if (value && value?.length > 200) {
@@ -56,18 +59,18 @@ const Modal = (props: ProjectModalProps) => {
       return 'Project Name should not be more than 200 chars';
     } else {
       setInputValue(true);
-      return '';
     }
   };
 
   const descValidation = (value: string) => {
-    if (value && value?.length > 255) {
+    if (value?.length >= 255) {
       setInputValue(false);
       return 'Description should not be more than 255 chars';
     } else {
       return '';
     }
   };
+
   return (
     <>
       <ModalHeader
@@ -125,13 +128,19 @@ const Modal = (props: ProjectModalProps) => {
                             placeholder={namePlaceholder}
                             data-testid="title-input"
                             name="name"
+                            maxLength='200'
                             error={(meta?.error || meta?.submitError) && meta?.touched}
                           />
-                          {meta?.error && meta?.touched && (
-                            <ValidationMessage testId="cs-name-error" className="mt-2" version="v2">
+                            {meta?.error  && (
+                            <ValidationMessage
+                              testId="cs-description-error"
+                              className="mt-2"
+                              version="v2"
+                            >
                               {meta?.error}
                             </ValidationMessage>
                           )}
+                          
                         </>
                       );
                     }}
@@ -140,6 +149,7 @@ const Modal = (props: ProjectModalProps) => {
                 <Field className="mb-30">
                   <FinalField name="description" validate={descValidation}>
                     {({ input, meta }): JSX.Element => {
+                      
                       return (
                         <>
                           <FieldLabel htmlFor="description" version="v2">
@@ -148,16 +158,19 @@ const Modal = (props: ProjectModalProps) => {
                           <Textarea
                             {...input}
                             value={input?.value}
+                            onChange={(event: any): any => {
+                              input.onChange(event);
+                            }}
                             id="description"
-                            maxLength="255"
                             name="description"
                             showCharacterCount="true"
                             placeholder={descriptionPlaceholder}
                             version="v2"
+                            maxLength="255"
                             data-testid="description-input"
                             error={(meta?.error || meta?.submitError) && meta?.touched}
                           />
-                          {meta?.error && meta?.touched && (
+                          {meta?.error  && (
                             <ValidationMessage
                               testId="cs-description-error"
                               className="mt-2"
