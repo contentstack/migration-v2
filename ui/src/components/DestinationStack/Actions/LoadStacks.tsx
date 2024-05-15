@@ -38,8 +38,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       label: 'Loading stacks...',
       value: 'loading',
       default: false,
-      master_locale:'',
-      locales:[],
+      master_locale: '',
+      locales: [],
       created_at: ''
     }
   ];
@@ -162,12 +162,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     //Set selected Stack
     const selectedStackData = validateArray(stackArray)
-    ? stackArray.find(
-      (stack: IDropDown) =>
-        stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
-    )
-    : DEFAULT_DROPDOWN;
-  
+      ? stackArray.find(
+          (stack: IDropDown) =>
+            stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
+        )
+      : DEFAULT_DROPDOWN;
+
     setSelectedStack(selectedStackData);
 
     const newMigrationDataObj: INewMigration = {
@@ -195,7 +195,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           }}
           onSubmit={handleOnSave}
           defaultValues={defaultStack}
-          selectedOrganisation=  {selectedOrganisation?.value}
+          selectedOrganisation={selectedOrganisation?.value}
           {...props}
         />
       ),

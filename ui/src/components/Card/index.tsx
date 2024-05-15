@@ -43,7 +43,9 @@ const CardList = ({ project }: ProjectType) => {
             <div className="ProjectCard__stats">
               <div className="ProjectCard__unit">
                 <span className="ProjectCard__stats-number">Project Status</span>
-                <span className="ProjectCard__stats-category">{PROJECT_STATUS?.[project?.status !== undefined ? project?.status : 0]}</span>
+                <span className="ProjectCard__stats-category">
+                  {PROJECT_STATUS?.[project?.status !== undefined ? project?.status : 0]}
+                </span>
               </div>
             </div>
           </div>

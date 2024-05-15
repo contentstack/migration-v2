@@ -1,4 +1,4 @@
-import { ObjectType } from './constants.interface'
+import { ObjectType } from './constants.interface';
 export const BASE_API_URL = process.env.REACT_APP_BASE_API_URL;
 export const assetsRelativeUrl = 'v3/assets';
 export const WEBSITE_BASE_URL = process.env.REACT_APP_WEBSITE_BASE_URL;
@@ -63,8 +63,7 @@ export const UPLOAD_FILE_RELATIVE_URL = process.env.REACT_APP_UPLOAD_SERVER;
 
 export const UPLOAD_FILE_URL = `${UPLOAD_FILE_RELATIVE_URL}upload`;
 
-
-export const PROJECT_STATUS:ObjectType  = {
+export const PROJECT_STATUS: ObjectType = {
   '0': 'Draft',
   '1': 'Ready to test',
   '2': 'Testing inprogress',

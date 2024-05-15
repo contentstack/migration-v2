@@ -18,7 +18,6 @@ import FlowBlockItem from './FlowBlockItem';
 // Styles
 import './FlowStepper.scss';
 
-
 type IProp = {
   currentStep: number;
 };
@@ -29,30 +28,30 @@ const FlowStepper = ({ currentStep }: IProp) => {
   const navigate = useNavigate();
   const { migrationData, updateMigrationData, selectedOrganisation } = useContext(AppContext);
 
-  const onStepClick = (step: IFlowStep, isCompleted: boolean) => async() => {
-    if (params?.stepId === `${step?.name}`) return;  
-    
+  const onStepClick = (step: IFlowStep, isCompleted: boolean) => async () => {
+    if (params?.stepId === `${step?.name}`) return;
+
     updateMigrationData({ currentFlowStep: step });
-    
+
     const url = `/projects/${params?.projectId}/migration/steps/${step?.name}`;
 
-    navigate(url, { replace: true }); 
-    
+    navigate(url, { replace: true });
   };
 
   return (
     <FlowBlock className={'ft-block'}>
       {validateArray(migrationData?.allFlowSteps) ? (
         migrationData?.allFlowSteps?.map((step: IFlowStep) => {
-          return(
-          <FlowBlockItem
-            onStepClick={onStepClick}
-            step={step}
-            isActive={params?.stepId === `${step?.name}`}
-            key={step?.flow_id}
-            isCompleted={currentStep > +step?.name}
-          />
-        )})
+          return (
+            <FlowBlockItem
+              onStepClick={onStepClick}
+              step={step}
+              isActive={params?.stepId === `${step?.name}`}
+              key={step?.flow_id}
+              isCompleted={currentStep > +step?.name}
+            />
+          );
+        })
       ) : (
         <></>
       )}
