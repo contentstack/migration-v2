@@ -178,8 +178,8 @@ router.get('/validator', express.json(), async function (req: Request, res: Resp
 
         const data = await handleFileProcessing(fileExt, zipBuffer, cmsType);
         res.json(data);
-
         res.send('file valited sucessfully.');
+        createSitecoreMapper()
       });
     }
   } catch (err: any) {
@@ -188,7 +188,6 @@ router.get('/validator', express.json(), async function (req: Request, res: Resp
 });
 
 router.get('/config', async function (req: Request, res: Response) {
-  createSitecoreMapper()
   res.json(config);
 });
 
