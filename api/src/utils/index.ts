@@ -1,4 +1,3 @@
-
 export const throwError = (message: string, statusCode: number) => {
   throw Object.assign(new Error(message), { statusCode });
 };
@@ -26,4 +25,3 @@ export const getLogMessage = (
     ...(error && { error }),
   };
 };
-
