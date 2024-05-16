@@ -278,7 +278,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         <div className="service_list ">
           <div className="row">
             <div className="col-12 pb-3 ">
-              <div style={{ display: 'flex' }}>
                 <div className="Dropdown-wrapper p-0 active ">
                   <AsyncSelect
                     version={'v2'}
@@ -294,7 +293,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                     limit={10}
                   />
                 </div>
-              </div>
             </div>
             <div className="col-12 pb-2">
               <label className="title">Master Locale</label>
