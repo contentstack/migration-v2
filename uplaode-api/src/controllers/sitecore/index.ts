@@ -11,27 +11,28 @@ const createSitecoreMapper = async () => {
     await contentTypes(path);
     const infoMap = await reference();
     if (infoMap?.contentTypeUids?.length) {
-      const fieldMapping: any = { contentTypeData: [] };
+      const fieldMapping: any = { contentTypes: [] };
       for await (const contentType of infoMap?.contentTypeUids ?? []) {
-        fieldMapping?.contentTypeData?.push(
-          JSON.stringify({ contentTypeData: readFileSync(`${infoMap?.path}/content_types/${contentType}`, 'utf8') })
+        fieldMapping?.contentTypes?.push(
+          JSON.parse(readFileSync(`${infoMap?.path}/content_types/${contentType}`, 'utf8'))
         );
       }
+      console.log("🚀 ~ createSitecoreMapper ~ fieldMapping:", fieldMapping)
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
-        url: `http://localhost:5000/v2/mapper/createDummyData/4392f62d-dc4e-4a05-92c2-d049a23f90ae`,
+        url: `http://localhost:5000/v2/mapper/createDummyData/98ee1edc-f297-419d-a394-8ab71e2e546c`,
         headers: {
           'app_token': 'REMOVED',
           'Content-Type': 'application/json'
         },
-        data: fieldMapping
+        data: JSON.stringify(fieldMapping),
       };
       const response = await axios.request(config)
       console.log("🚀 ~ forawait ~ response:", response?.data)
     }
   } catch (err: any) {
-    console.error("🚀 ~ createSitecoreMapper ~ err:", err?.response?.data)
+    console.error("🚀 ~ createSitecoreMapper ~ err:", err?.response?.data ?? err)
   }
 }
 
