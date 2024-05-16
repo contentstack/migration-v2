@@ -9,11 +9,10 @@ import {
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
 import config from '../config/index';
-import logger from '../utils/logger.js';
-import { HTTP_TEXTS, HTTP_CODES } from '../constants';
 import { Readable } from 'stream';
 
 import handleFileProcessing from '../services/fileProcessing';
+import createSitecoreMapper from '../controllers/sitecore';
 
 const router: Router = express.Router();
 // Use memory storage to avoid saving the file locally
@@ -189,6 +188,7 @@ router.get('/validator', express.json(), async function (req: Request, res: Resp
 });
 
 router.get('/config', async function (req: Request, res: Response) {
+  createSitecoreMapper()
   res.json(config);
 });
 
