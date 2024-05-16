@@ -8,12 +8,6 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);
-
-    const validation_result = validator({
-      data: zip,
-      type: cmsType,
-      extension: fileExt
-    });
     if (validator({ data: zip, type: cmsType, extension: fileExt })) {
       logger.info('Validation success:', {
         status: HTTP_CODES?.OK,
