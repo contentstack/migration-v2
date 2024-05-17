@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 
 // Service
 import { updateLegacyCMSData } from '../../../services/api/migration.service';
-import { fileValidation } from '../../../services/api/upload.service';
+import { fileValidation, getConfig } from '../../../services/api/upload.service';
 
 // Utilities
 import { isEmptyString, validateArray } from '../../../utilities/functions';
@@ -44,7 +44,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [searchText, setSearchText] = useState<string>('');
   const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
   const [cmsFilter, setCmsFilter] = useState<string[]>([]);
-  const [cmsType, setCmsType] = useState<string | null>(
+  const [cmsType, setCmsType] = useState<string>(
     newMigrationData?.legacy_cms?.selectedCms?.title?.toLowerCase()
   );
 
@@ -63,9 +63,10 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       }
     });
 
-    await updateLegacyCMSData(selectedOrganisation?.value, projectId, { legacy_cms: cms?.cms_id });
-
-    props?.handleStepChange(props?.currentStep);
+    // await updateLegacyCMSData(selectedOrganisation?.value, projectId, { legacy_cms: cms?.cms_id });
+    if (!isEmptyString(cms?.title)) {
+      props?.handleStepChange(props?.currentStep);
+    }
   };
 
   //Handle CMS Filter Updation in local storage.
@@ -89,10 +90,11 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const filterCMSData = async (searchText: string) => {
     const { all_cms = [] } = migrationData?.legacyCMSData || {};
 
-    const res: any = await fileValidation();
-    const cms = res?.data?.file_details?.cmsType?.toLowerCase();
-    setCmsType(cms);
-    const cmstype = cms; // Fetch the specific CMS type
+    const apiRes: any = await getConfig(); // api call to get cms type from upload service
+
+    const cms = apiRes?.data?.cmsType?.toLowerCase();
+
+    const cmstype = !isEmptyString(cmsType) ? cmsType : cms; // Fetch the specific CMS type
 
     let filteredCmsData: ICMSType[] = [];
     if (isEmptyString(searchText) && !validateArray(cmsFilter) && !cmstype) {
@@ -158,16 +160,18 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     }
   }, [cmsType, selectedCard]);
 
-  useEffect(() => {
-    const getCmsType = async () => {
-      const res: any = await fileValidation();
-      const cms = res?.data?.file_details?.cmsType?.toLowerCase();
-      setCmsType(cms);
-      filterCMSData(cms);
-      return cmsType;
-    };
-    getCmsType();
-  }, [cmsType]);
+  // useEffect(() => {
+  //   const getCmsType = async () => {
+  //     const res: any = await fileValidation();
+  //     const cms = res?.data?.file_details?.cmsType?.toLowerCase();
+  //     if(isEmptyString(cmsType || '')){
+  //       setCmsType(cms);
+  //     }
+  //     filterCMSData(cms);
+  //     return cmsType;
+  //   };
+  //   //getCmsType();
+  // }, [cmsType]);
 
   return (
     <div>
