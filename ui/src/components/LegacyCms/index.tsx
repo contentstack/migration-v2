@@ -17,7 +17,7 @@ import { isEmptyString, validateArray } from '../../utilities/functions';
 import { ICardType, defaultCardType } from '../Common/Card/card.interface';
 import './legacyCms.scss';
 import { IFilterType } from '../Common/Modal/FilterModal/filterModal.interface';
-import { updateCurrentStepData } from '../../services/api/migration.service';
+import { updateCurrentStepData, updateLegacyCMSData } from '../../services/api/migration.service';
 import { MigrationResponse } from '../../services/api/service.interface';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
@@ -60,6 +60,9 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
     event.preventDefault();
 
     //Update Data in backend
+    await updateLegacyCMSData(selectedOrganisation?.value, projectId, {
+      legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
+    });
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
     if (res) {
       const url = `/projects/${projectId}/migration/steps/2`;
