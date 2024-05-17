@@ -222,6 +222,7 @@ const ContentMapper = () => {
       acc[item?.id] = true;
       return acc;
     }, {});
+    
     setRowIds(selectedId);
   }, [tableData]);
 
@@ -487,14 +488,97 @@ const ContentMapper = () => {
   };
 
   // Function to handle selected fields
-  const handleSelectedEntries = (singleSelectedRowIds: any, selectedData: any) => {
+  const handleSelectedEntries = (singleSelectedRowIds: UidMap[], selectedData: FieldMapType[]) => {
     const selectedObj: any = {};
+
     singleSelectedRowIds.forEach((uid: any) => {
-      selectedObj[uid] = true;
-    });
+          selectedObj[uid] = true;
+        });
+    
+    // let groupId = '';
+    let eleId: RegExpMatchArray | null
+
+    // selectedData?.includes()
+
+    // const res = selectedData?.filter((field) => {console.log("???????????", selectedObj[field?.id]);
+    //  field?.uid === selectedObj[field?.id]})
+    // console.log("res", res);
+
+
+    
+    selectedData?.forEach((field, ind) => {
+      if (field?.uid.includes('.')) {
+      eleId = field?.uid.match( /\b([^.]+).([^.]+)\b/ )
+
+      }
+      // console.log("eleId", eleId);
+      console.log('i:::::::::', field?.uid, field?.id);
+
+      
+      // if (field?.ContentstackFieldType === 'group') {
+        const groups = selectedData.find(entry => entry?.ContentstackFieldType === 'group')
+        console.log("groups", groups);
+
+        if (groups) {
+          console.log("found group");
+          const child = selectedData.find(childField => childField?.uid === 'group')
+        }
+        
+        // if () {
+        //   console.log('inside if', field?.uid);
+
+        // } else {
+        //   console.log('inside else');
+        //   selectedObj[field?.id] = false;
+        // }
+
+      //   // singleSelectedRowIds.forEach((uid: any) => {
+      //     selectedObj[field?.id] = false;
+      //   // });
+      // }
+      //  else {
+      //   console.log("inside else", eleId?.[1]);
+      //   // singleSelectedRowIds.forEach((uid: any) => {
+      //     selectedObj[field?.id] = false;
+      //   // });
+      // }
+    })
+    const john = selectedData.find((field) => field.uid === eleId?.[1]);
+    console.log('john', john);
+    
+    if (john) {
+      console.log("John is in the array!", john);
+    } else {
+      console.log("John is not in the array.", john);
+    }
+    //   // if (field?.ContentstackFieldType != 'group') {
+
+
+    //     if (field?.uid.includes('.')) {
+    //     eleId = field?.uid.match( /\b([^.]+).([^.]+)\b/ )
+
+
+          
+    //   }
+    //   // console.log("++++++++++++++++++", field?.uid, field?.uid?.startsWith(eleId?.[1] + '.'));
+
+    //   if(selectedData[ind]?.uid?.startsWith(eleId?.[1] + '.')) {
+    //     // console.log("inside if", field, selectedData[ind]?.uid, eleId?.[1]);
+    //     selectedObj[field.id] = true
+    //   }
+    //     // if() {
+    //     //   console.log("inside if", /([^-]+).([^-]+)/.exec(field?.uid));
+          
+    //     // }
+    //   // }
+    // })
+    
     setRowIds(selectedObj);
     setSelectedEntries(selectedData);
   };
+
+  console.log("=============", rowIds, selectedEntries);
+
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
@@ -1010,7 +1094,7 @@ const ContentMapper = () => {
               searchPlaceholder={searchPlaceholder}
               fetchTableData={fetchData}
               loadMoreItems={loadMoreItems}
-              tableHeight={485}
+              tableHeight={465}
               equalWidthColumns={true}
               columnSelector={false}
               initialRowSelectedData={tableData}
