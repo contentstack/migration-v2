@@ -63,7 +63,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       }
     });
 
-    // await updateLegacyCMSData(selectedOrganisation?.value, projectId, { legacy_cms: cms?.cms_id });
+    
     if (!isEmptyString(cms?.title)) {
       props?.handleStepChange(props?.currentStep);
     }
@@ -160,18 +160,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     }
   }, [cmsType, selectedCard]);
 
-  // useEffect(() => {
-  //   const getCmsType = async () => {
-  //     const res: any = await fileValidation();
-  //     const cms = res?.data?.file_details?.cmsType?.toLowerCase();
-  //     if(isEmptyString(cmsType || '')){
-  //       setCmsType(cms);
-  //     }
-  //     filterCMSData(cms);
-  //     return cmsType;
-  //   };
-  //   //getCmsType();
-  // }, [cmsType]);
 
   return (
     <div>
