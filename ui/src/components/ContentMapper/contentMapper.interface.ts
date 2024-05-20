@@ -32,6 +32,7 @@ export interface ContentstackFields {
 export interface FieldTypes {
   label: string;
   value: any;
+  id?: string;
 }
 export interface TableTypes {
   sortBy: any;
@@ -76,16 +77,16 @@ export interface FieldMetadata {
   allow_rich_text?: boolean;
   markdown?: boolean;
 }
-export interface ContentTypeField {
+export interface ContentTypesSchema {
   uid?: string;
   display_name?: string;
   data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file';
   field_metadata?: FieldMetadata;
   enum?: any;
 }
-export interface ContentTypesSchema {
-  [key: string]: ContentTypeField;
-}
+// export interface ContentTypesSchema {
+//   [key: string]: ContentTypeField;
+// }
 
 export type ExistingFieldType = {
   [key: string]: FieldTypes | undefined;
@@ -96,7 +97,8 @@ export interface Mapping {
 }
 export interface ContentTypeList {
   title: string;
-  schema: [];
+  schema: ContentTypesSchema[];
+  uid:  string;
 }
 
 export interface optionsType {
