@@ -70,8 +70,8 @@ export const HTTP_TEXTS = {
     "Reseting the content mapping is restricted. Please verify the status and review preceding actions.",
   CONTENTMAPPER_NOT_FOUND:
     "Sorry, the requested content mapper id does not exists.",
-    ADMIN_LOGIN_ERROR:
-    "Sorry, You Don't have admin access in any of the Organisation" 
+  ADMIN_LOGIN_ERROR:
+    "Sorry, You Don't have admin access in any of the Organisation",
 };
 
 export const HTTP_RESPONSE_HEADERS = {
@@ -127,11 +127,11 @@ export const PREDEFINED_STATUS = [
 export const PREDEFINED_STEPS = [1, 2, 3, 4, 5];
 
 export const NEW_PROJECT_STATUS = {
-  0: 0,                   //DRAFT
-  1: 1,                  //READY_TO_TEST
-  2: 2,                 //TESTING_IN_PROGRESS
-  3: 3,                //READY_FOR_MIGRATION
-  4: 4,               //MIGRATION_IN_PROGRESS
-  5: 5,              //MIGRATION_SUCCESSFUL
-  6: 6              //MIGRATION_TERMINATED
+  0: 0, //DRAFT
+  1: 1, //READY_TO_TEST
+  2: 2, //TESTING_IN_PROGRESS
+  3: 3, //READY_FOR_MIGRATION
+  4: 4, //MIGRATION_IN_PROGRESS
+  5: 5, //MIGRATION_SUCCESSFUL
+  6: 6, //MIGRATION_TERMINATED
 };

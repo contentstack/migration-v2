@@ -224,6 +224,7 @@ const ContentMapper = () => {
       acc[item?.id] = true;
       return acc;
     }, {});
+    
     setRowIds(selectedId);
   }, [tableData]);
 
@@ -489,14 +490,36 @@ const ContentMapper = () => {
   };
 
   // Function to handle selected fields
-  const handleSelectedEntries = (singleSelectedRowIds: any, selectedData: any) => {
+  const handleSelectedEntries = (singleSelectedRowIds: UidMap[], selectedData: FieldMapType[]) => {
     const selectedObj: any = {};
+
     singleSelectedRowIds.forEach((uid: any) => {
       selectedObj[uid] = true;
     });
+    
+    const uncheckedElements = findUncheckedElement(selectedData, tableData);
+    uncheckedElements && validateArray(uncheckedElements) && uncheckedElements?.forEach((field) => {
+      if (field?.otherCmsType === "Group") {
+        const newEle = selectedData?.filter((entry) => entry?.uid?.startsWith(field?.uid + '.'))
+
+        newEle && validateArray(newEle) && newEle.forEach((child) => {
+          selectedObj[child?.id || ''] = false;
+          selectedData?.splice(selectedData?.indexOf(child), 1);
+        })
+      }
+    })
+
     setRowIds(selectedObj);
     setSelectedEntries(selectedData);
+    
   };
+
+  // Function to find unchecked field
+  const findUncheckedElement = (selectedData: FieldMapType[], tableData: FieldMapType[]) => {
+    return tableData.filter((mainField: FieldMapType) => 
+      !selectedData.some((selectedField:FieldMapType) => selectedField?.otherCmsField === mainField?.otherCmsField)
+    );
+  }
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
@@ -1040,7 +1063,7 @@ const ContentMapper = () => {
               searchPlaceholder={searchPlaceholder}
               fetchTableData={fetchData}
               loadMoreItems={loadMoreItems}
-              tableHeight={485}
+              tableHeight={465}
               equalWidthColumns={true}
               columnSelector={false}
               initialRowSelectedData={tableData}
