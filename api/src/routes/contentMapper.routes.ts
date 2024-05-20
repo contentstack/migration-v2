@@ -36,5 +36,11 @@ router.put(
   "/resetFields/:orgId/:projectId/:contentTypeId",
   asyncRouter(contentMapperController.resetContentType)
 );
+//get Single contenttype data
+router.get(
+  "/:projectId/:contentTypeUid",
+  asyncRouter(contentMapperController.getSingleContentTypes)
+);
+
 
 export default router;
