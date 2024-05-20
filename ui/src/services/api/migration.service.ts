@@ -169,3 +169,11 @@ export const createTestStack = async (orgId: string, projectId: string, data: an
     return error;
   }
 };
+
+export const fetchExistingContentType = async (projectId: string, contentTypeUid: string) => {
+  try {
+    return await getCall(`${API_VERSION}/mapper/${projectId}/${contentTypeUid}`, options);
+  } catch (error: any) {
+    return error;
+  }
+}
