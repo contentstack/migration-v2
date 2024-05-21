@@ -43,3 +43,11 @@ export const fileValidation = () => {
     return error;
   }
 };
+
+export const getConfig = () => {
+  try {
+    return getCall(`${UPLOAD_FILE_RELATIVE_URL}config`);
+  } catch (error) {
+    return error;
+  }
+};

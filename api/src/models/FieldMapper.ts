@@ -2,11 +2,11 @@ import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 
 interface Advanced {
-  validationRegex: string,
-  Mandatory:boolean,
-  Multiple:boolean,
-  Unique:boolean,
-  NonLocalizable:boolean
+  validationRegex: string;
+  Mandatory: boolean;
+  Multiple: boolean;
+  Unique: boolean;
+  NonLocalizable: boolean;
 }
 
 interface FieldMapper {
@@ -21,7 +21,7 @@ interface FieldMapper {
     isDeleted: boolean;
     backupFieldType: string;
     refrenceTo: { uid: string; title: string };
-    advanced:Advanced
+    advanced: Advanced;
   }[];
 }
 

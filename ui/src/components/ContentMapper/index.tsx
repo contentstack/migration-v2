@@ -28,7 +28,8 @@ import {
   getExistingContentTypes,
   updateContentType,
   resetToInitialMapping,
-  createTestStack
+  createTestStack,
+  fetchExistingContentType
 } from '../../services/api/migration.service';
 import { getStackStatus } from '../../services/api/stacks.service';
 
@@ -158,6 +159,7 @@ const ContentMapper = () => {
 
   const [rowIds, setRowIds] = useState({});
   const [selectedEntries, setSelectedEntries] = useState<FieldMapType[]>([]);
+  const [contentTypeSchema, setContentTypeSchema] = useState<ContentTypesSchema[]>([]);
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -222,6 +224,7 @@ const ContentMapper = () => {
       acc[item?.id] = true;
       return acc;
     }, {});
+    
     setRowIds(selectedId);
   }, [tableData]);
 
@@ -487,14 +490,36 @@ const ContentMapper = () => {
   };
 
   // Function to handle selected fields
-  const handleSelectedEntries = (singleSelectedRowIds: any, selectedData: any) => {
+  const handleSelectedEntries = (singleSelectedRowIds: UidMap[], selectedData: FieldMapType[]) => {
     const selectedObj: any = {};
+
     singleSelectedRowIds.forEach((uid: any) => {
       selectedObj[uid] = true;
     });
+    
+    const uncheckedElements = findUncheckedElement(selectedData, tableData);
+    uncheckedElements && validateArray(uncheckedElements) && uncheckedElements?.forEach((field) => {
+      if (field?.otherCmsType === "Group") {
+        const newEle = selectedData?.filter((entry) => entry?.uid?.startsWith(field?.uid + '.'))
+
+        newEle && validateArray(newEle) && newEle.forEach((child) => {
+          selectedObj[child?.id || ''] = false;
+          selectedData?.splice(selectedData?.indexOf(child), 1);
+        })
+      }
+    })
+
     setRowIds(selectedObj);
     setSelectedEntries(selectedData);
+    
   };
+
+  // Function to find unchecked field
+  const findUncheckedElement = (selectedData: FieldMapType[], tableData: FieldMapType[]) => {
+    return tableData.filter((mainField: FieldMapType) => 
+      !selectedData.some((selectedField:FieldMapType) => selectedField?.otherCmsField === mainField?.otherCmsField)
+    );
+  }
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
@@ -642,7 +667,10 @@ const ContentMapper = () => {
   const SelectAccessorOfColumn = (data: FieldMapType) => {
     const fieldsOfContentstack: Mapping = {
       'Single Line Textbox': 'text',
+      'Single-Line Text': 'text',
+      'text': 'text',
       'Multi Line Textbox': 'multiline',
+      'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
       'JSON Rich Text Editor': 'json',
       URL: 'url',
@@ -657,18 +685,20 @@ const ContentMapper = () => {
       CheckBox: 'enum'
     };
     const OptionsForRow: optionsType[] = [];
-    let ContentTypeSchema: ContentTypesSchema | undefined;
+    // let ContentTypeSchema: ContentTypesSchema | undefined;
 
     if (OtherContentType?.label && contentTypesList) {
       const ContentType: any = contentTypesList?.find(
         ({ title }) => title === OtherContentType?.label
       );
-
-      ContentTypeSchema = ContentType?.schema;
+      setContentTypeSchema(ContentType?.schema)
     }
-    if (ContentTypeSchema && typeof ContentTypeSchema === 'object') {
-      const fieldTypeToMatch = fieldsOfContentstack[data?.backupFieldType as keyof Mapping];
-      Object.entries(ContentTypeSchema).forEach(([key, value]) => {
+
+    if (contentTypeSchema && validateArray(contentTypeSchema)) {
+      const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
+      // console.log("fieldTypeToMatch", contentTypeSchema, fieldsOfContentstack, data?.backupFieldType);
+      
+      contentTypeSchema.forEach((value) => {
         switch (fieldTypeToMatch) {
           case 'text':
             if (
@@ -721,6 +751,11 @@ const ContentMapper = () => {
               OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
             }
             break;
+          // case 'Group':
+          //   if (value?.data_type === 'group') {
+          //     OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
+          //   }
+          //   break;
           default:
             OptionsForRow.push({
               label: 'No matches found',
@@ -887,6 +922,23 @@ const ContentMapper = () => {
     }
   };
 
+  // Function to fetch single content type
+  const handleFetchContentType = async () => {
+    if (OtherContentType?.label === "Select Content Type") {
+      Notification({
+        notificationContent: { text: "Please Select a Content Type to fetch." },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: false
+        },
+        type: 'error'
+      });
+    } else {
+      const { data } = await fetchExistingContentType(projectId, OtherContentType?.id || '');
+      setContentTypeSchema(data?.schema)
+    }
+  }
+
   const columns = [
     {
       disableSortBy: true,
@@ -924,6 +976,7 @@ const ContentMapper = () => {
   const options = contentTypesList?.map((item) => ({
     label: item?.title,
     value: item?.title,
+    id: item?.uid,
     isDisabled: false
   }));
 
@@ -1010,7 +1063,7 @@ const ContentMapper = () => {
               searchPlaceholder={searchPlaceholder}
               fetchTableData={fetchData}
               loadMoreItems={loadMoreItems}
-              tableHeight={485}
+              tableHeight={465}
               equalWidthColumns={true}
               columnSelector={false}
               initialRowSelectedData={tableData}
@@ -1030,7 +1083,7 @@ const ContentMapper = () => {
 
                     {!IsEmptyStack && (
                       <Tooltip content={'fetch the content type'} position="left">
-                        <Icon icon="FetchTemplate" size="small" version="v2" />
+                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType} />
                       </Tooltip>
                     )}
                   </div>
