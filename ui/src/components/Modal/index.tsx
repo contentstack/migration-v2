@@ -47,11 +47,10 @@ const Modal = (props: ProjectModalProps) => {
   };
 
   const nameValidation = (value: string) => {
-    if(!value){ 
+    if (!value) {
       setInputValue(false);
-      return ;
-    }    
-    else if (!/^[^\s].+[^\s]$/.test(value)) {
+      return;
+    } else if (!/^[^\s].+[^\s]$/.test(value)) {
       setInputValue(false);
       return 'Please enter project name.';
     } else if (value && value?.length > 200) {
@@ -128,10 +127,10 @@ const Modal = (props: ProjectModalProps) => {
                             placeholder={namePlaceholder}
                             data-testid="title-input"
                             name="name"
-                            maxLength='200'
+                            maxLength="200"
                             error={(meta?.error || meta?.submitError) && meta?.touched}
                           />
-                            {meta?.error  && (
+                          {meta?.error && (
                             <ValidationMessage
                               testId="cs-description-error"
                               className="mt-2"
@@ -140,7 +139,6 @@ const Modal = (props: ProjectModalProps) => {
                               {meta?.error}
                             </ValidationMessage>
                           )}
-                          
                         </>
                       );
                     }}
@@ -149,7 +147,6 @@ const Modal = (props: ProjectModalProps) => {
                 <Field className="mb-30">
                   <FinalField name="description" validate={descValidation}>
                     {({ input, meta }): JSX.Element => {
-                      
                       return (
                         <>
                           <FieldLabel htmlFor="description" version="v2">
@@ -170,7 +167,7 @@ const Modal = (props: ProjectModalProps) => {
                             data-testid="description-input"
                             error={(meta?.error || meta?.submitError) && meta?.touched}
                           />
-                          {meta?.error  && (
+                          {meta?.error && (
                             <ValidationMessage
                               testId="cs-description-error"
                               className="mt-2"

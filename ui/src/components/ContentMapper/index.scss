@@ -2,7 +2,9 @@
 @import '../../scss/variables';
 
 .content-types-list-wrapper {
+  max-height: calc(100vh - 7.25rem);
   max-width: 27%;
+  overflow: hidden;
   width: 100%;
 }
 .content-types-list-header {
@@ -17,8 +19,11 @@
   }
 }
 .ct-list {
+  height: 100%;
   list-style-type: none;
-  margin: 5px 15px 0;
+  margin: 15px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   li {
     align-items: center;
     border: 1px solid transparent;
@@ -41,17 +46,15 @@
 }
 .content-types-fields-wrapper {
   border-left: 1px solid $color-brand-secondary-lightest;
+  display: flex;
+  flex-direction: column;
   max-width: 73%;
   width: 100%;
   padding: 0px;
 }
 .cta-wrapper {
   border-top: 1px solid $color-base-gray-40;
-  flex: 1 0 auto;
-  // bottom: 0;
   padding: $space-12 $space-24 $space-12 $space-12;
-  // position: fixed;
-  // right: 0;
   text-align: right;
   width: 100%;
   z-index: 1;
@@ -61,6 +64,7 @@
   flex: 1 0 auto;
 }
 .table-wrapper {
+  flex: 1;
   .Table {
     min-height: inherit;
     .Table__body__column {
@@ -83,12 +87,15 @@
   justify-content: space-between;
   padding: 12px;
 }
+.action-component-body {
+  display: flex;
+}
 .step-container {
   display: flex;
   flex-direction: column;
   margin-top: 0;
   margin-left: 0px;
-  margin-bottom: 20px;
+  // margin-bottom: 20px;
   width: 100%;
 }
 .saveButton {
