@@ -8,7 +8,6 @@ const connectToDatabase = async () => {
       fs.mkdirSync("./database");
     }
     logger.info("successfully connecting to Low DB");
-
   } catch (error) {
     logger.error("Error while connecting to Low DB:", error);
     process.exit(1);

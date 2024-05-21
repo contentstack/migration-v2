@@ -9,7 +9,7 @@ import {
   HTTP_TEXTS,
   HTTP_CODES,
   STEPPER_STEPS,
-  NEW_PROJECT_STATUS
+  NEW_PROJECT_STATUS,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
 import { getLogMessage, safePromise } from "../utils/index.js";
@@ -479,8 +479,8 @@ const updateDestinationStack = async (req: Request) => {
   );
 
   if (
-    project.status ===  NEW_PROJECT_STATUS[4] ||
-    project.status ===  NEW_PROJECT_STATUS[5] ||
+    project.status === NEW_PROJECT_STATUS[4] ||
+    project.status === NEW_PROJECT_STATUS[5] ||
     project.current_step < STEPPER_STEPS.DESTINATION_STACK
   ) {
     logger.error(
@@ -531,7 +531,7 @@ const updateDestinationStack = async (req: Request) => {
       data.projects[projectIndex].destination_stack_id = stack_api_key;
       data.projects[projectIndex].current_step =
         STEPPER_STEPS.DESTINATION_STACK;
-      data.projects[projectIndex].status =  NEW_PROJECT_STATUS[0];
+      data.projects[projectIndex].status = NEW_PROJECT_STATUS[0];
       data.projects[projectIndex].updated_at = new Date().toISOString();
     });
 
@@ -590,7 +590,7 @@ const updateCurrentStep = async (req: Request) => {
 
     switch (project.current_step) {
       case STEPPER_STEPS.LEGACY_CMS: {
-        if (project.status !==  NEW_PROJECT_STATUS[0] || !isStepCompleted) {
+        if (project.status !== NEW_PROJECT_STATUS[0] || !isStepCompleted) {
           logger.error(
             getLogMessage(
               srcFunc,

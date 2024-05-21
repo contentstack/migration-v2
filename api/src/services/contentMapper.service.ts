@@ -8,7 +8,7 @@ import {
   HTTP_TEXTS,
   HTTP_CODES,
   STEPPER_STEPS,
-  NEW_PROJECT_STATUS
+  NEW_PROJECT_STATUS,
 } from "../constants/index.js";
 import logger from "../utils/logger.js";
 import { config } from "../config/index.js";
@@ -256,8 +256,7 @@ const updateContentType = async (req: Request) => {
       NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
-  ) 
-   {
+  ) {
     logger.error(
       getLogMessage(
         srcFun,
@@ -635,6 +634,47 @@ const removeMapping = async (projectId: string) => {
     );
   }
 };
+const getSingleContentTypes = async (req: Request) => {
+  const projectId = req?.params?.projectId;
+  const contentTypeUID = req?.params?.contentTypeUid;
+  const { token_payload } = req.body;
+
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+  await ProjectModelLowdb.read();
+  const project = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .value();
+  const stackId = project?.destination_stack_id;
+
+  const [err, res] = await safePromise(
+    https({
+      method: "GET",
+      url: `${config.CS_API[
+        token_payload?.region as keyof typeof config.CS_API
+      ]!}/content_types/${contentTypeUID}`,
+      headers: {
+        api_key: stackId,
+        authtoken: authtoken,
+      },
+    })
+  );
+
+  if (err)
+    return {
+      data: err.response.data,
+      status: err.response.status,
+    };
+
+  return {
+    title: res?.data?.content_type?.title,
+    uid: res?.data?.content_type?.uid,
+    schema: res?.data?.content_type?.schema,
+  };
+};
 
 export const contentMapperService = {
   putTestData,
@@ -645,4 +685,5 @@ export const contentMapperService = {
   resetToInitialMapping,
   resetAllContentTypesMapping,
   removeMapping,
+  getSingleContentTypes
 };
