@@ -349,15 +349,27 @@ h2 {
   .ReactModal__Content {
     .ReactModal__Content__header h3 {
       color: $color-black-2121;
-      font-weight: bold;
+      font-weight: 600;
+    }
+    .FieldLabel {
+      .FieldLabel__required-text {
+        color: $color-stepper-title !important;
+      }
+    }
+    input, textarea {
+      color: $color-base-black-base;
+    }
+    ::placeholder {
+      color: $color-placeholder !important;
+    }
+    .ReactModal__Content__footer .Button {
+      line-height: 24px;
+    }
+    .baseColorButton {
+      color: $color-brand-primary-base;
     }
   }
 }
-.ReactModal__Content__footer .Button {
-  font-size: 1rem;
-  line-height: 100%;
-}
-
 ::-webkit-input-placeholder {
   color: $color-black-2121 !important;
 }
