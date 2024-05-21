@@ -292,7 +292,7 @@ const getStackLocal = async (token_payload: any, data: any) => {
             token_payload?.region as keyof typeof config.CS_API
           ]!}/locales`,
           headers: {
-            api_key: stack.api_key,
+           api_key: stack.api_key,
             authtoken,
           },
         })
@@ -324,6 +324,7 @@ const getStackLocal = async (token_payload: any, data: any) => {
         name: stack.name,
         api_key: stack.api_key,
         master_locale: stack.master_locale,
+        created_at: stack.created_at,
         locales: localesArr,
       };
       stacks.push(obj);
