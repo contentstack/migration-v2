@@ -34,7 +34,6 @@
     ],
     "description": {
       "uid": "c876d3d577d549a99b3987a0ed5283c0",
-      "_version": 7,
       "attrs": {},
       "children": [
         {
@@ -47,15 +46,63 @@
           "uid": "5ff5db2c09b54cf994ac9c0684d9a9eb",
           "children": [
             {
-              "text": "Contentstack Migration allows you to migrate content from other CMS to Contentstack."
+              "text": "Let's get started on streamlining your content migration process! Simply follow the steps and unlock a seamless transfer experience."
+            }
+          ]
+        },
+        {
+          "type": "p",
+          "attrs": {
+            "style": {},
+            "redactor-attributes": {},
+            "dir": "ltr"
+          },
+          "uid": "9ecb9e032e8844f0be6414dd13e318a4",
+          "children": [
+            {
+              "text": "Happy migrating!"
             }
           ]
         }
       ],
-      "type": "doc"
+      "type": "doc",
+      "_version": 12
     },
     "heading": "Welcome to Contentstack Migrations",
-    "help_text": "",
+    "help_text": {
+      "type": "doc",
+      "attrs": {},
+      "uid": "2444ef393da042808311f805cea774b1",
+      "children": [
+        {
+          "type": "p",
+          "attrs": {},
+          "uid": "cc8ad415b9864b9ba32255c45f7aadd0",
+          "children": [
+            {
+              "text": "New to Migration? Visit our "
+            },
+            {
+              "uid": "14208d06df0e46c3b7f1d37d99dcfc3a",
+              "type": "a",
+              "attrs": {
+                "url": "https://www.contentstack.com/docs/",
+                "target": "_blank"
+              },
+              "children": [
+                {
+                  "text": "documentation"
+                }
+              ]
+            },
+            {
+              "text": " site to learn more."
+            }
+          ]
+        }
+      ],
+      "_version": 11
+    },
     "empty_search_description": {
       "uid": "911e7fc98c954b72ba0cfeea4a0737d1",
       "_version": 7,
@@ -94,7 +141,7 @@
     },
     "secondary_cta": {
       "open_in_new_tab": false,
-      "theme": "secondary",
+      "theme": "light",
       "title": "Cancel",
       "url": "",
       "with_icon": false

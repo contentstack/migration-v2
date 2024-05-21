@@ -180,6 +180,7 @@ const Projects = () => {
                   buttonType={cta?.theme}
                   className="mt-10 no-project-add-btn"
                   onClick={() => openModal()}
+                  size="large"
                 >
                   {cta?.with_icon && (
                     <Icon icon="Plus" version="v2" size="small" fill="white" stroke="white" />
@@ -187,6 +188,9 @@ const Projects = () => {
                   {cta?.title}
                 </Button>
               ))}
+              <div className='helpText'>
+                {HTMLReactParser(jsonToHtml(emptystate?.help_text ?? {}))}
+              </div>
           </EmptyState>
         )}
 
@@ -208,7 +212,6 @@ const Projects = () => {
       </div>
     )
   };
-
   return (
     <div className="layout-container projects-landing">
       <PageLayout content={content} header={header} type="card" />
