@@ -22,3 +22,21 @@
     }
   }
 }
+.EmptyState__description {
+  p {
+    color: $color-font-base;
+  }
+}
+
+.helpText {
+  font-size: 14px;
+  padding-top: 30px;
+}
+.EmptyStateWrapper {
+  .EmptyState {
+    max-width: 35rem !important;
+  }
+  .EmptyState__title {
+    padding-top: 15px;
+  }
+}
