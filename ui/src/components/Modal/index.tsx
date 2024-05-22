@@ -186,13 +186,13 @@ const Modal = (props: ProjectModalProps) => {
                 {((primaryCta && primaryCta?.title) ?? (secondaryCta && secondaryCta?.title)) && (
                   <ButtonGroup>
                     {secondaryCta && secondaryCta?.title && (
-                      <Button buttonType={secondaryCta?.theme} onClick={() => closeModal()}>
+                      <Button buttonType={secondaryCta?.theme} onClick={() => closeModal()} size="large" className="baseColorButton">
                         {secondaryCta?.title}
                       </Button>
                     )}
 
                     {primaryCta && primaryCta?.title && (
-                      <Button type="submit" buttonType={primaryCta?.theme} disabled={!inputValue}>
+                      <Button type="submit" buttonType={primaryCta?.theme} disabled={!inputValue} size="large">
                         {primaryCta?.title}
                       </Button>
                     )}
