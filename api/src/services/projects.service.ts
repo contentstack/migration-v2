@@ -1,5 +1,8 @@
 import { Request } from "express";
 import ProjectModelLowdb from "../models/project-lowdb.js";
+import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js"
+import FieldMapperModel from "../models/FieldMapper.js";
+ 
 import {
   BadRequestError,
   ExceptionFunction,
@@ -12,7 +15,7 @@ import {
   NEW_PROJECT_STATUS,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
-import { getLogMessage, safePromise } from "../utils/index.js";
+import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import https from "../utils/https.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
@@ -85,6 +88,7 @@ const createProject = async (req: Request) => {
     created_by: user_id,
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
+    isDeleted:false
   };
 
   try {
@@ -629,7 +633,7 @@ const updateCurrentStep = async (req: Request) => {
         ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.CONTENT_MAPPING;
-          data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
+         // data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
@@ -660,11 +664,88 @@ const updateCurrentStep = async (req: Request) => {
 };
 
 const deleteProject = async (req: Request) => {
-  const orgId = req?.params?.orgId;
-  const projectId = req?.params?.projectId;
+  const { orgId, projectId } = req.params;
+  const decodedToken = req.body.token_payload;
+  const { user_id = "", region = "" } = decodedToken;
+  const srcFunc = "deleteProject";
 
-  //Add logic to delete Project from DB
-  return { orgId, projectId };
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: region,
+      owner: user_id,
+    },
+    srcFunc,
+    true
+  )) as number;
+
+  const projects = ProjectModelLowdb.data.projects[projectIndex];
+  if (!projects) throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+
+  if (projects?.status == NEW_PROJECT_STATUS[5]) {
+    const content_mapper_id = projects?.content_mapper;
+
+    await ContentTypesMapperModelLowdb.read();
+    await FieldMapperModel.read();
+    if (!isEmpty(content_mapper_id)) {
+      content_mapper_id.map((item: any) => {
+        const contentMapperData = ContentTypesMapperModelLowdb.chain
+          .get("ContentTypesMappers")
+          .find({ id: item })
+          .value();
+
+        const fieldMappingIds = contentMapperData?.fieldMapping;
+
+        //delete all fieldMapping which is related content Mapper and Project
+        if (!isEmpty(fieldMappingIds)) {
+          (fieldMappingIds || []).forEach((field: any) => {
+            const fieldIndex = FieldMapperModel.chain
+              .get("field_mapper")
+              .findIndex({ id: field })
+              .value();
+            if (fieldIndex > -1) {
+              FieldMapperModel.update((data: any) => {
+                delete data.field_mapper[fieldIndex];
+              });
+            }
+          });
+        }
+        //delete all content Mapper which is related to Project
+        const contentMapperID = ContentTypesMapperModelLowdb.chain
+          .get("ContentTypesMappers")
+          .findIndex({ id: item })
+          .value();
+        ContentTypesMapperModelLowdb.update((Cdata: any) => {
+          delete Cdata.ContentTypesMappers[contentMapperID];
+        });
+      });
+    }
+    //delete Project
+    ProjectModelLowdb.update((Pdata: any) => {
+      delete Pdata.projects[projectIndex];
+    });
+  } else {
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].isDeleted = true;
+    });
+  }
+
+  logger.info(
+    getLogMessage(
+      srcFunc,
+      `Project [Id : ${projectId}] Deleted Successfully`,
+      decodedToken
+    )
+  );
+  return {
+    status: HTTP_CODES.OK,
+    data: {
+      message: HTTP_TEXTS.PROJECT_DELETE,
+    },
+  };
 };
 
 export const projectService = {
