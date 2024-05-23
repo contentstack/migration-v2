@@ -251,7 +251,6 @@ const updateContentType = async (req: Request) => {
 
   if (
     [
-      NEW_PROJECT_STATUS[0],
       NEW_PROJECT_STATUS[5],
       NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
