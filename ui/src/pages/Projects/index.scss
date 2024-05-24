@@ -3,6 +3,13 @@
 .project-search-wrapper {
   margin-top: 2px;
   margin-left: 8px;
+  .Search__input {
+    border: 1px solid $color-base-gray-40;
+  }
+  ::placeholder {
+    font-size: $px-16;
+    color: $color-stepper-title !important;
+  }
 }
 
 .projects-landing {
@@ -18,6 +25,7 @@
       }
       .PageLayout__head {
         border-top: 0 none;
+        height: auto;
       }
     }
   }
