@@ -66,9 +66,9 @@ export const UPLOAD_FILE_URL = `${UPLOAD_FILE_RELATIVE_URL}upload`;
 export const PROJECT_STATUS: ObjectType = {
   '0': 'Draft',
   '1': 'Ready to test',
-  '2': 'Testing inprogress',
+  '2': 'Testing in progress',
   '3': 'Ready for migration',
-  '4': 'Migration inprogress',
+  '4': 'Migration in progress',
   '5': 'Migration successful',
   '6': 'Migration terminated'
 };
