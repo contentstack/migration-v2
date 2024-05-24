@@ -72,9 +72,22 @@ const Fields: Mapping = {
     'HTML Rich text Editor',
     'JSON Rich Text Editor'
   ],
+  'text': [
+    'Single Line Textbox',
+    'Multi Line Textbox',
+    'HTML Rich text Editor',
+    'JSON Rich Text Editor'
+  ],
+  'single_line_text': [
+    'Single Line Textbox',
+    'Multi Line Textbox',
+    'HTML Rich text Editor',
+    'JSON Rich Text Editor'
+  ],
   'Multi Line Textbox': ['Multi Line Textbox', 'HTML Rich text Editor', 'JSON Rich Text Editor'],
   'HTML Rich text Editor': 'JSON Rich Text Editor',
   'JSON Rich Text Editor': 'JSON Rich Text Editor',
+  json: 'JSON Rich Text Editor',
   URL: 'URL',
   file: 'File',
   number: 'Number',
@@ -84,7 +97,8 @@ const Fields: Mapping = {
   reference: 'Reference',
   dropdown: 'Select',
   radio: 'Select',
-  CheckBox: 'Select'
+  CheckBox: 'Select',
+  global_field: 'Global'
 };
 
 interface ModalProps {
@@ -586,6 +600,9 @@ const ContentMapper = () => {
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
 
+    console.log("OptionsForRow", OptionsForRow, Fields[data?.backupFieldType], data);
+    
+
     const option = Array.isArray(OptionsForRow)
       ? OptionsForRow.map((option) => ({ label: option, value: option }))
       : [{ label: OptionsForRow, value: OptionsForRow }];
@@ -609,16 +626,27 @@ const ContentMapper = () => {
             }
           />
         </div>
-        <Tooltip content="Advance propertise" position="top">
-          <Icon
-            version="v2"
-            icon="Setting"
-            size="small"
-            onClick={() =>
-              handleAdvancedSetting(data?.ContentstackFieldType, data?.advanced, data?.uid, data)
+        {data?.ContentstackFieldType !== 'group' &&
+          data?.otherCmsField !== 'title' &&
+          data?.otherCmsField !== 'url' &&
+          <Tooltip 
+            content="Advance propertise" 
+            position="top"
+            disabled={
+              data?.otherCmsField === 'title' ||
+              data?.otherCmsField === 'url'
             }
-          />
-        </Tooltip>
+          >
+            <Icon
+              version="v2"
+              icon="Setting"
+              size="small"
+              onClick={() =>
+                handleAdvancedSetting(data?.ContentstackFieldType, data?.advanced, data?.uid, data)
+              }
+            />
+          </Tooltip>
+        }
       </div>
     );
   };
@@ -985,6 +1013,15 @@ const ContentMapper = () => {
     isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
   }));
 
+  // const itemSize = tableData?.forEach((data) => {
+  //   return data?.uid?.length > 80 ? 130 : 90
+  //   console.log("data?.uid", data?.uid?.length);
+    
+  // })
+
+  // console.log("itemSize", itemSize);
+  
+
   return (
     <div className="step-container">
       <div className="d-flex flex-wrap table-container">
@@ -1063,12 +1100,12 @@ const ContentMapper = () => {
               searchPlaceholder={searchPlaceholder}
               fetchTableData={fetchData}
               loadMoreItems={loadMoreItems}
-              tableHeight={465}
+              tableHeight={IsEmptyStack ? 495 : 465}
               equalWidthColumns={true}
               columnSelector={false}
               initialRowSelectedData={tableData}
               initialSelectedRowIds={rowIds}
-              itemSize={90}
+              itemSize={130}
               withExportCta={{
                 component: (
                   <div style={{ display: 'flex', gap: '10px' }}>

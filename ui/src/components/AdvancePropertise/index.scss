@@ -17,3 +17,22 @@
   margin-top: 0;
   margin-left: 30px;
 }
+.modal-data {
+  padding: 0.75rem;
+  .radio-field {
+    margin-bottom: 0.75rem;
+  }
+  .Radio {
+    width: calc(33.33333% - .66667rem);
+    padding: .5rem;
+    margin: 0 !important;
+  }
+  .info-style {
+    .Info__border {
+      border-left-color: #0469e3;
+    }
+  }
+  .FormFields__selection-wrapper--inline {
+    
+  } 
+}
