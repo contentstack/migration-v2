@@ -35,6 +35,7 @@ const getAllProjects = async (req: Request) => {
       org_id: orgId,
       region,
       owner: user_id,
+      isDeleted:false
     })
     .value();
 
@@ -748,6 +749,48 @@ const deleteProject = async (req: Request) => {
   };
 };
 
+const revertProject = async (req: Request) => {
+  const { orgId, projectId } = req.params;
+  const decodedToken = req.body.token_payload;
+  const { user_id = "", region = "" } = decodedToken;
+  const srcFunc = "revertProject";
+
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: region,
+      owner: user_id,
+    },
+    srcFunc,
+    true
+  )) as number;
+
+  const projects = ProjectModelLowdb.data.projects[projectIndex];
+  if (!projects){
+    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  } else{
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].isDeleted = false;
+    });
+    logger.info(
+      getLogMessage(
+        srcFunc,
+        `Project [Id : ${projectId}] Reverted Successfully`,
+        decodedToken
+      )
+    );
+    return {
+      status: HTTP_CODES.OK,
+      data: {
+        message: HTTP_TEXTS.PROJECT_REVERT,
+        Project:projects
+      },
+    };
+  }
+}
 export const projectService = {
   getAllProjects,
   getProject,
@@ -761,4 +804,5 @@ export const projectService = {
   updateDestinationStack,
   updateCurrentStep,
   deleteProject,
+  revertProject
 };

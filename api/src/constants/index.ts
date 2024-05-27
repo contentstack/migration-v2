@@ -73,7 +73,9 @@ export const HTTP_TEXTS = {
   ADMIN_LOGIN_ERROR:
     "Sorry, You Don't have admin access in any of the Organisation",
   PROJECT_DELETE:
-     "Project Deleted Successfully"
+     "Project Deleted Successfully",
+  PROJECT_REVERT:
+     "Project Reverted Successfully"
 };
 
 export const HTTP_RESPONSE_HEADERS = {
