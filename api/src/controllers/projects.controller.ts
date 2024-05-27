@@ -59,6 +59,11 @@ const deleteProject = async (req: Request, res: Response): Promise<void> => {
   res.status(200).json(project);
 };
 
+const revertProject = async (req: Request, res: Response): Promise<void> => {
+  const project = await projectService.revertProject(req);
+  res.status(200).json(project);
+};
+
 export const projectController = {
   getAllProjects,
   getProject,
@@ -72,4 +77,5 @@ export const projectController = {
   updateDestinationStack,
   updateCurrentStep,
   deleteProject,
+  revertProject
 };
