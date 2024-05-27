@@ -68,4 +68,7 @@ router.put(
 // Delete a project route
 router.delete("/:projectId", asyncRouter(projectController.deleteProject));
 
+//revert Project Route
+router.patch("/:projectId", asyncRouter(projectController.revertProject))
+
 export default router;
