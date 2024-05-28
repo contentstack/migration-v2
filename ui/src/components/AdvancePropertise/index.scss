@@ -1,3 +1,5 @@
+@import '../../scss/variables';
+
 .options-class {
   display: flex;
   flex-direction: column;
@@ -28,11 +30,24 @@
     margin: 0 !important;
   }
   .info-style {
+    margin-top: .75rem;
+    margin-bottom: 1.5rem;
     .Info__border {
       border-left-color: #0469e3;
     }
   }
-  .FormFields__selection-wrapper--inline {
-    
-  } 
+  .options-class {
+    line-height: $line-height-reset;
+  }
+  .nl-note {
+    color: $color-font-base;
+    font-size: $size-font-large;
+    line-height: $line-height-default;
+    margin-left: 2.75rem;
+    margin-top: -.25rem !important;
+  }
+  .ToggleWrap {
+    margin-top: 0.5rem;
+    padding: 0 0.5rem
+  }
 }
