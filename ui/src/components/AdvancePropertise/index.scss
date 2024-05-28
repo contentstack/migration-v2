@@ -1,3 +1,5 @@
+@import '../../scss/variables';
+
 .options-class {
   display: flex;
   flex-direction: column;
@@ -16,4 +18,36 @@
 .non-localizable-message {
   margin-top: 0;
   margin-left: 30px;
+}
+.modal-data {
+  padding: 0.75rem;
+  .radio-field {
+    margin-bottom: 0.75rem;
+  }
+  .Radio {
+    width: calc(33.33333% - .66667rem);
+    padding: .5rem;
+    margin: 0 !important;
+  }
+  .info-style {
+    margin-top: .75rem;
+    margin-bottom: 1.5rem;
+    .Info__border {
+      border-left-color: #0469e3;
+    }
+  }
+  .options-class {
+    line-height: $line-height-reset;
+  }
+  .nl-note {
+    color: $color-font-base;
+    font-size: $size-font-large;
+    line-height: $line-height-default;
+    margin-left: 2.75rem;
+    margin-top: -.25rem !important;
+  }
+  .ToggleWrap {
+    margin-top: 0.5rem;
+    padding: 0 0.5rem
+  }
 }

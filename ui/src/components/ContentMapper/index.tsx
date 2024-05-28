@@ -53,7 +53,8 @@ import {
   ContentTypesSchema,
   optionsType,
   UidMap,
-  ContentTypeMap
+  ContentTypeMap,
+  Advanced
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -72,9 +73,22 @@ const Fields: Mapping = {
     'HTML Rich text Editor',
     'JSON Rich Text Editor'
   ],
+  'text': [
+    'Single Line Textbox',
+    'Multi Line Textbox',
+    'HTML Rich text Editor',
+    'JSON Rich Text Editor'
+  ],
+  'single_line_text': [
+    'Single Line Textbox',
+    'Multi Line Textbox',
+    'HTML Rich text Editor',
+    'JSON Rich Text Editor'
+  ],
   'Multi Line Textbox': ['Multi Line Textbox', 'HTML Rich text Editor', 'JSON Rich Text Editor'],
   'HTML Rich text Editor': 'JSON Rich Text Editor',
   'JSON Rich Text Editor': 'JSON Rich Text Editor',
+  json: 'JSON Rich Text Editor',
   URL: 'URL',
   file: 'File',
   number: 'Number',
@@ -84,7 +98,8 @@ const Fields: Mapping = {
   reference: 'Reference',
   dropdown: 'Select',
   radio: 'Select',
-  CheckBox: 'Select'
+  CheckBox: 'Select',
+  global_field: 'Global'
 };
 
 interface ModalProps {
@@ -204,7 +219,7 @@ const ContentMapper = () => {
   }, [contentTypeMapped, otherCmsTitle]);
 
   useEffect(() => {
-    const updatedExstingField: any = {};
+    const updatedExstingField: ExistingFieldType = {};
     if (isContentTypeSaved) {
       tableData?.forEach((row) => {
         if (row?.contentstackField) {
@@ -491,7 +506,7 @@ const ContentMapper = () => {
 
   // Function to handle selected fields
   const handleSelectedEntries = (singleSelectedRowIds: UidMap[], selectedData: FieldMapType[]) => {
-    const selectedObj: any = {};
+    const selectedObj: UidMap = {};
 
     singleSelectedRowIds.forEach((uid: any) => {
       selectedObj[uid] = true;
@@ -539,7 +554,9 @@ const ContentMapper = () => {
     // fetchFields(contentTypes?.[i]?.id, searchText);
   };
 
-  const handleAdvancedSetting = (fieldtype: string, fieldvalue: any, rowId: string, data: any) => {
+  const handleAdvancedSetting = (fieldtype: string, fieldvalue: Advanced, rowId: string, data: FieldMapType) => {
+    // console.log("fieldvalue", data);
+    
     return cbModal({
       component: (props: ModalObj) => (
         <AdvanceSettings
@@ -586,6 +603,9 @@ const ContentMapper = () => {
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
 
+    // console.log("OptionsForRow", OptionsForRow, Fields[data?.backupFieldType], data);
+    
+
     const option = Array.isArray(OptionsForRow)
       ? OptionsForRow.map((option) => ({ label: option, value: option }))
       : [{ label: OptionsForRow, value: OptionsForRow }];
@@ -609,16 +629,27 @@ const ContentMapper = () => {
             }
           />
         </div>
-        <Tooltip content="Advance propertise" position="top">
-          <Icon
-            version="v2"
-            icon="Setting"
-            size="small"
-            onClick={() =>
-              handleAdvancedSetting(data?.ContentstackFieldType, data?.advanced, data?.uid, data)
+        {data?.ContentstackFieldType !== 'group' &&
+          data?.otherCmsField !== 'title' &&
+          data?.otherCmsField !== 'url' &&
+          <Tooltip 
+            content="Advance propertise" 
+            position="top"
+            disabled={
+              data?.otherCmsField === 'title' ||
+              data?.otherCmsField === 'url'
             }
-          />
-        </Tooltip>
+          >
+            <Icon
+              version="v2"
+              icon="Setting"
+              size="small"
+              onClick={() =>
+                handleAdvancedSetting(data?.ContentstackFieldType, data?.advanced, data?.uid, data)
+              }
+            />
+          </Tooltip>
+        }
       </div>
     );
   };
@@ -796,13 +827,13 @@ const ContentMapper = () => {
           icon="Setting"
           size="small"
           onClick={() => {
-            const value = {
-              ValidationRegex: data?.advanced?.ValidationRegex,
-              Mandatory: data?.advanced?.mandatory,
-              Multiple: data?.advanced?.multiple,
-              Unique: data?.advanced?.unique,
-              NonLocalizable: data?.advanced?.nonLocalizable
-            };
+            // const value = {
+            //   ValidationRegex: data?.advanced?.ValidationRegex,
+            //   Mandatory: data?.advanced?.mandatory,
+            //   Multiple: data?.advanced?.multiple,
+            //   Unique: data?.advanced?.unique,
+            //   NonLocalizable: data?.advanced?.nonLocalizable
+            // };
             handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data);
           }}
         />
@@ -985,6 +1016,15 @@ const ContentMapper = () => {
     isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
   }));
 
+  // const itemSize = tableData?.forEach((data) => {
+  //   return data?.uid?.length > 80 ? 130 : 90
+  //   console.log("data?.uid", data?.uid?.length);
+    
+  // })
+
+  // console.log("itemSize", itemSize);
+  
+
   return (
     <div className="step-container">
       <div className="d-flex flex-wrap table-container">
@@ -1063,12 +1103,12 @@ const ContentMapper = () => {
               searchPlaceholder={searchPlaceholder}
               fetchTableData={fetchData}
               loadMoreItems={loadMoreItems}
-              tableHeight={465}
+              tableHeight={IsEmptyStack ? 495 : 465}
               equalWidthColumns={true}
               columnSelector={false}
               initialRowSelectedData={tableData}
               initialSelectedRowIds={rowIds}
-              itemSize={90}
+              itemSize={130}
               withExportCta={{
                 component: (
                   <div style={{ display: 'flex', gap: '10px' }}>
