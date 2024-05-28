@@ -5,7 +5,7 @@ export const WEBSITE_BASE_URL = process.env.REACT_APP_WEBSITE_BASE_URL;
 export const TOKEN_KEY = 'access_token';
 export const TOKEN = localStorage.getItem(TOKEN_KEY);
 
-export const API_VERSION = process.env.REACT_APP_API_VERSION || 'v2';
+export const API_VERSION = process.env.REACT_APP_API_VERSION ?? 'v2';
 
 export const AUTH_ROUTES = `${API_VERSION}/auth`;
 
