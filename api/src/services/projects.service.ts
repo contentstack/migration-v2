@@ -750,7 +750,7 @@ const deleteProject = async (req: Request) => {
 };
 
 const revertProject = async (req: Request) => {
-  const { orgId, projectId } = req.params;
+  const { orgId, projectId } = req?.params;
   const decodedToken = req.body.token_payload;
   const { user_id = "", region = "" } = decodedToken;
   const srcFunc = "revertProject";
