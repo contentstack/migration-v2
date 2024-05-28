@@ -1,4 +1,6 @@
-//venus components
+// Libraries
+import React, { useContext, useEffect, useState } from 'react';
+import { Params, useNavigate, useParams } from 'react-router';
 import {
   Icon,
   ListRow,
@@ -7,57 +9,50 @@ import {
   TextInput,
   PageHeader,
   Textarea,
-  InfiniteScrollTable,
   PageLayout,
   Notification,
-  cbModal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
-  ButtonGroup
+  cbModal
 } from '@contentstack/venus-components';
 
-//stylesheet
-import './Settings.scss';
-
-//modules
-import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { Params, useParams } from 'react-router';
-
-import { FieldMapType } from '../../ContentMapper/contentMapper.interface';
-
-import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
+// Interfaces
+import { Setting } from './setting.interface';
+import { ModalObj } from '../../../components/Modal/modal.interface';
 
 // Context
 import { AppContext } from '../../../context/app/app.context';
-
-import { Setting } from './setting.interface';
 
 // Service
 import { getProject, updateProject } from '../../../services/api/project.service';
 import { CS_ENTRIES } from '../../../utilities/constants';
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 
+// Component
+import DeleteProjectModal from '../DeleteProjectModal';
+
+//stylesheet
+import './Settings.scss';
+
 const Settings = () => {
   const params: Params<string> = useParams();
-  const [viewBy, updateViewBy] = useState('Comfort');
-  const [itemStatusMap, updateItemStatusMap] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [tableData, setTableData] = useState<FieldMapType[]>([]);
-  const [CmsData, setData] = useState<Setting>();
-  const [Active, setActive] = useState<string>();
+  
+  const [cmsData, setCmsData] = useState<Setting>();
+  const [active, setActive] = useState<string>();
   const [currentHeader, setCurrentHeader] = useState<string>();
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
 
   const { selectedOrganisation, user } = useContext(AppContext);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchData = async () => {
       //check if offline CMS data field is set to true, if then read data from cms data file.
       getCMSDataFromFile(CS_ENTRIES.SETTING)
         .then((data) => {
-          setData(data), setActive(data?.project?.title), setCurrentHeader(data?.project?.title);
+          setCmsData(data);
+          setActive(data?.project?.title);
+          setCurrentHeader(data?.project?.title);
         })
         .catch((err) => {
           console.error(err);
@@ -66,7 +61,7 @@ const Settings = () => {
     const fetchProject = async () => {
       const { data, status } = await getProject(
         selectedOrganisation?.value || '',
-        params?.projectId || ''
+        params?.projectId ?? ''
       );
 
       if (status === 200) {
@@ -87,12 +82,6 @@ const Settings = () => {
     setProjectDescription(event.target.value);
   };
 
-  const closeModal = () => {
-    () => {
-      return;
-    };
-  };
-
   const handleUpdateProject = async () => {
     const projectData = {
       name: projectName,
@@ -100,7 +89,7 @@ const Settings = () => {
     };
     const { status } = await updateProject(
       selectedOrganisation?.value || '',
-      params?.projectId || '',
+      params?.projectId ?? '',
       projectData
     );
 
@@ -124,45 +113,18 @@ const Settings = () => {
       });
     }
   };
-  const ModalComponent = () => {
-    return (
-      <>
-        <ModalHeader
-          title="Delete Project"
-          closeIconTestId="cs-default-header-close"
-          closeModal={closeModal}
-        />
-
-        <ModalBody className="modalBodyCustomClass">
-          <h3>You are about to delete the project, {projectName}</h3> <br />
-          <p>
-            All the content stored within the project will be deleted permanently. This action
-            cannot be undone.
-          </p>
-        </ModalBody>
-
-        <ModalFooter>
-          <ButtonGroup>
-            <Button buttonType="light" onClick={closeModal}>
-              Cancel
-            </Button>
-            <Button className="Button Button--destructive Button--icon-alignment-left Button--size-large Button--v2">
-              <div className="flex-center">
-                <div className="flex-v-center Button__mt-regular Button__visible">
-                  <Icon icon="Delete" version="v2" size="tiny" />
-                </div>
-              </div>
-              Delete
-            </Button>
-          </ButtonGroup>
-        </ModalFooter>
-      </>
-    );
-  };
 
   const handleClick = () => {
     cbModal({
-      component: () => <ModalComponent />,
+      component: (props: ModalObj) => (
+        <DeleteProjectModal
+          selectedOrg={selectedOrganisation}
+          projectId={params?.projectId ?? ''}
+          projectName={projectName}
+          navigate={navigate}
+          {...props}
+        />
+      ),
       modalProps: {
         shouldCloseOnEscape: true,
         size: 'small',
@@ -170,12 +132,10 @@ const Settings = () => {
         onClose: () => {
           return;
         },
-        onOpen: () => {
-          return;
-        }
       }
     });
   };
+
   const pageActions = [
     {
       label: (
@@ -192,7 +152,7 @@ const Settings = () => {
                   <Icon
                     icon="Delete"
                     version="v2"
-                    data={CmsData?.project?.delete_project?.title}
+                    data={cmsData?.project?.delete_project?.title}
                   ></Icon>
                 </div>
               </div>
@@ -203,76 +163,20 @@ const Settings = () => {
     }
   ];
 
-  const columns = useMemo(
-    () => [
-      {
-        Header: 'Title',
-        id: 'title',
-        // default: true,
-        addToColumnSelector: true
-      },
-      {
-        Header: 'Unique UID',
-        accessor: 'uuid',
-        default: false,
-        addToColumnSelector: true,
-        cssClass: 'uidCustomClass'
-      },
-      {
-        Header: 'Status-1',
-        accessor: 'status',
-        default: false,
-        disableSortBy: true,
-        addToColumnSelector: true
-      },
-      {
-        Header: 'Status-2',
-        accessor: 'status2',
-        default: false,
-        disableSortBy: true,
-        addToColumnSelector: true
-      }
-    ],
-    []
-  );
-  const fetchData = () => {
-    try {
-      const itemStatusMap: ItemStatusMapProp = {};
-
-      for (let index = 0; index <= 30; index++) {
-        itemStatusMap[index] = 'loading';
-      }
-
-      updateItemStatusMap(itemStatusMap);
-      setLoading(true);
-
-      for (let index = 0; index <= 30; index++) {
-        itemStatusMap[index] = 'loaded';
-      }
-
-      updateItemStatusMap({ ...itemStatusMap });
-      setLoading(false);
-      // setTableData(tableRes)
-      // setTotalCounts(tableRes.length)
-    } catch (error) {
-      console.log('fetchData -> error', error);
-    }
-  };
-
   const content = {
     component: (
       <div>
-        {Active === CmsData?.project?.title && (
+        {active === cmsData?.project?.title && (
           <div className="stack-settings__section-wrapper">
             <div data-test-id="cs-stack-setting-general" className="stack-settings__heading">
-              {CmsData?.project?.general}
+              {cmsData?.project?.general}
             </div>
             <div className="stack-settings__section">
               <form>
                 <div className="stack-settings__section__fields">
                   <div className="Field Field--full" data-test-id="cs-field">
                     <FieldLabel className="FieldLabel" htmlFor="projectName">
-                      {CmsData?.project?.name}
+                      {cmsData?.project?.name}
                     </FieldLabel>
                     <div className="TextInput TextInput--large">
                       <TextInput
@@ -288,7 +192,7 @@ const Settings = () => {
                 <div className="stack-settings__section__fields">
                   <div className="Field Field--full" data-test-id="cs-field">
                     <FieldLabel className="FieldLabel" htmlFor="projectDescription">
-                      {CmsData?.project?.description}
+                      {cmsData?.project?.description}
                     </FieldLabel>
                     <div className="TextInput TextInput--large">
                       <Textarea
@@ -304,7 +208,7 @@ const Settings = () => {
                 <div className="stack-settings__section__fields">
                   <div className="Field Field--full" data-test-id="cs-field"></div>
                   <FieldLabel className="FieldLabel" htmlFor="projectDescription">
-                    {CmsData?.project?.email}
+                    {cmsData?.project?.email}
                   </FieldLabel>
                   <div className="flex-v-center">
                     <div className="TextInput TextInput--large TextInput--disabled TextInput__read-only TextInput__read-only-disabled">
@@ -332,14 +236,14 @@ const Settings = () => {
                     label={'Success'}
                     onClick={handleUpdateProject}
                   >
-                    {CmsData?.project?.save_project?.title}
+                    {cmsData?.project?.save_project?.title}
                   </Button>
                 </div>
               </form>
             </div>
           </div>
         )}
-        {Active === CmsData?.execution_logs?.title && (
+        {active === cmsData?.execution_logs?.title && (
           <div>
             {/* <InfiniteScrollTable
               loading={loading}
@@ -364,32 +268,32 @@ const Settings = () => {
         <div
           data-testid="cs-section-header"
           className="SectionHeader SectionHeader--extra-bold SectionHeader--medium SectionHeader--black SectionHeader--v2"
-          role="heading"
+          aria-label={cmsData?.title}
           aria-level={1}
         >
-          {CmsData?.title}
+          {cmsData?.title}
         </div>
 
         <ListRow
           rightArrow={true}
-          active={Active === CmsData?.project?.title}
-          content={CmsData?.project?.title}
+          active={active === cmsData?.project?.title}
+          content={cmsData?.project?.title}
           leftIcon={<Icon icon="Stacks" version="v2" />}
           onClick={() => {
-            setActive(CmsData?.project?.title);
-            setCurrentHeader(CmsData?.project?.title);
+            setActive(cmsData?.project?.title);
+            setCurrentHeader(cmsData?.project?.title);
           }}
           version="v2"
         />
         <div>
           <ListRow
             rightArrow={true}
-            active={Active === CmsData?.execution_logs?.title}
-            content={CmsData?.execution_logs?.title}
+            active={active === cmsData?.execution_logs?.title}
+            content={cmsData?.execution_logs?.title}
             leftIcon={<Icon icon="Stacks" version="v2" />}
             onClick={() => {
-              setActive(CmsData?.execution_logs?.title);
-              setCurrentHeader(CmsData?.execution_logs?.title);
+              setActive(cmsData?.execution_logs?.title);
+              setCurrentHeader(cmsData?.execution_logs?.title);
             }}
             version="v2"
           />
@@ -401,7 +305,7 @@ const Settings = () => {
   const header = {
     component: (
       <div>
-        {Active === CmsData?.project?.title ? (
+        {active === cmsData?.project?.title ? (
           <PageHeader
             testId="header"
             className="action-component-title"

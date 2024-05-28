@@ -128,8 +128,7 @@ const Projects = () => {
       ),
       modalProps: {
         onClose
-      },
-      testId: 'cs-modal-storybook'
+      }
     });
   };
 

@@ -10,3 +10,10 @@ export interface ProjectModalProps {
   selectedOrg: IDropDown;
   closeModal: () => void;
 }
+export interface SettingsModalProps {
+  selectedOrg: IDropDown;
+  projectId?: string;
+  projectName?: string;
+  closeModal: () => void;
+  navigate: (url: string) => void;
+}
