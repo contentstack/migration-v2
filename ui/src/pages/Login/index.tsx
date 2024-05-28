@@ -67,6 +67,7 @@ const Login: FC<IProps> = () => {
 
   // ************* ALL States Here ************
   const [loginStates, setLoginStates] = useState<IStates>(defaultStates);
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,6 +108,7 @@ const Login: FC<IProps> = () => {
 
   // ************* Login submit ************
   const onSubmit = async (values: User) => {
+    setIsLoading(true);
     if (loginStates?.tfa) {
       setLoginStates((prevState: IStates) => {
         return {
@@ -142,14 +144,17 @@ const Login: FC<IProps> = () => {
 
     const response = await userSession(userAuth?.user);
     if (response?.status === 294 && response?.data?.error_message === TFA_MESSAGE) {
+      setIsLoading(false);
       setLoginStates((prev) => ({ ...prev, tfa: true }));
     }
 
     if (response?.status === 104 || response?.status === 400 || response?.status === 422) {
+      setIsLoading(false);
       failtureNotification(response?.data?.error_message || response?.data?.error?.message);
     }
 
     if (response?.status === 200 && response?.data?.message === LOGIN_SUCCESSFUL_MESSAGE) {
+      setIsLoading(false);
       setDataInLocalStorage('app_token', response?.data?.app_token);
       setAuthToken(response?.data?.app_token);
       setIsAuthenticated(true);
@@ -394,6 +399,7 @@ const Login: FC<IProps> = () => {
                             type="submit"
                             icon="v2-Login"
                             tabindex={0}
+                            isLoading={isLoading}
                           >
                             {login?.cta?.title}
                           </Button>
