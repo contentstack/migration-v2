@@ -53,7 +53,8 @@ import {
   ContentTypesSchema,
   optionsType,
   UidMap,
-  ContentTypeMap
+  ContentTypeMap,
+  Advanced
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -218,7 +219,7 @@ const ContentMapper = () => {
   }, [contentTypeMapped, otherCmsTitle]);
 
   useEffect(() => {
-    const updatedExstingField: any = {};
+    const updatedExstingField: ExistingFieldType = {};
     if (isContentTypeSaved) {
       tableData?.forEach((row) => {
         if (row?.contentstackField) {
@@ -505,7 +506,7 @@ const ContentMapper = () => {
 
   // Function to handle selected fields
   const handleSelectedEntries = (singleSelectedRowIds: UidMap[], selectedData: FieldMapType[]) => {
-    const selectedObj: any = {};
+    const selectedObj: UidMap = {};
 
     singleSelectedRowIds.forEach((uid: any) => {
       selectedObj[uid] = true;
@@ -553,7 +554,9 @@ const ContentMapper = () => {
     // fetchFields(contentTypes?.[i]?.id, searchText);
   };
 
-  const handleAdvancedSetting = (fieldtype: string, fieldvalue: any, rowId: string, data: any) => {
+  const handleAdvancedSetting = (fieldtype: string, fieldvalue: Advanced, rowId: string, data: FieldMapType) => {
+    // console.log("fieldvalue", data);
+    
     return cbModal({
       component: (props: ModalObj) => (
         <AdvanceSettings
@@ -600,7 +603,7 @@ const ContentMapper = () => {
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
 
-    console.log("OptionsForRow", OptionsForRow, Fields[data?.backupFieldType], data);
+    // console.log("OptionsForRow", OptionsForRow, Fields[data?.backupFieldType], data);
     
 
     const option = Array.isArray(OptionsForRow)
@@ -824,13 +827,13 @@ const ContentMapper = () => {
           icon="Setting"
           size="small"
           onClick={() => {
-            const value = {
-              ValidationRegex: data?.advanced?.ValidationRegex,
-              Mandatory: data?.advanced?.mandatory,
-              Multiple: data?.advanced?.multiple,
-              Unique: data?.advanced?.unique,
-              NonLocalizable: data?.advanced?.nonLocalizable
-            };
+            // const value = {
+            //   ValidationRegex: data?.advanced?.ValidationRegex,
+            //   Mandatory: data?.advanced?.mandatory,
+            //   Multiple: data?.advanced?.multiple,
+            //   Unique: data?.advanced?.unique,
+            //   NonLocalizable: data?.advanced?.nonLocalizable
+            // };
             handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data);
           }}
         />

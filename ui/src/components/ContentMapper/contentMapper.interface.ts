@@ -9,13 +9,6 @@ interface mapDataType {
   contentTypes: ContentType[];
   projectId: string;
 }
-interface Advanced {
-  ValidationRegex: string;
-  mandatory: boolean;
-  multiple: boolean;
-  unique: boolean;
-  nonLocalizable: boolean;
-}
 export interface ContentMapperType {
   content_types_heading?: string;
   cta: CTA;
@@ -68,6 +61,26 @@ export interface FieldMapType {
   advanced: Advanced;
 }
 
+// export interface Advanced {
+//   ValidationRegex: string;
+//   Mandatory: boolean;
+//   Multiple: boolean;
+//   Unique: boolean;
+//   NonLocalizable: boolean;
+// }
+
+export interface Advanced {
+  ValidationRegex?: string;
+  Basic?: boolean;
+  Advanced?: boolean;
+  Custom?: boolean;
+  Mandatory?: boolean;
+  Multiple?: boolean;
+  Unique?: boolean;
+  NonLocalizable?: boolean;
+  EmbedObject?: boolean;
+}
+
 export interface ItemStatus {
   [key: number]: string;
 }
@@ -118,3 +131,5 @@ export interface UidMap {
 export interface ContentTypeMap {
   [key: string]: string;
 }
+
+
