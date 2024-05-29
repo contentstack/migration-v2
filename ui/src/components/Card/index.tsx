@@ -1,6 +1,6 @@
 // Libraries
 import { useContext, useEffect, useState } from 'react';
-import { Tooltip } from '@contentstack/venus-components';
+import { Tooltip, Icon } from '@contentstack/venus-components';
 import { useNavigate } from 'react-router-dom';
 // Utilities
 import { PROJECT_STATUS } from '../../utilities/constants';
@@ -31,21 +31,24 @@ const CardList = ({ project }: ProjectType) => {
     };
     fetchProject();
   }, [selectedOrganisation?.value, project?.id]);
+  console.log("........status", project)
 
   return (
     <div style={{ padding: '0 20px 20px 0' }}>
       <div onClick={() => onClickProject(project?.id || '')}>
         <div className="ProjectCard">
-          <div className="ProjectCard__heading">
-            {project?.name && <h4 className="ProjectCard__title flex-v-center">{project?.name}</h4>}
-          </div>
-          <div className="ProjectCard__content">
-            <div className="ProjectCard__stats">
-              <div className="ProjectCard__unit">
-                <span className="ProjectCard__stats-number">Project Status</span>
-                <span className="ProjectCard__stats-category">
-                  {PROJECT_STATUS?.[project?.status !== undefined ? project?.status : 0]}
-                </span>
+          <div className='ProjectCardWrapper'>
+            <div className="ProjectCard__heading">
+              {project?.name && <h4 className="ProjectCard__title flex-v-center">{project?.name}</h4>}
+            </div>
+            <div className="ProjectCard__content">
+              <div className="ProjectCard__stats">
+                <div className="ProjectCard__unit">
+                  <span className="ProjectCard__stats-number">Project Status</span>
+                  <span className="ProjectCard__stats-category">
+                    {PROJECT_STATUS?.[project?.status !== undefined ? project?.status : 0]}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -55,18 +58,7 @@ const CardList = ({ project }: ProjectType) => {
               <div className="ProjectCard__modified flex-v-center">
                 <Tooltip content="Last Modified" position="top" type="primary" variantType="basic">
                   <div className="flex-v-center">
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 10 10"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="ProjectCard__modified-  icon Icon--original"
-                      name="ModifiedBy"
-                      data-test-id="cs-icon"
-                    >
-                      <path d="M5 1a4 4 0 104 4M5 2v3h2" stroke="#A9B6CB"></path>
-                    </svg>
+                    <Icon version="v2" icon="Clock" height="18" width="18" size='small' fill='none' stroke='#6E6B86' />
                     <span className="ProjectCard__modified-date">
                       {getDays(project?.updated_at)}
                     </span>
