@@ -26,13 +26,14 @@ const ProjectsHeader = ({
       {allProject && allProject?.length > 0 ? (
         <div className="project-search-wrapper">
           <Search
-            dynamicInput={true}
             placeholder={searchPlaceholder}
+            type="secondary"
             onChange={(search: string) =>
               search.replace(/\s/g, '').length
                 ? setSearchText(search?.trim())
                 : setSearchText(search)
             }
+            width="large"
             onClear={true}
             onClick={setFocus}
             value={searchText}
