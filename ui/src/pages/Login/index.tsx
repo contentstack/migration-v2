@@ -12,6 +12,9 @@ import {
 } from '@contentstack/venus-components';
 import { Field as FinalField, Form as FinalForm } from 'react-final-form';
 
+import { useDispatch } from 'react-redux';
+import {getUserDetails } from '../../store/auth.slice';
+
 // Utilities
 import {
   LOGIN_SUCCESSFUL_MESSAGE,
@@ -38,6 +41,7 @@ import { AppContext } from '../../context/app/app.context';
 
 const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
+  const dispatch = useDispatch();
 
   // ************* Fetch Login Data ************
   const fetchData = async () => {
@@ -52,6 +56,7 @@ const Login: FC<IProps> = () => {
 
   useEffect(() => {
     fetchData();
+    dispatch(getUserDetails())
   }, []);
 
   const { login, two_factor_authentication: twoFactorAuthentication } = data;
