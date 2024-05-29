@@ -3,31 +3,37 @@
 .ProjectCard {
   background: $color-brand-white-base;
   border-radius: 0.6rem;
+  border: 1px solid $color-brand-secondary-lightest;
   transition: box-shadow 0.3s ease;
   width: 20rem;
 }
+.ProjectCardWrapper {
+  padding: 18px;
+}
 .ProjectCard__heading {
   display: flex;
-  margin-bottom: 2.125rem;
-  padding: 1.75rem 2rem 0.688rem;
+  margin-bottom: $px-30;
+  padding: 0;
+  // padding: 1.75rem 2rem 0.688rem;
 }
 .ProjectCard__title {
   color: $color-font-base;
   display: -webkit-box;
-  font-size: $size-font-xl;
+  font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
-  height: $px-48;
+  height: $px-40;
   line-height: $line-height-default;
   overflow: hidden;
   padding: 0;
-  white-space: normal;
+  white-space: normal; 
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 .ProjectCard__footer {
   display: flex;
   position: relative;
-  background-color: #edebff;
+  background-color: $color-font-white;
+  border-top: 1px solid $color-brand-secondary-lightest;
   border-radius: 0 0 0.5rem 0.5rem;
   height: 59.008px;
   justify-content: space-between;
@@ -35,7 +41,7 @@
   align-items: center;
 }
 .ProjectCard__content {
-  margin: 0 1rem 2rem;
+  // margin: 0 1rem 2rem;
   padding: 0;
   text-align: center;
 }
@@ -73,7 +79,7 @@
   text-transform: capitalize;
 }
 .ProjectCard__modified-date {
-  color: $color-font-base;
+  color: $color-stepper-title;
   display: block;
   font-size: $size-font-small;
   font-weight: $font-weight-regular;
