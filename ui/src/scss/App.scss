@@ -45,6 +45,9 @@
   background-color: $color-base-white-10;
   display: flex;
   height: 100vh;
+  width: calc(100% - 55px);
+  // border: 1px solid red;
+  margin-left: auto;
   .Icon--original {
     height: 1.25rem;
     width: 1.25rem;
