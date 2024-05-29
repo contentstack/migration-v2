@@ -1,9 +1,9 @@
 // Libraries
 import { FC, ReactNode } from 'react';
 import { useLocation } from 'react-router';
-
 // Component
 import MainHeader from '../../MainHeader';
+import SideBar from '../../SideBar';
 
 type IProps = {
   children?: ReactNode;
@@ -14,7 +14,9 @@ const AppLayout: FC<IProps> = ({ children }) => {
 
   return (
     <>
-      {location.pathname === '/projects' && <MainHeader />}
+      {/* {location.pathname === '/projects' && <MainHeader />} */}
+      <MainHeader />
+      <SideBar />
       <div className="page-wrapper">
         <div
           className={
