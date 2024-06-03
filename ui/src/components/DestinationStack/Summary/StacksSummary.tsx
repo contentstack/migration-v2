@@ -1,4 +1,5 @@
-import { useContext, useState } from 'react';
+import { useState } from 'react';
+import { useDispatch,useSelector } from 'react-redux';
 import StepIcon from '../../../components/Stepper/FlowStepper/StepIcon';
 import { AppContext } from '../../../context/app/app.context';
 import { isEmptyString } from '../../../utilities/functions';
@@ -11,12 +12,15 @@ import {
 
 import './summary.scss';
 import { Icon, Select } from '@contentstack/venus-components';
+import { RootState } from '../../../store';
 interface StacksSummaryProps {
   stepData: IStep;
 }
 
 const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
-  const { newMigrationData } = useContext(AppContext);
+
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+
   const [selectedStack, setSelectedStack] = useState<IDropDown>(
     !isEmptyString(newMigrationData?.destination_stack?.selectedOrg?.value)
       ? newMigrationData?.destination_stack?.selectedStack

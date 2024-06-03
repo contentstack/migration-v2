@@ -1,16 +1,20 @@
 import { useContext } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import StepIcon from '../../../components/Stepper/FlowStepper/StepIcon';
 import { AppContext } from '../../../context/app/app.context';
 import './summary.scss';
 import { isEmptyString } from '../../../utilities/functions';
 import { IStep } from '../../../context/app/app.interface';
+import { RootState } from '../../../store';
+
 
 interface SelectCmsSummaryProps {
   stepData: IStep;
 }
 
 const SelectCmsSummary = (props: SelectCmsSummaryProps): JSX.Element => {
-  const { newMigrationData } = useContext(AppContext);
+  //const { newMigrationData } = useContext(AppContext);
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
 
   return (
     <div className="row">

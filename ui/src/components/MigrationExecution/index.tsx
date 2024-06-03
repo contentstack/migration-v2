@@ -1,5 +1,6 @@
 import { useEffect, useContext } from 'react';
 import { Icon, Button, Field, TextInput, FieldLabel } from '@contentstack/venus-components';
+import { UseDispatch, useSelector } from 'react-redux';
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -16,9 +17,16 @@ import { DEFAULT_MIGRATION_EXECUTION } from '../../context/app/app.interface';
 
 //stylesheet
 import './index.scss';
+import { useDispatch } from 'react-redux';
+import { RootState } from '../../store';
+import { setMigrationData, updateMigrationData } from '../../store/slice/migrationDataSlice';
 
 const MigrationExecution = () => {
-  const { migrationData, updateMigrationData, newMigrationData } = useContext(AppContext);
+  //const { migrationData, updateMigrationData, newMigrationData } = useContext(AppContext);
+  const dispatch = useDispatch();
+
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const {
     migrationexecution: { migration_information: MigrationInformation }
   } = migrationData;
@@ -30,10 +38,12 @@ const MigrationExecution = () => {
       .then((data) => {
         //Check for null
         if (!data) {
-          updateMigrationData({ migrationexecution: DEFAULT_MIGRATION_EXECUTION });
+          //updateMigrationData({ migrationexecution: DEFAULT_MIGRATION_EXECUTION });
+          dispatch(updateMigrationData({ migrationexecution: DEFAULT_MIGRATION_EXECUTION }))
         }
 
-        updateMigrationData({ migrationexecution: data });
+        //updateMigrationData({ migrationexecution: data });
+        dispatch(updateMigrationData({ migrationexecution: data }))
       })
       .catch((err) => {
         console.error(err);
