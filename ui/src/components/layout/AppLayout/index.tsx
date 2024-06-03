@@ -14,10 +14,13 @@ const AppLayout: FC<IProps> = ({ children }) => {
 
   return (
     <>
-      {/* {location.pathname === '/projects' && <MainHeader />} */}
-      <MainHeader />
-      <SideBar />
-      <div className="page-wrapper">
+      {location.pathname.includes('projects') && 
+        <>
+        <MainHeader />
+        <SideBar /> 
+        </>
+      }
+      <div className={`${(location.pathname.includes('projects')) ? 'sidebarWrapper' : ''} page-wrapper`}>
         <div
           className={
             location.pathname !== '/login' && location.pathname !== '/forgot-password'
