@@ -2,6 +2,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { PageHeader, PageLayout } from '@contentstack/venus-components';
 import { Params, useNavigate, useParams } from 'react-router';
+import { useDispatch, useSelector } from 'react-redux';
 
 // Context
 import { AppContext } from '../../context/app/app.context';
@@ -15,18 +16,23 @@ import NewMigrationWrapper from '../../components/Migrations/NewMigration/NewMig
 
 // Style
 import './index.scss';
+import {  updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 const MigrationEditor = () => {
   const navigate = useNavigate();
   const params: Params<string> = useParams();
+  const dispatch = useDispatch();
 
-  const { selectedOrganisation, updateNewMigrationData } = useContext(AppContext);
+
+  const selectedOrganisation = useSelector((state:any)=>state?.authentication?.selectedOrganisation);
+
 
   const [projectName, setProjectName] = useState('');
 
   const header = {
     backNavigation: () => {
-      updateNewMigrationData(DEFAULT_NEW_MIGRATION);
+     
+      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
       navigate(-1);
     },
     component: <PageHeader title={{ label: projectName }} />

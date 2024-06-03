@@ -12,28 +12,29 @@ const getComponentObject = (
   isMigrationLocked: boolean,
   isPrevStepLocked = false
 ): IStep => {
+  let updatedStep = { ...step };
   switch (step.step_id) {
     case 'Step1': {
       //Insert Data , Summary component and status
-      step.data = LoadOrganisation;
-      step.summery = OrganisationSummary;
-      step.status =
-        isCompleted || step?.lock || isMigrationLocked ? StepStatus.COMPLETED : StepStatus.ACTIVE;
-
+      updatedStep = {
+        ...updatedStep,
+      data: LoadOrganisation,
+      summery: OrganisationSummary,
+      status:
+        isCompleted || isPrevStepLocked || isMigrationLocked ? StepStatus.COMPLETED : StepStatus.ACTIVE,
+      }
       break;
     }
 
     case 'Step2': {
       //Insert Data , Summary component and status
-      step.data = LoadStacks;
-      step.summery = StacksSummary;
-      step.status =
-        isCompleted || step?.lock || isMigrationLocked
-          ? StepStatus.COMPLETED
-          : isPrevStepLocked
-          ? StepStatus.ACTIVE
-          : StepStatus.DISABLED;
-
+      updatedStep = {
+        ...updatedStep,
+      data:  LoadStacks,
+      summery: StacksSummary,
+      status:
+        isCompleted || isPrevStepLocked || isMigrationLocked ? StepStatus.COMPLETED : StepStatus.ACTIVE,
+      }
       break;
     }
 
@@ -41,9 +42,9 @@ const getComponentObject = (
       break;
   }
 
-  step.lock = step.lock || isMigrationLocked;
+  updatedStep.lock = updatedStep.lock || isMigrationLocked;
 
-  return step;
+  return updatedStep;
 };
 
 export const getDestinationStackSteps = (
@@ -51,6 +52,7 @@ export const getDestinationStackSteps = (
   isMigrationLocked: boolean,
   allSteps: IStep[]
 ) => {
+ 
   return validateArray(allSteps)
     ? allSteps.map((step: IStep, index: number) =>
         getComponentObject(

@@ -2,6 +2,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dropdown, Tooltip } from '@contentstack/venus-components';
+import { useDispatch, useSelector } from 'react-redux';
 
 // Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -23,39 +24,42 @@ import {
   getDataFromLocalStorage,
   setDataInLocalStorage
 } from '../../utilities/functions';
+import { RootState } from '../../store';
+import { setSelectedOrganisation } from '../../store/slice/authSlice';
 
 const MainHeader = () => {
-  const {
-    user = DEFAULT_USER,
-    organisationsList,
-    updateSelectedOrganisation,
-    selectedOrganisation
-  } = useContext(AppContext);
+
+  const user = useSelector((state:RootState)=>state?.authentication?.user);
+  const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
 
   const [data, setData] = useState<MainHeaderType>({});
   const [orgsList, setOrgsList] = useState<IDropDown[]>([]);
 
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const { logo, organization_label: organizationLabel } = data;
 
   const name = `${user?.first_name?.charAt(0)}${user?.last_name?.charAt(0)}`.toUpperCase() ?? '';
-
+   
   const updateOrganisationListState = () => {
-    //set  selected org as default
-    const list = organisationsList.map((org) => ({
-      ...org,
-      default: org?.value === selectedOrganisation?.value
-    }));
-
-    setOrgsList(list);
-
-    //Set organization in local storage , first check if selectedOrg.value exist, if not get org id from local storage and set.
-    setDataInLocalStorage(
-      'organization',
-      selectedOrganisation?.value || getDataFromLocalStorage('organization')
-    );
+    if (organisationsList) {
+      //set selected org as default
+      const list = organisationsList.map((org: any) => ({
+        ...org,
+        default: org?.value === selectedOrganisation?.value
+      }));
+  
+      setOrgsList(list);
+  
+      //Set organization in local storage, first check if selectedOrg.value exists, if not get org id from local storage and set.
+      setDataInLocalStorage(
+        'organization',
+        selectedOrganisation?.value || getDataFromLocalStorage('organization')
+      );
+    }
   };
 
   const fetchData = async () => {
@@ -89,7 +93,7 @@ const MainHeader = () => {
   const handleOnDropDownChange = (data: IDropDown) => {
     if (data.value === selectedOrganisation.value) return;
 
-    updateSelectedOrganisation(data);
+    dispatch(setSelectedOrganisation(data));
     setDataInLocalStorage('organization', data?.value);
   };
   return (

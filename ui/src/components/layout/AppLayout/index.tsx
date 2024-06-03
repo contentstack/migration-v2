@@ -1,9 +1,11 @@
 // Libraries
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useEffect } from 'react';
 import { useLocation } from 'react-router';
 // Component
 import MainHeader from '../../MainHeader';
 import SideBar from '../../SideBar';
+import { getUserDetails } from '../../../store/slice/authSlice';
+import { useDispatch } from 'react-redux';
 
 type IProps = {
   children?: ReactNode;
@@ -11,6 +13,12 @@ type IProps = {
 
 const AppLayout: FC<IProps> = ({ children }) => {
   const location = useLocation();
+  const dispatch = useDispatch();
+
+  useEffect(()=>{
+    dispatch(getUserDetails());
+
+  },[dispatch])
 
   return (
     <>

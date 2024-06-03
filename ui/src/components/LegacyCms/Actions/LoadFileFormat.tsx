@@ -2,6 +2,7 @@
 import { ChangeEvent, useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { Button } from '@contentstack/venus-components';
+import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
 import { isEmptyString, validateArray } from '../../../utilities/functions';
@@ -22,6 +23,8 @@ import { AppContext } from '../../../context/app/app.context';
 // Components
 import Card from '../../../components/Common/Card/card';
 import DocLink from '../../../components/Common/DocLink/DocLink';
+import { RootState } from '../../../store';
+import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadFileFormatProps {
   stepComponentProps: any;
@@ -30,9 +33,12 @@ interface LoadFileFormatProps {
 }
 
 const LoadFileFormat = (props: LoadFileFormatProps) => {
-  /****  ALL HOOKS HERE  ****/
-  const { newMigrationData, updateNewMigrationData, selectedOrganisation, migrationData } =
-    useContext(AppContext);
+
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const dispatch = useDispatch();
+
   const [selectedCard, setSelectedCard] = useState<ICardType>(
     newMigrationData?.legacy_cms?.selectedFileFormat ?? defaultCardType
   );
@@ -49,13 +55,14 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const handleBtnClick = async (e: MouseEvent) => {
     e.preventDefault();
     if (!isEmptyString(selectedCard?.fileformat_id) && isCheckedBoxChecked) {
-      updateNewMigrationData({
+      dispatch(updateNewMigrationData({
         ...newMigrationData,
         legacy_cms: {
           ...newMigrationData?.legacy_cms,
           isFileFormatCheckboxChecked: isCheckedBoxChecked
         }
-      });
+      }));
+      
       await updateFileFormatData(selectedOrganisation?.value, projectId, {
         file_format: selectedCard?.fileformat_id
       });
@@ -92,7 +99,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           selectedFileFormat: initialFormat
         }
       };
-      updateNewMigrationData(newMigrationDataObj);
+      dispatch(updateNewMigrationData(newMigrationDataObj));
     }
   }, [allowed_file_formats]);
 
