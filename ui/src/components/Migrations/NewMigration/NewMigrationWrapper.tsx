@@ -1,9 +1,10 @@
 // Libraries
 import { lazy, useContext, useEffect, useState } from 'react';
 import { Navigate, Outlet, Params, useNavigate, useParams } from 'react-router';
+import { UseDispatch, useSelector } from 'react-redux';
 
 //venus components
-import { PageLayout } from '@contentstack/venus-components';
+import { PageLayout, Stepper } from '@contentstack/venus-components';
 
 // Services
 import { getMigrationData } from '../../../services/api/migration.service';
@@ -34,6 +35,8 @@ import {
   MigrationResponse,
   defaultMigrationResponse
 } from '../../../services/api/service.interface';
+import { useDispatch } from 'react-redux';
+import { setMigrationData, updateMigrationData } from '../../../store/slice/migrationDataSlice';
 
 const defaultStep = '1';
 
@@ -91,13 +94,14 @@ const getComponent = (
 const NewMigrationWrapper = () => {
   const params: Params<string> = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const [showInfo, setShowInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [projectData, setProjectData] = useState<MigrationResponse>(defaultMigrationResponse);
 
-  /********  ALL CONTEXT DATA  **********/
-  const { migrationData, updateMigrationData, selectedOrganisation } = useContext(AppContext);
+  const migrationData = useSelector((state:any)=>state?.migration?.migrationData);
+  const selectedOrganisation = useSelector((state:any)=>state?.authentication?.selectedOrganisation);
 
   //Fetch project data
   const fetchProjectData = async () => {
@@ -129,12 +133,13 @@ const NewMigrationWrapper = () => {
       ? data?.all_steps?.find((step: IFlowStep) => `${step.name}` === params?.stepId)
       : DEFAULT_IFLOWSTEP;
 
-    updateMigrationData({
+    
+    dispatch(updateMigrationData({
       allFlowSteps: data?.all_steps,
       currentFlowStep: currentFlowStep,
       migration_steps_heading: data?.migration_steps_heading,
       settings: data?.settings
-    });
+    }));
 
     await fetchProjectData();
   };
@@ -153,7 +158,18 @@ const NewMigrationWrapper = () => {
   }, [params?.stepId, params?.projectId, selectedOrganisation.value]);
 
   const { settings, migration_steps_heading } = migrationData;
-
+ const steps = [
+  {
+    data: ()=> { return (
+      <LegacyCMSComponentLazyLoaded
+        legacyCMSData={projectData?.legacy_cms}
+        projectData={projectData}
+      />
+    )},
+    id:'1',
+    title:'Legacy CMS'
+  }
+ ]
   const content = {
     component: (
       <>
@@ -162,6 +178,7 @@ const NewMigrationWrapper = () => {
         ) : (
           <div className="action-component-body">
             {getComponent(params, projectData, params?.stepId)}
+          
           </div>
         )}
       </>
@@ -181,7 +198,7 @@ const NewMigrationWrapper = () => {
       </div>
     )
   };
-
+  
   const header = {
     component: (
       <div className="action-component-title">
@@ -192,7 +209,7 @@ const NewMigrationWrapper = () => {
       </div>
     )
   };
-
+ 
   return (
     <>
       {/* {showInfo && <Outlet />}

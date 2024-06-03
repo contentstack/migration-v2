@@ -1,10 +1,13 @@
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { AppContext } from '../../../context/app/app.context';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
 import { Select } from '@contentstack/venus-components';
 
 import '../DestinationStack.scss';
 import { isEmptyString } from '../../../utilities/functions';
+import { RootState } from '../../../store';
+import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadOrganisationProps {
   stepComponentProps: any;
@@ -14,8 +17,12 @@ interface LoadOrganisationProps {
 
 const LoadOrganisation = (props: LoadOrganisationProps) => {
   /****  ALL HOOKS HERE  ****/
-  const { newMigrationData, updateNewMigrationData, organisationsList, selectedOrganisation } =
-    useContext(AppContext);
+
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
+
+  const dispatch = useDispatch();
 
   const [selectedOrg, setSelectedOrg] = useState<IDropDown>(DEFAULT_DROPDOWN);
 
@@ -23,7 +30,7 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
 
   //update new  Migration Data
   const setNewMigrationData = (data: INewMigration) => {
-    updateNewMigrationData(data);
+    dispatch(updateNewMigrationData((data)));
   };
 
   //Handle Organisation selection
