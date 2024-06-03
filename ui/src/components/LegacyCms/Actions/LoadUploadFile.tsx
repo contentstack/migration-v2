@@ -1,10 +1,13 @@
-import { useContext, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import DragAndDropFileUpload from '../../../components/Common/FileUpload';
 import { AppContext } from '../../../context/app/app.context';
 import { DEFAULT_FILE, IFile, INewMigration } from '../../../context/app/app.interface';
 import { validateArray } from '../../../utilities/functions';
 import { useParams } from 'react-router';
 import { fileValidation } from '../../../services/api/upload.service';
+import { RootState } from '../../../store';
+import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 interface LoadUploadFileProps {
   stepComponentProps: any;
   currentStep: number;
@@ -13,7 +16,9 @@ interface LoadUploadFileProps {
 
 const LoadUploadFile = (props: LoadUploadFileProps) => {
   /****  ALL HOOKS HERE  ****/
-  const { newMigrationData, updateNewMigrationData } = useContext(AppContext);
+  
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const dispatch = useDispatch();
 
   const { projectId = '' } = useParams();
 
@@ -43,7 +48,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         }
       }
     };
-    updateNewMigrationData(newMigrationDataObj);
+    dispatch(updateNewMigrationData(newMigrationDataObj));
 
     props.handleStepChange(props?.currentStep, true);
   };
