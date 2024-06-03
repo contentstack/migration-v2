@@ -112,6 +112,6 @@ const authSlice = createSlice({
     },
 })
 export const { setAuthToken, reInitiliseState, setOrganisationsList, setSelectedOrganisation, setUser } = authSlice.actions;
-//export const selectOrganisation = (state:any) => state?.authentication?.selectedOrganisation
+
 export {getUserDetails};
 export default authSlice.reducer;

@@ -5,7 +5,7 @@ import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-//import { RootState } from '../../store';
+
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -60,9 +60,7 @@ const Projects = () => {
   const [loadStatus, setLoadStatus] = useState(true);
   const [searchText, setSearchText] = useState(search);
 
-  /********** App Context here  *************/
 
-  //const { selectedOrganisation } = useContext(AppContext);
 
   const fetchProjects = async () => {
     if (selectedOrganisation?.value) {
@@ -95,9 +93,7 @@ const Projects = () => {
     fetchData();
   }, []);
 
-  // useEffect(()=>{
-  //   dispatch(getUserDetails());
-  // },[dispatch]);
+
 
   useEffect(() => {
     setLoadStatus(true);

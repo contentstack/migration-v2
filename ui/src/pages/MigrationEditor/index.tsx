@@ -23,7 +23,7 @@ const MigrationEditor = () => {
   const params: Params<string> = useParams();
   const dispatch = useDispatch();
 
-  //const { selectedOrganisation, updateNewMigrationData } = useContext(AppContext);
+
   const selectedOrganisation = useSelector((state:any)=>state?.authentication?.selectedOrganisation);
 
 
@@ -31,7 +31,7 @@ const MigrationEditor = () => {
 
   const header = {
     backNavigation: () => {
-      //updateNewMigrationData(DEFAULT_NEW_MIGRATION);
+     
       dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
       navigate(-1);
     },

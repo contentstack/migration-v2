@@ -100,8 +100,6 @@ const NewMigrationWrapper = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [projectData, setProjectData] = useState<MigrationResponse>(defaultMigrationResponse);
 
-  /********  ALL CONTEXT DATA  **********/
-  //const { migrationData, updateMigrationData, selectedOrganisation } = useContext(AppContext);
   const migrationData = useSelector((state:any)=>state?.migration?.migrationData);
   const selectedOrganisation = useSelector((state:any)=>state?.authentication?.selectedOrganisation);
 
@@ -135,13 +133,6 @@ const NewMigrationWrapper = () => {
       ? data?.all_steps?.find((step: IFlowStep) => `${step.name}` === params?.stepId)
       : DEFAULT_IFLOWSTEP;
 
-    // updateMigrationData({
-    //   allFlowSteps: data?.all_steps,
-    //   currentFlowStep: currentFlowStep,
-    //   migration_steps_heading: data?.migration_steps_heading,
-    //   settings: data?.settings
-    // });
-    console.log("data : ", data);
     
     dispatch(updateMigrationData({
       allFlowSteps: data?.all_steps,

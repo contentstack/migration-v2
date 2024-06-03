@@ -31,13 +31,13 @@ const FlowStepper = ({ currentStep }: IProp) => {
   const params = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  //const { migrationData, updateMigrationData, selectedOrganisation } = useContext(AppContext);
+  
   const migrationData = useSelector((state:any)=>state?.migration?.migrationData)
 
   const onStepClick = (step: IFlowStep, isCompleted: boolean) => async () => {
     if (params?.stepId === `${step?.name}`) return;
     dispatch(updateMigrationData({ currentFlowStep: step }))
-    //updateMigrationData({ currentFlowStep: step });
+
 
     const url = `/projects/${params?.projectId}/migration/steps/${step?.name}`;
 

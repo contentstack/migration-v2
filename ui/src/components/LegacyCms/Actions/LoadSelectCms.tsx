@@ -146,10 +146,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
-      // API call for saving selected CMS, if a new card is selected
-      // updateLegacyCMSData(selectedOrganisation?.value, projectId, {
-      //   legacy_cms: newSelectedCard?.cms_id
-      // });
     }
   };
 
