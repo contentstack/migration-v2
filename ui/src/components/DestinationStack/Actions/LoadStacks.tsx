@@ -33,7 +33,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const dispatch = useDispatch();
   /****  ALL UseStates HERE  ****/
   const [selectedStack, setSelectedStack] = useState<IDropDown>(
-    !isEmptyString(newMigrationData.destination_stack.selectedOrg.value)
+    !isEmptyString(newMigrationData?.destination_stack?.selectedOrg?.value)
       ? newMigrationData?.destination_stack?.selectedStack
       : DEFAULT_DROPDOWN
   );
@@ -67,7 +67,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     }
 
     //Post data to backend
-    const resp = await createStacksInOrg(newMigrationData.destination_stack.selectedOrg.value, {
+    const resp = await createStacksInOrg(newMigrationData?.destination_stack?.selectedOrg?.value, {
       ...data,
       master_locale: data?.locale
     });
@@ -92,7 +92,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
-          ...newMigrationData.destination_stack,
+          ...newMigrationData?.destination_stack,
           selectedStack: newCreatedStack
         }
       };

@@ -60,7 +60,7 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
 
     setSelectedOrg(org);
 
-    updateNewMigrationData({
+    setNewMigrationData({
       ...newMigrationData,
       destination_stack: {
         ...newMigrationData.destination_stack,
