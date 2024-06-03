@@ -13,7 +13,7 @@ interface SelectCmsSummaryProps {
 }
 
 const SelectCmsSummary = (props: SelectCmsSummaryProps): JSX.Element => {
-  //const { newMigrationData } = useContext(AppContext);
+
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
 
   return (

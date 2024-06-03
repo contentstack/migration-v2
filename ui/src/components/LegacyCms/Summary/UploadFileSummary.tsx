@@ -39,7 +39,7 @@ const UploadFileSummary = ({
   stepComponentProps,
   stepData
 }: UploadFileSummaryProps): JSX.Element => {
-  //const { newMigrationData } = useContext(AppContext);
+
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
 
   return (
