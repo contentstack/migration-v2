@@ -4,6 +4,8 @@ import { PageLayout, EmptyState, Button, Icon, cbModal } from '@contentstack/ven
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -31,6 +33,8 @@ import { NO_PROJECTS, NO_PROJECTS_SEARCH } from '../../common/assets';
 
 // styles
 import './index.scss';
+import { getUserDetails } from '../../store/slice/authSlice';
+
 
 const Projects = () => {
   const [data, setData] = useState<ProjectsType>({});
@@ -42,6 +46,10 @@ const Projects = () => {
     create_project_modal: createProjectModal
   } = data;
 
+  const dispatch = useDispatch();
+  const selectedOrganisation = useSelector((state:any)=>state?.authentication?.selectedOrganisation);
+  
+
   const outputIntro = HTMLReactParser(jsonToHtml(emptystate?.description ?? {}));
 
   const location = useLocation();
@@ -52,9 +60,7 @@ const Projects = () => {
   const [loadStatus, setLoadStatus] = useState(true);
   const [searchText, setSearchText] = useState(search);
 
-  /********** App Context here  *************/
 
-  const { selectedOrganisation } = useContext(AppContext);
 
   const fetchProjects = async () => {
     if (selectedOrganisation?.value) {
@@ -78,10 +84,16 @@ const Projects = () => {
 
     // fetchProjects();
   };
+  useEffect(()=>{
+    dispatch(getUserDetails());
+
+  },[dispatch])
 
   useEffect(() => {
     fetchData();
   }, []);
+
+
 
   useEffect(() => {
     setLoadStatus(true);

@@ -15,40 +15,50 @@ const getComponentObject = (
   isCompleted: boolean,
   isMigrationLocked: boolean
 ): IStep => {
+  let updatedStep = { ...step };
+
   switch (step.step_id) {
     case 'Step1': {
-      //Insert Data , Summary component and status
-      step.data = LoadSelectCms;
-      step.summery = SelectCmsSummary;
-      step.status = isCompleted ? StepStatus.COMPLETED : StepStatus.ACTIVE;
-
+      // Insert Data, Summary component, and status
+      updatedStep = {
+        ...updatedStep,
+        data: LoadSelectCms,
+        summery: SelectCmsSummary,
+        status: isCompleted ? StepStatus.COMPLETED : StepStatus.ACTIVE,
+      };
       break;
     }
 
     case 'Step2': {
-      //Insert Data , Summary component and status
-      step.data = LoadPreFix;
-      step.summery = PreFixSummary;
-      step.status = isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED;
-
+      // Insert Data, Summary component, and status
+      updatedStep = {
+        ...updatedStep,
+        data: LoadPreFix,
+        summery: PreFixSummary,
+        status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED,
+      };
       break;
     }
 
     case 'Step3': {
-      //Insert Data , Summary component and status
-      step.data = LoadFileFormat;
-      step.summery = FileFormatSummary;
-      step.status = isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED;
-
+      // Insert Data, Summary component, and status
+      updatedStep = {
+        ...updatedStep,
+        data: LoadFileFormat,
+        summery: FileFormatSummary,
+        status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED,
+      };
       break;
     }
 
     case 'Step4': {
-      //Insert Data , Summary component and status
-      step.data = LoadUploadFile;
-      step.summery = UploadFileSummary;
-      step.status = isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED;
-
+      // Insert Data, Summary component, and status
+      updatedStep = {
+        ...updatedStep,
+        data: LoadUploadFile,
+        summery: UploadFileSummary,
+        status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED,
+      };
       break;
     }
 
@@ -56,9 +66,9 @@ const getComponentObject = (
       break;
   }
 
-  step.lock = step.lock || isMigrationLocked;
+  updatedStep.lock = updatedStep.lock || isMigrationLocked;
 
-  return step;
+  return updatedStep;
 };
 
 export const getLegacyCMSSteps = (
