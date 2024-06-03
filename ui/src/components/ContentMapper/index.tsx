@@ -73,7 +73,7 @@ const Fields: Mapping = {
     'HTML Rich text Editor',
     'JSON Rich Text Editor'
   ],
-  'text': [
+  text: [
     'Single Line Textbox',
     'Multi Line Textbox',
     'HTML Rich text Editor',
@@ -86,8 +86,10 @@ const Fields: Mapping = {
     'JSON Rich Text Editor'
   ],
   'Multi Line Textbox': ['Multi Line Textbox', 'HTML Rich text Editor', 'JSON Rich Text Editor'],
+  multi_line_text:  ['Multi Line Textbox', 'HTML Rich text Editor', 'JSON Rich Text Editor'],
   'HTML Rich text Editor': 'JSON Rich Text Editor',
   'JSON Rich Text Editor': 'JSON Rich Text Editor',
+  // 'Multi line': 
   json: 'JSON Rich Text Editor',
   URL: 'URL',
   file: 'File',
@@ -538,6 +540,8 @@ const ContentMapper = () => {
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
+    // console.log("value", value);
+    
     setisDropDownCHanged(true);
     setFieldValue(value);
     const updatedRows = tableData?.map((row) => {
@@ -599,23 +603,24 @@ const ContentMapper = () => {
       navigate(url, { replace: true });
     }
   };
-
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
 
-    // console.log("OptionsForRow", OptionsForRow, Fields[data?.backupFieldType], data);
     
 
     const option = Array.isArray(OptionsForRow)
       ? OptionsForRow.map((option) => ({ label: option, value: option }))
       : [{ label: OptionsForRow, value: OptionsForRow }];
 
+      const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
+        ? data?.ContentstackFieldType : option?.[0]?.label
+
     return (
       <div className="table-row">
         <div className="select">
           <Select
             id={data?.uid}
-            value={{ label: data?.ContentstackFieldType, value: fieldValue }}
+            value={{ label: fieldLabel, value: fieldValue }}
             onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid)}
             placeholder="Select Field"
             version={'v2'}
@@ -645,7 +650,7 @@ const ContentMapper = () => {
               icon="Setting"
               size="small"
               onClick={() =>
-                handleAdvancedSetting(data?.ContentstackFieldType, data?.advanced, data?.uid, data)
+                handleAdvancedSetting(fieldLabel, data?.advanced, data?.uid, data)
               }
             />
           </Tooltip>
