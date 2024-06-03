@@ -1,4 +1,5 @@
 import { useContext } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { AppContext } from '../../../context/app/app.context';
 import './summary.scss';
 import { isEmptyString } from '../../../utilities/functions';
@@ -10,6 +11,7 @@ interface UploadFileSummaryProps {
 }
 
 import { FileDetails } from '../../../context/app/app.interface';
+import { RootState } from '../../../store';
 
 interface Props {
   fileDetails: FileDetails;
@@ -37,7 +39,8 @@ const UploadFileSummary = ({
   stepComponentProps,
   stepData
 }: UploadFileSummaryProps): JSX.Element => {
-  const { newMigrationData } = useContext(AppContext);
+
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
 
   return (
     <div className="row bg-white">
