@@ -1,6 +1,9 @@
 // Libraries
 import { FC, useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+
+import { getUserDetails, setAuthToken } from '../../store/slice/authSlice';
 import {
   Button,
   Field,
@@ -63,7 +66,7 @@ const Login: FC<IProps> = () => {
   };
 
   // ************* Context Here ************
-  const { setAuthToken, setIsAuthenticated } = useContext(AppContext);
+  //const { setAuthToken, setIsAuthenticated } = useContext(AppContext);
 
   // ************* ALL States Here ************
   const [loginStates, setLoginStates] = useState<IStates>(defaultStates);
@@ -71,10 +74,12 @@ const Login: FC<IProps> = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-
+  const dispatch = useDispatch();
+  
   // Get the region
   const urlParams = new URLSearchParams(location?.search);
   const region = urlParams?.get?.('region');
+
 
   // ************* send SMS token ************
   const sendSMS = async () => {
@@ -156,8 +161,9 @@ const Login: FC<IProps> = () => {
     if (response?.status === 200 && response?.data?.message === LOGIN_SUCCESSFUL_MESSAGE) {
       setIsLoading(false);
       setDataInLocalStorage('app_token', response?.data?.app_token);
-      setAuthToken(response?.data?.app_token);
-      setIsAuthenticated(true);
+      dispatch(setAuthToken(response?.data?.token));
+      //setAuthToken(response?.data?.app_token);
+      //setIsAuthenticated(true);
       setLoginStates((prev) => ({ ...prev, submitted: true }));
       navigate(`/projects`, { replace: true });
     }
@@ -418,3 +424,5 @@ const Login: FC<IProps> = () => {
 };
 
 export default Login;
+
+
