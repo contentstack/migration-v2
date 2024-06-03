@@ -26,6 +26,8 @@
       .PageLayout__head {
         border-top: 0 none;
         height: auto;
+        border-bottom: 1px solid $color-brand-secondary-lightest;
+        padding:20px;
       }
     }
   }
