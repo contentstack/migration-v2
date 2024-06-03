@@ -48,21 +48,23 @@ const MainHeader = () => {
   const { logo, organization_label: organizationLabel } = data;
 
   const name = `${user?.first_name?.charAt(0)}${user?.last_name?.charAt(0)}`.toUpperCase() ?? '';
-
+   
   const updateOrganisationListState = () => {
-    //set  selected org as default
-    const list = organisationsList?.map((org:any) => ({
-      ...org,
-      default: org?.value === selectedOrganisation?.value
-    }));
-
-    setOrgsList(list);
-
-    //Set organization in local storage , first check if selectedOrg.value exist, if not get org id from local storage and set.
-    setDataInLocalStorage(
-      'organization',
-      selectedOrganisation?.value || getDataFromLocalStorage('organization')
-    );
+    if (organisationsList) {
+      //set selected org as default
+      const list = organisationsList.map((org: any) => ({
+        ...org,
+        default: org?.value === selectedOrganisation?.value
+      }));
+  
+      setOrgsList(list);
+  
+      //Set organization in local storage, first check if selectedOrg.value exists, if not get org id from local storage and set.
+      setDataInLocalStorage(
+        'organization',
+        selectedOrganisation?.value || getDataFromLocalStorage('organization')
+      );
+    }
   };
 
   const fetchData = async () => {
@@ -100,8 +102,6 @@ const MainHeader = () => {
     dispatch(setSelectedOrganisation(data));
     setDataInLocalStorage('organization', data?.value);
   };
-  console.log("selected org : ",orgsList);
-  
 
   return (
     <div className="mainheader">
