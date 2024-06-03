@@ -1,6 +1,7 @@
 // Libraries
-import { ChangeEvent, useContext, useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
+import { useDispatch, useSelector } from 'react-redux';
 
 // Service
 import { updateAffixData, affixConfirmation } from '../../../services/api/migration.service';
@@ -19,6 +20,8 @@ import '../legacyCms.scss';
 import { Button, TextInput } from '@contentstack/venus-components';
 import { useDebouncer } from '../../../hooks';
 import DocLink from '../../../components/Common/DocLink/DocLink';
+import { RootState } from '../../../store';
+import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadSelectCmsProps {
   stepComponentProps: any;
@@ -28,8 +31,11 @@ interface LoadSelectCmsProps {
 
 const LoadPreFix = (props: LoadSelectCmsProps) => {
   /****  ALL HOOKS HERE  ****/
-  const { newMigrationData, updateNewMigrationData, selectedOrganisation, migrationData } =
-    useContext(AppContext);
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+
+  const dispatch = useDispatch();
 
   const [prefix, setPrefix] = useState<string>(newMigrationData?.legacy_cms?.affix || '');
 
@@ -55,7 +61,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         }
       };
 
-      updateNewMigrationData(newMigrationDataObj);
+      dispatch(updateNewMigrationData(newMigrationDataObj));
 
       setIsError(false);
 
@@ -98,7 +104,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         isRestictedKeywordCheckboxChecked: checked
       }
     };
-    updateNewMigrationData(newMigrationDataObj);
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
 
     setIsCheckedBoxChecked(checked);
   };

@@ -1,4 +1,5 @@
-import { useContext, useState } from 'react';
+import { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { AsyncSelect, Icon, cbModal } from '@contentstack/venus-components';
 
 import { AppContext } from '../../../context/app/app.context';
@@ -9,6 +10,8 @@ import { StackResponse } from '../../../services/api/service.interface';
 import AddStack, { Stack } from '../../../components/Common/AddStack/addStack';
 import { updateDestinationStack } from '../../../services/api/migration.service';
 import { Params, useParams } from 'react-router';
+import { RootState } from '../../../store';
+import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadFileFormatProps {
   stepComponentProps: any;
@@ -24,11 +27,13 @@ const defaultStack = {
 
 const LoadStacks = (props: LoadFileFormatProps) => {
   /****  ALL HOOKS HERE  ****/
-  const { newMigrationData, updateNewMigrationData, selectedOrganisation } = useContext(AppContext);
-
+  
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const dispatch = useDispatch();
   /****  ALL UseStates HERE  ****/
   const [selectedStack, setSelectedStack] = useState<IDropDown>(
-    !isEmptyString(newMigrationData.destination_stack.selectedOrg.value)
+    !isEmptyString(newMigrationData?.destination_stack?.selectedOrg?.value)
       ? newMigrationData?.destination_stack?.selectedStack
       : DEFAULT_DROPDOWN
   );
@@ -62,7 +67,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     }
 
     //Post data to backend
-    const resp = await createStacksInOrg(newMigrationData.destination_stack.selectedOrg.value, {
+    const resp = await createStacksInOrg(newMigrationData?.destination_stack?.selectedOrg?.value, {
       ...data,
       master_locale: data?.locale
     });
@@ -87,12 +92,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
-          ...newMigrationData.destination_stack,
+          ...newMigrationData?.destination_stack,
           selectedStack: newCreatedStack
         }
       };
 
-      updateNewMigrationData(newMigrationDataObj);
+      dispatch(updateNewMigrationData((newMigrationDataObj)));
 
       //API call for saving selected CMS
       if (resp?.data?.stack?.api_key) {
@@ -127,7 +132,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         }
       };
 
-      updateNewMigrationData(newMigrationDataObj);
+      dispatch(updateNewMigrationData((newMigrationDataObj)));
 
       if (!stackCleared) {
         if (props?.handleStepChange) {
@@ -179,7 +184,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       }
     };
 
-    updateNewMigrationData(newMigrationDataObj);
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
     setisLoading(false);
   };
 
@@ -260,7 +265,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       }
     };
 
-    updateNewMigrationData(newMigrationDataObj);
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
 
     return { options: stackArray };
   };

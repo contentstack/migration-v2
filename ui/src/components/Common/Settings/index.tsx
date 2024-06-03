@@ -1,5 +1,6 @@
 // Libraries
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
 import {
   Icon,
@@ -31,6 +32,7 @@ import DeleteProjectModal from '../DeleteProjectModal';
 
 //stylesheet
 import './Settings.scss';
+import { RootState } from '../../../store';
 
 const Settings = () => {
   const params: Params<string> = useParams();
@@ -41,7 +43,8 @@ const Settings = () => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
 
-  const { selectedOrganisation, user } = useContext(AppContext);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const user = useSelector((state:RootState)=>state?.authentication?.user);
 
   const navigate = useNavigate();
 

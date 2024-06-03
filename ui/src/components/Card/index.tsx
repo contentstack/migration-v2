@@ -1,5 +1,6 @@
 // Libraries
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Tooltip, Icon } from '@contentstack/venus-components';
 import { useNavigate } from 'react-router-dom';
 // Utilities
@@ -10,10 +11,12 @@ import { AppContext } from '../../context/app/app.context';
 import { ProjectType } from './card.interface';
 import { getProject } from '../../services/api/project.service';
 import './card.scss';
+import { RootState } from '../../store';
 
 const CardList = ({ project }: ProjectType) => {
   const navigate = useNavigate();
-  const { selectedOrganisation } = useContext(AppContext);
+
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const [projectDetails, setprojectDetails] = useState('');
 
   const onClickProject = (id: string) => {
@@ -54,7 +57,6 @@ const CardList = ({ project }: ProjectType) => {
     };
     fetchProject();
   }, [selectedOrganisation?.value, project?.id]);
-
   
   return (
     <div style={{ padding: '0 20px 20px 0' }}>
