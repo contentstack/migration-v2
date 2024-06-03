@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@contentstack/venus-components';
+import { UseDispatch,useSelector } from 'react-redux';
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -17,7 +18,8 @@ import { AppContext } from '../../context/app/app.context';
 
 const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
-  const { newMigrationData } = useContext(AppContext);
+  //const { newMigrationData } = useContext(AppContext);
+  const newMigrationData = useSelector((state:any)=>state?.migration?.newMigration);
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();

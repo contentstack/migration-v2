@@ -1,4 +1,5 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getDestinationStackSteps } from './StepperSteps';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -21,6 +22,8 @@ import {
   updateDestinationStack
 } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
+import { RootState } from '../../store';
+import { setMigrationData, setNewMigrationData, updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 type DestinationStackComponentProps = {
   destination_stack: string;
@@ -43,14 +46,12 @@ const DestinationStackComponent = ({
   const autoVerticalStepperComponent = useRef<any>(null);
 
   /** ALL CONTEXT HERE */
-  const {
-    migrationData,
-    updateMigrationData,
-    newMigrationData,
-    updateNewMigrationData,
-    selectedOrganisation,
-    organisationsList
-  } = useContext(AppContext);
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
+  const dispatch = useDispatch();
+
   const { projectId = '' } = useParams();
 
   const navigate = useNavigate();
@@ -132,7 +133,7 @@ const DestinationStackComponent = ({
       selectedStack: selectedStackData
     };
 
-    updateNewMigrationData({ destination_stack: newMigData });
+    dispatch(updateNewMigrationData({ destination_stack: newMigData }));
   };
 
   /********** ALL USEEFFECT HERE *************/
@@ -146,7 +147,7 @@ const DestinationStackComponent = ({
 
       //Check for null
       if (!data) {
-        updateMigrationData({ destinationStackData: DEFAULT_DESTINATION_STACK_DATA });
+        dispatch(updateMigrationData({ destinationStackData: DEFAULT_DESTINATION_STACK_DATA }));
         setIsLoading(false);
         return;
       }
@@ -158,7 +159,7 @@ const DestinationStackComponent = ({
 
       //updateDestinationStackData();
 
-      updateMigrationData({ destinationStackData: destinationStackDataMapped });
+      dispatch(updateMigrationData({ destinationStackData: destinationStackDataMapped }));
 
       setIsLoading(false);
 
@@ -193,14 +194,14 @@ const DestinationStackComponent = ({
         );
       }
     }
-  }, [internalActiveStepIndex]);
+  }, [internalActiveStepIndex]); 
 
   return (
     <>
       {isLoading ? (
         <div className="row">
           <div className="col-12 text-center center-align">
-            <CircularLoader />
+            {/* <CircularLoader /> */}
           </div>
         </div>
       ) : (

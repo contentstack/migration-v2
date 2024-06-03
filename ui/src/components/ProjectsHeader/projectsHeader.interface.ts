@@ -8,5 +8,5 @@ export interface ProjectsHeaderType {
   setSearchText: (value: string) => void;
   searchPlaceholder: string;
   handleModal?: () => void;
-  allProject?: ProjectsObj[] | null;
+  allProject: ProjectsObj[] | null;
 }
