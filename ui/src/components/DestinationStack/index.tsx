@@ -201,7 +201,7 @@ const DestinationStackComponent = ({
       {isLoading ? (
         <div className="row">
           <div className="col-12 text-center center-align">
-            {/* <CircularLoader /> */}
+            <CircularLoader />
           </div>
         </div>
       ) : (
