@@ -65,9 +65,6 @@ const Login: FC<IProps> = () => {
     copyrightText: data?.copyrightText
   };
 
-  // ************* Context Here ************
-  //const { setAuthToken, setIsAuthenticated } = useContext(AppContext);
-
   // ************* ALL States Here ************
   const [loginStates, setLoginStates] = useState<IStates>(defaultStates);
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -162,8 +159,6 @@ const Login: FC<IProps> = () => {
       setIsLoading(false);
       setDataInLocalStorage('app_token', response?.data?.app_token);
       dispatch(setAuthToken(response?.data?.token));
-      //setAuthToken(response?.data?.app_token);
-      //setIsAuthenticated(true);
       setLoginStates((prev) => ({ ...prev, submitted: true }));
       navigate(`/projects`, { replace: true });
     }

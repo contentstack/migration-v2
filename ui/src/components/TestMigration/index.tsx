@@ -18,7 +18,7 @@ import { AppContext } from '../../context/app/app.context';
 
 const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
-  //const { newMigrationData } = useContext(AppContext);
+
   const newMigrationData = useSelector((state:any)=>state?.migration?.newMigration);
 
   /** ALL HOOKS Here */

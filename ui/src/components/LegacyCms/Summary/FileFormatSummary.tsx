@@ -15,7 +15,7 @@ interface FileFormatSummaryProps {
 }
 
 const FileFormatSummary = ({ stepData }: FileFormatSummaryProps): JSX.Element => {
-  //const { newMigrationData, migrationData } = useContext(AppContext);
+
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const { doc_url = { href: '', title: '' }, allowed_file_formats = [] } =

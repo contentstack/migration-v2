@@ -14,7 +14,7 @@ interface PreFixSummaryProps {
 }
 
 const PreFixSummary = (props: PreFixSummaryProps): JSX.Element => {
-  //const { newMigrationData, migrationData } = useContext(AppContext);
+  
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const { restricted_keyword_link = DEFAULT_URL_TYPE, restricted_keyword_checkbox_text = '' } =

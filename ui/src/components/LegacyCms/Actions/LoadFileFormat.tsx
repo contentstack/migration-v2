@@ -33,9 +33,6 @@ interface LoadFileFormatProps {
 }
 
 const LoadFileFormat = (props: LoadFileFormatProps) => {
-  /****  ALL HOOKS HERE  ****/
-  // const { newMigrationData, updateNewMigrationData, selectedOrganisation, migrationData } =
-  //   useContext(AppContext);
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
