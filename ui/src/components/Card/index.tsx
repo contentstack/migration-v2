@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { Tooltip, Icon } from '@contentstack/venus-components';
 import { useNavigate } from 'react-router-dom';
 // Utilities
-import { PROJECT_STATUS } from '../../utilities/constants';
+import { NEW_PROJECT_STATUS } from '../../utilities/constants';
 import { getDays, isEmptyString } from '../../utilities/functions';
 import { AppContext } from '../../context/app/app.context';
 // Interface
@@ -23,6 +23,29 @@ const CardList = ({ project }: ProjectType) => {
     if (isEmptyString(id)) return;
     navigate(`/projects/${id}/migration/steps/1`);
   };
+  const iconMapping: { [key: string]: string } = {
+    '0': 'Information',
+    '1': 'WarningBold',
+    '2': 'WarningBold',
+    '3': 'WarningBold',
+    '4': 'WarningBold',
+    '5': 'CheckCircle',
+    '6': 'CloseBorder',
+  };
+  const statusClassMapping: { [key: string]: string } = {
+    '0': 'draft',
+    '1': 'pending',
+    '2': 'pending',
+    '3': 'pending',
+    '4': 'pending',
+    '5': 'completed',
+    '6': 'failed',
+  };
+  const status = project?.status ?? '0';
+  const statusClass = statusClassMapping[status] || '';
+  const icon = iconMapping[status] || '';
+  const statusText = NEW_PROJECT_STATUS[status];
+
   useEffect(() => {
     const fetchProject = async () => {
       if (selectedOrganisation?.value && project?.id) {
@@ -35,7 +58,6 @@ const CardList = ({ project }: ProjectType) => {
     fetchProject();
   }, [selectedOrganisation?.value, project?.id]);
   
-
   return (
     <div style={{ padding: '0 20px 20px 0' }}>
       <div onClick={() => onClickProject(project?.id || '')}>
@@ -46,17 +68,21 @@ const CardList = ({ project }: ProjectType) => {
             </div>
             <div className="ProjectCard__content">
               <div className="ProjectCard__stats">
+                <div className='ProjectCard__Staus-unit'>
+                  <span className="ProjectCard__stats-Title">Source</span>
+                  <div className="ProjectCard__cms">{projectDetails ? projectDetails : '-'}</div>
+                </div>
                 <div className="ProjectCard__unit">
-                  <span className="ProjectCard__stats-number">Project Status</span>
-                  <span className="ProjectCard__stats-category">
-                    {PROJECT_STATUS?.[project?.status !== undefined ? project?.status : 0]}
-                  </span>
+                  <span className="ProjectCard__stats-Title">Project Status</span>
+                  <div className={`ProjectCard__stats-category ${statusClass}`}>
+                    {icon && <Icon size="small" icon={icon} version="v2" />}
+                    {statusText}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           <div className="ProjectCard__footer">
-            <div className="ProjectCard__cms">{projectDetails}</div>
             <div className="tippy-wrapper" data-test-id="cs-tooltip">
               <div className="ProjectCard__modified flex-v-center">
                 <Tooltip content="Last Modified" position="top" type="primary" variantType="basic">
