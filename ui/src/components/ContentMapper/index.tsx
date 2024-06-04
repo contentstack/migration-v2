@@ -185,9 +185,6 @@ const ContentMapper = () => {
   const { projectId = '' } = useParams();
   const navigate = useNavigate();
 
-  console.log("projectId", projectId);
-  
-
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
@@ -546,8 +543,6 @@ const ContentMapper = () => {
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
-    // console.log("value", value);
-    
     setisDropDownCHanged(true);
     setFieldValue(value);
     const updatedRows = tableData?.map((row) => {
@@ -561,12 +556,9 @@ const ContentMapper = () => {
 
   const handleDropDownChange = (value: FieldTypes) => {
     setOtherContentType(value);
-    // fetchFields(contentTypes?.[i]?.id, searchText);
   };
 
   const handleAdvancedSetting = (fieldtype: string, fieldvalue: Advanced, rowId: string, data: FieldMapType) => {
-    // console.log("fieldvalue", data);
-    
     return cbModal({
       component: (props: ModalObj) => (
         <AdvanceSettings
@@ -739,7 +731,6 @@ const ContentMapper = () => {
 
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
-      // console.log("fieldTypeToMatch", contentTypeSchema, fieldsOfContentstack, data?.backupFieldType);
       
       contentTypeSchema.forEach((value) => {
         switch (fieldTypeToMatch) {
@@ -1027,15 +1018,6 @@ const ContentMapper = () => {
     ...option,
     isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
   }));
-
-  // const itemSize = tableData?.forEach((data) => {
-  //   return data?.uid?.length > 80 ? 130 : 90
-  //   console.log("data?.uid", data?.uid?.length);
-    
-  // })
-
-  // console.log("itemSize", itemSize);
-  
 
   return (
     <div className="step-container">
