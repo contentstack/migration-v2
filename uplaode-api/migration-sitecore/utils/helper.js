@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /**
  * External module Dependencies.
  */
@@ -11,9 +12,8 @@ var mkdirp = require("mkdirp");
 
 // for checking XML file
 exports.readXMLFile = function (filePath) {
-  var data;
-  if (fs.existsSync(filePath)) data = fs.readFileSync(filePath, "utf-8");
-  console.log("🚀 ~ file: helper.js:16 ~ data:", data)
+  let data;
+  if (fs.existsSync(filePath)) data = fs.readFileSync(filePath, "utf8");
   return data;
 };
 

@@ -1,6 +1,8 @@
+import path from 'path';
+import multer from 'multer';
+import { Readable } from 'stream';
 import express, { Router, Request, Response } from 'express';
 import { createReadStream, createWriteStream } from 'fs';
-import multer from 'multer';
 import {
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
@@ -8,11 +10,10 @@ import {
   UploadPartCommand
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
-import config from '../config/index';
-import { Readable } from 'stream';
-
+import { fileOperationLimiter } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import createSitecoreMapper from '../controllers/sitecore';
+import config from '../config/index';
 
 const router: Router = express.Router();
 // Use memory storage to avoid saving the file locally
@@ -87,9 +88,12 @@ router.post('/upload', upload.single('file'), async function (req: Request, res:
   }
 });
 
-router.get('/validator', express.json(), async function (req: Request, res: Response) {
+// deepcode ignore NoRateLimitingForExpensiveWebOperation: <alredy implemetes>
+router.get('/validator', express.json(), fileOperationLimiter, async function (req: Request, res: Response) {
   try {
-    const cmsType = config.cmsType.toLowerCase();
+    const projectId: string | string[] = req?.body?.projectId ?? "";
+    const app_token: string | string[] = req?.headers?.app_token ?? "";
+    const cmsType = config?.cmsType?.toLowerCase();
 
     if (config?.isLocalPath) {
       const fileName = config?.localPath?.split?.('/')?.pop?.();
@@ -98,10 +102,12 @@ router.get('/validator', express.json(), async function (req: Request, res: Resp
       }
 
       if (fileName) {
+        const name = fileName?.split?.('.')?.[0];
         const fileExt = fileName?.split('.')?.pop() ?? '';
         const bodyStream = createReadStream(config?.localPath);
 
-        bodyStream.on('error', (error) => {
+        bodyStream.on('error', (error: any) => {
+          console.error(error);
           return res.status(500).json({
             status: "error",
             message: "Error reading file.",
@@ -126,11 +132,13 @@ router.get('/validator', express.json(), async function (req: Request, res: Resp
           if (!zipBuffer) {
             throw new Error('No data collected from the stream.');
           }
-
           const data = await handleFileProcessing(fileExt, zipBuffer, cmsType);
           res.json(data);
+          if (data?.status === 200) {
+            const filePath = path.join(__dirname, '../../extracted_files', name);
+            createSitecoreMapper(filePath, projectId, app_token)
+          }
         });
-
         return;
       }
     } else {
@@ -142,7 +150,7 @@ router.get('/validator', express.json(), async function (req: Request, res: Resp
       // Get the object from S3
       const s3File = await client.send(getObjectCommand);
       //file Name From key
-      const fileName = params?.Key?.split?.('/')?.pop?.();
+      const fileName = params?.Key?.split?.('/')?.pop?.() ?? '';
       //file ext from fileName
       const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
 
@@ -179,9 +187,12 @@ router.get('/validator', express.json(), async function (req: Request, res: Resp
         const data = await handleFileProcessing(fileExt, zipBuffer, cmsType);
         res.json(data);
         res.send('file valited sucessfully.');
-        createSitecoreMapper()
+        const filePath = path.join(__dirname, '../../extracted_files', fileName);
+        console.log("🚀 ~ bodyStream.on ~ filePath:", filePath)
+        // createSitecoreMapper(filePath, projectId, app_token)
       });
     }
+
   } catch (err: any) {
     console.error('🚀 ~ router.get ~ err:', err);
   }
@@ -193,7 +204,3 @@ router.get('/config', async function (req: Request, res: Response) {
 
 // Exported the router
 export default router;
-
-// function readFileAsync(filePath: any) {
-//   throw new Error('Function not implemented.');
-// }
