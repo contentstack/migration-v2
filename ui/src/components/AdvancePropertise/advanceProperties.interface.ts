@@ -8,6 +8,7 @@ export interface SchemaProps {
   isLocalised: boolean;
   closeModal: () => void;
   data: FieldMapType;
+  projectId?: string;
 }
 
 export interface Props {
@@ -32,4 +33,5 @@ export interface StateType {
   allowImagesOnly?: boolean;
   nonLocalizable?: boolean;
   embedObject?: boolean;
+  embedAssests?: boolean;
 }
