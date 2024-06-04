@@ -34,7 +34,7 @@ const putTestData = async (req: Request) => {
       return { id, isDeleted: true, ...field };
     });
     FieldMapperModel.update((data: any) => {
-      data.field_mapper = [...data?.field_mapper, ...fields];
+      data.field_mapper = [...data?.field_mapper ?? [], ...fields];
     });
     contentTypes[index].fieldMapping = fieldIds;
   });
@@ -44,7 +44,7 @@ const putTestData = async (req: Request) => {
   const contentType = contentTypes.map((item: any) => {
     const id = uuidv4();
     contentIds.push(id);
-    return { id, ...item };
+    return { ...item, id };
   });
 
   await ContentTypesMapperModelLowdb.update((data: any) => {
@@ -256,8 +256,7 @@ const updateContentType = async (req: Request) => {
       NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
-  ) 
-   {
+  ) {
     logger.error(
       getLogMessage(
         srcFun,
