@@ -75,10 +75,10 @@ export const PROJECT_STATUS: ObjectType = {
 
 export const NEW_PROJECT_STATUS: ObjectType = {
   '0': 'Draft',
-  '1': 'Pending',
-  '2': 'Pending',
-  '3': 'Pending',
-  '4': 'Pending',
+  '1': 'In progress',
+  '2': 'In progress',
+  '3': 'In progress',
+  '4': 'In progress',
   '5': 'Completed',
   '6': 'Failed'
 };
