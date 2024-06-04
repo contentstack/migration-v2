@@ -1,6 +1,7 @@
 // Libraries
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
+import { useDispatch, useSelector } from 'react-redux';
 
 // Service
 import { updateLegacyCMSData } from '../../../services/api/migration.service';
@@ -25,6 +26,8 @@ import '../legacyCms.scss';
 
 import { SEARCH_ICON } from '../../../common/assets';
 import { IFilterStatusType } from '../../../components/Common/Modal/FilterModal/filterModal.interface';
+import { RootState } from '../../../store';
+import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadSelectCmsProps {
   stepComponentProps: any;
@@ -34,8 +37,12 @@ interface LoadSelectCmsProps {
 
 const LoadSelectCms = (props: LoadSelectCmsProps) => {
   /****  ALL HOOKS HERE  ****/
-  const { migrationData, newMigrationData, updateNewMigrationData, selectedOrganisation } =
-    useContext(AppContext);
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+
+  const dispatch = useDispatch();
+  
 
   const [selectedCard, setSelectedCard] = useState<ICMSType>(
     newMigrationData?.legacy_cms?.selectedCms || defaultCardType
@@ -55,13 +62,14 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   //Handle Legacy cms selection
   const handleDirectSelection = async (cms: any) => {
     setSelectedCard(cms);
-    updateNewMigrationData({
+
+    dispatch(updateNewMigrationData({
       ...newMigrationData?.legacy_cms,
       legacy_cms: {
         ...newMigrationData?.legacy_cms,
         selectedCms: cms
       }
-    });
+    }))
 
     
     if (!isEmptyString(cms?.title)) {
@@ -136,12 +144,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         }
       };
 
-      updateNewMigrationData(newMigrationDataObj);
+      dispatch(updateNewMigrationData(newMigrationDataObj));
 
-      // API call for saving selected CMS, if a new card is selected
-      // updateLegacyCMSData(selectedOrganisation?.value, projectId, {
-      //   legacy_cms: newSelectedCard?.cms_id
-      // });
     }
   };
 
