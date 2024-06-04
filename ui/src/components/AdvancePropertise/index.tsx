@@ -8,42 +8,19 @@ import {
   TextInput,
   ToggleSwitch,
   Tooltip,
-  Icon
+  Icon,
+  Select
 } from '@contentstack/venus-components';
 
-// Interface
-import { SchemaProps } from './advanceProperties.interface'; 
+// Service
+import { getContentTypes } from '../../services/api/migration.service';
 
+// Interfaces
+import { SchemaProps } from './advanceProperties.interface'; 
+import { ContentType } from '../ContentMapper/contentMapper.interface';
 
 // Styles
 import './index.scss';
-
-// const getAdvanceProperties = (props: SchemaProps, setToggleStates: StateType, handleOnChange: (field: string, event: any, checkBoxChanged: boolean) => void, handleToggleChange: (field: string, value: boolean, checkBoxChanged: boolean) => void) => {
-//   console.log("in function prop", props);
-  
-//     switch (props?.fieldtype) {
-//       case 'Single Line Textbox': 
-//       case 'Multi Line Textbox':
-//       case 'Number':
-//       case 'HTML Rich text Editor':
-//       case 'JSON Rich Text Editor':
-//       case 'Global':
-//       case 'Select':
-//       case 'File':
-//       case 'Link':
-//       case 'Boolean':
-//         return <SingleLineProperties data={props} states={setToggleStates} handleChange={handleOnChange} handleToggle={handleToggleChange} />
-
-//       // case 'HTML Rich text Editor':
-//       //   return <RTEProperties data={props} states={setToggleStates} handleToggle={handleToggleChange} />
-
-//       // case 'JSON Rich Text Editor':
-//       //   return <RTEProperties data={props} states={setToggleStates} handleToggle={handleToggleChange} />
-    
-//       default:
-//         break;
-//     }
-// }
 
 const AdvancePropertise = (props: SchemaProps) => {
   const [toggleStates, setToggleStates] = useState({
@@ -57,35 +34,36 @@ const AdvancePropertise = (props: SchemaProps) => {
     validationRegex: props?.value?.ValidationRegex,
     title: props?.value?.title,
     url: props?.value?.url,
-    // basic: props?.value?.Basic,
-    // advanced: true || props?.value?.Advanced,
-    // custom: props?.value?.Custom,
     mandatory: props?.value?.Mandatory,
     allowImagesOnly: props?.value?.AllowImagesOnly,
     nonLocalizable: props?.value?.NonLocalizable,
-    embedObject: true
+    embedObject: true,
+    embedAssests: true
   });
 
+  const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
+  const [CTValue, setCTValue] = useState(null);
 
   useEffect(() => {
-    // setToggleStates((prevStates) => ({
-    //   ...prevStates,
-    //   [field]: props?.fieldtype
-    // }));
-  })
+    fetchContentTypes('');
+  }, [])
 
-  console.log("props", props);
-  
+  // Fetch content types list
+  const fetchContentTypes = async (searchText: string) => {
+    const { data } = await getContentTypes(props?.projectId || '', 0, 10, searchText || ''); //org id will always present
 
-  const handleOnChange = (field: string, event: any, checkBoxChanged: boolean) => {
+    setContentTypes(data?.contentTypes);
+  };
+
+  const handleOnChange = (field: string, event: React.ChangeEvent<HTMLInputElement>, checkBoxChanged: boolean) => {
     setToggleStates((prevStates) => ({
       ...prevStates,
-      [field]: event?.target?.value
+      [field]: (event.target as HTMLInputElement)?.value
     }));
 
     props?.updateFieldSettings(
       props?.rowId,
-      { [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: event?.target?.value },
+      { [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: (event.target as HTMLInputElement)?.value },
       checkBoxChanged
     );
   };
@@ -103,21 +81,9 @@ const AdvancePropertise = (props: SchemaProps) => {
     );
   };
 
-
-  // const handleRadioChange = (field: string, event: any, checkBoxChanged: boolean) => {
-  //   setToggleStates((prevStates) => ({
-  //     ...prevStates,
-  //     [field]: event
-  //   }));
-
-  //   props?.updateFieldSettings(
-  //     props?.rowId,
-  //     { [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: event },
-  //     checkBoxChanged
-  //   );
-  // };
-
-  
+  const option = Array.isArray(contentTypes)
+    ? contentTypes.map((option) => ({ label: option?.otherCmsTitle, value: option?.otherCmsTitle }))
+    : [{ label: contentTypes, value: contentTypes }];
 
   return (
     <>
@@ -135,7 +101,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   value={toggleStates?.minChars}
                   placeholder="Min"
                   version="v2"
-                  onChange={handleOnChange && ((e: any) => handleOnChange('minChars', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('minChars', e, true))}
                 />
                 <span className='fields-group-separator'>to</span>
                 <TextInput
@@ -143,7 +109,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   value={toggleStates?.maxChars}
                   placeholder="Max"
                   version="v2"
-                  onChange={handleOnChange && ((e: any) => handleOnChange('maxChars', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('maxChars', e, true))}
                 />
               </div>
             </Field>
@@ -168,7 +134,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   value={toggleStates?.defaultValue}
                   placeholder="Enter value"
                   version="v2"
-                  onChange={handleOnChange && ((e: any) => handleOnChange('defaultValue', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('defaultValue', e, true))}
                 />
               </Field>
           
@@ -189,7 +155,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   value={toggleStates?.validationRegex}
                   placeholder="Enter value"
                   version="v2"
-                  onChange={handleOnChange && ((e: any) => handleOnChange('validationRegex', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('validationRegex', e, true))}
                 />
               </Field>
             </>
@@ -206,7 +172,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                 value={toggleStates?.minRange}
                 placeholder="Min"
                 version="v2"
-                onChange={handleOnChange && ((e: any) => handleOnChange('minRange', e, true))}
+                onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('minRange', e, true))}
               />
               <span className='fields-group-separator'>to</span>
               <TextInput
@@ -214,7 +180,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                 value={toggleStates?.maxRange}
                 placeholder="Max"
                 version="v2"
-                onChange={handleOnChange && ((e: any) => handleOnChange('maxRange', e, true))}
+                onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('maxRange', e, true))}
               />
             </div>
           </Field>
@@ -239,7 +205,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   value={toggleStates?.minSize}
                   placeholder="Min"
                   version="v2"
-                  onChange={handleOnChange && ((e: any) => handleOnChange('minSize', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('minSize', e, true))}
                 />
                 <span className='fields-group-separator'>to</span>
                 <TextInput
@@ -247,7 +213,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   value={toggleStates?.maxSize}
                   placeholder="Max"
                   version="v2"
-                  onChange={handleOnChange && ((e: any) => handleOnChange('maxSize', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('maxSize', e, true))}
                 />
               </div>
             </Field>
@@ -278,7 +244,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   value={toggleStates?.title}
                   placeholder="Enter value"
                   version="v2"
-                  onChange={handleOnChange && ((e: any) => handleOnChange('title', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('title', e, true))}
                 />
               </Field>
 
@@ -291,7 +257,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   value={toggleStates?.url}
                   placeholder="Enter value"
                   version="v2"
-                  onChange={handleOnChange && ((e: any) => handleOnChange('url', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('url', e, true))}
                 />
               </Field>
               </>
@@ -310,12 +276,35 @@ const AdvancePropertise = (props: SchemaProps) => {
                       labelColor="primary"
                       labelPosition="right"
                       checked={toggleStates?.embedObject}
-                      onChange={handleToggleChange && ((e: any) => handleToggleChange('embedObject', e?.target?.checked, true))}
+                      onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('embedObject', (e.target as HTMLInputElement)?.checked, true))}
                     />
                   </div>
+  
                   {toggleStates?.embedObject && (
-                    <></>
+                    <Select
+                      value={CTValue}
+                      isMulti={true}
+                      onChange={setCTValue}
+                      options={option}
+                      placeholder="Select Content Types"
+                      version='v2'
+                      isSearchable={true}
+                      isClearable={true}
+                      width="350px"
+                      // isSelectAll={true}
+                    />
                   )}
+
+                  <div className='ToggleWrap'>
+                    <ToggleSwitch
+                      label="Embed Asset(s)"
+                      labelColor="primary"
+                      labelPosition="right"
+                      checked={toggleStates?.embedAssests}
+                      disabled={toggleStates?.embedAssests}
+                      onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('embedAssests', (e.target as HTMLInputElement)?.checked, true))}
+                    />
+                  </div>
                 </>
               )}
               {props?.fieldtype !== 'Global' && (
@@ -325,7 +314,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                     labelColor="primary"
                     labelPosition="right"
                     checked={toggleStates?.mandatory}
-                    onChange={handleToggleChange && ((e: any) => handleToggleChange('mandatory', e?.target?.checked, true))}
+                    onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('mandatory', (e.target as HTMLInputElement)?.checked, true))}
                   />
                 </div>
               )}
@@ -337,7 +326,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                     labelColor="primary"
                     labelPosition="right"
                     checked={toggleStates?.allowImagesOnly}
-                    onChange={handleToggleChange && ((e: any) => handleToggleChange('allowImagesOnly', e?.target?.checked, true))}
+                    onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('allowImagesOnly', (e.target as HTMLInputElement)?.checked, true))}
                   />
                 </div>
               )}
@@ -355,7 +344,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                     labelColor="primary"
                     labelPosition="right"
                     checked={toggleStates?.nonLocalizable}
-                    onChange={handleToggleChange && ((e: any) => handleToggleChange('nonLocalizable', e?.target?.checked, true))}
+                    onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('nonLocalizable', (e.target as HTMLInputElement)?.checked, true))}
                   />
                 </Tooltip>
               </div>

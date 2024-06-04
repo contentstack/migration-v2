@@ -57,6 +57,21 @@
     color: $color-base-black-base;
     margin: 0 16px;
   }
+  .Select {
+    .Select__menu {
+      .Select__menu-list {
+        .Select__option {
+          .Checkbox {
+            align-items: center;
+            display: flex;
+          }
+          .Checkbox__label {
+            height: auto;
+          }
+        } 
+      }
+    } 
+  } 
   .Select__menu {
     position: relative;
     z-index: 10000;

@@ -182,6 +182,9 @@ const ContentMapper = () => {
   const { projectId = '' } = useParams();
   const navigate = useNavigate();
 
+  console.log("projectId", projectId);
+  
+
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
@@ -359,9 +362,9 @@ const ContentMapper = () => {
     const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
     setOtherContentType({ label: option, value: option });
 
-    setContentTypeUid(contentTypes?.[i]?.id);
+    setContentTypeUid(contentTypes?.[i]?.id || '');
     setCurrentIndex(i);
-    fetchFields(contentTypes?.[i]?.id, searchText || '');
+    fetchFields(contentTypes?.[i]?.id || '', searchText || '');
     setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(contentTypes?.[i]);
   };
@@ -570,6 +573,7 @@ const ContentMapper = () => {
           isLocalised={isLocalised}
           updateFieldSettings={updateFieldSettings}
           data={data}
+          projectId={projectId}
           {...props}
         />
       ),
@@ -880,7 +884,7 @@ const ContentMapper = () => {
           isUpdated: true,
           updateAt: new Date(),
           contentstackTitle: selectedContentType?.contentstackTitle,
-          contentstackUid: selectedContentType?.contnetStackUid,
+          contentstackUid: selectedContentType?.contentstackUid,
           fieldMapping: selectedEntries
         }
       };
@@ -888,7 +892,7 @@ const ContentMapper = () => {
       const { data, status } = await updateContentType(
         orgId,
         projectID,
-        selectedContentType.id,
+        selectedContentType?.id || '',
         dataCs
       );
 
@@ -934,7 +938,7 @@ const ContentMapper = () => {
         isUpdated: true,
         updateAt: new Date(),
         contentstackTitle: selectedContentType?.contentstackTitle,
-        contentstackUid: selectedContentType?.contnetStackUid,
+        contentstackUid: selectedContentType?.contentstackUid,
         fieldMapping: updatedRows
       }
     };
@@ -942,7 +946,7 @@ const ContentMapper = () => {
       const { status } = await resetToInitialMapping(
         orgId,
         projectID,
-        selectedContentType.id,
+        selectedContentType?.id || '',
         dataCs
       );
       if (status == 200) {
