@@ -67,7 +67,7 @@ const ProjectsHeader = ({
           className="ml-10"
           onClick={handleModal}
           version="v2"
-          size="small"
+          size="medium"
           aria-label={cta?.title}
         >
           {cta?.with_icon && (

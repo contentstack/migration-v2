@@ -41,14 +41,17 @@
 }
 
 .page-wrapper {
-  // align-items: center;
   background-color: $color-base-white-10;
   display: flex;
   height: 100vh;
+  margin-left: auto;
   .Icon--original {
     height: 1.25rem;
     width: 1.25rem;
   }
+}
+.sidebarWrapper {
+  width: calc(100% - 55px);
 }
 .section {
   padding-bottom: 90px;
@@ -340,7 +343,7 @@ h2 {
     }
     .PageLayout__head {
       & > .PageHeader {
-        padding-right: $px-20;
+        padding-right: $px-10;
       }
     }
   }

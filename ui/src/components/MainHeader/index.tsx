@@ -2,6 +2,7 @@
 import { useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dropdown, Tooltip } from '@contentstack/venus-components';
+import { useDispatch, useSelector } from 'react-redux';
 
 // Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -23,39 +24,42 @@ import {
   getDataFromLocalStorage,
   setDataInLocalStorage
 } from '../../utilities/functions';
+import { RootState } from '../../store';
+import { setSelectedOrganisation } from '../../store/slice/authSlice';
 
 const MainHeader = () => {
-  const {
-    user = DEFAULT_USER,
-    organisationsList,
-    updateSelectedOrganisation,
-    selectedOrganisation
-  } = useContext(AppContext);
+
+  const user = useSelector((state:RootState)=>state?.authentication?.user);
+  const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
 
   const [data, setData] = useState<MainHeaderType>({});
   const [orgsList, setOrgsList] = useState<IDropDown[]>([]);
 
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const { logo, organization_label: organizationLabel } = data;
 
   const name = `${user?.first_name?.charAt(0)}${user?.last_name?.charAt(0)}`.toUpperCase() ?? '';
-
+   
   const updateOrganisationListState = () => {
-    //set  selected org as default
-    const list = organisationsList.map((org) => ({
-      ...org,
-      default: org?.value === selectedOrganisation?.value
-    }));
-
-    setOrgsList(list);
-
-    //Set organization in local storage , first check if selectedOrg.value exist, if not get org id from local storage and set.
-    setDataInLocalStorage(
-      'organization',
-      selectedOrganisation?.value || getDataFromLocalStorage('organization')
-    );
+    if (organisationsList) {
+      //set selected org as default
+      const list = organisationsList.map((org: any) => ({
+        ...org,
+        default: org?.value === selectedOrganisation?.value
+      }));
+  
+      setOrgsList(list);
+  
+      //Set organization in local storage, first check if selectedOrg.value exists, if not get org id from local storage and set.
+      setDataInLocalStorage(
+        'organization',
+        selectedOrganisation?.value || getDataFromLocalStorage('organization')
+      );
+    }
   };
 
   const fetchData = async () => {
@@ -89,10 +93,9 @@ const MainHeader = () => {
   const handleOnDropDownChange = (data: IDropDown) => {
     if (data.value === selectedOrganisation.value) return;
 
-    updateSelectedOrganisation(data);
+    dispatch(setSelectedOrganisation(data));
     setDataInLocalStorage('organization', data?.value);
   };
-
   return (
     <div className="mainheader">
       <div className="container-fluid">
@@ -100,9 +103,9 @@ const MainHeader = () => {
           <div className="col-6 d-flex align-items-center">
             {logo?.image?.url ? (
               <div className="logo">
-                <Tooltip position="right" content="Stacks" wrapperElementType="div">
+                <Tooltip position="right" content="Projects" wrapperElementType="div">
                   <Link to={`${logo?.url}`}>
-                    <img src={logo?.image?.url} className="w-100" alt="Contentstack Logo" />
+                    <img src={logo?.image?.url} width={26} alt="Contentstack Logo" />
                   </Link>
                 </Tooltip>
               </div>
@@ -110,21 +113,21 @@ const MainHeader = () => {
               ''
             )}
 
-            <div className="organisationWrapper">
-              <Dropdown
-                withSearch
-                headerLabel={organizationLabel}
-                closeAfterSelect
-                highlightActive
-                list={orgsList}
-                type="select"
-                withArrow
-                onChange={handleOnDropDownChange}
-              ></Dropdown>
-            </div>
+            {location.pathname === '/projects' && <div className="organisationWrapper">
+            <Dropdown
+              withSearch
+              headerLabel={organizationLabel}
+              closeAfterSelect
+              highlightActive
+              list={orgsList}
+              type="select"
+              withArrow
+              onChange={handleOnDropDownChange}
+            ></Dropdown>
+            </div>}
           </div>
 
-          <div className="col-6 flex-end">
+          {(location.pathname == '/projects' || location.pathname.includes('/projects/')) && <div className="col-6 flex-end">
             <div className="Dropdown-wrapper">
               <Dropdown
                 list={[
@@ -139,7 +142,7 @@ const MainHeader = () => {
                 <div className="user-short-name flex-v-center flex-h-center">{name}</div>
               </Dropdown>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
     </div>

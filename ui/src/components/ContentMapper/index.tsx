@@ -1,5 +1,6 @@
 // Libraries
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Heading,
@@ -65,6 +66,9 @@ import AdvanceSettings from '../AdvancePropertise';
 
 // Styles
 import './index.scss';
+import { RootState } from '../../store';
+import { setNewMigrationData, updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+import { setMigrationData } from '../../store/slice/migrationDataSlice';
 
 const Fields: Mapping = {
   'Single Line Textbox': [
@@ -111,13 +115,12 @@ interface ModalProps {
 }
 const ContentMapper = () => {
   /** ALL CONTEXT HERE */
-  const {
-    migrationData,
-    updateMigrationData,
-    newMigrationData,
-    updateNewMigrationData,
-    selectedOrganisation
-  } = useContext(AppContext);
+
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+
+  const dispatch = useDispatch();
 
   const {
     contentMappingData: {
@@ -192,10 +195,10 @@ const ContentMapper = () => {
       .then((data) => {
         //Check for null
         if (!data) {
-          updateMigrationData({ contentMappingData: DEFAULT_CONTENT_MAPPING_DATA });
+          dispatch(updateMigrationData({ contentMappingData: DEFAULT_CONTENT_MAPPING_DATA }));
         }
 
-        updateMigrationData({ contentMappingData: data });
+        dispatch(updateMigrationData({ contentMappingData: data }));
       })
       .catch((err) => {
         console.error(err);
@@ -600,7 +603,7 @@ const ContentMapper = () => {
       test_migration: { stack_link: res?.data?.data?.url }
     };
 
-    updateNewMigrationData(newMigrationDataObj);
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
     if (res?.status) {
       setisButtonLoading(false);
       const url = `/projects/${projectId}/migration/steps/4`;
@@ -872,7 +875,7 @@ const ContentMapper = () => {
         }
       };
 
-      updateNewMigrationData(newMigrationDataObj);
+      dispatch(updateNewMigrationData((newMigrationDataObj)));
     }
 
     if (orgId && contentTypeUid && selectedContentType) {
