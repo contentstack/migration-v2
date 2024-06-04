@@ -36,7 +36,7 @@
   border-top: 1px solid $color-brand-secondary-lightest;
   border-radius: 0 0 0.5rem 0.5rem;
   height: 59.008px;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0.9375rem 1.875rem;
   align-items: center;
 }
@@ -45,7 +45,11 @@
   padding: 0;
   text-align: center;
 }
+.ProjectCard__Staus-unit {
+  padding: 0 1em;
+}
 .ProjectCard__unit {
+  border-left: 1px solid $color-brand-secondary-lightest;
   padding: 0 1em;
 }
 .ProjectCard__unit:not(:last-child) {
@@ -57,25 +61,51 @@
   justify-content: center;
 }
 .ProjectCard__stats-category {
-  color: $color-font-active;
-  font-size: $size-font-small;
-  font-weight: $font-weight-regular;
-  line-height: 1.42;
-}
-.ProjectCard__stats-number {
-  display: block;
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 8px;
   font-size: $size-font-large;
-  font-weight: $font-weight-semi-bold;
-  letter-spacing: 0.00875rem;
-  line-height: 150%;
+  color: $color-black-2121;
+  padding: 4px 8px;
+  text-transform: capitalize;
+  svg {
+    margin-right: 5px;
+  }
+  &.draft {
+    border-color: $color-brand-draft-base;
+    background-color: $color-brand-draft-light;
+    svg {
+      stroke: $color-brand-draft-base;
+      fill: none;
+    }
+  }
+  &.completed {
+    background-color: $color-brand-success-light;
+    border-color: $color-brand-success-base;
+  }
+  &.failed {
+    background-color: $color-brand-fail-light;
+    border-color: $color-brand-fail-base;
+  }
+  &.pending {
+    background-color: $color-brand-attention-light;
+    border-color: $color-brand-attention-base;
+  }
+}
+.ProjectCard__stats-Title {
+  color: $color-stepper-title;
+  display: block;
+  font-size: $size-font-small;
   margin-bottom: $space-4;
 }
 .validation-color {
   color: $color-brand-warning-medium;
 }
 .ProjectCard__cms {
-  font-size: $size-font-small;
-  color: $color-font-black;
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 8px;
+  font-size: $size-font-large;
+  color: $color-font-base;
+  padding: 4px 8px;
   text-transform: capitalize;
 }
 .ProjectCard__modified-date {
