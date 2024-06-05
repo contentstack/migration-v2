@@ -1,9 +1,9 @@
 // Libraries
 import { FC, ReactNode, useEffect } from 'react';
 import { useLocation } from 'react-router';
-
 // Component
 import MainHeader from '../../MainHeader';
+import SideBar from '../../SideBar';
 import { getUserDetails } from '../../../store/slice/authSlice';
 import { useDispatch } from 'react-redux';
 
@@ -22,8 +22,13 @@ const AppLayout: FC<IProps> = ({ children }) => {
 
   return (
     <>
-      {location.pathname === '/projects' && <MainHeader />}
-      <div className="page-wrapper">
+      {location.pathname.includes('projects') && 
+        <>
+        <MainHeader />
+        <SideBar /> 
+        </>
+      }
+      <div className={`${(location.pathname.includes('projects')) ? 'sidebarWrapper' : ''} page-wrapper`}>
         <div
           className={
             location.pathname !== '/login' && location.pathname !== '/forgot-password'
