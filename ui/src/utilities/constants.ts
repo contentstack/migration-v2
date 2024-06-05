@@ -73,6 +73,16 @@ export const PROJECT_STATUS: ObjectType = {
   '6': 'Migration terminated'
 };
 
+export const NEW_PROJECT_STATUS: ObjectType = {
+  '0': 'Draft',
+  '1': 'In progress',
+  '2': 'In progress',
+  '3': 'In progress',
+  '4': 'In progress',
+  '5': 'Completed',
+  '6': 'Failed'
+};
+
 export const isOfflineCMSDataRequired = process.env.REACT_APP_OFFLINE_CMS
   ? process.env.REACT_APP_OFFLINE_CMS
   : true;

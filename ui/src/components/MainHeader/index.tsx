@@ -96,7 +96,6 @@ const MainHeader = () => {
     dispatch(setSelectedOrganisation(data));
     setDataInLocalStorage('organization', data?.value);
   };
-
   return (
     <div className="mainheader">
       <div className="container-fluid">
@@ -104,9 +103,9 @@ const MainHeader = () => {
           <div className="col-6 d-flex align-items-center">
             {logo?.image?.url ? (
               <div className="logo">
-                <Tooltip position="right" content="Stacks" wrapperElementType="div">
+                <Tooltip position="right" content="Projects" wrapperElementType="div">
                   <Link to={`${logo?.url}`}>
-                    <img src={logo?.image?.url} className="w-100" alt="Contentstack Logo" />
+                    <img src={logo?.image?.url} width={26} alt="Contentstack Logo" />
                   </Link>
                 </Tooltip>
               </div>
@@ -114,21 +113,21 @@ const MainHeader = () => {
               ''
             )}
 
-            <div className="organisationWrapper">
-              <Dropdown
-                withSearch
-                headerLabel={organizationLabel}
-                closeAfterSelect
-                highlightActive
-                list={orgsList}
-                type="select"
-                withArrow
-                onChange={handleOnDropDownChange}
-              ></Dropdown>
-            </div>
+            {location.pathname === '/projects' && <div className="organisationWrapper">
+            <Dropdown
+              withSearch
+              headerLabel={organizationLabel}
+              closeAfterSelect
+              highlightActive
+              list={orgsList}
+              type="select"
+              withArrow
+              onChange={handleOnDropDownChange}
+            ></Dropdown>
+            </div>}
           </div>
 
-          <div className="col-6 flex-end">
+          {(location.pathname == '/projects' || location.pathname.includes('/projects/')) && <div className="col-6 flex-end">
             <div className="Dropdown-wrapper">
               <Dropdown
                 list={[
@@ -143,7 +142,7 @@ const MainHeader = () => {
                 <div className="user-short-name flex-v-center flex-h-center">{name}</div>
               </Dropdown>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
     </div>
