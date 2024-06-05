@@ -2,6 +2,7 @@ import { CTA } from '../../types/common.interface';
 
 export interface ProjectsType {
   cta?: CTA;
+  restore_cta?: CTA;
   heading?: string;
   search_projects?: string;
   emptystate?: EmptyState;
