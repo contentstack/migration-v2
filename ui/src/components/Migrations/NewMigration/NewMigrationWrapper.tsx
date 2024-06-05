@@ -103,8 +103,6 @@ const NewMigrationWrapper = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [projectData, setProjectData] = useState<MigrationResponse>(defaultMigrationResponse);
 
-  /********  ALL CONTEXT DATA  **********/
-  //const { migrationData, updateMigrationData, selectedOrganisation } = useContext(AppContext);
   const migrationData = useSelector((state: RootState)=>state?.migration?.migrationData);
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
 
