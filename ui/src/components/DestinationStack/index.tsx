@@ -29,12 +29,14 @@ type DestinationStackComponentProps = {
   destination_stack: string;
   org_id: string;
   projectData: MigrationResponse;
+  handleStepChange: (currentStep: number) => void;
 };
 
 const DestinationStackComponent = ({
   destination_stack,
   org_id,
-  projectData
+  projectData,
+  handleStepChange
 }: DestinationStackComponentProps) => {
   /** ALL HOOKS HERE */
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -66,7 +68,7 @@ const DestinationStackComponent = ({
     await updateDestinationStack(selectedOrganisation?.value, projectId, {
       stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
     });
-
+    handleStepChange(2);
     const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
     if (res) {
       const url = `/projects/${projectId}/migration/steps/3`;
