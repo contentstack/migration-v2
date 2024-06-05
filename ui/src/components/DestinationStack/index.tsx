@@ -4,8 +4,7 @@ import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper'
 import { getDestinationStackSteps } from './StepperSteps';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, CircularLoader } from '@contentstack/venus-components';
-//import { getEntries } from '../../services/contentstackSDK';
-import { CS_ENTRIES, PROJECT_STATUS } from '../../utilities/constants';
+import { CS_ENTRIES } from '../../utilities/constants';
 import { AppContext } from '../../context/app/app.context';
 import {
   DEFAULT_DESTINATION_STACK_DATA,
