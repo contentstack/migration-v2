@@ -10,6 +10,13 @@
     "open_in_new_tab": false,
     "with_icon": true
   },
+  "restore_cta": {
+    "open_in_new_tab": false,
+    "theme": "secondary",
+    "title": "Restore Projects",
+    "url": "",
+    "with_icon": false
+  },
   "tags": [],
   "locale": "en-us",
   "uid": "blta1dbec2d70eaa448",
@@ -68,7 +75,7 @@
       "type": "doc",
       "_version": 12
     },
-    "heading": "Welcome to Contentstack Migrations",
+    "heading": "Welcome to Content Migrations",
     "help_text": {
       "type": "doc",
       "attrs": {},
