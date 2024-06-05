@@ -28,9 +28,10 @@ import { setMigrationData, setNewMigrationData, updateMigrationData } from '../.
 type LegacyCMSComponentProps = {
   legacyCMSData: any;
   projectData: MigrationResponse;
+  handleStepChange: (currentStep: number) => void;
 };
 
-const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentProps) => {
+const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: LegacyCMSComponentProps) => {
   
   //react-redux apis
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -59,7 +60,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
   };
 
   // handle on proceed to destination stack
-  const handleOnClick = async (event: MouseEvent) => {
+  const handleOnClick = async (event: MouseEvent,handleStepChange:any ) => {
     event.preventDefault();
 
     //Update Data in backend
@@ -67,6 +68,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
       legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
     });
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+    handleStepChange(1);
     if (res) {
       const url = `/projects/${projectId}/migration/steps/2`;
       navigate(url, { replace: true });
@@ -243,7 +245,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData }: LegacyCMSComponentPr
                   <Button
                     version="v2"
                     disabled={!newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
-                    onClick={handleOnClick}
+                    onClick={(e:any)=>{handleOnClick(e,handleStepChange)}}
                   >
                     {migrationData?.legacyCMSData?.cta}
                   </Button>
