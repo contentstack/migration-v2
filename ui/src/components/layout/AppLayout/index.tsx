@@ -30,11 +30,7 @@ const AppLayout: FC<IProps> = ({ children }) => {
       }
       <div className={`${(location.pathname.includes('projects')) ? 'sidebarWrapper' : ''} page-wrapper`}>
         <div
-          className={
-            location.pathname !== '/login' && location.pathname !== '/forgot-password'
-              ? 'container-fluid'
-              : 'w-100'
-          }
+          className='w-100'
         >
           {children}
         </div>
