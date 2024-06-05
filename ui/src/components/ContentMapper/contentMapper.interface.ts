@@ -38,12 +38,12 @@ export interface TableTypes {
 
 export interface ContentType {
   contentstackTitle: string;
-  contnetStackUid: string;
+  contentstackUid: string;
   isUpdated: boolean;
   otherCmsTitle: string;
   otherCmsUid: string;
   updateAt: string;
-  id: string;
+  id?: string;
 }
 
 export interface FieldMapType {
@@ -59,15 +59,8 @@ export interface FieldMapType {
   id: string;
   _canSelect?: boolean;
   advanced: Advanced;
+  contentstackUid: string;
 }
-
-// export interface Advanced {
-//   ValidationRegex: string;
-//   Mandatory: boolean;
-//   Multiple: boolean;
-//   Unique: boolean;
-//   NonLocalizable: boolean;
-// }
 
 export interface Advanced {
   ValidationRegex?: string;
