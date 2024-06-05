@@ -40,6 +40,7 @@ const Projects = () => {
   const [data, setData] = useState<ProjectsType>({});
   const {
     cta,
+    restore_cta,
     heading,
     search_projects: searchProjects,
     emptystate,
@@ -152,6 +153,7 @@ const Projects = () => {
         searchPlaceholder={searchProjects as string}
         setSearchText={setSearchText}
         cta={cta}
+        restore_cta={restore_cta}
         handleModal={openModal}
         allProject={projects}
       />
