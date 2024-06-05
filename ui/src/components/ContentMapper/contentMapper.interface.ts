@@ -62,14 +62,6 @@ export interface FieldMapType {
   contentstackUid: string;
 }
 
-// export interface Advanced {
-//   ValidationRegex: string;
-//   Mandatory: boolean;
-//   Multiple: boolean;
-//   Unique: boolean;
-//   NonLocalizable: boolean;
-// }
-
 export interface Advanced {
   ValidationRegex?: string;
   Basic?: boolean;
