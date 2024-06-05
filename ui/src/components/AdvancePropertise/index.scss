@@ -9,11 +9,8 @@
   grid-template-columns: 1fr;
   gap: 20px;
 }
-.validation-input {
-  margin-bottom: 20px;
-}
 .option-label {
-  margin-bottom: 20px;
+  margin-bottom: $px-10;
 }
 .non-localizable-message {
   margin-top: 0;
@@ -28,6 +25,9 @@
     width: calc(33.33333% - .66667rem);
     padding: .5rem;
     margin: 0 !important;
+  }
+  .FieldLabel {
+    margin-bottom: $px-8;
   }
   .info-style {
     margin-top: .75rem;
@@ -50,4 +50,35 @@
     margin-top: 0.5rem;
     padding: 0 0.5rem
   }
+  .Field {
+    margin-bottom: $px-24;
+  }
+  .fields-group-separator {
+    color: $color-base-black-base;
+    margin: 0 16px;
+  }
+  .Select {
+    .Select__menu {
+      .Select__menu-list {
+        .Select__option {
+          .Checkbox {
+            align-items: center;
+            display: flex;
+          }
+          .Checkbox__label {
+            height: auto;
+          }
+        } 
+      }
+    } 
+  } 
+  .Select__menu {
+    position: relative;
+    z-index: 10000;
+  }
+  .Select__control--menu-is-open {
+    position: relative;
+    border: 2px solid red;
+    z-index: 10000;
+  } 
 }
