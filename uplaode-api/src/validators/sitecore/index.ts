@@ -9,13 +9,13 @@ interface props {
   data: items;
 }
 
-function sitecoreValidator({ data }: props) {
+async function sitecoreValidator({ data }: props) {
   try {
-    const templates: any[] = [];
-    const content: any[] = [];
+    let templates: any[] = [];
+    let content: any[] = [];
     const configuration: any[] = [];
-    const blob: any[] = [];
-    const mediaLibrary: any[] = [];
+    let blob: any[] = [];
+    let mediaLibrary: any[] = [];
     Object.keys(data?.files).forEach(async function (filename: any) {
       if (await filename?.includes?.('/templates')) {
         templates?.push(await filename);
@@ -34,7 +34,11 @@ function sitecoreValidator({ data }: props) {
         mediaLibrary?.push(await filename);
       }
     });
-    if (templates?.length > 0 || content?.length > 0 || blob?.length > 0 || mediaLibrary?.length > 0) {
+    templates = await Promise.all(templates);
+    content = await Promise.all(content);
+    blob = await Promise.all(blob);
+    mediaLibrary = await Promise.all(mediaLibrary);
+    if (templates?.length > 0 && content?.length > 0 && blob?.length > 0 && mediaLibrary?.length > 0) {
       return true;
     }
     return false;

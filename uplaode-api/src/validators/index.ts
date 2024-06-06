@@ -7,8 +7,7 @@ const validator = ({ data, type, extension }: { data: any; type: string; extensi
   const CMSIdentifier = `${type}-${extension}`;
   switch (CMSIdentifier) {
     case 'sitecore-zip': {
-      sitecoreValidator({ data });
-      return;
+      return sitecoreValidator({ data });
     }
 
     case 'contentful-json': {
