@@ -312,7 +312,7 @@ h1 {
 h2 {
   color: $color-base-black-base;
   font-size: $size-font-5-xl;
-  font-weight: $font-weight-semi-bold;
+  font-weight: $font-weight-bold;
   line-height: 1.5;
 }
 .pb-32 {
@@ -332,6 +332,18 @@ h2 {
 }
 .mb-30 {
   margin-bottom: $space-30;
+}
+.migration-steps-wrapper {
+  margin-top: 3.5rem;
+  h1 {
+    color: $color-black-2121;
+    font-size: $size-font-20;
+    font-weight: $font-weight-semi-bold;
+    line-height: $line-height-default;
+  }
+  .steps-wrapper {
+    background-color: $color-brand-white-base;
+  }
 }
 .PageLayout__body__container {
   display: flex;
