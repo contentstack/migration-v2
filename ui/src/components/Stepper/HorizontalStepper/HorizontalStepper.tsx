@@ -83,9 +83,9 @@ const HorizontalStepper = forwardRef(
         };
 
         const StepsTitleCreator: React.FC = () => (
-            <div className="stepper">
+            <div className="stepper stepper-position">
                 {steps?.map(({ id, title }, idx: number) => {
-                   
+                
                     
                     const completedClass = stepsCompleted?.includes(idx)  ? 'completed' : '';
                     const activeClass = idx === showStep  && !stepsCompleted?.includes(idx)? 'active' : '';           
