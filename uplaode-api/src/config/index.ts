@@ -1,5 +1,5 @@
 export default {
-  cmsType: 'contentful',
+  cmsType: 'sitecore',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
@@ -9,5 +9,5 @@ export default {
     bucketName: 'migartion-test',
     buketKey: 'project/package 45.zip'
   },
-  localPath: '/Users/snehal.pimple/Desktop/contentful.json'
+  localPath: '/Users/umesh.more/Downloads/package 45.zip'
 };
