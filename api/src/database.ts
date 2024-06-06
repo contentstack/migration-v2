@@ -4,6 +4,7 @@ import fs from "fs";
 
 const connectToDatabase = async () => {
   try {
+    //check if the database folder exists
     if (!fs.existsSync("./database")) {
       fs.mkdirSync("./database");
     }
