@@ -4,6 +4,10 @@
   display: flex;
   align-items: baseline;
   justify-content: flex-start;
+  border-bottom: 1px solid $color-brand-secondary-lightest;
+  gap: 8px;
+
+
 }
 
 .migration-vertical-stepper .stepper-title {
@@ -14,6 +18,9 @@
   line-height: 135%;
   color: $color-stepper-title;
   margin-bottom: $space-10;
+  margin: 10px 20px;
+
+
 }
 
 .migration-vertical-stepper .stepper-discription {
@@ -24,6 +31,7 @@
   line-height: 185%;
   color: $color-base-gray-20;
   margin-bottom: $space-10;
+  margin: 10px 20px;
 }
 
 .migration-vertical-stepper .summery-edit,
@@ -42,6 +50,7 @@
   width: 2rem;
   height: 2rem;
   left: -17px;
+  overflow-y: auto;
 }
 
 .stepper-titleNote {
@@ -97,4 +106,12 @@
   width: $space-24;
   height: $space-24;
   margin-right: $space-10;
+}
+.step_block{
+  border-radius: 4px;
+  border: 1px solid $color-brand-secondary-lightest;
+  background-color: $color-brand-white-base;
+  padding:  24px 30px, 24px, 30px;
+  gap: 24px;
+  margin-bottom: 40px;
 }
