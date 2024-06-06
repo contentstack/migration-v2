@@ -19,7 +19,9 @@ export const HTTP_TEXTS = {
   SOMETHING_WENT_WRONG: 'Something went wrong while processing your request, please try again.',
   ROUTE_ERROR: 'Sorry, the requested resource is not available.',
   VALIDATION_ERROR: 'File validation failed.',
-  VALIDATION_SUCCESSFULL: ' File validated successfully.'
+  VALIDATION_SUCCESSFULL: ' File validated successfully.',
+  ZIP_FILE_SAVE: 'Issue While Saving Zip File.',
+  MAPPER_SAVED: 'Mapping process completed successfull.'
 };
 
 export const HTTP_RESPONSE_HEADERS = {
