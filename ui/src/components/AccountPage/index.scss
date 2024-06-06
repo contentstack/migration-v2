@@ -6,10 +6,20 @@
   height: 100vh;
   overflow: hidden;
 
+  &__logo {
+    display: inline-block;
+    height: 3.75rem;
+    left: 4%;
+    position: relative;
+    top: 5%;
+    z-index: 10;
+  }
+
   &__intro {
-    background-color: $color-brand-primary-base;
-    flex: 0 0 35%;
-    height: 100%;
+    background-image: url("../../../public/images/login_bg.webp");
+    background-repeat: no-repeat;
+    background-size: cover;
+    height: 100vh;
     position: relative;
     width: 35%;
   }
@@ -41,18 +51,31 @@
   }
 
   &__heading {
-    left: 15%;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    grid-row-gap: .5rem;
+    align-items: center;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    left: 8%;
     position: absolute;
-    top: 40%;
+    row-gap: .5rem;
+    top: 30%;
     z-index: 10;
 
     &_title {
       color: $color-brand-white-base;
       font-family: $font-family-secondary;
-      font-size: 2.5rem;
+      font-size: 3.8rem;
       font-weight: $font-weight-extra-bold;
-      line-height: 49px;
-      max-width: $px-260;
+      letter-spacing: .04em;
+      line-height: 3.625rem;
+      // max-width: $px-260;
       text-transform: uppercase;
     }
     &_subtitle {
@@ -63,16 +86,6 @@
       line-height: 150%;
       max-width: $px-335;
     }
-  }
-
-  &__logo {
-    display: inline-block;
-    height: 28px !important;
-    left: 15%;
-    margin-top: $space-50;
-    position: relative;
-    width: $px-159 !important;
-    z-index: 10;
   }
 
   &__circle {
