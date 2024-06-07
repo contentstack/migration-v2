@@ -25,12 +25,12 @@ const CardList = ({ project }: ProjectType) => {
   };
   const iconMapping: { [key: string]: string } = {
     '0': 'Information',
-    '1': 'WarningBold',
-    '2': 'WarningBold',
-    '3': 'WarningBold',
-    '4': 'WarningBold',
-    '5': 'CheckCircle',
-    '6': 'CloseBorder',
+    '1': 'Warning',
+    '2': 'Warning',
+    '3': 'Warning',
+    '4': 'Warning',
+    '5': 'CheckCircleDark',
+    '6': 'Close',
   };
   const statusClassMapping: { [key: string]: string } = {
     '0': 'draft',
@@ -75,7 +75,7 @@ const CardList = ({ project }: ProjectType) => {
                 <div className="ProjectCard__unit">
                   <span className="ProjectCard__stats-Title">Project Status</span>
                   <div className={`ProjectCard__stats-category ${statusClass}`}>
-                    {icon && <Icon size="small" icon={icon} version="v2" />}
+                    {icon && <Icon size="mini" icon={icon} version="v2" />}
                     {statusText}
                   </div>
                 </div>
