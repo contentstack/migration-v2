@@ -64,31 +64,23 @@
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: 8px;
   font-size: $size-font-large;
-  color: $color-black-2121;
+  color: $color-font-base;
   padding: 4px 8px;
   text-transform: capitalize;
   svg {
     margin-right: 5px;
   }
   &.draft {
-    border-color: $color-brand-draft-base;
-    background-color: $color-brand-draft-light;
-    svg {
-      stroke: $color-brand-draft-base;
-      fill: none;
-    }
+    background-color: $color-base-white-10;
   }
   &.completed {
     background-color: $color-brand-success-light;
-    border-color: $color-brand-success-base;
   }
   &.failed {
     background-color: $color-brand-fail-light;
-    border-color: $color-brand-fail-base;
   }
   &.pending {
     background-color: $color-brand-attention-light;
-    border-color: $color-brand-attention-base;
   }
 }
 .ProjectCard__stats-Title {
