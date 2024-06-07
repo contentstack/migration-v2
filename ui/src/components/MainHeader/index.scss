@@ -34,6 +34,9 @@
   .organisationWrapper:focus {
     box-shadow: 0 0 1px $color-brand-primary-base, 0 0 0 4px #bbb4f4;
   }
+  .Dropdown-wrapper {
+    padding: 0 18px;
+  }
   .Dropdown__header__value {
     overflow: visible;
     line-height: 1.2;
