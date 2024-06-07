@@ -1,5 +1,5 @@
 // Libraries
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dropdown, Tooltip } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
@@ -7,25 +7,24 @@ import { useDispatch, useSelector } from 'react-redux';
 // Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
+// Redux
+import { RootState } from '../../store';
+import { setSelectedOrganisation } from '../../store/slice/authSlice';
+
 //Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
-
-// Context
-import { AppContext } from '../../context/app/app.context';
-
-// Interface
-import { MainHeaderType } from './mainheader.interface';
-import { DEFAULT_USER, IDropDown } from '../../context/app/app.interface';
-
-// Styles
-import './index.scss';
 import {
   clearLocalStorage,
   getDataFromLocalStorage,
   setDataInLocalStorage
 } from '../../utilities/functions';
-import { RootState } from '../../store';
-import { setSelectedOrganisation } from '../../store/slice/authSlice';
+
+// Interface
+import { MainHeaderType } from './mainheader.interface';
+import { IDropDown } from '../../context/app/app.interface';
+
+// Styles
+import './index.scss';
 
 const MainHeader = () => {
 
@@ -105,7 +104,7 @@ const MainHeader = () => {
               <div className="logo">
                 <Tooltip position="right" content="Projects" wrapperElementType="div">
                   <Link to={`${logo?.url}`}>
-                    <img src={logo?.image?.url} width={26} alt="Contentstack Logo" />
+                    <img src={logo?.image?.url} width={32} alt="Contentstack" />
                   </Link>
                 </Tooltip>
               </div>
