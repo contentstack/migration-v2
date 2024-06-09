@@ -1,0 +1,13 @@
+@import '../../scss/variables';
+
+.migration-flow-header {
+  background-color: $color-base-white-10;
+  border-bottom: 1px solid $color-base-gray-40;
+  padding: $space-16 $space-20;
+  position: fixed;
+  width: calc(100% - 56px);
+  z-index: 9;
+  .back-btn {
+    padding: 0;
+  }
+}

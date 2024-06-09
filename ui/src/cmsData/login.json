@@ -6,7 +6,7 @@
   "copyrightText": "Contentstack Inc. All rights reserved.",
   "created_at": "2024-02-22T11:20:53.435Z",
   "created_by": "bltb317ebe35429ebe6",
-  "heading": "Stacks Not Suites",
+  "heading": "GAIN YOUR EXPERIENCE EDGE",
   "login": {
     "title": "Log in to Contentstack",
     "email": "Email",
@@ -29,12 +29,12 @@
   "tags": [],
   "title": "Login",
   "two_factor_authentication": {
-    "title": "Two-factor Authentication",
+    "title": "Two-Factor Authentication",
     "security_code": {
       "title": "Enter the security code generated in Authy app",
       "placeholder": "Enter the security code"
     },
-    "send_sms": { "pre_link_text": "I don't have the app.", "link_text": "Send me an SMS" },
+    "send_sms": { "pre_link_text": "Don't have an account?", "link_text": "Send me an SMS" },
     "cta": {
       "title": "Verify",
       "url": "",
