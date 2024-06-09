@@ -37,13 +37,13 @@ export interface User {
   organizations: Organization[];
 }
 export interface FileDetails {
-  isLocalPath: boolean;
-  cmsType: string;
-  localPath: string;
-  awsData: {
-    awsRegion: string;
-    bucketName: string;
-    buketKey: string;
+  isLocalPath?: boolean;
+  cmsType?: string;
+  localPath?: string;
+  awsData?: {
+    awsRegion?: string;
+    bucketName?: string;
+    buketKey?: string;
   };
 }
 export interface IFile {
@@ -53,7 +53,7 @@ export interface IFile {
   type?: string;
   url?: string;
   validation?: string;
-  file_details: FileDetails;
+  file_details?: FileDetails;
   isValidated?: boolean;
 }
 
