@@ -4,7 +4,7 @@ import {  Outlet, Params, useNavigate, useParams } from 'react-router';
 import {  useSelector } from 'react-redux';
 
 //venus components
-import { Button, PageLayout, Stepper } from '@contentstack/venus-components';
+import { Button, CircularLoader, PageLayout, Stepper } from '@contentstack/venus-components';
 
 // Services
 import { getMigrationData } from '../../../services/api/migration.service';
@@ -53,6 +53,7 @@ const MigrationExecutionComponentLazyLoaded = lazy(
 
 
 const createStepper = (projectData:any,handleStepChange: (currentStep: number) => void) => {
+
   const steps = [
     {
       data: <LegacyCMSComponentLazyLoaded
@@ -166,7 +167,7 @@ const NewMigrationWrapper = () => {
 
   useEffect(() => {
     fetchData();
-  }, [params?.stepId, params?.projectId, selectedOrganisation.value]);
+  }, [params?.stepId, params?.projectId, selectedOrganisation?.value]);
 
   const { settings, migration_steps_heading } = migrationData;
 
@@ -234,7 +235,9 @@ const NewMigrationWrapper = () => {
         <div id="newMigration" className="layout-container migrations-container  p-0 d-flex w-100">
           <div className="step-flow-wrapper-content-area">
             <div className="step-component step-open trigger">
+              {isLoading ? <CircularLoader/> : 
               <HorizontalStepper ref={stepperRef} steps={createStepper(projectData,handleClick)}/>
+               }
             </div>
           </div>
         </div>
