@@ -22,7 +22,7 @@ import { updateCurrentStepData, updateLegacyCMSData } from '../../services/api/m
 import { MigrationResponse } from '../../services/api/service.interface';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
-import { setMigrationData, setNewMigrationData, updateMigrationData } from '../../store/slice/migrationDataSlice';
+import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 
 type LegacyCMSComponentProps = {
@@ -32,10 +32,9 @@ type LegacyCMSComponentProps = {
 };
 
 const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: LegacyCMSComponentProps) => {
-  
   //react-redux apis
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
-  const  newMigrationData=useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const  newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const  selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const dispatch = useDispatch();
 
@@ -83,110 +82,109 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: Le
   };
 
   /********** ALL USEEFFECT HERE *************/
-  const fetchCMSData = async () => {
-    setIsLoading(true);
 
-    //check if offline CMS data field is set to true, if then read data from cms data file.
-    const data = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
-
-    //fetch Legacy CMS Component Data from Contentstack CMS
-    //const data = await getEntries({ contentType: CS_ENTRIES.LEGACY_CMS })
-
-    //Check for null
-    if (!data) {
-      dispatch(updateMigrationData({ legacyCMSData: DEFAULT_LEGACY_CMS_DATA }));
-      setIsLoading(false);
-      return;
-    }
-
-    //Generate CMS Filter List
-    const cmsFilterList: IFilterType[] = [];
-
-    //Step1: traverse on all cms and check for parent ,
-    //Step2: if exist and not yet added in CMS filter list then push to array.
-    //Step 3: Update it in APP context for later use
-    validateArray(data?.all_cms) &&
-      data?.all_cms?.forEach((cms: ICMSType) => {
-        if (!isEmptyString(cms.parent)) {
-          const filterObject = cmsFilterList?.find(
-            (obj: IFilterType) => obj.value === cms.parent
-          );
-
-          if (!filterObject) {
-            cmsFilterList.push({
-              value: cms.parent,
-              label: cms.parent,
-              isChecked: false
-            });
-          }
-        }
-      });
-
-    const legacyCMSDataMapped: ILegacyCMSComponent = {
-      ...data,
-      all_steps: getLegacyCMSSteps(isCompleted, isMigrationLocked, data?.all_steps),
-      cmsFilterList: cmsFilterList
-    };
-
-    dispatch(updateMigrationData({ legacyCMSData: legacyCMSDataMapped }));
-
-    //Update New Migration data
-
-    const selectedCmsData: ICMSType = validateArray(data.all_cms)
-      ? data.all_cms?.find((cms: ICMSType) => cms?.cms_id === legacyCMSData?.cms) ||
-        DEFAULT_CMS_TYPE
-      : DEFAULT_CMS_TYPE;
-
-    const selectedFileFormatData: ICardType | undefined = validateArray(
-      selectedCmsData?.allowed_file_formats
-    )
-      ? selectedCmsData.allowed_file_formats?.find(
-          (cms: ICardType) => cms?.fileformat_id === legacyCMSData?.file_format
-        )
-      : defaultCardType;
-
-    //Make Step 1 Complete
-    if (!isEmptyString(selectedCmsData?.cms_id)) {
-      setInternalActiveStepIndex(0);
-    }
-
-    //Make Step 2 complete
-    if (!isEmptyString(selectedCmsData?.cms_id) && !isEmptyString(legacyCMSData?.affix)) {
-      setInternalActiveStepIndex(1);
-    }
-
-    //Make Step 3 complete
-    if (
-      !isEmptyString(selectedCmsData?.cms_id) &&
-      !isEmptyString(legacyCMSData?.affix) &&
-      !isEmptyString(selectedFileFormatData?.fileformat_id)
-    ) {
-      setInternalActiveStepIndex(2);
-    }
-
-    dispatch(updateMigrationData({
-      ...newMigrationData,
-      legacy_cms: {
-        selectedCms: selectedCmsData,
-        selectedFileFormat: selectedFileFormatData || defaultCardType,
-        uploadedFile: newMigrationData?.legacy_cms?.uploadedFile, //need to add backend data once endpoint exposed.
-        affix: legacyCMSData?.affix || newMigrationData?.legacy_cms?.affix || '',
-        isFileFormatCheckboxChecked:
-          legacyCMSData?.affix_confirmation ||
-          newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked, //need to add backend data once endpoint exposed.
-        isRestictedKeywordCheckboxChecked:
-          legacyCMSData?.file_format_confirmation ||
-          newMigrationData?.legacy_cms?.isRestictedKeywordCheckboxChecked //need to add backend data once endpoint exposed.
-      }
-    }))
-
-    setIsLoading(false);
-
-    //Check for migration Status and lock.
-    // Status where Migration is to be Locked:
-    setIsMigrationLocked(projectData?.status === 2 || projectData?.status === 5);
-  };
   useEffect(() => {
+    const fetchCMSData = async () => {
+      setIsLoading(true);
+  
+      //check if offline CMS data field is set to true, if then read data from cms data file.
+      const data = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
+  
+      //fetch Legacy CMS Component Data from Contentstack CMS
+      //const data = await getEntries({ contentType: CS_ENTRIES.LEGACY_CMS })
+  
+      //Check for null
+      if (!data) {
+        dispatch(updateMigrationData({ legacyCMSData: DEFAULT_LEGACY_CMS_DATA }));
+        setIsLoading(false);
+        return;
+      }
+  
+      //Generate CMS Filter List
+      const cmsFilterList: IFilterType[] = [];
+  
+      //Step1: traverse on all cms and check for parent ,
+      //Step2: if exist and not yet added in CMS filter list then push to array.
+      //Step 3: Update it in APP context for later use
+      validateArray(data?.all_cms) &&
+        data?.all_cms?.forEach((cms: ICMSType) => {
+          if (!isEmptyString(cms.parent)) {
+            const filterObject = cmsFilterList?.find(
+              (obj: IFilterType) => obj.value === cms.parent
+            );
+  
+            if (!filterObject) {
+              cmsFilterList.push({
+                value: cms.parent,
+                label: cms.parent,
+                isChecked: false
+              });
+            }
+          }
+        });
+  
+      const legacyCMSDataMapped: ILegacyCMSComponent = {
+        ...data,
+        all_steps: getLegacyCMSSteps(isCompleted, isMigrationLocked, data?.all_steps),
+        cmsFilterList: cmsFilterList
+      };
+  
+      dispatch(updateMigrationData({ legacyCMSData: legacyCMSDataMapped }));
+  
+      //Update New Migration data;
+     
+      const selectedCmsData: ICMSType = validateArray(data.all_cms)
+        ? data.all_cms?.find((cms: ICMSType) => {
+          return cms?.cms_id === legacyCMSData?.cms})
+        : DEFAULT_CMS_TYPE;
+
+  
+      const selectedFileFormatData: ICardType | undefined = validateArray(
+        selectedCmsData?.allowed_file_formats
+      )
+        ? selectedCmsData.allowed_file_formats?.find(
+            (cms: ICardType) => cms?.fileformat_id === legacyCMSData?.file_format
+          )
+        : defaultCardType;
+  
+      //Make Step 1 Complete
+      if (!isEmptyString(selectedCmsData?.cms_id)) {
+        setInternalActiveStepIndex(0);
+      }
+  
+      //Make Step 2 complete
+      if (!isEmptyString(selectedCmsData?.cms_id) && !isEmptyString(legacyCMSData?.affix)) {
+        setInternalActiveStepIndex(1);
+      }
+  
+      //Make Step 3 complete
+      if (
+        !isEmptyString(selectedCmsData?.cms_id) &&
+        !isEmptyString(legacyCMSData?.affix) &&
+        !isEmptyString(selectedFileFormatData?.fileformat_id)
+      ) {
+        setInternalActiveStepIndex(2);
+      }
+  
+      dispatch(updateNewMigrationData({
+        ...newMigrationData,
+        legacy_cms: {
+          selectedCms: selectedCmsData,
+          selectedFileFormat: selectedFileFormatData || defaultCardType,
+          uploadedFile: newMigrationData?.legacy_cms?.uploadedFile, //need to add backend data once endpoint exposed.
+          affix: legacyCMSData?.affix || newMigrationData?.legacy_cms?.affix || '',
+          isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
+          isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
+        }
+      }))
+      
+  
+      setIsLoading(false);
+  
+      //Check for migration Status and lock.
+      // Status where Migration is to be Locked:
+      setIsMigrationLocked(projectData?.status === 2 || projectData?.status === 5);
+    };
    
 
     fetchCMSData();
@@ -210,8 +208,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: Le
         autoVerticalStepper.current.handleDynamicStepChange(internalActiveStepIndex, true);
       }
     }
-  }, [internalActiveStepIndex]);
-
+  }, [internalActiveStepIndex]);  
   return (
     <>
       {isLoading ? (
