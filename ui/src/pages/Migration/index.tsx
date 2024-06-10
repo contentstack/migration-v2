@@ -189,9 +189,9 @@ const Migration = () => {
       <MigrationFlowHeader handleOnClick={handleOnClickFunctions[curreentStepIndex]} />
 
       <div className='steps-wrapper'>
-        {!isEmptyString(projectData?.legacy_cms?.cms) &&
+        { projectData &&
           <HorizontalStepper ref={stepperRef} steps={createStepper(projectData, handleClick)} />
-        }       
+        }    
       </div>
     </div>
   )
