@@ -1,5 +1,5 @@
 // Libraries
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -9,19 +9,19 @@ import { updateAffixData, affixConfirmation } from '../../../services/api/migrat
 // Utilities
 import { isEmptyString, isValidPrefix } from '../../../utilities/functions';
 
-// Context
-import { AppContext } from '../../../context/app/app.context';
 
 // Interface
 import { DEFAULT_URL_TYPE, INewMigration } from '../../../context/app/app.interface';
 
 // Style
 import '../legacyCms.scss';
-import { Button, TextInput } from '@contentstack/venus-components';
+import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDebouncer } from '../../../hooks';
-import DocLink from '../../../components/Common/DocLink/DocLink';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
+
+//import restricted keywords
+import restrictedKeywords from '../restrictedKeywords.json';
 
 interface LoadSelectCmsProps {
   stepComponentProps: any;
@@ -40,16 +40,21 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
   const [prefix, setPrefix] = useState<string>(newMigrationData?.legacy_cms?.affix || '');
 
   const [isError, setIsError] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [isCheckedBoxChecked, setIsCheckedBoxChecked] = useState<boolean>(
     newMigrationData?.legacy_cms?.isRestictedKeywordCheckboxChecked || false
   );
+  const [isRestrictedkey, setIsRestrictedKey] = useState<boolean>(false);
 
   const { projectId = '' } = useParams();
+
+  const idArray = restrictedKeywords.idArray;
+
 
   /****  ALL METHODS HERE  ****/
 
   //Handle Prefix Change
-  const handleOnBlur = async (e: MouseEvent) => {
+  const handleOnBlur = async (e: any) => {
     e.preventDefault();
     if (!isEmptyString(prefix) && !isError && isCheckedBoxChecked) {
       const newMigrationDataObj: INewMigration = {
@@ -80,17 +85,49 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     //setIsError(true);
   };
 
-  const handleOnChange = useDebouncer((e: ChangeEvent<HTMLInputElement>) => {
+  const handleOnChange = useDebouncer(async(e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
 
-    const { value } = e.target;
-    if (!isEmptyString(value) && isValidPrefix(value)) {
-      setPrefix(value);
-      setIsError(false);
-      return;
-    }
+    const value  = e.target.value;
+    if (!isEmptyString(value) && isValidPrefix(value) ) {   
+      if(! idArray?.includes(value)){      
+        setPrefix(value);
+        setIsError(false);
+        setErrorMessage('');
+        setIsRestrictedKey(false);
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          legacy_cms: {
+            ...newMigrationData.legacy_cms,
+            affix: value,
+            isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
+          }
+        };
 
+        dispatch(updateNewMigrationData(newMigrationDataObj));
+  
+        setIsError(false);
+  
+        //API call for saving Affix
+        await updateAffixData(selectedOrganisation?.value, projectId, { affix: value });
+        await affixConfirmation(selectedOrganisation?.value, projectId, {
+          affix_confirmation: isCheckedBoxChecked
+        });
+  
+        //call for Step Change
+        props.handleStepChange(props.currentStep, true);
+        return;
+
+      }
+      else{
+        setIsError(true);
+        setErrorMessage('Affix should be valid and not a restricted keyword');
+        setIsRestrictedKey(true);
+        return;
+      }
+    }
     setIsError(true);
+    setErrorMessage('Affix should not be more than 5 chars');
   });
 
   // Toggles checkbox selection
@@ -115,18 +152,10 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     migrationData.legacyCMSData;
 
   return (
-    <div className="row p-3">
-      <DocLink
-        cta={restricted_keyword_link}
-        isCheckedBoxChecked={isCheckedBoxChecked}
-        label={restricted_keyword_checkbox_text}
-        onChange={handleCheckBoxChange}
-        isDisable={false}
-      />
-
-      <div className="col-12 pb-2">
+    <div className=" p-3">
+      <div className="col-12">
         <TextInput
-          onChange={handleOnChange}
+          onChange={(e:any)=>{handleOnChange(e)}}
           value={prefix}
           autoFocus={true}
           width="large"
@@ -134,13 +163,17 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           version="v2"
           error={isError}
         />
-        {isError && <p className="errorMessage">Affix should not be more than 5 chars</p>}
+        {isError && <p className="errorMessage">{errorMessage}</p>}       
+        
       </div>
-      <div className="col-12 pt-2">
-        <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleOnBlur}>
-          {migrationData?.legacyCMSData?.affix_cta}
-        </Button>
-      </div>
+      { isRestrictedkey && 
+      <div className="col-12 pb-2">
+        <p className='link-discription'>Please refer the list of Contentstack restricted keywords</p>
+        <a href={restricted_keyword_link?.href} target="_blank" rel="noreferrer" className="small link">
+          <Icon size="mini" className={'mr-1'} icon="Link" version="v2" />
+          <span> {restricted_keyword_link?.title}</span>
+        </a>
+      </div>}
     </div>
   );
 };
