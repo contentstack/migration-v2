@@ -62,18 +62,14 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id' }: Car
           top: '-5px'
         }}
       >
-        {isHovered || selectedCard[idField] === data[idField] ? (
-          <Radio checked={selectedCard?.id === data.id} disabled={!isHovered} />
+        {isHovered || selectedCard[idField] === data?.[idField] ? (
+          <Radio checked={selectedCard?.id === data?.id} disabled={!isHovered} />
         ) : (
           <></>
         )}
       </span>
 
       <div className="service_icon">
-        {/* <img
-          src={addDomainInPath(`images/${data?.group_name ?? 'lightning'}.png`)}
-          style={imgStyle}
-        /> */}
       </div>
       <div className="centered-card-title">
         <WordWrapper tooltipcontent={data.title} text={data.title} maxLength={12} position="top" />
