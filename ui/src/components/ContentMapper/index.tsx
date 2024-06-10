@@ -129,7 +129,7 @@ const ContentMapper = () => {
       action_cta: actionCta,
       cta,
       search_placeholder: searchPlaceholder
-    }
+    }= {}
   } = migrationData;
 
   const parseDescription = HTMLReactParser(jsonToHtml(description ?? {}));
