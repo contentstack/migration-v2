@@ -1,6 +1,6 @@
 // Libraries
 import { useEffect, useState, useRef } from 'react';
-import { Params, useParams } from 'react-router';
+import { Params, useNavigate, useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Redux files
@@ -8,7 +8,7 @@ import { RootState } from '../../store';
 import {  updateMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -37,12 +37,17 @@ import MigrationExecution from '../../components/MigrationExecution';
 const Migration = () => {
   const [projectData, setProjectData] = useState<MigrationResponse>(defaultMigrationResponse);
   const [isLoading, setIsLoading] = useState(false);
+  const [curreentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isCompleted, setIsCompleted] = useState<boolean>(false);
 
   const params: Params<string> = useParams();
+  const { projectId = '' } = useParams();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const stepperRef = useRef<any>(null);
 
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
+  const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
 
   useEffect(() => {
     fetchData();
@@ -76,6 +81,8 @@ const Migration = () => {
     }));
 
     await fetchProjectData();
+    const stepIndex = data?.all_steps?.findIndex((step: IFlowStep) => `${step.name}` === params?.stepId);
+    setCurrentStepIndex(stepIndex !== -1 ? stepIndex : 0);
   };
 
   //Fetch project data
@@ -90,12 +97,15 @@ const Migration = () => {
   };
 
   const createStepper = (projectData:any,handleStepChange: (currentStep: number) => void) => {
+
     const steps = [
       {
         data: <LegacyCms
               legacyCMSData={projectData?.legacy_cms}
               projectData={projectData}
-              handleStepChange={handleStepChange}/>,
+              handleStepChange={handleStepChange}
+              isCompleted={isCompleted}
+              handleOnAllStepsComplete={handleOnAllStepsComplete}/>,
         id:'1',
         title:'Legacy CMS'
       },
@@ -136,15 +146,52 @@ const Migration = () => {
     const x : string | undefined= params.stepId 
     const currentStep : number = parseInt(x || '');  
     stepperRef?.current?.handleStepChange(currentStep-1);
-};
+  };
 
+
+  const handleStepChange = (currentStep: number) => {
+    if (stepperRef?.current) {
+      stepperRef.current.handleStepChange(currentStep-1);
+    }
+  };
+
+  //Handle on all steps are completed
+  const handleOnAllStepsComplete = (flag = false) => {
+    setIsCompleted(flag);
+  };
+
+    // handle on proceed to destination stack
+    const handleOnClickLegacyCms = async (event: MouseEvent ) => {
+      if(isCompleted){
+        event.preventDefault();
+  
+      //Update Data in backend
+      await updateLegacyCMSData(selectedOrganisation?.value, projectId, {
+        legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
+      });
+      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+      handleStepChange(1);
+      if (res) {
+        const url = `/projects/${projectId}/migration/steps/2`;
+        navigate(url, { replace: true });
+      }
+
+      }
+      
+    };
+
+    const handleOnClickFunctions = [
+      handleOnClickLegacyCms,      
+    ];
 
   return (
     <div className='migration-steps-wrapper'>
-      <MigrationFlowHeader />
+      <MigrationFlowHeader handleOnClick={handleOnClickFunctions[curreentStepIndex]} />
 
       <div className='steps-wrapper'>
-        <HorizontalStepper ref={stepperRef} steps={createStepper(projectData, handleClick)} />
+        {!isEmptyString(projectData?.legacy_cms?.cms) &&
+          <HorizontalStepper ref={stepperRef} steps={createStepper(projectData, handleClick)} />
+        }       
       </div>
     </div>
   )

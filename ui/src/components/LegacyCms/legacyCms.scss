@@ -25,11 +25,16 @@
   border-top: $px-5 solid $color-brand-primary-base !important;
 }
 .legacy-cms-container {
-  padding: $px-60 0 $px-10 5% !important;
+  //padding: $px-60 0 $px-10 5% !important;
+  padding-left: 25px !important;
+  padding-top: 26px;
+  padding-right: 30px;
   //width: $px-850 !important;
   overflow-y: auto;
   overflow-x: hidden;
   max-height: 70vh;
+  background-color: $color-base-white-10;
+  
 }
 
 .service_list_search {
@@ -74,22 +79,32 @@
   border-radius: var(--TermCount, 5px);
   
 }
+.validation-container > * {
+  margin-right: 10px;
+  margin-left: 15px;
+}
 .error-container{
   display: flex;
   background-color: $color-base-white-5;
   height: 72px;
+  flex-direction: column;
   width: 592px;
-  align-items: center;
+  align-items: flex-start;
   margin-left: 20px !important;
   border: 1px solid $color-brand-fail-base;
   border-radius: var(--TermCount, 5px);
 }
+.error-container > * {
+  margin-left: 10px;
+  margin-top: 5px;
+}
+
 .errorMessage {
   color: $color-brand-warning-medium;
   font-size: 12px;
 }
 .validation-cta{
-  margin: 20px 20px;
+  margin: 10px 20px;
 }
 .success{
   color: $color-brand-success-base;
