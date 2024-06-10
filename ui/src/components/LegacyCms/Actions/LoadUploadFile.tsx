@@ -109,7 +109,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const getConfigDetails = async () =>{
     const res: any = await getConfig();
  
-    if(! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) && newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== res?.data?.cmsType.toLowerCase()){
+    if(! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== res?.data?.cmsType.toLowerCase()){
       setIsValidated(false);
       setValidationMessage('Validation Falied');
       setIsValidationAttempted(true);
