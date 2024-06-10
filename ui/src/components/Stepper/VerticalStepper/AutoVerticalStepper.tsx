@@ -48,6 +48,7 @@ const AutoVerticalStepper = React.forwardRef<
     }, [stepComponentProps?.step?.step_id, stepComponentProps?.connector?.group_name]);
 
     const handleStepChange = (stepIndex: number, closeStep = false) => {
+
       if (closeStep) {
         const data = stepStatus.map((s: any, i: number) => {
           if (i === stepIndex) {
@@ -56,6 +57,7 @@ const AutoVerticalStepper = React.forwardRef<
           return s;
         });
         setStepStatus(data);
+        
         handleOnAllStepsComplete(true);
       } else {
         const data: string[] = stepStatus.map((s: any, i: number) => {
@@ -160,7 +162,7 @@ const AutoVerticalStepper = React.forwardRef<
                   id={step?.step_id}
                   className="step_block"
                   key={step?.step_id}
-                  style={{ paddingBottom: '40px' }}
+                  style={{ paddingBottom: '10px' }}
                 >
                   <div className={`step__title `}>
                     {StepperStepTitleCreator(step)}

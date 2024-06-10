@@ -13,7 +13,7 @@
         "title": "https://www.contentstack.com/",
         "href": "https://www.contentstack.com/"
       },
-      "parent": "",
+      "parent": "Contentstack",
       "isactive": true,
       "allowed_file_formats": [
         {
@@ -50,7 +50,7 @@
         "title": "https://www.contentful.com/",
         "href": "https://www.contentful.com/"
       },
-      "parent": "",
+      "parent": "Contentful",
       "isactive": true,
       "allowed_file_formats": [
         {
@@ -77,7 +77,7 @@
         "title": "https://wordpress.com/",
         "href": "https://wordpress.com/"
       },
-      "parent": "",
+      "parent": "Wordpress",
       "isactive": true,
       "allowed_file_formats": [
         {
@@ -85,7 +85,7 @@
           "_metadata": {
             "uid": "csacaafbc5e52ee0ef"
           },
-          "title": "XML",
+          "title": "Xml",
           "description": "",
           "group_name": "xml",
           "isactive": true
@@ -108,16 +108,70 @@
       "isactive": true,
       "allowed_file_formats": [
         {
-          "fileformat_id": "sql",
+          "fileformat_id": "zip",
           "_metadata": {
             "uid": "cs5d9c8914dc21ea80"
           },
-          "title": "SQL",
+          "title": "Zip",
           "description": "",
-          "group_name": "sql",
+          "group_name": "zip",
           "isactive": true
         }
       ]
+    },
+    {
+      "cms_id": "drupal v7",
+      "title": "Drupal v7",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://www.drupal.org/",
+        "href": "https://www.drupal.org/"
+      },
+      "parent": "Drupal",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "sql",
+          "title": "Sql",
+          "description": "",
+          "group_name": "sql",
+          "isactive": true,
+          "_metadata": {
+            "uid": "csceba83e388748bf1"
+          }
+        }
+      ],
+      "_metadata": {
+        "uid": "cs88cc83ef30625782"
+      }
+    },
+    {
+      "cms_id": "drupal v8+",
+      "title": "Drupal v8+",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://www.drupal.org/",
+        "href": "https://www.drupal.org/"
+      },
+      "parent": "Drupal",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "sql",
+          "title": "Sql",
+          "description": "",
+          "group_name": "sql",
+          "isactive": true,
+          "_metadata": {
+            "uid": "csce12ba4b8be62108"
+          }
+        }
+      ],
+      "_metadata": {
+        "uid": "cs65a0fe53fc587481"
+      }
     },
     {
       "cms_id": "aem",
@@ -135,23 +189,20 @@
       "isactive": true,
       "allowed_file_formats": [
         {
-          "fileformat_id": "json",
+          "fileformat_id": "zip",
           "_metadata": {
             "uid": "cs08dadd206cfa53b4"
           },
-          "title": "JSON",
+          "title": "Zip",
           "description": "",
-          "group_name": "json",
+          "group_name": "zip",
           "isactive": true
         }
       ]
     },
     {
-      "cms_id": "sitecore",
-      "_metadata": {
-        "uid": "cs1c20c0a62eaf4b89"
-      },
-      "title": "Sitecore",
+      "cms_id": "sitecore v8",
+      "title": "Sitecore v8",
       "description": "",
       "group_name": "lightning",
       "doc_url": {
@@ -163,15 +214,72 @@
       "allowed_file_formats": [
         {
           "fileformat_id": "zip",
-          "_metadata": {
-            "uid": "csd2c76964ab6c1fdb"
-          },
           "title": "Zip",
           "description": "",
           "group_name": "zip",
-          "isactive": true
+          "isactive": true,
+          "_metadata": {
+            "uid": "cs7b44e4f248dbdc92"
+          }
         }
-      ]
+      ],
+      "_metadata": {
+        "uid": "csef3e4691c7e23a2d"
+      }
+    },
+    {
+      "cms_id": "sitecore v9",
+      "title": "Sitecore v9",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://www.sitecore.com/",
+        "href": "https://www.sitecore.com/"
+      },
+      "parent": "Sitecore",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "zip",
+          "title": "Zip",
+          "description": "",
+          "group_name": "zip",
+          "isactive": true,
+          "_metadata": {
+            "uid": "cs47d2095581add21f"
+          }
+        }
+      ],
+      "_metadata": {
+        "uid": "cse88f8602ab676db3"
+      }
+    },
+    {
+      "cms_id": "sitecore v10",
+      "title": "Sitecore v10",
+      "description": "",
+      "group_name": "lightning",
+      "doc_url": {
+        "title": "https://www.sitecore.com/",
+        "href": "https://www.sitecore.com/"
+      },
+      "parent": "Sitecore",
+      "isactive": true,
+      "allowed_file_formats": [
+        {
+          "fileformat_id": "zip",
+          "title": "Zip",
+          "description": "",
+          "group_name": "zip",
+          "isactive": true,
+          "_metadata": {
+            "uid": "cs882b321665f69cfd"
+          }
+        }
+      ],
+      "_metadata": {
+        "uid": "cs67770c22aae86b7b"
+      }
     },
     {
       "cms_id": "othercms",
@@ -189,13 +297,13 @@
       "isactive": true,
       "allowed_file_formats": [
         {
-          "fileformat_id": "json",
+          "fileformat_id": "zip",
           "_metadata": {
             "uid": "cs751db98402e685fe"
           },
-          "title": "JSON",
+          "title": "Zip",
           "description": "",
-          "group_name": "json",
+          "group_name": "zip",
           "isactive": true
         }
       ]
@@ -205,10 +313,10 @@
   "locale": "en-us",
   "uid": "blt1f83a8b93dd822ae",
   "created_by": "blt7710245564fbf52b",
-  "updated_by": "blt7710245564fbf52b",
+  "updated_by": "blt74f496d523384141",
   "created_at": "2024-01-23T09:41:52.061Z",
-  "updated_at": "2024-02-22T11:28:29.742Z",
-  "_version": 24,
+  "updated_at": "2024-06-07T09:23:01.470Z",
+  "_version": 25,
   "_in_progress": false,
   "cta": "Proceed to Destination Stack",
   "all_steps": [
@@ -217,7 +325,7 @@
       "_metadata": {
         "uid": "cs752bfd62296e4791"
       },
-      "title": "Select CMS",
+      "title": "CMS",
       "description": "Select your current Content Management System from available options.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
@@ -241,7 +349,7 @@
       "_metadata": {
         "uid": "cs7c935e15de9ea7c8"
       },
-      "title": "Select CMS File Format",
+      "title": "File Format",
       "description": "Click to read the document and subsequently continue with migration process.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
@@ -253,7 +361,7 @@
       "_metadata": {
         "uid": "cs0279f1f0ce13e83e"
       },
-      "title": "Upload File",
+      "title": "Imported File",
       "description": "Select File to upload CMS Data.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
