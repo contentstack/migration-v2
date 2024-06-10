@@ -10,6 +10,7 @@ const ProjectsHeader = ({
   setSearchText,
   searchPlaceholder,
   cta,
+  restore_cta: restoreCta,
   allProject,
   handleModal
 }: ProjectsHeaderType) => {
@@ -26,13 +27,14 @@ const ProjectsHeader = ({
       {allProject && allProject?.length > 0 ? (
         <div className="project-search-wrapper">
           <Search
-            dynamicInput={true}
             placeholder={searchPlaceholder}
+            type="secondary"
             onChange={(search: string) =>
               search.replace(/\s/g, '').length
                 ? setSearchText(search?.trim())
                 : setSearchText(search)
             }
+            width="large"
             onClear={true}
             onClick={setFocus}
             value={searchText}
@@ -58,7 +60,23 @@ const ProjectsHeader = ({
     </>
   );
 
+
   const pageActions: any = [
+    {
+      label:(
+        <Button
+          buttonType={restoreCta?.theme}
+          className="ml-10"
+          // onClick={handleModal}
+          version="v2"
+          size="medium"
+          aria-label={restoreCta?.title}
+        >
+          {restoreCta?.title}
+        </Button>
+      ),
+      type: 'secondary'
+    },
     {
       label: cta && cta?.title && (
         <Button
@@ -66,7 +84,7 @@ const ProjectsHeader = ({
           className="ml-10"
           onClick={handleModal}
           version="v2"
-          size="small"
+          size="medium"
           aria-label={cta?.title}
         >
           {cta?.with_icon && (
@@ -78,7 +96,7 @@ const ProjectsHeader = ({
       type: 'primary'
     }
   ];
-
+  
   return (
     <>
       <PageHeader

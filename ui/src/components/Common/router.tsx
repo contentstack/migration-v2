@@ -1,16 +1,21 @@
+// Libraries
 import { lazy } from 'react';
 import { Routes, Route } from 'react-router';
-import ErrorPage from '../../pages/Errors';
+
+// Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
+
+// Pages
+import ErrorPage from '../../pages/Errors';
+
+// Component
 import PrivateRoute from './private-route';
-import NewMigrationWrapper from '../Migrations/NewMigration/NewMigrationWrapper';
-import Settings from './Settings';
 
 /******** ALL LAZY LOADING ********/
 const HomeLazyLoad = lazy(() => import('../../pages/Home'));
 const LoginLazyLoad = lazy(() => import('../../pages/Login'));
 const RegionalLoginLazyLoad = lazy(() => import('../../pages/RegionalLogin'));
-const MigrationEditorLazyLoad = lazy(() => import('../../pages/MigrationEditor'));
+const MigrationLazyLoad = lazy(() => import('../../pages/Migration'));
 const ProjectsLazyLoad = lazy(() => import('../../pages/Projects'));
 
 const AppRouter = () => {
@@ -23,23 +28,17 @@ const AppRouter = () => {
 
       {/* ALL PROTECTED ROUTES HERE */}
       <Route element={<PrivateRoute redirectTo="/" />}>
-        <Route path="/migrations" element={<MigrationEditorLazyLoad />} />
+        <Route path="/migrations" element={<MigrationLazyLoad />} />
         <Route path="/projects" element={<ProjectsLazyLoad />} />
 
-        {/* <Route
-          path="/projects/:projectId/migrations/:ruleId/"
-          element={<MigrationEditorLazyLoad />}
-        /> */}
         <Route
           path="/projects/:projectId/migration/steps/:stepId"
-          element={<MigrationEditorLazyLoad />}
+          element={<MigrationLazyLoad />}
         >
-          <Route index element={<NewMigrationWrapper />} />
-          <Route path="settings" element={<Settings />} />
+          
         </Route>
       </Route>
 
-      {/* <Route path={["/","/region-login"]} render={()=> Header} /> */}
       <Route path="*" element={<ErrorPage contentType={CS_ENTRIES.NOT_FOUND_ERROR} />} />
     </Routes>
   );

@@ -3,43 +3,52 @@
 .ProjectCard {
   background: $color-brand-white-base;
   border-radius: 0.6rem;
+  border: 1px solid $color-brand-secondary-lightest;
   transition: box-shadow 0.3s ease;
   width: 20rem;
 }
+.ProjectCardWrapper {
+  padding: 18px;
+}
 .ProjectCard__heading {
   display: flex;
-  margin-bottom: 2.125rem;
-  padding: 1.75rem 2rem 0.688rem;
+  margin-bottom: $px-20;
+  padding: 0;
 }
 .ProjectCard__title {
   color: $color-font-base;
   display: -webkit-box;
-  font-size: $size-font-xl;
+  font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
-  height: $px-48;
+  height: $px-40;
   line-height: $line-height-default;
   overflow: hidden;
   padding: 0;
-  white-space: normal;
+  white-space: normal; 
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 .ProjectCard__footer {
   display: flex;
   position: relative;
-  background-color: #edebff;
+  background-color: $color-font-white;
+  border-top: 1px solid $color-brand-secondary-lightest;
   border-radius: 0 0 0.5rem 0.5rem;
   height: 59.008px;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0.9375rem 1.875rem;
   align-items: center;
 }
 .ProjectCard__content {
-  margin: 0 1rem 2rem;
+  // margin: 0 1rem 2rem;
   padding: 0;
   text-align: center;
 }
+.ProjectCard__Staus-unit {
+  padding: 0 1em;
+}
 .ProjectCard__unit {
+  border-left: 1px solid $color-brand-secondary-lightest;
   padding: 0 1em;
 }
 .ProjectCard__unit:not(:last-child) {
@@ -49,31 +58,50 @@
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
+  padding-bottom: $px-10;
 }
 .ProjectCard__stats-category {
-  color: $color-font-active;
-  font-size: $size-font-small;
-  font-weight: $font-weight-regular;
-  line-height: 1.42;
-}
-.ProjectCard__stats-number {
-  display: block;
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 8px;
   font-size: $size-font-large;
-  font-weight: $font-weight-semi-bold;
-  letter-spacing: 0.00875rem;
-  line-height: 150%;
+  color: $color-font-base;
+  padding: 4px 8px;
+  text-transform: capitalize;
+  svg {
+    margin-right: 5px;
+  }
+  &.draft {
+    background-color: $color-base-white-10;
+  }
+  &.completed {
+    background-color: $color-brand-success-light;
+  }
+  &.failed {
+    background-color: $color-brand-fail-light;
+  }
+  &.pending {
+    background-color: $color-brand-attention-light;
+  }
+}
+.ProjectCard__stats-Title {
+  color: $color-stepper-title;
+  display: block;
+  font-size: $size-font-small;
   margin-bottom: $space-4;
 }
 .validation-color {
   color: $color-brand-warning-medium;
 }
 .ProjectCard__cms {
-  font-size: $size-font-small;
-  color: $color-font-black;
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 8px;
+  font-size: $size-font-large;
+  color: $color-font-base;
+  padding: 4px 8px;
   text-transform: capitalize;
 }
 .ProjectCard__modified-date {
-  color: $color-font-base;
+  color: $color-stepper-title;
   display: block;
   font-size: $size-font-small;
   font-weight: $font-weight-regular;

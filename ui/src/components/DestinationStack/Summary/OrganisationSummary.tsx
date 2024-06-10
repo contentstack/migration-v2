@@ -1,16 +1,18 @@
-import { useContext } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import StepIcon from '../../../components/Stepper/FlowStepper/StepIcon';
 import { AppContext } from '../../../context/app/app.context';
 import { isEmptyString } from '../../../utilities/functions';
 import { IStep } from '../../../context/app/app.interface';
 import './summary.scss';
+import { RootState } from '../../../store';
 
 interface OrganisationSummaryProps {
   stepData: IStep;
 }
 
 const OrganisationSummary = (props: OrganisationSummaryProps): JSX.Element => {
-  const { newMigrationData } = useContext(AppContext);
+
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
 
   return (
     <div className="row">
