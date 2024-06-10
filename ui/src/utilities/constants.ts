@@ -5,7 +5,7 @@ export const WEBSITE_BASE_URL = process.env.REACT_APP_WEBSITE_BASE_URL;
 export const TOKEN_KEY = 'access_token';
 export const TOKEN = localStorage.getItem(TOKEN_KEY);
 
-export const API_VERSION = process.env.REACT_APP_API_VERSION || 'v2';
+export const API_VERSION = process.env.REACT_APP_API_VERSION ?? 'v2';
 
 export const AUTH_ROUTES = `${API_VERSION}/auth`;
 
@@ -66,11 +66,21 @@ export const UPLOAD_FILE_URL = `${UPLOAD_FILE_RELATIVE_URL}upload`;
 export const PROJECT_STATUS: ObjectType = {
   '0': 'Draft',
   '1': 'Ready to test',
-  '2': 'Testing inprogress',
+  '2': 'Testing in progress',
   '3': 'Ready for migration',
-  '4': 'Migration inprogress',
+  '4': 'Migration in progress',
   '5': 'Migration successful',
   '6': 'Migration terminated'
+};
+
+export const NEW_PROJECT_STATUS: ObjectType = {
+  '0': 'Draft',
+  '1': 'In progress',
+  '2': 'In progress',
+  '3': 'In progress',
+  '4': 'In progress',
+  '5': 'Completed',
+  '6': 'Failed'
 };
 
 export const isOfflineCMSDataRequired = process.env.REACT_APP_OFFLINE_CMS

@@ -41,6 +41,7 @@ interface Project {
   execution_log: [ExecutionLog];
   created_at: string;
   updated_at: string;
+  isDeleted: boolean;
 }
 
 interface ProjectDocument {

@@ -1,11 +1,7 @@
 import React, { useEffect, useImperativeHandle, useMemo, useState } from 'react';
-import { Icon, Tooltip } from '@contentstack/venus-components';
-
-// Utilities
-import { addDomainInPath } from '../../../utilities/functions';
-
-// Styles
 import './AutoVerticalStepper.scss';
+import { Tooltip, Heading } from '@contentstack/venus-components';
+import { addDomainInPath } from '../../../utilities/functions';
 
 export enum StepStatus {
   ACTIVE = 'ACTIVE',
@@ -17,7 +13,6 @@ type AutoVerticalStepperProps = {
   steps: any[];
   className?: string;
   stepComponentProps?: any;
-  stepTitleClassName?: string;
   isEdit: boolean;
   handleOnAllStepsComplete: (flag: boolean) => void;
 };
@@ -26,7 +21,6 @@ export type AutoVerticalStepperComponentHandles = {
   handleDynamicStepChange: (stepIndex: number, closeStep?: boolean) => void;
 };
 
-// eslint-disable-next-line react/display-name
 const AutoVerticalStepper = React.forwardRef<
   AutoVerticalStepperComponentHandles,
   React.PropsWithChildren<AutoVerticalStepperProps>
@@ -39,7 +33,6 @@ const AutoVerticalStepper = React.forwardRef<
       steps,
       className = '',
       stepComponentProps,
-      stepTitleClassName = '',
       isEdit = false,
       handleOnAllStepsComplete = () => {
         return;
@@ -54,12 +47,36 @@ const AutoVerticalStepper = React.forwardRef<
       }
     }, [stepComponentProps?.step?.step_id, stepComponentProps?.connector?.group_name]);
 
+    const handleStepChange = (stepIndex: number, closeStep = false) => {
+      if (closeStep) {
+        const data = stepStatus.map((s: any, i: number) => {
+          if (i === stepIndex) {
+            return StepStatus.COMPLETED;
+          }
+          return s;
+        });
+        setStepStatus(data);
+        handleOnAllStepsComplete(true);
+      } else {
+        const data: string[] = stepStatus.map((s: any, i: number) => {
+          if (i <= stepIndex) {
+            return StepStatus.COMPLETED;
+          } else if (i === stepIndex + 1) {
+            return StepStatus.ACTIVE;
+          } else {
+            return StepStatus.DISABLED;
+          }
+        });
+        setStepStatus(data);
+      }
+    };
+
     const StepperStepTitleCreator: (data: any) => JSX.Element = (data: any) => {
       return (
         <>
           <div className="migration-vertical-stepper-container">
             <div>
-              <span className="stepper-title">{data.title}</span>
+              <Heading className='stepper-title'tagName='h3' text={data.title}/>
               <span className="stepper-titleNote">{data.titleNote ? data.titleNote : ''}</span>
             </div>
             {data.lock ? (
@@ -74,40 +91,7 @@ const AutoVerticalStepper = React.forwardRef<
         </>
       );
     };
-
-    const handleStepChange = (stepIndex: number, closeStep = false) => {
-      if (closeStep) {
-        const data = stepStatus.map((s: any, i: number) => {
-          if (i === stepIndex) {
-            return StepStatus.COMPLETED;
-          }
-          return s;
-        });
-        setStepStatus(data);
-
-        //Call when all steps are completed;
-        handleOnAllStepsComplete(true);
-      } else {
-        const data: string[] = stepStatus.map((s: any, i: number) => {
-          if (i <= stepIndex) {
-            return StepStatus.COMPLETED;
-          } else if (i === stepIndex + 1) {
-            return StepStatus.ACTIVE;
-          } else {
-            return StepStatus.DISABLED;
-          }
-        });
-        setStepStatus(data);
-        // setTimeout(() => {
-        //   document.getElementById(steps?.[stepIndex + 1]?.step_id)?.scrollIntoView({
-        //     behavior: 'smooth',
-        //     block: 'center',
-        //     inline: 'nearest'
-        //   });
-        // }, 100);
-      }
-    };
-
+    
     const goToStep = (stepIndex: number) => {
       const data: string[] = stepStatus.map((s: any, i: number) => {
         if (s === StepStatus.ACTIVE && i !== stepIndex) {
@@ -124,12 +108,23 @@ const AutoVerticalStepper = React.forwardRef<
       setStepStatus(data);
     };
 
+    const summaryActivateStep = (e: any) => {
+      const index = e.currentTarget.getAttribute('data-step-index');
+      handleOnAllStepsComplete(false);
+
+      if (isEdit) {
+        goToStep(+index);
+      } else {
+        handleStepChange(index - 1);
+      }
+    };
+
     // Export Methods to Parent Component
     useImperativeHandle(ref, () => ({
       handleDynamicStepChange: (stepIndex, closeStep = false) =>
         handleStepChange(stepIndex, closeStep)
     }));
-
+    
     return useMemo(() => {
       const stepClassNameObject: any = {
         [StepStatus.ACTIVE]: 'active',
@@ -150,133 +145,68 @@ const AutoVerticalStepper = React.forwardRef<
         return stepStatus[idx];
       };
 
-      const summaryActivateStep = (e: any) => {
-        const index = e.currentTarget.getAttribute('data-step-index');
-        handleOnAllStepsComplete(false);
-
-        if (isEdit) {
-          goToStep(+index);
-        } else {
-          handleStepChange(index - 1);
-        }
-      };
-
       return (
-        <div className={`migration-vertical-stepper StepperWrapper ${className}`}>
+        <div className={`migration-vertical-stepper  ${className}`}>
           <ol className="Vertical">
             {steps?.map((step: any, index: number) => {
-              const shouldShowIcon =
-                step?.title !== 'Select Stack' && step?.title !== 'Upload File'
-                  ? !step?.lock
-                  : false;
-
-              const DataComponent = step?.data as React.ElementType;
-              const SummeryComponent = step?.summery as React.ElementType;
-
+              
               let stepClassName = stepClassNameObject[getStepStatus(index)];
               if (step?.lock) stepClassName = 'completed';
               const getGridientClass =
                 stepClassNameObject[`${getStepStatus(index)}__${getStepStatus(index + 1)}`];
+              
               return (
                 <li
                   id={step?.step_id}
-                  className={`${stepClassName} ${getGridientClass}`}
+                  className="step_block"
                   key={step?.step_id}
                   style={{ paddingBottom: '40px' }}
                 >
-                  <div className={`step__title ${stepTitleClassName}`}>
+                  <div className={`step__title `}>
                     {StepperStepTitleCreator(step)}
                   </div>
-                  {stepClassName === 'disabled' ? (
-                    <></>
-                  ) : (
-                    <>
-                      {stepClassName === 'active' ? (
-                        <div className="step-content-wrapper">
-                          <div className="action-content step-content">
-                            <div
-                              className={
-                                step?.step_id === 'Step1' ||
-                                step?.step_id === 'Step2' ||
-                                step?.step_id === 'Step3'
-                                  ? ''
-                                  : 'StepperWrapper__step'
+                  <div className="step-content-wrapper">
+                    <div className="action-content step-content">
+                      <div
+                        className={
+                          step?.step_id === 'Step1' ||
+                          step?.step_id === 'Step2' ||
+                          step?.step_id === 'Step3'
+                            ? ''
+                            : 'StepperWrapper__step'
+                        }
+                        onClick={
+                          !step?.lock
+                            ? summaryActivateStep
+                            : () => {
+                                return;
                               }
-                            >
-                              <DataComponent
-                                handleStepChange={handleStepChange}
-                                currentStep={index}
-                                {...(stepComponentProps && {
-                                  stepComponentProps: stepComponentProps
-                                })}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <></>
-                      )}
-                      {stepClassName === 'completed' ? (
-                        <div
-                          className={`action-summary-wrapper ${
-                            shouldShowIcon ? '' : 'step-content-wrapper step-summary-wrapper'
-                          }`}
-                          data-step-index={index}
-                          onClick={
-                            !step?.lock
-                              ? summaryActivateStep
-                              : () => {
-                                  return;
-                                }
-                          }
-                        >
-                          <div className="action-content step-content">
-                            <div className={'StepperWrapper__step'}>
-                              <SummeryComponent
-                                onClick={
-                                  !step?.lock
-                                    ? summaryActivateStep
-                                    : () => {
-                                        return;
-                                      }
-                                }
-                                currentStep={index}
-                                stepData={step}
-                                {...(stepComponentProps && {
-                                  stepComponentProps: {
-                                    ...stepComponentProps,
-
-                                    //pass onStepLockHandler
-                                    ...(step?.lock && {
-                                      handleOnStepLock: handleStepChange
-                                    })
-                                  }
-                                })}
-                              />
-
-                              {shouldShowIcon ? (
-                                <span className="summery-edit">
-                                  <Icon icon="Edit" size="small" version="v2" />
-                                </span>
-                              ) : (
-                                <></>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <></>
-                      )}
-                    </>
-                  )}
+                        }
+                      >
+                        {step.data && (
+                          <step.data
+                            handleStepChange={handleStepChange}
+                            currentStep={index}
+                            {...(stepComponentProps && {
+                              stepComponentProps: stepComponentProps
+                            })}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </li>
               );
             })}
           </ol>
-        </div>
+
+          </div>
+        
       );
+      
     }, [steps, stepStatus]);
   }
 );
 
+AutoVerticalStepper.displayName= 'AutoverticalStepper';
 export default AutoVerticalStepper;

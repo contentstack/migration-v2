@@ -1,5 +1,6 @@
 // Libraries
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Heading,
@@ -53,7 +54,8 @@ import {
   ContentTypesSchema,
   optionsType,
   UidMap,
-  ContentTypeMap
+  ContentTypeMap,
+  Advanced
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -64,6 +66,9 @@ import AdvanceSettings from '../AdvancePropertise';
 
 // Styles
 import './index.scss';
+import { RootState } from '../../store';
+import { setNewMigrationData, updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+import { setMigrationData } from '../../store/slice/migrationDataSlice';
 
 const Fields: Mapping = {
   'Single Line Textbox': [
@@ -72,9 +77,24 @@ const Fields: Mapping = {
     'HTML Rich text Editor',
     'JSON Rich Text Editor'
   ],
+  text: [
+    'Single Line Textbox',
+    'Multi Line Textbox',
+    'HTML Rich text Editor',
+    'JSON Rich Text Editor'
+  ],
+  'single_line_text': [
+    'Single Line Textbox',
+    'Multi Line Textbox',
+    'HTML Rich text Editor',
+    'JSON Rich Text Editor'
+  ],
   'Multi Line Textbox': ['Multi Line Textbox', 'HTML Rich text Editor', 'JSON Rich Text Editor'],
+  multi_line_text:  ['Multi Line Textbox', 'HTML Rich text Editor', 'JSON Rich Text Editor'],
   'HTML Rich text Editor': 'JSON Rich Text Editor',
   'JSON Rich Text Editor': 'JSON Rich Text Editor',
+  // 'Multi line': 
+  json: 'JSON Rich Text Editor',
   URL: 'URL',
   file: 'File',
   number: 'Number',
@@ -84,7 +104,8 @@ const Fields: Mapping = {
   reference: 'Reference',
   dropdown: 'Select',
   radio: 'Select',
-  CheckBox: 'Select'
+  CheckBox: 'Select',
+  global_field: 'Global'
 };
 
 interface ModalProps {
@@ -94,13 +115,12 @@ interface ModalProps {
 }
 const ContentMapper = () => {
   /** ALL CONTEXT HERE */
-  const {
-    migrationData,
-    updateMigrationData,
-    newMigrationData,
-    updateNewMigrationData,
-    selectedOrganisation
-  } = useContext(AppContext);
+
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+
+  const dispatch = useDispatch();
 
   const {
     contentMappingData: {
@@ -172,10 +192,10 @@ const ContentMapper = () => {
       .then((data) => {
         //Check for null
         if (!data) {
-          updateMigrationData({ contentMappingData: DEFAULT_CONTENT_MAPPING_DATA });
+          dispatch(updateMigrationData({ contentMappingData: DEFAULT_CONTENT_MAPPING_DATA }));
         }
 
-        updateMigrationData({ contentMappingData: data });
+        dispatch(updateMigrationData({ contentMappingData: data }));
       })
       .catch((err) => {
         console.error(err);
@@ -204,7 +224,7 @@ const ContentMapper = () => {
   }, [contentTypeMapped, otherCmsTitle]);
 
   useEffect(() => {
-    const updatedExstingField: any = {};
+    const updatedExstingField: ExistingFieldType = {};
     if (isContentTypeSaved) {
       tableData?.forEach((row) => {
         if (row?.contentstackField) {
@@ -342,9 +362,9 @@ const ContentMapper = () => {
     const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
     setOtherContentType({ label: option, value: option });
 
-    setContentTypeUid(contentTypes?.[i]?.id);
+    setContentTypeUid(contentTypes?.[i]?.id || '');
     setCurrentIndex(i);
-    fetchFields(contentTypes?.[i]?.id, searchText || '');
+    fetchFields(contentTypes?.[i]?.id || '', searchText || '');
     setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(contentTypes?.[i]);
   };
@@ -491,7 +511,7 @@ const ContentMapper = () => {
 
   // Function to handle selected fields
   const handleSelectedEntries = (singleSelectedRowIds: UidMap[], selectedData: FieldMapType[]) => {
-    const selectedObj: any = {};
+    const selectedObj: UidMap = {};
 
     singleSelectedRowIds.forEach((uid: any) => {
       selectedObj[uid] = true;
@@ -536,10 +556,9 @@ const ContentMapper = () => {
 
   const handleDropDownChange = (value: FieldTypes) => {
     setOtherContentType(value);
-    // fetchFields(contentTypes?.[i]?.id, searchText);
   };
 
-  const handleAdvancedSetting = (fieldtype: string, fieldvalue: any, rowId: string, data: any) => {
+  const handleAdvancedSetting = (fieldtype: string, fieldvalue: Advanced, rowId: string, data: FieldMapType) => {
     return cbModal({
       component: (props: ModalObj) => (
         <AdvanceSettings
@@ -549,6 +568,7 @@ const ContentMapper = () => {
           isLocalised={isLocalised}
           updateFieldSettings={updateFieldSettings}
           data={data}
+          projectId={projectId}
           {...props}
         />
       ),
@@ -575,27 +595,31 @@ const ContentMapper = () => {
       test_migration: { stack_link: res?.data?.data?.url }
     };
 
-    updateNewMigrationData(newMigrationDataObj);
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
     if (res?.status) {
       setisButtonLoading(false);
       const url = `/projects/${projectId}/migration/steps/4`;
       navigate(url, { replace: true });
     }
   };
-
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
+
+    
 
     const option = Array.isArray(OptionsForRow)
       ? OptionsForRow.map((option) => ({ label: option, value: option }))
       : [{ label: OptionsForRow, value: OptionsForRow }];
+
+      const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
+        ? data?.ContentstackFieldType : option?.[0]?.label
 
     return (
       <div className="table-row">
         <div className="select">
           <Select
             id={data?.uid}
-            value={{ label: data?.ContentstackFieldType, value: fieldValue }}
+            value={{ label: fieldLabel, value: fieldValue }}
             onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid)}
             placeholder="Select Field"
             version={'v2'}
@@ -609,16 +633,27 @@ const ContentMapper = () => {
             }
           />
         </div>
-        <Tooltip content="Advance propertise" position="top">
-          <Icon
-            version="v2"
-            icon="Setting"
-            size="small"
-            onClick={() =>
-              handleAdvancedSetting(data?.ContentstackFieldType, data?.advanced, data?.uid, data)
+        {data?.ContentstackFieldType !== 'group' &&
+          data?.otherCmsField !== 'title' &&
+          data?.otherCmsField !== 'url' &&
+          <Tooltip 
+            content="Advance propertise" 
+            position="top"
+            disabled={
+              data?.otherCmsField === 'title' ||
+              data?.otherCmsField === 'url'
             }
-          />
-        </Tooltip>
+          >
+            <Icon
+              version="v2"
+              icon="Setting"
+              size="small"
+              onClick={() =>
+                handleAdvancedSetting(fieldLabel, data?.advanced, data?.uid, data)
+              }
+            />
+          </Tooltip>
+        }
       </div>
     );
   };
@@ -696,7 +731,6 @@ const ContentMapper = () => {
 
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
-      // console.log("fieldTypeToMatch", contentTypeSchema, fieldsOfContentstack, data?.backupFieldType);
       
       contentTypeSchema.forEach((value) => {
         switch (fieldTypeToMatch) {
@@ -796,13 +830,13 @@ const ContentMapper = () => {
           icon="Setting"
           size="small"
           onClick={() => {
-            const value = {
-              ValidationRegex: data?.advanced?.ValidationRegex,
-              Mandatory: data?.advanced?.mandatory,
-              Multiple: data?.advanced?.multiple,
-              Unique: data?.advanced?.unique,
-              NonLocalizable: data?.advanced?.nonLocalizable
-            };
+            // const value = {
+            //   ValidationRegex: data?.advanced?.ValidationRegex,
+            //   Mandatory: data?.advanced?.mandatory,
+            //   Multiple: data?.advanced?.multiple,
+            //   Unique: data?.advanced?.unique,
+            //   NonLocalizable: data?.advanced?.nonLocalizable
+            // };
             handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data);
           }}
         />
@@ -832,7 +866,7 @@ const ContentMapper = () => {
         }
       };
 
-      updateNewMigrationData(newMigrationDataObj);
+      dispatch(updateNewMigrationData((newMigrationDataObj)));
     }
 
     if (orgId && contentTypeUid && selectedContentType) {
@@ -844,7 +878,7 @@ const ContentMapper = () => {
           isUpdated: true,
           updateAt: new Date(),
           contentstackTitle: selectedContentType?.contentstackTitle,
-          contentstackUid: selectedContentType?.contnetStackUid,
+          contentstackUid: selectedContentType?.contentstackUid,
           fieldMapping: selectedEntries
         }
       };
@@ -852,7 +886,7 @@ const ContentMapper = () => {
       const { data, status } = await updateContentType(
         orgId,
         projectID,
-        selectedContentType.id,
+        selectedContentType?.id || '',
         dataCs
       );
 
@@ -898,7 +932,7 @@ const ContentMapper = () => {
         isUpdated: true,
         updateAt: new Date(),
         contentstackTitle: selectedContentType?.contentstackTitle,
-        contentstackUid: selectedContentType?.contnetStackUid,
+        contentstackUid: selectedContentType?.contentstackUid,
         fieldMapping: updatedRows
       }
     };
@@ -906,7 +940,7 @@ const ContentMapper = () => {
       const { status } = await resetToInitialMapping(
         orgId,
         projectID,
-        selectedContentType.id,
+        selectedContentType?.id || '',
         dataCs
       );
       if (status == 200) {
@@ -1063,12 +1097,12 @@ const ContentMapper = () => {
               searchPlaceholder={searchPlaceholder}
               fetchTableData={fetchData}
               loadMoreItems={loadMoreItems}
-              tableHeight={465}
+              tableHeight={IsEmptyStack ? 495 : 465}
               equalWidthColumns={true}
               columnSelector={false}
               initialRowSelectedData={tableData}
               initialSelectedRowIds={rowIds}
-              itemSize={90}
+              itemSize={130}
               withExportCta={{
                 component: (
                   <div style={{ display: 'flex', gap: '10px' }}>
