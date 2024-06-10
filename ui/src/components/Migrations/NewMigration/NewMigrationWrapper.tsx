@@ -4,7 +4,7 @@ import {  Outlet, Params, useNavigate, useParams } from 'react-router';
 import {  useSelector } from 'react-redux';
 
 //venus components
-import { Button, CircularLoader, PageLayout, Stepper } from '@contentstack/venus-components';
+import { Button, PageLayout, Stepper } from '@contentstack/venus-components';
 
 // Services
 import { getMigrationData } from '../../../services/api/migration.service';
@@ -51,48 +51,6 @@ const MigrationExecutionComponentLazyLoaded = lazy(
   () => import('../../../components/MigrationExecution')
 );
 
-
-const createStepper = (projectData:any,handleStepChange: (currentStep: number) => void) => {
-
-  const steps = [
-    {
-      data: <LegacyCMSComponentLazyLoaded
-            legacyCMSData={projectData?.legacy_cms}
-            projectData={projectData}
-            handleStepChange={handleStepChange}/>,
-      id:'1',
-      title:'Legacy CMS'
-    },
-    {
-      data: <DestinationStackComponentLazyLoaded
-              destination_stack={projectData?.destination_stack_id}
-              org_id={projectData?.org_id}
-              projectData={projectData}
-              handleStepChange={handleStepChange}
-            />,
-      id:'2',
-      title:'Destination Stack'
-    },
-    {
-      data: <ContentMapperComponentLazyLoaded />,
-      id:'3',
-      title:'Content Mapping'
-    },
-    {
-      data: <TestMigrationComponentLazyLoaded />,
-      id:'4',
-      title:'Test Migration'
-    },
-    {
-      data: <MigrationExecutionComponentLazyLoaded />,
-      id:'5',
-      title:'Migration Execution'
-    },
-
-    
-   ]
-   return steps;
-}
 
 const NewMigrationWrapper = () => {
   const params: Params<string> = useParams();
@@ -235,9 +193,6 @@ const NewMigrationWrapper = () => {
         <div id="newMigration" className="layout-container migrations-container  p-0 d-flex w-100">
           <div className="step-flow-wrapper-content-area">
             <div className="step-component step-open trigger">
-              {isLoading ? <CircularLoader/> : 
-              <HorizontalStepper ref={stepperRef} steps={createStepper(projectData,handleClick)}/>
-               }
             </div>
           </div>
         </div>

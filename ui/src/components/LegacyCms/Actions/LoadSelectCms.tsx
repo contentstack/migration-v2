@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 // Service
 import { updateLegacyCMSData } from '../../../services/api/migration.service';
-import { fileValidation, getConfig } from '../../../services/api/upload.service';
+import { getConfig } from '../../../services/api/upload.service';
 
 // Utilities
 import { isEmptyString, validateArray } from '../../../utilities/functions';
@@ -17,7 +17,7 @@ import { DEFAULT_CMS_TYPE, ICMSType, INewMigration } from '../../../context/app/
 
 // Components
 import Card from '../../../components/Common/Card/card';
-import { EmptyState, Line, Search } from '@contentstack/venus-components';
+import { EmptyState } from '@contentstack/venus-components';
 
 // Style
 import '../legacyCms.scss';
@@ -46,16 +46,13 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
   const [cmsFilter, setCmsFilter] = useState<string[]>([]);
   const [cmsType, setCmsType] = useState<ICMSType>(
-    newMigrationData?.legacy_cms?.selectedCms 
+    newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );
   const [selectedCard, setSelectedCard] = useState<ICMSType>(
-    newMigrationData?.legacy_cms?.selectedCms 
+    newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [isError, setIsError] = useState<boolean>(false);
-  
-
-  
+  const [isError, setIsError] = useState<boolean>(false); 
 
   const { projectId = '' } = useParams();
 
@@ -64,9 +61,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   //Handle Legacy cms selection
   const handleCardClick = async(data: ICMSType) => {
  
-    const isSingleMatch = cmsData.length === 1;
+    const isSingleMatch = cmsData.length === 1; 
     
-    if (isSingleMatch || selectedCard?.title !== data?.title) {
+    if (isSingleMatch || selectedCard?.cms_id !== data?.cms_id) {
       setSelectedCard({ ...data });
 
       const newMigrationDataObj: INewMigration = {
@@ -83,7 +80,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       const res = await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
       
       // Call for Step Change
-      props.handleStepChange(props.currentStep, true);
+      props?.handleStepChange(props?.currentStep, true);
     }
   };
 
@@ -97,7 +94,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         ...newMigrationData?.legacy_cms,
         selectedCms: cms
       }
-    }))
+    }));
+
     const res = await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: cms});
     
     if (!isEmptyString(cms?.title)) {
@@ -135,14 +133,13 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     if(isEmptyString(cmsType?.cms_id)){
       setCmsType(cms);
     }
-
+    
     const cmstype = !isEmptyString(cmsType?.cms_id) ? cmsType?.parent : cms; // Fetch the specific CMS type
 
     let filteredCmsData = all_cms;
     if (cmstype) {
       filteredCmsData = all_cms.filter((cms: ICMSType) => cms?.parent?.toLowerCase() === cmstype?.toLowerCase());
     }
- 
 
     setCmsData(filteredCmsData)
 
@@ -157,18 +154,17 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       : [];
 
     setCmsData(_filterCmsData);
-
     
-   
     let newSelectedCard: ICMSType | undefined;
-
-    if (_filterCmsData.length === 1) {
+    
+    if (filteredCmsData?.length === 1) {
       newSelectedCard = filteredCmsData[0];
     } else {
-      newSelectedCard = filteredCmsData.find((cms: ICMSType) => cms?.parent.toLowerCase() === cmstype.toLowerCase());
+      newSelectedCard = DEFAULT_CMS_TYPE;
     }
+ 
 
-    if (newSelectedCard) {
+    if (!isEmptyString(newSelectedCard?.title)) {
       setSelectedCard(newSelectedCard);
       setErrorMessage('');
       setIsError(false);
@@ -182,10 +178,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       };
 
       dispatch(updateNewMigrationData(newMigrationDataObj));
-
-    }else{
-      setIsError(true);
-      setErrorMessage('No matching CMS found. Please try a different search term.');
     }
   };
 
@@ -198,28 +190,10 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     filterCMSData(searchText);
   }, [cmsFilter]);
 
-  // useEffect(() => {
-  //   if (selectedCard?.title !== 'Drupal' && selectedCard?.title !== 'Sitecore') {
-  //     handleDirectSelection(selectedCard);
-  //   }
-  // }, [cmsType, selectedCard]);
 
   return (
     <div>
       <div className="col-12">
-        {/* <div className="service_list_search">
-          <Search
-            className="service_list_search_bar"
-            width="full"
-            placeholder="Search for CMS"
-            debounceSearch
-            onClear
-            version="v2"
-            type="secondary"
-            onChange={(text: string) => setSearchText(text?.toLowerCase())}
-          />
-        </div>
-        <Line type="solid" /> */}
         <div className="p-3 col-12">
           { isError ? 
             <div className="empty_search_description">
@@ -232,7 +206,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           (
             cmsData && validateArray(cmsData) && (
             <div className="service_list">
-              {cmsData.map((data: ICMSType) => (
+              {cmsData?.map((data: ICMSType) => (
                 <Card
                   key={data?.title}
                   data={data}
