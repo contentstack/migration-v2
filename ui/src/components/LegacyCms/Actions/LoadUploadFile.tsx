@@ -167,7 +167,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       <div className="col-12">
         <div className="col-12">
           <div className={containerClassName}>
-            <FileComponent fileDetails={newMigrationData?.legacy_cms?.uploadedFile?.file_details || {}} />
+            {! isDasabled ? (
+              <FileComponent fileDetails={newMigrationData?.legacy_cms?.uploadedFile?.file_details || {}} />
+            ) :
+            <Paragraph className="pb-2" tagName="p" variant='p1' text={'Please verify the CMS'}/>}
             {showMessage  &&
               (<Paragraph className={`${validationClassName} pb-2` } tagName='p' variant="p2" text={validationMessgae}/>)
             }
