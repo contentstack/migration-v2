@@ -1,7 +1,7 @@
 // Libraries
-import { ChangeEvent, useContext, useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { Button, Icon, TextInput } from '@contentstack/venus-components';
+import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
@@ -15,14 +15,9 @@ import {
 
 // Interface
 import { ICardType, defaultCardType } from '../../../components/Common/Card/card.interface';
-import { INewMigration } from '../../../context/app/app.interface';
 
-// Context
-import { AppContext } from '../../../context/app/app.context';
 
 // Components
-import Card from '../../../components/Common/Card/card';
-import DocLink from '../../../components/Common/DocLink/DocLink';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
@@ -49,7 +44,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const { projectId = '' } = useParams();
   const { allowed_file_formats = [], doc_url = { href: '', title: '' } } =
     newMigrationData?.legacy_cms?.selectedCms || {};
-  
 
   /****  ALL METHODS HERE  ****/
 
@@ -109,37 +103,11 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   return (
     <div className="row">
-      {/* <DocLink
-        cta={doc_url}
-        isCheckedBoxChecked={isCheckedBoxChecked}
-        label={file_format_checkbox_text}
-        onChange={handleCheckBoxChange}
-        isDisable={false}
-      /> */}
-      <div className="col-12 pb-2 p-3">
-        <span className="stepper-discription">
-          Following is the file format in which data is exported from your current CMS
-        </span>
-      </div>
       <div className="p-3">
         <div className="service_list">
           {validateArray(allowed_file_formats) ? (
             allowed_file_formats?.map((data: ICardType, index: number) => (
-   
-              
-              // <Card
-              //   key={data?.fileformat_id || index}
-              //   data={data}
-              //   selectedCard={data?.fileformat_id}
-              //   idField="fileformat_id"
-              //   onCardClick={() => {
-              //     return;
-              //   }}
-              // />
-         
-             
-              <div key={data?.fileformat_id || index}>
-             
+              <div key={data?.fileformat_id || index}>             
                 <TextInput
                 value={data?.fileformat_id}
                 version="v2"              
@@ -158,11 +126,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           )}
         </div>
       </div>
-      {/* <div className="col-12 pt-3 pl-0">
-        <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleBtnClick}>
-          {migrationData?.legacyCMSData?.file_format_cta}
-        </Button>
-      </div> */}
     </div>
   );
 };

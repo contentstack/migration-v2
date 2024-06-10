@@ -36,6 +36,7 @@
     "@typescript-eslint/parser": "^7.7.1",
     "axios": "^1.6.8",
     "chalk": "^4.1.2",
+    "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "eslint": "^8.51.0",
