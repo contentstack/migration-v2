@@ -4,6 +4,8 @@ import { PageLayout, EmptyState, Button, Icon, cbModal } from '@contentstack/ven
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -31,16 +33,23 @@ import { NO_PROJECTS, NO_PROJECTS_SEARCH } from '../../common/assets';
 
 // styles
 import './index.scss';
+import { getUserDetails } from '../../store/slice/authSlice';
+
 
 const Projects = () => {
   const [data, setData] = useState<ProjectsType>({});
   const {
     cta,
+    restore_cta,
     heading,
     search_projects: searchProjects,
     emptystate,
     create_project_modal: createProjectModal
   } = data;
+
+  const dispatch = useDispatch();
+  const selectedOrganisation = useSelector((state:any)=>state?.authentication?.selectedOrganisation);
+  
 
   const outputIntro = HTMLReactParser(jsonToHtml(emptystate?.description ?? {}));
 
@@ -52,9 +61,7 @@ const Projects = () => {
   const [loadStatus, setLoadStatus] = useState(true);
   const [searchText, setSearchText] = useState(search);
 
-  /********** App Context here  *************/
 
-  const { selectedOrganisation } = useContext(AppContext);
 
   const fetchProjects = async () => {
     if (selectedOrganisation?.value) {
@@ -78,10 +85,16 @@ const Projects = () => {
 
     // fetchProjects();
   };
+  useEffect(()=>{
+    dispatch(getUserDetails());
+
+  },[dispatch])
 
   useEffect(() => {
     fetchData();
   }, []);
+
+
 
   useEffect(() => {
     setLoadStatus(true);
@@ -128,8 +141,7 @@ const Projects = () => {
       ),
       modalProps: {
         onClose
-      },
-      testId: 'cs-modal-storybook'
+      }
     });
   };
 
@@ -141,6 +153,7 @@ const Projects = () => {
         searchPlaceholder={searchProjects as string}
         setSearchText={setSearchText}
         cta={cta}
+        restore_cta={restore_cta}
         handleModal={openModal}
         allProject={projects}
       />

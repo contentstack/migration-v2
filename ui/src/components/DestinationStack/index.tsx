@@ -1,10 +1,10 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getDestinationStackSteps } from './StepperSteps';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, CircularLoader } from '@contentstack/venus-components';
-//import { getEntries } from '../../services/contentstackSDK';
-import { CS_ENTRIES, PROJECT_STATUS } from '../../utilities/constants';
+import { CS_ENTRIES } from '../../utilities/constants';
 import { AppContext } from '../../context/app/app.context';
 import {
   DEFAULT_DESTINATION_STACK_DATA,
@@ -21,17 +21,21 @@ import {
   updateDestinationStack
 } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
+import { RootState } from '../../store';
+import { setMigrationData, setNewMigrationData, updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 type DestinationStackComponentProps = {
   destination_stack: string;
   org_id: string;
   projectData: MigrationResponse;
+  handleStepChange: (currentStep: number) => void;
 };
 
 const DestinationStackComponent = ({
   destination_stack,
   org_id,
-  projectData
+  projectData,
+  handleStepChange
 }: DestinationStackComponentProps) => {
   /** ALL HOOKS HERE */
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -43,14 +47,12 @@ const DestinationStackComponent = ({
   const autoVerticalStepperComponent = useRef<any>(null);
 
   /** ALL CONTEXT HERE */
-  const {
-    migrationData,
-    updateMigrationData,
-    newMigrationData,
-    updateNewMigrationData,
-    selectedOrganisation,
-    organisationsList
-  } = useContext(AppContext);
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
+  const dispatch = useDispatch();
+
   const { projectId = '' } = useParams();
 
   const navigate = useNavigate();
@@ -65,7 +67,7 @@ const DestinationStackComponent = ({
     await updateDestinationStack(selectedOrganisation?.value, projectId, {
       stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
     });
-
+    handleStepChange(2);
     const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
     if (res) {
       const url = `/projects/${projectId}/migration/steps/3`;
@@ -132,7 +134,7 @@ const DestinationStackComponent = ({
       selectedStack: selectedStackData
     };
 
-    updateNewMigrationData({ destination_stack: newMigData });
+    dispatch(updateNewMigrationData({ destination_stack: newMigData }));
   };
 
   /********** ALL USEEFFECT HERE *************/
@@ -146,7 +148,7 @@ const DestinationStackComponent = ({
 
       //Check for null
       if (!data) {
-        updateMigrationData({ destinationStackData: DEFAULT_DESTINATION_STACK_DATA });
+        dispatch(updateMigrationData({ destinationStackData: DEFAULT_DESTINATION_STACK_DATA }));
         setIsLoading(false);
         return;
       }
@@ -158,7 +160,7 @@ const DestinationStackComponent = ({
 
       //updateDestinationStackData();
 
-      updateMigrationData({ destinationStackData: destinationStackDataMapped });
+      dispatch(updateMigrationData({ destinationStackData: destinationStackDataMapped }));
 
       setIsLoading(false);
 
@@ -193,7 +195,7 @@ const DestinationStackComponent = ({
         );
       }
     }
-  }, [internalActiveStepIndex]);
+  }, [internalActiveStepIndex]); 
 
   return (
     <>
