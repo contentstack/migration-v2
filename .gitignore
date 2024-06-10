@@ -352,3 +352,6 @@ MigrationBackup/
 uploade-api/node_modules
 uploade-api/build
 package-lock.json
+ui/.env
+uplaode-api/sitecoreMigrationData
+uplaode-api/extracted_files
