@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { DEFAULT_FILE, FileDetails, INewMigration } from '../../../context/app/app.interface';
+import { FileDetails, INewMigration } from '../../../context/app/app.interface';
 
 import { useParams } from 'react-router';
 import { fileValidation, getConfig } from '../../../services/api/upload.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-//import { FileComponent } from '../Summary/UploadFileSummary';
 import { Button, Paragraph } from '@contentstack/venus-components';
+import { isEmptyString } from '../../../utilities/functions';
 
 interface LoadUploadFileProps {
   stepComponentProps: any;
@@ -21,17 +21,17 @@ interface Props {
 const FileComponent = ({fileDetails}:Props ) => {
   
   return (
-    <div className="">
+    <div>
       {fileDetails?.isLocalPath ? (
         <div>
-          <Paragraph className="p-3" tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
+          <Paragraph className="pb-2" tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
           
         </div>
       ) : (
         <div>
-          <p className="summary-title">AWS Region: {fileDetails?.awsData?.awsRegion}</p>
-          <p className="summary-title">Bucket Name: {fileDetails?.awsData?.bucketName}</p>
-          <p className="summary-title">Bucket Key: {fileDetails?.awsData?.buketKey}</p>
+          <p className="pb-2">AWS Region: {fileDetails?.awsData?.awsRegion}</p>
+          <p className="pb-2">Bucket Name: {fileDetails?.awsData?.bucketName}</p>
+          <p className="pb-2">Bucket Key: {fileDetails?.awsData?.buketKey}</p>
         </div>
       )}
     </div>
@@ -50,6 +50,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [showMessage, setShowMessage] = useState<boolean>(false);
   const [validationMessgae, setValidationMessage] = useState<string>('');
   const [isValidationAttempted, setIsValidationAttempted] = useState<boolean>(false);
+  const [isDasabled, setIsDisabled] = useState<boolean>(false);
 
   const { projectId = '' } = useParams();
 
@@ -65,7 +66,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         legacy_cms: {
-          ...newMigrationData.legacy_cms,
+          ...newMigrationData?.legacy_cms,
           uploadedFile: {
             name: res?.data?.localPath,
             url: res?.data?.localPath,
@@ -107,18 +108,20 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   //function to get config details
   const getConfigDetails = async () =>{
     const res: any = await getConfig();
-    if(newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== res?.data?.cmsType.toLowerCase()){
+ 
+    if(! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) && newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== res?.data?.cmsType.toLowerCase()){
       setIsValidated(false);
       setValidationMessage('Validation Falied');
       setIsValidationAttempted(true);
       setShowMessage(true);
       setIsLoading(false);
+      setIsDisabled(true);
     }
 
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       legacy_cms: {
-        ...newMigrationData.legacy_cms,
+        ...newMigrationData?.legacy_cms,
         uploadedFile: {
           name: res?.data?.localPath,
           url: res?.data?.localPath,
@@ -147,25 +150,34 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     getConfigDetails();
   }, []);
 
+  useEffect(()=>{
+    if(newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+      setIsValidated(true);
+      setValidationMessage('Validated');
+      props.handleStepChange(props?.currentStep, true);  
+    }
+  },[isValidated])
+
   const validationClassName = isValidated ? 'success' : 'error';
   
-  const containerClassName = `validation-container ${isValidationAttempted && !isValidated ? 'error-container' : ''}`;
-  
+  const containerClassName = `validation-container ${isValidationAttempted && !isValidated ? 'error-container pb-2' : ''}`;
+
   return (
     <div className="row">
       <div className="col-12">
-        <div className="col-12 pb-2">
+        <div className="col-12">
           <div className={containerClassName}>
             <FileComponent fileDetails={newMigrationData?.legacy_cms?.uploadedFile?.file_details || {}} />
             {showMessage  &&
-              (<Paragraph className={`${validationClassName}`} tagName='p' variant="p2" text={validationMessgae}/>)
+              (<Paragraph className={`${validationClassName} pb-2` } tagName='p' variant="p2" text={validationMessgae}/>)
             }
            
           </div>
            <Button className="validation-cta" buttonType="secondary"
            onClick={handleOnFileUploadCompletion}
            isLoading={isLoading}
-           version={"v2"}>Validate</Button>
+           version={"v2"}
+           disabled={isDasabled}>Validate</Button>
         </div>
       </div>
     </div>
