@@ -325,7 +325,7 @@
       "_metadata": {
         "uid": "cs752bfd62296e4791"
       },
-      "title": "Select CMS",
+      "title": "CMS",
       "description": "Select your current Content Management System from available options.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
@@ -349,7 +349,7 @@
       "_metadata": {
         "uid": "cs7c935e15de9ea7c8"
       },
-      "title": "Select CMS File Format",
+      "title": "File Format",
       "description": "Click to read the document and subsequently continue with migration process.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
@@ -361,7 +361,7 @@
       "_metadata": {
         "uid": "cs0279f1f0ce13e83e"
       },
-      "title": "Upload File",
+      "title": "Imported File",
       "description": "Select File to upload CMS Data.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
