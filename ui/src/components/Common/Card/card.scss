@@ -5,6 +5,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: $px-12;
+  margin-left: 10px !important;
+  margin-bottom: 10px;
 }
 
 .trigger_list {
@@ -22,12 +24,15 @@
 .connector_list,
 .action_list,
 .trigger_list {
-  border: 1px solid $color-base-gray-40;
+  //border: 1px solid $color-base-gray-40;
+  border: 1px solid #6C5CE766;
   border-radius: $px-6;
   flex: 0 10%;
   cursor: pointer;
   min-width: $px-117;
   text-align: center;
+  height: 128px;
+  gap: 12px;
 }
 
 .connector_list .tippy-box-light #automationConnectorsHelpText {
@@ -61,4 +66,7 @@
   border: 1px solid rgba(204, 204, 204, 0.6);
   margin-top: 3.5rem;
   z-index: 8;
+}
+.centered-card-title{
+  margin: 10px;
 }
