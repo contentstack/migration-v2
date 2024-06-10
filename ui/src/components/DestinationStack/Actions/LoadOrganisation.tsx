@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AppContext } from '../../../context/app/app.context';
-import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
-import { Select } from '@contentstack/venus-components';
+import { INewMigration } from '../../../context/app/app.interface';
+import { TextInput } from '@contentstack/venus-components';
 
 import '../DestinationStack.scss';
 import { isEmptyString } from '../../../utilities/functions';
@@ -20,11 +19,11 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
-  const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
+  // const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
 
   const dispatch = useDispatch();
 
-  const [selectedOrg, setSelectedOrg] = useState<IDropDown>(DEFAULT_DROPDOWN);
+  // const [selectedOrg, setSelectedOrg] = useState();
 
   /****  ALL METHODS HERE  ****/
 
@@ -34,22 +33,22 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
   };
 
   //Handle Organisation selection
-  const handleDropdownChange = (data: IDropDown) => {
-    if (selectedOrg?.value !== data?.value) {
-      setSelectedOrg(() => ({ ...data }));
+  // const handleDropdownChange = (data: ChangeEvent<HTMLInputElement>) =>  {
+  //   // if (selectedOrg?.value !== data?.value) {
+  //   //   setSelectedOrg(() => ({ ...data }));
 
-      setNewMigrationData({
-        ...newMigrationData,
-        destination_stack: {
-          ...newMigrationData.destination_stack,
-          selectedOrg: { ...data }
-        }
-      });
-    }
+  //   //   setNewMigrationData({
+  //   //     ...newMigrationData,
+  //   //     destination_stack: {
+  //   //       ...newMigrationData.destination_stack,
+  //   //       selectedOrg: { ...data }
+  //   //     }
+  //   //   });
+  //   // }
 
-    //call for Step Change
-    props.handleStepChange(props.currentStep);
-  };
+  //   //call for Step Change
+  //   // props.handleStepChange(props.currentStep);
+  // };
 
   /****  ALL USEEffects  HERE  ****/
 
@@ -58,7 +57,7 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
       ? newMigrationData?.destination_stack?.selectedOrg
       : selectedOrganisation;
 
-    setSelectedOrg(org);
+    // setSelectedOrg(org as any);
 
     setNewMigrationData({
       ...newMigrationData,
@@ -68,22 +67,29 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
       }
     });
   }, []);
-
   return (
-    <div className="row bg-white action-content-wrapper p-3">
-      <div className="col-12">
-        <div className="Dropdown-wrapper p-0">
-          <Select
-            version={'v2'}
-            options={organisationsList}
-            onChange={handleDropdownChange}
-            value={selectedOrg}
-            isSearchable={true}
-            isDisabled={props?.stepComponentProps?.isSummary || false}
-            placeholder={'Organisation'}
-          />
-        </div>
-      </div>
+    <div className="action-content-wrapper p-3">
+      {/* <div className="Dropdown-wrapper p-0">
+        <Select
+          version={'v2'}
+          options={organisationsList}
+          onChange={handleDropdownChange}
+          value={selectedOrg}
+          // width='600'
+          // isSearchable={true}
+          isDisabled={true}
+          placeholder={'Organisation'}
+        />
+      
+      </div> */}
+      <TextInput 
+        version={'v2'}
+        value={newMigrationData?.destination_stack?.selectedOrg?.label || 'Organisation'}
+        width="600px"
+        className="orgInput"
+        isReadOnly
+        disabled
+      />
     </div>
   );
 };
