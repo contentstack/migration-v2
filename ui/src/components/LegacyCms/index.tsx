@@ -1,12 +1,12 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { useDispatch,useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getLegacyCMSSteps } from './StepperSteps';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, CircularLoader } from '@contentstack/venus-components';
+import { CircularLoader } from '@contentstack/venus-components';
 // import { getEntries } from '../../services/contentstackSDK';
 import { CS_ENTRIES } from '../../utilities/constants';
-import { AppContext } from '../../context/app/app.context';
+
 import {
   DEFAULT_CMS_TYPE,
   DEFAULT_LEGACY_CMS_DATA,
@@ -28,10 +28,12 @@ import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/
 type LegacyCMSComponentProps = {
   legacyCMSData: any;
   projectData: MigrationResponse;
+  isCompleted: boolean
   handleStepChange: (currentStep: number) => void;
+  handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
-const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: LegacyCMSComponentProps) => {
+const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted, handleStepChange, handleOnAllStepsComplete }: LegacyCMSComponentProps, ref) => {
   //react-redux apis
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const  newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
@@ -40,7 +42,6 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: Le
 
 
   /** ALL HOOKS HERE */
-  const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
@@ -53,10 +54,12 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: Le
   const navigate = useNavigate();
   const autoVerticalStepper = useRef<any>(null);
 
+
   //Handle on all steps are completed
-  const handleOnAllStepsComplete = (flag = false) => {
-    setIsCompleted(flag);
+  const handleAllStepsComplete = (flag = false) => {
+    handleOnAllStepsComplete(flag);
   };
+  
 
   // handle on proceed to destination stack
   const handleOnClick = async (event: MouseEvent,handleStepChange:any ) => {
@@ -73,6 +76,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: Le
       navigate(url, { replace: true });
     }
   };
+
 
   //handle on delete click
   const handleOnClickDeleteUploadedFile = (e: MouseEvent) => {
@@ -108,15 +112,15 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: Le
       //Step 3: Update it in APP context for later use
       validateArray(data?.all_cms) &&
         data?.all_cms?.forEach((cms: ICMSType) => {
-          if (!isEmptyString(cms.parent)) {
+          if (!isEmptyString(cms?.parent)) {
             const filterObject = cmsFilterList?.find(
-              (obj: IFilterType) => obj.value === cms.parent
+              (obj: IFilterType) => obj?.value === cms?.parent
             );
   
             if (!filterObject) {
-              cmsFilterList.push({
-                value: cms.parent,
-                label: cms.parent,
+              cmsFilterList?.push({
+                value: cms?.parent,
+                label: cms?.parent,
                 isChecked: false
               });
             }
@@ -132,13 +136,13 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: Le
       dispatch(updateMigrationData({ legacyCMSData: legacyCMSDataMapped }));
   
       //Update New Migration data;
-     
+
       const selectedCmsData: ICMSType = validateArray(data.all_cms)
-        ? data.all_cms?.find((cms: ICMSType) => {
+        ? data.all_cms?.find((cms: ICMSType) => {  
           return cms?.cms_id === legacyCMSData?.cms})
         : DEFAULT_CMS_TYPE;
 
-  
+ 
       const selectedFileFormatData: ICardType | undefined = validateArray(
         selectedCmsData?.allowed_file_formats
       )
@@ -209,6 +213,7 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: Le
       }
     }
   }, [internalActiveStepIndex]);  
+
   return (
     <>
       {isLoading ? (
@@ -230,32 +235,17 @@ const LegacyCMSComponent = ({ legacyCMSData, projectData, handleStepChange }: Le
                   migrationData?.legacyCMSData?.all_steps
                 )}
                 isEdit={!isMigrationLocked}
-                handleOnAllStepsComplete={handleOnAllStepsComplete}
+                handleOnAllStepsComplete={handleAllStepsComplete}
                 stepComponentProps={{
                   handleDeleteFile: handleOnClickDeleteUploadedFile
                 }}
               />
             </div>
-            {isCompleted && !isMigrationLocked ? (
-              <div className="col-12">
-                <div className="pl-40">
-                  <Button
-                    version="v2"
-                    disabled={!newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
-                    onClick={(e:any)=>{handleOnClick(e,handleStepChange)}}
-                  >
-                    {migrationData?.legacyCMSData?.cta}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <></>
-            )}
           </div>
         </div>
       )}
     </>
   );
-};
-
+});
+LegacyCMSComponent.displayName = 'LegacyCMSComponent';
 export default LegacyCMSComponent;

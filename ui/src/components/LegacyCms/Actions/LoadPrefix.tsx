@@ -17,14 +17,11 @@ import { DEFAULT_URL_TYPE, INewMigration } from '../../../context/app/app.interf
 import '../legacyCms.scss';
 import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDebouncer } from '../../../hooks';
-import DocLink from '../../../components/Common/DocLink/DocLink';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 //import restricted keywords
 import restrictedKeywords from '../restrictedKeywords.json';
-import { set } from 'mongoose';
-
 
 interface LoadSelectCmsProps {
   stepComponentProps: any;
@@ -156,15 +153,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
 
   return (
     <div className=" p-3">
-      {/* <DocLink
-        cta={restricted_keyword_link}
-        isCheckedBoxChecked={isCheckedBoxChecked}
-        label={restricted_keyword_checkbox_text}
-        onChange={handleCheckBoxChange}
-        isDisable={false}
-      /> */}
-
-      <div className="col-12 pb-2">
+      <div className="col-12">
         <TextInput
           onChange={(e:any)=>{handleOnChange(e)}}
           value={prefix}
@@ -185,11 +174,6 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           <span> {restricted_keyword_link?.title}</span>
         </a>
       </div>}
-      {/* <div className="col-12 pt-2">
-        <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleOnBlur}>
-          {migrationData?.legacyCMSData?.affix_cta}
-        </Button>
-      </div> */}
     </div>
   );
 };
