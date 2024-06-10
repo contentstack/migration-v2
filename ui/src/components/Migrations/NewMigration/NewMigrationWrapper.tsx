@@ -1,9 +1,10 @@
 // Libraries
-import { lazy, useContext, useEffect, useState } from 'react';
-import { Navigate, Outlet, Params, useNavigate, useParams } from 'react-router';
+import { lazy, useEffect, useState, useRef } from 'react';
+import {  Outlet, Params, useNavigate, useParams } from 'react-router';
+import {  useSelector } from 'react-redux';
 
 //venus components
-import { PageLayout } from '@contentstack/venus-components';
+import { Button, PageLayout, Stepper } from '@contentstack/venus-components';
 
 // Services
 import { getMigrationData } from '../../../services/api/migration.service';
@@ -14,8 +15,6 @@ import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 import { CS_ENTRIES } from '../../../utilities/constants';
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 
-// Context
-import { AppContext } from '../../../context/app/app.context';
 
 // Interface
 import {
@@ -34,6 +33,10 @@ import {
   MigrationResponse,
   defaultMigrationResponse
 } from '../../../services/api/service.interface';
+import { useDispatch } from 'react-redux';
+import {  updateMigrationData } from '../../../store/slice/migrationDataSlice';
+import HorizontalStepper from '../../Stepper/HorizontalStepper/HorizontalStepper';
+import { RootState } from '../../../store';
 
 const defaultStep = '1';
 
@@ -48,56 +51,60 @@ const MigrationExecutionComponentLazyLoaded = lazy(
   () => import('../../../components/MigrationExecution')
 );
 
-const getComponent = (
-  params: Params<string>,
-  projectData: MigrationResponse,
-  stepId = defaultStep
-) => {
-  switch (stepId) {
-    case '1': {
-      return (
-        <LegacyCMSComponentLazyLoaded
-          legacyCMSData={projectData?.legacy_cms}
-          projectData={projectData}
-        />
-      );
-    }
-    case '2': {
-      return (
-        <DestinationStackComponentLazyLoaded
-          destination_stack={projectData?.destination_stack_id}
-          org_id={projectData?.org_id}
-          projectData={projectData}
-        />
-      );
-    }
-    case '3': {
-      return <ContentMapperComponentLazyLoaded />;
-    }
-    case '4': {
-      return <TestMigrationComponentLazyLoaded />;
-    }
-    case '5': {
-      return <MigrationExecutionComponentLazyLoaded />;
-    }
 
-    default: {
-      const url = `/projects/${params?.projectId}/migration/steps/${defaultStep}`;
-      return <Navigate replace={true} to={url} />;
-    }
-  }
-};
+const createStepper = (projectData:any,handleStepChange: (currentStep: number) => void) => {
+  const steps = [
+    {
+      data: <LegacyCMSComponentLazyLoaded
+            legacyCMSData={projectData?.legacy_cms}
+            projectData={projectData}
+            handleStepChange={handleStepChange}/>,
+      id:'1',
+      title:'Legacy CMS'
+    },
+    {
+      data: <DestinationStackComponentLazyLoaded
+              destination_stack={projectData?.destination_stack_id}
+              org_id={projectData?.org_id}
+              projectData={projectData}
+              handleStepChange={handleStepChange}
+            />,
+      id:'2',
+      title:'Destination Stack'
+    },
+    {
+      data: <ContentMapperComponentLazyLoaded />,
+      id:'3',
+      title:'Content Mapping'
+    },
+    {
+      data: <TestMigrationComponentLazyLoaded />,
+      id:'4',
+      title:'Test Migration'
+    },
+    {
+      data: <MigrationExecutionComponentLazyLoaded />,
+      id:'5',
+      title:'Migration Execution'
+    },
+
+    
+   ]
+   return steps;
+}
 
 const NewMigrationWrapper = () => {
   const params: Params<string> = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const stepperRef = useRef<any>(null);
 
   const [showInfo, setShowInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [projectData, setProjectData] = useState<MigrationResponse>(defaultMigrationResponse);
 
-  /********  ALL CONTEXT DATA  **********/
-  const { migrationData, updateMigrationData, selectedOrganisation } = useContext(AppContext);
+  const migrationData = useSelector((state: RootState)=>state?.migration?.migrationData);
+  const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
 
   //Fetch project data
   const fetchProjectData = async () => {
@@ -129,12 +136,13 @@ const NewMigrationWrapper = () => {
       ? data?.all_steps?.find((step: IFlowStep) => `${step.name}` === params?.stepId)
       : DEFAULT_IFLOWSTEP;
 
-    updateMigrationData({
+
+    dispatch(updateMigrationData({
       allFlowSteps: data?.all_steps,
       currentFlowStep: currentFlowStep,
       migration_steps_heading: data?.migration_steps_heading,
       settings: data?.settings
-    });
+    }));
 
     await fetchProjectData();
   };
@@ -143,6 +151,14 @@ const NewMigrationWrapper = () => {
     setShowInfo(true);
     navigate(`settings`);
   };
+
+  const handleClick = () => {
+
+    // Call handleStepChange function
+    const x : string | undefined= params.stepId 
+    const currentStep : number = parseInt(x || '');  
+    stepperRef?.current?.handleStepChange(currentStep-1);
+};
 
   useEffect(() => {
     fetchData();
@@ -154,19 +170,6 @@ const NewMigrationWrapper = () => {
 
   const { settings, migration_steps_heading } = migrationData;
 
-  const content = {
-    component: (
-      <>
-        {isLoading ? (
-          <></> // Consider using a loading indicator here
-        ) : (
-          <div className="action-component-body">
-            {getComponent(params, projectData, params?.stepId)}
-          </div>
-        )}
-      </>
-    )
-  };
 
   const leftSidebar = {
     component: (
@@ -181,7 +184,7 @@ const NewMigrationWrapper = () => {
       </div>
     )
   };
-
+  
   const header = {
     component: (
       <div className="action-component-title">
@@ -192,7 +195,7 @@ const NewMigrationWrapper = () => {
       </div>
     )
   };
-
+ 
   return (
     <>
       {/* {showInfo && <Outlet />}
@@ -231,13 +234,7 @@ const NewMigrationWrapper = () => {
         <div id="newMigration" className="layout-container migrations-container  p-0 d-flex w-100">
           <div className="step-flow-wrapper-content-area">
             <div className="step-component step-open trigger">
-              <PageLayout
-                content={content}
-                header={header}
-                leftSidebar={leftSidebar}
-                type="list"
-                version="v2"
-              />
+              <HorizontalStepper ref={stepperRef} steps={createStepper(projectData,handleClick)}/>
             </div>
           </div>
         </div>

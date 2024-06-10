@@ -2,7 +2,9 @@
 @import '../../scss/variables';
 
 .content-types-list-wrapper {
-  max-height: calc(100vh - 7.25rem);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 173px);
   max-width: 27%;
   overflow: hidden;
   width: 100%;
@@ -19,9 +21,8 @@
   }
 }
 .ct-list {
-  height: 100%;
   list-style-type: none;
-  margin: 15px 0;
+  padding: 15px 0;
   overflow-y: auto;
   overflow-x: hidden;
   li {

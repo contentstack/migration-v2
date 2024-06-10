@@ -1,4 +1,5 @@
 import { useContext } from 'react';
+import { useDispatch,useSelector } from 'react-redux';
 import StepIcon from '../../../components/Stepper/FlowStepper/StepIcon';
 import { AppContext } from '../../../context/app/app.context';
 import { isEmptyString } from '../../../utilities/functions';
@@ -7,14 +8,16 @@ import { IStep } from '../../../context/app/app.interface';
 import './summary.scss';
 import DocLink from '../../../components/Common/DocLink/DocLink';
 import { ICardType } from '../../Common/Card/card.interface';
+import { RootState } from '../../../store';
 
 interface FileFormatSummaryProps {
   stepData: IStep;
 }
 
 const FileFormatSummary = ({ stepData }: FileFormatSummaryProps): JSX.Element => {
-  const { newMigrationData, migrationData } = useContext(AppContext);
 
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const { doc_url = { href: '', title: '' }, allowed_file_formats = [] } =
     newMigrationData?.legacy_cms?.selectedCms || {};
 
