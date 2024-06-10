@@ -1,6 +1,6 @@
 import { API_VERSION } from '../../utilities/constants';
 import { getDataFromLocalStorage } from '../../utilities/functions';
-import { getCall, postCall, putCall } from './service';
+import { getCall, postCall, putCall, deleteCall } from './service';
 
 const options = () => ({
   headers: {
@@ -35,6 +35,14 @@ export const createProject = async (orgId: string, data: any) => {
 export const updateProject = async (orgId: string, projectId: string, data: any) => {
   try {
     return await putCall(`${API_VERSION}/org/${orgId}/project/${projectId}`, data, options());
+  } catch (error: any) {
+    return error;
+  }
+};
+
+export const deleteProject = async (orgId: string, projectId: string) => {
+  try {
+    return await deleteCall(`${API_VERSION}/org/${orgId}/project/${projectId}`, options());
   } catch (error: any) {
     return error;
   }

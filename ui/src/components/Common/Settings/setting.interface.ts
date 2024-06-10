@@ -19,7 +19,7 @@ interface IExecutionLogs {
 }
 
 export interface Setting {
-  project: IProject;
-  execution_logs: IExecutionLogs;
-  title: string;
+  project?: IProject;
+  execution_logs?: IExecutionLogs;
+  title?: string;
 }
