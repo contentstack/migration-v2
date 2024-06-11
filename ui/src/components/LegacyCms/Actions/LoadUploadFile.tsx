@@ -22,7 +22,7 @@ const FileComponent = ({fileDetails}:Props ) => {
   
   return (
     <div>
-      {fileDetails?.isLocalPath ? (
+      {fileDetails?.isLocalPath && (!isEmptyString(fileDetails?.localPath) || !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
         <div>
           <Paragraph className="pb-2" tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
           
@@ -51,8 +51,11 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [validationMessgae, setValidationMessage] = useState<string>('');
   const [isValidationAttempted, setIsValidationAttempted] = useState<boolean>(false);
   const [isDasabled, setIsDisabled] = useState<boolean>(false);
-
-  const { projectId = '' } = useParams();
+  const [isConfigLoading, setIsConfigLoading] = useState<boolean>(true);
+  const [cmsType, setCmsType]= useState('');
+  const [fileDetails, setFileDetails] = useState<FileDetails>();
+  const [fileExtension, setFileExtension] = useState<string>('');
+  
 
   //Handle further action on file is uploaded to server
   const handleOnFileUploadCompletion = async () => {
@@ -105,11 +108,52 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     
   };
 
+  const getFileExtension = (filePath: string): string => {
+    const ext = filePath.split('.').pop();
+    return ext ? `${ext}` : '';
+  };
+
   //function to get config details
   const getConfigDetails = async () =>{
+    setIsConfigLoading(true);
     const res: any = await getConfig();
- 
-    if(! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== res?.data?.cmsType.toLowerCase()){
+
+    
+    if(res?.status === 200){
+      const extension = getFileExtension(res?.data?.localPath);     
+      setCmsType(res?.data?.cmsType);
+      setFileDetails(res?.data);
+      setFileExtension(extension);
+
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData?.legacy_cms,
+          uploadedFile: {
+            name: res?.data?.localPath,
+            url: res?.data?.localPath,
+            file_details: {
+              isLocalPath: res?.data?.isLocalPath,
+              cmsType: res?.data?.cmsType,
+              localPath: res?.data?.localPath,
+              awsData: {
+                awsRegion: res?.data?.awsData?.awsRegion,
+                bucketName: res?.data?.awsData?.bucketName,
+                buketKey: res?.data?.awsData?.buketKey
+              }
+            }
+          }
+        }
+      };
+
+      dispatch(updateNewMigrationData(newMigrationDataObj));
+    
+  }
+  else if(! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
+    newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== res?.data?.cmsType.toLowerCase()
+     || fileExtension !== newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id
+    )
+    {  
       setIsValidated(false);
       setValidationMessage('Validation Falied');
       setIsValidationAttempted(true);
@@ -117,28 +161,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setIsLoading(false);
       setIsDisabled(true);
     }
-
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      legacy_cms: {
-        ...newMigrationData?.legacy_cms,
-        uploadedFile: {
-          name: res?.data?.localPath,
-          url: res?.data?.localPath,
-          file_details: {
-            isLocalPath: res?.data?.isLocalPath,
-            cmsType: res?.data?.cmsType,
-            localPath: res?.data?.localPath,
-            awsData: {
-              awsRegion: res?.data?.awsData?.awsRegion,
-              bucketName: res?.data?.awsData?.bucketName,
-              buketKey: res?.data?.awsData?.buketKey
-            }
-          }
-        }
-      }
-    };
-    dispatch(updateNewMigrationData(newMigrationDataObj));
+     setIsConfigLoading(false);
+    
 
   }
 
@@ -156,7 +180,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setValidationMessage('Validated');
       props.handleStepChange(props?.currentStep, true);  
     }
-  },[isValidated])
+    
+  },[isValidated,newMigrationData])
 
   const validationClassName = isValidated ? 'success' : 'error';
   
@@ -167,10 +192,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       <div className="col-12">
         <div className="col-12">
           <div className={containerClassName}>
-            {! isDasabled ? (
-              <FileComponent fileDetails={newMigrationData?.legacy_cms?.uploadedFile?.file_details || {}} />
+            {!isConfigLoading && !isEmptyString(cmsType) ? (
+              <FileComponent fileDetails={fileDetails || {}} />
             ) :
-            <Paragraph className="pb-2" tagName="p" variant='p1' text={'Please verify the CMS'}/>}
+              <Paragraph className="pb-2" tagName="p" variant='p1' text={'Please verify the CMS'}/>}
             {showMessage  &&
               (<Paragraph className={`${validationClassName} pb-2` } tagName='p' variant="p2" text={validationMessgae}/>)
             }
