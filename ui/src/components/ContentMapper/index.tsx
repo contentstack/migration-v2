@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Heading,
   InfiniteScrollTable,
   Select,
   ButtonGroup,
@@ -34,12 +33,13 @@ import {
 } from '../../services/api/migration.service';
 import { getStackStatus } from '../../services/api/stacks.service';
 
+// Redux
+import { RootState } from '../../store';
+import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+
 // Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
 import { validateArray } from '../../utilities/functions';
-
-// Context
-import { AppContext } from '../../context/app/app.context';
 
 // Interface
 import { DEFAULT_CONTENT_MAPPING_DATA, INewMigration } from '../../context/app/app.interface';
@@ -66,9 +66,6 @@ import AdvanceSettings from '../AdvancePropertise';
 
 // Styles
 import './index.scss';
-import { RootState } from '../../store';
-import { setNewMigrationData, updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
-import { setMigrationData } from '../../store/slice/migrationDataSlice';
 
 const Fields: Mapping = {
   'Single Line Textbox': [
@@ -107,7 +104,6 @@ const Fields: Mapping = {
   CheckBox: 'Select',
   global_field: 'Global'
 };
-
 interface ModalProps {
   e: React.MouseEvent<HTMLElement>;
   newIndex: number;
@@ -126,13 +122,11 @@ const ContentMapper = () => {
     contentMappingData: {
       content_types_heading: contentTypesHeading,
       description,
-      action_cta: actionCta,
-      cta,
+      // action_cta: actionCta,
+      // cta,
       search_placeholder: searchPlaceholder
     }
   } = migrationData;
-
-  const parseDescription = HTMLReactParser(jsonToHtml(description ?? {}));
 
   const [tableData, setTableData] = useState<FieldMapType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -250,7 +244,7 @@ const ContentMapper = () => {
 
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
-    const { data } = await getContentTypes(projectId || '', 0, 10, searchContentType || ''); //org id will always present
+    const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
 
     setContentTypes(data?.contentTypes);
     setSelectedContentType(data?.contentTypes?.[0]);
@@ -279,7 +273,7 @@ const ContentMapper = () => {
   const handleSearch = async (searchCT: string) => {
     setSearchContentType(searchCT);
 
-    const { data } = await getContentTypes(projectId, 0, 5, searchCT || ''); //org id will always present
+    const { data } = await getContentTypes(projectId, 0, 1000, searchCT || ''); //org id will always present
 
     setContentTypes(data?.contentTypes);
     setSelectedContentType(data?.contentTypes?.[0]);
@@ -369,40 +363,7 @@ const ContentMapper = () => {
     setSelectedContentType(contentTypes?.[i]);
   };
 
-  //function to handle previous content type navigation
-  const handlePrevClick = (e: React.MouseEvent<HTMLElement>) => {
-    const newIndex = currentIndex > 0 ? currentIndex - 1 : 0;
-    if (isDropDownChanged) {
-      handleSaveContentTypeModal(e, newIndex);
-    } else {
-      setCurrentIndex(newIndex);
-      openContentType(e, newIndex);
-      document.querySelectorAll('.ct-list li').forEach((ctLi, ind) => {
-        if (newIndex === ind) {
-          ctLi?.classList?.add('active-ct');
-        }
-      });
-    }
-  };
-
-  // function to handle next content type navigation
-  const handleNextClick = (e: React.MouseEvent<HTMLElement>) => {
-    if (currentIndex < contentTypes?.length - 1) {
-      const newIndex = currentIndex + 1;
-
-      if (isDropDownChanged) {
-        handleSaveContentTypeModal(e, newIndex);
-      } else {
-        setCurrentIndex(newIndex);
-        openContentType(e, newIndex);
-        document.querySelectorAll('.ct-list li').forEach((ctLi, ind) => {
-          if (newIndex === ind) {
-            ctLi?.classList?.add('active-ct');
-          }
-        });
-      }
-    }
-  };
+  // Function to Save the Content Type
   const SaveContentType = (props: ModalProps) => {
     return (
       <>
@@ -484,9 +445,6 @@ const ContentMapper = () => {
         <SchemaModal
           schemaData={tableData}
           contentType={title}
-          // closeModal={() => {
-          //   return;
-          // }}
           {...props}
         />
       ),
@@ -531,7 +489,6 @@ const ContentMapper = () => {
 
     setRowIds(selectedObj);
     setSelectedEntries(selectedData);
-    
   };
 
   // Function to find unchecked field
@@ -604,8 +561,6 @@ const ContentMapper = () => {
   };
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
-
-    
 
     const option = Array.isArray(OptionsForRow)
       ? OptionsForRow.map((option) => ({ label: option, value: option }))
@@ -708,6 +663,7 @@ const ContentMapper = () => {
       'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
       'JSON Rich Text Editor': 'json',
+      group: 'Group',
       URL: 'url',
       file: 'file',
       number: 'number',
@@ -728,11 +684,14 @@ const ContentMapper = () => {
       );
       setContentTypeSchema(ContentType?.schema)
     }
-
+    console.log('contentTypeSchema', contentTypeSchema);
+    
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
       
       contentTypeSchema.forEach((value) => {
+        console.log("value", value);
+        
         switch (fieldTypeToMatch) {
           case 'text':
             if (
@@ -785,11 +744,9 @@ const ContentMapper = () => {
               OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
             }
             break;
-          // case 'Group':
-          //   if (value?.data_type === 'group') {
-          //     OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-          //   }
-          //   break;
+          case 'Group':
+              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
+            break;
           default:
             OptionsForRow.push({
               label: 'No matches found',
@@ -1019,15 +976,28 @@ const ContentMapper = () => {
     isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
   }));
 
+  const calcHeight = () => {
+    // Get the viewport height in pixels
+    const viewportHeight = window.innerHeight;
+    
+    // Subtract 246 pixels from the viewport height
+    const result = viewportHeight - 226;
+    
+    return result;
+  }
+
+  const tableHeight = calcHeight();
+
   return (
     <div className="step-container">
       <div className="d-flex flex-wrap table-container">
         {/* Content Types List */}
         <div className="content-types-list-wrapper">
           <div className="content-types-list-header">
-            <Heading tagName="h6" text={contentTypesHeading} />
-            <p>{parseDescription}</p>
+            {contentTypesHeading && <h2>{contentTypesHeading}</h2> }
+          </div>
 
+          <div className='ct-search-wrapper'>
             <Search
               placeholder={searchPlaceholder}
               type="secondary"
@@ -1040,6 +1010,7 @@ const ContentMapper = () => {
           </div>
 
           {contentTypes && validateArray(contentTypes) && (
+            <div className='ct-list-wrapper'>
             <ul className="ct-list">
               {contentTypes?.map((content: ContentType, index: number) => (
                 <li
@@ -1064,24 +1035,13 @@ const ContentMapper = () => {
                 </li>
               ))}
             </ul>
+            </div>
           )}
         </div>
 
         {/* Content Type Fields */}
         <div className="content-types-fields-wrapper">
-          {!IsEmptyStack && (
-            <div className="d-flex justify-content-end content-type-list">
-              <Select
-                value={OtherContentType}
-                onChange={handleDropDownChange}
-                options={adjustedOption}
-                width="345px"
-                maxWidth="345px"
-                placeholder={OtherContentType && 'Select Contentstack Content Type'}
-                version="v2"
-              />
-            </div>
-          )}
+          
 
           <div className="table-wrapper">
             <InfiniteScrollTable
@@ -1097,12 +1057,12 @@ const ContentMapper = () => {
               searchPlaceholder={searchPlaceholder}
               fetchTableData={fetchData}
               loadMoreItems={loadMoreItems}
-              tableHeight={IsEmptyStack ? 495 : 465}
+              tableHeight={tableHeight}
               equalWidthColumns={true}
               columnSelector={false}
               initialRowSelectedData={tableData}
               initialSelectedRowIds={rowIds}
-              itemSize={130}
+              itemSize={80}
               withExportCta={{
                 component: (
                   <div style={{ display: 'flex', gap: '10px' }}>
@@ -1120,6 +1080,20 @@ const ContentMapper = () => {
                         <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType} />
                       </Tooltip>
                     )}
+
+                    {!IsEmptyStack && (
+                      <div className="d-flex justify-content-end content-type-list">
+                        <Select
+                          value={OtherContentType}
+                          onChange={handleDropDownChange}
+                          options={adjustedOption}
+                          width="345px"
+                          maxWidth="345px"
+                          placeholder={OtherContentType && 'Select Contentstack Content Type'}
+                          version="v2"
+                        />
+                      </div>
+                    )}
                   </div>
                 ),
                 showExportCta: true
@@ -1129,7 +1103,7 @@ const ContentMapper = () => {
             />
           </div>
 
-          {actionCta && validateArray(actionCta) && (
+          {/* {actionCta && validateArray(actionCta) && (
             <ButtonGroup className="action-btn-wrapper">
               <div
                 className="IconStoriesWrapper"
@@ -1184,11 +1158,11 @@ const ContentMapper = () => {
                 </div>
               </div>
             </ButtonGroup>
-          )}
+          )} */}
         </div>
       </div>
 
-      {cta?.title && (
+      {/* {cta?.title && (
         <div className="cta-wrapper">
           <Button
             buttonType={cta?.theme}
@@ -1199,7 +1173,7 @@ const ContentMapper = () => {
             {cta?.title}
           </Button>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
