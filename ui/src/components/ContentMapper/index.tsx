@@ -125,7 +125,7 @@ const ContentMapper = () => {
       // action_cta: actionCta,
       // cta,
       search_placeholder: searchPlaceholder
-    }
+    }= {}
   } = migrationData;
 
   const [tableData, setTableData] = useState<FieldMapType[]>([]);

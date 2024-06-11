@@ -20,7 +20,6 @@ interface FlowBlockItemProps {
 }
 
 const FlowBlockItem: FC<FlowBlockItemProps> = (props: FlowBlockItemProps) => {
-  //console.log("isComeplted : ", props?.isCompleted, props?.step);
 
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
