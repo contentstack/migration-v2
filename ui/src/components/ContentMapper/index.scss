@@ -5,13 +5,19 @@
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 173px);
-  max-width: 27%;
+  max-width: 25%;
   overflow: hidden;
   width: 100%;
 }
 .content-types-list-header {
+  background-color: $color-base-white-10;
   border-bottom: 1px solid $color-brand-secondary-lightest;
-  padding: 18px $space-12;
+  padding: $px-20 $space-12;
+  h2 {
+    color: $color-font-base;
+    font-size: $size-font-20;
+    font-weight: $font-weight-semi-bold;
+  }
   .Search {
     margin: $space-20 0 $space-12;
     width: 100%;
@@ -20,21 +26,36 @@
     }
   }
 }
-.ct-list {
-  list-style-type: none;
-  padding: 15px 0;
+.ct-search-wrapper {
+  border-bottom: 1px solid $color-brand-secondary-lightest;
+  padding: $px-8 $px-12;
+  .Search__v2 {
+    height: 2.5rem;
+    width: 100%!important;
+    .Search-input-show {
+      width: 100%!important;
+    }
+  }
+}
+.ct-list-wrapper {
   overflow-y: auto;
   overflow-x: hidden;
+}
+.ct-list {
+  border-right: 1px solid $color-brand-secondary-lightest;
+  list-style-type: none;
+  margin: 0 0 0 $px-12;
+  padding: 15px 12px 15px 0;
   li {
     align-items: center;
     border: 1px solid transparent;
     cursor: pointer;
     display: flex;
-    font-size: $size-font-large;
+    font-size: $size-font-xl;
     justify-content: space-between;
     line-height: normal;
     min-height: 42px;
-    padding: $space-10 35px;
+    padding: $px-8 $px-12;
     &.active-ct {
       background-color: $color-brand-white-base;
       border: 1px solid $color-brand-primary-base;
@@ -46,10 +67,10 @@
   padding-left: 12px;
 }
 .content-types-fields-wrapper {
-  border-left: 1px solid $color-brand-secondary-lightest;
+  // border-left: 1px solid $color-brand-secondary-lightest;
   display: flex;
   flex-direction: column;
-  max-width: 73%;
+  max-width: 75%;
   width: 100%;
   padding: 0px;
 }
@@ -72,9 +93,10 @@
       padding: 0 1.25rem;
     }
     .cms-field {
-      font-weight: $font-weight-semi-bold;
+      text-transform: capitalize;
     }
     .InstructionText {
+      font-size: $size-font-small;
       margin: 0;
     }
   }
@@ -96,7 +118,6 @@
   flex-direction: column;
   margin-top: 0;
   margin-left: 0px;
-  // margin-bottom: 20px;
   width: 100%;
 }
 .saveButton {
@@ -105,10 +126,13 @@
 .btnWrapper {
   margin-left: 20px;
 }
-div .select .Select {
-  width: $px-50;
-  max-width: $px-50 !important;
-}
+div .select {
+  width: calc(100% - 30px);
+  .Select {
+    width: 100%;
+    max-width: 100% !important;
+  }
+} 
 div .table-row {
   display: flex;
   justify-content: space-between;
