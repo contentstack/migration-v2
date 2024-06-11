@@ -18,7 +18,6 @@ import { isEmptyString, validateArray } from '../../utilities/functions';
 // Interface
 import {
   MigrationResponse,
-  defaultMigrationResponse
 } from '../../services/api/service.interface';
 import {
   DEFAULT_IFLOWSTEP,
@@ -33,9 +32,10 @@ import DestinationStackComponent from '../../components/DestinationStack';
 import ContentMapper from '../../components/ContentMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
+import { Notification } from '@contentstack/venus-components';
 
 const Migration = () => {
-  const [projectData, setProjectData] = useState<MigrationResponse>(defaultMigrationResponse);
+  const [projectData, setProjectData] = useState<MigrationResponse>();
   const [isLoading, setIsLoading] = useState(false);
   const [curreentStepIndex, setCurrentStepIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
@@ -176,6 +176,12 @@ const Migration = () => {
         navigate(url, { replace: true });
       }
 
+      }
+      else{
+        Notification({
+          notificationContent: { text: 'Please complete all steps' },
+          type: 'warning'
+        });
       }
       
     };
