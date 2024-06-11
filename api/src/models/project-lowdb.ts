@@ -14,6 +14,13 @@ interface LegacyCMS {
     type: string;
     path: string;
   };
+  awsDetails: {
+    awsRegion: string;
+    bucketName: string;
+    buketKey: string;
+}
+  file_path: string;
+  is_fileValid: boolean;
 }
 
 interface ExecutionLog {
