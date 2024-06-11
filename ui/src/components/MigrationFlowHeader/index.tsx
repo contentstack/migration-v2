@@ -16,7 +16,11 @@ import { DEFAULT_NEW_MIGRATION } from '../../context/app/app.interface';
 // CSS
 import './index.scss';
 
-const MigrationFlowHeader = () => {
+type MigrationFlowHeaderProps = {
+  handleOnClick: (event: MouseEvent, handleStepChange: (currentStep: number) => void) => void;
+};
+
+const MigrationFlowHeader = ({ handleOnClick }: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
 
   const navigate = useNavigate();
@@ -67,7 +71,7 @@ const MigrationFlowHeader = () => {
       <Button
         buttonType='primary'
         className="ml-10"
-        // onClick={handleModal}
+        onClick={handleOnClick}
         version="v2"
         aria-label='Save and Continue'
       >
