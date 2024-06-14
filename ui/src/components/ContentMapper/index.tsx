@@ -15,7 +15,8 @@ import {
   InstructionText,
   ModalHeader,
   ModalBody,
-  ModalFooter
+  ModalFooter,
+  Dropdown
 } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
@@ -109,6 +110,7 @@ interface ModalProps {
   newIndex: number;
   closeModal: () => void;
 }
+
 const ContentMapper = () => {
   /** ALL CONTEXT HERE */
 
@@ -124,7 +126,8 @@ const ContentMapper = () => {
       description,
       // action_cta: actionCta,
       // cta,
-      search_placeholder: searchPlaceholder
+      search_placeholder: searchPlaceholder,
+      table_search_placeholder: tableSearchPlaceholder
     }= {}
   } = migrationData;
 
@@ -211,8 +214,8 @@ const ContentMapper = () => {
   useEffect(() => {
     if (contentTypeMapped && otherCmsTitle) {
       setOtherContentType({
-        label: contentTypeMapped?.[otherCmsTitle] ?? 'Select Content Type',
-        value: contentTypeMapped?.[otherCmsTitle] ?? 'Select Content Type'
+        label: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack',
+        value: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack'
       });
     }
   }, [contentTypeMapped, otherCmsTitle]);
@@ -439,7 +442,7 @@ const ContentMapper = () => {
     setTableData(newTableData);
   };
 
-  const handleOnClick = (title: string) => {
+  const handleSchemaPreview = (title: string) => {
     return cbModal({
       component: (props: ModalObj) => (
         <SchemaModal
@@ -574,7 +577,7 @@ const ContentMapper = () => {
         <div className="select">
           <Select
             id={data?.uid}
-            value={{ label: fieldLabel, value: fieldValue }}
+            value={{ label: data?.ContentstackFieldType, value: fieldValue }}
             onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid)}
             placeholder="Select Field"
             version={'v2'}
@@ -684,14 +687,11 @@ const ContentMapper = () => {
       );
       setContentTypeSchema(ContentType?.schema)
     }
-    console.log('contentTypeSchema', contentTypeSchema);
     
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
       
       contentTypeSchema.forEach((value) => {
-        console.log("value", value);
-        
         switch (fieldTypeToMatch) {
           case 'text':
             if (
@@ -839,11 +839,11 @@ const ContentMapper = () => {
           fieldMapping: selectedEntries
         }
       };
-
+      
       const { data, status } = await updateContentType(
         orgId,
         projectID,
-        selectedContentType?.id || '',
+        selectedContentType?.id ?? '',
         dataCs
       );
 
@@ -971,7 +971,7 @@ const ContentMapper = () => {
     isDisabled: false
   }));
 
-  const adjustedOption = options.map((option: any) => ({
+  const adjustedOption = options?.map((option: any) => ({
     ...option,
     isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
   }));
@@ -981,7 +981,7 @@ const ContentMapper = () => {
     const viewportHeight = window.innerHeight;
     
     // Subtract 246 pixels from the viewport height
-    const result = viewportHeight - 226;
+    const result = viewportHeight - 361;
     
     return result;
   }
@@ -1021,15 +1021,32 @@ const ContentMapper = () => {
                   <span>{content?.otherCmsTitle}</span>
 
                   {active == index && (
+                    
                     <span>
-                      <Tooltip content={'Schema Preview'} position="left">
+                      <Dropdown
+                        // version="v2"
+                        list={[
+                          {
+                            action: handleSchemaPreview,
+                            default: true,
+                            label: 'Schema Preview'
+                          }
+                        ]}
+                        type="click"
+                        isEllipse
+                        dropDownPosition="left"
+                        className='dropdown-align'
+                      >
+                        <Icon icon="Settings" size="small" version="v2" />
+                      </Dropdown>
+                      {/* <Tooltip content={'Schema Preview'} position="left">
                         <Icon
                           icon="LivePreview"
                           size="small"
                           version="v2"
                           onClick={() => handleOnClick(content?.otherCmsTitle)}
                         />
-                      </Tooltip>
+                      </Tooltip> */}
                     </span>
                   )}
                 </li>
@@ -1054,7 +1071,7 @@ const ContentMapper = () => {
               // fullRowSelect
               itemStatusMap={itemStatusMap}
               totalCounts={totalCounts}
-              searchPlaceholder={searchPlaceholder}
+              searchPlaceholder={tableSearchPlaceholder}
               fetchTableData={fetchData}
               loadMoreItems={loadMoreItems}
               tableHeight={tableHeight}
@@ -1065,7 +1082,13 @@ const ContentMapper = () => {
               itemSize={80}
               withExportCta={{
                 component: (
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className='d-flex align-items-center' style={{ gap: '8px' }}>
+                    {!IsEmptyStack && (
+                      <Tooltip content={'fetch the content type'} position="left">
+                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType} />
+                      </Tooltip>
+                    )}
+
                     <Tooltip content={'Reset to intial mapping'} position="left">
                       <Icon
                         icon="ResetReverse"
@@ -1076,20 +1099,14 @@ const ContentMapper = () => {
                     </Tooltip>
 
                     {!IsEmptyStack && (
-                      <Tooltip content={'fetch the content type'} position="left">
-                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType} />
-                      </Tooltip>
-                    )}
-
-                    {!IsEmptyStack && (
-                      <div className="d-flex justify-content-end content-type-list">
+                      <div className="d-flex justify-content-end">
                         <Select
                           value={OtherContentType}
                           onChange={handleDropDownChange}
                           options={adjustedOption}
-                          width="345px"
-                          maxWidth="345px"
-                          placeholder={OtherContentType && 'Select Contentstack Content Type'}
+                          width="440px"
+                          maxWidth="440px"
+                          placeholder={OtherContentType && 'Select content type from existing stack'}
                           version="v2"
                         />
                       </div>
@@ -1101,7 +1118,19 @@ const ContentMapper = () => {
               getSelectedRow={handleSelectedEntries}
               rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
             />
+            <div className='text-end my-3 mx-3 px-1'>
+              <Button
+                  className="saveButton"
+                  size="small"
+                  buttonType="secondary"
+                  onClick={handleSaveContentType}
+                >
+                Save
+              </Button>
+            </div>
           </div>
+
+          
 
           {/* {actionCta && validateArray(actionCta) && (
             <ButtonGroup className="action-btn-wrapper">

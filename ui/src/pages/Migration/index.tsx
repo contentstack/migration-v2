@@ -5,10 +5,10 @@ import { useDispatch, useSelector } from 'react-redux';
 
 // Redux files
 import { RootState } from '../../store';
-import {  updateMigrationData } from '../../store/slice/migrationDataSlice';
+import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, createTestStack } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -23,6 +23,8 @@ import {
   DEFAULT_IFLOWSTEP,
   IFlowStep
 } from '../../components/Stepper/FlowStepper/flowStep.interface';
+import { INewMigration } from '../../context/app/app.interface';
+
 
 // Components
 import MigrationFlowHeader from '../../components/MigrationFlowHeader';
@@ -51,7 +53,7 @@ const Migration = () => {
 
   useEffect(() => {
     fetchData();
-  }, [params?.stepId, params?.projectId, selectedOrganisation.value]);
+  }, [params?.stepId, params?.projectId, selectedOrganisation?.value]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -81,17 +83,17 @@ const Migration = () => {
     }));
 
     await fetchProjectData();
-    const stepIndex = data?.all_steps?.findIndex((step: IFlowStep) => `${step.name}` === params?.stepId);
+    const stepIndex = data?.all_steps?.findIndex((step: IFlowStep) => `${step?.name}` === params?.stepId);
     setCurrentStepIndex(stepIndex !== -1 ? stepIndex : 0);
   };
 
   //Fetch project data
   const fetchProjectData = async () => {
-    if (isEmptyString(selectedOrganisation.value) || isEmptyString(params?.projectId)) return;
+    if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
 
-    const data = await getMigrationData(selectedOrganisation.value, params?.projectId || '');
+    const data = await getMigrationData(selectedOrganisation?.value, params?.projectId || '');
     if (data) {
-      setProjectData(data.data);
+      setProjectData(data?.data);
       setIsLoading(false);
     }
   };
@@ -186,8 +188,45 @@ const Migration = () => {
       
     };
 
+    const handleOnClickContentMapper = async (event: MouseEvent) => {
+      if (isCompleted) {
+        event.preventDefault();
+
+        const data = {
+          name: newMigrationData?.destination_stack?.selectedStack?.label,
+          description: 'test migration stack',
+          master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
+        };
+
+        const res = await createTestStack(
+          newMigrationData?.destination_stack?.selectedOrg?.value,
+          projectId,
+          data
+        );
+
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          test_migration: { stack_link: res?.data?.data?.url }
+        };
+    
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
+        if (res?.status) {
+          // setisButtonLoading(false);
+          const url = `/projects/${projectId}/migration/steps/4`;
+          navigate(url, { replace: true });
+        }
+      } else {
+        Notification({
+          notificationContent: { text: 'Please complete all steps' },
+          type: 'warning'
+        });
+      }
+    }
+
     const handleOnClickFunctions = [
-      handleOnClickLegacyCms,      
+      handleOnClickLegacyCms, 
+      handleOnClickLegacyCms,
+      handleOnClickContentMapper   
     ];
 
   return (
