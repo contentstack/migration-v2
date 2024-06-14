@@ -142,6 +142,7 @@
     ],
     "_version": 3
   },
+  "table_search_placeholder": "Search in Fields...",
   "search_placeholder": "Search for content types...",
   "tags": [],
   "title": "Content Mapping",
