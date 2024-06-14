@@ -4,7 +4,7 @@
 .content-types-list-wrapper {
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 173px);
+  // max-height: calc(100vh - 173px);
   max-width: 25%;
   overflow: hidden;
   width: 100%;
@@ -38,6 +38,7 @@
   }
 }
 .ct-list-wrapper {
+  height: calc(100vh - 375px);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -62,6 +63,11 @@
       color: $color-brand-primary-base;
     }
   }
+}
+.dropdown-align {
+  .Dropdown__menu--primary {
+    right: 0.25rem;
+  }       
 }
 .content-type-list {
   padding-left: 12px;
@@ -99,6 +105,9 @@
       font-size: $size-font-small;
       margin: 0;
     }
+  }
+  .import-cta {
+    margin: 0;
   }
 }
 .disabled-field {
