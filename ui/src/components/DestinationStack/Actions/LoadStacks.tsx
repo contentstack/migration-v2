@@ -303,7 +303,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                     canEditOption={true}
                     value={selectedStack}
                     isSearchable={true}
-                    // isClearable={true}
+                    isClearable={true}
                     width="600px"
                     isDisabled={props?.stepComponentProps?.isSummary || false}
                     placeholder={'Select a stack'}
