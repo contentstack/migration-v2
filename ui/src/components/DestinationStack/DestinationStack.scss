@@ -71,6 +71,7 @@
       // max-width: 430px;
       width: 100%;
       margin: 0;
+      padding-bottom: 0;
       .Select__v2 .Select__menu .Select__menu-list .Select__option {
         padding: 12px !important;
       }
@@ -84,7 +85,7 @@
         position: relative;
         &:last-child {
           border-top: 1px solid $color-brand-secondary-lightest;
-          position: absolute;
+          position: sticky;
           bottom: 0;
           color: $color-brand-primary-base;
           font-weight: $font-weight-semi-bold;
@@ -105,11 +106,20 @@
 
   }
 }
-
-.TextInput--disabled .TextInput__v2 {
-  background-color: $color-base-white-5 !important;
-  color: $color-font-black;
+.action-summary-wrapper {
+  .Select .Select__control .Select__value-container.Select__value-container--has-value .Select__single-value input {
+    width: 100% !important;
+    background-color: $color-brand-white-base;
+    font-size: $size-font-xl;
+    color: $color-black-2121;
+    font-weight: $font-weight-regular;
+  }
+  .TextInput--disabled .TextInput__v2 {
+    background-color: $color-base-white-5 !important;
+    color: $color-black-2121;
+  }
 }
+
 
 .locale-container {
   display: flex;

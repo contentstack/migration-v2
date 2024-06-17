@@ -11,7 +11,8 @@
     {
       "step_id": "Step1",
       "_metadata": { "uid": "cs45d60445c89ed302" },
-      "title": "Organization <span>(read only)</span>",
+      "title": "Organization",
+      "ifReadonly": true,
       "description": "",
       "lock": false,
       "active": true,
