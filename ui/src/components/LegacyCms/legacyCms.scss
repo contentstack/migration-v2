@@ -4,7 +4,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin: $space-15;
+  margin: 20px 20px !important;
 }
 
 .pl-40 {
@@ -25,11 +25,11 @@
   border-top: $px-5 solid $color-brand-primary-base !important;
 }
 .legacy-cms-container {
-  //padding: $px-60 0 $px-10 5% !important;
+
   padding-left: 25px !important;
   padding-top: 26px;
   padding-right: 30px;
-  //width: $px-850 !important;
+
   overflow-y: auto;
   overflow-x: hidden;
   max-height: 70vh;

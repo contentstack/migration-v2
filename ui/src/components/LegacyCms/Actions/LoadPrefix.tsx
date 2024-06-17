@@ -77,7 +77,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       });
 
       //call for Step Change
-      props.handleStepChange(props.currentStep);
+      props.handleStepChange(props?.currentStep);
 
       return;
     }
@@ -111,11 +111,11 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         //API call for saving Affix
         await updateAffixData(selectedOrganisation?.value, projectId, { affix: value });
         await affixConfirmation(selectedOrganisation?.value, projectId, {
-          affix_confirmation: isCheckedBoxChecked
+          affix_confirmation: true
         });
   
         //call for Step Change
-        props.handleStepChange(props.currentStep, true);
+        props.handleStepChange(props?.currentStep);
         return;
 
       }
@@ -152,7 +152,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     migrationData.legacyCMSData;
 
   return (
-    <div className=" p-3">
+    <div className="p-3">
       <div className="col-12">
         <TextInput
           onChange={(e:any)=>{handleOnChange(e)}}
