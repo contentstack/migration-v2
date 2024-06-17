@@ -199,7 +199,6 @@ const DestinationStackComponent = ({
       }
     }
   }, [internalActiveStepIndex]); 
-  // console.log(".........DestinationStackComponent", migrationData?.destinationStackData, isMigrationLocked)
   return (
     <>
       {isLoading ? (
