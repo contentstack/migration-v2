@@ -167,13 +167,18 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
       ) {
         setInternalActiveStepIndex(2);
       }
-  
       dispatch(updateNewMigrationData({
         ...newMigrationData,
         legacy_cms: {
           selectedCms: selectedCmsData,
           selectedFileFormat: selectedFileFormatData || defaultCardType,
-          uploadedFile: newMigrationData?.legacy_cms?.uploadedFile, //need to add backend data once endpoint exposed.
+          uploadedFile: {
+            file_details:{
+              localPath: legacyCMSData?.file_path,
+              awsData: legacyCMSData?.awsDetails
+            },
+            isValidated: legacyCMSData?.is_fileValid
+          }, //need to add backend data once endpoint exposed.
           affix: legacyCMSData?.affix || newMigrationData?.legacy_cms?.affix || '',
           isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
           isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
