@@ -142,7 +142,8 @@
     ],
     "_version": 3
   },
-  "search_placeholder": "Search",
+  "table_search_placeholder": "Search in Fields...",
+  "search_placeholder": "Search for content types...",
   "tags": [],
   "title": "Content Mapping",
   "updated_at": "2024-01-25T12:13:32.967Z",
