@@ -63,11 +63,11 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       });
 
       await fileformatConfirmation(selectedOrganisation?.value, projectId, {
-        fileformat_confirmation: isCheckedBoxChecked
+        fileformat_confirmation: true
       });
 
       //call for Step Change
-      props.handleStepChange(props?.currentStep, true);
+      props.handleStepChange(props?.currentStep);
     }
   };
 
@@ -103,7 +103,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   return (
     <div className="row">
-      <div className="p-3">
         <div className="service_list">
           {validateArray(allowed_file_formats) ? (
             allowed_file_formats?.map((data: ICardType, index: number) => (
@@ -125,7 +124,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
             <>No File formats available</>
           )}
         </div>
-      </div>
     </div>
   );
 };
