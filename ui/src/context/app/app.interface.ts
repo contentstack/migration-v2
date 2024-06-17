@@ -112,12 +112,13 @@ export interface IContentMapping {
   action_cta: ActionCta[];
   cta: CTA;
   search_placeholder: '';
+  table_search_placeholder: '';
 }
 
 export interface MigrationExecution {
   disable: boolean;
   title: string;
-  width: string | 'full';
+  width: string;
 }
 export interface IMigrationExecution {
   migration_information: MigrationExecution[];
@@ -338,7 +339,8 @@ export const DEFAULT_CONTENT_MAPPING_DATA: IContentMapping = {
     title: '',
     theme: ''
   },
-  search_placeholder: ''
+  search_placeholder: '',
+  table_search_placeholder: ''
 };
 
 export const DEFAULT_MIGRATION_EXECUTION: IMigrationExecution = {

@@ -49,7 +49,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );
   const [selectedCard, setSelectedCard] = useState<ICMSType>(
-    newMigrationData?.legacy_cms?.selectedCms || defaultCardType
+    newMigrationData?.legacy_cms?.selectedCms
   );
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isError, setIsError] = useState<boolean>(false); 
@@ -77,7 +77,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
       //API call for saving selected CMS
-      const res = await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
+      await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
       
       // Call for Step Change
       props?.handleStepChange(props?.currentStep, true);
@@ -99,7 +99,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     const res = await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: cms});
     
     if (!isEmptyString(cms?.title)) {
-      props?.handleStepChange(props?.currentStep);
+      props?.handleStepChange(props?.currentStep, true);
     }
   };
 
@@ -176,8 +176,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           selectedCms: newSelectedCard
         }
       };
-
+      await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
       dispatch(updateNewMigrationData(newMigrationDataObj));
+      props?.handleStepChange(props?.currentStep);
     }
   };
 
@@ -190,11 +191,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     filterCMSData(searchText);
   }, [cmsFilter]);
 
-
   return (
     <div>
       <div className="col-12">
-        <div className="p-3 col-12">
           { isError ? 
             <div className="empty_search_description">
                 <EmptyState
@@ -219,8 +218,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           )
         )
         }
-       
-        </div>
       </div>
     </div>
   );
