@@ -3,6 +3,7 @@ import './AutoVerticalStepper.scss';
 import { Tooltip, Heading } from '@contentstack/venus-components';
 import { addDomainInPath } from '../../../utilities/functions';
 
+
 export enum StepStatus {
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
@@ -76,11 +77,15 @@ const AutoVerticalStepper = React.forwardRef<
     };
 
     const StepperStepTitleCreator: (data: any) => JSX.Element = (data: any) => {
+      const showSpan = data?.title == 'Orgnization' ? <span>(read only)</span> : ''
       return (
         <>
           <div className="migration-vertical-stepper-container">
             <div>
-              <Heading className='stepper-title' tagName='h3' text={data.title} />
+              <div className='orgWrapper'>
+                <Heading className='stepper-title' tagName='h3' text={data.title} />
+                {data?.ifReadonly && <span>(read only)</span>}
+              </div>
               <span className="stepper-titleNote">{data.titleNote ? data.titleNote : ''}</span>
             </div>
             {data?.lock ? (

@@ -23,7 +23,7 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
 
   const dispatch = useDispatch();
 
-  // const [selectedOrg, setSelectedOrg] = useState();
+  const [selectedOrg, setSelectedOrg] = useState();
 
   /****  ALL METHODS HERE  ****/
 
@@ -31,23 +31,25 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
   const setNewMigrationData = (data: INewMigration) => {
     dispatch(updateNewMigrationData((data)));
   };
+   
+  const textInput = newMigrationData?.destination_stack?.selectedOrg?.label 
 
   //Handle Organisation selection
   // const handleDropdownChange = (data: ChangeEvent<HTMLInputElement>) =>  {
-  //   // if (selectedOrg?.value !== data?.value) {
-  //   //   setSelectedOrg(() => ({ ...data }));
+  //   if (selectedOrg?.value !== data?.value) {
+  //     setSelectedOrg(() => ({ ...data }));
 
-  //   //   setNewMigrationData({
-  //   //     ...newMigrationData,
-  //   //     destination_stack: {
-  //   //       ...newMigrationData.destination_stack,
-  //   //       selectedOrg: { ...data }
-  //   //     }
-  //   //   });
-  //   // }
+  //     setNewMigrationData({
+  //       ...newMigrationData,
+  //       destination_stack: {
+  //         ...newMigrationData.destination_stack,
+  //         selectedOrg: { ...data }
+  //       }
+  //     });
+  //   }
 
-  //   //call for Step Change
-  //   // props.handleStepChange(props.currentStep);
+  //   call for Step Change
+  //   props.handleStepChange(props.currentStep);
   // };
 
   /****  ALL USEEffects  HERE  ****/
@@ -57,7 +59,7 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
       ? newMigrationData?.destination_stack?.selectedOrg
       : selectedOrganisation;
 
-    // setSelectedOrg(org as any);
+    setSelectedOrg(org as any);
 
     setNewMigrationData({
       ...newMigrationData,
@@ -67,6 +69,7 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
       }
     });
   }, []);
+  
   return (
     <div className="action-content-wrapper p-3">
       {/* <div className="Dropdown-wrapper p-0">
@@ -84,7 +87,7 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
       </div> */}
       <TextInput 
         version={'v2'}
-        value={newMigrationData?.destination_stack?.selectedOrg?.label || 'Organisation'}
+        value={textInput || 'Organisation'}
         width="600px"
         className="orgInput"
         isReadOnly
