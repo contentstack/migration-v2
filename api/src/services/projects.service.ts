@@ -83,7 +83,13 @@ const createProject = async (req: Request) => {
     destination_stack_id: "",
     test_stacks: [],
     current_test_stack_id: "",
-    legacy_cms: {},
+    legacy_cms: {
+      "is_fileValid":false,
+      awsDetails: {
+        awsRegion: "",
+        bucketName: "",
+        buketKey: ""
+    }    },
     content_mapper: [],
     execution_log: [],
     created_by: user_id,
@@ -346,10 +352,8 @@ const affixConfirmation = async (req: Request) => {
 
 const updateFileFormat = async (req: Request) => {
   const { orgId, projectId } = req.params;
-  const { token_payload, file_format } = req.body;
+  const { token_payload, file_format,file_path,is_fileValid,awsDetails } = req.body;
   const srcFunc = "updateFileFormat";
-
-  await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
     projectId,
     {
@@ -390,11 +394,16 @@ const updateFileFormat = async (req: Request) => {
   }
 
   try {
-    ProjectModelLowdb.update((data: any) => {
+    ProjectModelLowdb.update((data: any) => { 
       data.projects[projectIndex].legacy_cms.file_format = file_format;
+      data.projects[projectIndex].legacy_cms.file_path = file_path;
+      data.projects[projectIndex].legacy_cms.is_fileValid = is_fileValid;
       data.projects[projectIndex].current_step = STEPPER_STEPS.LEGACY_CMS;
       data.projects[projectIndex].status = NEW_PROJECT_STATUS[0];
       data.projects[projectIndex].updated_at = new Date().toISOString();
+      data.projects[projectIndex].legacy_cms.awsDetails.awsRegion = awsDetails.awsRegion;
+      data.projects[projectIndex].legacy_cms.awsDetails.bucketName = awsDetails.bucketName;
+      data.projects[projectIndex].legacy_cms.awsDetails.buketKey = awsDetails.buketKey;
     });
 
     logger.info(
