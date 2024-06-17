@@ -211,7 +211,6 @@ const Migration = () => {
     
         dispatch(updateNewMigrationData((newMigrationDataObj)));
         if (res?.status) {
-          // setisButtonLoading(false);
           const url = `/projects/${projectId}/migration/steps/4`;
           navigate(url, { replace: true });
         }
