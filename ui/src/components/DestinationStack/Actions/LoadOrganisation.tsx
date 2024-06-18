@@ -78,8 +78,8 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
           options={organisationsList}
           onChange={handleDropdownChange}
           value={selectedOrg}
-          // width='600'
-          // isSearchable={true}
+          width='600'
+          isSearchable={true}
           isDisabled={true}
           placeholder={'Organisation'}
         />
