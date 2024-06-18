@@ -9,14 +9,12 @@
 }
 
 .title {
-  font-family: $font-family-primary;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 13px;
-  line-height: 135%;
-  letter-spacing: 0.02em;
-  color: $color-font-black;
-  margin-top: 3px;
+  margin: 20px 0 5px;
+  padding: 0 8px;
+  color: $color-black-2121;
+  font-size: $size-font-large;
+  font-weight: $font-weight-semi-bold;
+  line-height: 21px;
 }
 .stackTitle {
   color: $color-black-2121;
@@ -29,8 +27,10 @@
 }
 
 .stackselect {
-  min-width: $px-440 !important;
-  max-width: $px-440 !important;
+  min-width: 600px !important;
+  max-width: 600px !important;
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 4px;
 }
 .destination-stack-container {
   padding: 20px;
