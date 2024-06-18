@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AsyncSelect, Icon, cbModal } from '@contentstack/venus-components';
-
-import { AppContext } from '../../../context/app/app.context';
+import { AsyncSelect, Dropdown, Icon, Select, cbModal } from '@contentstack/venus-components';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
@@ -37,17 +35,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       ? newMigrationData?.destination_stack?.selectedStack
       : DEFAULT_DROPDOWN
   );
-  const loadingOption = [
-    {
-      uid: '',
-      label: 'Loading stacks...',
-      value: 'loading',
-      default: false,
-      master_locale: '',
-      locales: [],
-      created_at: ''
-    }
-  ];
   const [allStack, setAllStack] = useState<IDropDown[]>([]);
   const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
 
@@ -120,8 +107,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
     const stackChanged = selectedStack?.value !== data?.value;
     const stackCleared = data?.value === '' || data?.value === null || data === null;
-
-    if (name === 'stacks') {
+    if (data?.value == '+ Create a new Stack') {
+      handleCreateNewStack()
+    }
+    if (name === 'stacks' && data?.value != '+ Create a new Stack') {
       setSelectedStack(() => ({ ...data }));
 
       const newMigrationDataObj: INewMigration = {
@@ -188,10 +177,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     setisLoading(false);
   };
 
-  /****  ALL USEEffects  HERE  ****/
-  // useEffect(() => {
-  //   fetchData();
-  // }, []);
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
@@ -245,6 +230,17 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime();
     });
 
+    const addLabel = {
+      label:  "+ Create a new Stack",
+      value: "+ Create a new Stack",
+      uid: '',
+      master_locale: '',
+      locales: '',
+      created_at: '' 
+    }
+    stackArray.push(addLabel)
+
+
     setAllStack(stackArray);
 
     //Set selected Stack
@@ -282,24 +278,25 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       <div className="action-summary-wrapper ">
         <div className="service_list ">
           <div className="row">
-            <div className="col-12 pb-3 ">
+            <div className="col-12">
                 <div className="Dropdown-wrapper p-0 active ">
                   <AsyncSelect
                     version={'v2'}
                     loadMoreOptions={loadMoreOptions}
                     onChange={handleDropdownChange('stacks')}
                     onBlur={onBlurDropdown}
+                    canEditOption={true}
                     value={selectedStack}
                     isSearchable={true}
                     isClearable={true}
-                    width="440px"
+                    width="600px"
                     isDisabled={props?.stepComponentProps?.isSummary || false}
-                    placeholder={'Stacks'}
+                    placeholder={'Select a stack'}
                     limit={10}
                   />
                 </div>
             </div>
-            <div className="col-12 pb-2">
+            <div className="col-12">
               <label className="title">Master Locale</label>
             </div>
             <div className="col-12 pb-2">
@@ -308,15 +305,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="stackselect pb-3 text-end">
-          <a className={`link`} onClick={handleCreateNewStack}>
-            <span className="small">
-              <Icon icon="Plus" size="extraSmall" version="v2" active={true} />
-              Create New Stack
-            </span>
-          </a>
         </div>
       </div>
     </div>
