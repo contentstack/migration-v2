@@ -58,9 +58,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
         }
       }));
       
-      await updateFileFormatData(selectedOrganisation?.value, projectId, {
-        file_format: selectedCard?.fileformat_id
-      });
+
 
       await fileformatConfirmation(selectedOrganisation?.value, projectId, {
         fileformat_confirmation: true
