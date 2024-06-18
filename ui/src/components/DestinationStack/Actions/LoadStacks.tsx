@@ -296,7 +296,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   />
                 </div>
             </div>
-            <div className="col-12 pb-2">
+            <div className="col-12">
               <label className="title">Master Locale</label>
             </div>
             <div className="col-12 pb-2">
