@@ -109,3 +109,11 @@
   gap: 24px;
   margin-bottom: 40px;
 }
+.orgWrapper {
+  display: flex;
+  align-items: baseline;
+  span {
+    font-size: 14px;
+    color: $color-stepper-title;
+  }
+}

@@ -50,7 +50,6 @@ const MigrationFlowHeader = ({ handleOnClick }: MigrationFlowHeaderProps) => {
     dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
     navigate(-1);
   }
-
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>

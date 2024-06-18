@@ -96,6 +96,7 @@ export interface ILegacyCMSComponent {
 
 export interface IDestinationStackComponent {
   title: string;
+  description: string;
   cta: string;
   new_stack: {
     save_stack_cta: string;
@@ -317,6 +318,7 @@ export const DEFAULT_LEGACY_CMS_DATA: ILegacyCMSComponent = {
 export const DEFAULT_DESTINATION_STACK_DATA: IDestinationStackComponent = {
   title: '',
   cta: '',
+  description: '',
   new_stack: {
     save_stack_cta: '',
     new_stack_input: '',
