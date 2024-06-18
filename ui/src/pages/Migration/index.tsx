@@ -8,7 +8,7 @@ import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, createTestStack } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -113,11 +113,12 @@ const Migration = () => {
       },
       {
         data: <DestinationStackComponent
-                destination_stack={projectData?.destination_stack_id}
-                org_id={projectData?.org_id}
-                projectData={projectData}
-                handleStepChange={handleStepChange}
-              />,
+              destination_stack={projectData?.destination_stack_id}
+              org_id={projectData?.org_id}
+              projectData={projectData}
+              handleStepChange={handleStepChange}
+              isCompleted={isCompleted}
+              handleOnAllStepsComplete={handleOnAllStepsComplete} />,
         id:'2',
         title:'Destination Stack'
       },
@@ -187,6 +188,22 @@ const Migration = () => {
       }
       
     };
+    // handle on proceed to content mapping
+    const handleOnClickDestinationStack = async (event: MouseEvent) => {
+      if(isCompleted){
+        event?.preventDefault();
+        //Update Data in backend
+        await updateDestinationStack(selectedOrganisation?.value, projectId, {
+          stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
+        });
+        handleStepChange(2);
+        const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
+        if (res) {
+          const url = `/projects/${projectId}/migration/steps/3`;
+          navigate(url, { replace: true });
+        }
+      }
+    };
 
     const handleOnClickContentMapper = async (event: MouseEvent) => {
       if (isCompleted) {
@@ -224,7 +241,7 @@ const Migration = () => {
 
     const handleOnClickFunctions = [
       handleOnClickLegacyCms, 
-      handleOnClickLegacyCms,
+      handleOnClickDestinationStack,
       handleOnClickContentMapper   
     ];
 
