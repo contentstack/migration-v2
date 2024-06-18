@@ -3,9 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getDestinationStackSteps } from './StepperSteps';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, CircularLoader } from '@contentstack/venus-components';
+import { CircularLoader } from '@contentstack/venus-components';
 import { CS_ENTRIES } from '../../utilities/constants';
-import { AppContext } from '../../context/app/app.context';
 import {
   DEFAULT_DESTINATION_STACK_DATA,
   IDestinationStack,
@@ -16,30 +15,34 @@ import './DestinationStack.scss';
 import { isEmptyString, validateArray } from '../../utilities/functions';
 import { getAllStacksInOrg } from '../../services/api/stacks.service';
 import { MigrationResponse, StackResponse } from '../../services/api/service.interface';
-import {
-  updateCurrentStepData,
-  updateDestinationStack
-} from '../../services/api/migration.service';
+// import {
+//   updateCurrentStepData,
+//   updateDestinationStack
+// } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
-import { setMigrationData, setNewMigrationData, updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 type DestinationStackComponentProps = {
   destination_stack: string;
   org_id: string;
+  isCompleted: boolean;
   projectData: MigrationResponse;
   handleStepChange: (currentStep: number) => void;
+  handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
 const DestinationStackComponent = ({
   destination_stack,
   org_id,
   projectData,
-  handleStepChange
+  isCompleted,
+  // handleStepChange,
+  handleOnAllStepsComplete,
 }: DestinationStackComponentProps) => {
   /** ALL HOOKS HERE */
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  // const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
   const [stepperKey, setStepperKey] = useState<string>('v-mig-destination-step');
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
@@ -53,27 +56,27 @@ const DestinationStackComponent = ({
   const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
   const dispatch = useDispatch();
 
-  const { projectId = '' } = useParams();
+  // const { projectId = '' } = useParams();
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
-  const handleOnAllStepsComplete = (flag = false) => {
-    setIsCompleted(flag);
+  const handleAllStepsComplete = (flag = false) => {
+    handleOnAllStepsComplete(flag);
   };
 
-  const handleOnClick = async (event: MouseEvent) => {
-    event?.preventDefault();
-    //Update Data in backend
-    await updateDestinationStack(selectedOrganisation?.value, projectId, {
-      stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
-    });
-    handleStepChange(2);
-    const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
-    if (res) {
-      const url = `/projects/${projectId}/migration/steps/3`;
-      navigate(url, { replace: true });
-    }
-  };
+  // const handleOnClick = async (event: MouseEvent) => {
+  //   event?.preventDefault();
+  //   //Update Data in backend
+  //   await updateDestinationStack(selectedOrganisation?.value, projectId, {
+  //     stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
+  //   });
+  //   handleStepChange(2);
+  //   const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
+  //   if (res) {
+  //     const url = `/projects/${projectId}/migration/steps/3`;
+  //     navigate(url, { replace: true });
+  //   }
+  // };
 
   const updateDestinationStackData = async () => {
     //Update New Migration data
@@ -124,7 +127,7 @@ const DestinationStackComponent = ({
       !isEmptyString(selectedStackData?.value)
     ) {
       setInternalActiveStepIndex(1);
-      setIsCompleted(true);
+      // setIsCompleted(true);
     }
 
     //Update newMigration Data for destination stack
@@ -196,7 +199,6 @@ const DestinationStackComponent = ({
       }
     }
   }, [internalActiveStepIndex]); 
-
   return (
     <>
       {isLoading ? (
@@ -207,32 +209,19 @@ const DestinationStackComponent = ({
         </div>
       ) : (
         <div className="destination-stack-container">
-          <div className="row">
-            <div className="col-12">
-              <AutoVerticalStepper
-                key={stepperKey}
-                steps={getDestinationStackSteps(
-                  isCompleted,
-                  isMigrationLocked,
-                  migrationData?.destinationStackData?.all_steps
-                )}
-                ref={autoVerticalStepperComponent}
-                isEdit={!isMigrationLocked}
-                handleOnAllStepsComplete={handleOnAllStepsComplete}
-              />
-            </div>
-            {isCompleted && !isMigrationLocked ? (
-              <div className="col-12">
-                <div className="pl-40">
-                  <Button version="v2" onClick={handleOnClick}>
-                    {migrationData?.destinationStackData?.cta}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <></>
+          <div className='stackTitle'>{migrationData?.destinationStackData?.title}</div>
+          <AutoVerticalStepper
+            key={stepperKey}
+            steps={getDestinationStackSteps(
+              isCompleted,
+              isMigrationLocked == false,
+              migrationData?.destinationStackData?.all_steps
             )}
-          </div>
+            description={migrationData?.destinationStackData?.description}
+            ref={autoVerticalStepperComponent}
+            isEdit={!isMigrationLocked}
+            handleOnAllStepsComplete={handleAllStepsComplete}
+          />
         </div>
       )}
     </>
