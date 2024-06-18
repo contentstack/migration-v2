@@ -54,7 +54,7 @@ export interface IFile {
   url?: string;
   validation?: string;
   file_details?: FileDetails;
-  isValidated?: boolean;
+  isValidated: boolean;
 }
 
 export interface ICMSType extends ICardType {
