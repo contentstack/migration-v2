@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AsyncSelect, Dropdown, Icon, Select, cbModal } from '@contentstack/venus-components';
+import { AsyncSelect, cbModal } from '@contentstack/venus-components';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
@@ -40,6 +40,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setisLoading] = useState<boolean>(false);
+
 
   const { projectId = '' }: Params<string> = useParams();
 
@@ -103,6 +104,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
   /****  ALL METHODS HERE  ****/
 
+  const [placeholder, setPlaceholder] = useState('Select a stack');
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
     const stackChanged = selectedStack?.value !== data?.value;
@@ -110,6 +112,11 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     if (data?.value == '+ Create a new Stack') {
       handleCreateNewStack()
     }
+    if (stackCleared === true) {
+      setPlaceholder('Select a stack');
+    }
+    
+    
     if (name === 'stacks' && data?.value != '+ Create a new Stack') {
       setSelectedStack(() => ({ ...data }));
 
@@ -121,8 +128,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         }
       };
 
-      dispatch(updateNewMigrationData((newMigrationDataObj)));
 
+      dispatch(updateNewMigrationData((newMigrationDataObj)));
       if (!stackCleared) {
         if (props?.handleStepChange) {
           props?.handleStepChange(props?.currentStep, true);
@@ -212,7 +219,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     limit: number;
   }) => {
     const stackData = await getAllStacksInOrg(
-      newMigrationData?.destination_stack?.selectedOrg?.value
+      selectedOrganisation?.value
     ); //org id will always be there
 
     const stackArray = validateArray(stackData?.data?.stacks)
@@ -239,7 +246,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       created_at: '' 
     }
     stackArray.push(addLabel)
-
 
     setAllStack(stackArray);
 
@@ -272,7 +278,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       }
     }
   };
-
   return (
     <div className="">
       <div className="action-summary-wrapper ">
@@ -287,11 +292,11 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                     onBlur={onBlurDropdown}
                     canEditOption={true}
                     value={selectedStack}
-                    isSearchable={true}
                     isClearable={true}
+                    isSearchable={true}
                     width="600px"
                     isDisabled={props?.stepComponentProps?.isSummary || false}
-                    placeholder={'Select a stack'}
+                    placeholder={placeholder}
                     limit={10}
                     updateOption={()=> undefined}
                   />
