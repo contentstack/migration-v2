@@ -1,12 +1,30 @@
 // Libraries
-import { Icon } from '@contentstack/venus-components';
+import { Tooltip, Icon, Link } from '@contentstack/venus-components';
+import { useNavigate } from 'react-router';
+
 // Styles
 import './index.scss';
 
-const SideBar = () => {
+type SettingIconProp = {
+  projectId: string;
+}
+
+const SideBar = ({projectId}: SettingIconProp) => {
+  const navigate = useNavigate();
+
+  const settingsNavigate = () => {
+    const url = `/projects/${projectId}/settings`;
+    navigate(url, { replace: true });
+  }
   return (
-    <div className="side-nav side-nav--full recycle-wrapper" style={{ width: '56px', padding: '20px' }}>
-      {location.pathname.includes('/projects/') && <Icon size='small' icon='StackSettings' version="v2" />}
+    <div className="side-nav side-nav--full recycle-wrapper" style={{ width: '56px', textAlign: 'center'}}>
+      {location.pathname.includes('/projects/') && 
+      <Tooltip content={'Project Settings'} position="right">
+        <Link aria-label='Project Settings' cbOnClick={settingsNavigate}>
+          <Icon size='original' icon='Setting' />
+        </Link>
+      </Tooltip>
+      }
     </div>
   );
 };

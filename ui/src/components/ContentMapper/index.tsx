@@ -537,31 +537,6 @@ const ContentMapper = () => {
       }
     });
   };
-
-  const handleValidateOnClick = async () => {
-    setisButtonLoading(true);
-    const data = {
-      name: newMigrationData?.destination_stack?.selectedStack?.label,
-      description: 'test migration stack',
-      master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
-    };
-    const res = await createTestStack(
-      newMigrationData?.destination_stack?.selectedOrg?.value,
-      projectId,
-      data
-    );
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      test_migration: { stack_link: res?.data?.data?.url }
-    };
-
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
-    if (res?.status) {
-      setisButtonLoading(false);
-      const url = `/projects/${projectId}/migration/steps/4`;
-      navigate(url, { replace: true });
-    }
-  };
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
 
