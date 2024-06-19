@@ -212,6 +212,11 @@ const Migration = () => {
           const url = `/projects/${projectId}/migration/steps/3`;
           navigate(url, { replace: true });
         }
+      } else{
+        Notification({
+          notificationContent: { text: 'Please complete all steps' },
+          type: 'warning'
+        });
       }
     };
 
