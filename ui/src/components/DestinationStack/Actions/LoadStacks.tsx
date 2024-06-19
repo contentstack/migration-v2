@@ -293,6 +293,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                     isDisabled={props?.stepComponentProps?.isSummary || false}
                     placeholder={'Select a stack'}
                     limit={10}
+                    updateOption={()=> undefined}
                   />
                 </div>
             </div>

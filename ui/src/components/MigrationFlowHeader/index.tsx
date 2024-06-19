@@ -18,9 +18,10 @@ import './index.scss';
 
 type MigrationFlowHeaderProps = {
   handleOnClick: (event: MouseEvent, handleStepChange: (currentStep: number) => void) => void;
+  isLoading: boolean;
 };
 
-const MigrationFlowHeader = ({ handleOnClick }: MigrationFlowHeaderProps) => {
+const MigrationFlowHeader = ({ handleOnClick, isLoading }: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
 
   const navigate = useNavigate();
@@ -73,6 +74,7 @@ const MigrationFlowHeader = ({ handleOnClick }: MigrationFlowHeaderProps) => {
         onClick={handleOnClick}
         version="v2"
         aria-label='Save and Continue'
+        isLoading={isLoading}
       >
         Save and Continue
       </Button>

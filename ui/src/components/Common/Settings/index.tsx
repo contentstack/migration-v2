@@ -252,17 +252,6 @@ const Settings = () => {
           }}
           version="v2"
         />
-        <ListRow
-          rightArrow={true}
-          active={active === cmsData?.execution_logs?.title}
-          content={cmsData?.execution_logs?.title}
-          leftIcon={<Icon icon="Stacks" version="v2" />}
-          onClick={() => {
-            setActive(cmsData?.execution_logs?.title);
-            setCurrentHeader(cmsData?.execution_logs?.title);
-          }}
-          version="v2"
-        />
       </div>
     )
   };
