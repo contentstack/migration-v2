@@ -188,6 +188,7 @@ export interface IDropDown {
 }
 export interface ITestMigration {
   stack_link: string;
+  stack_api_key: string;
 }
 export interface IAppContext {
   authToken: string;
@@ -287,7 +288,8 @@ export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
 };
 
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
-  stack_link: ''
+  stack_link: '',
+  stack_api_key: ''
 };
 
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
