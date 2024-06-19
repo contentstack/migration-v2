@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AsyncSelect, cbModal } from '@contentstack/venus-components';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
@@ -35,6 +35,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       ? newMigrationData?.destination_stack?.selectedStack
       : DEFAULT_DROPDOWN
   );
+
   const [allStack, setAllStack] = useState<IDropDown[]>([]);
   const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
 
@@ -43,6 +44,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
 
   const { projectId = '' }: Params<string> = useParams();
+
+  useEffect(()=>{
+    if(! isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
+      setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
+    }
+  },[newMigrationData?.destination_stack?.selectedStack])
 
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
@@ -249,25 +256,29 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     setAllStack(stackArray);
 
-    //Set selected Stack
-    const selectedStackData = validateArray(stackArray)
-      ? stackArray.find(
-          (stack: IDropDown) =>
-            stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
-        )
-      : DEFAULT_DROPDOWN;
+    // //Set selected Stack
+    // const selectedStackData = validateArray(stackArray)
+    //   ? stackArray.find(
+    //       (stack: IDropDown) =>{
+    //         console.log("stack :::", selectedStack?.value)
+            
+    //         return stack?.value === selectedStack?.value}
+    //     )
+    //   : DEFAULT_DROPDOWN;
 
-    setSelectedStack(selectedStackData);
+    // setSelectedStack(selectedStackData);
+    // console.log("inload more ::::", selectedStackData);
+    
 
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      destination_stack: {
-        ...newMigrationData?.destination_stack,
-        selectedStack: selectedStackData
-      }
-    };
+    // const newMigrationDataObj: INewMigration = {
+    //   ...newMigrationData,
+    //   destination_stack: {
+    //     ...newMigrationData?.destination_stack,
+    //     selectedStack: selectedStackData
+    //   }
+    // };
 
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
+    // dispatch(updateNewMigrationData((newMigrationDataObj)));
 
     return { options: stackArray };
   };
