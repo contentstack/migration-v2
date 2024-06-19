@@ -1,11 +1,13 @@
 // Libraries
 import { FC, ReactNode, useEffect } from 'react';
-import { useLocation } from 'react-router';
+import { Params, useLocation, useParams } from 'react-router';
+import { useDispatch } from 'react-redux';
+
+import { getUserDetails } from '../../../store/slice/authSlice';
+
 // Component
 import MainHeader from '../../MainHeader';
 import SideBar from '../../SideBar';
-import { getUserDetails } from '../../../store/slice/authSlice';
-import { useDispatch } from 'react-redux';
 
 type IProps = {
   children?: ReactNode;
@@ -14,6 +16,8 @@ type IProps = {
 const AppLayout: FC<IProps> = ({ children }) => {
   const location = useLocation();
   const dispatch = useDispatch();
+
+  const projectId = location?.pathname?.split('/')?.[2];
 
   useEffect(()=>{
     dispatch(getUserDetails());
@@ -25,7 +29,7 @@ const AppLayout: FC<IProps> = ({ children }) => {
       {location.pathname.includes('projects') && 
         <>
         <MainHeader />
-        <SideBar /> 
+        <SideBar projectId={projectId} /> 
         </>
       }
       <div className={`${(location.pathname.includes('projects')) ? 'sidebarWrapper' : ''} page-wrapper`}>
