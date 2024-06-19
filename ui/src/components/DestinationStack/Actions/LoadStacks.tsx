@@ -141,7 +141,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const fetchData = async () => {
     setisLoading(true);
     const stackData = await getAllStacksInOrg(
-      newMigrationData?.destination_stack?.selectedOrg?.value
+      newMigrationData?.destination_stack?.selectedOrg?.value,''
     ); //org id will always be there
 
     const stackArray = validateArray(stackData?.data?.stacks)
@@ -219,7 +219,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     limit: number;
   }) => {
     const stackData = await getAllStacksInOrg(
-      selectedOrganisation?.value
+      selectedOrganisation?.value, search
     ); //org id will always be there
 
     const stackArray = validateArray(stackData?.data?.stacks)
