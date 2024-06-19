@@ -1,7 +1,7 @@
 // Libraries
-import { ChangeEvent, useContext, useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { Button } from '@contentstack/venus-components';
+import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
@@ -15,14 +15,9 @@ import {
 
 // Interface
 import { ICardType, defaultCardType } from '../../../components/Common/Card/card.interface';
-import { INewMigration } from '../../../context/app/app.interface';
 
-// Context
-import { AppContext } from '../../../context/app/app.context';
 
 // Components
-import Card from '../../../components/Common/Card/card';
-import DocLink from '../../../components/Common/DocLink/DocLink';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
@@ -43,7 +38,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     newMigrationData?.legacy_cms?.selectedFileFormat ?? defaultCardType
   );
   const [isCheckedBoxChecked, setIsCheckedBoxChecked] = useState<boolean>(
-    newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked || false
+    newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked || true
   );
 
   const { projectId = '' } = useParams();
@@ -52,8 +47,8 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   /****  ALL METHODS HERE  ****/
 
-  const handleBtnClick = async (e: MouseEvent) => {
-    e.preventDefault();
+  const handleBtnClick = async () => {
+    
     if (!isEmptyString(selectedCard?.fileformat_id) && isCheckedBoxChecked) {
       dispatch(updateNewMigrationData({
         ...newMigrationData,
@@ -63,12 +58,10 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
         }
       }));
       
-      await updateFileFormatData(selectedOrganisation?.value, projectId, {
-        file_format: selectedCard?.fileformat_id
-      });
+
 
       await fileformatConfirmation(selectedOrganisation?.value, projectId, {
-        fileformat_confirmation: isCheckedBoxChecked
+        fileformat_confirmation: true
       });
 
       //call for Step Change
@@ -100,6 +93,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
         }
       };
       dispatch(updateNewMigrationData(newMigrationDataObj));
+      handleBtnClick();
     }
   }, [allowed_file_formats]);
 
@@ -107,42 +101,27 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   return (
     <div className="row">
-      <DocLink
-        cta={doc_url}
-        isCheckedBoxChecked={isCheckedBoxChecked}
-        label={file_format_checkbox_text}
-        onChange={handleCheckBoxChange}
-        isDisable={false}
-      />
-      <div className="col-12 pb-2">
-        <span className="stepper-discription">
-          Following is the file format in which data is exported from your current CMS
-        </span>
-      </div>
-      <div className="col-12 bg-white action-content-wrapper p-2">
         <div className="service_list">
           {validateArray(allowed_file_formats) ? (
             allowed_file_formats?.map((data: ICardType, index: number) => (
-              <Card
-                key={data?.fileformat_id || index}
-                data={data}
-                selectedCard={data?.fileformat_id}
-                idField="fileformat_id"
-                onCardClick={() => {
-                  return;
-                }}
-              />
+              <div key={data?.fileformat_id || index}>             
+                <TextInput
+                value={data?.fileformat_id}
+                version="v2"              
+                isReadOnly={true}
+                disabled={true}
+                width="large"
+                placeholder=""
+                prefix={
+                <Icon icon={data?.title} size="medium" version='v2'/>}
+                />
+
+              </div>
             ))
           ) : (
             <>No File formats available</>
           )}
         </div>
-      </div>
-      <div className="col-12 pt-3 pl-0">
-        <Button version="v2" disabled={!isCheckedBoxChecked} onClick={handleBtnClick}>
-          {migrationData?.legacyCMSData?.file_format_cta}
-        </Button>
-      </div>
     </div>
   );
 };

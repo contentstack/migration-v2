@@ -63,21 +63,6 @@ const ProjectsHeader = ({
 
   const pageActions: any = [
     {
-      label:(
-        <Button
-          buttonType={restoreCta?.theme}
-          className="ml-10"
-          // onClick={handleModal}
-          version="v2"
-          size="medium"
-          aria-label={restoreCta?.title}
-        >
-          {restoreCta?.title}
-        </Button>
-      ),
-      type: 'secondary'
-    },
-    {
       label: cta && cta?.title && (
         <Button
           buttonType={cta?.theme}

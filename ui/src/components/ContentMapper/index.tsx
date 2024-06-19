@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Heading,
   InfiniteScrollTable,
   Select,
   ButtonGroup,
@@ -16,7 +15,8 @@ import {
   InstructionText,
   ModalHeader,
   ModalBody,
-  ModalFooter
+  ModalFooter,
+  Dropdown
 } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
@@ -34,12 +34,13 @@ import {
 } from '../../services/api/migration.service';
 import { getStackStatus } from '../../services/api/stacks.service';
 
+// Redux
+import { RootState } from '../../store';
+import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+
 // Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
 import { validateArray } from '../../utilities/functions';
-
-// Context
-import { AppContext } from '../../context/app/app.context';
 
 // Interface
 import { DEFAULT_CONTENT_MAPPING_DATA, INewMigration } from '../../context/app/app.interface';
@@ -66,9 +67,6 @@ import AdvanceSettings from '../AdvancePropertise';
 
 // Styles
 import './index.scss';
-import { RootState } from '../../store';
-import { setNewMigrationData, updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
-import { setMigrationData } from '../../store/slice/migrationDataSlice';
 
 const Fields: Mapping = {
   'Single Line Textbox': [
@@ -107,12 +105,12 @@ const Fields: Mapping = {
   CheckBox: 'Select',
   global_field: 'Global'
 };
-
 interface ModalProps {
   e: React.MouseEvent<HTMLElement>;
   newIndex: number;
   closeModal: () => void;
 }
+
 const ContentMapper = () => {
   /** ALL CONTEXT HERE */
 
@@ -126,13 +124,12 @@ const ContentMapper = () => {
     contentMappingData: {
       content_types_heading: contentTypesHeading,
       description,
-      action_cta: actionCta,
-      cta,
-      search_placeholder: searchPlaceholder
-    }
+      // action_cta: actionCta,
+      // cta,
+      search_placeholder: searchPlaceholder,
+      table_search_placeholder: tableSearchPlaceholder
+    }= {}
   } = migrationData;
-
-  const parseDescription = HTMLReactParser(jsonToHtml(description ?? {}));
 
   const [tableData, setTableData] = useState<FieldMapType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -217,8 +214,8 @@ const ContentMapper = () => {
   useEffect(() => {
     if (contentTypeMapped && otherCmsTitle) {
       setOtherContentType({
-        label: contentTypeMapped?.[otherCmsTitle] ?? 'Select Content Type',
-        value: contentTypeMapped?.[otherCmsTitle] ?? 'Select Content Type'
+        label: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack',
+        value: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack'
       });
     }
   }, [contentTypeMapped, otherCmsTitle]);
@@ -250,7 +247,7 @@ const ContentMapper = () => {
 
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
-    const { data } = await getContentTypes(projectId || '', 0, 10, searchContentType || ''); //org id will always present
+    const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
 
     setContentTypes(data?.contentTypes);
     setSelectedContentType(data?.contentTypes?.[0]);
@@ -279,7 +276,7 @@ const ContentMapper = () => {
   const handleSearch = async (searchCT: string) => {
     setSearchContentType(searchCT);
 
-    const { data } = await getContentTypes(projectId, 0, 5, searchCT || ''); //org id will always present
+    const { data } = await getContentTypes(projectId, 0, 1000, searchCT || ''); //org id will always present
 
     setContentTypes(data?.contentTypes);
     setSelectedContentType(data?.contentTypes?.[0]);
@@ -369,40 +366,7 @@ const ContentMapper = () => {
     setSelectedContentType(contentTypes?.[i]);
   };
 
-  //function to handle previous content type navigation
-  const handlePrevClick = (e: React.MouseEvent<HTMLElement>) => {
-    const newIndex = currentIndex > 0 ? currentIndex - 1 : 0;
-    if (isDropDownChanged) {
-      handleSaveContentTypeModal(e, newIndex);
-    } else {
-      setCurrentIndex(newIndex);
-      openContentType(e, newIndex);
-      document.querySelectorAll('.ct-list li').forEach((ctLi, ind) => {
-        if (newIndex === ind) {
-          ctLi?.classList?.add('active-ct');
-        }
-      });
-    }
-  };
-
-  // function to handle next content type navigation
-  const handleNextClick = (e: React.MouseEvent<HTMLElement>) => {
-    if (currentIndex < contentTypes?.length - 1) {
-      const newIndex = currentIndex + 1;
-
-      if (isDropDownChanged) {
-        handleSaveContentTypeModal(e, newIndex);
-      } else {
-        setCurrentIndex(newIndex);
-        openContentType(e, newIndex);
-        document.querySelectorAll('.ct-list li').forEach((ctLi, ind) => {
-          if (newIndex === ind) {
-            ctLi?.classList?.add('active-ct');
-          }
-        });
-      }
-    }
-  };
+  // Function to Save the Content Type
   const SaveContentType = (props: ModalProps) => {
     return (
       <>
@@ -478,15 +442,12 @@ const ContentMapper = () => {
     setTableData(newTableData);
   };
 
-  const handleOnClick = (title: string) => {
+  const handleSchemaPreview = (title: string) => {
     return cbModal({
       component: (props: ModalObj) => (
         <SchemaModal
           schemaData={tableData}
           contentType={title}
-          // closeModal={() => {
-          //   return;
-          // }}
           {...props}
         />
       ),
@@ -531,7 +492,6 @@ const ContentMapper = () => {
 
     setRowIds(selectedObj);
     setSelectedEntries(selectedData);
-    
   };
 
   // Function to find unchecked field
@@ -605,8 +565,6 @@ const ContentMapper = () => {
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
 
-    
-
     const option = Array.isArray(OptionsForRow)
       ? OptionsForRow.map((option) => ({ label: option, value: option }))
       : [{ label: OptionsForRow, value: OptionsForRow }];
@@ -619,7 +577,7 @@ const ContentMapper = () => {
         <div className="select">
           <Select
             id={data?.uid}
-            value={{ label: fieldLabel, value: fieldValue }}
+            value={{ label: data?.ContentstackFieldType, value: fieldValue }}
             onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid)}
             placeholder="Select Field"
             version={'v2'}
@@ -708,6 +666,7 @@ const ContentMapper = () => {
       'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
       'JSON Rich Text Editor': 'json',
+      group: 'Group',
       URL: 'url',
       file: 'file',
       number: 'number',
@@ -728,7 +687,7 @@ const ContentMapper = () => {
       );
       setContentTypeSchema(ContentType?.schema)
     }
-
+    
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
       
@@ -785,11 +744,9 @@ const ContentMapper = () => {
               OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
             }
             break;
-          // case 'Group':
-          //   if (value?.data_type === 'group') {
-          //     OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-          //   }
-          //   break;
+          case 'Group':
+              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
+            break;
           default:
             OptionsForRow.push({
               label: 'No matches found',
@@ -882,11 +839,11 @@ const ContentMapper = () => {
           fieldMapping: selectedEntries
         }
       };
-
+      
       const { data, status } = await updateContentType(
         orgId,
         projectID,
-        selectedContentType?.id || '',
+        selectedContentType?.id ?? '',
         dataCs
       );
 
@@ -1014,10 +971,22 @@ const ContentMapper = () => {
     isDisabled: false
   }));
 
-  const adjustedOption = options.map((option: any) => ({
+  const adjustedOption = options?.map((option: any) => ({
     ...option,
     isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
   }));
+
+  const calcHeight = () => {
+    // Get the viewport height in pixels
+    const viewportHeight = window.innerHeight;
+    
+    // Subtract 246 pixels from the viewport height
+    const result = viewportHeight - 361;
+    
+    return result;
+  }
+
+  const tableHeight = calcHeight();
 
   return (
     <div className="step-container">
@@ -1025,9 +994,10 @@ const ContentMapper = () => {
         {/* Content Types List */}
         <div className="content-types-list-wrapper">
           <div className="content-types-list-header">
-            <Heading tagName="h6" text={contentTypesHeading} />
-            <p>{parseDescription}</p>
+            {contentTypesHeading && <h2>{contentTypesHeading}</h2> }
+          </div>
 
+          <div className='ct-search-wrapper'>
             <Search
               placeholder={searchPlaceholder}
               type="secondary"
@@ -1040,6 +1010,7 @@ const ContentMapper = () => {
           </div>
 
           {contentTypes && validateArray(contentTypes) && (
+            <div className='ct-list-wrapper'>
             <ul className="ct-list">
               {contentTypes?.map((content: ContentType, index: number) => (
                 <li
@@ -1050,38 +1021,44 @@ const ContentMapper = () => {
                   <span>{content?.otherCmsTitle}</span>
 
                   {active == index && (
+                    
                     <span>
-                      <Tooltip content={'Schema Preview'} position="left">
+                      <Dropdown
+                        // version="v2"
+                        list={[
+                          {
+                            action: handleSchemaPreview,
+                            default: true,
+                            label: 'Schema Preview'
+                          }
+                        ]}
+                        type="click"
+                        isEllipse
+                        dropDownPosition="left"
+                        className='dropdown-align'
+                      >
+                        <Icon icon="Settings" size="small" version="v2" />
+                      </Dropdown>
+                      {/* <Tooltip content={'Schema Preview'} position="left">
                         <Icon
                           icon="LivePreview"
                           size="small"
                           version="v2"
                           onClick={() => handleOnClick(content?.otherCmsTitle)}
                         />
-                      </Tooltip>
+                      </Tooltip> */}
                     </span>
                   )}
                 </li>
               ))}
             </ul>
+            </div>
           )}
         </div>
 
         {/* Content Type Fields */}
         <div className="content-types-fields-wrapper">
-          {!IsEmptyStack && (
-            <div className="d-flex justify-content-end content-type-list">
-              <Select
-                value={OtherContentType}
-                onChange={handleDropDownChange}
-                options={adjustedOption}
-                width="345px"
-                maxWidth="345px"
-                placeholder={OtherContentType && 'Select Contentstack Content Type'}
-                version="v2"
-              />
-            </div>
-          )}
+          
 
           <div className="table-wrapper">
             <InfiniteScrollTable
@@ -1094,18 +1071,24 @@ const ContentMapper = () => {
               // fullRowSelect
               itemStatusMap={itemStatusMap}
               totalCounts={totalCounts}
-              searchPlaceholder={searchPlaceholder}
+              searchPlaceholder={tableSearchPlaceholder}
               fetchTableData={fetchData}
               loadMoreItems={loadMoreItems}
-              tableHeight={IsEmptyStack ? 495 : 465}
+              tableHeight={tableHeight}
               equalWidthColumns={true}
               columnSelector={false}
               initialRowSelectedData={tableData}
               initialSelectedRowIds={rowIds}
-              itemSize={130}
+              itemSize={80}
               withExportCta={{
                 component: (
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className='d-flex align-items-center' style={{ gap: '8px' }}>
+                    {!IsEmptyStack && (
+                      <Tooltip content={'fetch the content type'} position="left">
+                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType} />
+                      </Tooltip>
+                    )}
+
                     <Tooltip content={'Reset to intial mapping'} position="left">
                       <Icon
                         icon="ResetReverse"
@@ -1116,9 +1099,17 @@ const ContentMapper = () => {
                     </Tooltip>
 
                     {!IsEmptyStack && (
-                      <Tooltip content={'fetch the content type'} position="left">
-                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType} />
-                      </Tooltip>
+                      <div className="d-flex justify-content-end">
+                        <Select
+                          value={OtherContentType}
+                          onChange={handleDropDownChange}
+                          options={adjustedOption}
+                          width="440px"
+                          maxWidth="440px"
+                          placeholder={OtherContentType && 'Select content type from existing stack'}
+                          version="v2"
+                        />
+                      </div>
                     )}
                   </div>
                 ),
@@ -1127,9 +1118,21 @@ const ContentMapper = () => {
               getSelectedRow={handleSelectedEntries}
               rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
             />
+            <div className='text-end my-3 mx-3 px-1'>
+              <Button
+                  className="saveButton"
+                  size="small"
+                  buttonType="secondary"
+                  onClick={handleSaveContentType}
+                >
+                Save
+              </Button>
+            </div>
           </div>
 
-          {actionCta && validateArray(actionCta) && (
+          
+
+          {/* {actionCta && validateArray(actionCta) && (
             <ButtonGroup className="action-btn-wrapper">
               <div
                 className="IconStoriesWrapper"
@@ -1184,11 +1187,11 @@ const ContentMapper = () => {
                 </div>
               </div>
             </ButtonGroup>
-          )}
+          )} */}
         </div>
       </div>
 
-      {cta?.title && (
+      {/* {cta?.title && (
         <div className="cta-wrapper">
           <Button
             buttonType={cta?.theme}
@@ -1199,7 +1202,7 @@ const ContentMapper = () => {
             {cta?.title}
           </Button>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

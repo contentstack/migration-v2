@@ -3,6 +3,7 @@ import './AutoVerticalStepper.scss';
 import { Tooltip, Heading } from '@contentstack/venus-components';
 import { addDomainInPath } from '../../../utilities/functions';
 
+
 export enum StepStatus {
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
@@ -12,6 +13,7 @@ export enum StepStatus {
 type AutoVerticalStepperProps = {
   steps: any[];
   className?: string;
+  description?: string;
   stepComponentProps?: any;
   isEdit: boolean;
   handleOnAllStepsComplete: (flag: boolean) => void;
@@ -32,6 +34,7 @@ const AutoVerticalStepper = React.forwardRef<
     const {
       steps,
       className = '',
+      description='',
       stepComponentProps,
       isEdit = false,
       handleOnAllStepsComplete = () => {
@@ -48,6 +51,7 @@ const AutoVerticalStepper = React.forwardRef<
     }, [stepComponentProps?.step?.step_id, stepComponentProps?.connector?.group_name]);
 
     const handleStepChange = (stepIndex: number, closeStep = false) => {
+
       if (closeStep) {
         const data = stepStatus.map((s: any, i: number) => {
           if (i === stepIndex) {
@@ -56,6 +60,7 @@ const AutoVerticalStepper = React.forwardRef<
           return s;
         });
         setStepStatus(data);
+        
         handleOnAllStepsComplete(true);
       } else {
         const data: string[] = stepStatus.map((s: any, i: number) => {
@@ -72,14 +77,18 @@ const AutoVerticalStepper = React.forwardRef<
     };
 
     const StepperStepTitleCreator: (data: any) => JSX.Element = (data: any) => {
+      const showSpan = data?.title == 'Orgnization' ? <span>(read only)</span> : ''
       return (
         <>
           <div className="migration-vertical-stepper-container">
             <div>
-              <Heading className='stepper-title'tagName='h3' text={data.title}/>
+              <div className='orgWrapper'>
+                <Heading className='stepper-title' tagName='h3' text={data.title} />
+                {data?.ifReadonly && <span>(read only)</span>}
+              </div>
               <span className="stepper-titleNote">{data.titleNote ? data.titleNote : ''}</span>
             </div>
-            {data.lock ? (
+            {data?.lock ? (
               <Tooltip content={data.step_lock_text} position="right" type="primary" maxWidth={500}>
                 <div className="" style={{ cursor: 'not-allowed', marginLeft: '10px' }}>
                   <img src={addDomainInPath('images/lock.png')} alt="lock-icon" />
@@ -87,7 +96,7 @@ const AutoVerticalStepper = React.forwardRef<
               </Tooltip>
             ) : null}
           </div>
-          <div className="stepper-discription"> {data.description}</div>
+          {data.description && <div className="stepper-discription"> {data.description}</div>}
         </>
       );
     };
@@ -147,6 +156,7 @@ const AutoVerticalStepper = React.forwardRef<
 
       return (
         <div className={`migration-vertical-stepper  ${className}`}>
+          {props?.description && <div>{props?.description}</div>}
           <ol className="Vertical">
             {steps?.map((step: any, index: number) => {
               
@@ -160,7 +170,7 @@ const AutoVerticalStepper = React.forwardRef<
                   id={step?.step_id}
                   className="step_block"
                   key={step?.step_id}
-                  style={{ paddingBottom: '40px' }}
+                  style={{ paddingBottom: '10px' }}
                 >
                   <div className={`step__title `}>
                     {StepperStepTitleCreator(step)}
