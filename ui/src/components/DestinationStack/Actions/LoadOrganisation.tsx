@@ -1,6 +1,6 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { INewMigration } from '../../../context/app/app.interface';
+import { IDropDown, INewMigration } from '../../../context/app/app.interface';
 import { TextInput } from '@contentstack/venus-components';
 
 import '../DestinationStack.scss';
@@ -23,8 +23,7 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
 
   const dispatch = useDispatch();
 
-  const [selectedOrg, setSelectedOrg] = useState();
-
+  const [selectedOrg, setSelectedOrg] = useState<IDropDown>();
   /****  ALL METHODS HERE  ****/
 
   //update new  Migration Data
@@ -32,7 +31,6 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
     dispatch(updateNewMigrationData((data)));
   };
    
-  const textInput = newMigrationData?.destination_stack?.selectedOrg?.label 
 
   //Handle Organisation selection
   // const handleDropdownChange = (data: ChangeEvent<HTMLInputElement>) =>  {
@@ -87,7 +85,7 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
       </div> */}
       <TextInput 
         version={'v2'}
-        value={textInput || 'Organisation'}
+        value={selectedOrg?.label || 'Organisation'}
         width="600px"
         className="orgInput"
         isReadOnly
