@@ -25,7 +25,12 @@
 .pl-40 {
   padding-left: $px-40;
 }
-
+.Dropdown-wrapper {
+  .css-b8ldur-Input {
+    // border: 1px solid red;
+    cursor: not-allowed;
+  }
+}
 .stackselect {
   min-width: 600px !important;
   max-width: 600px !important;
