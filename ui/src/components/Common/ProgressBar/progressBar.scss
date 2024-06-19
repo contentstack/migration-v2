@@ -1,0 +1,19 @@
+@import '../../../scss//variables';
+
+.ProgressBar {
+	border-radius: $space-4;
+	
+	overflow: hidden;
+	&__bar {
+		
+		border-radius: inherit;
+		height: inherit;
+		transition: width 100ms linear;
+	}
+	&__circle{
+		stroke-width: 5%;
+		transform: rotate(-90deg);
+		transform-origin: 50% 50%;
+		transition: stroke-dashoffset 1s;
+	}
+}

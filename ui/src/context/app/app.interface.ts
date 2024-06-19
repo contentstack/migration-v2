@@ -37,13 +37,13 @@ export interface User {
   organizations: Organization[];
 }
 export interface FileDetails {
-  isLocalPath: boolean;
-  cmsType: string;
-  localPath: string;
-  awsData: {
-    awsRegion: string;
-    bucketName: string;
-    buketKey: string;
+  isLocalPath?: boolean;
+  cmsType?: string;
+  localPath?: string;
+  awsData?: {
+    awsRegion?: string;
+    bucketName?: string;
+    buketKey?: string;
   };
 }
 export interface IFile {
@@ -53,8 +53,8 @@ export interface IFile {
   type?: string;
   url?: string;
   validation?: string;
-  file_details: FileDetails;
-  isValidated?: boolean;
+  file_details?: FileDetails;
+  isValidated: boolean;
 }
 
 export interface ICMSType extends ICardType {
@@ -96,6 +96,7 @@ export interface ILegacyCMSComponent {
 
 export interface IDestinationStackComponent {
   title: string;
+  description: string;
   cta: string;
   new_stack: {
     save_stack_cta: string;
@@ -111,12 +112,13 @@ export interface IContentMapping {
   action_cta: ActionCta[];
   cta: CTA;
   search_placeholder: '';
+  table_search_placeholder: '';
 }
 
 export interface MigrationExecution {
   disable: boolean;
   title: string;
-  width: string | 'full';
+  width: string;
 }
 export interface IMigrationExecution {
   migration_information: MigrationExecution[];
@@ -316,6 +318,7 @@ export const DEFAULT_LEGACY_CMS_DATA: ILegacyCMSComponent = {
 export const DEFAULT_DESTINATION_STACK_DATA: IDestinationStackComponent = {
   title: '',
   cta: '',
+  description: '',
   new_stack: {
     save_stack_cta: '',
     new_stack_input: '',
@@ -336,7 +339,8 @@ export const DEFAULT_CONTENT_MAPPING_DATA: IContentMapping = {
     title: '',
     theme: ''
   },
-  search_placeholder: ''
+  search_placeholder: '',
+  table_search_placeholder: ''
 };
 
 export const DEFAULT_MIGRATION_EXECUTION: IMigrationExecution = {

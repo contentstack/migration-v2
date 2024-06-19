@@ -284,7 +284,9 @@ html,
 body {
   color: $color-font-base;
   font-family: $font-family-primary;
+  height: 100%;
   line-height: 1.3rem;
+  overflow-x: hidden;
   span,
   p {
     line-height: $line-height-default !important;
@@ -386,11 +388,11 @@ h2 {
   }
 }
 ::-webkit-input-placeholder {
-  color: $color-black-2121 !important;
+  color: $color-stepper-title !important;
 }
 ::-ms-input-placeholder {
-  color: $color-black-2121 !important;
+  color: $color-stepper-title !important;
 }
 ::placeholder {
-  color: $color-black-2121 !important;
+  color: $color-stepper-title !important;
 }
