@@ -6,7 +6,7 @@ import validator from "../validators/index.js";
 const router = express.Router({ mergeParams: true });
 
 // GET all org stacks route
-router.get("/stacks", asyncRouter(orgController.getAllStacks));
+router.get("/stacks/:searchText?", asyncRouter(orgController.getAllStacks));
 
 // Create a new stack route
 router.post(
