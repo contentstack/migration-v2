@@ -5,38 +5,121 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 0;
+  margin: 0 0 20px 10px !important
 }
 
 .title {
-  font-family: $font-family-primary;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 13px;
-  line-height: 135%;
-  letter-spacing: 0.02em;
-  color: $color-font-black;
-  margin-top: 3px;
+  margin: 20px 0 5px;
+  padding: 0 8px;
+  color: $color-black-2121;
+  font-size: $size-font-large;
+  font-weight: $font-weight-semi-bold;
+  line-height: 21px;
 }
-
+.stackTitle {
+  color: $color-black-2121;
+  font-size: $size-font-large;
+  font-weight: $font-weight-semi-bold;
+  padding-bottom: 20px;
+}
 .pl-40 {
   padding-left: $px-40;
 }
 
 .stackselect {
-  min-width: $px-440 !important;
-  max-width: $px-440 !important;
+  min-width: 600px !important;
+  max-width: 600px !important;
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 4px;
 }
 .destination-stack-container {
-  margin-top: $px-108 !important;
-  width: $px-850 !important;
-  margin-left: 10% !important;
+  padding: 20px;
+  .migration-vertical-stepper {
+    padding: 24px 30px;
+    border: 1px solid $color-brand-secondary-lightest;
+    border-radius: 4px;
+    background-color: $color-brand-white-base;
+    .step_block {
+      padding: 0 !important;
+      margin: 0;
+      background: none;
+      border: 0 none;
+      border-radius: 0;
+    }
+    .stepper-title {
+      margin: 20px 0 5px;
+      padding: 0 8px;
+      color: $color-black-2121;
+      font-size: $size-font-large;
+      font-weight: $font-weight-semi-bold;
+      line-height: 21px;
+    }
+    .action-content-wrapper {
+      box-shadow: none;
+      border: 0 none;
+      border-radius: 0;
+      padding:0 !important;
+    }
+    .migration-vertical-stepper-container {
+      border-bottom: 0 none;
+    }
+    .orgInput {
+      max-width: 600px;
+      width: 100%;
+    }
+    .Select__menu {
+      // max-width: 430px;
+      width: 100%;
+      margin: 0;
+      padding-bottom: 0;
+      .Select__v2 .Select__menu .Select__menu-list .Select__option {
+        padding: 12px !important;
+      }
+      .Select .Select__control .Select__value-container input, .Select__single-value input[text]{
+        font-size: 16px !important;
+        line-height: 24px !important;
+        color: $color-placeholder !important;
+        width: 100% !important;
+      }
+      .Select__option {
+        position: relative;
+        &:last-child {
+          border-top: 1px solid $color-brand-secondary-lightest;
+          position: sticky;
+          bottom: 0;
+          color: $color-brand-primary-base;
+          font-weight: $font-weight-semi-bold;
+        }
+      }
+    }
+    .TextInput--disabled .TextInput__v2 {
+      background-color: #F9F8FF !important;
+    }
+    #Step2 {
+      .action-summary-wrapper {
+        background-color: $color-brand-white-base;
+        margin-left: 2px;
+        padding: 0 !important;
+      }
+    }
+   
+
+  }
+}
+.action-summary-wrapper {
+  .Select .Select__control .Select__value-container.Select__value-container--has-value .Select__single-value input {
+    width: 100% !important;
+    background-color: $color-brand-white-base;
+    font-size: $size-font-xl;
+    color: $color-black-2121;
+    font-weight: $font-weight-regular;
+  }
+  .TextInput--disabled .TextInput__v2 {
+    background-color: $color-base-white-5 !important;
+    color: $color-black-2121;
+  }
 }
 
-.TextInput--disabled .TextInput__v2 {
-  background-color: $color-base-white-5 !important;
-  color: $color-font-black;
-}
 
 .locale-container {
   display: flex;

@@ -167,12 +167,12 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         
       </div>
       { isRestrictedkey && 
-      <div className="col-12 pb-2">
-        <p className='link-discription'>Please refer the list of Contentstack restricted keywords</p>
-        <a href={restricted_keyword_link?.href} target="_blank" rel="noreferrer" className="small link">
-          <Icon size="mini" className={'mr-1'} icon="Link" version="v2" />
-          <span> {restricted_keyword_link?.title}</span>
-        </a>
+      <div className="col-12">
+        
+        <p className='link-discription'>Please refer the list of Contentstack 
+          <a href={restricted_keyword_link?.href} target="_blank" rel="noreferrer" className=" link"> restricted keywords</a>
+        </p>
+
       </div>}
     </div>
   );

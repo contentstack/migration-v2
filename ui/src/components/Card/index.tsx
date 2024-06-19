@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom';
 // Utilities
 import { NEW_PROJECT_STATUS } from '../../utilities/constants';
 import { getDays, isEmptyString } from '../../utilities/functions';
-import { AppContext } from '../../context/app/app.context';
 // Interface
 import { ProjectType } from './card.interface';
 import { getProject } from '../../services/api/project.service';
