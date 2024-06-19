@@ -76,7 +76,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     setProgressPercentage(30);
     setShowProgress(true);
 
-    const res: any = await fileValidation();
+    const res: any = await fileValidation(projectId);
     if(res?.status === 200){ 
       setIsValidated(true);
       setValidationMessage('Validated');
