@@ -8,9 +8,9 @@ const options = {
   }
 };
 
-export const getAllStacksInOrg = async (orgId: string) => {
+export const getAllStacksInOrg = async (orgId: string,searchText: string) => {
   try {
-    return await getCall(`${API_VERSION}/org/${orgId}/stacks`, options);
+    return await getCall(`${API_VERSION}/org/${orgId}/stacks/${searchText}?`, options);
   } catch (error) {
     return error;
   }
