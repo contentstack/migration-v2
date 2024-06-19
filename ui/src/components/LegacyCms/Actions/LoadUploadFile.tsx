@@ -77,7 +77,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     setShowProgress(true);
 
     const res: any = await fileValidation();
-
     if(res?.status === 200){ 
       setIsValidated(true);
       setValidationMessage('Validated');
@@ -119,10 +118,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       dispatch(updateNewMigrationData(newMigrationDataObj));
       
       
-
-      props.handleStepChange(props?.currentStep, true);
-  
-
+      if(! isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
+        props.handleStepChange(props?.currentStep, true);
+      }
+      
     }
     else{
       setIsValidated(false);
@@ -274,7 +273,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     }
     else{
       setIsValidated(false);
-      setValidationMessage('Validation Falied');
     }
     
   },[isValidated,newMigrationData])
