@@ -27,7 +27,7 @@ const FileComponent = ({fileDetails}:Props ) => {
     <div>
       {fileDetails?.isLocalPath && (!isEmptyString(fileDetails?.localPath) || !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
         <div>
-          <Paragraph className="pb-2" tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
+          <Paragraph tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
           
         </div>
       ) : (
@@ -289,9 +289,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             {!isConfigLoading && !isEmptyString(cmsType) ? (
               <FileComponent fileDetails={fileDetails || {}} />
             ) :
-              <Paragraph className="pb-2" tagName="p" variant='p1' text={'Please verify the CMS'}/>}
+              <Paragraph tagName="p" variant='p1' text={'Please verify the CMS'}/>}
             {showMessage  &&
-              (<Paragraph className={`${validationClassName} pb-2` } tagName='p' variant="p2" text={validationMessgae}/>)
+              (<Paragraph className={`${validationClassName}` } tagName='p' variant="p2" text={validationMessgae}/>)
             }
            
           </div>
