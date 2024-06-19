@@ -88,13 +88,13 @@ const AutoVerticalStepper = React.forwardRef<
               </div>
               <span className="stepper-titleNote">{data.titleNote ? data.titleNote : ''}</span>
             </div>
-            {data?.lock ? (
+            {/* {data?.lock ? (
               <Tooltip content={data.step_lock_text} position="right" type="primary" maxWidth={500}>
                 <div className="" style={{ cursor: 'not-allowed', marginLeft: '10px' }}>
                   <img src={addDomainInPath('images/lock.png')} alt="lock-icon" />
                 </div>
               </Tooltip>
-            ) : null}
+            ) : null} */}
           </div>
           {data.description && <div className="stepper-discription"> {data.description}</div>}
         </>
