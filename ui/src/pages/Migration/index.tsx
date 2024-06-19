@@ -189,7 +189,6 @@ const Migration = () => {
     };
 
     const handleOnClickContentMapper = async (event: MouseEvent) => {
-      if (isCompleted) {
         event.preventDefault();
 
         const data = {
@@ -203,10 +202,11 @@ const Migration = () => {
           projectId,
           data
         );
+        
 
         const newMigrationDataObj: INewMigration = {
           ...newMigrationData,
-          test_migration: { stack_link: res?.data?.data?.url }
+          test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
         };
     
         dispatch(updateNewMigrationData((newMigrationDataObj)));
@@ -214,12 +214,6 @@ const Migration = () => {
           const url = `/projects/${projectId}/migration/steps/4`;
           navigate(url, { replace: true });
         }
-      } else {
-        Notification({
-          notificationContent: { text: 'Please complete all steps' },
-          type: 'warning'
-        });
-      }
     }
 
     const handleOnClickFunctions = [
