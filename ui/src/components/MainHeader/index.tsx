@@ -97,9 +97,7 @@ const MainHeader = () => {
   };
   return (
     <div className="mainheader">
-      <div className="container-fluid">
-        <div className="row align-items-center">
-          <div className="col-6 d-flex align-items-center">
+          <div className="d-flex align-items-center">
             {logo?.image?.url ? (
               <div className="logo">
                 <Tooltip position="right" content="Projects" wrapperElementType="div">
@@ -126,7 +124,7 @@ const MainHeader = () => {
             </div>}
           </div>
 
-          {(location.pathname == '/projects' || location.pathname.includes('/projects/')) && <div className="col-6 flex-end">
+          {(location.pathname == '/projects' || location.pathname.includes('/projects/')) && <div className="flex-end">
             <div className="Dropdown-wrapper">
               <Dropdown
                 list={[
@@ -142,8 +140,6 @@ const MainHeader = () => {
               </Dropdown>
             </div>
           </div>}
-        </div>
-      </div>
     </div>
   );
 };

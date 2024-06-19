@@ -17,6 +17,7 @@ const LoginLazyLoad = lazy(() => import('../../pages/Login'));
 const RegionalLoginLazyLoad = lazy(() => import('../../pages/RegionalLogin'));
 const MigrationLazyLoad = lazy(() => import('../../pages/Migration'));
 const ProjectsLazyLoad = lazy(() => import('../../pages/Projects'));
+const SettingsLazyLoad = lazy(() => import ('../Common/Settings'))
 
 const AppRouter = () => {
   return (
@@ -34,9 +35,9 @@ const AppRouter = () => {
         <Route
           path="/projects/:projectId/migration/steps/:stepId"
           element={<MigrationLazyLoad />}
-        >
+        />
           
-        </Route>
+        <Route path="/projects/:projectId/settings" element={<SettingsLazyLoad />} />
       </Route>
 
       <Route path="*" element={<ErrorPage contentType={CS_ENTRIES.NOT_FOUND_ERROR} />} />
