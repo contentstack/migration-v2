@@ -23,7 +23,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
 
     await ProjectModelLowdb.read();
     const projectData = ProjectModelLowdb.chain.get("projects").value();
-    const testStackCount = projectData[0].test_stacks.length + 1;
+    const testStackCount = projectData[0]?.test_stacks?.length + 1;
     const newName = name + "-" + testStackCount;
 
     const [err, res] = await safePromise(

@@ -387,6 +387,22 @@ h2 {
     }
   }
 }
+.content-block {
+  background-color: $color-brand-white-base;
+  border: 1px solid $color-base-gray-40;
+  border-radius: $px-4;
+  margin: $px-24 $px-20 $px-32;
+
+  .content-header {
+    font-size: $size-font-large;
+    font-weight: $font-weight-semi-bold;
+    padding: $px-12 $px-24;
+  }
+  .content-body {
+    border-top: 1px solid $color-base-gray-40;
+    padding: $px-24 $px-30;
+  }
+}
 ::-webkit-input-placeholder {
   color: $color-stepper-title !important;
 }
