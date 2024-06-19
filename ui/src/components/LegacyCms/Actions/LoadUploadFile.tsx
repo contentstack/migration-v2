@@ -27,7 +27,7 @@ const FileComponent = ({fileDetails}:Props ) => {
     <div>
       {fileDetails?.isLocalPath && (!isEmptyString(fileDetails?.localPath) || !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
         <div>
-          <Paragraph tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
+          <Paragraph className="pb-2" tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
           
         </div>
       ) : (
@@ -289,9 +289,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             {!isConfigLoading && !isEmptyString(cmsType) ? (
               <FileComponent fileDetails={fileDetails || {}} />
             ) :
-              <Paragraph tagName="p" variant='p1' text={'Please verify the CMS'}/>}
+              <Paragraph className="pb-2" tagName="p" variant='p1' text={'Please verify the CMS'}/>}
             {showMessage  &&
-              (<Paragraph className={`${validationClassName}` } tagName='p' variant="p2" text={validationMessgae}/>)
+              (<Paragraph className={`${validationClassName} pb-2` } tagName='p' variant="p2" text={validationMessgae}/>)
             }
            
           </div>
@@ -305,7 +305,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
            onClick={handleOnFileUploadCompletion}
            isLoading={isLoading}
            version={"v2"}
-           disabled={isDasabled}>Validate</Button>
+           disabled={isDasabled}
+           >Validate</Button>
            
         </div>
 
