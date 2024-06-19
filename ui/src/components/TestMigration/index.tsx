@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@contentstack/venus-components';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Field, FieldLabel, TextInput, Link, Icon, Tooltip } from '@contentstack/venus-components';
 import { UseDispatch,useSelector } from 'react-redux';
 
 // Services
@@ -19,7 +19,8 @@ import { AppContext } from '../../context/app/app.context';
 const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
 
-  const newMigrationData = useSelector((state:any)=>state?.migration?.newMigration);
+  const newMigrationData = useSelector((state:any)=>state?.migration?.newMigrationData);
+  
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -38,9 +39,57 @@ const TestMigration = () => {
 
   const { subtitle, cta } = data;
 
+  
+
   return (
-    <div>
-      <div id="test-migration" className="action-component-body">
+    <div className='step-content-wrapper'>
+      <div className='content-block'>
+        <div className='content-header text-uppercase'>UID</div>
+        <div className='content-body'>
+          <p>Select your current Content Management system from the available options.</p>
+          <Field
+            id="stack"
+            name="stack"
+            className='pt-4'
+          >
+            <FieldLabel htmlFor="stackKey" version="v2" requiredText="(read only)">
+              Uploaded CMS
+            </FieldLabel>
+            <div className='d-flex align-items-center'>
+              {newMigrationData?.test_migration?.stack_api_key && (
+                <TextInput
+                  type="text"
+                  isReadOnly
+                  name="stackKey"
+                  value={`${newMigrationData?.test_migration?.stack_api_key}`}
+                  version="v2"
+                  width="medium"
+                />
+              )}
+
+              {newMigrationData?.test_migration?.stack_link && (
+                <Link href={`${newMigrationData?.test_migration?.stack_link}`} target='_blank' className='ml-8'>
+                  <Tooltip content='Stack Link' position="right">
+                    <Icon
+                      icon="Link"
+                      size="small"
+                      version="v2"
+                    />
+                  </Tooltip>
+                </Link>
+              )}
+            </div>
+          </Field>
+        </div>
+      </div>
+
+      <div className='content-block'>
+        <div className='content-header'>Execution Logs</div>
+        <div>
+          
+        </div>
+      </div>
+      {/* <div id="test-migration" className="action-component-body">
         <div className="selectedOptions d-flex">
           <span className="stack-link">{subtitle}:</span>
           <span className="ml-6">
@@ -63,7 +112,7 @@ const TestMigration = () => {
             </Button>
           </Link>
         )}
-      </div>
+      </div> */}
     </div>
   );
 };
