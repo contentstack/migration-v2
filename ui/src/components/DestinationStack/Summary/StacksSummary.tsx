@@ -1,12 +1,9 @@
 import { useState } from 'react';
-import { useDispatch,useSelector } from 'react-redux';
-import StepIcon from '../../../components/Stepper/FlowStepper/StepIcon';
-import { AppContext } from '../../../context/app/app.context';
+import { useSelector } from 'react-redux';
 import { isEmptyString } from '../../../utilities/functions';
 import {
   DEFAULT_DROPDOWN,
   IDropDown,
-  INewMigration,
   IStep
 } from '../../../context/app/app.interface';
 

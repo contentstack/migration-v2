@@ -15,8 +15,7 @@ const getComponentObject = (
   isCompleted: boolean,
   isMigrationLocked: boolean
 ): IStep => {
-  let updatedStep = { ...step };
-
+  let updatedStep = { ...step }; 
   switch (step.step_id) {
     case 'Step1': {
       // Insert Data, Summary component, and status

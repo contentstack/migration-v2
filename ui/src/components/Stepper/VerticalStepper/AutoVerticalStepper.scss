@@ -11,12 +11,6 @@
 }
 
 .migration-vertical-stepper .stepper-title {
-  font-family: $font-family-primary;
-  font-style: normal;
-  font-weight: 700;
-  font-size: 1rem;
-  line-height: 135%;
-  color: $color-stepper-title;
   margin-bottom: $space-10;
   margin: 10px 20px;
 
@@ -114,4 +108,12 @@
   padding:  24px 30px, 24px, 30px;
   gap: 24px;
   margin-bottom: 40px;
+}
+.orgWrapper {
+  display: flex;
+  align-items: baseline;
+  span {
+    font-size: 14px;
+    color: $color-stepper-title;
+  }
 }
