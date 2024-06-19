@@ -67,27 +67,30 @@ const MigrationExecution = () => {
   };
 
   return (
-    <div>
-      <div className="action-component-body select-wrapper">
-        {MigrationInformation &&
-          validateArray(MigrationInformation) &&
-          MigrationInformation?.map((item, index) => (
-            <div className="select-wrapper" key={`${index.toString()}`}>
-              <Field width="small" disabled={item?.disable}>
-                <FieldLabel className="selectedOptions" htmlFor="label">
-                  {item?.title}
-                </FieldLabel>
-                <span className="execution-wrapper">{getPlaceHolder(item?.title)}</span>
-              </Field>
-              {index < MigrationInformation?.length - 1 && (
-                <Icon className="icon-wrapper" icon="Forward" size="tiny" />
-              )}
-            </div>
-          ))}
-      </div>
-      <div className="terminal-container"></div>
-      <div className="cta-wrapper">
-        <Button aria-label="cancel migartion">cancel</Button>
+    <div className='step-content-wrapper'>
+      <div className='content-block'>
+        <div className='content-header'>Path</div>
+        <div className='content-body'>Select your organization maintained on Contentstack.</div>
+        <div className='content-body'>
+          
+          <div className='select-wrapper'>
+            {MigrationInformation &&
+              validateArray(MigrationInformation) &&
+              MigrationInformation?.map((item, index) => (
+              <div className="select-wrapper" key={`${index.toString()}`}>
+                <Field width="small" disabled={item?.disable}>
+                  <FieldLabel className="selectedOptions" htmlFor="label">
+                    {item?.title}
+                  </FieldLabel>
+                  <span className="execution-wrapper">{getPlaceHolder(item?.title)}</span>
+                </Field>
+                {index < MigrationInformation?.length - 1 && (
+                  <Icon className="icon-wrapper" icon="Forward" size="tiny" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
