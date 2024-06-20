@@ -61,7 +61,9 @@ const Projects = () => {
   const [loadStatus, setLoadStatus] = useState(true);
   const [searchText, setSearchText] = useState(search);
 
-
+  useEffect(()=>{
+    dispatch(getUserDetails());
+  },[]);
 
   const fetchProjects = async () => {
     if (selectedOrganisation?.value) {
