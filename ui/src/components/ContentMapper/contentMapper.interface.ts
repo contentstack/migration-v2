@@ -86,7 +86,7 @@ export interface FieldMetadata {
 export interface ContentTypesSchema {
   uid?: string;
   display_name?: string;
-  data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file';
+  data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file' | 'reference' | 'group';
   field_metadata?: FieldMetadata;
   enum?: any;
 }
