@@ -98,8 +98,7 @@ const Migration = () => {
     }
   };
 
-  const createStepper = (projectData:any,handleStepChange: (currentStep: number) => void) => {
-
+  const createStepper = (projectData: MigrationResponse,handleStepChange: (currentStep: number) => void) => {
     const steps = [
       {
         data: <LegacyCms
@@ -254,7 +253,7 @@ const Migration = () => {
       }
     }
 
-    const handleOnClickTestMigration = async (event: MouseEvent) => {
+    const handleOnClickTestMigration = async () => {
       setIsLoading(false);
 
       const url = `/projects/${projectId}/migration/steps/5`;
