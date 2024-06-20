@@ -4,8 +4,12 @@
 .select-wrapper {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  margin-left: 5px;
+  .Field {
+    margin-bottom: 0;
+  }
+}
+.content-body.step-desc {
+  padding: 1rem 1.5rem;
 }
 .terminal-container {
   background-color: #000;
@@ -39,12 +43,17 @@ div .step-component .action-component-body {
   padding: 5px 10px;
   margin: 5px;
 }
-.icon-wrapper {
+.arrow-wrapper {
+  align-items: center;
   display: flex;
+  height: 19.5px;
   margin-left: 30px; /* Adds space to the left of the icon */
   margin-right: 30px;
-  margin-top: 20px;
-  align-items: center;
+  width: 23.5px;
+  &.Icon--original {
+    height: auto;
+    width: auto;
+  }
 }
 
 .execution-wrapper {
