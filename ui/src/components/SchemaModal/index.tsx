@@ -38,7 +38,7 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['title'];
   }
 
-  if (field?.ContentstackFieldType === 'URL') {
+  if (field?.ContentstackFieldType === 'URL' || field?.ContentstackFieldType === 'single_line_text') {
     return icons['text'];
   }
 
@@ -170,7 +170,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
                   )}
                   <Icon icon={getTopLevelIcons(field) as string} className="field-icon" />
                 </span>
-                <span className="title">
+                <span className="field-title">
                   {getChildFieldName(field?.otherCmsField, item?.otherCmsField)}
                 </span>
               </div>
@@ -220,7 +220,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
                       {hasNested && <Icon className={'chevron'} icon="ChevronExtraSmall" />}
                       <Icon className={'fieldicon'} icon={getTopLevelIcons(item) as string} />
                     </span>
-                    <span className={`title`}>{item?.otherCmsField}</span>
+                    <span className={`field-title`}>{item?.otherCmsField}</span>
                   </div>
                   {hasNested && generateNestedOutline(item, index)}
                 </li>
