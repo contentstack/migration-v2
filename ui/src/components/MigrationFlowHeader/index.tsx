@@ -51,6 +51,7 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading }: MigrationFlowHeaderPr
     dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
     navigate(-1);
   }
+
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>
@@ -76,7 +77,7 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading }: MigrationFlowHeaderPr
         aria-label='Save and Continue'
         isLoading={isLoading}
       >
-        Save and Continue
+        {params?.stepId === '5' ? 'Start' : 'Save and Continue'}
       </Button>
     </div>
   )
