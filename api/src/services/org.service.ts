@@ -51,9 +51,9 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
     let stacks = res?.data?.stacks;
     if(search){    
       stacks = stacks.filter((stack:{name: string, description:string})=>{
-        const stackName = stack.name?.toLowerCase();
-        const stackDescription = stack.description?.toLowerCase();
-        return stackName.includes(search) || stackDescription.includes(search);
+        const stackName = stack?.name?.toLowerCase();
+        const stackDescription = stack?.description?.toLowerCase();
+        return stackName?.includes(search) || stackDescription?.includes(search);
 
       })
     }
