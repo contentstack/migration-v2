@@ -1,61 +1,11 @@
 @import '../../scss/App.scss';
 @import '../../scss/variables';
 
-.test {
-  background-color: #000000;
-  color: $color-brand-white-base;
-  height: 469px;
-  padding: 20px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  width: 100% !important;
-  box-sizing: border-box;
-}
 
-div .step-component .action-component-body {
-  //margin-top: 60px !important;
-  width: 100% !important;
-  margin-left: 0px !important;
-}
-.cta-wrapper-test-migration {
-  border-top: 1px solid $color-base-gray-40;
-  bottom: 0;
-  left: 0;
-  padding: $space-12 $space-24 $space-12 $space-12;
-  position: fixed;
-  right: 0;
-  text-align: right;
-  width: 100%;
-  z-index: 1;
-}
-.selectedOptions {
-  color: $color-base-gray-20;
-  font-size: $size-font-large;
-  font-weight: $font-weight-semi-bold;
-  padding: 5px 0;
-  margin: 20px 0;
-}
-.icon-wrapper {
-  display: flex;
-  margin-left: 30px; /* Adds space to the left of the icon */
-  margin-right: 30px;
-  margin-top: 20px;
-  align-items: center;
-}
 
-.execution-wrapper {
-  display: flex;
-  background-color: $color-base-white-5;
-  color: $color-font-base;
-  height: $px-40;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  text-align: center !important;
-  padding: 0 !important;
-  border: 1px solid $color-brand-secondary-lightest;
-  border-radius: var(--TermCount, 5px);
-}
-.stack-link {
-  padding: 10px 10px;
-}
+
+
+
+
+
+
