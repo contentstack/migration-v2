@@ -13,6 +13,7 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getAllStacks";
   const orgId = req?.params?.orgId;
   const { token_payload } = req.body;
+  const search: string = req?.params?.searchText?.toLowerCase();
 
   try {
     const authtoken = await getAuthtoken(
@@ -42,13 +43,21 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
           err.response.data
         )
       );
-
       return {
         data: err.response.data,
         status: err.response.status,
       };
     }
-    let locale = await getStackLocal(token_payload, res.data.stacks);
+    let stacks = res?.data?.stacks;
+    if(search){    
+      stacks = stacks.filter((stack:{name: string, description:string})=>{
+        const stackName = stack?.name?.toLowerCase();
+        const stackDescription = stack?.description?.toLowerCase();
+        return stackName?.includes(search) || stackDescription?.includes(search);
+
+      })
+    }
+    const locale = await getStackLocal(token_payload, stacks);
     return {
       data: {
         stacks: locale,
