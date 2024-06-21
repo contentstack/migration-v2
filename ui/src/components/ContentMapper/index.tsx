@@ -537,31 +537,6 @@ const ContentMapper = () => {
       }
     });
   };
-
-  const handleValidateOnClick = async () => {
-    setisButtonLoading(true);
-    const data = {
-      name: newMigrationData?.destination_stack?.selectedStack?.label,
-      description: 'test migration stack',
-      master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
-    };
-    const res = await createTestStack(
-      newMigrationData?.destination_stack?.selectedOrg?.value,
-      projectId,
-      data
-    );
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      test_migration: { stack_link: res?.data?.data?.url }
-    };
-
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
-    if (res?.status) {
-      setisButtonLoading(false);
-      const url = `/projects/${projectId}/migration/steps/4`;
-      navigate(url, { replace: true });
-    }
-  };
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
 
@@ -666,17 +641,18 @@ const ContentMapper = () => {
       'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
       'JSON Rich Text Editor': 'json',
-      group: 'Group',
-      URL: 'url',
-      file: 'file',
-      number: 'number',
-      Date: 'isodate',
-      boolean: 'boolean',
-      link: 'link',
-      reference: 'reference',
-      dropdown: 'enum',
-      radio: 'enum',
-      CheckBox: 'enum'
+      'Rich Text':'json',
+      'Group': 'Group',
+      'URL': 'url',
+      'file': 'file',
+      'number': 'number',
+      'Date': 'isodate',
+      'boolean': 'boolean',
+      'link': 'link',
+      'reference': 'reference',
+      'dropdown': 'enum',
+      'radio': 'enum',
+      'CheckBox': 'enum'
     };
     const OptionsForRow: optionsType[] = [];
     // let ContentTypeSchema: ContentTypesSchema | undefined;
@@ -691,7 +667,7 @@ const ContentMapper = () => {
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
       
-      contentTypeSchema.forEach((value) => {
+      contentTypeSchema.forEach((value) => {     
         switch (fieldTypeToMatch) {
           case 'text':
             if (
@@ -745,8 +721,16 @@ const ContentMapper = () => {
             }
             break;
           case 'Group':
+            if (value?.data_type === 'group') {
               OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
+            }
             break;
+          case 'reference':
+            if (value?.data_type === 'reference') {
+              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
+            }
+            break;
+
           default:
             OptionsForRow.push({
               label: 'No matches found',
@@ -769,6 +753,7 @@ const ContentMapper = () => {
       ...option,
       isDisabled: selectedOptions?.includes(option?.label ?? '')
     }));
+
     return (
       <div className="table-row">
         <div className="select">
