@@ -61,7 +61,9 @@ const Projects = () => {
   const [loadStatus, setLoadStatus] = useState(true);
   const [searchText, setSearchText] = useState(search);
 
-
+  useEffect(()=>{
+    dispatch(getUserDetails());
+  },[]);
 
   const fetchProjects = async () => {
     if (selectedOrganisation?.value) {
@@ -85,10 +87,14 @@ const Projects = () => {
 
     // fetchProjects();
   };
+
   useEffect(()=>{
     dispatch(getUserDetails());
+  },[dispatch]);
 
-  },[dispatch])
+  useEffect(()=>{
+    dispatch(getUserDetails());
+  },[]);
 
   useEffect(() => {
     fetchData();

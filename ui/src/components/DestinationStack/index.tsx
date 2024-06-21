@@ -96,7 +96,7 @@ const DestinationStackComponent = ({
     //If stack is already selected and exist in backend, then fetch all stack list and filter selected stack.
     if (!isEmptyString(destination_stack)) {
       const stackData: any = await getAllStacksInOrg(
-        selectedOrganisationData?.value || selectedOrganisation?.value
+        selectedOrganisationData?.value || selectedOrganisation?.value,''
       );
 
       const stack =

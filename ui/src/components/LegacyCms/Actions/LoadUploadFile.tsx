@@ -27,7 +27,7 @@ const FileComponent = ({fileDetails}:Props ) => {
     <div>
       {fileDetails?.isLocalPath && (!isEmptyString(fileDetails?.localPath) || !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
         <div>
-          <Paragraph className="pb-2" tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
+          <Paragraph tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
           
         </div>
       ) : (
@@ -55,7 +55,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [showMessage, setShowMessage] = useState<boolean>(!!newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
   const [validationMessgae, setValidationMessage] = useState<string>('');
   const [isValidationAttempted, setIsValidationAttempted] = useState<boolean>(false);
-  const [isDasabled, setIsDisabled] = useState<boolean>(false);
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
   const [isConfigLoading, setIsConfigLoading] = useState<boolean>(true);
   const [cmsType, setCmsType]= useState('');
   const [fileDetails, setFileDetails] = useState<FileDetails>(newMigrationData?.legacy_cms?.uploadedFile?.file_details || {});
@@ -76,7 +76,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     setProgressPercentage(30);
     setShowProgress(true);
 
-    const res: any = await fileValidation();
+    const res: any = await fileValidation(projectId);
     if(res?.status === 200){ 
       setIsValidated(true);
       setValidationMessage('Validated');
@@ -301,11 +301,17 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           </div>
           }
           
-           <Button className="validation-cta" buttonType="secondary"
-           onClick={handleOnFileUploadCompletion}
-           isLoading={isLoading}
-           version={"v2"}
-           disabled={isDasabled}>Validate</Button>
+           <Button 
+            className="validation-cta" 
+            buttonType="secondary"
+            onClick={handleOnFileUploadCompletion}
+            isLoading={isLoading}
+            loadingColor="#6c5ce7"
+            version="v2"
+            disabled={isDisabled}
+          > 
+            Validate
+          </Button>
            
         </div>
 
