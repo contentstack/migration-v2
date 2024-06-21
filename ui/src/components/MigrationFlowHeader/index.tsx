@@ -18,9 +18,10 @@ import './index.scss';
 
 type MigrationFlowHeaderProps = {
   handleOnClick: (event: MouseEvent, handleStepChange: (currentStep: number) => void) => void;
+  isLoading: boolean;
 };
 
-const MigrationFlowHeader = ({ handleOnClick }: MigrationFlowHeaderProps) => {
+const MigrationFlowHeader = ({ handleOnClick, isLoading }: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
 
   const navigate = useNavigate();
@@ -50,6 +51,7 @@ const MigrationFlowHeader = ({ handleOnClick }: MigrationFlowHeaderProps) => {
     dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
     navigate(-1);
   }
+
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>
@@ -73,8 +75,9 @@ const MigrationFlowHeader = ({ handleOnClick }: MigrationFlowHeaderProps) => {
         onClick={handleOnClick}
         version="v2"
         aria-label='Save and Continue'
+        isLoading={isLoading}
       >
-        Save and Continue
+        {params?.stepId === '5' ? 'Start' : 'Save and Continue'}
       </Button>
     </div>
   )

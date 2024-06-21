@@ -45,6 +45,7 @@
   display: flex;
   height: 100vh;
   margin-left: auto;
+  overflow: hidden;
   .Icon--original {
     height: 1.25rem;
     width: 1.25rem;
@@ -336,6 +337,7 @@ h2 {
   margin-bottom: $space-30;
 }
 .migration-steps-wrapper {
+  border-top: 1px solid $color-brand-secondary-lightest;
   margin-top: 3.5rem;
   h1 {
     color: $color-black-2121;
@@ -385,6 +387,28 @@ h2 {
     .baseColorButton {
       color: $color-brand-primary-base;
     }
+  }
+}
+.content-block {
+  background-color: $color-brand-white-base;
+  border: 1px solid $color-base-gray-40;
+  border-radius: $px-4;
+  margin: $px-24 $px-20 $px-32;
+
+  .content-header {
+    font-size: $size-font-large;
+    font-weight: $font-weight-semi-bold;
+    padding: $px-12 $px-24;
+  }
+  .content-body {
+    border-top: 1px solid $color-base-gray-40;
+    line-height: $line-height-default;
+    padding: $px-24 $px-24;
+  }
+}
+.layout-container {
+  .PageLayout__content {
+    border-top: 1px solid $color-brand-secondary-lightest;
   }
 }
 ::-webkit-input-placeholder {
