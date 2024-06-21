@@ -1,16 +1,19 @@
+// Libraries
+import { Suspense } from 'react';
+import { Provider} from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { FullPageLoader } from '@contentstack/venus-components';
+
+import { persistor, store } from './store';
+
+// Components
 import AppRouter from './components/Common/router';
 import ErrorBoundary from './components/ErrorBoundary';
-import AppContextProvider from './context/app/app.provider';
 import AppLayout from './components/layout/AppLayout';
-import { Suspense, useEffect } from 'react';
-import { FullPageLoader } from '@contentstack/venus-components';
-import { persistor, store } from './store';
 
 // Styles
 import '@contentstack/venus-components/build/main.css';
 import './scss/App.scss';
-import { Provider} from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
 
 function App() {
 
