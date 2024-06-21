@@ -142,26 +142,22 @@ const Settings = () => {
   const pageActions = [
     {
       label: (
-        <div className="actions flex-v-center deleteButton">
-          <div className="mr-16">
-            <Button
-              class="Button Button--secondary Button--size-large Button--icon-alignment-left Button--v2"
-              aria-label="Delete Project for deleting project"
-              type="button"
-              onClick={handleClick}
-            >
-              <div className="flex-center">
-                <div className="flex-v-center Button__mt-regular Button__visible">
-                  <Icon
-                    icon="Delete"
-                    version="v2"
-                    data={cmsData?.project?.delete_project?.title}
-                  ></Icon>
-                </div>
-              </div>
-            </Button>
+        <Button
+          class="Button Button--secondary Button--size-large Button--icon-alignment-left Button--v2"
+          aria-label="Delete Project for deleting project"
+          type="button"
+          onClick={handleClick}
+        >
+          <div className="flex-center">
+            <div className="flex-v-center Button__mt-regular Button__visible">
+              <Icon
+                icon="Delete"
+                version="v2"
+                data={cmsData?.project?.delete_project?.title}
+              ></Icon>
+            </div>
           </div>
-        </div>
+        </Button>
       )
     }
   ];
@@ -170,7 +166,7 @@ const Settings = () => {
     component: (
       <div>
         {active === cmsData?.project?.title && (
-          <div className="stack-settings__section-wrapper">
+          <div className="content-block">
             <div data-test-id="cs-stack-setting-general" className="stack-settings__heading">
               {cmsData?.project?.general}
             </div>
@@ -207,28 +203,6 @@ const Settings = () => {
                     </div>
                   </div>
                 </div>
-
-                <div className="stack-settings__section__fields">
-                  <div className="Field Field--full" data-test-id="cs-field"></div>
-                  <FieldLabel className="FieldLabel" htmlFor="projectDescription">
-                    {cmsData?.project?.email}
-                  </FieldLabel>
-                  <div className="flex-v-center">
-                    <div className="TextInput TextInput--large TextInput--disabled TextInput__read-only TextInput__read-only-disabled">
-                      <TextInput
-                        aria-label="email"
-                        version="v2"
-                        value={user?.email}
-                        disabled={true}
-                      ></TextInput>
-                      <span className="TextInput__read-only__wrapper">
-                        <div className="tippy-wrapper">
-                          <Icon icon="Lock" size="small" version="v2" />
-                        </div>
-                      </span>
-                    </div>
-                  </div>
-                </div>
                 <div className="SaveButton">
                   <Button
                     buttonType="primary"
@@ -248,17 +222,7 @@ const Settings = () => {
         )}
         {active === cmsData?.execution_logs?.title && (
           <div>
-            {/* <InfiniteScrollTable
-              loading={loading}
-              data={tableData}
-              columns={columns}
-              uniqueKey={'uid'}
-              canRefresh
-              itemStatusMap={itemStatusMap}
-              fetchTableData={fetchData}
-              tableHeight={472}
-              equalWidthColumns={true}
-            /> */}
+            
           </div>
         )}
       </div>
@@ -267,7 +231,7 @@ const Settings = () => {
 
   const leftSidebar = {
     component: (
-      <div style={{ textAlign: 'left' }}>
+      <div>
         <div
           data-testid="cs-section-header"
           className="SectionHeader SectionHeader--extra-bold SectionHeader--medium SectionHeader--black SectionHeader--v2"
@@ -288,19 +252,6 @@ const Settings = () => {
           }}
           version="v2"
         />
-        <div>
-          <ListRow
-            rightArrow={true}
-            active={active === cmsData?.execution_logs?.title}
-            content={cmsData?.execution_logs?.title}
-            leftIcon={<Icon icon="Stacks" version="v2" />}
-            onClick={() => {
-              setActive(cmsData?.execution_logs?.title);
-              setCurrentHeader(cmsData?.execution_logs?.title);
-            }}
-            version="v2"
-          />
-        </div>
       </div>
     )
   };

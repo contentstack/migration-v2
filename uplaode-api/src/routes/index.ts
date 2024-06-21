@@ -91,7 +91,7 @@ router.post('/upload', upload.single('file'), async function (req: Request, res:
 // deepcode ignore NoRateLimitingForExpensiveWebOperation: <alredy implemetes>
 router.get('/validator', express.json(), fileOperationLimiter, async function (req: Request, res: Response) {
   try {
-    const projectId: string | string[] = req?.body?.projectId ?? "";
+    const projectId: string | string[] = req?.headers?.projectid ?? "";
     const app_token: string | string[] = req?.headers?.app_token ?? "";
     const cmsType = config?.cmsType?.toLowerCase();
 

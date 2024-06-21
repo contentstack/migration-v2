@@ -2,21 +2,22 @@
 
 .mainheader {
   background-color: $color-brand-white-base;
-  border-bottom: 1px solid $color-brand-secondary-lightest;
+  // border-bottom: 1px solid $color-brand-secondary-lightest;
   height: 3.5rem;
+  justify-content: space-between;
   position: fixed;
   width: 100%;
   top: 0;
   display: flex;
   align-items: center;
-  z-index: 9;
+  z-index: 100;
   button {
     border: 0 none;
   }
   .logo {
-    margin-right: 1.063rem;
     position: relative;
-    width: 3rem;
+    text-align: center;
+    width: 3.5rem;
     a {
       align-items: center;
       display: flex;
@@ -30,9 +31,12 @@
       box-shadow: 0 0 1px $color-brand-primary-base, 0 0 0 4px #bbb4f4;
     }
   }
-  .organisationWrapper:focus {
-    box-shadow: 0 0 1px $color-brand-primary-base, 0 0 0 4px #bbb4f4;
-  }
+  .organisationWrapper {
+    margin-left: 1.063rem;
+    &:focus {
+      box-shadow: 0 0 1px $color-brand-primary-base, 0 0 0 4px #bbb4f4;
+    }
+  } 
   .Dropdown-wrapper {
     padding: 0 18px;
   }
