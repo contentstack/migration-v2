@@ -483,6 +483,7 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
 const contentTypeMaker = ({ template, basePath, sitecore_folder }) => {
   const content_type = {
     id: template?.id,
+    status:1,
     "otherCmsTitle": template?.name,
     "otherCmsUid": template?.key,
     "isUpdated": false,
