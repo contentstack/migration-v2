@@ -96,15 +96,28 @@ const getContentTypes = async (req: Request) => {
   }
   const contentMapperId = projectDetails.content_mapper;
   await ContentTypesMapperModelLowdb.read();
+  await FieldMapperModel.read();
+
   const content_mapper: any = [];
   contentMapperId.map((data: any) => {
     const contentMapperData = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
       .find({ id: data })
       .value();
+    
+      const fieldData = contentMapperData?.fieldMapping.map((fields: any) => {
+        const fieldMapper = FieldMapperModel.chain
+          .get("field_mapper")
+          .find({ id: fields })
+          .value();
+        return fieldMapper;
+      });
+
+      const fieldMapping: any = fieldData;
+      //console.info("filedMapping ::::::::", fieldMapping)
+
     content_mapper.push(contentMapperData);
   });
-
   if (!isEmpty(content_mapper)) {
     if (search) {
       const filteredResult = content_mapper
@@ -123,6 +136,7 @@ const getContentTypes = async (req: Request) => {
           a.otherCmsTitle.localeCompare(b.otherCmsTitle)
         )
         ?.slice(skip, Number(skip) + Number(limit));
+      //console.info("result::::::::::::", result)
     }
   }
 
@@ -281,7 +295,6 @@ const updateContentType = async (req: Request) => {
       .get("ContentTypesMappers")
       .findIndex({ id: contentTypeId })
       .value();
-
     ContentTypesMapperModelLowdb.update((data: any) => {
       if (updateIndex >= 0) {
         data.ContentTypesMappers[updateIndex].otherCmsTitle =
@@ -296,7 +309,9 @@ const updateContentType = async (req: Request) => {
           contentTypeData?.contentstackTitle;
         data.ContentTypesMappers[updateIndex].contentstackUid =
           contentTypeData?.contentstackUid;
+        data.ContentTypesMappers[updateIndex].status = 2;
       }
+      console.info("in update conte type ============>", data.ContentTypesMappers[updateIndex].status,data.ContentTypesMappers[updateIndex] )
     });
 
     if (updateIndex < 0) {
