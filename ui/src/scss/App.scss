@@ -315,8 +315,12 @@ h1 {
 h2 {
   color: $color-base-black-base;
   font-size: $size-font-5-xl;
-  font-weight: $font-weight-bold;
   line-height: 1.5;
+}
+.welcome-para {
+  p {
+    color: $color-font-black;
+  }
 }
 .pb-32 {
   padding-bottom: $px-32;
