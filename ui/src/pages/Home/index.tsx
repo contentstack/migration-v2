@@ -36,7 +36,7 @@ const Home = () => {
     <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
       {heading && <h1 className="pb-3">{heading}</h1>}
 
-      {description && parse(description)}
+      {description && <div className='welcome-para'>{parse(description)}</div>}
 
       {cta?.title && (
         <Link to={cta?.url as string} className="btn primary-btn pb-0 mt-3">
