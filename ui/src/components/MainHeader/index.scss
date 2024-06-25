@@ -2,7 +2,6 @@
 
 .mainheader {
   background-color: $color-brand-white-base;
-  // border-bottom: 1px solid $color-brand-secondary-lightest;
   height: 3.5rem;
   justify-content: space-between;
   position: fixed;
@@ -34,40 +33,39 @@
   .organisationWrapper {
     margin-left: 1.063rem;
     &:focus {
-      box-shadow: 0 0 1px $color-brand-primary-base, 0 0 0 4px #bbb4f4;
+      box-shadow: none;
     }
   } 
+  .Dropdown {
+    &:focus {
+      box-shadow: none;
+    }
+  }
   .Dropdown-wrapper {
     padding: 0 18px;
-  }
-  .Dropdown__header__value {
-    overflow: visible;
-    line-height: 1.2;
-  }
-  .Dropdown__header__label {
-    margin-bottom: 0;
   }
   .Dropdown.Dropdown--hover .Dropdown__menu--primary {
     top: 2.5rem;
   }
   .organisationWrapper {
+    &:focus {
+      box-shadow: none;
+    }
     .Dropdown__header__value {
       color: #475161;
       max-width: 11.1875rem;
       width: auto;
-      // overflow: hidden;
+      color: $color-black-222 !important;
+      line-height: $line-height-reset;
     }
     .Dropdown__menu--primary .Dropdown__menu__list__item,
     .Dropdown__menu--secondary .Dropdown__menu__list__item,
     .Dropdown__menu--tertiary .Dropdown__menu__list__item {
       max-width: 14.5rem;
     }
+    .Dropdown__header__label {
+      line-height: $line-height-reset;
+      margin-bottom: 8px;
+    }
   }
-}
-.Dropdown__header__label {
-  line-height: $line-height-reset;
-}
-.Dropdown__header__value {
-  color: $color-black-222 !important;
-  line-height: $line-height-reset;
 }
