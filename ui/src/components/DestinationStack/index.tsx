@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getDestinationStackSteps } from './StepperSteps';
-import { useNavigate, useParams } from 'react-router-dom';
 import { CircularLoader } from '@contentstack/venus-components';
 import { CS_ENTRIES } from '../../utilities/constants';
 import {
@@ -15,10 +14,6 @@ import './DestinationStack.scss';
 import { isEmptyString, validateArray } from '../../utilities/functions';
 import { getAllStacksInOrg } from '../../services/api/stacks.service';
 import { MigrationResponse, StackResponse } from '../../services/api/service.interface';
-// import {
-//   updateCurrentStepData,
-//   updateDestinationStack
-// } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
