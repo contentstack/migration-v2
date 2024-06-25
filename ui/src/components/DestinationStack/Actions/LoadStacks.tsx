@@ -46,7 +46,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const { projectId = '' }: Params<string> = useParams();
 
   useEffect(()=>{
-    if(! isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
+    if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
     }
   },[newMigrationData?.destination_stack?.selectedStack])
@@ -110,11 +110,9 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   };
 
   /****  ALL METHODS HERE  ****/
-
   const [placeholder, setPlaceholder] = useState('Select a stack');
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
-    const stackChanged = selectedStack?.value !== data?.value;
     const stackCleared = data?.value === '' || data?.value === null || data === null;
     if (data?.value == '+ Create a new Stack') {
       handleCreateNewStack()
@@ -134,7 +132,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           selectedStack: stackCleared ? DEFAULT_DROPDOWN : { ...data }
         }
       };
-
 
       dispatch(updateNewMigrationData((newMigrationDataObj)));
       if (!stackCleared) {
@@ -161,7 +158,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           created_at: stack?.created_at
         }))
       : [];
-
     stackArray.sort(
       (a: IDropDown, b: IDropDown) =>
         new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
@@ -218,12 +214,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
   const loadMoreOptions: any = async ({
     search,
-    skip,
-    limit
   }: {
     search: string;
-    skip: number;
-    limit: number;
   }) => {
     const stackData = await getAllStacksInOrg(
       selectedOrganisation?.value, search
@@ -282,6 +274,9 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
     return { options: stackArray };
   };
+  
+  const emptyStackValue = selectedStack?.value === undefined || selectedStack?.value === '' || selectedStack?.value === null
+
   const onBlurDropdown = () => {
     if (!isEmptyString(selectedStack?.value)) {
       if (props?.handleStepChange) {
@@ -303,15 +298,17 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                     onBlur={onBlurDropdown}
                     canEditOption={true}
                     value={selectedStack}
-                    isClearable={true}
                     isSearchable={true}
+                    isClearable={!emptyStackValue ? true : false }
                     width="600px"
                     isDisabled={props?.stepComponentProps?.isSummary || false}
                     placeholder={placeholder}
                     limit={10}
                     updateOption={()=> undefined}
+                    error={emptyStackValue ? true : false}
                   />
                 </div>
+                {emptyStackValue && <div className='errorMessage'>Please select a stack</div>}
             </div>
             <div className="col-12">
               <label className="title">Master Locale</label>
