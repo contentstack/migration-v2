@@ -98,7 +98,6 @@ const AutoVerticalStepper = React.forwardRef<
               </Tooltip>
             ) : null} */}
           </div>
-          {/* <Paragraph tagName="p" text={data.description} variant={'p2'} variantStyle={'regular'} /> */}
           {data.description && <div className="stepper-discription"> {data.description}</div>}
         </>
       );
@@ -156,8 +155,6 @@ const AutoVerticalStepper = React.forwardRef<
       const getStepStatus = (idx: number) => {
         return stepStatus[idx];
       };
-    console.log("steps :::::", steps);
-    
       return (
         <div className={`migration-vertical-stepper  ${className}`}>
           {props?.description && <div>{props?.description}</div>}
