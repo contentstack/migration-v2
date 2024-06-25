@@ -204,7 +204,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
            :
           (
             cmsData && validateArray(cmsData) && (
-            <div className="service_list">
+            <div className="service_list_legacy">
               {cmsData?.map((data: ICMSType) => (
                 <Card
                   key={data?.title}
