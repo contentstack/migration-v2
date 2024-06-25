@@ -220,6 +220,7 @@ const DestinationStackComponent = ({
             description={migrationData?.destinationStackData?.description}
             ref={autoVerticalStepperComponent}
             isEdit={!isMigrationLocked}
+            isRequired={false}
             handleOnAllStepsComplete={handleAllStepsComplete}
           />
         </div>
