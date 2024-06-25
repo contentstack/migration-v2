@@ -10,7 +10,6 @@ const ProjectsHeader = ({
   setSearchText,
   searchPlaceholder,
   cta,
-  restore_cta: restoreCta,
   allProject,
   handleModal
 }: ProjectsHeaderType) => {
@@ -29,9 +28,7 @@ const ProjectsHeader = ({
           placeholder={searchPlaceholder}
           type="secondary"
           onChange={(search: string) =>
-            search.replace(/\s/g, '').length
-              ? setSearchText(search?.trim())
-              : setSearchText(search)
+            setSearchText(search?.trim())
           }
           width="large"
           onClear={true}
@@ -40,9 +37,42 @@ const ProjectsHeader = ({
           debounceSearch={true}
           id="search-project-input"
           version="v2"
-          disabled={allProject && allProject?.length <= 0}
+          disabled={allProject && allProject?.length <= 0 && searchText?.length <= 0}
         />
       </div>
+      {/* {allProject && allProject?.length > 0 ? (
+        <div className="project-search-wrapper">
+          <Search
+            placeholder={searchPlaceholder}
+            type="secondary"
+            onChange={(search: string) =>
+              search.replace(/\s/g, '').length
+                ? setSearchText(search?.trim())
+                : setSearchText(search)
+            }
+            width="large"
+            onClear={true}
+            onClick={setFocus}
+            value={searchText}
+            debounceSearch={true}
+            id="search-project-input"
+          />
+        </div>
+      ) : (
+        searchText?.length > 0 && (
+          <div className="project-search-wrapper">
+            <Search
+              placeholder={searchPlaceholder}
+              onChange={(search: string) => setSearchText(search)}
+              onClear={true}
+              onClick={setFocus}
+              value={searchText}
+              debounceSearch={true}
+              id="search-project-input"
+            />
+          </div>
+        )
+      )} */}
     </>
   );
 
