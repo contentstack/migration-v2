@@ -27,8 +27,8 @@
 }
 .Dropdown-wrapper {
   .css-b8ldur-Input {
-    // border: 1px solid red;
-    cursor: not-allowed;
+   margin: 0;
+   padding: 0;
   }
 }
 .stackselect {
@@ -106,6 +106,10 @@
         margin-left: 2px;
         padding: 0 !important;
       }
+    }
+    .errorMessage {
+      color: $color-brand-warning-medium;
+      font-size: $size-font-small;
     }
    
 
