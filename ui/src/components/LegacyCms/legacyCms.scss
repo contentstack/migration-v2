@@ -1,10 +1,10 @@
 @import '../../scss/variables';
-.service_list {
+.service_list_legacy {
   text-align: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 20px 20px !important;
+  gap: 12px ;
+  margin: 20px 20px ;
 }
 
 .pl-40 {
@@ -105,6 +105,7 @@
 }
 .validation-cta{
   margin: $space-24 $space-20 0;
+  line-height: 24px;
 }
 .success{
   color: $color-brand-success-base;
