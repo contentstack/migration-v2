@@ -101,7 +101,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   return (
     <div className="row">
-        <div className="service_list">
+        <div className="service_list_legacy">
           {validateArray(allowed_file_formats) ? (
             allowed_file_formats?.map((data: ICardType, index: number) => (
               <div key={data?.fileformat_id || index}>             

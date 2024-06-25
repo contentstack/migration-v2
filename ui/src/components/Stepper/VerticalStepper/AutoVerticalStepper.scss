@@ -13,16 +13,17 @@
 .migration-vertical-stepper .stepper-title {
   margin-bottom: $space-10;
   margin: 10px 20px;
-
+  color: $color-font-base;
+  line-height: 21px;
 
 }
 
 .migration-vertical-stepper .stepper-discription {
-  font-family: $font-family-primary;
+  font-family: 'Inter';
   font-style: normal;
   font-weight: $font-weight-regular;
   font-size: $size-font-large;
-  line-height: 185%;
+  line-height: 21px;
   color: $color-base-gray-20;
   margin-bottom: $space-10;
   margin: 10px 20px;
@@ -45,6 +46,7 @@
   height: 2rem;
   left: -17px;
   overflow-y: auto;
+  color: #475161 !important;
 }
 
 .stepper-titleNote {
@@ -116,4 +118,12 @@
     font-size: 14px;
     color: $color-stepper-title;
   }
+}
+.asterisk_input::after {
+  content:" *"; 
+  color: $color-brand-warning-medium;
+  margin: 2px 0px 0px -15px; 
+  font-size:medium; 
+  padding: 10px 5px 0 0 !important; 
+  padding-left: .25em;
 }
