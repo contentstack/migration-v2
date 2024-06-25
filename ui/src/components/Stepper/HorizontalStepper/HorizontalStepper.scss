@@ -41,7 +41,7 @@
   }
   &.active .badge {
     background-color: white;
-    border: 0.063rem solid $color-brand-primary-base;
+    border: $px-2 solid $color-brand-primary-base;
     color: #6E6B86;
     width: 40px;
     height: 40px;
@@ -52,7 +52,7 @@
     justify-content: center;
     align-items: center;
     background-color: white;
-    border: 0.063rem solid $color-brand-primary-base;
+    border: 0.063rem solid $color-stepper-title;
     color: #6E6B86;
     width: 40px;
     height: 40px;
@@ -66,6 +66,7 @@
     font-size: 14px;
     overflow: hidden;
     white-space: nowrap;
+    font-family: Inter;
     
   }
   &.disableEvents{

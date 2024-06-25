@@ -350,7 +350,7 @@
         "uid": "cs7c935e15de9ea7c8"
       },
       "title": "File Format",
-      "description": "Click to read the document and subsequently continue with migration process.",
+      "description": "The file format compatible with the above cms is as follows.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": true,
@@ -362,7 +362,7 @@
         "uid": "cs0279f1f0ce13e83e"
       },
       "title": "Imported File",
-      "description": "Select File to upload CMS Data.",
+      "description": "The uploaded file is as follows.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": true,
