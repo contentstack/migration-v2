@@ -1,7 +1,6 @@
 import React, { useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import './AutoVerticalStepper.scss';
-import { Tooltip, Heading } from '@contentstack/venus-components';
-import { addDomainInPath } from '../../../utilities/functions';
+import { Heading, Paragraph } from '@contentstack/venus-components';
 
 
 export enum StepStatus {
@@ -16,6 +15,7 @@ type AutoVerticalStepperProps = {
   description?: string;
   stepComponentProps?: any;
   isEdit: boolean;
+  isRequired:boolean;
   handleOnAllStepsComplete: (flag: boolean) => void;
 };
 
@@ -76,7 +76,7 @@ const AutoVerticalStepper = React.forwardRef<
       }
     };
 
-    const StepperStepTitleCreator: (data: any) => JSX.Element = (data: any) => {
+    const StepperStepTitleCreator: (data: any,isRequired:boolean) => JSX.Element = (data: any, isRequired:boolean) => {
       const showSpan = data?.title == 'Orgnization' ? <span>(read only)</span> : ''
       return (
         <>
@@ -84,6 +84,8 @@ const AutoVerticalStepper = React.forwardRef<
             <div>
               <div className='orgWrapper'>
                 <Heading className='stepper-title' tagName='h3' text={data.title} />
+                {isRequired && <span className="asterisk_input">  </span>  }    
+
                 {data?.ifReadonly && <span>(read only)</span>}
               </div>
               <span className="stepper-titleNote">{data.titleNote ? data.titleNote : ''}</span>
@@ -96,6 +98,7 @@ const AutoVerticalStepper = React.forwardRef<
               </Tooltip>
             ) : null} */}
           </div>
+          {/* <Paragraph tagName="p" text={data.description} variant={'p2'} variantStyle={'regular'} /> */}
           {data.description && <div className="stepper-discription"> {data.description}</div>}
         </>
       );
@@ -153,7 +156,8 @@ const AutoVerticalStepper = React.forwardRef<
       const getStepStatus = (idx: number) => {
         return stepStatus[idx];
       };
-
+    console.log("steps :::::", steps);
+    
       return (
         <div className={`migration-vertical-stepper  ${className}`}>
           {props?.description && <div>{props?.description}</div>}
@@ -173,7 +177,7 @@ const AutoVerticalStepper = React.forwardRef<
                   style={{ paddingBottom: '10px' }}
                 >
                   <div className={`step__title `}>
-                    {StepperStepTitleCreator(step)}
+                    {StepperStepTitleCreator(step, props?.isRequired)}
                   </div>
                   <div className="step-content-wrapper">
                     <div className="action-content step-content">
