@@ -3,10 +3,8 @@
 .project-search-wrapper {
   margin-left: $px-12;
   .Search {
+    background-color: $color-brand-white-base;
     height: 2.5rem;
-  }
-  .Search__input {
-    border: 1px solid $color-base-gray-40;
   }
   ::placeholder {
     font-size: $px-16;
