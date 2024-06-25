@@ -1,4 +1,4 @@
-import { Icon, Radio, Tooltip } from '@contentstack/venus-components';
+import { Icon, Paragraph, Radio, Tooltip } from '@contentstack/venus-components';
 import { MouseEvent, useState } from 'react';
 import WordWrapper from '../WordWrapper/WordWrapper';
 import { addDomainInPath } from '../../../utilities/functions';
@@ -72,7 +72,7 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id' }: Car
       <div className="service_icon">
       </div>
       <div className="centered-card-title">
-        <WordWrapper tooltipcontent={data.title} text={data.title} maxLength={12} position="top" />
+        <Paragraph variantStyle={'bold'} variant={'p2'} text={data.title}/>
       </div>
     </div>
   );
