@@ -1007,7 +1007,6 @@ const ContentMapper = () => {
 
                   {active == index && (
                     
-                    <span>
                       <Dropdown
                         // version="v2"
                         list={[
@@ -1018,21 +1017,20 @@ const ContentMapper = () => {
                           }
                         ]}
                         type="click"
-                        isEllipse
+                        withIcon
                         dropDownPosition="left"
                         className='dropdown-align'
                       >
-                        <Icon icon="Settings" size="small" version="v2" />
+                        <Icon icon="DotsThreeLargeVertical" version="v2" />
                       </Dropdown>
-                      {/* <Tooltip content={'Schema Preview'} position="left">
+                      /* <Tooltip content={'Schema Preview'} position="left">
                         <Icon
                           icon="LivePreview"
                           size="small"
                           version="v2"
                           onClick={() => handleOnClick(content?.otherCmsTitle)}
                         />
-                      </Tooltip> */}
-                    </span>
+                      </Tooltip> */
                   )}
                 </li>
               ))}
