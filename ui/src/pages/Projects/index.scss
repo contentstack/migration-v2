@@ -1,8 +1,10 @@
 @import '../../scss/variables';
 
 .project-search-wrapper {
-  margin-top: 2px;
-  margin-left: 8px;
+  margin-left: $px-12;
+  .Search {
+    height: 2.5rem;
+  }
   .Search__input {
     border: 1px solid $color-base-gray-40;
   }
