@@ -9,6 +9,8 @@ import {
   HTTP_CODES,
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
+  CONTENT_TYPE_STATUS,
+  VALIDATION_ERRORS
 } from "../constants/index.js";
 import logger from "../utils/logger.js";
 import { config } from "../config/index.js";
@@ -289,6 +291,23 @@ const updateContentType = async (req: Request) => {
     );
     throw new BadRequestError(HTTP_TEXTS.INVALID_CONTENT_TYPE);
   }
+
+  if (fieldMapping) {
+    fieldMapping.forEach((field: any) => {
+      if (!field.ContentstackFieldType || field.ContentstackFieldType === '' || field.contentstackFieldUid) {
+        logger.error(
+          getLogMessage(
+            srcFun,
+            `${VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "ContentstackFieldType or contentstackFieldUid")}`
+          )
+        );
+        throw new BadRequestError(
+          `${VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "ContentstackFieldType or contentstackFieldUid")}`
+        );
+      }
+    });
+  }
+
   try {
     await ContentTypesMapperModelLowdb.read();
     const updateIndex = ContentTypesMapperModelLowdb.chain
@@ -309,9 +328,8 @@ const updateContentType = async (req: Request) => {
           contentTypeData?.contentstackTitle;
         data.ContentTypesMappers[updateIndex].contentstackUid =
           contentTypeData?.contentstackUid;
-        data.ContentTypesMappers[updateIndex].status = 2;
       }
-      console.info("in update conte type ============>", data.ContentTypesMappers[updateIndex].status,data.ContentTypesMappers[updateIndex] )
+      //console.info("in update conte type ============>", data.ContentTypesMappers[updateIndex].status,data.ContentTypesMappers[updateIndex] )
     });
 
     if (updateIndex < 0) {
@@ -323,13 +341,16 @@ const updateContentType = async (req: Request) => {
       );
       throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
     }
+    //console.info("filedMapping :::::::::::", fieldMapping)
     if (!isEmpty(fieldMapping)) {
       await FieldMapperModel.read();
+      //console.info("in if condition==============>");
       (fieldMapping || []).forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) => f?.id === field?.id
         );
-        if (fieldIndex > -1) {
+        //console.info("############",field?.id, fieldIndex, field)
+        if (fieldIndex > -1 && field?.ContentstackFieldType !== '') {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = field;
             data.field_mapper[fieldIndex].isDeleted = false;
@@ -337,13 +358,17 @@ const updateContentType = async (req: Request) => {
         }
       });
     }
+    await ContentTypesMapperModelLowdb.read();
+    ContentTypesMapperModelLowdb.update((data: any) => {
+      data.ContentTypesMappers[updateIndex].status = CONTENT_TYPE_STATUS[2];
+    });
     // fetch updated data to return in response
     await ContentTypesMapperModelLowdb.read();
     const updatedContentType = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
       .find({ id: contentTypeId })
       .value();
-
+    console.info("updated content type :::::::::", updatedContentType)
     return { updatedContentType };
   } catch (error: any) {
     logger.error(
