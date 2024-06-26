@@ -141,7 +141,6 @@ const Migration = () => {
      ]
      return steps;
   }
-
   const handleClick = () => {
 
     // Call handleStepChange function
@@ -197,7 +196,7 @@ const Migration = () => {
     const handleOnClickDestinationStack = async (event: MouseEvent) => {
       setIsLoading(true);
 
-      if(isCompleted){
+      if(isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
         event?.preventDefault();
         //Update Data in backend
         await updateDestinationStack(selectedOrganisation?.value, projectId, {
@@ -207,11 +206,11 @@ const Migration = () => {
         const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
         if (res) {
           setIsLoading(false);
-
           const url = `/projects/${projectId}/migration/steps/3`;
           navigate(url, { replace: true });
         }
       } else{
+        setIsLoading(false);
         Notification({
           notificationContent: { text: 'Please complete all steps' },
           type: 'warning'
