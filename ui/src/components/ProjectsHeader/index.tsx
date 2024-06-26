@@ -10,7 +10,6 @@ const ProjectsHeader = ({
   setSearchText,
   searchPlaceholder,
   cta,
-  restore_cta: restoreCta,
   allProject,
   handleModal
 }: ProjectsHeaderType) => {
@@ -24,7 +23,24 @@ const ProjectsHeader = ({
 
   const SearchProject = (
     <>
-      {allProject && allProject?.length > 0 ? (
+      <div className="project-search-wrapper">
+        <Search
+          placeholder={searchPlaceholder}
+          type="secondary"
+          onChange={(search: string) =>
+            setSearchText(search?.trim())
+          }
+          width="large"
+          onClear={true}
+          onClick={setFocus}
+          value={searchText}
+          debounceSearch={true}
+          id="search-project-input"
+          version="v2"
+          disabled={allProject && allProject?.length <= 0 && searchText?.length <= 0}
+        />
+      </div>
+      {/* {allProject && allProject?.length > 0 ? (
         <div className="project-search-wrapper">
           <Search
             placeholder={searchPlaceholder}
@@ -56,7 +72,7 @@ const ProjectsHeader = ({
             />
           </div>
         )
-      )}
+      )} */}
     </>
   );
 
