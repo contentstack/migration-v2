@@ -60,9 +60,12 @@
     background-color: rgba(0, 0, 0, 0);
     border-top: 0 solid rgba(34, 34, 34, 0.125);
     padding: 0.625rem 1.25rem;
+    .stretched-link {
+      line-height: $line-height-default;
+    }
     [class*='link-arrow'] {
       &:after {
-        top: 8px;
+        top: 6px;
       }
     }
   }

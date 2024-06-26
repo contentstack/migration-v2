@@ -58,7 +58,7 @@ const CardList = ({ project }: ProjectType) => {
   }, [selectedOrganisation?.value, project?.id]);
   
   return (
-    <div style={{ padding: '0 20px 20px 0' }}>
+    <div style={{ margin: '0 20px 20px 0' }}>
       <div onClick={() => onClickProject(project?.id || '')}>
         <div className="ProjectCard">
           <div className='ProjectCardWrapper'>
