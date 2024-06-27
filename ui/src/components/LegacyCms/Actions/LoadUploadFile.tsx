@@ -123,6 +123,48 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       }
       
     }
+    else if(res?.status === 500){
+      setIsValidated(false);
+      setValidationMessage('File not found');
+      setIsValidationAttempted(true);
+      setProgressPercentage(100);
+      await updateFileFormatData(selectedOrganisation?.value, projectId, {
+        file_format: newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toString(),
+        file_path: res?.data?.file_details?.localPath,
+        is_fileValid: res?.status == 200 ? true : false,
+        awsDetails:{
+          awsRegion: res?.data?.file_details?.awsData?.awsRegion,
+          bucketName: res?.data?.file_details?.awsData?.bucketName,
+          buketKey: res?.data?.file_details?.awsData?.buketKey
+        }
+      });
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData?.legacy_cms,
+          uploadedFile: {
+            name: res?.data?.localPath,
+            url: res?.data?.localPath,
+            validation: res?.data?.message,
+            isValidated: res?.status == 200 ? true : false,
+            file_details: {
+              isLocalPath: res?.data?.file_details?.isLocalPath,
+              cmsType: res?.data?.file_details?.cmsType,
+              localPath: res?.data?.file_details?.localPath,
+              awsData: {
+                awsRegion: res?.data?.file_details?.awsData?.awsRegion,
+                bucketName: res?.data?.file_details?.awsData?.bucketName,
+                buketKey: res?.data?.file_details?.awsData?.buketKey
+              }
+            }
+            
+          }
+        }
+      };
+      
+      dispatch(updateNewMigrationData(newMigrationDataObj));
+
+    }
     else{
       setIsValidated(false);
       setValidationMessage('Validation Falied');
@@ -236,15 +278,16 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setShowMessage(true);
       setValidationMessage('');
     }
-      
+    console.log(fileExtension !== newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);
+    
   }
-  else if(! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
-    newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== res?.data?.cmsType.toLowerCase()
+  if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
+    newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== res?.data?.cmsType.toLowerCase())
      || fileExtension !== newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id
     )
-    {  
+    {     
       setIsValidated(false);
-      setValidationMessage('Validation Falied');
+      setValidationMessage('file format is not appropriate');
       setIsValidationAttempted(true);
       setShowMessage(true);
       setIsLoading(false);
