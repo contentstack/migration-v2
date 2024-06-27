@@ -139,3 +139,10 @@ export const NEW_PROJECT_STATUS = {
   5: 5, //MIGRATION_SUCCESSFUL
   6: 6, //MIGRATION_TERMINATED
 };
+
+export const CONTENT_TYPE_STATUS = {
+  1: 1, //auto-mapping
+  2: 2, //verified
+  3: 3, //mapping failed
+  4: 4, //auto-dump
+}
