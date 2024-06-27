@@ -823,7 +823,6 @@ const ContentMapper = () => {
           fieldMapping: selectedEntries
         }
       };
-      
       const { data, status } = await updateContentType(
         orgId,
         projectID,
