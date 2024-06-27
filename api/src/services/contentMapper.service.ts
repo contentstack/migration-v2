@@ -106,20 +106,9 @@ const getContentTypes = async (req: Request) => {
       .get("ContentTypesMappers")
       .find({ id: data })
       .value();
-    
-      const fieldData = contentMapperData?.fieldMapping.map((fields: any) => {
-        const fieldMapper = FieldMapperModel.chain
-          .get("field_mapper")
-          .find({ id: fields })
-          .value();
-        return fieldMapper;
-      });
-
-      const fieldMapping: any = fieldData;
-      //console.info("filedMapping ::::::::", fieldMapping)
-
     content_mapper.push(contentMapperData);
   });
+  
   if (!isEmpty(content_mapper)) {
     if (search) {
       const filteredResult = content_mapper
@@ -138,7 +127,6 @@ const getContentTypes = async (req: Request) => {
           a.otherCmsTitle.localeCompare(b.otherCmsTitle)
         )
         ?.slice(skip, Number(skip) + Number(limit));
-      //console.info("result::::::::::::", result)
     }
   }
 
@@ -350,12 +338,10 @@ const updateContentType = async (req: Request) => {
 
     if (!isEmpty(fieldMapping)) {
       await FieldMapperModel.read();
-      //console.info("in if condition==============>");
       (fieldMapping || []).forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) => f?.id === field?.id
         );
-        //console.info("############",field?.id, fieldIndex, field)
         if (fieldIndex > -1 && field?.ContentstackFieldType !== '') {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = field;
