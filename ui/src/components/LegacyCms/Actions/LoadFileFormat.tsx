@@ -5,21 +5,21 @@ import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
-import { isEmptyString, validateArray } from '../../../utilities/functions';
+import { isEmptyString } from '../../../utilities/functions';
 
 // Services
 import {
-  updateFileFormatData,
   fileformatConfirmation
 } from '../../../services/api/migration.service';
 
 // Interface
-import { ICardType, defaultCardType } from '../../../components/Common/Card/card.interface';
+import { ICardType} from '../../../components/Common/Card/card.interface';
 
 
 // Components
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
+import { getConfig } from '../../../services/api/upload.service';
 
 interface LoadFileFormatProps {
   stepComponentProps: any;
@@ -35,15 +35,14 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const dispatch = useDispatch();
 
   const [selectedCard, setSelectedCard] = useState<ICardType>(
-    newMigrationData?.legacy_cms?.selectedFileFormat ?? defaultCardType
+    newMigrationData?.legacy_cms?.selectedFileFormat 
   );
   const [isCheckedBoxChecked, setIsCheckedBoxChecked] = useState<boolean>(
     newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked || true
   );
-
+  const [fileIcon, setFileIcon]  = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.title);
   const { projectId = '' } = useParams();
-  const { allowed_file_formats = [], doc_url = { href: '', title: '' } } =
-    newMigrationData?.legacy_cms?.selectedCms || {};
+
 
   /****  ALL METHODS HERE  ****/
 
@@ -57,9 +56,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           isFileFormatCheckboxChecked: isCheckedBoxChecked
         }
       }));
-      
-
-
       await fileformatConfirmation(selectedOrganisation?.value, projectId, {
         fileformat_confirmation: true
       });
@@ -75,52 +71,48 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     setIsCheckedBoxChecked(checked);
   };
 
-  /****  ALL USEEffects  HERE  ****/
-  useEffect(() => {
-    if (validateArray(allowed_file_formats)) {
-      const initialFormat = {
-        description: allowed_file_formats?.[0]?.description,
-        group_name: allowed_file_formats?.[0]?.group_name,
-        title: allowed_file_formats?.[0]?.title,
-        fileformat_id: allowed_file_formats?.[0]?.fileformat_id
-      };
-      setSelectedCard(initialFormat);
-      const newMigrationDataObj = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData?.legacy_cms,
-          selectedFileFormat: initialFormat
-        }
-      };
-      dispatch(updateNewMigrationData(newMigrationDataObj));
-      handleBtnClick();
+  const handleFileFormat = async() =>{
+    const apiRes: any = await getConfig();
+    const cmsType = apiRes?.data?.cmsType?.toLowerCase();
+
+    const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
+    let filteredCmsData = all_cms;
+    if (cmsType) {
+      filteredCmsData = all_cms.filter((cms: any) => cms?.parent?.toLowerCase() === cmsType);
     }
-  }, [allowed_file_formats]);
+
+    const newMigrationDataObj = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        selectedFileFormat: filteredCmsData[0].allowed_file_formats[0]
+      }
+    };
+    setFileIcon(filteredCmsData[0].allowed_file_formats[0].title);
+    dispatch(updateNewMigrationData(newMigrationDataObj));
+  }
+
+  /****  ALL USEEffects  HERE  ****/
+  useEffect(()=>{
+    handleFileFormat();
+    handleBtnClick();
+  },[]);
 
   const { file_format_checkbox_text = '' } = migrationData.legacyCMSData;
 
   return (
     <div className="row">
         <div className="service_list_legacy">
-          {validateArray(allowed_file_formats) ? (
-            allowed_file_formats?.map((data: ICardType, index: number) => (
-              <div key={data?.fileformat_id || index}>             
                 <TextInput
-                value={data?.fileformat_id}
+                value={newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id}
                 version="v2"              
                 isReadOnly={true}
                 disabled={true}
                 width="large"
                 placeholder=""
                 prefix={
-                <Icon icon={data?.title} size="medium" version='v2'/>}
+                <Icon icon={fileIcon} size="medium" version='v2'/>}
                 />
-
-              </div>
-            ))
-          ) : (
-            <>No File formats available</>
-          )}
         </div>
     </div>
   );

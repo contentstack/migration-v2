@@ -77,7 +77,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
       //API call for saving selected CMS
-      await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
+      //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
       
       // Call for Step Change
       props?.handleStepChange(props?.currentStep, true);
@@ -140,6 +140,14 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     if (cmstype) {
       filteredCmsData = all_cms.filter((cms: ICMSType) => cms?.parent?.toLowerCase() === cmstype?.toLowerCase());
     }
+    const newMigrationDataObj = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        selectedFileFormat: filteredCmsData[0].allowed_file_formats[0]
+      }
+    };
+    dispatch(updateNewMigrationData(newMigrationDataObj));
 
     setCmsData(filteredCmsData)
 
@@ -162,7 +170,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     } else {
       newSelectedCard = DEFAULT_CMS_TYPE;
     }
- 
 
     if (!isEmptyString(newSelectedCard?.title)) {
       setSelectedCard(newSelectedCard);
