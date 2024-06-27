@@ -41,6 +41,12 @@
 .helpText {
   font-size: 14px;
   padding-top: 30px;
+  p {
+    color: $color-font-base;
+    a {
+      color: $color-brand-primary-base;
+    }
+  }
 }
 .EmptyStateWrapper {
   .EmptyState {
