@@ -824,15 +824,12 @@ const ContentMapper = () => {
           fieldMapping: selectedEntries
         }
       };
-      console.log("data cs ::::::::::", dataCs)
       const { data, status } = await updateContentType(
         orgId,
         projectID,
         selectedContentType?.id ?? '',
         dataCs
       );
-      console.log("in content maaper :::::", data);
-      
 
       if (status == 200) {
         Notification({
