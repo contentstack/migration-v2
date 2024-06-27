@@ -292,24 +292,30 @@ const updateContentType = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.INVALID_CONTENT_TYPE);
   }
 
-  if (fieldMapping) {
-    fieldMapping.forEach((field: any) => {
-      if (!field.ContentstackFieldType || field.ContentstackFieldType === '' || field.contentstackFieldUid) {
-        logger.error(
-          getLogMessage(
-            srcFun,
-            `${VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "ContentstackFieldType or contentstackFieldUid")}`
-          )
-        );
-        throw new BadRequestError(
-          `${VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "ContentstackFieldType or contentstackFieldUid")}`
-        );
-      }
-    });
-  }
 
   try {
     await ContentTypesMapperModelLowdb.read();
+
+    if (fieldMapping) {
+      fieldMapping.forEach(async(field: any) => {
+        if (!field.ContentstackFieldType || field.ContentstackFieldType === '' || field.ContentstackFieldType === 'No matches found' || field.contentstackFieldUid === '') {
+          logger.error(
+            getLogMessage(
+              srcFun,
+              `${VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "ContentstackFieldType or contentstackFieldUid")}`
+            )
+          );
+          await ContentTypesMapperModelLowdb.read();
+          ContentTypesMapperModelLowdb.update((data: any) => {
+            data.ContentTypesMappers[updateIndex].status = CONTENT_TYPE_STATUS[3];
+          });
+          throw new BadRequestError(
+            `${VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "ContentstackFieldType or contentstackFieldUid")}`
+          );
+        }
+      });
+    }
+
     const updateIndex = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
       .findIndex({ id: contentTypeId })
@@ -329,7 +335,7 @@ const updateContentType = async (req: Request) => {
         data.ContentTypesMappers[updateIndex].contentstackUid =
           contentTypeData?.contentstackUid;
       }
-      //console.info("in update conte type ============>", data.ContentTypesMappers[updateIndex].status,data.ContentTypesMappers[updateIndex] )
+      
     });
 
     if (updateIndex < 0) {
@@ -341,7 +347,7 @@ const updateContentType = async (req: Request) => {
       );
       throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
     }
-    //console.info("filedMapping :::::::::::", fieldMapping)
+
     if (!isEmpty(fieldMapping)) {
       await FieldMapperModel.read();
       //console.info("in if condition==============>");
@@ -368,7 +374,7 @@ const updateContentType = async (req: Request) => {
       .get("ContentTypesMappers")
       .find({ id: contentTypeId })
       .value();
-    console.info("updated content type :::::::::", updatedContentType)
+   
     return { updatedContentType };
   } catch (error: any) {
     logger.error(
