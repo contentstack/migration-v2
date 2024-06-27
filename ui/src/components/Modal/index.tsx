@@ -50,7 +50,7 @@ const Modal = (props: ProjectModalProps) => {
     if (!value) {
       setInputValue(false);
       return;
-    } else if (!/^[^\s].+[^\s]$/.test(value)) {
+    } else if (!/^[^\s].+$/.test(value)) {
       setInputValue(false);
       return 'Please enter project name.';
     } else if (value && value?.length > 200) {
