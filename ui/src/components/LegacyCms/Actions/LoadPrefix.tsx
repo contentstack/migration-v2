@@ -15,7 +15,7 @@ import { DEFAULT_URL_TYPE, INewMigration } from '../../../context/app/app.interf
 
 // Style
 import '../legacyCms.scss';
-import { Icon, TextInput } from '@contentstack/venus-components';
+import { TextInput } from '@contentstack/venus-components';
 import { useDebouncer } from '../../../hooks';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
@@ -109,7 +109,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         setIsError(false);
   
         //API call for saving Affix
-        await updateAffixData(selectedOrganisation?.value, projectId, { affix: value });
+        
         await affixConfirmation(selectedOrganisation?.value, projectId, {
           affix_confirmation: true
         });

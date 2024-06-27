@@ -8,7 +8,7 @@ import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack, updateAffixData } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -172,6 +172,7 @@ const Migration = () => {
       await updateLegacyCMSData(selectedOrganisation?.value, projectId, {
         legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
       });
+      await updateAffixData(selectedOrganisation?.value, projectId, { affix: newMigrationData?.legacy_cms?.affix });
       const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
       handleStepChange(1);
       if (res) {
