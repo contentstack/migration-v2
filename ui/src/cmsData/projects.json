@@ -136,9 +136,9 @@
   },
   "create_project_modal": {
     "description": "Description",
-    "description_placeholder": "Provide a description",
-    "name": "Project Name",
-    "name_placeholder": "Enter project name",
+    "description_placeholder": "Enter a description",
+    "name": "Name",
+    "name_placeholder": "Title",
     "primary_cta": {
       "open_in_new_tab": false,
       "theme": "primary",
@@ -153,6 +153,6 @@
       "url": "",
       "with_icon": false
     },
-    "title": "Create New Project"
+    "title": "New Project"
   }
 }
