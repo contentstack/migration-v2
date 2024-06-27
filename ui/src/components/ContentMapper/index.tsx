@@ -18,8 +18,6 @@ import {
   ModalFooter,
   Dropdown
 } from '@contentstack/venus-components';
-import { jsonToHtml } from '@contentstack/json-rte-serializer';
-import HTMLReactParser from 'html-react-parser';
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -29,7 +27,6 @@ import {
   getExistingContentTypes,
   updateContentType,
   resetToInitialMapping,
-  createTestStack,
   fetchExistingContentType
 } from '../../services/api/migration.service';
 import { getStackStatus } from '../../services/api/stacks.service';
@@ -512,6 +509,7 @@ const ContentMapper = () => {
       return row;
     });
     setTableData(updatedRows);
+    setSelectedEntries(updatedRows);
   };
 
   const handleDropDownChange = (value: FieldTypes) => {
@@ -630,6 +628,7 @@ const ContentMapper = () => {
     });
 
     setTableData(updatedRows as FieldMapType[]);
+    setSelectedEntries(updatedRows as FieldMapType[]);
   };
 
   const SelectAccessorOfColumn = (data: FieldMapType) => {
@@ -824,7 +823,6 @@ const ContentMapper = () => {
           fieldMapping: selectedEntries
         }
       };
-      
       const { data, status } = await updateContentType(
         orgId,
         projectID,
@@ -1104,7 +1102,7 @@ const ContentMapper = () => {
             <div className='text-end my-3 mx-3 px-1'>
               <Button
                   className="saveButton"
-                  size="small"
+                  size="medium"
                   buttonType="secondary"
                   onClick={handleSaveContentType}
                 >
@@ -1112,80 +1110,8 @@ const ContentMapper = () => {
               </Button>
             </div>
           </div>
-
-          
-
-          {/* {actionCta && validateArray(actionCta) && (
-            <ButtonGroup className="action-btn-wrapper">
-              <div
-                className="IconStoriesWrapper"
-                style={{
-                  columns: '4'
-                }}
-              >
-                <div className="flex pt-10 pb-10 hover:text-purple-400" style={{ columnGap: 20 }}>
-                  {currentIndex > 0 && (
-                    <span
-                      onClick={handlePrevClick}
-                      className="cursor-pointer"
-                      title="Previous Content Type"
-                    >
-                      <Icon icon="Left" size="tiny" hover={true} />
-                      {prevButtonLabel}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="d-flex">
-                <Button
-                  className="saveButton"
-                  size="medium"
-                  buttonType="secondary"
-                  onClick={handleSaveContentType}
-                >
-                  Save
-                </Button>
-
-                <div
-                  className="IconStoriesWrapper"
-                  style={{
-                    columns: '4'
-                  }}
-                >
-                  <div
-                    className="justify-content-end flex pt-10 pb-10 hover:text-purple-400"
-                    style={{ columnGap: 20 }}
-                  >
-                    {currentIndex < contentTypes.length - 1 && (
-                      <span
-                        onClick={handleNextClick}
-                        className="cursor-pointer"
-                        title="Next Content Type"
-                      >
-                        {nextButtonLabel}
-                        <Icon icon="Right" size="tiny" hover={true} />
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </ButtonGroup>
-          )} */}
         </div>
       </div>
-
-      {/* {cta?.title && (
-        <div className="cta-wrapper">
-          <Button
-            buttonType={cta?.theme}
-            isLoading={isButtonLoading}
-            disabled={isDropDownChanged}
-            onClick={handleValidateOnClick}
-          >
-            {cta?.title}
-          </Button>
-        </div>
-      )} */}
     </div>
   );
 };
