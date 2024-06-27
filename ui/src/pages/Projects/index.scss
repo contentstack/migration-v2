@@ -1,10 +1,10 @@
 @import '../../scss/variables';
 
 .project-search-wrapper {
-  margin-top: 2px;
-  margin-left: 8px;
-  .Search__input {
-    border: 1px solid $color-base-gray-40;
+  margin-left: $px-12;
+  .Search {
+    background-color: $color-brand-white-base;
+    height: 2.5rem;
   }
   ::placeholder {
     font-size: $px-16;
@@ -41,6 +41,12 @@
 .helpText {
   font-size: 14px;
   padding-top: 30px;
+  p {
+    color: $color-font-base;
+    a {
+      color: $color-brand-primary-base;
+    }
+  }
 }
 .EmptyStateWrapper {
   .EmptyState {
