@@ -18,8 +18,9 @@ import { Field as FinalField, Form as FinalForm } from 'react-final-form';
 import { ProjectModalProps } from './modal.interface';
 
 // Services
-import { createProject } from '../../services/api/project.service';
 import { useState } from 'react';
+import { createProject } from '../../services/api/project.service';
+
 
 const Modal = (props: ProjectModalProps) => {
   const {
@@ -42,7 +43,10 @@ const Modal = (props: ProjectModalProps) => {
     // const payload = {name: values?.name, description: values?.description || ''}
 
     const res = await createProject(selectedOrg?.uid || '', values);
-
+    if (res?.status === 201) {
+      const projectId = res?.data?.project?.id
+      window.location.href = `/projects/${projectId}/migration/steps/1`;
+    }
     return res?.error ? false : res;
   };
 
@@ -50,7 +54,7 @@ const Modal = (props: ProjectModalProps) => {
     if (!value) {
       setInputValue(false);
       return;
-    } else if (!/^[^\s].+[^\s]$/.test(value)) {
+    } else if (!/^[^\s].+$/.test(value)) {
       setInputValue(false);
       return 'Please enter project name.';
     } else if (value && value?.length > 200) {
