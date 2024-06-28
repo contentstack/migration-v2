@@ -1,5 +1,5 @@
 // Libraries
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PageLayout, EmptyState, Button, Icon, cbModal } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
