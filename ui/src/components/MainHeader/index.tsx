@@ -1,7 +1,7 @@
 // Libraries
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Dropdown, Tooltip } from '@contentstack/venus-components';
+import { Dropdown, Tooltip , Accordion} from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Service
@@ -23,6 +23,7 @@ import {
 import { MainHeaderType } from './mainheader.interface';
 import { IDropDown } from '../../context/app/app.interface';
 
+import ProfileCard from '../ProfileHeader';
 // Styles
 import './index.scss';
 
@@ -129,15 +130,20 @@ const MainHeader = () => {
               <Dropdown
                 list={[
                   {
-                    action: handleLogout,
+                    // action: handleLogout,
                     default: true,
-                    label: 'Logout'
+                    label: <ProfileCard/>,
                   }
                 ]}
                 type="click"
+                className="Profile_card"
               >
                 <div className="user-short-name flex-v-center flex-h-center">{name}</div>
               </Dropdown>
+              {/* <Accordion>
+              <div className="user-short-name flex-v-center flex-h-center">{name}</div>
+                <p>HIIIIIIIIII</p>
+              </Accordion> */}
             </div>
           </div>}
     </div>
