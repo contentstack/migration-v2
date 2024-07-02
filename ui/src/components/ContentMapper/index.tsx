@@ -1,11 +1,10 @@
 // Libraries
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   InfiniteScrollTable,
   Select,
-  ButtonGroup,
   Button,
   Search,
   Icon,
@@ -13,9 +12,6 @@ import {
   Notification,
   cbModal,
   InstructionText,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Dropdown
 } from '@contentstack/venus-components';
 
@@ -36,7 +32,7 @@ import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES } from '../../utilities/constants';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping } from '../../utilities/constants';
 import { validateArray } from '../../utilities/functions';
 
 // Interface
@@ -57,6 +53,7 @@ import {
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
+import { UpdatedSettings } from '../AdvancePropertise/advanceProperties.interface';
 
 // Components
 import SchemaModal from '../SchemaModal';
@@ -102,11 +99,6 @@ const Fields: Mapping = {
   CheckBox: 'Select',
   global_field: 'Global'
 };
-interface ModalProps {
-  e: React.MouseEvent<HTMLElement>;
-  newIndex: number;
-  closeModal: () => void;
-}
 
 const ContentMapper = () => {
   /** ALL CONTEXT HERE */
@@ -120,9 +112,6 @@ const ContentMapper = () => {
   const {
     contentMappingData: {
       content_types_heading: contentTypesHeading,
-      description,
-      // action_cta: actionCta,
-      // cta,
       search_placeholder: searchPlaceholder,
       table_search_placeholder: tableSearchPlaceholder
     }= {}
@@ -144,7 +133,6 @@ const ContentMapper = () => {
   const [selectedContentType, setSelectedContentType] = useState<ContentType>();
   const [exstingField, setexsitingField] = useState<ExistingFieldType>({});
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [isButtonLoading, setisButtonLoading] = useState(false);
   const [isDropDownChanged, setisDropDownCHanged] = useState<boolean>(false);
   const [contentTypeMapped, setcontentTypeMapped] = useState<ContentTypeMap>(
     newMigrationData?.content_mapping?.content_type_mapping || {}
@@ -174,10 +162,13 @@ const ContentMapper = () => {
   const [rowIds, setRowIds] = useState({});
   const [selectedEntries, setSelectedEntries] = useState<FieldMapType[]>([]);
   const [contentTypeSchema, setContentTypeSchema] = useState<ContentTypesSchema[]>([]);
+  const [showFilter, setShowFilter] = useState<boolean>(false);
+  const [filteredContentTypes, setFilteredContentTypes] = useState<ContentType[]>([])
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
-  const navigate = useNavigate();
+
+  const ref = useRef<HTMLDivElement | null>(null);
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -242,11 +233,20 @@ const ContentMapper = () => {
     setRowIds(selectedId);
   }, [tableData]);
 
+  // To close the filter panel on outside click
+  useEffect(() => {
+    document.addEventListener('click', handleClickOutside, true);
+    return () => {
+        document.removeEventListener('click', handleClickOutside, true);
+    };
+  }, []);
+
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
     const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
-
+    
     setContentTypes(data?.contentTypes);
+    setFilteredContentTypes(data?.contentTypes);
     setSelectedContentType(data?.contentTypes?.[0]);
     setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
     setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
@@ -276,6 +276,7 @@ const ContentMapper = () => {
     const { data } = await getContentTypes(projectId, 0, 1000, searchCT || ''); //org id will always present
 
     setContentTypes(data?.contentTypes);
+    setFilteredContentTypes(data?.contentTypes);
     setSelectedContentType(data?.contentTypes?.[0]);
     setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
     setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
@@ -348,7 +349,7 @@ const ContentMapper = () => {
   };
 
   // Method to change the content type
-  const openContentType = (e: React.MouseEvent<HTMLElement>, i: number) => {
+  const openContentType = (i: number) => {
     setActive(i);
 
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
@@ -356,63 +357,11 @@ const ContentMapper = () => {
     const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
     setOtherContentType({ label: option, value: option });
 
-    setContentTypeUid(contentTypes?.[i]?.id || '');
+    setContentTypeUid(contentTypes?.[i]?.id ?? '');
     setCurrentIndex(i);
-    fetchFields(contentTypes?.[i]?.id || '', searchText || '');
+    fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
     setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(contentTypes?.[i]);
-  };
-
-  // Function to Save the Content Type
-  const SaveContentType = (props: ModalProps) => {
-    return (
-      <>
-        <ModalHeader title={'Save changes'} closeModal={props?.closeModal} />
-        <ModalBody>
-          <p>Hey there! You have unsaved changes on this page.</p>
-        </ModalBody>
-        <ModalFooter>
-          <ButtonGroup>
-            <Button buttonType="light" onClick={() => props?.closeModal()}>
-              Cancel
-            </Button>
-            <Button
-              buttonType="secondary"
-              onClick={() => {
-                setCurrentIndex(props?.newIndex);
-                setisDropDownCHanged(false);
-                openContentType(props?.e, props?.newIndex);
-                props?.closeModal();
-                document.querySelectorAll('.ct-list li').forEach((ctLi, ind) => {
-                  if (props.newIndex === ind) {
-                    ctLi?.classList?.add('active-ct');
-                  }
-                });
-              }}
-            >
-              Dont&apos;s Save
-            </Button>
-            <Button
-              onClick={() => {
-                handleSaveContentType();
-                props?.closeModal();
-              }}
-            >
-              Save
-            </Button>
-          </ButtonGroup>
-        </ModalFooter>
-      </>
-    );
-  };
-  const handleSaveContentTypeModal = (e: any, newIndex: number) => {
-    return cbModal({
-      component: (props: ModalObj) => <SaveContentType e={e} newIndex={newIndex} {...props} />,
-      modalProps: {
-        shouldCloseOnOverlayClick: true,
-        size: 'small'
-      }
-    });
   };
 
   // Function to get exisiting content types list
@@ -423,7 +372,7 @@ const ContentMapper = () => {
     }
   };
 
-  const updateFieldSettings = (rowId: string, updatedSettings: any, checkBoxChanged: boolean) => {
+  const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean) => {
     setisDropDownCHanged(checkBoxChanged);
     //setadvancePropertise(...updatedSettings);
 
@@ -468,10 +417,10 @@ const ContentMapper = () => {
   };
 
   // Function to handle selected fields
-  const handleSelectedEntries = (singleSelectedRowIds: UidMap[], selectedData: FieldMapType[]) => {
+  const handleSelectedEntries = (singleSelectedRowIds: string[], selectedData: FieldMapType[]) => {
     const selectedObj: UidMap = {};
 
-    singleSelectedRowIds.forEach((uid: any) => {
+    singleSelectedRowIds.forEach((uid: string) => {
       selectedObj[uid] = true;
     });
     
@@ -516,7 +465,7 @@ const ContentMapper = () => {
     setOtherContentType(value);
   };
 
-  const handleAdvancedSetting = (fieldtype: string, fieldvalue: Advanced, rowId: string, data: FieldMapType) => {
+  const handleAdvancedSetting = (fieldtype: string, fieldvalue: UpdatedSettings, rowId: string, data: FieldMapType) => {
     return cbModal({
       component: (props: ModalObj) => (
         <AdvanceSettings
@@ -544,7 +493,7 @@ const ContentMapper = () => {
 
       const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
         ? data?.ContentstackFieldType : option?.[0]?.label
-
+        
     return (
       <div className="table-row">
         <div className="select">
@@ -580,7 +529,7 @@ const ContentMapper = () => {
               icon="Setting"
               size="small"
               onClick={() =>
-                handleAdvancedSetting(fieldLabel, data?.advanced, data?.uid, data)
+                handleAdvancedSetting(fieldLabel, advancePropertise, data?.uid, data)
               }
             />
           </Tooltip>
@@ -942,10 +891,6 @@ const ContentMapper = () => {
       default: false
     });
   }
-  const nextButtonLabel =
-    currentIndex < contentTypes?.length - 1 ? contentTypes[currentIndex + 1]?.otherCmsTitle : '';
-
-  const prevButtonLabel = currentIndex > 0 ? contentTypes[currentIndex - 1]?.otherCmsTitle : '';
 
   const options = contentTypesList?.map((item) => ({
     label: item?.title,
@@ -954,10 +899,37 @@ const ContentMapper = () => {
     isDisabled: false
   }));
 
-  const adjustedOption = options?.map((option: any) => ({
+  const adjustedOption = options?.map((option) => ({
     ...option,
     isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
   }));
+
+  // Function to toggle filter panel
+  const handleFilter = (e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation(); 
+    setShowFilter(!showFilter)
+  }
+
+  // Function to filter content types as per the status
+  const handleContentTypeFilter = (e: React.MouseEvent<HTMLElement>) => {
+    const li_list = document.querySelectorAll('.filter-wrapper li');
+    if(li_list) {
+      li_list.forEach((ele) => {
+        ele?.classList?.remove('active-filter');
+      })
+    }
+    (e?.target as HTMLElement) ?.classList?.add('active-filter');
+    const filterVal = (e?.target as HTMLElement)?.innerText;
+    const filteredCT = contentTypes?.filter((ct) => CONTENT_MAPPING_STATUS[ct?.status] === filterVal)
+    setFilteredContentTypes(filteredCT);
+  }
+
+  // Function to close filter panel on click outside
+  const handleClickOutside = (evt: MouseEvent) => {
+    if (!ref.current?.contains(evt.target as Node)) {
+      setShowFilter(false);
+    }
+  };
 
   const calcHeight = () => {
     // Get the viewport height in pixels
@@ -968,7 +940,6 @@ const ContentMapper = () => {
     
     return result;
   }
-
   const tableHeight = calcHeight();
 
   return (
@@ -990,48 +961,65 @@ const ContentMapper = () => {
               value={searchContentType}
               debounceSearch={true}
             />
+
+            <Button buttonType="light" onClick={handleFilter}>
+              <Icon icon="Filter" version="v2" />
+            </Button>
+            {showFilter && (
+              <div className='filter-wrapper' ref={ref}> 
+                <ul>
+                  {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
+                    <li key={`${keyInd?.toString()}`} onClick={(e) => handleContentTypeFilter(e)}>{CONTENT_MAPPING_STATUS[key]}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
-          {contentTypes && validateArray(contentTypes) && (
+          {filteredContentTypes && validateArray(filteredContentTypes) && (
             <div className='ct-list-wrapper'>
             <ul className="ct-list">
-              {contentTypes?.map((content: ContentType, index: number) => (
+              {filteredContentTypes?.map((content: ContentType, index: number) => {
+                const statusText = CONTENT_MAPPING_STATUS[content?.status];
+                const icon = STATUS_ICON_Mapping[content?.status] || '';
+                return (
                 <li
                   key={`${index.toString()}`}
                   className={`${active == index ? 'active-ct' : ''}`}
-                  onClick={(e) => openContentType(e, index)}
+                  onClick={() => openContentType(index)}
+                  onKeyDown={() => openContentType(index)}
                 >
-                  <span>{content?.otherCmsTitle}</span>
+                  <span className='cms-title'>{content?.otherCmsTitle}</span>
+                  
+                  <div className='d-flex align-items-center ct-options'>
+                    <span className='status-wrapper'>
+                      {icon && <Icon size="mini" icon={icon} version="v2" />}
+                      {statusText}
+                    </span>
 
-                  {active == index && (
-                    
-                      <Dropdown
-                        // version="v2"
-                        list={[
-                          {
-                            action: handleSchemaPreview,
-                            default: true,
-                            label: 'Schema Preview'
-                          }
-                        ]}
-                        type="click"
-                        withIcon
-                        dropDownPosition="left"
-                        className='dropdown-align'
-                      >
-                        <Icon icon="DotsThreeLargeVertical" version="v2" />
-                      </Dropdown>
-                      /* <Tooltip content={'Schema Preview'} position="left">
-                        <Icon
-                          icon="LivePreview"
-                          size="small"
-                          version="v2"
-                          onClick={() => handleOnClick(content?.otherCmsTitle)}
-                        />
-                      </Tooltip> */
-                  )}
+                    {active == index && (
+                        <Dropdown
+                          // version="v2"
+                          list={[
+                            {
+                              action: handleSchemaPreview,
+                              default: true,
+                              label: 'Schema Preview'
+                            }
+                          ]}
+                          type="click"
+                          withIcon
+                          dropDownPosition="left"
+                          className='dropdown-align'
+                        >
+                          <Icon icon="DotsThreeLargeVertical" version="v2" />
+                        </Dropdown>
+                        
+                    )}
+                  </div>
                 </li>
-              ))}
+                )
+})}
             </ul>
             </div>
           )}
