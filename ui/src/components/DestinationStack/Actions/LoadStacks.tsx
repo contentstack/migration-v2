@@ -5,16 +5,20 @@ import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
 import { StackResponse } from '../../../services/api/service.interface';
-import AddStack, { Stack } from '../../../components/Common/AddStack/addStack';
+import AddStack from '../../Common/AddStack/addStack';
+import { Stack } from '../../Common/AddStack/addStack.interface';
 import { updateDestinationStack } from '../../../services/api/migration.service';
 import { Params, useParams } from 'react-router';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadFileFormatProps {
-  stepComponentProps: any;
+  stepComponentProps: stepComponentPropsType;
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
+}
+interface stepComponentPropsType {
+  isSummary: boolean;
 }
 
 const defaultStack = {
@@ -24,6 +28,9 @@ const defaultStack = {
 };
 
 const LoadStacks = (props: LoadFileFormatProps) => {
+
+  console.log("props", props);
+  
   /****  ALL HOOKS HERE  ****/
   
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);

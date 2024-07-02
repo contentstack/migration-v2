@@ -291,7 +291,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             ) :
               <Paragraph className="pb-2" tagName="p" variant='p1' text={'Please verify the CMS'}/>}
             {showMessage  &&
-              (<Paragraph className={`${validationClassName} pb-2` } tagName='p' variant="p2" text={validationMessgae}/>)
+              (<Paragraph className={`${validationClassName}` } tagName='p' variant="p2" text={validationMessgae}/>)
             }
            
           </div>
