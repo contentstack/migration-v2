@@ -1,14 +1,30 @@
-import { FieldMapType } from '../ContentMapper/contentMapper.interface';
+import { Advanced, FieldMapType } from '../ContentMapper/contentMapper.interface';
 
 export interface SchemaProps {
   fieldtype: string;
-  value: any;
+  value: UpdatedSettings;
   rowId: string;
-  updateFieldSettings: (rowId: string, value: any, checkBoxChanged: boolean) => void;
+  updateFieldSettings: (rowId: string, value: Advanced, checkBoxChanged: boolean) => void;
   isLocalised: boolean;
   closeModal: () => void;
   data: FieldMapType;
   projectId?: string;
+}
+
+export interface UpdatedSettings {
+  MinChars?: string;
+  MaxChars?: number;
+  MinRange?: number;
+  MaxRange?: number;
+  minSize?: string;
+  maxSize?: number;
+  DefaultValue?: string;
+  ValidationRegex?: string;
+  title?: string;
+  url?: string;
+  Mandatory?: boolean;
+  AllowImagesOnly?: boolean;
+  NonLocalizable?: boolean;
 }
 
 export interface Props {

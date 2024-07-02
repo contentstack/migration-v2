@@ -1,3 +1,4 @@
+import { IDropDown } from '../../../context/app/app.interface';
 export interface AddStackCMSData {
   primary_cta: PrimaryCta;
   secondary_cta: SecondaryCta;
@@ -33,3 +34,39 @@ export const defaultAddStackCMSData: AddStackCMSData = {
   stack_name_placeholder: '',
   title: ''
 };
+
+export interface AddStackProps {
+  defaultValues: Stack;
+  locales: IDropDown[];
+  onSubmit: (value: Stack) => {};
+  selectedOrganisation: string;
+  closeModal: () => void;
+}
+export interface Stack {
+  name: string;
+  description: string;
+  locale: string;
+}
+export interface StackData {
+  name: string;
+  description: string;
+  locale: Locale;
+}
+interface Locale {
+  value: string;
+}
+
+export interface Response {
+  data: Data;
+}
+interface Data {
+  locales: LocaleType;
+}
+interface LocaleType {
+  [key: string]: string;
+}
+export interface Errors {
+  name: string;
+  locale: string;
+  description: string;
+}

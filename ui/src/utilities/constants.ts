@@ -86,3 +86,16 @@ export const NEW_PROJECT_STATUS: ObjectType = {
 export const isOfflineCMSDataRequired = process.env.REACT_APP_OFFLINE_CMS
   ? process.env.REACT_APP_OFFLINE_CMS
   : true;
+
+export const CONTENT_MAPPING_STATUS: ObjectType = {
+  '1': 'Auto-Mapped',
+  '2': 'Verified',
+  '3': 'Mapping Failed'
+  // '4': 'Auto-Dump'
+}
+export const STATUS_ICON_Mapping: { [key: string]: string } = {
+  '1': 'Information',
+  '2': 'CheckCircleDark',
+  '3': 'Warning',
+  '4': 'completed'
+};
