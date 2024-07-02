@@ -694,7 +694,13 @@ const ContentMapper = () => {
 
     const OptionValue: FieldTypes =
       OptionsForRow?.length === 0
-        ? { label: 'No matches found', value: 'No matches found' }
+        ? { 
+          label: data?.ContentstackFieldType, 
+          value: data?.ContentstackFieldType, 
+          isDisabled: data?.ContentstackFieldType === 'group' ||
+          data?.ContentstackFieldType === 'text' ||
+          data?.ContentstackFieldType === 'url' 
+        }
         : { label: `${selectedOption} matches`, value: `${selectedOption} matches` };
 
     const adjustedOptions = OptionsForRow.map((option: optionsType) => ({
@@ -713,23 +719,28 @@ const ContentMapper = () => {
             maxWidth="290px"
             isClearable={false}
             options={adjustedOptions}
+            isDisabled={
+              OptionValue?.isDisabled
+            }
           />
         </div>
-        <Icon
-          version="v2"
-          icon="Setting"
-          size="small"
-          onClick={() => {
-            // const value = {
-            //   ValidationRegex: data?.advanced?.ValidationRegex,
-            //   Mandatory: data?.advanced?.mandatory,
-            //   Multiple: data?.advanced?.multiple,
-            //   Unique: data?.advanced?.unique,
-            //   NonLocalizable: data?.advanced?.nonLocalizable
-            // };
-            handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data);
-          }}
-        />
+        {!OptionValue?.isDisabled && (
+          <Icon
+            version="v2"
+            icon="Setting"
+            size="small"
+            onClick={() => {
+              // const value = {
+              //   ValidationRegex: data?.advanced?.ValidationRegex,
+              //   Mandatory: data?.advanced?.mandatory,
+              //   Multiple: data?.advanced?.multiple,
+              //   Unique: data?.advanced?.unique,
+              //   NonLocalizable: data?.advanced?.nonLocalizable
+              // };
+              handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data);
+            }}
+          />
+        )}
       </div>
     );
   };
