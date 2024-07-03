@@ -26,6 +26,7 @@ export interface FieldTypes {
   label: string;
   value: any;
   id?: string;
+  isDisabled?: boolean;
 }
 export interface TableTypes {
   sortBy: any;
