@@ -277,15 +277,10 @@ const ContentMapper = () => {
 
     setContentTypes(data?.contentTypes);
     setFilteredContentTypes(data?.contentTypes);
-    // setSelectedContentType(data?.contentTypes?.[0]);
-    // setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
-    // setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
-    // setContentTypeUid(data?.contentTypes?.[0]?.id);
-    // fetchFields(data?.contentTypes[0]?.id, searchText || '');
   };
 
   // Method to get fieldmapping
-  const fetchFields = async (contentTypeId: string | '', searchText: string) => {
+  const fetchFields = async (contentTypeId: string, searchText: string) => {
     const { data } = await getFieldMapping(contentTypeId, 0, 30, searchText || '');
 
     try {
@@ -603,7 +598,6 @@ const ContentMapper = () => {
       'CheckBox': 'enum'
     };
     const OptionsForRow: optionsType[] = [];
-    // let ContentTypeSchema: ContentTypesSchema | undefined;
 
     if (OtherContentType?.label && contentTypesList) {
       const ContentType: any = contentTypesList?.find(
