@@ -281,7 +281,12 @@ const ContentMapper = () => {
 
   // Method to get fieldmapping
   const fetchFields = async (contentTypeId: string, searchText: string) => {
-    const { data } = await getFieldMapping(contentTypeId, 0, 30, searchText || '');
+    const { data } = await getFieldMapping(contentTypeId || '', 0, 30, searchText || '');
+
+    console.log('data', data);
+
+    
+
 
     try {
       const itemStatusMap: ItemStatusMapProp = {};
@@ -295,12 +300,15 @@ const ContentMapper = () => {
       setLoading(true);
 
       for (let index = 0; index <= 30; index++) {
-        itemStatusMap[index] = 'loaded';
+        itemStatusMap[index] = 'loaded' ?? '';
       }
 
       updateItemStatusMap({ ...itemStatusMap });
       setLoading(false);
-      setTableData(data?.fieldMapping || []);
+      
+      const newTableData = data?.fieldMapping.filter((field: FieldMapType) => field !== null)
+      
+      setTableData(newTableData || []);
       setTotalCounts(data?.count);
     } catch (error) {
       console.error('fetchData -> error', error);
@@ -325,7 +333,7 @@ const ContentMapper = () => {
       updateItemStatusMap({ ...itemStatusMapCopy });
       setLoading(true);
 
-      const { data } = await getFieldMapping(contentTypeUid, skip, limit, searchText || '');
+      const { data } = await getFieldMapping(contentTypeUid || '', skip, limit, searchText || '');
 
       const updateditemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
 
@@ -1061,7 +1069,7 @@ const ContentMapper = () => {
               canSearch={true}
               data={tableData?.length ? [...tableData] : []}
               columns={columns}
-              uniqueKey={'id'}
+              uniqueKey={'id' || ''}
               isRowSelect
               // fullRowSelect
               itemStatusMap={itemStatusMap}
