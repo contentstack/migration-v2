@@ -5,21 +5,22 @@ import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
-import { isEmptyString, validateArray } from '../../../utilities/functions';
+import { isEmptyString } from '../../../utilities/functions';
 
 // Services
 import {
-  updateFileFormatData,
-  fileformatConfirmation
+  fileformatConfirmation,
+  updateFileFormatData
 } from '../../../services/api/migration.service';
 
 // Interface
-import { ICardType, defaultCardType } from '../../../components/Common/Card/card.interface';
+import { ICardType} from '../../../components/Common/Card/card.interface';
 
 
 // Components
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
+import { getConfig } from '../../../services/api/upload.service';
 
 interface LoadFileFormatProps {
   stepComponentProps: any;
@@ -35,15 +36,17 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const dispatch = useDispatch();
 
   const [selectedCard, setSelectedCard] = useState<ICardType>(
-    newMigrationData?.legacy_cms?.selectedFileFormat ?? defaultCardType
+    newMigrationData?.legacy_cms?.selectedFileFormat 
   );
   const [isCheckedBoxChecked, setIsCheckedBoxChecked] = useState<boolean>(
     newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked || true
   );
+  const [fileIcon, setFileIcon]  = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.title);
+  const [isError, setIsError] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
   const { projectId = '' } = useParams();
-  const { allowed_file_formats = [], doc_url = { href: '', title: '' } } =
-    newMigrationData?.legacy_cms?.selectedCms || {};
+
 
   /****  ALL METHODS HERE  ****/
 
@@ -57,9 +60,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           isFileFormatCheckboxChecked: isCheckedBoxChecked
         }
       }));
-      
-
-
       await fileformatConfirmation(selectedOrganisation?.value, projectId, {
         fileformat_confirmation: true
       });
@@ -75,53 +75,87 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     setIsCheckedBoxChecked(checked);
   };
 
-  /****  ALL USEEffects  HERE  ****/
-  useEffect(() => {
-    if (validateArray(allowed_file_formats)) {
-      const initialFormat = {
-        description: allowed_file_formats?.[0]?.description,
-        group_name: allowed_file_formats?.[0]?.group_name,
-        title: allowed_file_formats?.[0]?.title,
-        fileformat_id: allowed_file_formats?.[0]?.fileformat_id
-      };
-      setSelectedCard(initialFormat);
-      const newMigrationDataObj = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData?.legacy_cms,
-          selectedFileFormat: initialFormat
-        }
-      };
-      dispatch(updateNewMigrationData(newMigrationDataObj));
-      handleBtnClick();
+  const getFileExtension = (filePath: string): string => {
+    const ext = filePath.split('.').pop();
+    return ext ? `${ext}` : 'zip';
+  };
+
+  const handleFileFormat = async() =>{
+    const apiRes: any = await getConfig();
+    const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : apiRes?.data?.cmsType?.toLowerCase();
+    const filePath = apiRes?.data?.localPath?.toLowerCase();
+    const fileFormat =  getFileExtension(filePath);
+
+    const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
+    let filteredCmsData:any = all_cms;
+    if (cmsType) {
+      filteredCmsData = all_cms?.filter((cms: any) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase());
     }
-  }, [allowed_file_formats]);
+ 
+    const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format:any)=>{ 
+      const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();    
+      return isValid;
+    });
+ 
+    if(! isFormatValid){
+      setIsError(true);
+      setError('File format does not support, please add the correct file format.');
+    }
+  
+    const selectedFileFormatObj = {
+      description: "",
+      fileformat_id: fileFormat,
+      group_name: fileFormat,
+      isactive: true,
+      title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
+    }
+    
+    
+    const newMigrationDataObj = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        selectedFileFormat: selectedFileFormatObj
+      }
+    };
+    
+    setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1) : fileFormat?.toUpperCase());
+    dispatch(updateNewMigrationData(newMigrationDataObj));
+    await updateFileFormatData(selectedOrganisation?.value, projectId, {
+      file_format: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase(),
+      file_path: '',
+        is_fileValid: '',
+        awsDetails:{
+          awsRegion: '',
+          bucketName: '',
+          buketKey: ''
+        }
+    });
+  }
+  
+  /****  ALL USEEffects  HERE  ****/
+  useEffect(()=>{
+    handleFileFormat();
+    handleBtnClick();
+  },[]);
 
-  const { file_format_checkbox_text = '' } = migrationData.legacyCMSData;
-
+  
   return (
-    <div className="row">
-        <div className="service_list_legacy">
-          {validateArray(allowed_file_formats) ? (
-            allowed_file_formats?.map((data: ICardType, index: number) => (
-              <div key={data?.fileformat_id || index}>             
-                <TextInput
-                value={data?.fileformat_id}
-                version="v2"              
-                isReadOnly={true}
-                disabled={true}
-                width="large"
-                placeholder=""
-                prefix={
-                <Icon icon={data?.title} size="medium" version='v2'/>}
-                />
-
-              </div>
-            ))
-          ) : (
-            <>No File formats available</>
-          )}
+    <div className="p-3">
+        <div className="col-12">
+          <TextInput
+          value={fileIcon}
+          version="v2"              
+          isReadOnly={true}
+          disabled={true}
+          width="large"
+          placeholder=""
+          prefix={
+          <Icon icon={fileIcon} size="medium" version='v2'/>}
+          />
+          {isError && <p className="errorMessage">{error}</p>}
         </div>
+        
     </div>
   );
 };

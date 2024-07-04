@@ -1,7 +1,7 @@
 import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 
-interface ContentTypesMapper {
+export interface ContentTypesMapper {
   id: string;
   otherCmsTitle: string;
   otherCmsUid: string;
