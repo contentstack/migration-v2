@@ -19,30 +19,32 @@ import {
 
 // Services
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
-import { getAllLocales } from '../../../services/api/user.service';
-
 
 // Utilities
 import { CS_ENTRIES } from '../../../utilities/constants';
-import { validateObject } from '../../../utilities/functions';
-
 
 // Interface
-import { AddStackCMSData, defaultAddStackCMSData, AddStackProps, StackData, Response, Stack, Errors } from './addStack.interface';
-import { IDropDown } from '../../../context/app/app.interface';
-
+import { AddStackCMSData, defaultAddStackCMSData } from './addStack.interface';
 
 // Styles
 import './addStack.scss';
+import { getAllLocales } from '../../../services/api/user.service';
+import { validateObject } from '../../../utilities/functions';
+import { IDropDown } from '../../../context/app/app.interface';
+export interface Stack {
+  name: string;
+  description: string;
+  locale: string;
+}
 
-const AddStack = (props: AddStackProps): JSX.Element => {
+const AddStack = (props: any): JSX.Element => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
   const [addStackCMSData, setAddStackCMSData] = useState<AddStackCMSData>(defaultAddStackCMSData);
-  const onSubmit = async (formData: StackData) => {
+  const onSubmit = async (formData: any) => {
     setIsProcessing(true);
-    const resp = props?.onSubmit({
+    const resp = await props?.onSubmit({
       name: formData?.name || props?.defaultValues?.name,
       description: formData?.description || props?.defaultValues?.description,
       locale: formData?.locale?.value || props?.defaultValues?.locale
@@ -74,14 +76,14 @@ const AddStack = (props: AddStackProps): JSX.Element => {
         setAddStackCMSData(data);
         setIsLoading(false);
       })
-      .catch((err: string) => {
+      .catch((err: any) => {
         console.error(err);
         setIsLoading(false);
       });
 
     //fetch all locales
     getAllLocales(props?.selectedOrganisation)
-      .then((response: Response) => {
+      .then((response: any) => {
         const rawMappedLocalesMapped =
           validateObject(response?.data) && response?.data?.locales
             ? Object?.keys(response?.data?.locales)?.map((key) => ({
@@ -95,7 +97,7 @@ const AddStack = (props: AddStackProps): JSX.Element => {
             : [];
         setAllLocales(rawMappedLocalesMapped);
       })
-      .catch((err: string) => {
+      .catch((err: any) => {
         console.error(err);
       });
     //org id will always be there
@@ -112,16 +114,12 @@ const AddStack = (props: AddStackProps): JSX.Element => {
         <FinalForm
           onSubmit={onSubmit}
           keepDirtyOnReinitialize={true}
-          validate={(values): Stack => {
-            const errors: Errors = {
-              name: '',
-              description: '',
-              locale: ''
-            };
-            if (!values?.name || values?.name?.trim().length < 1) {
+          validate={(values): any => {
+            const errors: any = {};
+            if (!values?.name || values?.name?.trim().lenght < 1) {
               errors.name = 'Stack name required';
             }
-            if (!values?.locale) {
+            if (!values?.locale || values?.locale === '') {
               errors.locale = 'Required';
             }
             return errors;
@@ -154,7 +152,7 @@ const AddStack = (props: AddStackProps): JSX.Element => {
                                   testId="cs-stack-create-title-input"
                                   version="v2"
                                   {...input}
-                                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                                  onChange={(event: any): any => {
                                     input?.onChange(event);
                                   }}
                                   name="name"
@@ -178,7 +176,7 @@ const AddStack = (props: AddStackProps): JSX.Element => {
                       </Field>
                       <Field>
                         <ReactFinalField name={'description'} type="textarea">
-                          {({ input }) => {
+                          {({ input }): any => {
                             return (
                               <div className="input-description">
                                 <Field>
@@ -195,10 +193,11 @@ const AddStack = (props: AddStackProps): JSX.Element => {
                                     className="Description-field"
                                     {...input}
                                     name="description"
-                                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                                    onChange={(event: any): any => {
                                       input?.onChange(event);
-                                    } }
-                                    placeholder={addStackCMSData?.stack_description_placeholder} />
+                                    }}
+                                    placeholder={addStackCMSData?.stack_description_placeholder}
+                                  />
                                 </Field>
                               </div>
                             );
@@ -207,7 +206,7 @@ const AddStack = (props: AddStackProps): JSX.Element => {
                       </Field>
                       <Field>
                         <ReactFinalField name={'locale'}>
-                          {({ input, meta }) => {
+                          {({ input, meta }): any => {
                             return (
                               <>
                                 <FieldLabel
@@ -222,7 +221,7 @@ const AddStack = (props: AddStackProps): JSX.Element => {
                                 <Select
                                   value={input?.value}
                                   isSearchable={true}
-                                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                                  onChange={(event: any): any => {
                                     input?.onChange(event);
                                   }}
                                   name="locale"
@@ -254,7 +253,7 @@ const AddStack = (props: AddStackProps): JSX.Element => {
                           version="v2"
                           testId="cs-cancel-create-stack"
                           buttonType="tertiary"
-                          onClick={() => { 
+                          onClick={(): any => {
                             props?.closeModal();
                           }}
                         >
