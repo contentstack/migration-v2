@@ -25,11 +25,12 @@ import { v4 as uuidv4 } from "uuid";
 
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
-  const search: string = req?.params?.searchText?.toLowerCase();
+
   const decodedToken = req.body.token_payload;
-  const { user_id = "", region = "" } = decodedToken;  
+  const { user_id = "", region = "" } = decodedToken; 
+   
   await ProjectModelLowdb.read();
-  let projects = ProjectModelLowdb.chain
+  const projects = ProjectModelLowdb.chain
     .get("projects")
     .filter({
       org_id: orgId,
@@ -40,14 +41,6 @@ const getAllProjects = async (req: Request) => {
     .value();
 
   if (!projects) throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
-
-  if(search){
-    projects = projects.filter(project => {
-      const projectName = project.name?.toLowerCase();
-      const projectDescription = project.description?.toLowerCase();
-      return projectName.includes(search) || projectDescription.includes(search);
-    });
-  }
 
   return projects;
 };
