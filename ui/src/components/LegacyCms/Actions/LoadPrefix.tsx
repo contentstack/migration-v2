@@ -107,14 +107,12 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         dispatch(updateNewMigrationData(newMigrationDataObj));
   
         setIsError(false);
-  
-        //API call for saving Affix
-        
+
         await affixConfirmation(selectedOrganisation?.value, projectId, {
           affix_confirmation: true
         });
   
-        //call for Step Change
+        //call for Step Change  
         props.handleStepChange(props?.currentStep);
         return;
 
