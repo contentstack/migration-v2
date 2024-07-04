@@ -26,6 +26,7 @@ export interface FieldTypes {
   label: string;
   value: any;
   id?: string;
+  isDisabled?: boolean;
 }
 export interface TableTypes {
   sortBy: any;
@@ -45,6 +46,7 @@ export interface ContentType {
   updateAt: string;
   id?: string;
   status: string;
+  fieldMapping?: FieldMapType[] | [];
 }
 
 export interface FieldMapType {
