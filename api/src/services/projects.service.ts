@@ -25,9 +25,10 @@ import { v4 as uuidv4 } from "uuid";
 
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
-  const decodedToken = req.body.token_payload;
-  const { user_id = "", region = "" } = decodedToken;
 
+  const decodedToken = req.body.token_payload;
+  const { user_id = "", region = "" } = decodedToken; 
+   
   await ProjectModelLowdb.read();
   const projects = ProjectModelLowdb.chain
     .get("projects")
