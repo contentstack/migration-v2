@@ -70,10 +70,11 @@
 }
 .validation-container {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
   background-color: $color-base-white-5;
   height: 72px;
   width: 592px;
-  align-items: center;
   margin-left: 20px !important;
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: var(--TermCount, 5px);
