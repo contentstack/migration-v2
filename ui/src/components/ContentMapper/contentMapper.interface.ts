@@ -26,6 +26,7 @@ export interface FieldTypes {
   label: string;
   value: any;
   id?: string;
+  isDisabled?: boolean;
 }
 export interface TableTypes {
   sortBy: any;
@@ -44,6 +45,7 @@ export interface ContentType {
   otherCmsUid: string;
   updateAt: string;
   id?: string;
+  status: string;
 }
 
 export interface FieldMapType {
@@ -58,19 +60,16 @@ export interface FieldMapType {
   uid: string;
   id: string;
   _canSelect?: boolean;
-  advanced: Advanced;
+  advanced?: Advanced;
   contentstackUid: string;
 }
 
 export interface Advanced {
-  ValidationRegex?: string;
-  Basic?: boolean;
-  Advanced?: boolean;
-  Custom?: boolean;
-  Mandatory?: boolean;
-  Multiple?: boolean;
-  Unique?: boolean;
-  NonLocalizable?: boolean;
+  validationRegex: string;
+  Mandatory: boolean;
+  Multiple: boolean;
+  Unique: boolean;
+  NonLocalizable: boolean;
   EmbedObject?: boolean;
 }
 
