@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState , useImperativeHandle} from 'react';
 import { useDispatch,useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getLegacyCMSSteps } from './StepperSteps';
@@ -33,7 +33,7 @@ type LegacyCMSComponentProps = {
   handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
-const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted, handleStepChange, handleOnAllStepsComplete }: LegacyCMSComponentProps, ref) => {
+const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted, handleOnAllStepsComplete, }: LegacyCMSComponentProps, ref) => {
   //react-redux apis
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const  newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
@@ -59,6 +59,10 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
   const handleAllStepsComplete = (flag = false) => {
     handleOnAllStepsComplete(flag);
   };
+
+  useImperativeHandle(ref, () => ({
+    getInternalActiveStepIndex: () => internalActiveStepIndex
+  }));
   
 
   // handle on proceed to destination stack
@@ -148,9 +152,9 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
             (cms: ICardType) => cms?.fileformat_id === legacyCMSData?.file_format
           )
         : defaultCardType;
-  
+    
       //Make Step 1 Complete
-      if (!isEmptyString(selectedCmsData?.cms_id)) {
+      if (!isEmptyString(selectedCmsData?.cms_id || newMigrationData?.legacy_cms?.selectedCms?.cms_id)) {    
         setInternalActiveStepIndex(0);
       }
   
@@ -177,15 +181,13 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
               localPath: legacyCMSData?.file_path,
               awsData: legacyCMSData?.awsDetails
             },
-            isValidated: legacyCMSData?.is_fileValid
+            isValidated: legacyCMSData?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated
           }, //need to add backend data once endpoint exposed.
           affix: legacyCMSData?.affix || newMigrationData?.legacy_cms?.affix || '',
           isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
           isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
         }
       }))
-      
-  
       setIsLoading(false);
   
       //Check for migration Status and lock.
@@ -202,8 +204,8 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
     setisValidated(newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false);
   }, [isLoading]);
 
-  useEffect(() => {
-    if (autoVerticalStepper?.current) {
+  useEffect(() => { 
+    if (autoVerticalStepper?.current) {  
       if (internalActiveStepIndex > -1) {
         autoVerticalStepper.current.handleDynamicStepChange(internalActiveStepIndex);
       }
@@ -216,6 +218,25 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
       }
     }
   }, [internalActiveStepIndex]);  
+
+  useEffect(()=>{
+    if (!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id)) {    
+      setInternalActiveStepIndex(0);
+    }
+
+    //Make Step 2 complete
+    if (!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && !isEmptyString(newMigrationData?.legacy_cms?.affix)) {
+      setInternalActiveStepIndex(1);
+    }
+    if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && !isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
+      setInternalActiveStepIndex(2);
+    }
+    if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && !isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) && newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+      setInternalActiveStepIndex(3);
+    }
+
+  },[newMigrationData]);
+
   return (
     <>
       {isLoading ? (

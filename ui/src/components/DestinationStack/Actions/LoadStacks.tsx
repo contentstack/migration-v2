@@ -28,7 +28,6 @@ const defaultStack = {
 };
 
 const LoadStacks = (props: LoadFileFormatProps) => {
-  
   /****  ALL HOOKS HERE  ****/
   
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
