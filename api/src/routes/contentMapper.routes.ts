@@ -41,6 +41,11 @@ router.get(
   "/:projectId/:contentTypeUid",
   asyncRouter(contentMapperController.getSingleContentTypes)
 );
+//remove content mapper
+router.get(
+  "/:orgId/:projectId/content-mapper",
+  asyncRouter(contentMapperController.removeContentMapper)
+);
 
 
 export default router;

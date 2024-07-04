@@ -17,7 +17,7 @@ import { DEFAULT_CMS_TYPE, ICMSType, INewMigration } from '../../../context/app/
 
 // Components
 import Card from '../../../components/Common/Card/card';
-import { EmptyState } from '@contentstack/venus-components';
+import { CircularLoader, EmptyState } from '@contentstack/venus-components';
 
 // Style
 import '../legacyCms.scss';
@@ -53,6 +53,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   );
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isError, setIsError] = useState<boolean>(false); 
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { projectId = '' } = useParams();
 
@@ -77,10 +78,10 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
       //API call for saving selected CMS
-      await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
+      //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
       
-      // Call for Step Change
-      props?.handleStepChange(props?.currentStep, true);
+      // Call for Step Change 
+      props?.handleStepChange(props?.currentStep);
     }
   };
 
@@ -124,6 +125,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const filterCMSData = async (searchText: string) => {
     const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
     setSelectedCard(cmsType);
+    setIsLoading(true);
 
     const apiRes: any = await getConfig(); // api call to get cms type from upload service
 
@@ -140,6 +142,15 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     if (cmstype) {
       filteredCmsData = all_cms.filter((cms: ICMSType) => cms?.parent?.toLowerCase() === cmstype?.toLowerCase());
     }
+    const newMigrationDataObj = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        selectedFileFormat: filteredCmsData[0].allowed_file_formats[0]
+      }
+    };
+
+    dispatch(updateNewMigrationData(newMigrationDataObj));
 
     setCmsData(filteredCmsData)
 
@@ -162,7 +173,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     } else {
       newSelectedCard = DEFAULT_CMS_TYPE;
     }
- 
 
     if (!isEmptyString(newSelectedCard?.title)) {
       setSelectedCard(newSelectedCard);
@@ -180,6 +190,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       dispatch(updateNewMigrationData(newMigrationDataObj));
       props?.handleStepChange(props?.currentStep);
     }
+    setIsLoading(false);
   };
 
   /****  ALL USEEffects  HERE  ****/
@@ -190,7 +201,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   useEffect(() => {
     filterCMSData(searchText);
   }, [cmsFilter]);
-
+    
   return (
     <div>
       <div className="col-12">
@@ -202,8 +213,12 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
               />
               </div>
            :
-          (
-            cmsData && validateArray(cmsData) && (
+            isLoading ? (
+              <>
+                <CircularLoader size='small'/>
+              </>
+             ) : 
+            (cmsData && validateArray(cmsData) && (
             <div className="service_list_legacy">
               {cmsData?.map((data: ICMSType) => (
                 <Card
@@ -214,10 +229,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
                   idField="cms_id"
                 />
               ))}
-            </div>
-          )
-        )
-        }
+            </div>))
+            } 
+          
       </div>
     </div>
   );
