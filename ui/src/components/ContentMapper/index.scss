@@ -2,6 +2,7 @@
 @import '../../scss/variables';
 
 .content-types-list-wrapper {
+  border-right: 1px solid $color-brand-secondary-lightest;
   display: flex;
   flex-direction: column;
   max-width: 25%;
@@ -26,9 +27,7 @@
   }
 }
 .ct-search-wrapper {
-  align-items: center;
   border-bottom: 1px solid $color-brand-secondary-lightest;
-  display: flex;
   padding: $px-8 $px-12;
   position: relative;
   .Search__v2 {
@@ -62,30 +61,40 @@
 .ct-list {
   border-right: 1px solid $color-brand-secondary-lightest;
   list-style-type: none;
-  margin: 0 0 0 $px-12;
-  padding: 15px 12px 15px 0;
+  padding: 15px 0 15px 0;
   li {
     align-items: center;
-    border: 1px solid transparent;
     cursor: pointer;
     display: flex;
     font-size: $size-font-xl;
     justify-content: space-between;
     line-height: normal;
     min-height: 42px;
-    padding: $px-8 $px-12;
-    &.active-ct {
+    padding: $px-8 $px-4 $px-8 $px-12;
+    &:hover, &.active-ct {
       background-color: $color-brand-white-base;
-      border: 1px solid $color-brand-primary-base;
-      color: $color-brand-primary-base;
+      .cms-title {
+        span {
+          color: $color-brand-primary-base;
+        }
+      }
     }
     .cms-title {
       margin-right: 12px;
-      max-width: 123px;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      max-height: 24px;
+      max-width: 155px;
+      white-space: nowrap;
+      .tippy-wrapper {
+        display: flex;
+      }
+      span {
+        color: $color-font-base;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
     .ct-options {
+      justify-content: flex-end;
       min-width: 150px;
     }
   }
@@ -119,7 +128,11 @@
 }
 .table-wrapper {
   flex: 1;
+  .TablePanel {
+    border-left: 0 none;
+  }
   .Table {
+    border-left: 0 none;
     min-height: inherit;
     .Table__body__column {
       padding: 0 1.25rem;
@@ -130,6 +143,9 @@
     .InstructionText {
       font-size: $size-font-small;
       margin: 0;
+    }
+    .EmptyStateWrapper {
+      margin-top: $px-20;
     }
   }
   .import-cta {
@@ -143,7 +159,7 @@
   background-color: $color-brand-white-base;
   display: flex;
   justify-content: space-between;
-  padding: 12px;
+  padding: $px-12;
 }
 .action-component-body {
   display: flex;
@@ -178,18 +194,43 @@ div .table-row {
   align-items: center;
   border: 1px solid $color-stepper-title;
   border-radius: $px-8;
-  color: $color-stepper-title;
+  cursor: pointer;
   display: flex;
-  font-size: $size-font-large;
-  padding: $px-4 $px-8;
+  font-size: $size-font-medium;
+  margin-right: $px-12;
+  padding: $px-3 7px;
+  &.mapped {
+    border: 1px solid $color-brand-draft-base;
+    color: $color-brand-draft-base;
+    &.active-filter {
+      background-color: $color-brand-draft-base;
+      color: $color-brand-white-base;
+    }
+  }
+  &.verified {
+    border: 1px solid $color-brand-success-base;
+    color: $color-brand-success-base;
+    &.active-filter {
+      background-color: $color-brand-success-base;
+      color: $color-brand-white-base;
+    }
+  }
+  &.failed {
+    border: 1px solid $color-brand-fail-base;
+    color: $color-brand-fail-base;
+    &.active-filter {
+      background-color: $color-brand-fail-base;
+      color: $color-brand-white-base;
+    }
+  }
   svg {
-    margin-right: 5px;
+    margin-right: $px-4;
   }
 }
 .filter-wrapper {
   background-color: $color-brand-white-base;
   border-radius: $px-4;
-  box-shadow: 0 4px 30px rgba(0,0,0,.25);
+  box-shadow: 0 $px-4 $px-30 rgba(0,0,0,.25);
   position: absolute;
   right: $px-12;
   top: $px-50;
@@ -208,4 +249,9 @@ div .table-row {
       font-weight: $font-weight-bold;
     }
   }
+}
+.no-content {
+  line-height: $line-height-default;
+  padding: $px-12;
+  text-align: center;
 }
