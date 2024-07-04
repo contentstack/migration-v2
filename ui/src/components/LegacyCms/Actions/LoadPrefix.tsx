@@ -89,8 +89,17 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     e.preventDefault();
 
     const value  = e.target.value;
-    if (!isEmptyString(value) && isValidPrefix(value) ) {   
-      if(! idArray?.includes(value)){      
+    if (!isEmptyString(value)) {   
+      if (idArray?.includes(value)) {
+        setIsError(true);
+        setErrorMessage('Affix should be valid and not a restricted keyword');
+        setIsRestrictedKey(true);
+        return;
+      } else if (!isValidPrefix(value)) {
+        setIsRestrictedKey(false);
+        setIsError(true);
+        setErrorMessage('Affix should not be more than 5 chars');
+      } else {
         setPrefix(value);
         setIsError(false);
         setErrorMessage('');
@@ -98,7 +107,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         const newMigrationDataObj: INewMigration = {
           ...newMigrationData,
           legacy_cms: {
-            ...newMigrationData.legacy_cms,
+            ...newMigrationData?.legacy_cms,
             affix: value,
             isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
           }
@@ -112,20 +121,14 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           affix_confirmation: true
         });
   
-        //call for Step Change  
-        props.handleStepChange(props?.currentStep);
-        return;
-
-      }
-      else{
-        setIsError(true);
-        setErrorMessage('Affix should be valid and not a restricted keyword');
-        setIsRestrictedKey(true);
+        //call for Step Change
+        props?.handleStepChange(props?.currentStep);
         return;
       }
+    } else {
+      setIsError(true);
+      setErrorMessage('Please enter Affix');
     }
-    setIsError(true);
-    setErrorMessage('Affix should not be more than 5 chars');
   });
 
   // Toggles checkbox selection

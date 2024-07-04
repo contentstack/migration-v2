@@ -42,7 +42,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   });
 
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
-  const [CTValue, setCTValue] = useState(null);
+  const [ctValue, setCTValue] = useState(null);
 
   useEffect(() => {
     fetchContentTypes('');
@@ -50,7 +50,7 @@ const AdvancePropertise = (props: SchemaProps) => {
 
   // Fetch content types list
   const fetchContentTypes = async (searchText: string) => {
-    const { data } = await getContentTypes(props?.projectId || '', 0, 10, searchText || ''); //org id will always present
+    const { data } = await getContentTypes(props?.projectId ?? '', 0, 10, searchText || ''); //org id will always present
 
     setContentTypes(data?.contentTypes);
   };
@@ -63,7 +63,15 @@ const AdvancePropertise = (props: SchemaProps) => {
 
     props?.updateFieldSettings(
       props?.rowId,
-      { [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: (event.target as HTMLInputElement)?.value },
+      {
+        [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: (event.target as HTMLInputElement)?.value,
+        validationRegex: '',
+        Mandatory: false,
+        Multiple: false,
+        Unique: false,
+        NonLocalizable: false,
+        EmbedObject: false
+      },
       checkBoxChanged
     );
   };
@@ -76,7 +84,15 @@ const AdvancePropertise = (props: SchemaProps) => {
 
     props?.updateFieldSettings(
       props?.rowId,
-      { [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value },
+      {
+        [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
+        validationRegex: '',
+        Mandatory: false,
+        Multiple: false,
+        Unique: false,
+        NonLocalizable: false,
+        EmbedObject: false
+      },
       checkBoxChanged
     );
   };
@@ -282,7 +298,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   
                   {toggleStates?.embedObject && (
                     <Select
-                      value={CTValue}
+                      value={ctValue}
                       isMulti={true}
                       onChange={setCTValue}
                       options={option}
