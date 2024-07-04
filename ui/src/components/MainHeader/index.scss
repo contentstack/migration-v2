@@ -1,6 +1,21 @@
 @import '../../scss/variables';
 
 .mainheader {
+  [class*="Profile_card"] {
+    [class*="Dropdown__menu__list"] {
+      padding: 0;
+    }
+
+    [class*="Dropdown__menu__list__item"] {
+      pointer-events: none;
+      padding: 0;
+
+      [class*="profile-card__logout"] {
+        pointer-events: all;
+      }
+    }
+  }
+
   background-color: $color-brand-white-base;
   height: 3.5rem;
   justify-content: space-between;
@@ -10,13 +25,16 @@
   display: flex;
   align-items: center;
   z-index: 100;
+
   button {
     border: 0 none;
   }
+
   .logo {
     position: relative;
     text-align: center;
     width: 3.5rem;
+
     a {
       align-items: center;
       display: flex;
@@ -25,32 +43,40 @@
       padding: 0.5rem;
       text-decoration: none;
     }
+
     a:focus {
       border-radius: 5px;
       box-shadow: 0 0 1px $color-brand-primary-base, 0 0 0 4px #bbb4f4;
     }
   }
+
   .organisationWrapper {
     margin-left: 1.063rem;
+
     &:focus {
       box-shadow: none;
     }
-  } 
+  }
+
   .Dropdown {
     &:focus {
       box-shadow: none;
     }
   }
+
   .Dropdown-wrapper {
     padding: 0 18px;
   }
+
   .Dropdown.Dropdown--hover .Dropdown__menu--primary {
     top: 2.5rem;
   }
+
   .organisationWrapper {
     &:focus {
       box-shadow: none;
     }
+
     .Dropdown__header__value {
       color: #475161;
       max-width: 11.1875rem;
@@ -58,11 +84,13 @@
       color: $color-black-222 !important;
       line-height: $line-height-reset;
     }
+
     .Dropdown__menu--primary .Dropdown__menu__list__item,
     .Dropdown__menu--secondary .Dropdown__menu__list__item,
     .Dropdown__menu--tertiary .Dropdown__menu__list__item {
       max-width: 14.5rem;
     }
+
     .Dropdown__header__label {
       line-height: $line-height-reset;
       margin-bottom: 8px;
