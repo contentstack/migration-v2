@@ -98,7 +98,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       } else if (!isValidPrefix(value)) {
         setIsRestrictedKey(false);
         setIsError(true);
-        setErrorMessage('Affix should not be more than 5 chars');
+        setErrorMessage('Affix should not contain more than 5 characters or fewer than 2.');
       } else {
         setPrefix(value);
         setIsError(false);
