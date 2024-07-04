@@ -257,6 +257,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setValidationMessage('');
       setShowMessage(false);
       setIsDisabled(false);
+      setIsValidationAttempted(false);
       const newMig = {
         ...newMigrationData,
         legacy_cms: {
@@ -352,19 +353,19 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         <div className="col-12">
           <div className={containerClassName}>
             {!isConfigLoading && !isEmptyString(cmsType) ? (
-              <div style={{display:'flex', justifyContent:'space-between'}}>
-              <FileComponent fileDetails={fileDetails || {}} />
-              {(showMessage &&  !isCancelLoading) && 
-                (<Tooltip content='cancel validation' position='top'>
-                  <Icon icon='CloseNoborder' version='v2' onClick={handleCancelValidation}/>
+              <div className='file-icon-group'>
+                <FileComponent fileDetails={fileDetails || {}} />
+                {(showMessage &&  !isCancelLoading) && 
+                  (<Tooltip content='cancel validation' position='top'>
+                    <Icon icon='CloseNoborder' version='v2' onClick={handleCancelValidation}/>
 
-                </Tooltip> )
+                  </Tooltip> )
+                }
+                { isCancelLoading &&   
+                  <div style={{justifyContent:'center', alignItems:'center', marginTop:'7px'}}>
+                    <AsyncLoader color='$color-brand-primary-base'/>
+                  </div>
               }
-              { isCancelLoading &&   
-                <div style={{justifyContent:'center', alignItems:'center', marginTop:'7px'}}>
-                  <AsyncLoader color='$color-brand-primary-base'/>
-                </div>
-             }
               </div>
               
 
