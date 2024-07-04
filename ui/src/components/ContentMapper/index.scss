@@ -61,11 +61,9 @@
 .ct-list {
   border-right: 1px solid $color-brand-secondary-lightest;
   list-style-type: none;
-  // margin: 0 0 0 $px-12;
   padding: 15px 0 15px 0;
   li {
     align-items: center;
-    // border: 1px solid transparent;
     cursor: pointer;
     display: flex;
     font-size: $size-font-xl;
@@ -75,7 +73,6 @@
     padding: $px-8 $px-4 $px-8 $px-12;
     &:hover, &.active-ct {
       background-color: $color-brand-white-base;
-      // border: 1px solid $color-brand-primary-base;
       .cms-title {
         span {
           color: $color-brand-primary-base;
