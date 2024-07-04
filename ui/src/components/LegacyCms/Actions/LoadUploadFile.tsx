@@ -373,7 +373,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             {showMessage  &&
               (
               <>
-                <Paragraph className={`${validationClassName} pb-2` } tagName='p' variant="p2" text={validationMessgae}/>
+                <Paragraph className={`${validationClassName}` } tagName='p' variant="p2" text={validationMessgae}/>
               </>
               )
             }
