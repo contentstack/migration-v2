@@ -177,3 +177,12 @@ export const fetchExistingContentType = async (projectId: string, contentTypeUid
     return error;
   }
 }
+
+export const removeContentMapper = async(orgId: string, projectId: string) => {
+  try {
+    return await getCall(`${API_VERSION}/mapper/${orgId}/${projectId}/content-mapper`, options);   
+  } catch (error) {
+    return error;
+    
+  }
+}
