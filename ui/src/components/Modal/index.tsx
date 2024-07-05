@@ -159,7 +159,7 @@ const Modal = (props: ProjectModalProps) => {
                           <Textarea
                             {...input}
                             value={input?.value}
-                            onChange={(event: any): any => {
+                            onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                               input.onChange(event);
                             }}
                             id="description"

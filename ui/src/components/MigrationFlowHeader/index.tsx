@@ -1,6 +1,6 @@
 // Libraries
-import { useEffect, useState } from 'react';
-import { Button } from '@contentstack/venus-components';
+import { useEffect, useRef, useState } from 'react';
+import { Button, cbModal } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
 
@@ -12,23 +12,33 @@ import { getProject } from '../../services/api/project.service';
 
 // Interfaces
 import { DEFAULT_NEW_MIGRATION } from '../../context/app/app.interface';
+import { ModalObj } from '../Modal/modal.interface';
 
 // CSS
 import './index.scss';
+import NotificationModal from '../Common/NotificationModal';
+import { isEmptyString } from '../../utilities/functions';
+import { RootState } from '../../store';
 
 type MigrationFlowHeaderProps = {
   handleOnClick: (event: MouseEvent, handleStepChange: (currentStep: number) => void) => void;
   isLoading: boolean;
+  isCompleted: boolean;
+  legacyCMSRef: React.MutableRefObject<any>; 
 };
 
-const MigrationFlowHeader = ({ handleOnClick, isLoading }: MigrationFlowHeaderProps) => {
+const MigrationFlowHeader = ({ handleOnClick, isLoading, isCompleted , legacyCMSRef}: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
+  const [currentStep, setCurrentStep] = useState<number>(0);
 
   const navigate = useNavigate();
   const params: Params<string> = useParams();
   const dispatch = useDispatch();
 
   const selectedOrganisation = useSelector((state:any)=>state?.authentication?.selectedOrganisation);
+  const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
+
+  //const legacyCMSRef = useRef<any>(null);
 
   useEffect(() => {
     fetchProject();
@@ -40,6 +50,7 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading }: MigrationFlowHeaderPr
 
     if (response?.status === 200) {
       setProjectName(response?.data?.name);
+      setCurrentStep(response?.data?.current_step);
 
       //Navigate to lastest or active Step
       const url = `/projects/${params?.projectId}/migration/steps/${response?.data?.current_step}`;
@@ -48,6 +59,33 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading }: MigrationFlowHeaderPr
   };
 
   const backNavigation = () => {
+    
+    const goback = () => {
+      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
+      navigate(-1);
+    }
+   
+
+    if (legacyCMSRef.current) {
+      const currentIndex = legacyCMSRef.current.getInternalActiveStepIndex() + 1 ; 
+
+      if(-1 < currentIndex && currentIndex < 4 && ( !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || !isEmptyString(newMigrationData?.legacy_cms?.affix) )&& currentStep === 1
+        ){
+        return cbModal({
+          component: (props: ModalObj) => (
+            <NotificationModal
+            goBack={goback}
+            {...props}
+            />
+          ),
+          modalProps: {
+            size: 'xsmall',
+            shouldCloseOnOverlayClick: false
+          }
+        });
+      }
+    }
+
     dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
     navigate(-1);
   }
