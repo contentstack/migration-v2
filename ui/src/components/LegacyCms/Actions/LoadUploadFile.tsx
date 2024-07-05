@@ -21,7 +21,7 @@ interface Props {
   fileDetails: FileDetails;
 }
 
-const FileComponent = ({fileDetails}:Props ) => {
+const FileComponent = ({fileDetails}:Props ) => { 
   
   return (
     <div>
@@ -120,7 +120,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setIsValidated(true);
       setValidationMessage('Validation is successful');
       
-      if(! isEmptyString(newMigrationData?.legacy_cms?.affix) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
+      if(! isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
         props.handleStepChange(props?.currentStep, true);
       }
       
@@ -346,7 +346,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const validationClassName = isValidated ? 'success' : 'error';
 
   const containerClassName = `validation-container ${isValidationAttempted && !isValidated ? 'error-container pb-2' : ''}`;
-  
+
   return (
     <div className="row">
       <div className="col-12">
