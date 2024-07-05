@@ -10,7 +10,7 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);
-    if (validator({ data: zip, type: cmsType, extension: fileExt })) {
+    if (await validator({ data: zip, type: cmsType, extension: fileExt })) {    
       const isSaved = await saveZip(zip);
       if (isSaved) {
         logger.info('Validation success:', {
@@ -38,7 +38,7 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
     // if file is not zip
     // Convert the buffer to a string assuming it's UTF-8 encoded
     const jsonString = Buffer?.from?.(zipBuffer)?.toString?.('utf8');
-    if (validator({ data: jsonString, type: cmsType, extension: fileExt })) {
+    if (await validator({ data: jsonString, type: cmsType, extension: fileExt })) {
       logger.info('Validation success:', {
         status: HTTP_CODES?.OK,
         message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,

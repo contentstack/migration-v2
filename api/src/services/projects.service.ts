@@ -240,16 +240,16 @@ const updateLegacyCMS = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.CANNOT_UPDATE_LEGACY_CMS);
   }
 
-  if (project.current_step > STEPPER_STEPS.LEGACY_CMS) {
-    contentMapperService.removeMapping(projectId);
-    logger.info(
-      getLogMessage(
-        srcFunc,
-        `Content Mapping for project [Id : ${projectId}] has been successfully removed.`,
-        token_payload
-      )
-    );
-  }
+  // if (project.current_step > STEPPER_STEPS.LEGACY_CMS) {
+  //   await contentMapperService.removeMapping(projectId);
+  //   logger.info(
+  //     getLogMessage(
+  //       srcFunc,
+  //       `Content Mapping for project [Id : ${projectId}] has been successfully removed.`,
+  //       token_payload
+  //     )
+  //   );
+  // }
 
   try {
     ProjectModelLowdb.update((data: any) => {
@@ -383,16 +383,16 @@ const updateFileFormat = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.CANNOT_UPDATE_FILE_FORMAT);
   }
 
-  if (project.current_step > STEPPER_STEPS.LEGACY_CMS) {
-    contentMapperService.removeMapping(projectId);
-    logger.info(
-      getLogMessage(
-        srcFunc,
-        `Content Mapping for project [Id : ${projectId}] has been successfully removed.`,
-        token_payload
-      )
-    );
-  }
+  // if (project.current_step > STEPPER_STEPS.LEGACY_CMS) {
+  //   await contentMapperService.removeMapping(projectId);
+  //   logger.info(
+  //     getLogMessage(
+  //       srcFunc,
+  //       `Content Mapping for project [Id : ${projectId}] has been successfully removed.`,
+  //       token_payload
+  //     )
+  //   );
+  // }
 
   try {
     ProjectModelLowdb.update((data: any) => { 
@@ -508,6 +508,7 @@ const updateDestinationStack = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.CANNOT_UPDATE_DESTINATION_STACK);
   }
   if (project.current_step > STEPPER_STEPS.DESTINATION_STACK) {
+    console.info("in destination stack api =============> ")
     await contentMapperService.resetAllContentTypesMapping(projectId);
     logger.info(
       getLogMessage(
@@ -760,7 +761,7 @@ const deleteProject = async (req: Request) => {
 };
 
 const revertProject = async (req: Request) => {
-  const { orgId, projectId } = req?.params;
+  const { orgId, projectId } = req.params;
   const decodedToken = req.body.token_payload;
   const { user_id = "", region = "" } = decodedToken;
   const srcFunc = "revertProject";
