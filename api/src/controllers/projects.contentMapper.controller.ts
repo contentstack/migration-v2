@@ -37,6 +37,11 @@ const resetContentType = async (req: Request, res: Response): Promise<void> => {
 //   res.status(200).json(resp);
 // };
 
+const removeContentMapper = async (req: Request, res: Response): Promise<void> => {
+  const resp = await contentMapperService.removeContentMapper(req);
+  res.status(200).json(resp);
+}
+
 const getSingleContentTypes = async (
   req: Request,
   res: Response
@@ -53,5 +58,6 @@ export const contentMapperController = {
   putContentTypeFields,
   resetContentType,
   // removeMapping,
-  getSingleContentTypes
+  getSingleContentTypes,
+  removeContentMapper
 };

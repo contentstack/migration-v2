@@ -277,11 +277,6 @@ const ContentMapper = () => {
 
     setContentTypes(data?.contentTypes);
     setFilteredContentTypes(data?.contentTypes);
-    setSelectedContentType(data?.contentTypes?.[0]);
-    setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
-    setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
-    setContentTypeUid(data?.contentTypes?.[0]?.id);
-    fetchFields(data?.contentTypes[0]?.id, searchText || '');
   };
 
   // Method to get fieldmapping
@@ -603,7 +598,6 @@ const ContentMapper = () => {
       'CheckBox': 'enum'
     };
     const OptionsForRow: optionsType[] = [];
-    // let ContentTypeSchema: ContentTypesSchema | undefined;
 
     if (OtherContentType?.label && contentTypesList) {
       const ContentType: any = contentTypesList?.find(
@@ -694,7 +688,13 @@ const ContentMapper = () => {
 
     const OptionValue: FieldTypes =
       OptionsForRow?.length === 0
-        ? { label: 'No matches found', value: 'No matches found' }
+        ? { 
+          label: data?.ContentstackFieldType, 
+          value: data?.ContentstackFieldType, 
+          isDisabled: data?.ContentstackFieldType === 'group' ||
+          data?.ContentstackFieldType === 'text' ||
+          data?.ContentstackFieldType === 'url' 
+        }
         : { label: `${selectedOption} matches`, value: `${selectedOption} matches` };
 
     const adjustedOptions = OptionsForRow.map((option: optionsType) => ({
@@ -713,23 +713,28 @@ const ContentMapper = () => {
             maxWidth="290px"
             isClearable={false}
             options={adjustedOptions}
+            isDisabled={
+              OptionValue?.isDisabled
+            }
           />
         </div>
-        <Icon
-          version="v2"
-          icon="Setting"
-          size="small"
-          onClick={() => {
-            // const value = {
-            //   ValidationRegex: data?.advanced?.ValidationRegex,
-            //   Mandatory: data?.advanced?.mandatory,
-            //   Multiple: data?.advanced?.multiple,
-            //   Unique: data?.advanced?.unique,
-            //   NonLocalizable: data?.advanced?.nonLocalizable
-            // };
-            handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data);
-          }}
-        />
+        {!OptionValue?.isDisabled && (
+          <Icon
+            version="v2"
+            icon="Setting"
+            size="small"
+            onClick={() => {
+              // const value = {
+              //   ValidationRegex: data?.advanced?.ValidationRegex,
+              //   Mandatory: data?.advanced?.mandatory,
+              //   Multiple: data?.advanced?.multiple,
+              //   Unique: data?.advanced?.unique,
+              //   NonLocalizable: data?.advanced?.nonLocalizable
+              // };
+              handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data);
+            }}
+          />
+        )}
       </div>
     );
   };
@@ -912,16 +917,25 @@ const ContentMapper = () => {
 
   // Function to filter content types as per the status
   const handleContentTypeFilter = (e: React.MouseEvent<HTMLElement>) => {
-    const li_list = document.querySelectorAll('.filter-wrapper li');
+    const li_list = document.querySelectorAll('li.status-wrapper');
     if(li_list) {
       li_list.forEach((ele) => {
-        ele?.classList?.remove('active-filter');
+        const selectedEle = document.querySelector(".active-filter");
+        if (selectedEle && selectedEle !== e?.target) {
+          ele?.classList?.remove('active-filter');
+        }
       })
     }
-    (e?.target as HTMLElement) ?.classList?.add('active-filter');
+    (e?.target as HTMLElement)?.classList?.toggle('active-filter');
+
     const filterVal = (e?.target as HTMLElement)?.innerText;
-    const filteredCT = contentTypes?.filter((ct) => CONTENT_MAPPING_STATUS[ct?.status] === filterVal)
-    setFilteredContentTypes(filteredCT);
+    const filteredCT = contentTypes?.filter((ct) => CONTENT_MAPPING_STATUS[ct?.status] === filterVal);
+
+    if ((e?.target as HTMLElement)?.classList?.contains('active-filter')) {
+      setFilteredContentTypes(filteredCT)
+    } else {
+      setFilteredContentTypes(contentTypes)
+    }
   }
 
   // Function to close filter panel on click outside
@@ -942,6 +956,8 @@ const ContentMapper = () => {
   }
   const tableHeight = calcHeight();
 
+  
+
   return (
     <div className="step-container">
       <div className="d-flex flex-wrap table-container">
@@ -952,52 +968,65 @@ const ContentMapper = () => {
           </div>
 
           <div className='ct-search-wrapper'>
-            <Search
-              placeholder={searchPlaceholder}
-              type="secondary"
-              version="v2"
-              onChange={(search: string) => handleSearch(search)}
-              onClear={true}
-              value={searchContentType}
-              debounceSearch={true}
-            />
+            <div className='d-flex align-items-center pb-3'>
+              <Search
+                placeholder={searchPlaceholder}
+                type="secondary"
+                version="v2"
+                onChange={(search: string) => handleSearch(search)}
+                onClear={true}
+                value={searchContentType}
+                debounceSearch={true}
+              />
 
-            <Button buttonType="light" onClick={handleFilter}>
-              <Icon icon="Filter" version="v2" />
-            </Button>
-            {showFilter && (
-              <div className='filter-wrapper' ref={ref}> 
-                <ul>
+              <Button buttonType="light" onClick={handleFilter}>
+                <Icon icon="Filter" version="v2" />
+              </Button>
+              {showFilter && (
+                <div className='filter-wrapper' ref={ref}> 
+                  <ul>
+                    {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
+                      <li key={`${keyInd?.toString()}`} onClick={(e) => handleContentTypeFilter(e)}>{CONTENT_MAPPING_STATUS[key]}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className='d-flex align-items-center justify-content-end'>
+              <ul className='d-flex'>
                   {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
-                    <li key={`${keyInd?.toString()}`} onClick={(e) => handleContentTypeFilter(e)}>{CONTENT_MAPPING_STATUS[key]}</li>
+                    <li key={`${keyInd?.toString()}`}  className={`status-wrapper ${CONTENT_MAPPING_STATUS[key]?.toLocaleLowerCase()}`} onClick={(e) => handleContentTypeFilter(e)}>{CONTENT_MAPPING_STATUS[key]}</li>
                   ))}
-                </ul>
-              </div>
-            )}
+              </ul>
+              {contentTypes && validateArray(contentTypes) && contentTypes?.length }
+            </div>
           </div>
 
-          {filteredContentTypes && validateArray(filteredContentTypes) && (
-            <div className='ct-list-wrapper'>
-            <ul className="ct-list">
-              {filteredContentTypes?.map((content: ContentType, index: number) => {
-                const statusText = CONTENT_MAPPING_STATUS[content?.status];
-                const icon = STATUS_ICON_Mapping[content?.status] || '';
-                return (
-                <li
-                  key={`${index.toString()}`}
-                  className={`${active == index ? 'active-ct' : ''}`}
-                  onClick={() => openContentType(index)}
-                  onKeyDown={() => openContentType(index)}
-                >
-                  <span className='cms-title'>{content?.otherCmsTitle}</span>
-                  
-                  <div className='d-flex align-items-center ct-options'>
-                    <span className='status-wrapper'>
-                      {icon && <Icon size="mini" icon={icon} version="v2" />}
-                      {statusText}
-                    </span>
+          {filteredContentTypes && validateArray(filteredContentTypes)
+            ? <div className='ct-list-wrapper'>
+              <ul className="ct-list">
+                {filteredContentTypes?.map((content: ContentType, index: number) => {
+                  const icon = STATUS_ICON_Mapping[content?.status] || '';
+                  return (
+                    <li
+                      key={`${index.toString()}`}
+                      className={`${active == index ? 'active-ct' : ''}`}
+                      onClick={() => openContentType(index)}
+                      onKeyDown={() => openContentType(index)}
+                    >
+                      <div className='cms-title'>
+                        <Tooltip content={content?.otherCmsTitle} position="left">
+                          <span>{content?.otherCmsTitle}</span>
+                        </Tooltip>
+                      </div>
+                      
+                      
+                      <div className='d-flex align-items-center ct-options'>
+                        <span className=''>
+                          {icon && <Icon size="small" icon={icon} fill={icon === 'CheckedCircle' ? '#0469E3' : ''} />}
+                        </span>
 
-                    {active == index && (
+                        
                         <Dropdown
                           // version="v2"
                           list={[
@@ -1014,21 +1043,18 @@ const ContentMapper = () => {
                         >
                           <Icon icon="DotsThreeLargeVertical" version="v2" />
                         </Dropdown>
-                        
-                    )}
-                  </div>
-                </li>
-                )
-})}
-            </ul>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
             </div>
-          )}
+            : <div className='no-content'>No Content Types Found.</div>
+          }
         </div>
 
         {/* Content Type Fields */}
         <div className="content-types-fields-wrapper">
-          
-
           <div className="table-wrapper">
             <InfiniteScrollTable
               loading={loading}
@@ -1090,9 +1116,8 @@ const ContentMapper = () => {
             <div className='text-end my-3 mx-3 px-1'>
               <Button
                   className="saveButton"
-                  size="medium"
-                  buttonType="secondary"
                   onClick={handleSaveContentType}
+                  version="v2"
                 >
                 Save
               </Button>

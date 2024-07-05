@@ -21,6 +21,7 @@ import ProjectModelLowdb from "../models/project-lowdb.js";
 import FieldMapperModel from "../models/FieldMapper.js";
 import { v4 as uuidv4 } from "uuid";
 import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
+import { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {
@@ -524,7 +525,7 @@ const resetAllContentTypesMapping = async (projectId: string) => {
   try {
     const contentTypes = cData;
     for (const contentType of contentTypes) {
-      if (!isEmpty(contentType.fieldMapping)) {
+      if (contentType &&  !isEmpty(contentType.fieldMapping)) {
         for (const field of contentType.fieldMapping) {
           await FieldMapperModel.read();
           const fieldData = FieldMapperModel.chain
@@ -561,7 +562,9 @@ const resetAllContentTypesMapping = async (projectId: string) => {
           });
         }
       }
+
     }
+
 
     return projectDetails;
   } catch (error: any) {
@@ -610,7 +613,7 @@ const removeMapping = async (projectId: string) => {
     //TODO: remove fieldMapping ids in ContentTypesMapperModel for each content types
 
     for (const contentType of contentTypes) {
-      if (!isEmpty(contentType.fieldMapping)) {
+      if (contentType && !isEmpty(contentType.fieldMapping)) {
         for (const field of contentType.fieldMapping) {
           await FieldMapperModel.read();
           const fieldIndex = FieldMapperModel.chain
@@ -706,6 +709,93 @@ const getSingleContentTypes = async (req: Request) => {
     schema: res?.data?.content_type?.schema,
   };
 };
+const removeContentMapper = async (req: Request) => {
+  const projectId = req?.params?.projectId;
+  const srcFunc = "removeMapping";
+  await ProjectModelLowdb.read();
+  const projectDetails = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .value();
+
+  if (isEmpty(projectDetails)) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+      )
+    );
+    throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
+  await ContentTypesMapperModelLowdb.read();
+  const cData: ContentTypesMapper[] = projectDetails?.content_mapper.map((cId: string) => {
+    const contentTypeData: ContentTypesMapper = ContentTypesMapperModelLowdb.chain
+      .get("ContentTypesMappers")
+      .find({ id: cId })
+      .value();
+    return contentTypeData;
+  });
+
+  try {
+    const contentTypes: ContentTypesMapper[] = cData;
+    //TODO: remove fieldMapping ids in ContentTypesMapperModel for each content types
+
+    for (const contentType of contentTypes) {
+      if (contentType && !isEmpty(contentType.fieldMapping)) {
+        for (const field of contentType.fieldMapping) {
+          await FieldMapperModel.read();
+          const fieldIndex = FieldMapperModel.chain
+            .get("field_mapper")
+            .findIndex({ id: field })
+            .value();
+          if (fieldIndex > -1) {
+            await FieldMapperModel.update((fData: any) => {
+              delete fData.field_mapper[fieldIndex];
+            });
+          }
+        }
+      }
+      await ContentTypesMapperModelLowdb.read();
+      if (!isEmpty(contentType?.id)) {
+        const cIndex = ContentTypesMapperModelLowdb.chain
+          .get("ContentTypesMappers")
+          .findIndex({ id: contentType?.id })
+          .value();
+        if (cIndex > -1) {
+          await ContentTypesMapperModelLowdb.update((data: any) => {
+            delete data.ContentTypesMappers[cIndex];
+          });
+        }
+      }
+    }
+
+    await ProjectModelLowdb.read();
+    const projectIndex = ProjectModelLowdb.chain
+      .get("projects")
+      .findIndex({ id: projectId })
+      .value();
+
+    if (projectIndex > -1) {
+      ProjectModelLowdb.update((data: any) => {
+        data.projects[projectIndex].content_mapper = [];
+      });
+    }
+    return projectDetails;
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while removing the content mapping for the Project [Id: ${projectId}]`,
+        {},
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
 
 export const contentMapperService = {
   putTestData,
@@ -715,6 +805,7 @@ export const contentMapperService = {
   updateContentType,
   resetToInitialMapping,
   resetAllContentTypesMapping,
+  removeContentMapper,
   removeMapping,
   getSingleContentTypes
 };
