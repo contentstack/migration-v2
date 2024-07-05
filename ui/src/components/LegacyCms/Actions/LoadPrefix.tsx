@@ -98,7 +98,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       } else if (!isValidPrefix(value)) {
         setIsRestrictedKey(false);
         setIsError(true);
-        setErrorMessage('Affix should not be more than 5 chars');
+        setErrorMessage('Affix should not contain more than 5 characters or fewer than 2.');
       } else {
         setPrefix(value);
         setIsError(false);
@@ -116,9 +116,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         dispatch(updateNewMigrationData(newMigrationDataObj));
   
         setIsError(false);
-  
-        //API call for saving Affix
-        await updateAffixData(selectedOrganisation?.value, projectId, { affix: value });
+
         await affixConfirmation(selectedOrganisation?.value, projectId, {
           affix_confirmation: true
         });
