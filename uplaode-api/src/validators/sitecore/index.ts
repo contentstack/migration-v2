@@ -16,29 +16,30 @@ async function sitecoreValidator({ data }: props) {
     const configuration: any[] = [];
     let blob: any[] = [];
     let mediaLibrary: any[] = [];
-    Object.keys(data?.files).forEach(async function (filename: any) {
-      if (await filename?.includes?.('/templates')) {
-        templates?.push(await filename);
+    for (const filename of Object.keys(data?.files)) {
+      if (filename.includes('/templates') && !filename.includes('properties/items/master/sitecore/templates')) {
+        templates?.push(filename);
       }
-      if (await filename?.includes?.('/content')) {
-        content?.push(await filename);
+      if (filename.includes('/content')) {
+        content?.push(filename);
       }
-      //optional
-      if (await filename?.includes?.('/Configuration')) {
-        configuration?.push(await filename);
+      // optional
+      if (filename.includes('/Configuration')) {
+        configuration.push(filename);
       }
-      if (await filename?.includes?.('/Blob')) {
-        blob?.push(await filename);
+      if (filename?.includes('/blob')) {
+        blob?.push(filename);
       }
-      if (await filename?.includes?.('/media library')) {
-        mediaLibrary?.push(await filename);
+      if (filename?.includes('/media library')) {
+        mediaLibrary?.push(filename);
       }
-    });
+    }
     templates = await Promise.all(templates);
     content = await Promise.all(content);
     blob = await Promise.all(blob);
     mediaLibrary = await Promise.all(mediaLibrary);
-    if (templates?.length > 0 && content?.length > 0 && blob?.length > 0 && mediaLibrary?.length > 0) {
+
+    if (templates?.length > 0 && content?.length > 0 && blob?.length > 0 && mediaLibrary?.length > 0) {    
       return true;
     }
     return false;
