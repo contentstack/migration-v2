@@ -507,17 +507,16 @@ const updateDestinationStack = async (req: Request) => {
     );
     throw new BadRequestError(HTTP_TEXTS.CANNOT_UPDATE_DESTINATION_STACK);
   }
-  if (project.current_step > STEPPER_STEPS.DESTINATION_STACK) {
-    console.info("in destination stack api =============> ")
-    await contentMapperService.resetAllContentTypesMapping(projectId);
-    logger.info(
-      getLogMessage(
-        srcFunc,
-        `Content Mapping for project [Id : ${projectId}] has been successfully reset.`,
-        token_payload
-      )
-    );
-  }
+  // if (project.current_step > STEPPER_STEPS.DESTINATION_STACK) {
+  //   await contentMapperService.resetAllContentTypesMapping(projectId);
+  //   logger.info(
+  //     getLogMessage(
+  //       srcFunc,
+  //       `Content Mapping for project [Id : ${projectId}] has been successfully reset.`,
+  //       token_payload
+  //     )
+  //   );
+  // }
   try {
     const [err, res] = await safePromise(
       https({
