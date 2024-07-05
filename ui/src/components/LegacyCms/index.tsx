@@ -228,10 +228,8 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
     if (!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && !isEmptyString(newMigrationData?.legacy_cms?.affix)) {
       setInternalActiveStepIndex(1);
     }
-    if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && !isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
-      setInternalActiveStepIndex(2);
-    }
-    if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && !isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) && newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+
+    if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && !isEmptyString(newMigrationData?.legacy_cms?.affix) && newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
       setInternalActiveStepIndex(3);
     }
 

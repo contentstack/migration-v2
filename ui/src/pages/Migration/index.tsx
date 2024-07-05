@@ -201,8 +201,7 @@ const Migration = () => {
         setIsLoading(false);
 
         if (legacyCMSRef.current) {
-          const currentIndex = legacyCMSRef.current.getInternalActiveStepIndex() + 1;
-          
+          const currentIndex = legacyCMSRef.current.getInternalActiveStepIndex() + 1;         
           let result;
           switch (currentIndex ) {
             case 0:
@@ -212,19 +211,15 @@ const Migration = () => {
               result = 'Enter Affix';
               break;
             case 2:
-              result = 'File Format';
-              break;
-            case 3:
               result = 'Imported File';
               break;
-            default:
-              result = 'all';
-              break;
           }
-          Notification({
-            notificationContent: { text: `Please complete ${result} step` },
-            type: 'warning'
-          });
+          if (currentIndex !== 3) {
+            Notification({
+              notificationContent: { text: `Please complete ${result} step` },
+              type: 'warning'
+            });
+          }
         }
 
       }
