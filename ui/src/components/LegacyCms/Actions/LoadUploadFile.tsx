@@ -257,9 +257,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       }
       dispatch(updateNewMigrationData(newMig));
     }
-    saveStateToLocalStorage({
-     isCancelLoading
-    }, projectId);
   
     setIsCancelLoading(false);
   }
