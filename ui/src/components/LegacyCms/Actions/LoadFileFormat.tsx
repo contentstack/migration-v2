@@ -121,16 +121,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     
     setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1) : fileFormat?.toUpperCase());
     dispatch(updateNewMigrationData(newMigrationDataObj));
-    await updateFileFormatData(selectedOrganisation?.value, projectId, {
-      file_format: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase(),
-      file_path: '',
-        is_fileValid: '',
-        awsDetails:{
-          awsRegion: '',
-          bucketName: '',
-          buketKey: ''
-        }
-    });
+    
   }
   
   /****  ALL USEEffects  HERE  ****/
