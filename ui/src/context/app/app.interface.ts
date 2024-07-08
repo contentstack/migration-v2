@@ -149,6 +149,7 @@ export interface ILegacyCms {
   affix: string;
   isRestictedKeywordCheckboxChecked: boolean;
   isFileFormatCheckboxChecked: boolean;
+  currentStep:number
 }
 export interface IDestinationStack {
   selectedOrg: IDropDown;
@@ -275,7 +276,8 @@ export const DEFAULT_LEGACY_CMS: ILegacyCms = {
   uploadedFile: DEFAULT_FILE,
   affix: '',
   isRestictedKeywordCheckboxChecked: false,
-  isFileFormatCheckboxChecked: false
+  isFileFormatCheckboxChecked: false,
+  currentStep:-1,
 };
 
 export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
