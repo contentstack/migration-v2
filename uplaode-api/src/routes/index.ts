@@ -133,7 +133,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
             throw new Error('No data collected from the stream.');
           }
           const data = await handleFileProcessing(fileExt, zipBuffer, cmsType);
-          res.json(data);
+          res.status(data?.status || 200).json(data);
           if (data?.status === 200) {
             const filePath = path.join(__dirname, '../../extracted_files', name);
             createSitecoreMapper(filePath, projectId, app_token)
