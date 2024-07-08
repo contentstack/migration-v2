@@ -174,6 +174,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
       dispatch(updateNewMigrationData({
         ...newMigrationData,
         legacy_cms: {
+          currentStep: internalActiveStepIndex,
           selectedCms: selectedCmsData,
           selectedFileFormat: selectedFileFormatData || defaultCardType,
           uploadedFile: {
@@ -218,6 +219,19 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
       }
     }
   }, [internalActiveStepIndex]);  
+
+  useEffect(()=>{
+    dispatch(updateNewMigrationData(
+      {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        currentStep: internalActiveStepIndex || 0
+      }
+      
+      }));
+    
+  },[internalActiveStepIndex]);
 
   useEffect(()=>{
     if (!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id)) {    

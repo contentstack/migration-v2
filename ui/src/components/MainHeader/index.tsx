@@ -1,7 +1,7 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Dropdown, Tooltip} from '@contentstack/venus-components';
+import { useNavigate, useLocation, Link, Params, useParams } from 'react-router-dom';
+import { cbModal, Dropdown, Tooltip} from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Service
@@ -16,29 +16,39 @@ import { CS_ENTRIES } from '../../utilities/constants';
 import {
   clearLocalStorage,
   getDataFromLocalStorage,
+  isEmptyString,
   setDataInLocalStorage
 } from '../../utilities/functions';
 
 // Interface
 import { MainHeaderType } from './mainheader.interface';
-import { IDropDown } from '../../context/app/app.interface';
+import { DEFAULT_NEW_MIGRATION, IDropDown } from '../../context/app/app.interface';
 
 import ProfileCard from '../ProfileHeader';
 // Styles
 import './index.scss';
+import NotificationModal from '../Common/NotificationModal';
+import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+import { ModalObj } from '../Modal/modal.interface';
+import { getProject } from '../../services/api/project.service';
 
 const MainHeader = () => {
 
   const user = useSelector((state:RootState)=>state?.authentication?.user);
   const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
 
   const [data, setData] = useState<MainHeaderType>({});
   const [orgsList, setOrgsList] = useState<IDropDown[]>([]);
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [projectName, setProjectName] = useState('');
 
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const params = useParams();
+
 
   const { logo, organization_label: organizationLabel } = data;
 
@@ -80,7 +90,7 @@ const MainHeader = () => {
     updateOrganisationListState();
   }, [selectedOrganisation]);
 
-  const urlParams = new URLSearchParams(location.search);
+  const urlParams = new URLSearchParams(location.search);  
   const newParam = urlParams.get('region');
 
   // Function for Logout
@@ -89,22 +99,59 @@ const MainHeader = () => {
       navigate('/', { replace: true });
     }
   };
-
+  
   const handleOnDropDownChange = (data: IDropDown) => {
     if (data.value === selectedOrganisation.value) return;
 
     dispatch(setSelectedOrganisation(data));
     setDataInLocalStorage('organization', data?.value);
   };
+
+  const handleonClick = async () => { 
+    const currentIndex = newMigrationData?.legacy_cms?.currentStep + 1;
+    const pathSegments = location?.pathname.split('/');
+    const lastPathSegment = pathSegments[pathSegments.length - 1];
+     
+    const goback = () => {
+      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
+      navigate(`/projects`, { replace: true });
+    }   
+
+      if(-1 < currentIndex && currentIndex < 4 && ( !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || !isEmptyString(newMigrationData?.legacy_cms?.affix) || newMigrationData?.legacy_cms?.uploadedFile?.isValidated ) && lastPathSegment === '1')
+        {
+          
+        return cbModal({
+          component: (props: ModalObj) => (
+            <NotificationModal
+            goBack={goback}
+            {...props}
+            />
+          ),
+          modalProps: {
+            size: 'xsmall',
+            shouldCloseOnOverlayClick: false
+          }
+        });
+      }
+    else{
+      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
+      navigate(`/projects`, { replace: true });
+
+    }
+
+    
+
+  };
+
   return (
     <div className="mainheader">
-          <div className="d-flex align-items-center">
+          <div className="d-flex align-items-center" onClick={handleonClick}>
             {logo?.image?.url ? (
               <div className="logo">
                 <Tooltip position="right" content="Projects" wrapperElementType="div">
-                  <Link to={`${logo?.url}`}>
+                  {/* <Link to={`${logo?.url}`}> */}
                     <img src={logo?.image?.url} width={32} alt="Contentstack" />
-                  </Link>
+                  {/* </Link> */}
                 </Tooltip>
               </div>
             ) : (
