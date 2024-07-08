@@ -38,9 +38,9 @@
       width: 100%!important;
     }
   }
-  svg {
-    margin-left: $px-12;
-  }
+  // svg {
+  //   margin-left: $px-12;
+  // }
   .Button {
     padding: 0;
     &:hover {
@@ -97,6 +97,11 @@
       justify-content: flex-end;
       min-width: 150px;
     }
+  }
+}
+.mapped-icon {
+  circle {
+    fill: $color-brand-draft-base;
   }
 }
 .dropdown-align {
@@ -236,17 +241,25 @@ div .table-row {
   top: $px-50;
   z-index: 1;
   li {
+    align-items: center;
     cursor: pointer;
+    display: flex;
     font-size: $size-font-medium;
+    justify-content: space-between;
     padding: $px-8 $px-12;
     &:hover {
       background-color: $color-base-white-10;
       color: $color-brand-primary-base;
     }
+    .filter-status {
+      margin-right: 20px;
+    }
     &.active-filter {
-      color: $color-brand-primary-base;
-      cursor: text;
-      font-weight: $font-weight-bold;
+      .filter-status {
+        color: $color-brand-primary-base;
+        cursor: text;
+        font-weight: $font-weight-bold;
+      }
     }
   }
 }
