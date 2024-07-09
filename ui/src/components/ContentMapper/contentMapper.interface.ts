@@ -46,6 +46,7 @@ export interface ContentType {
   updateAt: string;
   id?: string;
   status: string;
+  type: string;
   fieldMapping?: FieldMapType[] | [];
 }
 
