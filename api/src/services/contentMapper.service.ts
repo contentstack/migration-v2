@@ -26,13 +26,13 @@ import { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
-  const contentTypes = req.body.contentTypes;
+  const contentTypes = req.body.contentTypes; 
 
   await FieldMapperModel.read();
   contentTypes.map((type: any, index: any) => {
     const fieldIds: string[] = [];
     const fields = type?.fieldMapping?.map?.((field: any) => {
-      const id = uuidv4();
+      const id = field?.id || uuidv4();
       fieldIds.push(id);
       return { id, isDeleted: true, ...field };
     });
@@ -45,7 +45,7 @@ const putTestData = async (req: Request) => {
   await ContentTypesMapperModelLowdb.read();
   const contentIds: string[] = [];
   const contentType = contentTypes.map((item: any) => {
-    const id = uuidv4();
+    const id = item?.id  || uuidv4();
     contentIds.push(id);
     return { ...item, id };
   });

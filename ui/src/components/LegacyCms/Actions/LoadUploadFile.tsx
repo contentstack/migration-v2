@@ -55,6 +55,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
 
  
   const dispatch = useDispatch();
@@ -70,7 +71,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [fileExtension, setFileExtension] = useState<string>('');
   const [progressPercentage, setProgressPercentage] = useState<number>(0);
   const [showProgress, setShowProgress]= useState<boolean>(false);
-  const [fileFormat, setFileFormat] = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.title);
+  const [fileFormat, setFileFormat] = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);
   const [processing, setProcessing] = useState('');
   const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
 
@@ -211,6 +212,20 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
+      const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
+      let filteredCmsData:any = all_cms;
+      if (res?.data?.cmsType) {
+        filteredCmsData = all_cms?.filter((cms: any) => cms?.parent?.toLowerCase() === res?.data?.cmsType?.toLowerCase());
+      }
+   
+      const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format: any) => {
+        const isValid = format?.fileformat_id?.toLowerCase() === extension;
+        return isValid;
+      });
+  
+      setIsDisabled(!isFormatValid);
+      
+
         
     // if (res?.data?.localPath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath) {
     //   console.log("INNNNNNNNN",res?.data?.localPath, newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath);
@@ -322,7 +337,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     //   setIsValidated(false);
     // }
   },[isValidated,newMigrationData])
-
+  
   useEffect(()=>{
     if(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id){
     setFileFormat(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);}
