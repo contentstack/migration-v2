@@ -141,7 +141,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
   
       //Update New Migration data; 
       const selectedCmsData: ICMSType = validateArray(data.all_cms)
-        ? data.all_cms?.find((cms: ICMSType) => {     
+        ? data.all_cms?.some((cms: ICMSType) => {     
           return cms?.cms_id === legacyCMSData?.cms})
         : DEFAULT_CMS_TYPE;
 
@@ -170,13 +170,14 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
         !isEmptyString(selectedFileFormatData?.fileformat_id)
       ) {
         setInternalActiveStepIndex(2);
-      }
+      }   
       dispatch(updateNewMigrationData({
         ...newMigrationData,
         legacy_cms: {
+          ...newMigrationData?.legacy_cms,
           currentStep: internalActiveStepIndex,
           selectedCms: selectedCmsData,
-          selectedFileFormat: selectedFileFormatData || defaultCardType,
+          selectedFileFormat: selectedFileFormatData || newMigrationData?.legacy_cms?.selectedFileFormat ,
           uploadedFile: {
             file_details:{
               localPath: legacyCMSData?.file_path,
