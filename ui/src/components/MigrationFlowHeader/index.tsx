@@ -68,7 +68,7 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading, isCompleted , legacyCMS
 
     if (legacyCMSRef.current) {
       const currentIndex = legacyCMSRef.current.getInternalActiveStepIndex() + 1 ; 
-
+      
       if(-1 < currentIndex && currentIndex < 4 && ( !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || !isEmptyString(newMigrationData?.legacy_cms?.affix) )&& currentStep === 1
         ){
         return cbModal({
@@ -93,7 +93,7 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading, isCompleted , legacyCMS
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>
-        <Button 
+        {/* <Button 
           aria-label='Go back'
           buttonType="secondary"
           icon="v2-LeftArrow"
@@ -103,7 +103,7 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading, isCompleted , legacyCMS
           className="back-btn"
           onlyIconHoverColor="secondary"
           onClick={backNavigation}
-        />
+        /> */}
         { projectName && <h1>{projectName}</h1> }
       </div>
 
