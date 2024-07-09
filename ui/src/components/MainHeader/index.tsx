@@ -94,14 +94,16 @@ const MainHeader = () => {
   const handleonClick = async () => { 
     const currentIndex = newMigrationData?.legacy_cms?.currentStep + 1;
     const pathSegments = location?.pathname.split('/');
-    const lastPathSegment = pathSegments[pathSegments.length - 1];
+    const lastPathSegment = pathSegments[pathSegments.length - 4];
+    const response = await getProject(selectedOrganisation?.uid || '', lastPathSegment);
+    const current_step = response?.data?.current_step;
      
     const goback = () => {
       dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
       navigate(`/projects`, { replace: true });
     }   
 
-      if(-1 < currentIndex && currentIndex < 4 && ( !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || !isEmptyString(newMigrationData?.legacy_cms?.affix) || newMigrationData?.legacy_cms?.uploadedFile?.isValidated ) && lastPathSegment === '1')
+      if(-1 < currentIndex && currentIndex < 4 && ( !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || !isEmptyString(newMigrationData?.legacy_cms?.affix) || newMigrationData?.legacy_cms?.uploadedFile?.isValidated ) && current_step === 1)
         {
           
         return cbModal({
