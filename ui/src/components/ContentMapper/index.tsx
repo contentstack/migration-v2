@@ -12,7 +12,6 @@ import {
   Notification,
   cbModal,
   InstructionText,
-  Dropdown
 } from '@contentstack/venus-components';
 
 // Services
@@ -122,7 +121,6 @@ const ContentMapper = () => {
   const [itemStatusMap, updateItemStatusMap] = useState({});
   const [totalCounts, setTotalCounts] = useState<number>(tableData?.length);
   const [fieldValue, setFieldValue] = useState<FieldTypes>();
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   const [searchText, setSearchText] = useState('');
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
@@ -356,7 +354,6 @@ const ContentMapper = () => {
     setOtherContentType({ label: option, value: option });
 
     setContentTypeUid(contentTypes?.[i]?.id ?? '');
-    setCurrentIndex(i);
     fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
     setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(contentTypes?.[i]);
@@ -987,7 +984,7 @@ const ContentMapper = () => {
                     {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
                       <>
                       <li key={`${keyInd?.toString()}`} onClick={(e) => handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e)}>
-                        <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span>
+                        {CONTENT_MAPPING_STATUS[key] && <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span> }
                         {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
                       </li>  
                       </>
@@ -1003,6 +1000,7 @@ const ContentMapper = () => {
               <ul className="ct-list">
                 {filteredContentTypes?.map((content: ContentType, index: number) => {
                   const icon = STATUS_ICON_Mapping[content?.status] || '';
+                  
                   return (
                     <li
                       key={`${index.toString()}`}
@@ -1011,9 +1009,15 @@ const ContentMapper = () => {
                       onKeyDown={() => openContentType(index)}
                     >
                       <div className='cms-title'>
-                        <Tooltip content={content?.otherCmsTitle} position="left">
-                          <span>{content?.otherCmsTitle}</span>
+                        <Tooltip content={content?.type} position="bottom">
+                          {content?.type === "Content Type" 
+                            ? <Icon icon={active == index ? "ContentModelsMediumActive" : "ContentModelsMedium"} size="small"  />
+                            : content?.type === "Global Field"
+                              ? <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
+                              : <></>
+                          }
                         </Tooltip>
+                        {content?.otherCmsTitle && <span>{content?.otherCmsTitle}</span> }
                       </div>
                       
                       
@@ -1030,22 +1034,6 @@ const ContentMapper = () => {
                             <Icon icon="LivePreview" version="v2" onClick={handleSchemaPreview} />
                           </Tooltip>
                         </span>
-                        
-                        {/* <Dropdown
-                          list={[
-                            {
-                              action: handleSchemaPreview,
-                              default: true,
-                              label: 'Schema Preview'
-                            }
-                          ]}
-                          type="click"
-                          withIcon
-                          dropDownPosition="left"
-                          className='dropdown-align'
-                        >
-                          <Icon icon="DotsThreeLargeVertical" version="v2" />
-                        </Dropdown> */}
                       </div>
                     </li>
                   )

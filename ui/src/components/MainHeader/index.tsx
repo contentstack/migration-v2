@@ -1,20 +1,21 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation, Link, Params, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cbModal, Dropdown, Tooltip} from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
+import { getProject } from '../../services/api/project.service';
 
 // Redux
 import { RootState } from '../../store';
 import { setSelectedOrganisation } from '../../store/slice/authSlice';
+import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 //Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
 import {
-  clearLocalStorage,
   getDataFromLocalStorage,
   isEmptyString,
   setDataInLocalStorage
@@ -23,17 +24,16 @@ import {
 // Interface
 import { MainHeaderType } from './mainheader.interface';
 import { DEFAULT_NEW_MIGRATION, IDropDown } from '../../context/app/app.interface';
+import { ModalObj } from '../Modal/modal.interface';
 
+// Components
 import ProfileCard from '../ProfileHeader';
+import NotificationModal from '../Common/NotificationModal';
+
 // Styles
 import './index.scss';
-import NotificationModal from '../Common/NotificationModal';
-import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
-import { ModalObj } from '../Modal/modal.interface';
-import { getProject } from '../../services/api/project.service';
 
 const MainHeader = () => {
-
   const user = useSelector((state:RootState)=>state?.authentication?.user);
   const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
@@ -41,14 +41,10 @@ const MainHeader = () => {
 
   const [data, setData] = useState<MainHeaderType>({});
   const [orgsList, setOrgsList] = useState<IDropDown[]>([]);
-  const [currentStep, setCurrentStep] = useState<number>(0);
-  const [projectName, setProjectName] = useState('');
 
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const params = useParams();
-
 
   const { logo, organization_label: organizationLabel } = data;
 
@@ -57,7 +53,7 @@ const MainHeader = () => {
   const updateOrganisationListState = () => {
     if (organisationsList) {
       //set selected org as default
-      const list = organisationsList.map((org: any) => ({
+      const list = organisationsList.map((org: IDropDown) => ({
         ...org,
         default: org?.value === selectedOrganisation?.value
       }));
@@ -89,16 +85,6 @@ const MainHeader = () => {
   useEffect(() => {
     updateOrganisationListState();
   }, [selectedOrganisation]);
-
-  const urlParams = new URLSearchParams(location.search);  
-  const newParam = urlParams.get('region');
-
-  // Function for Logout
-  const handleLogout = () => {
-    if (clearLocalStorage()) {
-      navigate('/', { replace: true });
-    }
-  };
   
   const handleOnDropDownChange = (data: IDropDown) => {
     if (data.value === selectedOrganisation.value) return;
@@ -110,14 +96,16 @@ const MainHeader = () => {
   const handleonClick = async () => { 
     const currentIndex = newMigrationData?.legacy_cms?.currentStep + 1;
     const pathSegments = location?.pathname.split('/');
-    const lastPathSegment = pathSegments[pathSegments.length - 1];
+    const lastPathSegment = pathSegments[pathSegments.length - 4];
+    const response = await getProject(selectedOrganisation?.uid || '', lastPathSegment);
+    const current_step = response?.data?.current_step;
      
     const goback = () => {
       dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
       navigate(`/projects`, { replace: true });
     }   
 
-      if(-1 < currentIndex && currentIndex < 4 && ( !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || !isEmptyString(newMigrationData?.legacy_cms?.affix) || newMigrationData?.legacy_cms?.uploadedFile?.isValidated ) && lastPathSegment === '1')
+      if(-1 < currentIndex && currentIndex < 4 && ( !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || !isEmptyString(newMigrationData?.legacy_cms?.affix) || newMigrationData?.legacy_cms?.uploadedFile?.isValidated ) && current_step === 1)
         {
           
         return cbModal({
@@ -136,13 +124,8 @@ const MainHeader = () => {
     else{
       dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
       navigate(`/projects`, { replace: true });
-
     }
-
-    
-
   };
-
   return (
     <div className="mainheader">
           <div className="d-flex align-items-center" onClick={handleonClick}>
