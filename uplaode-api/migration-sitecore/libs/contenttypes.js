@@ -107,6 +107,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
   switch (type) {
     case 'Single-Line Text': {
       return {
+        id: id,
         uid: sitecoreKey,
         "otherCmsField": name,
         "otherCmsType": type,
@@ -118,6 +119,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
     }
     case 'Checkbox': {
       return {
+        id: id,
         uid: sitecoreKey,
         "otherCmsField": name,
         "otherCmsType": type,
@@ -130,6 +132,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
     }
     case 'Rich Text': {
       return {
+        id: id,
         uid: sitecoreKey,
         "otherCmsField": name,
         "otherCmsType": type,
@@ -142,6 +145,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
 
     case 'Droplist': {
       return {
+        id: id,
         uid: sitecoreKey,
         "otherCmsField": name,
         "otherCmsType": type,
@@ -154,6 +158,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
 
     case "Image": {
       return {
+        id: id,
         uid: sitecoreKey,
         "otherCmsField": name,
         "otherCmsType": type,
@@ -166,6 +171,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
     case "General Link":
     case "Internal Link": {
       return {
+        id: id,
         uid: sitecoreKey,
         "otherCmsField": name,
         "otherCmsType": type,
@@ -178,6 +184,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
 
     case "Multi-Line Text": {
       return {
+        id: id,
         uid: sitecoreKey,
         "otherCmsField": name,
         "otherCmsType": type,
@@ -192,6 +199,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
     case "Integer":
     case "Number": {
       return {
+        id: id,
         uid: sitecoreKey,
         "otherCmsField": name,
         "otherCmsType": type,
@@ -206,6 +214,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
     case "Date":
     case "Time": {
       return {
+        id: id,
         uid: sitecoreKey,
         "otherCmsField": name,
         "otherCmsType": type,
@@ -219,6 +228,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
     case 'Grouped Droplist': {
       if (choices?.length) {
         return {
+          id: id,
           uid: sitecoreKey,
           "otherCmsField": name,
           "otherCmsType": type,
@@ -233,6 +243,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
     case "Treelist": {
       if (sourLet?.key !== "source") {
         return {
+          id: id,
           uid: sitecoreKey,
           "otherCmsField": name,
           "otherCmsType": type,
