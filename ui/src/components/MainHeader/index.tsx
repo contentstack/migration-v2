@@ -6,10 +6,12 @@ import { useDispatch, useSelector } from 'react-redux';
 
 // Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
+import { getProject } from '../../services/api/project.service';
 
 // Redux
 import { RootState } from '../../store';
 import { setSelectedOrganisation } from '../../store/slice/authSlice';
+import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 //Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
@@ -22,16 +24,16 @@ import {
 // Interface
 import { MainHeaderType } from './mainheader.interface';
 import { DEFAULT_NEW_MIGRATION, IDropDown } from '../../context/app/app.interface';
-
-import ProfileCard from '../ProfileHeader';
-// Styles
-import './index.scss';
-import NotificationModal from '../Common/NotificationModal';
-import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 import { ModalObj } from '../Modal/modal.interface';
 
-const MainHeader = () => {
+// Components
+import ProfileCard from '../ProfileHeader';
+import NotificationModal from '../Common/NotificationModal';
 
+// Styles
+import './index.scss';
+
+const MainHeader = () => {
   const user = useSelector((state:RootState)=>state?.authentication?.user);
   const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);

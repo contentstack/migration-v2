@@ -984,7 +984,7 @@ const ContentMapper = () => {
                     {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
                       <>
                       <li key={`${keyInd?.toString()}`} onClick={(e) => handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e)}>
-                        <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span>
+                        {CONTENT_MAPPING_STATUS[key] && <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span> }
                         {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
                       </li>  
                       </>
@@ -1017,7 +1017,7 @@ const ContentMapper = () => {
                               : <></>
                           }
                         </Tooltip>
-                        <span>{content?.otherCmsTitle}</span>
+                        {content?.otherCmsTitle && <span>{content?.otherCmsTitle}</span> }
                       </div>
                       
                       
