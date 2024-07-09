@@ -4,9 +4,9 @@ import { FileDetails, INewMigration } from '../../../context/app/app.interface';
 import { fileValidation, getConfig } from '../../../services/api/upload.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import { AsyncLoader, Button, Icon, Paragraph, Tooltip } from '@contentstack/venus-components';
+import {  Button, CircularLoader, Paragraph } from '@contentstack/venus-components';
 import { isEmptyString } from '../../../utilities/functions';
-import { updateFileFormatData,removeContentMapper } from '../../../services/api/migration.service';
+import { removeContentMapper } from '../../../services/api/migration.service';
 import { useParams } from 'react-router';
 import { ICardType , defaultCardType} from '../../../components/Common/Card/card.interface';
 
@@ -21,7 +21,7 @@ interface Props {
   fileDetails: FileDetails;
 }
 
-const FileComponent = ({fileDetails}:Props ) => {
+const FileComponent = ({fileDetails}:Props ) => { 
   
   return (
     <div>
@@ -120,7 +120,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setIsValidated(true);
       setValidationMessage('Validation is successful');
       
-      if(! isEmptyString(newMigrationData?.legacy_cms?.affix) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
+      if(! isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
         props.handleStepChange(props?.currentStep, true);
       }
       
@@ -210,19 +210,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       };
 
       dispatch(updateNewMigrationData(newMigrationDataObj));
-      if(selectedCard?.fileformat_id && res?.data?.awsData ){
-        await updateFileFormatData(selectedOrganisation?.value, projectId, {
-          file_format: selectedCard?.fileformat_id?.toString(),
-          file_path: '',
-          is_fileValid: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
-          awsDetails:{
-            awsRegion: res?.data?.awsData?.awsRegion,
-            bucketName: res?.data?.awsData?.bucketName,
-            buketKey: res?.data?.awsData?.buketKey
-          }
-        });
-
-      }
 
         
     // if (res?.data?.localPath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath) {
@@ -282,7 +269,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     const savedState = getStateFromLocalStorage(projectId);
     if (savedState) {
       setIsLoading(savedState.isLoading);
-      //setIsDisabled(savedState.isDisabled);
       setIsConfigLoading(savedState.isConfigLoading);
       setCmsType(savedState.cmsType);
       setFileDetails(savedState.fileDetails);
@@ -346,7 +332,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const validationClassName = isValidated ? 'success' : 'error';
 
   const containerClassName = `validation-container ${isValidationAttempted && !isValidated ? 'error-container pb-2' : ''}`;
-  
+
   return (
     <div className="row">
       <div className="col-12">
@@ -355,22 +341,23 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             {!isConfigLoading && !isEmptyString(cmsType) ? (
               <div className='file-icon-group'>
                 <FileComponent fileDetails={fileDetails || {}} />
-                {(showMessage &&  !isCancelLoading) && 
+                {/* {(showMessage &&  !isCancelLoading) && 
                   (<Tooltip content='cancel validation' position='top'>
                     <Icon icon='CloseNoborder' version='v2' onClick={handleCancelValidation}/>
 
                   </Tooltip> )
-                }
-                { isCancelLoading &&   
+                } */}
+                {/* { isCancelLoading &&   
                   <div style={{justifyContent:'center', alignItems:'center', marginTop:'7px'}}>
                     <AsyncLoader color='$color-brand-primary-base'/>
                   </div>
-              }
+              } */}
               </div>
               
 
             ) :
-              <Paragraph className="pb-2" tagName="p" variant='p1' text={'Please verify the CMS'}/>}
+               
+              <CircularLoader size='small'/>}
             {showMessage  &&
               (
               <>
