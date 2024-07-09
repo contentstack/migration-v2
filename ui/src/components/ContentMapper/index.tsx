@@ -1031,7 +1031,7 @@ const ContentMapper = () => {
                         </span>
                         <span className='ml-10'>
                           <Tooltip content="Schema Preview" position="bottom">
-                            <Icon icon="LivePreview" version="v2" onClick={handleSchemaPreview} />
+                            <Icon icon="LivePreview" version="v2" onClick={() => handleSchemaPreview(content?.otherCmsTitle)} />
                           </Tooltip>
                         </span>
                       </div>
