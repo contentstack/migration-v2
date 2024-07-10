@@ -1,0 +1,25 @@
+@import '../../scss/variables';
+
+.logs-container {
+  font-family: Arial, sans-serif;
+}
+
+.log-entry {
+  display: flex;
+}
+
+.log-time {
+  font-weight: bold;
+  margin-right: 8px;
+  color: #333;
+  padding-right: 5px;
+}
+
+.log-message {
+  flex-grow: 1;
+  color: #555;
+}
+
+.log-entry:nth-child(odd) {
+  background-color: #f9f9f9;
+}
