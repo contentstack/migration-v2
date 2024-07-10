@@ -37,7 +37,7 @@ const templatesComponents = ({ path, basePath }) => {
     const allFields = [];
     const allPaths = read(path?.[i]?.pth)
     for (let j = 0; j < allPaths?.length; j++) {
-      if (allPaths?.[j]?.includes("/data.json") || allPaths?.[j]?.includes("/data.json.json")) {
+      if (allPaths?.[j]?.endsWith("/data.json")) {
         const innerField = [];
         const components = helper.readFile(
           `${path?.[i]?.pth}/${allPaths?.[j]}`
@@ -415,7 +415,7 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
                       const optionsPath = read(`${sitecore_folder}/master/sitecore/content/Common/${isDataSourcePresent}`)
                       const refName = [];
                       optionsPath?.forEach((newPath) => {
-                        if (newPath?.includes("data.json.json") | newPath?.includes("data.json")) {
+                        if (newPath?.endsWith("data.json.json")) {
                           const data = helper.readFile(`${sitecore_folder}/master/sitecore/content/Common/${isDataSourcePresent}/${newPath}`)
                           if (data?.item?.$?.template) {
                             refName.push(data?.item?.$?.template)
@@ -520,7 +520,7 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder })
   let templatesStandaedValuePath = {};
   let templatesMetaDataPath = {};
   for (let i = 0; i < newPath?.length; i++) {
-    if (newPath?.[i]?.includes("data.json") || newPath?.[i]?.includes("/data.json.json")) {
+    if (newPath?.[i]?.endsWith("data.json")) {
       const data = helper?.readFile(`${templatePaths}/${newPath?.[i]}`);
       if (data?.item?.$?.template === "template section") {
         templatesComponentsPath?.push(
@@ -562,7 +562,7 @@ function ExtractContentTypes(sitecore_folder) {
   const folder = read(sitecore_folder);
   const templatePaths = [];
   for (let i = 0; i < folder?.length; i++) {
-    if (folder?.[i]?.includes("templates") && (folder?.[i]?.includes("/data.json") || folder?.[i]?.includes("/data.json.json"))) {
+    if (folder?.[i]?.includes("templates") && folder?.[i]?.endsWith("/data.json")) {
       const data = helper?.readFile(`${sitecore_folder}/${folder?.[i]}`)
       if (data?.item?.$?.template === "template") {
         templatePaths?.push(`${sitecore_folder}/${folder?.[i]}`?.split("/{")?.[0])
