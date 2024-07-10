@@ -10,7 +10,7 @@ import {
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
   CONTENT_TYPE_STATUS,
-  VALIDATION_ERRORS
+  VALIDATION_ERRORS,
 } from "../constants/index.js";
 import logger from "../utils/logger.js";
 import { config } from "../config/index.js";
@@ -36,7 +36,7 @@ const putTestData = async (req: Request) => {
       return { id, isDeleted: true, ...field };
     });
     FieldMapperModel.update((data: any) => {
-      data.field_mapper = [...data?.field_mapper ?? [], ...fields];
+      data.field_mapper = [...(data?.field_mapper ?? []), ...fields];
     });
     contentTypes[index].fieldMapping = fieldIds;
   });
@@ -108,7 +108,7 @@ const getContentTypes = async (req: Request) => {
       .value();
     content_mapper.push(contentMapperData);
   });
-  
+
   if (!isEmpty(content_mapper)) {
     if (search) {
       const filteredResult = content_mapper
@@ -254,10 +254,7 @@ const updateContentType = async (req: Request) => {
   const project = ProjectModelLowdb.data.projects[projectIndex];
 
   if (
-    [
-      NEW_PROJECT_STATUS[5],
-      NEW_PROJECT_STATUS[4],
-    ].includes(project.status) ||
+    [NEW_PROJECT_STATUS[5], NEW_PROJECT_STATUS[4]].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
   ) {
     logger.error(
@@ -280,25 +277,36 @@ const updateContentType = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.INVALID_CONTENT_TYPE);
   }
 
-
   try {
     await ContentTypesMapperModelLowdb.read();
 
     if (fieldMapping) {
-      fieldMapping.forEach(async(field: any) => {
-        if (!field.ContentstackFieldType || field.ContentstackFieldType === '' || field.ContentstackFieldType === 'No matches found' || field.contentstackFieldUid === '') {
+      fieldMapping.forEach(async (field: any) => {
+        if (
+          !field.ContentstackFieldType ||
+          field.ContentstackFieldType === "" ||
+          field.ContentstackFieldType === "No matches found" ||
+          field.contentstackFieldUid === ""
+        ) {
           logger.error(
             getLogMessage(
               srcFun,
-              `${VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "ContentstackFieldType or contentstackFieldUid")}`
+              `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
+                "$",
+                "ContentstackFieldType or contentstackFieldUid"
+              )}`
             )
           );
           await ContentTypesMapperModelLowdb.read();
           ContentTypesMapperModelLowdb.update((data: any) => {
-            data.ContentTypesMappers[updateIndex].status = CONTENT_TYPE_STATUS[3];
+            data.ContentTypesMappers[updateIndex].status =
+              CONTENT_TYPE_STATUS[3];
           });
           throw new BadRequestError(
-            `${VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "ContentstackFieldType or contentstackFieldUid")}`
+            `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
+              "$",
+              "ContentstackFieldType or contentstackFieldUid"
+            )}`
           );
         }
       });
@@ -323,7 +331,6 @@ const updateContentType = async (req: Request) => {
         data.ContentTypesMappers[updateIndex].contentstackUid =
           contentTypeData?.contentstackUid;
       }
-      
     });
 
     if (updateIndex < 0) {
@@ -342,7 +349,7 @@ const updateContentType = async (req: Request) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) => f?.id === field?.id
         );
-        if (fieldIndex > -1 && field?.ContentstackFieldType !== '') {
+        if (fieldIndex > -1 && field?.ContentstackFieldType !== "") {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = field;
             data.field_mapper[fieldIndex].isDeleted = false;
@@ -360,7 +367,7 @@ const updateContentType = async (req: Request) => {
       .get("ContentTypesMappers")
       .find({ id: contentTypeId })
       .value();
-   
+
     return { updatedContentType };
   } catch (error: any) {
     logger.error(
@@ -716,5 +723,5 @@ export const contentMapperService = {
   resetToInitialMapping,
   resetAllContentTypesMapping,
   removeMapping,
-  getSingleContentTypes
+  getSingleContentTypes,
 };
