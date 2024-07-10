@@ -42,5 +42,4 @@ router.get(
   asyncRouter(contentMapperController.getSingleContentTypes)
 );
 
-
 export default router;
