@@ -53,5 +53,5 @@ export const contentMapperController = {
   putContentTypeFields,
   resetContentType,
   // removeMapping,
-  getSingleContentTypes
+  getSingleContentTypes,
 };
