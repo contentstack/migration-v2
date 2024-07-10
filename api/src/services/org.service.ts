@@ -49,13 +49,14 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
       };
     }
     let stacks = res?.data?.stacks;
-    if(search){    
-      stacks = stacks.filter((stack:{name: string, description:string})=>{
+    if (search) {
+      stacks = stacks.filter((stack: { name: string; description: string }) => {
         const stackName = stack?.name?.toLowerCase();
         const stackDescription = stack?.description?.toLowerCase();
-        return stackName?.includes(search) || stackDescription?.includes(search);
-
-      })
+        return (
+          stackName?.includes(search) || stackDescription?.includes(search)
+        );
+      });
     }
     const locale = await getStackLocal(token_payload, stacks);
     return {
@@ -301,7 +302,7 @@ const getStackLocal = async (token_payload: any, data: any) => {
             token_payload?.region as keyof typeof config.CS_API
           ]!}/locales`,
           headers: {
-           api_key: stack.api_key,
+            api_key: stack.api_key,
             authtoken,
           },
         })
