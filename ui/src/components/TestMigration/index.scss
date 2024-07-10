@@ -1,11 +1,8 @@
 @import '../../scss/App.scss';
 @import '../../scss/variables';
 
-
-
-
-
-
-
-
-
+.migration-step-container {
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}

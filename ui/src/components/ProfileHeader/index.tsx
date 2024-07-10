@@ -29,7 +29,17 @@ const ProfileCard = () => {
         <div className="profile-card__name">{user?.first_name} {user?.last_name}</div>
         <div className="profile-card__email">{user?.email}</div>
       </div>
-      <div className="profile-card__logout" onClick={handleLogout}>
+      <div
+        className="profile-card__logout"
+        role="button"
+        tabIndex={0}
+        onClick={handleLogout}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            handleLogout();
+          }
+        }}
+      >
         <span className="profile-card__logout-icon">{LOG_OUT}</span>
         <span className="profile-card__logout-text">Log out</span>
       </div>
