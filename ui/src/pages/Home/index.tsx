@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@contentstack/venus-components';
 import parse from 'html-react-parser';
-
+import LogViewer from '../../components/LogScreen';
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
@@ -45,6 +45,7 @@ const Home = () => {
           </Button>
         </Link>
       )}
+      <LogViewer/>
     </div>
   );
 };
