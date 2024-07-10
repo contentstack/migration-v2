@@ -190,8 +190,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
         }
       }))
       setIsLoading(false);
-      console.log(selectedCmsData);
-      
   
       //Check for migration Status and lock.
       // Status where Migration is to be Locked:
