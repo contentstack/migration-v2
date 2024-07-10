@@ -56,7 +56,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { projectId = '' } = useParams();
-
+   
   /****  ALL METHODS HERE  ****/
 
   //Handle Legacy cms selection
@@ -214,9 +214,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
               </div>
            :
             isLoading ? (
-              <>
-                <CircularLoader size='small'/>
-              </>
+              <div className='loader'>
+                <CircularLoader/>
+              </div>
              ) : 
             (cmsData && validateArray(cmsData) && (
             <div className="service_list_legacy">
