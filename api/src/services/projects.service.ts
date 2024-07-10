@@ -1,8 +1,8 @@
 import { Request } from "express";
 import ProjectModelLowdb from "../models/project-lowdb.js";
-import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js"
+import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
 import FieldMapperModel from "../models/FieldMapper.js";
- 
+
 import {
   BadRequestError,
   ExceptionFunction,
@@ -35,7 +35,7 @@ const getAllProjects = async (req: Request) => {
       org_id: orgId,
       region,
       owner: user_id,
-      isDeleted:false
+      isDeleted: false,
     })
     .value();
 
@@ -84,18 +84,19 @@ const createProject = async (req: Request) => {
     test_stacks: [],
     current_test_stack_id: "",
     legacy_cms: {
-      "is_fileValid":false,
+      is_fileValid: false,
       awsDetails: {
         awsRegion: "",
         bucketName: "",
-        buketKey: ""
-    }    },
+        buketKey: "",
+      },
+    },
     content_mapper: [],
     execution_log: [],
     created_by: user_id,
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
-    isDeleted:false
+    isDeleted: false,
   };
 
   try {
@@ -352,7 +353,8 @@ const affixConfirmation = async (req: Request) => {
 
 const updateFileFormat = async (req: Request) => {
   const { orgId, projectId } = req.params;
-  const { token_payload, file_format,file_path,is_fileValid,awsDetails } = req.body;
+  const { token_payload, file_format, file_path, is_fileValid, awsDetails } =
+    req.body;
   const srcFunc = "updateFileFormat";
   const projectIndex = (await getProjectUtil(
     projectId,
@@ -394,16 +396,19 @@ const updateFileFormat = async (req: Request) => {
   }
 
   try {
-    ProjectModelLowdb.update((data: any) => { 
+    ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].legacy_cms.file_format = file_format;
       data.projects[projectIndex].legacy_cms.file_path = file_path;
       data.projects[projectIndex].legacy_cms.is_fileValid = is_fileValid;
       data.projects[projectIndex].current_step = STEPPER_STEPS.LEGACY_CMS;
       data.projects[projectIndex].status = NEW_PROJECT_STATUS[0];
       data.projects[projectIndex].updated_at = new Date().toISOString();
-      data.projects[projectIndex].legacy_cms.awsDetails.awsRegion = awsDetails.awsRegion;
-      data.projects[projectIndex].legacy_cms.awsDetails.bucketName = awsDetails.bucketName;
-      data.projects[projectIndex].legacy_cms.awsDetails.buketKey = awsDetails.buketKey;
+      data.projects[projectIndex].legacy_cms.awsDetails.awsRegion =
+        awsDetails.awsRegion;
+      data.projects[projectIndex].legacy_cms.awsDetails.bucketName =
+        awsDetails.bucketName;
+      data.projects[projectIndex].legacy_cms.awsDetails.buketKey =
+        awsDetails.buketKey;
     });
 
     logger.info(
@@ -643,7 +648,7 @@ const updateCurrentStep = async (req: Request) => {
         ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.CONTENT_MAPPING;
-         // data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
+          // data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
@@ -778,9 +783,9 @@ const revertProject = async (req: Request) => {
   )) as number;
 
   const projects = ProjectModelLowdb.data.projects[projectIndex];
-  if (!projects){
+  if (!projects) {
     throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
-  } else{
+  } else {
     ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].isDeleted = false;
     });
@@ -795,11 +800,11 @@ const revertProject = async (req: Request) => {
       status: HTTP_CODES.OK,
       data: {
         message: HTTP_TEXTS.PROJECT_REVERT,
-        Project:projects
+        Project: projects,
       },
     };
   }
-}
+};
 export const projectService = {
   getAllProjects,
   getProject,
@@ -813,5 +818,5 @@ export const projectService = {
   updateDestinationStack,
   updateCurrentStep,
   deleteProject,
-  revertProject
+  revertProject,
 };
