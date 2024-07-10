@@ -136,3 +136,11 @@
   flex-direction: row;
   gap: 30px;
 }
+.loader{
+  margin-left: 20px;
+  .CircularLoader--size-small{
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+  
+}
