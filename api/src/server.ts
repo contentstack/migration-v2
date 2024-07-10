@@ -16,7 +16,10 @@ import { unmatchedRoutesMiddleware } from "./middlewares/unmatched-routes.middle
 import logger from "./utils/logger.js";
 import contentMapperRoutes from "./routes/contentMapper.routes.js";
 import migrationRoutes from "./routes/migration.routes.js";
-
+import chokidar from "chokidar";
+import { Server } from "socket.io";
+import http from "http";
+import fs from "fs";
 try {
   const app = express();
   app.use(
@@ -48,9 +51,45 @@ try {
   // starting the server & DB connection.
   (async () => {
     await connectToDatabase();
-    app.listen(config.PORT, () =>
+    const server = app.listen(config.PORT, () =>
       logger.info(`Server listening at port ${config.PORT}`)
     );
+    // Chokidar - Watch for log file changes
+    const logFilePath = "/Users/rohit/migration-v2-node-server/api/combine.log"; // Replace with the actual path to your log file
+    const watcher = chokidar.watch(logFilePath);
+    // Socket.IO - Send logs to client
+    const io = new Server(
+      server,
+      (http,
+      {
+        cors: {
+          origin: "*", // This allows all origins. For production, specify exact origins for security.
+          methods: ["GET", "POST"], // Specify which HTTP methods are allowed.
+          allowedHeaders: ["my-custom-header"], // Specify which headers are allowed.
+          credentials: true, // If your client needs to send cookies or credentials with the requests.
+        },
+      })
+    );
+
+    watcher.on("change", (path) => {
+      // Read the updated log file
+      fs.readFile(path, "utf8", (err, data) => {
+        if (err) {
+          logger.error(`Error reading log file: ${err}`);
+          return;
+        }
+        // Get just the updated data
+        // const updatedData = data.slice(data.lastIndexOf("\n") + 1);
+        console.info("updates", data);
+        // Emit the updated data to all connected clients
+        try {
+          const parsedData = data;
+          io.emit("logUpdate", parsedData);
+        } catch (error) {
+          logger.error(`Error parsing data: ${error}`);
+        }
+      });
+    });
   })();
 } catch (e) {
   logger.error("Error while starting the server!");
