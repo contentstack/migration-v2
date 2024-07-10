@@ -2,24 +2,64 @@
 
 .logs-container {
   font-family: Arial, sans-serif;
+  background-color: $color-base-white-5;
+  border: 1px solid #EDF1F7;
+  border-radius: 8px;
+  margin: 0 $px-24 $px-24;
+  position: relative;
+}
+.logs-wrapper {
+  position: relative;
+  .action-items {
+    position: absolute;
+    right: 48px;
+    top: 24px;
+  }
 }
 
+
 .log-entry {
+  align-items: center;
+  background-color: $color-base-white-10;
   display: flex;
+  padding: 5px 0;
+  position: relative;
+  &::before {
+    background-color: $color-base-white-5;
+    border-right: 1px solid $color-brand-secondary-lightest;
+    bottom: 0;
+    content: "";
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 50px;
+  }
+  
+  .log-number, .log-time, .log-message {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: $size-font-medium;
+    font-weight: $font-weight-medium;
+  }
+}
+
+.log-number {
+  text-align: center;
+  min-width: 50px;
+  color: $color-font-active;
+  position: relative;
 }
 
 .log-time {
-  font-weight: bold;
-  margin-right: 8px;
-  color: #333;
-  padding-right: 5px;
+  color: $color-font-active;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: $size-font-medium;
+  font-weight: $font-weight-medium;
+  padding: 0 $px-16;
 }
 
 .log-message {
+  color: $color-black-222;
   flex-grow: 1;
-  color: #555;
-}
-
-.log-entry:nth-child(odd) {
-  background-color: #f9f9f9;
+  padding: 0 $px-16;
 }
