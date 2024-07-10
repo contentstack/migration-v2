@@ -84,12 +84,14 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
   //Handle further action on file is uploaded to server
   const handleOnFileUploadCompletion = async () => {
+    setValidationMessage('');
     setIsLoading(true);
     setProgressPercentage(30);
     setShowProgress(true);
     setProcessing('Processing..30%')
 
     const res: any = await fileValidation(projectId);
+    setIsLoading(false);
 
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
@@ -161,7 +163,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     }, projectId);
 
     setShowMessage(true);
-    setIsLoading(false);
     setProgressPercentage(100);
     setTimeout(() => {
       setProcessing('Processing ...100%')
@@ -294,6 +295,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setProcessing(savedState.processing);
     }
     if (savedState && savedState.isLoading) {
+            
       handleOnFileUploadCompletion();
     }
   },[]);
@@ -372,7 +374,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
             ) :
                
-              <CircularLoader size='small'/>}
+            <div className='loader'>
+              <CircularLoader/>
+             </div>
+             }
             {showMessage  &&
               (
               <>
