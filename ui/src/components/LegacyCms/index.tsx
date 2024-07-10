@@ -141,7 +141,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
   
       //Update New Migration data; 
       const selectedCmsData: ICMSType = validateArray(data.all_cms)
-        ? data.all_cms?.some((cms: ICMSType) => {     
+        ? data.all_cms?.find((cms: ICMSType) => {     
           return cms?.cms_id === legacyCMSData?.cms})
         : DEFAULT_CMS_TYPE;
 
@@ -174,7 +174,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
       dispatch(updateNewMigrationData({
         ...newMigrationData,
         legacy_cms: {
-          ...newMigrationData?.legacy_cms,
           currentStep: internalActiveStepIndex,
           selectedCms: selectedCmsData,
           selectedFileFormat: selectedFileFormatData || newMigrationData?.legacy_cms?.selectedFileFormat ,
@@ -191,6 +190,8 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
         }
       }))
       setIsLoading(false);
+      console.log(selectedCmsData);
+      
   
       //Check for migration Status and lock.
       // Status where Migration is to be Locked:
