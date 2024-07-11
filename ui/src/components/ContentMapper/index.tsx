@@ -12,7 +12,6 @@ import {
   Notification,
   cbModal,
   InstructionText,
-  Dropdown
 } from '@contentstack/venus-components';
 
 // Services
@@ -122,7 +121,6 @@ const ContentMapper = () => {
   const [itemStatusMap, updateItemStatusMap] = useState({});
   const [totalCounts, setTotalCounts] = useState<number>(tableData?.length);
   const [fieldValue, setFieldValue] = useState<FieldTypes>();
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   const [searchText, setSearchText] = useState('');
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
@@ -281,7 +279,7 @@ const ContentMapper = () => {
 
   // Method to get fieldmapping
   const fetchFields = async (contentTypeId: string, searchText: string) => {
-    const { data } = await getFieldMapping(contentTypeId, 0, 30, searchText || '');
+    const { data } = await getFieldMapping(contentTypeId || '', 0, 30, searchText || '');
 
     try {
       const itemStatusMap: ItemStatusMapProp = {};
@@ -295,12 +293,15 @@ const ContentMapper = () => {
       setLoading(true);
 
       for (let index = 0; index <= 30; index++) {
-        itemStatusMap[index] = 'loaded';
+        itemStatusMap[index] = 'loaded' ?? '';
       }
 
       updateItemStatusMap({ ...itemStatusMap });
       setLoading(false);
-      setTableData(data?.fieldMapping || []);
+      
+      const newTableData = data?.fieldMapping.filter((field: FieldMapType) => field !== null)
+      
+      setTableData(newTableData || []);
       setTotalCounts(data?.count);
     } catch (error) {
       console.error('fetchData -> error', error);
@@ -325,7 +326,7 @@ const ContentMapper = () => {
       updateItemStatusMap({ ...itemStatusMapCopy });
       setLoading(true);
 
-      const { data } = await getFieldMapping(contentTypeUid, skip, limit, searchText || '');
+      const { data } = await getFieldMapping(contentTypeUid || '', skip, limit, searchText || '');
 
       const updateditemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
 
@@ -353,7 +354,6 @@ const ContentMapper = () => {
     setOtherContentType({ label: option, value: option });
 
     setContentTypeUid(contentTypes?.[i]?.id ?? '');
-    setCurrentIndex(i);
     fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
     setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(contentTypes?.[i]);
@@ -916,26 +916,23 @@ const ContentMapper = () => {
   }
 
   // Function to filter content types as per the status
-  const handleContentTypeFilter = (e: React.MouseEvent<HTMLElement>) => {
-    const li_list = document.querySelectorAll('li.status-wrapper');
+  const handleContentTypeFilter = (value: string, e: React.MouseEvent<HTMLElement>) => {
+    const li_list = document.querySelectorAll('.filter-wrapper li');
     if(li_list) {
       li_list.forEach((ele) => {
-        const selectedEle = document.querySelector(".active-filter");
-        if (selectedEle && selectedEle !== e?.target) {
-          ele?.classList?.remove('active-filter');
-        }
+        ele?.classList?.remove('active-filter');
       })
     }
-    (e?.target as HTMLElement)?.classList?.toggle('active-filter');
+    
+    (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
+    const filteredCT = contentTypes?.filter((ct) => CONTENT_MAPPING_STATUS[ct?.status] === value);
 
-    const filterVal = (e?.target as HTMLElement)?.innerText;
-    const filteredCT = contentTypes?.filter((ct) => CONTENT_MAPPING_STATUS[ct?.status] === filterVal);
-
-    if ((e?.target as HTMLElement)?.classList?.contains('active-filter')) {
+    if (value !== 'All') {
       setFilteredContentTypes(filteredCT)
     } else {
       setFilteredContentTypes(contentTypes)
     }
+    setShowFilter(false);
   }
 
   // Function to close filter panel on click outside
@@ -956,19 +953,18 @@ const ContentMapper = () => {
   }
   const tableHeight = calcHeight();
 
-  
-
   return (
     <div className="step-container">
       <div className="d-flex flex-wrap table-container">
         {/* Content Types List */}
         <div className="content-types-list-wrapper">
-          <div className="content-types-list-header">
+          <div className="content-types-list-header d-flex align-items-center justify-content-between">
             {contentTypesHeading && <h2>{contentTypesHeading}</h2> }
+            {contentTypes && validateArray(contentTypes) && contentTypes?.length }
           </div>
 
           <div className='ct-search-wrapper'>
-            <div className='d-flex align-items-center pb-3'>
+            <div className='d-flex align-items-center'>
               <Search
                 placeholder={searchPlaceholder}
                 type="secondary"
@@ -979,26 +975,23 @@ const ContentMapper = () => {
                 debounceSearch={true}
               />
 
-              <Button buttonType="light" onClick={handleFilter}>
+              <Button buttonType="light" onClick={handleFilter} className="ml-8">
                 <Icon icon="Filter" version="v2" />
               </Button>
               {showFilter && (
                 <div className='filter-wrapper' ref={ref}> 
                   <ul>
                     {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
-                      <li key={`${keyInd?.toString()}`} onClick={(e) => handleContentTypeFilter(e)}>{CONTENT_MAPPING_STATUS[key]}</li>
+                      <>
+                      <li key={`${keyInd?.toString()}`} onClick={(e) => handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e)}>
+                        {CONTENT_MAPPING_STATUS[key] && <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span> }
+                        {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
+                      </li>  
+                      </>
                     ))}
                   </ul>
                 </div>
               )}
-            </div>
-            <div className='d-flex align-items-center justify-content-end'>
-              <ul className='d-flex'>
-                  {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
-                    <li key={`${keyInd?.toString()}`}  className={`status-wrapper ${CONTENT_MAPPING_STATUS[key]?.toLocaleLowerCase()}`} onClick={(e) => handleContentTypeFilter(e)}>{CONTENT_MAPPING_STATUS[key]}</li>
-                  ))}
-              </ul>
-              {contentTypes && validateArray(contentTypes) && contentTypes?.length }
             </div>
           </div>
 
@@ -1007,6 +1000,7 @@ const ContentMapper = () => {
               <ul className="ct-list">
                 {filteredContentTypes?.map((content: ContentType, index: number) => {
                   const icon = STATUS_ICON_Mapping[content?.status] || '';
+                  
                   return (
                     <li
                       key={`${index.toString()}`}
@@ -1015,34 +1009,31 @@ const ContentMapper = () => {
                       onKeyDown={() => openContentType(index)}
                     >
                       <div className='cms-title'>
-                        <Tooltip content={content?.otherCmsTitle} position="left">
-                          <span>{content?.otherCmsTitle}</span>
+                        <Tooltip content={content?.type} position="bottom">
+                          {content?.type === "Content Type" 
+                            ? <Icon icon={active == index ? "ContentModelsMediumActive" : "ContentModelsMedium"} size="small"  />
+                            : content?.type === "Global Field"
+                              ? <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
+                              : <></>
+                          }
                         </Tooltip>
+                        {content?.otherCmsTitle && <span>{content?.otherCmsTitle}</span> }
                       </div>
                       
                       
                       <div className='d-flex align-items-center ct-options'>
-                        <span className=''>
-                          {icon && <Icon size="small" icon={icon} fill={icon === 'CheckedCircle' ? '#0469E3' : ''} />}
+                        <span>
+                          {icon && (
+                            <Tooltip content={CONTENT_MAPPING_STATUS[content?.status]} position="bottom">
+                              <Icon size="small" icon={icon} className={icon === 'CheckedCircle' ? 'mapped-icon' : ''} />
+                            </Tooltip>
+                          )}
                         </span>
-
-                        
-                        <Dropdown
-                          // version="v2"
-                          list={[
-                            {
-                              action: handleSchemaPreview,
-                              default: true,
-                              label: 'Schema Preview'
-                            }
-                          ]}
-                          type="click"
-                          withIcon
-                          dropDownPosition="left"
-                          className='dropdown-align'
-                        >
-                          <Icon icon="DotsThreeLargeVertical" version="v2" />
-                        </Dropdown>
+                        <span className='ml-10'>
+                          <Tooltip content="Schema Preview" position="bottom">
+                            <Icon icon="LivePreview" version="v2" onClick={() => handleSchemaPreview(content?.otherCmsTitle)} />
+                          </Tooltip>
+                        </span>
                       </div>
                     </li>
                   )
@@ -1061,7 +1052,7 @@ const ContentMapper = () => {
               canSearch={true}
               data={tableData?.length ? [...tableData] : []}
               columns={columns}
-              uniqueKey={'id'}
+              uniqueKey={'id' || ''}
               isRowSelect
               // fullRowSelect
               itemStatusMap={itemStatusMap}
