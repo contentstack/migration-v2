@@ -55,7 +55,8 @@ try {
       logger.info(`Server listening at port ${config.PORT}`)
     );
     // Chokidar - Watch for log file changes
-    const logFilePath = "/Users/sayali.joshi/Projects/migration-v2-node-server/api/combine.log"; // Replace with the actual path to your log file
+    ///Users/rohit/migration-v2-node-server/api/combine.log
+    const logFilePath = "/Users/rohit/migration-v2-node-server/api/combine.log"; // Replace with the actual path to your log file
     const watcher = chokidar.watch(logFilePath);
     // Socket.IO - Send logs to client
     const io = new Server(
