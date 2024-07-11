@@ -1,3 +1,39 @@
+/**
+ * Styles for the asset upload component.
+ *
+ * This SCSS file contains styles for the asset upload window component.
+ * It includes styles for the heading, body, and various elements within the component.
+ * The component is used for uploading files and displaying their progress.
+ *
+ * @import '../../../scss/variables'; - Imports the SCSS variables file.
+ *
+ * CSS classes:
+ * - .asset-upload - The main container for the asset upload component.
+ * - .asset-upload__heading - The heading section of the asset upload component.
+ * - .asset-upload__heading.in-progress - Applied when the upload is in progress.
+ * - .asset-upload__heading.success - Applied when the upload is successful.
+ * - .asset-upload__heading.attention - Applied when attention is required.
+ * - .asset-upload__heading.warning - Applied when there is a warning.
+ * - .asset-upload__actions - Container for the upload actions.
+ * - .asset-upload__actions__cancel - Cancel upload action button.
+ * - .asset-upload__actions__minimize - Minimize upload action button.
+ * - .asset-upload__actions__maximize - Maximize upload action button.
+ * - .asset-upload__count - Displays the count of uploaded files.
+ * - .asset-upload__body - The body section of the asset upload component.
+ * - .asset-upload__file - Container for each uploaded file.
+ * - .asset-upload__file__name - Displays the name of the uploaded file.
+ * - .asset-upload__file__actions - Container for file actions.
+ * - .asset-upload__file__actions__progress - Container for file upload progress.
+ * - .asset-upload__file__actions__progress .file-loaded - Displays the loaded file size.
+ * - .asset-upload__file__actions__progress .total-size - Displays the total file size.
+ * - .asset-upload__file__actions .cancel-upload - Cancel upload action button for a file.
+ *
+ * @example
+ * <div class="asset-upload">
+ *   <div class="asset-upload__heading">...</div>
+ *   <div class="asset-upload__body">...</div>
+ * </div>
+ */
 @import '../../../scss/variables';
 
 /* Asset upload window css */
