@@ -75,7 +75,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   };
 
   const getFileExtension = (filePath: string): string => {
-    const ext = filePath.split('.').pop();
+    const ext = filePath?.split('.')?.pop();
     return ext ? `${ext}` : 'zip';
   };
 

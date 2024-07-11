@@ -100,6 +100,10 @@ const InterruptUpload = (props: any) => {
   );
 };
 
+/**
+ * Component for handling file uploads.
+ */
+
 class Upload extends Component<any, any> {
   state = {
     fileList: this.props.fileList,

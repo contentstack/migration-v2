@@ -1,3 +1,17 @@
+/**
+ * FILEPATH: /Users/rohit/migration-v2-node-server/ui/src/components/Common/AddStack/addStack.scss
+ *
+ * Styles for the ReactModal component used in the AddStack component.
+ *
+ * .ReactModal__add-stack - Styles for the parent container of the ReactModal component in the AddStack component.
+ *   .Description-field > textarea - Styles for the textarea element inside the .Description-field class.
+ *     resize: none; - Disables the ability to resize the textarea.
+ *   .Select__single-value - Styles for the single-value element inside the .Select class.
+ *     width: 200px !important; - Sets the width of the single-value element to 200 pixels, overriding any other styles.
+ *
+ * .ReactModal__Overlay .ReactModal__Content .ReactModal__Content__body.selectWrapperBody - Styles for the selectWrapperBody element inside the ReactModal component.
+ *   overflow: visible; - Sets the overflow property of the selectWrapperBody element to visible.
+ */
 .ReactModal__add-stack {
   .Description-field > textarea {
     resize: none;
