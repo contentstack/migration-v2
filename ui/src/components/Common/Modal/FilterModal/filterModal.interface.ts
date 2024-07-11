@@ -1,3 +1,6 @@
+/**
+ * Represents the interface for a filter type.
+ */
 export interface IFilterType {
   value: string;
   label: string;
