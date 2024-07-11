@@ -4,6 +4,13 @@ import { AccountObj } from './accountPage.interface';
 // Styles
 import './index.scss';
 
+/**
+ * Renders the AccountPage component.
+ * 
+ * @param {AccountObj} props - The props object containing data for the component.
+ * @returns {JSX.Element} The rendered AccountPage component.
+ */
+
 const AccountPage = (props: AccountObj): JSX.Element => {
   const { heading, copyrightText } = props.data;
 
