@@ -110,6 +110,7 @@
 }
 .success{
   color: $color-brand-success-base;
+  margin-top: 5px;
 }
 .error{
   color: $color-brand-fail-base;
@@ -143,4 +144,8 @@
     height: 2rem !important;
   }
   
+}
+
+.processing-test{
+  margin-top: 5px;
 }
