@@ -38,9 +38,9 @@
       width: 100%!important;
     }
   }
-  svg {
-    margin-left: $px-12;
-  }
+  // svg {
+  //   margin-left: $px-12;
+  // }
   .Button {
     padding: 0;
     &:hover {
@@ -70,7 +70,7 @@
     justify-content: space-between;
     line-height: normal;
     min-height: 42px;
-    padding: $px-8 $px-4 $px-8 $px-12;
+    padding: $px-8 $px-10 $px-8 $px-12;
     &:hover, &.active-ct {
       background-color: $color-brand-white-base;
       .cms-title {
@@ -80,23 +80,30 @@
       }
     }
     .cms-title {
-      margin-right: 12px;
+      align-items: center;
+      display: flex;
+      margin-right: $px-12;
       max-height: 24px;
-      max-width: 155px;
       white-space: nowrap;
+      width: 80%;
       .tippy-wrapper {
         display: flex;
       }
       span {
         color: $color-font-base;
+        margin-left: $px-10;
         overflow: hidden;
         text-overflow: ellipsis;
       }
     }
     .ct-options {
       justify-content: flex-end;
-      min-width: 150px;
     }
+  }
+}
+.mapped-icon {
+  circle {
+    fill: $color-brand-draft-base;
   }
 }
 .dropdown-align {
@@ -106,14 +113,14 @@
   }       
 }
 .content-type-list {
-  padding-left: 12px;
+  padding-left: $px-12;
 }
 .content-types-fields-wrapper {
   display: flex;
   flex-direction: column;
   max-width: 75%;
   width: 100%;
-  padding: 0px;
+  padding: 0;
 }
 .cta-wrapper {
   border-top: 1px solid $color-base-gray-40;
@@ -236,17 +243,25 @@ div .table-row {
   top: $px-50;
   z-index: 1;
   li {
+    align-items: center;
     cursor: pointer;
+    display: flex;
     font-size: $size-font-medium;
+    justify-content: space-between;
     padding: $px-8 $px-12;
     &:hover {
       background-color: $color-base-white-10;
       color: $color-brand-primary-base;
     }
+    .filter-status {
+      margin-right: 20px;
+    }
     &.active-filter {
-      color: $color-brand-primary-base;
-      cursor: text;
-      font-weight: $font-weight-bold;
+      .filter-status {
+        color: $color-brand-primary-base;
+        cursor: text;
+        font-weight: $font-weight-bold;
+      }
     }
   }
 }
