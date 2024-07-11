@@ -1,3 +1,7 @@
+/**
+ * Styles for the AdvancePropertise component.
+ */
+
 @import '../../scss/variables';
 
 .options-class {
@@ -9,36 +13,46 @@
   grid-template-columns: 1fr;
   gap: 20px;
 }
+
 .option-label {
   margin-bottom: $px-10;
 }
+
 .non-localizable-message {
   margin-top: 0;
   margin-left: 30px;
 }
+
 .modal-data {
   padding: 0.75rem;
+
   .radio-field {
     margin-bottom: 0.75rem;
   }
+
   .Radio {
     width: calc(33.33333% - .66667rem);
     padding: .5rem;
     margin: 0 !important;
   }
+
   .FieldLabel {
     margin-bottom: $px-8;
   }
+
   .info-style {
     margin-top: .75rem;
     margin-bottom: 1.5rem;
+
     .Info__border {
       border-left-color: #0469e3;
     }
   }
+
   .options-class {
     line-height: $line-height-reset;
   }
+
   .nl-note {
     color: $color-font-base;
     font-size: $size-font-large;
@@ -46,17 +60,21 @@
     margin-left: 2.75rem;
     margin-top: -.25rem !important;
   }
+
   .ToggleWrap {
     margin-top: 0.5rem;
-    padding: 0 0.5rem
+    padding: 0 0.5rem;
   }
+
   .Field {
     margin-bottom: $px-24;
   }
+
   .fields-group-separator {
     color: $color-base-black-base;
     margin: 0 16px;
   }
+
   .Select {
     .Select__menu {
       .Select__menu-list {
@@ -65,20 +83,23 @@
             align-items: center;
             display: flex;
           }
+
           .Checkbox__label {
             height: auto;
           }
-        } 
+        }
       }
-    } 
-  } 
+    }
+  }
+
   .Select__menu {
     position: relative;
     z-index: 10000;
   }
+
   .Select__control--menu-is-open {
     position: relative;
     border: 2px solid red;
     z-index: 10000;
-  } 
+  }
 }
