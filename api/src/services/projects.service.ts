@@ -353,7 +353,7 @@ const affixConfirmation = async (req: Request) => {
 
 const updateFileFormat = async (req: Request) => {
   const { orgId, projectId } = req.params;
-  const { token_payload, file_format,file_path,is_fileValid,awsDetails } = req.body;
+  const { token_payload, file_format,file_path,is_localPath,is_fileValid,awsDetails } = req.body;
   const srcFunc = "updateFileFormat";
   const projectIndex = (await getProjectUtil(
     projectId,
@@ -399,6 +399,7 @@ const updateFileFormat = async (req: Request) => {
       data.projects[projectIndex].legacy_cms.file_format = file_format;
       data.projects[projectIndex].legacy_cms.file_path = file_path;
       data.projects[projectIndex].legacy_cms.is_fileValid = is_fileValid;
+      data.projects[projectIndex].legacy_cms.is_localPath = is_localPath;
       data.projects[projectIndex].current_step = STEPPER_STEPS.LEGACY_CMS;
       data.projects[projectIndex].status = NEW_PROJECT_STATUS[0];
       data.projects[projectIndex].updated_at = new Date().toISOString();
