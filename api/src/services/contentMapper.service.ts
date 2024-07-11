@@ -352,7 +352,7 @@ const updateContentType = async (req: Request) => {
       });
     }
     await ContentTypesMapperModelLowdb.read();
-    ContentTypesMapperModelLowdb.update((data: any) => {
+    await ContentTypesMapperModelLowdb.update((data: any) => {
       data.ContentTypesMappers[updateIndex].status = CONTENT_TYPE_STATUS[2];
     });
     // fetch updated data to return in response
