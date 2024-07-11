@@ -354,7 +354,14 @@ const affixConfirmation = async (req: Request) => {
 
 const updateFileFormat = async (req: Request) => {
   const { orgId, projectId } = req.params;
-  const { token_payload, file_format,file_path,is_localPath,is_fileValid,awsDetails } = req.body;
+  const {
+    token_payload,
+    file_format,
+    file_path,
+    is_localPath,
+    is_fileValid,
+    awsDetails,
+  } = req.body;
   const srcFunc = "updateFileFormat";
   const projectIndex = (await getProjectUtil(
     projectId,
