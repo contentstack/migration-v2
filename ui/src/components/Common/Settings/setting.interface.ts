@@ -1,3 +1,6 @@
+/**
+ * Represents a project.
+ */
 interface IProject {
   title: string;
   name: string;
