@@ -1,3 +1,35 @@
+/**
+ * FILEPATH: /Users/rohit/migration-v2-node-server/ui/src/components/ContentMapper/index.scss
+ * 
+ * This SCSS file contains styles for the ContentMapper component.
+ * The ContentMapper component is responsible for mapping content types and fields.
+ * It includes styles for the content types list, search bar, list items, options, table, and other UI elements.
+ * 
+ * Styles are organized into different sections:
+ * - .content-types-list-wrapper: Styles for the wrapper of the content types list.
+ * - .content-types-list-header: Styles for the header of the content types list.
+ * - .ct-search-wrapper: Styles for the search bar wrapper.
+ * - .ct-list-wrapper: Styles for the wrapper of the content types list.
+ * - .ct-list: Styles for the content types list.
+ * - .mapped-icon: Styles for the mapped icon.
+ * - .dropdown-align: Styles for aligning the dropdown menu.
+ * - .content-type-list: Styles for the content type list.
+ * - .content-types-fields-wrapper: Styles for the wrapper of the content types fields.
+ * - .cta-wrapper: Styles for the call-to-action wrapper.
+ * - .table-container: Styles for the table container.
+ * - .table-wrapper: Styles for the table wrapper.
+ * - .disabled-field: Styles for disabled fields.
+ * - .action-btn-wrapper: Styles for the action button wrapper.
+ * - .action-component-body: Styles for the action component body.
+ * - .step-container: Styles for the step container.
+ * - .saveButton: Styles for the save button.
+ * - .btnWrapper: Styles for the button wrapper.
+ * - div .select: Styles for the select dropdown.
+ * - div .table-row: Styles for the table row.
+ * - .status-wrapper: Styles for the status wrapper.
+ * - .filter-wrapper: Styles for the filter wrapper.
+ * - .no-content: Styles for the no content message.
+ */
 @import '../../scss/App.scss';
 @import '../../scss/variables';
 

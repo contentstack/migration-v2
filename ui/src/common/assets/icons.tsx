@@ -1,3 +1,6 @@
+/**
+ * This file contains the definition of the SVG icon component.
+ */
 export const NO_PROJECTS_SEARCH = (
   <svg
     width="300"
@@ -407,6 +410,7 @@ export const NO_PROJECTS_SEARCH = (
     />
   </svg>
 );
+
 
 export const NO_PROJECTS = (
   <svg
