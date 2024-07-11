@@ -21,6 +21,7 @@ interface LegacyCMS {
 }
   file_path: string;
   is_fileValid: boolean;
+  is_localPath: boolean;
 }
 
 interface ExecutionLog {
