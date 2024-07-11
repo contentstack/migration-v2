@@ -1,5 +1,9 @@
 @import '../../../scss/variables';
+/**
+ * Styles for the card component.
+ */
 
+// Styles for the service list container
 .service_list {
   text-align: center;
   display: flex;
@@ -9,21 +13,33 @@
   margin-bottom: 10px;
 }
 
+// Styles for the trigger list container
 .trigger_list {
   min-width: 120px !important;
 }
 
-.connector_list .tippy-box-light {
-  max-width: $px-360 !important;
-  padding: $px-15 !important;
-  line-height: 130%;
-  font-size: $px-12;
-  font-weight: $font-weight-regular;
+// Styles for the connector list container
+.connector_list {
+  // Styles for the tooltip box within the connector list
+  .tippy-box-light {
+    max-width: $px-360 !important;
+    padding: $px-15 !important;
+    line-height: 130%;
+    font-size: $px-12;
+    font-weight: $font-weight-regular;
+  }
+
+  // Styles for the help text within the connector list tooltip box
+  .tippy-box-light #automationConnectorsHelpText {
+    cursor: default;
+    color: $color-base-gray-20;
+  }
 }
 
-.connector_list,
+// Styles for the action list and trigger list containers
 .action_list,
 .trigger_list {
+  // Styles for the container border
   //border: 1px solid $color-base-gray-40;
   border: 1px solid #6C5CE766;
   border-radius: $px-6;
@@ -35,19 +51,17 @@
   gap: 12px;
 }
 
-.connector_list .tippy-box-light #automationConnectorsHelpText {
-  cursor: default;
-  color: $color-base-gray-20;
-}
-
+// Styles for the connector list container on hover
 .connector_list:hover {
   box-shadow: 0 3px $px-5 $px-2 rgb(215 215 215);
 }
 
+// Styles for the service icon
 .service_icon {
   padding: $space-20 0;
 }
 
+// Styles for the service title
 .service_title {
   padding: $px-5 $px-5;
   min-height: $px-40;
@@ -59,6 +73,7 @@
   background: $color-base-white-10;
 }
 
+// Styles for the full-screen page layout head
 .PageLayout--full-screen .PageLayout__head {
   position: relative;
   border-bottom: 1px solid rgb(226, 235, 248);
@@ -67,6 +82,8 @@
   margin-top: 3.5rem;
   z-index: 8;
 }
-.centered-card-title{
+
+// Styles for the centered card title
+.centered-card-title {
   margin: 10px;
 }
