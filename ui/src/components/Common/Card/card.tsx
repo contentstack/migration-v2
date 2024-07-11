@@ -13,7 +13,13 @@ type CardProps = {
   cardType?: string;
 };
 
-const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id' }: CardProps) => {
+/**
+ * Represents a card component.
+ *
+ * @param {CardProps} props - The props for the card component.
+ * @returns {JSX.Element} The rendered card component.
+ */
+const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id' }: CardProps): JSX.Element => {
   const imgStyle = {
     width: cardType === 'legacyCMS' ? '60px' : '46px',
     height: cardType === 'legacyCMS' ? '60px' : '46px'

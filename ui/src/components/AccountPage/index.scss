@@ -1,3 +1,31 @@
+/**
+ * Styles for the AccountPage component.
+ *
+ * This SCSS file contains styles for the AccountPage component, which is a container component
+ * that displays the account page of the application. It includes styles for the layout, logo,
+ * background image, action section, content section, heading, circles, and copyright text.
+ *
+ * @import '../../scss/variables'; - Imports the SCSS variables file.
+ *
+ * CSS Classes:
+ *  - .AccountPage - The main container for the account page.
+ *    - &__logo - The logo section within the account page.
+ *    - &__intro - The introduction section within the account page.
+ *    - &__action - The action section within the account page.
+ *    - &__content - The content section within the account page.
+ *    - &__heading - The heading section within the account page.
+ *      - &_title - The title within the heading section.
+ *      - &_subtitle - The subtitle within the heading section.
+ *    - &__circle - The circle elements within the account page.
+ *      - &_one - The first circle element.
+ *      - &_two - The second circle element.
+ *      - &_three - The third circle element.
+ *      - &_four - The fourth circle element.
+ *      - &_five - The fifth circle element.
+ *      - &_six - The sixth circle element.
+ *      - &_seven - The seventh circle element.
+ *  - .copyright_text - The copyright text.
+ */
 @import '../../scss/variables';
 
 .AccountPage {
