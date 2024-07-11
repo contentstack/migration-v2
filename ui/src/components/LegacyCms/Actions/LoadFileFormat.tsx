@@ -9,8 +9,7 @@ import { isEmptyString } from '../../../utilities/functions';
 
 // Services
 import {
-  fileformatConfirmation,
-  updateFileFormatData
+  fileformatConfirmation
 } from '../../../services/api/migration.service';
 
 // Interface
@@ -44,7 +43,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const [fileIcon, setFileIcon]  = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.title);
   const [isError, setIsError] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-
+  
   const { projectId = '' } = useParams();
 
 
@@ -85,8 +84,11 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : apiRes?.data?.cmsType?.toLowerCase();
     const filePath = apiRes?.data?.localPath?.toLowerCase();
     const fileFormat =  getFileExtension(filePath);
-
-    const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
+    if(! isEmptyString(selectedCard?.fileformat_id)){
+      setFileIcon(selectedCard?.title);
+    }
+    else{
+      const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
     let filteredCmsData:any = all_cms;
     if (cmsType) {
       filteredCmsData = all_cms?.filter((cms: any) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase());
@@ -121,6 +123,9 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     
     setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1) : fileFormat?.toUpperCase());
     dispatch(updateNewMigrationData(newMigrationDataObj));
+
+    }
+    
     
   }
   

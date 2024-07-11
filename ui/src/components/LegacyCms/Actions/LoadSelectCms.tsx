@@ -173,7 +173,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     } else {
       newSelectedCard = DEFAULT_CMS_TYPE;
     }
-
+    setIsLoading(false);
+    
     if (!isEmptyString(newSelectedCard?.title)) {
       setSelectedCard(newSelectedCard);
       setErrorMessage('');
@@ -190,7 +191,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       dispatch(updateNewMigrationData(newMigrationDataObj));
       props?.handleStepChange(props?.currentStep);
     }
-    setIsLoading(false);
+    
   };
 
   /****  ALL USEEffects  HERE  ****/
@@ -205,15 +206,15 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   return (
     <div>
       <div className="col-12">
-          { isError ? 
+          { isError &&
             <div className="empty_search_description">
                 <EmptyState
                 heading={<div className="empty_search_heading">No matching CMS found!</div>}
                 img={SEARCH_ICON}
               />
               </div>
-           :
-            isLoading ? (
+          }
+           { isLoading ? (
               <div className='loader'>
                 <CircularLoader/>
               </div>
