@@ -255,10 +255,21 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         return isValid;
       });
 
-      setIsFormatValid(isFormatValid);
+      setIsFormatValid(isFormatValid);    
+      
+      setIsDisabled(!isFormatValid);
       if(!isFormatValid){
-        setIsDisabled(!isFormatValid);
         setValidationMessage('');
+        dispatch(updateNewMigrationData({
+          ...newMigrationData,
+          legacy_cms: {
+            uploadedFile: {
+              isValidated: false,
+            }
+
+
+          }
+        }))
 
       } 
 
@@ -340,7 +351,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       isConfigLoading,
       isValidated,
       validationMessgae,
-      isDisabled,
+      //isDisabled,
       cmsType,
       fileDetails,
       fileExtension,
@@ -354,7 +365,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     isConfigLoading,
     isValidated,
     validationMessgae,
-    isDisabled,
+    //isDisabled,
     cmsType,
     fileDetails,
     fileExtension,
@@ -375,11 +386,12 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       ! isEmptyString(newMigrationData?.legacy_cms?.affix) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) && props.handleStepChange(props?.currentStep, true);
   
     }
+
     // else{
     //   setIsValidated(false);
     // }
     
-  },[isValidated])
+  },[isValidated,newMigrationData])
 
   useEffect(()=>{
     if(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id){
