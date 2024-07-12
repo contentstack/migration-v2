@@ -11,6 +11,7 @@ import {
 interface Props {
     closeModal: () => void;
     goBack : () => void;
+    isopen: any;
 }
 
 const NotificationModal = (props:Props) => {
@@ -24,7 +25,7 @@ const NotificationModal = (props:Props) => {
         </ModalBody>
         <ModalFooter>
         <ButtonGroup>
-            <Button buttonType="light"version={"v2"}  onClick={() => props.closeModal()}> 
+            <Button buttonType="light"version={"v2"}  onClick={() => {props.closeModal(), props.isopen(false)}}> 
                Cancel
            </Button>
             <Button version={"v2"} onClick={()=> {props?.goBack(), props.closeModal()}}>Yes, go back</Button>
