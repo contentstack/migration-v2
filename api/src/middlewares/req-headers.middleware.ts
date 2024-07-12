@@ -1,5 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 
+/**
+ * Middleware to set the request headers.
+ * 
+ * @param req The request object.
+ * @param res The response object.
+ * @param next The next function.
+ */
 export const requestHeadersMiddleware = (
   req: Request,
   res: Response,

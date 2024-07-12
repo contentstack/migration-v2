@@ -2,6 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import { HTTP_CODES } from "../constants/index.js";
 import { config } from "../config/index.js";
 
+/**
+ * Authenticates the upload service.
+ * @param req - Express request object.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
 export const authenticateUploadService = (
   req: Request,
   res: Response,

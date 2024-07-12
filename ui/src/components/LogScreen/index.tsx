@@ -32,10 +32,9 @@ const LogViewer = ({ serverPath }: LogsType) => {
      * @param {string} newLogs - The new logs received from the server.
      */
     socket.on('logUpdate', (newLogs: string) => {
-      console.log("new logs", newLogs);
-
+      // console.log("new logs", newLogs);
       const logArray = newLogs.split('\n');
-      console.log(logArray);
+      // console.log(logArray);
       setLogs(logArray);
     });
 

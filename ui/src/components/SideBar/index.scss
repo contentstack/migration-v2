@@ -1,4 +1,10 @@
 @import '../../scss/variables';
+/**
+ * Styles for the .recycle-wrapper class.
+ *
+ * The .recycle-wrapper class is used to style the wrapper element for the recycle component in the sidebar.
+ * It sets the margin-top to -1px, background-color to $color-brand-white-base, and z-index to 99.
+ */
 .recycle-wrapper {
     margin-top: -1px;
     background-color: $color-brand-white-base;

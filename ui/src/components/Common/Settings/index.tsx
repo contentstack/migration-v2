@@ -34,10 +34,6 @@ import DeleteProjectModal from '../DeleteProjectModal';
 import './Settings.scss';
 import { RootState } from '../../../store';
 
-/**
- * Renders the Settings component.
- * This component is responsible for displaying and updating project settings.
- */
 const Settings = () => {
   const params: Params<string> = useParams();
   

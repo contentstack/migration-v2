@@ -7,6 +7,9 @@ dotenv.config({
   path: path.resolve(process.cwd(), `${process.env.NODE_ENV}.env`),
 });
 
+/**
+ * Configuration type for the application.
+ */
 export type ConfigType = {
   APP_TOKEN_EXP: string;
   APP_TOKEN_KEY: string;
@@ -14,6 +17,7 @@ export type ConfigType = {
   PORT: string;
   APP_ENV: string;
   MONGODB_URI: string;
+  LOG_FILE_PATH : string;
   CS_API: {
     NA: string;
     EU: string;
@@ -28,12 +32,36 @@ export type ConfigType = {
   };
 };
 
+/**
+ * Loads the configuration from environment variables and returns the configuration object.
+ * @returns The configuration object.
+ */
 export const config: ConfigType = {
+  /**
+   * Expiration time for the application token.
+   */
   APP_TOKEN_EXP: "1d",
-  PORT: process.env.PORT!,
-  APP_ENV: process.env.NODE_ENV!,
+  /**
+   * Key used to sign the application token.
+   */
   APP_TOKEN_KEY: process.env.APP_TOKEN_KEY!,
+  /**
+   * Key used for file uploads.
+   */
   FILE_UPLOAD_KEY: process.env.FILE_UPLOAD_KEY!,
+  /**
+   * Port on which the server will listen.
+   */
+  PORT: process.env.PORT!,
+  /**
+   * Environment in which the application is running.
+   */
+  APP_ENV: process.env.NODE_ENV!,
+  /**
+   * MongoDB connection URI.
+   */
   MONGODB_URI: process.env.MONGODB_URI!,
+
   ...(process.env.NODE_ENV === "production" ? prodConfig : devConfig),
 };
+

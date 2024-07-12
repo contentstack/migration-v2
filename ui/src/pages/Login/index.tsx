@@ -39,6 +39,15 @@ import './index.scss';
 
 import { AppContext } from '../../context/app/app.context';
 
+/**
+ * Login component for user authentication.
+ *
+ * @component
+ * @example
+ * return (
+ *   <Login />
+ * )
+ */
 const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
 

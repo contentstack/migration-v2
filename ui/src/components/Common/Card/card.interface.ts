@@ -28,6 +28,9 @@ export interface ICardType {
   fileformat_id?: string;
 }
 
+/**
+ * Represents the default card type.
+ */
 export const defaultCardType: ICardType = {
   title: '',
   group_name: '',

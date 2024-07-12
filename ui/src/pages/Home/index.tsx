@@ -13,9 +13,15 @@ import { CS_ENTRIES } from '../../utilities/constants';
 // Interface
 import { HomepageType } from './home.interface';
 
+/**
+ * Represents the Home page component.
+ */
 const Home = () => {
   const [data, setData] = useState<HomepageType>({});
 
+  /**
+   * Fetches data for the Home page.
+   */
   const fetchData = async () => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
     getCMSDataFromFile(CS_ENTRIES.HOME_PAGE)
