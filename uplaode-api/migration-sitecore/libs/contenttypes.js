@@ -9,10 +9,24 @@ const configChecker = "/content/Common/Configuration";
 const append = "a"
 
 
+/**
+ * Checks if a given key is present in the timeZones array.
+ *
+ * @param {string} keyToFind - The key to search for.
+ * @param {Array} timeZones - The array of time zones to search in.
+ * @returns {boolean} - Returns true if the key is present in any of the time zones, otherwise returns false.
+ */
 function isKeyPresent(keyToFind, timeZones) {
   return timeZones?.some?.(timeZone => Object?.keys?.(timeZone)?.includes?.(keyToFind));
 }
 
+/**
+ * Creates a template based on the provided components.
+ *
+ * @param {Object} options - The options object.
+ * @param {Object} options.components - The components object.
+ * @returns {Object} - The created template object.
+ */
 const createTemplate = ({ components }) => {
   components.item.$.field = components?.item?.fields?.field
   return components?.item?.$
@@ -347,6 +361,17 @@ const groupFlat = (data, item) => {
 }
 
 
+/**
+ * Maps the content types based on the provided parameters.
+ *
+ * @param {Object} options - The options object.
+ * @param {Array} options.components - The components array.
+ * @param {Object} options.standardValues - The standard values object.
+ * @param {string} options.content_type - The content type string.
+ * @param {string} options.basePath - The base path string.
+ * @param {string} options.sitecore_folder - The sitecore folder string.
+ * @returns {Array} - The mapped content types array.
+ */
 const contentTypeMapper = ({ components, standardValues, content_type, basePath, sitecore_folder }) => {
   const source = helper.readFile(
     path.join(process.cwd(), "/sitecoreMigrationData/MapperData/configuration.json")

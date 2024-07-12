@@ -23,7 +23,13 @@ import { v4 as uuidv4 } from "uuid";
 import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
 import { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 
-// Developer service to create dummy contentmapping data
+
+/**
+ * Updates the test data for a given project.
+ *
+ * @param req - The request object containing the project ID and content types.
+ * @returns The updated project data.
+ */
 const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
   const contentTypes = req.body.contentTypes;
@@ -72,6 +78,12 @@ const putTestData = async (req: Request) => {
   return pData;
 };
 
+/**
+ * Retrieves the content types for a given project.
+ *
+ * @param req - The request object containing the project ID.
+ * @returns The content types for the project.
+ */
 const getContentTypes = async (req: Request) => {
   const sourceFn = "getContentTypes";
   const projectId = req?.params?.projectId;
@@ -134,6 +146,12 @@ const getContentTypes = async (req: Request) => {
   return { count: totalCount, contentTypes: result };
 };
 
+/**
+ * Retrieves the field mapping for a given content type.
+ *
+ * @param req - The request object containing the content type ID.
+ * @returns The field mapping for the content type.
+ */
 const getFieldMapping = async (req: Request) => {
   const srcFunc = "getFieldMapping";
   const contentTypeId = req?.params?.contentTypeId;
@@ -187,6 +205,12 @@ const getFieldMapping = async (req: Request) => {
   return { count: totalCount, fieldMapping: result };
 };
 
+/**
+ * Retrieves the existing content types for a given project.
+ *
+ * @param req - The request object containing the project ID.
+ * @returns The existing content types for the project.
+ */
 const getExistingContentTypes = async (req: Request) => {
   const projectId = req?.params?.projectId;
 
@@ -232,6 +256,13 @@ const getExistingContentTypes = async (req: Request) => {
   //Add logic to get Project from DB
   return { contentTypes };
 };
+
+/**
+ * Updates the content type for a given project.
+ *
+ * @param req - The request object containing the project ID and content type data.
+ * @returns The updated content type data.
+ */
 const updateContentType = async (req: Request) => {
   const srcFun = "udateContentType";
   const { orgId, projectId, contentTypeId } = req.params;
@@ -384,6 +415,13 @@ const updateContentType = async (req: Request) => {
     );
   }
 };
+
+/**
+ * Resets the field mapping to the initial mapping for a given content type.
+ *
+ * @param req - The request object containing the project ID, content type ID, and user token.
+ * @returns The message indicating the reset of the field mapping.
+ */
 const resetToInitialMapping = async (req: Request) => {
   const srcFunc = "resetToInitialMapping";
   const { orgId, projectId, contentTypeId } = req.params;
@@ -492,6 +530,13 @@ const resetToInitialMapping = async (req: Request) => {
     );
   }
 };
+
+/**
+ * Resets all the content types mapping for a given project.
+ *
+ * @param projectId - The project ID.
+ * @returns The project details.
+ */
 const resetAllContentTypesMapping = async (projectId: string) => {
   const srcFunc = "resetAllContentTypesMapping";
 
@@ -587,6 +632,13 @@ const resetAllContentTypesMapping = async (projectId: string) => {
     );
   }
 };
+
+/**
+ * Removes the content mapping for a given project.
+ *
+ * @param projectId - The project ID.
+ * @returns The project details.
+ */
 const removeMapping = async (projectId: string) => {
   const srcFunc = "removeMapping";
   await ProjectModelLowdb.read();
@@ -673,6 +725,13 @@ const removeMapping = async (projectId: string) => {
     );
   }
 };
+
+/**
+ * Retrieves the content type for a given project.
+ *
+ * @param req - The request object containing the project ID and content type UID.
+ * @returns The content type data.
+ */
 const getSingleContentTypes = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const contentTypeUID = req?.params?.contentTypeUid;
@@ -714,6 +773,13 @@ const getSingleContentTypes = async (req: Request) => {
     schema: res?.data?.content_type?.schema,
   };
 };
+
+/**
+ * Removes the content mapping for a given project.
+ *
+ * @param req - The request object containing the project ID.
+ * @returns The project details.
+ */
 const removeContentMapper = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const srcFunc = "removeMapping";
