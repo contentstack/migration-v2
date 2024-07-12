@@ -14,6 +14,12 @@ interface StacksSummaryProps {
   stepData: IStep;
 }
 
+/**
+ * Renders the summary of stacks in the destination stack component.
+ *
+ * @param {StacksSummaryProps} props - The props for the StacksSummary component.
+ * @returns {JSX.Element} The rendered StacksSummary component.
+ */
 const StacksSummary = (props: StacksSummaryProps): JSX.Element => {
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);

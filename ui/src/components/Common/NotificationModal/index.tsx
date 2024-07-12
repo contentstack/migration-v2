@@ -11,34 +11,29 @@ import {
 interface Props {
     closeModal: () => void;
     goBack : () => void;
+    isopen: any;
 }
 
-/**
- * NotificationModal component displays a modal with a notification message.
- * @param props - The component props.
- * @param props.closeModal - A function to close the modal.
- * @param props.goBack - A function to go back.
- * @returns The rendered NotificationModal component.
- */
-const NotificationModal = (props: Props) => {
-  return (
-    <>
-      <ModalHeader title={'Save Changes'} closeModal={props?.closeModal} className="text-capitalize" />
-      <ModalBody>
-        <div className='modal-data'>
-          <Paragraph tagName="p" text={'You have unsaved changes on this page. Do you want to go back without saving?'} variant={"p1"} />
-        </div>
-      </ModalBody>
-      <ModalFooter>
+const NotificationModal = (props:Props) => {
+    return(
+        <>
+        <ModalHeader title={'Save Changes'} closeModal={()=>{props?.closeModal(),props.isopen(false)}} className="text-capitalize" />
+        <ModalBody>
+          <div className='modal-data'>             
+            <Paragraph tagName="p" text={'You have unsaved changes on this page. Do you want to go back without saving?'} variant={"p1"}/>
+          </div>
+        </ModalBody>
+        <ModalFooter>
         <ButtonGroup>
-          <Button buttonType="light" version={"v2"} onClick={() => props.closeModal()}>
-            Cancel
-          </Button>
-          <Button version={"v2"} onClick={() => { props?.goBack(), props.closeModal() }}>Yes, go back</Button>
-        </ButtonGroup>
-      </ModalFooter>
-    </>
-  );
+            <Button buttonType="light"version={"v2"}  onClick={() => {props.closeModal(), props.isopen(false)}}> 
+               Cancel
+           </Button>
+            <Button version={"v2"} onClick={()=> {props?.goBack(), props.closeModal()}}>Yes, go back</Button>
+          </ButtonGroup>
+        </ModalFooter>
+      </>
+    )
+
 }
 
 export default NotificationModal;

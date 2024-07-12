@@ -1,18 +1,26 @@
 @import '../../scss/variables';
 
+/**
+ * Styles for the profile card component.
+ */
 .profile-card {
   width: 300px;
   padding: 16px;
-  // background-color: #f8f9fa;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
+/**
+ * Styles for the avatar in the profile card.
+ */
 .profile-card__avatar {
   margin-bottom: 16px;
 }
 
+/**
+ * Styles for the initials in the avatar.
+ */
 .profile-card__initials {
   width: 64px;
   height: 64px;
@@ -24,13 +32,18 @@
   justify-content: center;
   font-size: 24px;
   margin: 12px auto;
-  
 }
 
+/**
+ * Styles for the details section in the profile card.
+ */
 .profile-card__details {
   margin-bottom: 16px;
 }
 
+/**
+ * Styles for the name in the details section.
+ */
 .profile-card__name {
   font-size: 16px;
   font-weight: 500;
@@ -38,30 +51,45 @@
   margin-bottom: 5px;
 }
 
+/**
+ * Styles for the email in the details section.
+ */
 .profile-card__email {
   font-size: 14px;
   color: #7f8c8d;
   margin-bottom: 5px;
 }
 
+/**
+ * Styles for the logout section in the profile card.
+ */
 .profile-card__logout {
   display: flex;
   align-items: center;
   cursor: pointer;
   color: #2c3e50;
   font-size: 14px;
-  height:56px;
+  height: 56px;
 }
 
+/**
+ * Styles for the logout icon in the logout section.
+ */
 .profile-card__logout-icon {
   margin-right: 8px;
   font-size: 16px;
 }
 
+/**
+ * Styles for the logout text in the logout section.
+ */
 .profile-card__logout-text {
   text-decoration: underline;
 }
 
+/**
+ * Styles for the gray background element.
+ */
 .profile-gray-background {
   min-height: 20px;
   position: absolute;
@@ -72,6 +100,10 @@
   background-color: #F9F8FF;
   z-index: 1;
 }
+
+/**
+ * Styles for the avatar element in the profile card.
+ */
 .profile-card__avatar {
   z-index: 2;
   position: relative;

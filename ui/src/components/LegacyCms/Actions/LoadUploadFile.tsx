@@ -21,6 +21,11 @@ interface Props {
   fileDetails: FileDetails;
 }
 
+/**
+ * Renders the file component based on the file details.
+ * @param {Props} fileDetails - The file details object.
+ * @returns {JSX.Element} The rendered file component.
+ */
 const FileComponent = ({fileDetails}:Props ) => { 
   
   return (
@@ -41,15 +46,32 @@ const FileComponent = ({fileDetails}:Props ) => {
   );
 };
 
-const saveStateToLocalStorage = (state:any, projectId : string) => {
+/**
+ * Saves the state to the local storage.
+ * @param state - The state object to be saved.
+ * @param projectId - The ID of the project.
+ */
+const saveStateToLocalStorage = (state: any, projectId: string) => {
   sessionStorage.setItem(`uploadProgressState_${projectId}`, JSON.stringify(state));
 };
 
-const getStateFromLocalStorage = (projectId : string) => {
+/**
+ * Retrieves the upload progress state from the session storage for a specific project.
+ * @param projectId - The ID of the project.
+ * @returns The upload progress state if found, otherwise null.
+ */
+const getStateFromLocalStorage = (projectId: string) => {
   const state = sessionStorage.getItem(`uploadProgressState_${projectId}`);
   return state ? JSON.parse(state) : null;
 };
 
+/**
+ * Component for loading and uploading a file.
+ *
+ * @component
+ * @param {LoadUploadFileProps} props - The component props.
+ * @returns {JSX.Element} The rendered component.
+ */
 const LoadUploadFile = (props: LoadUploadFileProps) => {
   /****  ALL HOOKS HERE  ****/
   
@@ -255,10 +277,21 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         return isValid;
       });
 
-      setIsFormatValid(isFormatValid);
+      setIsFormatValid(isFormatValid);    
+      
+      setIsDisabled(!isFormatValid);
       if(!isFormatValid){
-        setIsDisabled(!isFormatValid);
         setValidationMessage('');
+        dispatch(updateNewMigrationData({
+          ...newMigrationData,
+          legacy_cms: {
+            uploadedFile: {
+              isValidated: false,
+            }
+
+
+          }
+        }))
 
       } 
 
@@ -340,7 +373,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       isConfigLoading,
       isValidated,
       validationMessgae,
-      isDisabled,
+      //isDisabled,
       cmsType,
       fileDetails,
       fileExtension,
@@ -354,7 +387,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     isConfigLoading,
     isValidated,
     validationMessgae,
-    isDisabled,
+    //isDisabled,
     cmsType,
     fileDetails,
     fileExtension,
@@ -375,11 +408,12 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       ! isEmptyString(newMigrationData?.legacy_cms?.affix) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) && props.handleStepChange(props?.currentStep, true);
   
     }
+
     // else{
     //   setIsValidated(false);
     // }
     
-  },[isValidated])
+  },[isValidated,newMigrationData])
 
   useEffect(()=>{
     if(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id){

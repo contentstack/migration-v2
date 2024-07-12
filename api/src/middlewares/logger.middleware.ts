@@ -1,7 +1,9 @@
 import expressWinston from "express-winston";
 import logger from "../utils/logger.js";
 
-//Logger Middleware to log every request
+/**
+ * Logger middleware to log all incoming requests.
+ */
 const loggerMiddleware = expressWinston.logger({
   level: "info",
   colorize: true,
