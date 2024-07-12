@@ -101,6 +101,12 @@ const AddStack = (props: any): JSX.Element => {
         console.error(err);
       });
     //org id will always be there
+
+    window.addEventListener('popstate', props?.closeModal);
+
+    return () => {
+      window.removeEventListener('popstate', props?.closeModal);
+    };
   }, []);
 
   return (
@@ -115,7 +121,7 @@ const AddStack = (props: any): JSX.Element => {
         <FinalForm
           onSubmit={onSubmit}
           keepDirtyOnReinitialize={true}
-          validate={(values): any => {
+          validate={(values:any) => {
             const errors: any = {};
             if (!values?.name || values?.name?.trim().length < 1) {
               errors.name = 'Stack name required';
