@@ -3,7 +3,7 @@ import { userService } from "../services/user.service.js";
 
 /**
  * Retrieves the user profile.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  */
