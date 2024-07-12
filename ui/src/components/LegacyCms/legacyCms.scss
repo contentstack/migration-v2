@@ -110,6 +110,7 @@
 }
 .success{
   color: $color-brand-success-base;
+  margin-top: 5px;
 }
 .error{
   color: $color-brand-fail-base;
@@ -135,4 +136,16 @@
   display:flex;
   flex-direction: row;
   gap: 30px;
+}
+.loader{
+  margin-left: 20px;
+  .CircularLoader--size-small{
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+  
+}
+
+.processing-test{
+  margin-top: 5px;
 }
