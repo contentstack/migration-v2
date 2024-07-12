@@ -17,7 +17,7 @@ interface Props {
 const NotificationModal = (props:Props) => {
     return(
         <>
-        <ModalHeader title={'Save Changes'} closeModal={props?.closeModal} className="text-capitalize" />
+        <ModalHeader title={'Save Changes'} closeModal={()=>{props?.closeModal(),props.isopen(false)}} className="text-capitalize" />
         <ModalBody>
           <div className='modal-data'>             
             <Paragraph tagName="p" text={'You have unsaved changes on this page. Do you want to go back without saving?'} variant={"p1"}/>
