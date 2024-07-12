@@ -49,7 +49,6 @@ const MainHeader = () => {
   const [orgsList, setOrgsList] = useState<IDropDown[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -115,7 +114,6 @@ const MainHeader = () => {
     setDataInLocalStorage('organization', data?.value);
   };
 
-<<<<<<< Updated upstream
   useEffect(()=>{ 
     const handlePopState = (event: PopStateEvent) => {
       event.preventDefault();
@@ -138,19 +136,11 @@ const MainHeader = () => {
 
 
   const handleonClick = async () => { 
-=======
-  /**
-   * Handles the click event on the main header.
-   * Navigates to the appropriate page based on the current step and selected organization.
-   */
-  const handleonClick = async () => {
->>>>>>> Stashed changes
     const currentIndex = newMigrationData?.legacy_cms?.currentStep + 1;
     const pathSegments = location?.pathname.split('/');
     const lastPathSegment = pathSegments[pathSegments.length - 4];
     const response = await getProject(selectedOrganisation?.uid || '', lastPathSegment);
     const current_step = response?.data?.current_step;
-<<<<<<< Updated upstream
     if(isModalOpen) return;
 
     const goback = () => {
@@ -178,31 +168,6 @@ const MainHeader = () => {
     }
     else{
       dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
-=======
-
-    const goback = () => {
-      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
-      navigate(`/projects`, { replace: true });
-    };
-
-    if (
-      -1 < currentIndex &&
-      currentIndex < 4 &&
-      (!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) ||
-        !isEmptyString(newMigrationData?.legacy_cms?.affix) ||
-        newMigrationData?.legacy_cms?.uploadedFile?.isValidated) &&
-      current_step === 1
-    ) {
-      return cbModal({
-        component: (props: ModalObj) => <NotificationModal goBack={goback} {...props} />,
-        modalProps: {
-          size: 'xsmall',
-          shouldCloseOnOverlayClick: false
-        }
-      });
-    } else {
-      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
->>>>>>> Stashed changes
       navigate(`/projects`, { replace: true });
     }
   };
