@@ -22,6 +22,7 @@
       "step_id": "Step2",
       "_metadata": { "uid": "cs1979790a8619e118" },
       "title": "Stack",
+      "isRequired": true,
       "description": "",
       "lock": false,
       "active": true,
