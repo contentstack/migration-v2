@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AsyncSelect, cbModal, TextInput } from '@contentstack/venus-components';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
@@ -28,6 +28,7 @@ const defaultStack = {
 };
 
 const LoadStacks = (props: LoadFileFormatProps) => {
+  const ref = useRef<HTMLDivElement>(null);
   /****  ALL HOOKS HERE  ****/
   
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
@@ -40,16 +41,19 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       : DEFAULT_DROPDOWN
   );  
 
+  /****  ALL METHODS HERE  ****/
+
   const [allStack, setAllStack] = useState<IDropDown[]>([]);
   const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setisLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [placeholder, setPlaceholder] = useState('Select a stack');
+  const [asyncMount, setAsyncMount] = useState(true)
 
 
   const { projectId = '' }: Params<string> = useParams();
-
   useEffect(()=>{
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
@@ -83,11 +87,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         created_at: resp?.data?.stack?.created_at,
         uid: resp?.data?.stack?.api_key
       };
-      // setAllStack((prevStacks) => [...prevStacks, newCreatedStack]);
       setSelectedStack(newCreatedStack);
       setisLoading(false)
-      // loadMoreOptions({search: ''})
-
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
@@ -113,15 +114,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     return false;
   };
 
-  /****  ALL METHODS HERE  ****/
-  const [placeholder, setPlaceholder] = useState('Select a stack');
-  const [asyncMount, setAsyncMount] = useState(true)
+  
+
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
     const stackCleared = data?.value === '' || data?.value === null || data === null;
-    if (data?.value == '+ Create a new Stack') {
-      handleCreateNewStack()
-    }
+    
     if (stackCleared === true) {
       setPlaceholder('Select a stack');
     }
@@ -152,6 +150,52 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     }, 10);
   }
 
+  
+  const emptyStackValue = selectedStack?.value === undefined || selectedStack?.value === '' || selectedStack?.value === null
+
+  const loadMoreOptions: any = async ({
+    search,
+  }: {
+    search: string;
+  }) => {
+    try {
+      setisLoading(true);
+      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, search); // org id will always be there
+      if (stackData?.status === 200) {
+        const stackArray = validateArray(stackData?.data?.stacks)
+          ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+              label: stack?.name,
+              value: stack?.api_key,
+              uid: stack?.api_key,
+              master_locale: stack?.master_locale,
+              locales: stack?.locales,
+              created_at: stack?.created_at,
+            }))
+          : [];
+
+        if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
+          setIsError(true);
+          setErrorMessage("Please create new stack there is no stack available");
+        } else {
+          setIsError(true)
+          setErrorMessage("Please select a stack")
+        }
+        stackArray.sort((a: IDropDown, b: IDropDown) => {
+          return new Date(b?.created_at).getTime() - new Date(a?.created_at).getTime();
+        });
+        return { options: stackArray };
+      } else {
+        setIsError(true);
+        setErrorMessage("Failed to load stacks");
+      }
+    } catch (error) {
+      setIsError(true);
+      setErrorMessage("An error occurred while fetching stacks");
+    } finally {
+      setisLoading(false);
+    }
+  };
+
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
@@ -179,110 +223,68 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       }
     });
   };
-  
-  const loadMoreOptions: any = async ({
-    search,
-  }: {
-    search: string;
-  }) => {
-    const addLabel = {
-      label: "+ Create a new Stack",
-      value: "+ Create a new Stack",
-      uid: '',
-      master_locale: '',
-      locales: '',
-      created_at: ''
-    };
-  
-    try {
-      setisLoading(true);
 
-      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, search); // org id will always be there
-      
-      if (stackData?.status === 200) {
-        const stackArray = validateArray(stackData?.data?.stacks)
-          ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
-              label: stack?.name,
-              value: stack?.api_key,
-              uid: stack?.api_key,
-              master_locale: stack?.master_locale,
-              locales: stack?.locales,
-              created_at: stack?.created_at,
-            }))
-          : [];
-  
-        if (stackData?.data?.stacks.length === 0) {
-          setIsError(true);
-          setErrorMessage("Please create new stack there is no stack available");
-        } else {
-          stackArray.sort((a: IDropDown, b: IDropDown) => {
-            return new Date(b?.created_at).getTime() - new Date(a?.created_at).getTime();
-          });
-  
-          stackArray.push(addLabel);
-        }
-        return { options: stackArray };
-      } else {
-        setIsError(true);
-        setErrorMessage("Failed to load stacks");
-      }
-    } catch (error) {
-      setIsError(true);
-      setErrorMessage("An error occurred while fetching stacks");
-    } finally {
-      setisLoading(false);
+  const [ isSelectOpen, setIsSelectOpen ] = useState<boolean>(false)
+
+  useEffect(() => {
+    // Fetch the select element using its class name or testId
+    const selectElement = document.querySelector('.selectElementlabel .Select__menu');
+    const selectElement1 = document.querySelector('.createStack');
+    if (selectElement && !selectElement1) {
+      const div = document.createElement('div')
+      div.textContent = "+ Create a new Stack"
+      div.className = 'createStack'
+      div.onclick = handleCreateNewStack
+      selectElement.appendChild(div)
     }
-  };
+  }, [asyncMount, isSelectOpen]);  
 
-  const emptyStackValue = selectedStack?.value === undefined || selectedStack?.value === '' || selectedStack?.value === null
+  const handleDivClick = () => {
+    setIsSelectOpen(!isSelectOpen)
+  }
 
-
-  useEffect(()=>{
-    if(emptyStackValue) {
-      setIsError(true)
-      setErrorMessage("Please select a stack")
-    }
-  }) 
-
-  
   return (
     <div className="">
       <div className="action-summary-wrapper ">
         <div className="service_list ">
           <div className="row">
             <div className="col-12">
-                <div className="Dropdown-wrapper p-0 active ">
+                <div  className="Dropdown-wrapper p-0 active selectElementlabel">
                   {asyncMount ? 
-                  <AsyncSelect
-                    version={'v2'}
-                    loadMoreOptions={loadMoreOptions}
-                    onChange={handleDropdownChange('stacks')}
-                    canEditOption={true}
-                    value={selectedStack}
-                    
-                    isSearchable={true}
-                    isClearable={!emptyStackValue ? true : false }
-                    width="600px"
-                    isDisabled={props?.stepComponentProps?.isSummary || false}
-                    hideSelectedOptions={true}
-                    placeholder={placeholder}
-                    limit={10}
-                    updateOption={()=> undefined}
-                    error={isLoading ? false : emptyStackValue ? true : false }
-                    defaultOptions={true}
-                    debounceTimeout={0}
-                  />: null
+                  <div onClick={handleDivClick}>
+                    <AsyncSelect
+                      version={'v2'}
+                      loadMoreOptions={loadMoreOptions}
+                      onChange={handleDropdownChange('stacks')}
+                      canEditOption={true}
+                      value={selectedStack}
+                      isSearchable={true}
+                      isClearable={!emptyStackValue ? true : false }
+                      width="600px"
+                      isDisabled={props?.stepComponentProps?.isSummary || false}
+                      hideSelectedOptions={true}
+                      placeholder={placeholder}
+                      limit={10}
+                      updateOption={()=> undefined}
+                      error={isLoading ? false : emptyStackValue ? true : false }
+                      defaultOptions={true}
+                      debounceTimeout={0}
+                      menuIsOpen={isSelectOpen}
+                    />
+                  </div>
+                    : null
                   }
                 </div>
                 {(emptyStackValue && !isLoading) && <div className='errorMessage'>{errorMessage}</div>}
             </div> 
             <div className="col-12">
-              <label className="title">Master Locale</label>
+              <label className="title">Master Locale <span className='asterisk_input'></span>
+              </label>
             </div>
             <div className="col-12 pb-2">
               <TextInput 
                 version={'v2'}
-                value={selectedStack?.master_locale || 'Locale'}
+                value={selectedStack?.master_locale || 'Selected Language'}
                 width="600px"
                 className="orgInput"
                 isReadOnly
