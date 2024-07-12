@@ -85,16 +85,9 @@
     border: 1px solid $color-brand-secondary-lightest;
     border-radius: 4px;
     background-color: $color-brand-white-base;
-<<<<<<< Updated upstream
     .description {
       line-height: 24px;
     }
-=======
-
-    /**
-     * Styles for the step_block class.
-     */
->>>>>>> Stashed changes
     .step_block {
       padding: 0 !important;
       margin: 0;
@@ -114,7 +107,6 @@
       font-weight: $font-weight-semi-bold;
       line-height: 21px;
     }
-<<<<<<< Updated upstream
     .orgWrapper, .title {
       .asterisk_input::after {
         content: '';
@@ -124,12 +116,6 @@
         font-weight: 400;
       }
     }
-=======
-
-    /**
-     * Styles for the action-content-wrapper class.
-     */
->>>>>>> Stashed changes
     .action-content-wrapper {
       box-shadow: none;
       border: 0 none;
@@ -158,7 +144,6 @@
     .Select__menu {
       width: 100%;
       margin: 0;
-<<<<<<< Updated upstream
       padding: 0; 
       .createStack {
         background-color: $color-brand-white-base;
@@ -171,13 +156,6 @@
         line-height: 24px;
         padding: 1rem;
       }
-=======
-      padding-bottom: 0;
-
-      /**
-       * Styles for the Select__option class.
-       */
->>>>>>> Stashed changes
       .Select__v2 .Select__menu .Select__menu-list .Select__option {
         padding: 12px !important;
         &:hover {
@@ -210,26 +188,9 @@
        */
       .Select__option {
         position: relative;
-<<<<<<< Updated upstream
       }
     }
 
-=======
-
-        &:last-child {
-          border-top: 1px solid $color-brand-secondary-lightest;
-          position: sticky;
-          bottom: 0;
-          color: $color-brand-primary-base;
-          font-weight: $font-weight-semi-bold;
-        }
-      }
-    }
-
-    /**
-     * Styles for the TextInput--disabled class.
-     */
->>>>>>> Stashed changes
     .TextInput--disabled .TextInput__v2 {
       background-color: #F9F8FF !important;
     }
