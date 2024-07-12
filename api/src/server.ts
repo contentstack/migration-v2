@@ -21,7 +21,6 @@ import { Server } from "socket.io";
 import http from "http";
 import fs from "fs";
 
-
 try {
   const app = express();
   app.use(

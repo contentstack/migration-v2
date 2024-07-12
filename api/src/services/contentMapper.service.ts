@@ -23,7 +23,6 @@ import { v4 as uuidv4 } from "uuid";
 import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
 import { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 
-
 /**
  * Updates the test data for a given project.
  *
