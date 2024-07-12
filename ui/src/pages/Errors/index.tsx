@@ -18,11 +18,21 @@ type IErrorProps = {
   children?: ReactNode;
 };
 
+/**
+ * Represents the ErrorPage component.
+ * @param {IErrorProps} props - The props for the ErrorPage component.
+ * @param {string} props.contentType - The content type.
+ * @param {ReactNode} props.children - The children of the ErrorPage component.
+ * @returns {JSX.Element} The rendered ErrorPage component.
+ */
 const ErrorPage: FC<IErrorProps> = ({ contentType, children }: IErrorProps) => {
   const [data, setData] = useState<ErrorType>(default_error_type);
 
   const { url, type } = contentType;
 
+  /**
+   * Fetches data for the ErrorPage component.
+   */
   const fetchData = () => {
     // getContentByURL({
     //   contentType: type,

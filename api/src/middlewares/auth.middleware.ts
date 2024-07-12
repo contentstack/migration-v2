@@ -4,6 +4,12 @@ import jwt from "jsonwebtoken";
 import { config } from "../config/index.js";
 import { HTTP_CODES } from "../constants/index.js";
 
+/**
+ * Authenticates the user.
+ * @param req - Express request object.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
 export const authenticateUser = (
   req: Request,
   res: Response,
