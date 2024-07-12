@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import { Field, FieldLabel, TextInput, Link, Icon, Tooltip } from '@contentstack/venus-components';
 import { useSelector } from 'react-redux';
 
@@ -11,6 +10,12 @@ import { CS_ENTRIES } from '../../utilities/constants';
 
 // Interface
 import { MigrationType } from './testMigration.interface';
+
+// Component
+import LogViewer from '../LogScreen';
+
+// CSS
+import './index.scss';
 
 const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
@@ -30,7 +35,7 @@ const TestMigration = () => {
   }, []);
 
   return (
-    <div className='step-content-wrapper'>
+    <div className='migration-step-container'>
       <div className='content-block'>
         <div className='content-header text-uppercase'>UID</div>
         <div className='content-body'>
@@ -74,7 +79,7 @@ const TestMigration = () => {
       <div className='content-block'>
         <div className='content-header'>Execution Logs</div>
         <div>
-          
+          <LogViewer serverPath="http://localhost:5001" />
         </div>
       </div>
     </div>
