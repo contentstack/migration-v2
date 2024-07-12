@@ -77,5 +77,5 @@ export const projectController = {
   updateDestinationStack,
   updateCurrentStep,
   deleteProject,
-  revertProject
+  revertProject,
 };

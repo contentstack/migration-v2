@@ -64,16 +64,17 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [showMessage, setShowMessage] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
   const [validationMessgae, setValidationMessage] = useState<string>('');
   const [isValidationAttempted, setIsValidationAttempted] = useState<boolean>(false);
-  const [isDisabled, setIsDisabled] = useState<boolean>(false);
-  const [isConfigLoading, setIsConfigLoading] = useState<boolean>(true);
+  const [isDisabled, setIsDisabled] = useState<boolean>( newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
+  const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
   const [cmsType, setCmsType]= useState('');
-  const [fileDetails, setFileDetails] = useState<FileDetails>(newMigrationData?.legacy_cms?.uploadedFile?.file_details || {});
+  const [fileDetails, setFileDetails] = useState(newMigrationData?.legacy_cms?.uploadedFile?.file_details);
   const [fileExtension, setFileExtension] = useState<string>('');
   const [progressPercentage, setProgressPercentage] = useState<number>(0);
   const [showProgress, setShowProgress]= useState<boolean>(false);
   const [fileFormat, setFileFormat] = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);
   const [processing, setProcessing] = useState('');
   const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
+  const [isFormatValid, setIsFormatValid] = useState<boolean>(false);
 
   const { projectId = '' } = useParams();
   
@@ -84,13 +85,24 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
   //Handle further action on file is uploaded to server
   const handleOnFileUploadCompletion = async () => {
+    setIsValidationAttempted(false);
+    setValidationMessage('');
     setIsLoading(true);
     setProgressPercentage(30);
     setShowProgress(true);
-    setProcessing('Processing..30%')
-
+    setProcessing('Processing...30%');
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     const res: any = await fileValidation(projectId);
 
+    setProgressPercentage(70);
+    setProcessing('Processing...70%');
+
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+   
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       legacy_cms: {
@@ -118,8 +130,12 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     dispatch(updateNewMigrationData(newMigrationDataObj));
 
     if(res?.status === 200){ 
-      setIsValidated(true);
-      setValidationMessage('Validation is successful');
+      setTimeout(()=>{
+        setIsValidated(true);
+        setValidationMessage('Validation is successful');
+
+      },1000);     
+      setIsDisabled(true); 
       
       if(! isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
         props.handleStepChange(props?.currentStep, true);
@@ -148,9 +164,23 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
     }
 
+    setProgressPercentage(100);
+    setProcessing('Processing...100%');
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    setTimeout(() => { 
+      setShowProgress(false); 
+      setShowMessage(true);
+    }, 1000);
+
+    setIsLoading(false);
     saveStateToLocalStorage({
       isLoading,
       isConfigLoading,
+      isValidated,
+      validationMessgae,
+      isDisabled,
       cmsType,
       fileDetails,
       fileExtension,
@@ -159,15 +189,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       fileFormat,
       processing
     }, projectId);
+    
 
-    setShowMessage(true);
-    setIsLoading(false);
-    setProgressPercentage(100);
-    setTimeout(() => {
-      setProcessing('Processing ...100%')
-      setShowProgress(false); 
-    }, 1000);
-  
     
   };
 
@@ -180,7 +203,13 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const getConfigDetails = async () =>{
     setIsConfigLoading(true);
     const res: any = await getConfig();
-
+  
+    if (!isEmptyString(fileDetails?.localPath) && res?.data?.localPath !== fileDetails?.localPath) {
+      setIsDisabled(false); 
+      setShowMessage(true);
+      setValidationMessage('');
+      
+    }
     
     if(res?.status === 200){
       const extension = getFileExtension(res?.data?.localPath);     
@@ -210,31 +239,42 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         }
       };
 
-      dispatch(updateNewMigrationData(newMigrationDataObj));
+      if(isEmptyString(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath) ){
+        dispatch(updateNewMigrationData(newMigrationDataObj));
 
+      }
+      
       const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
       let filteredCmsData:any = all_cms;
       if (res?.data?.cmsType) {
         filteredCmsData = all_cms?.filter((cms: any) => cms?.parent?.toLowerCase() === res?.data?.cmsType?.toLowerCase());
       }
    
-      const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format: any) => {
+      const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.some((format: any) => {
         const isValid = format?.fileformat_id?.toLowerCase() === extension;
         return isValid;
       });
-  
-      setIsDisabled(!isFormatValid);
-      
 
-        
-    // if (res?.data?.localPath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath) {
-    //   console.log("INNNNNNNNN",res?.data?.localPath, newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath);
+      setIsFormatValid(isFormatValid);    
       
-    //   setIsDisabled(false); 
-    //   //setShowMessage(true);
-    //   setValidationMessage('');
-    // }
-  }
+      setIsDisabled(!isFormatValid);
+      if(!isFormatValid){
+        setValidationMessage('');
+        dispatch(updateNewMigrationData({
+          ...newMigrationData,
+          legacy_cms: {
+            uploadedFile: {
+              isValidated: false,
+            }
+
+
+          }
+        }))
+
+      } 
+
+    
+    }
   if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
     newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== res?.data?.cmsType.toLowerCase()))
     {     
@@ -277,7 +317,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   }
 
   useEffect(() => {
-    getConfigDetails();
+    if(isEmptyString(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath)){
+      getConfigDetails();
+    }
+    
   }, []);
 
   useEffect(() => {
@@ -285,6 +328,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     if (savedState) {
       setIsLoading(savedState.isLoading);
       setIsConfigLoading(savedState.isConfigLoading);
+      setIsValidated(savedState?.isValidated);
+      setValidationMessage(savedState?.validationMessage);
+      setIsDisabled(savedState?.isDisabled);
       setCmsType(savedState.cmsType);
       setFileDetails(savedState.fileDetails);
       setFileExtension(savedState.fileExtension);
@@ -294,6 +340,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setProcessing(savedState.processing);
     }
     if (savedState && savedState.isLoading) {
+
       handleOnFileUploadCompletion();
     }
   },[]);
@@ -302,6 +349,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     saveStateToLocalStorage({
       isLoading,
       isConfigLoading,
+      isValidated,
+      validationMessgae,
+      //isDisabled,
       cmsType,
       fileDetails,
       fileExtension,
@@ -313,6 +363,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   }, [
     isLoading,
     isConfigLoading,
+    isValidated,
+    validationMessgae,
+    //isDisabled,
     cmsType,
     fileDetails,
     fileExtension,
@@ -322,10 +375,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     processing
   ]);
 
-  useEffect(()=>{
-    
+  useEffect(()=>{ 
     if(newMigrationData?.legacy_cms?.uploadedFile?.isValidated)
     {   
+      
       setIsValidated(true);
       setShowMessage(true)
       setValidationMessage('Validation is successful');
@@ -333,11 +386,13 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       ! isEmptyString(newMigrationData?.legacy_cms?.affix) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) && props.handleStepChange(props?.currentStep, true);
   
     }
+
     // else{
     //   setIsValidated(false);
     // }
+    
   },[isValidated,newMigrationData])
-  
+
   useEffect(()=>{
     if(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id){
     setFileFormat(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);}
@@ -347,13 +402,13 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const validationClassName = isValidated ? 'success' : 'error';
 
   const containerClassName = `validation-container ${isValidationAttempted && !isValidated ? 'error-container pb-2' : ''}`;
-
+  
   return (
     <div className="row">
       <div className="col-12">
         <div className="col-12">
           <div className={containerClassName}>
-            {!isConfigLoading && !isEmptyString(cmsType) ? (
+            {!isConfigLoading && !isEmptyString(fileDetails?.localPath) ? (
               <div className='file-icon-group'>
                 <FileComponent fileDetails={fileDetails || {}} />
                 {/* {(showMessage &&  !isCancelLoading) && 
@@ -372,7 +427,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
             ) :
                
-              <CircularLoader size='small'/>}
+            <div className='loader'>
+              <CircularLoader/>
+             </div>
+             }
             {showMessage  &&
               (
               <>
@@ -381,7 +439,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               )
             }
             {showProgress && isLoading && 
-              <Paragraph className='pb-2' tagName='p' variant="p2" text={processing}/>
+              <Paragraph className='pb-2 processing-test' tagName='p' variant="p2" text={processing}/>
             }
            
           </div>
