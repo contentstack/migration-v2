@@ -76,6 +76,7 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading, isCompleted , legacyCMS
             <NotificationModal
             goBack={goback}
             {...props}
+            isopen={false}
             />
           ),
           modalProps: {
