@@ -47,5 +47,4 @@ router.get(
   asyncRouter(contentMapperController.removeContentMapper)
 );
 
-
 export default router;
