@@ -17,7 +17,7 @@ export type ConfigType = {
   PORT: string;
   APP_ENV: string;
   MONGODB_URI: string;
-  LOG_FILE_PATH : string;
+  LOG_FILE_PATH: string;
   CS_API: {
     NA: string;
     EU: string;
@@ -64,4 +64,3 @@ export const config: ConfigType = {
 
   ...(process.env.NODE_ENV === "production" ? prodConfig : devConfig),
 };
-

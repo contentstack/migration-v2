@@ -3,7 +3,7 @@ import { HTTP_CODES, HTTP_TEXTS } from "../constants/index.js";
 
 /**
  * Handles the unmatched routes.
- * 
+ *
  * @param req The request object.
  * @param res The response object.
  */
