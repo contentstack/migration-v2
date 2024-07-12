@@ -141,7 +141,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
   
       //Update New Migration data; 
       const selectedCmsData: ICMSType = validateArray(data.all_cms)
-        ? data.all_cms?.some((cms: ICMSType) => {     
+        ? data.all_cms?.find((cms: ICMSType) => {     
           return cms?.cms_id === legacyCMSData?.cms})
         : DEFAULT_CMS_TYPE;
 
@@ -174,23 +174,23 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
       dispatch(updateNewMigrationData({
         ...newMigrationData,
         legacy_cms: {
-          ...newMigrationData?.legacy_cms,
           currentStep: internalActiveStepIndex,
           selectedCms: selectedCmsData,
           selectedFileFormat: selectedFileFormatData || newMigrationData?.legacy_cms?.selectedFileFormat ,
           uploadedFile: {
             file_details:{
               localPath: legacyCMSData?.file_path,
-              awsData: legacyCMSData?.awsDetails
+              awsData: legacyCMSData?.awsDetails,
+              isLocalPath: legacyCMSData?.is_localPath
             },
-            isValidated: legacyCMSData?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated
+            isValidated: legacyCMSData?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
           }, //need to add backend data once endpoint exposed.
           affix: legacyCMSData?.affix || newMigrationData?.legacy_cms?.affix || '',
           isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
           isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
         }
       }))
-      setIsLoading(false);
+      setIsLoading(false);          
   
       //Check for migration Status and lock.
       // Status where Migration is to be Locked:
