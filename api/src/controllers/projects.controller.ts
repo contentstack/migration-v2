@@ -3,7 +3,7 @@ import { projectService } from "../services/projects.service.js";
 
 /**
  * Retrieves all projects.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -15,7 +15,7 @@ const getAllProjects = async (req: Request, res: Response): Promise<void> => {
 
 /**
  * Retrieves a project.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -27,7 +27,7 @@ const getProject = async (req: Request, res: Response): Promise<void> => {
 
 /**
  * Creates a project.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -39,7 +39,7 @@ const createProject = async (req: Request, res: Response): Promise<void> => {
 
 /**
  * Updates a project.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -51,7 +51,7 @@ const updateProject = async (req: Request, res: Response): Promise<void> => {
 
 /**
  * Updates a legacy CMS.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -63,7 +63,7 @@ const updateLegacyCMS = async (req: Request, res: Response) => {
 
 /**
  * Updates an affix.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -75,7 +75,7 @@ const updateAffix = async (req: Request, res: Response) => {
 
 /**
  * Affix confirmation.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -87,7 +87,7 @@ const affixConfirmation = async (req: Request, res: Response) => {
 
 /**
  * Updates a file format.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -99,7 +99,7 @@ const updateFileFormat = async (req: Request, res: Response) => {
 
 /**
  * File format confirmation.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -111,7 +111,7 @@ const fileformatConfirmation = async (req: Request, res: Response) => {
 
 /**
  * Updates a destination stack.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -123,7 +123,7 @@ const updateDestinationStack = async (req: Request, res: Response) => {
 
 /**
  * Updates the current step of a project.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -135,7 +135,7 @@ const updateCurrentStep = async (req: Request, res: Response) => {
 
 /**
  * Deletes a project.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -147,7 +147,7 @@ const deleteProject = async (req: Request, res: Response): Promise<void> => {
 
 /**
  * Reverts a project.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.

@@ -16,7 +16,6 @@ export interface ContentTypesMapper {
   fieldMapping: [];
 }
 
-
 // interface ContentTypesMapper {
 //   id: string;
 //   projectId: string;
