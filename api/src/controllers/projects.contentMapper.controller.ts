@@ -106,10 +106,10 @@ const getSingleContentTypes = async (
  * @param req - The request object.
  * @param res - The response object.
  * @returns Promise<void>
- */ 
-// const removeMapping = async (req: Request, res: Response): Promise<void> => {    
-//   const resp = await contentMapperService.removeMapping(req);  
-//   res.status(200).json(resp);  
+ */
+// const removeMapping = async (req: Request, res: Response): Promise<void> => {
+//   const resp = await contentMapperService.removeMapping(req);
+//   res.status(200).json(resp);
 // };
 
 export const contentMapperController = {

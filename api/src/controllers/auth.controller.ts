@@ -3,7 +3,7 @@ import { authService } from "../services/auth.service.js";
 
 /**
  * Handles the login request.
- * 
+ *
  * @param req The request object.
  * @param res The response object.
  */
@@ -14,7 +14,7 @@ const login = async (req: Request, res: Response) => {
 
 /**
  * Handles the request for sending an SMS.
- * 
+ *
  * @param req The request object.
  * @param res The response object.
  */
