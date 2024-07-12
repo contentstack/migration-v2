@@ -9,7 +9,7 @@ export interface ContentTypesMapper {
   updateAt: Date;
   contentstackTitle: string;
   contentstackUid: string;
-  status:number;
+  status: number;
   fieldMapping: [];
 }
 
