@@ -84,8 +84,7 @@ const AutoVerticalStepper = React.forwardRef<
             <div>
               <div className='orgWrapper'>
                 <Heading className='stepper-title' tagName='h3' text={data.title} />
-                {isRequired && <span>(required)</span> }    
-
+                {data?.isRequired && <span className="asterisk_input">(required)</span>  }    
                 {data?.ifReadonly && <span>(read only)</span>}
               </div>
               <span className="stepper-titleNote">{data.titleNote ? data.titleNote : ''}</span>
@@ -157,7 +156,7 @@ const AutoVerticalStepper = React.forwardRef<
       };
       return (
         <div className={`migration-vertical-stepper  ${className}`}>
-          {props?.description && <div>{props?.description}</div>}
+          {props?.description && <div className='description'>{props?.description}</div>}
           <ol className="Vertical">
             {steps?.map((step: any, index: number) => {
               
