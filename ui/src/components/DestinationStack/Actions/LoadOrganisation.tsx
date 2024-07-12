@@ -19,7 +19,6 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
-  // const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
 
   const dispatch = useDispatch();
 
@@ -31,24 +30,6 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
     dispatch(updateNewMigrationData((data)));
   };
    
-
-  //Handle Organisation selection
-  // const handleDropdownChange = (data: ChangeEvent<HTMLInputElement>) =>  {
-  //   if (selectedOrg?.value !== data?.value) {
-  //     setSelectedOrg(() => ({ ...data }));
-
-  //     setNewMigrationData({
-  //       ...newMigrationData,
-  //       destination_stack: {
-  //         ...newMigrationData.destination_stack,
-  //         selectedOrg: { ...data }
-  //       }
-  //     });
-  //   }
-
-  //   call for Step Change
-  //   props.handleStepChange(props.currentStep);
-  // };
 
   /****  ALL USEEffects  HERE  ****/
 
@@ -70,19 +51,6 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
   
   return (
     <div className="action-content-wrapper p-3">
-      {/* <div className="Dropdown-wrapper p-0">
-        <Select
-          version={'v2'}
-          options={organisationsList}
-          onChange={handleDropdownChange}
-          value={selectedOrg}
-          width='600'
-          isSearchable={true}
-          isDisabled={true}
-          placeholder={'Organisation'}
-        />
-      
-      </div> */}
       <TextInput 
         version={'v2'}
         value={selectedOrg?.label || 'Organisation'}
