@@ -18,6 +18,9 @@ import NewMigrationWrapper from '../../components/Migrations/NewMigration/NewMig
 import './index.scss';
 import {  updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
+/**
+ * Represents the Migration Editor page.
+ */
 const MigrationEditor = () => {
   const navigate = useNavigate();
   const params: Params<string> = useParams();

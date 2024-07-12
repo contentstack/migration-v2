@@ -20,6 +20,8 @@ import chokidar from "chokidar";
 import { Server } from "socket.io";
 import http from "http";
 import fs from "fs";
+
+
 try {
   const app = express();
   app.use(
@@ -55,10 +57,17 @@ try {
       logger.info(`Server listening at port ${config.PORT}`)
     );
     // Chokidar - Watch for log file changes
-    ///Users/rohit/migration-v2-node-server/api/combine.log
-    const logFilePath = "/Users/rohit/migration-v2-node-server/api/combine.log"; // Replace with the actual path to your log file
+    const logFilePath = config.LOG_FILE_PATH;
     const watcher = chokidar.watch(logFilePath);
     // Socket.IO - Send logs to client
+    /**
+     * The Socket.IO server instance.
+     *
+     * @remarks
+     * This server instance is responsible for handling real-time communication between the client and the server using the Socket.IO library.
+     *
+     * @type {Server}
+     */
     const io = new Server(
       server,
       (http,

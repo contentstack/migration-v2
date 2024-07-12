@@ -1,6 +1,10 @@
 @import '../../scss/App.scss';
 @import '../../scss/variables';
 
+/**
+ * Styles for the MigrationExecution component.
+ */
+
 .select-wrapper {
   display: flex;
   align-items: center;
@@ -8,9 +12,11 @@
     margin-bottom: 0;
   }
 }
+
 .content-body.step-desc {
   padding: 1rem 1.5rem;
 }
+
 .terminal-container {
   background-color: #000;
   color: #fff;
@@ -27,6 +33,7 @@ div .step-component .action-component-body {
   width: 100% !important;
   margin-left: 0px !important;
 }
+
 .cta-wrapper {
   border-top: 1px solid $color-base-gray-40;
   bottom: 0;
@@ -38,11 +45,13 @@ div .step-component .action-component-body {
   width: 100%;
   z-index: 1;
 }
+
 .selectedOptions {
   color: $color-base-gray-20;
   padding: 5px 10px;
   margin: 5px;
 }
+
 .arrow-wrapper {
   align-items: center;
   display: flex;
