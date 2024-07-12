@@ -57,7 +57,7 @@ const AddStack = (props: any): JSX.Element => {
       });
       props?.closeModal();
     } else {
-      Notification({ notificationContent: { text: 'Failed to create the stack' }, type: 'error' });
+      Notification({ notificationContent: { text: 'Stack creation failed. Please try again.' }, type: 'error' });
     }
     setIsProcessing(false);
   };
@@ -101,7 +101,14 @@ const AddStack = (props: any): JSX.Element => {
         console.error(err);
       });
     //org id will always be there
+
+    window.addEventListener('popstate', props?.closeModal);
+
+    return () => {
+      window.removeEventListener('popstate', props?.closeModal);
+    };
   }, []);
+
   return (
     <>
       {isLoading ? (
@@ -114,10 +121,16 @@ const AddStack = (props: any): JSX.Element => {
         <FinalForm
           onSubmit={onSubmit}
           keepDirtyOnReinitialize={true}
-          validate={(values): any => {
+          validate={(values:any) => {
             const errors: any = {};
-            if (!values?.name || values?.name?.trim().lenght < 1) {
+            if (!values?.name || values?.name?.trim().length < 1) {
               errors.name = 'Stack name required';
+            }
+            if (values?.name && values?.name?.length > 255) {
+              errors.name = 'Stack name should have a maximum length of 255 character(s).';
+            }
+            if (values?.description && values?.description?.length > 512) {
+              errors.description = 'Description should have a maximum length of 512 character(s).';
             }
             if (!values?.locale || values?.locale === '') {
               errors.locale = 'Required';
@@ -152,7 +165,7 @@ const AddStack = (props: any): JSX.Element => {
                                   testId="cs-stack-create-title-input"
                                   version="v2"
                                   {...input}
-                                  onChange={(event: any): any => {
+                                  onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                                     input?.onChange(event);
                                   }}
                                   name="name"
@@ -176,7 +189,7 @@ const AddStack = (props: any): JSX.Element => {
                       </Field>
                       <Field>
                         <ReactFinalField name={'description'} type="textarea">
-                          {({ input }): any => {
+                          {({ input, meta }): JSX.Element => {
                             return (
                               <div className="input-description">
                                 <Field>
@@ -193,11 +206,20 @@ const AddStack = (props: any): JSX.Element => {
                                     className="Description-field"
                                     {...input}
                                     name="description"
-                                    onChange={(event: any): any => {
+                                    onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                                       input?.onChange(event);
                                     }}
                                     placeholder={addStackCMSData?.stack_description_placeholder}
+                                    error={(meta?.error || meta?.submitError) && meta?.touched}
                                   />
+                                  {meta?.error && meta?.touched && (
+                                  <ValidationMessage
+                                    version="v2"
+                                    testId="cs-stack-create-description-validation"
+                                  >
+                                    {meta?.error}
+                                  </ValidationMessage>
+                                )}
                                 </Field>
                               </div>
                             );
@@ -206,7 +228,7 @@ const AddStack = (props: any): JSX.Element => {
                       </Field>
                       <Field>
                         <ReactFinalField name={'locale'}>
-                          {({ input, meta }): any => {
+                          {({ input, meta }): JSX.Element => {
                             return (
                               <>
                                 <FieldLabel
@@ -221,7 +243,7 @@ const AddStack = (props: any): JSX.Element => {
                                 <Select
                                   value={input?.value}
                                   isSearchable={true}
-                                  onChange={(event: any): any => {
+                                  onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                                     input?.onChange(event);
                                   }}
                                   name="locale"
