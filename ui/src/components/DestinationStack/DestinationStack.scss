@@ -1,13 +1,24 @@
 @import '../../scss/variables';
 
+/**
+ * Styles for the service list container.
+ *
+ * The service list container is used to display a list of services.
+ * It aligns the text to the left, uses flexbox to wrap the items,
+ * sets a gap of 12px between the items, and applies a margin of
+ * 0 0 20px 10px to the container.
+ */
 .service_list {
   text-align: left;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 0 0 20px 10px !important
+  margin: 0 0 20px 10px !important;
 }
 
+/**
+ * Styles for the DestinationStack component.
+ */
 .title {
   margin: 20px 0 5px;
   padding: 0 8px;
@@ -16,34 +27,74 @@
   font-weight: $font-weight-semi-bold;
   line-height: 21px;
 }
+
+/**
+ * Styles for the stackTitle class.
+ */
 .stackTitle {
   color: $color-black-2121;
   font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
   padding-bottom: 20px;
 }
+
+/**
+ * Styles for the pl-40 class.
+ */
 .pl-40 {
   padding-left: $px-40;
 }
+
+/**
+ * Styles for the Dropdown-wrapper class.
+ */
 .Dropdown-wrapper {
+  /**
+   * Styles for the css-b8ldur-Input class.
+   */
   .css-b8ldur-Input {
-   margin: 0;
-   padding: 0;
+    margin: 0;
+    padding: 0;
+  }
+  .Select__v2 .Select__menu .Select__menu-list {
+    padding: 1px;
   }
 }
+
+/**
+ * Styles for the stackselect class.
+ */
 .stackselect {
   min-width: 600px !important;
   max-width: 600px !important;
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: 4px;
 }
+
+/**
+ * Styles for the destination-stack-container class.
+ */
 .destination-stack-container {
   padding: 20px;
+
+  /**
+   * Styles for the migration-vertical-stepper class.
+   */
   .migration-vertical-stepper {
     padding: 24px 30px;
     border: 1px solid $color-brand-secondary-lightest;
     border-radius: 4px;
     background-color: $color-brand-white-base;
+<<<<<<< Updated upstream
+    .description {
+      line-height: 24px;
+    }
+=======
+
+    /**
+     * Styles for the step_block class.
+     */
+>>>>>>> Stashed changes
     .step_block {
       padding: 0 !important;
       margin: 0;
@@ -51,6 +102,10 @@
       border: 0 none;
       border-radius: 0;
     }
+
+    /**
+     * Styles for the stepper-title class.
+     */
     .stepper-title {
       margin: 20px 0 5px;
       padding: 0 8px;
@@ -59,35 +114,108 @@
       font-weight: $font-weight-semi-bold;
       line-height: 21px;
     }
+<<<<<<< Updated upstream
+    .orgWrapper, .title {
+      .asterisk_input::after {
+        content: '';
+        color: $color-stepper-title;
+        font-size: $size-font-large;
+        margin-left: 0 !important;
+        font-weight: 400;
+      }
+    }
+=======
+
+    /**
+     * Styles for the action-content-wrapper class.
+     */
+>>>>>>> Stashed changes
     .action-content-wrapper {
       box-shadow: none;
       border: 0 none;
       border-radius: 0;
-      padding:0 !important;
+      padding: 0 !important;
     }
+
+    /**
+     * Styles for the migration-vertical-stepper-container class.
+     */
     .migration-vertical-stepper-container {
       border-bottom: 0 none;
     }
+
+    /**
+     * Styles for the orgInput class.
+     */
     .orgInput {
       max-width: 600px;
       width: 100%;
     }
+
+    /**
+     * Styles for the Select__menu class.
+     */
     .Select__menu {
-      // max-width: 430px;
       width: 100%;
       margin: 0;
+<<<<<<< Updated upstream
+      padding: 0; 
+      .createStack {
+        background-color: $color-brand-white-base;
+        border-top: 1px solid $color-brand-secondary-lightest;
+        position: sticky;
+        bottom: 0;
+        cursor: pointer;
+        color: $color-brand-primary-base;
+        font-weight: $font-weight-semi-bold;
+        line-height: 24px;
+        padding: 1rem;
+      }
+=======
       padding-bottom: 0;
+
+      /**
+       * Styles for the Select__option class.
+       */
+>>>>>>> Stashed changes
       .Select__v2 .Select__menu .Select__menu-list .Select__option {
         padding: 12px !important;
+        &:hover {
+          background: $color-base-white-10;
+          color: $color-brand-primary-base;
+        }
       }
-      .Select .Select__control .Select__value-container input, .Select__single-value input[text]{
+      .Select__menu-list .Select__option--is-focused {
+        background-color: $color-brand-white-base;
+        color: $color-black-2121;
+        &:hover {
+          background: $color-base-white-10;
+          color: $color-brand-primary-base;
+        }
+      }
+
+      /**
+       * Styles for the Select__value-container class.
+       */
+      .Select .Select__control .Select__value-container input,
+      .Select__single-value input[text] {
         font-size: 16px !important;
         line-height: 24px !important;
         color: $color-placeholder !important;
         width: 100% !important;
       }
+
+      /**
+       * Styles for the Select__option class.
+       */
       .Select__option {
         position: relative;
+<<<<<<< Updated upstream
+      }
+    }
+
+=======
+
         &:last-child {
           border-top: 1px solid $color-brand-secondary-lightest;
           position: sticky;
@@ -97,39 +225,67 @@
         }
       }
     }
+
+    /**
+     * Styles for the TextInput--disabled class.
+     */
+>>>>>>> Stashed changes
     .TextInput--disabled .TextInput__v2 {
       background-color: #F9F8FF !important;
     }
+
+    /**
+     * Styles for the #Step2 ID.
+     */
     #Step2 {
+      /**
+       * Styles for the action-summary-wrapper class.
+       */
       .action-summary-wrapper {
         background-color: $color-brand-white-base;
         margin-left: 2px;
         padding: 0 !important;
       }
     }
+
+    /**
+     * Styles for the errorMessage class.
+     */
     .errorMessage {
       color: $color-brand-warning-medium;
       font-size: $size-font-small;
     }
-   
-
   }
 }
+
+/**
+ * Styles for the action-summary-wrapper class.
+ */
 .action-summary-wrapper {
+  /**
+   * Styles for the Select__value-container class.
+   */
   .Select .Select__control .Select__value-container.Select__value-container--has-value .Select__single-value input {
     width: 100% !important;
     background-color: $color-brand-white-base;
     font-size: $size-font-xl;
     color: $color-black-2121;
     font-weight: $font-weight-regular;
+    line-height: 24px;
   }
+
+  /**
+   * Styles for the TextInput--disabled class.
+   */
   .TextInput--disabled .TextInput__v2 {
     background-color: $color-base-white-5 !important;
     color: $color-black-2121;
   }
 }
 
-
+/**
+ * Styles for the locale-container class.
+ */
 .locale-container {
   display: flex;
   background-color: $color-base-white-5;

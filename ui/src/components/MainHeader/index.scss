@@ -1,5 +1,16 @@
 @import '../../scss/variables';
 
+/**
+ * 
+ * This SCSS file contains styles for the MainHeader component.
+ * The MainHeader component is a fixed header that appears at the top of the page.
+ * It includes a logo, organization wrapper, and dropdown menu.
+ * 
+ * The styles in this file define the layout, colors, and behavior of the MainHeader component.
+ * It also includes styles for the dropdown menu items and the logo.
+ * 
+ * The MainHeader component is used in the UI of the application to provide a consistent header across pages.
+ */
 .mainheader {
   [class*="Profile_card"] {
     [class*="Dropdown__menu__list"] {

@@ -10,6 +10,9 @@ interface State {
   hasError: boolean;
 }
 
+/**
+ * ErrorBoundary component that catches and handles errors thrown by its children.
+ */
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false

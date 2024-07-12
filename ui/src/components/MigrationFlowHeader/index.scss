@@ -1,5 +1,12 @@
 @import '../../scss/variables';
 
+/**
+ * Styles for the MigrationFlowHeader component.
+ *
+ * The MigrationFlowHeader component represents the header section of the migration flow.
+ * It provides styling for the background color, border, padding, position, width, and z-index.
+ * It also includes styling for the back button within the header.
+ */
 .migration-flow-header {
   background-color: $color-base-white-10;
   border-bottom: 1px solid $color-base-gray-40;

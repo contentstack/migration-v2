@@ -35,6 +35,15 @@ type IProps = {
   children?: ReactNode;
 };
 
+/**
+ * Provides the AppContext for the application.
+ *
+ * @component
+ * @param {Object} props - The component props.
+ * @param {React.ReactNode} props.children - The child components.
+ * @returns {JSX.Element} The rendered component.
+ */
+
 const AppContextProvider: FC<IProps> = ({ children }) => {
   //********* ALL STATES HERE  *********/
   const [authToken, setAuthToken] = useState<string>('');

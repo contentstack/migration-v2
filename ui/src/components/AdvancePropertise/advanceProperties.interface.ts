@@ -1,5 +1,8 @@
 import { Advanced, FieldMapType } from '../ContentMapper/contentMapper.interface';
 
+/**
+ * Represents the schema properties.
+ */
 export interface SchemaProps {
   fieldtype: string;
   value: UpdatedSettings;
@@ -11,6 +14,9 @@ export interface SchemaProps {
   projectId?: string;
 }
 
+/**
+ * Represents the updated settings.
+ */
 export interface UpdatedSettings {
   MinChars?: string;
   MaxChars?: number;
@@ -27,6 +33,9 @@ export interface UpdatedSettings {
   NonLocalizable?: boolean;
 }
 
+/**
+ * Represents the props.
+ */
 export interface Props {
   data: SchemaProps;
   states?: StateType;
