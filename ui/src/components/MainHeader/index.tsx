@@ -41,6 +41,8 @@ const MainHeader = () => {
 
   const [data, setData] = useState<MainHeaderType>({});
   const [orgsList, setOrgsList] = useState<IDropDown[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -93,26 +95,50 @@ const MainHeader = () => {
     setDataInLocalStorage('organization', data?.value);
   };
 
+  useEffect(()=>{ 
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      handleonClick();
+      
+    };
+    if(isModalOpen){
+      window.history.pushState(null, '', window.location.href);
+
+    }
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate',handlePopState);
+ 
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+
+  },[isModalOpen,newMigrationData]);
+
+
   const handleonClick = async () => { 
     const currentIndex = newMigrationData?.legacy_cms?.currentStep + 1;
     const pathSegments = location?.pathname.split('/');
     const lastPathSegment = pathSegments[pathSegments.length - 4];
     const response = await getProject(selectedOrganisation?.uid || '', lastPathSegment);
     const current_step = response?.data?.current_step;
-     
+    if(isModalOpen) return;
+
     const goback = () => {
       dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
       navigate(`/projects`, { replace: true });
+      setIsModalOpen(false);
     }   
 
-      if(-1 < currentIndex && currentIndex < 4 && ( !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || !isEmptyString(newMigrationData?.legacy_cms?.affix) || newMigrationData?.legacy_cms?.uploadedFile?.isValidated ) && current_step === 1)
-        {
-          
+    if(-1 < currentIndex && currentIndex < 4 && ( !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || !isEmptyString(newMigrationData?.legacy_cms?.affix) || newMigrationData?.legacy_cms?.uploadedFile?.isValidated ) && current_step === 1)
+    {
+        setIsModalOpen(true);
         return cbModal({
           component: (props: ModalObj) => (
             <NotificationModal
             goBack={goback}
             {...props}
+            isopen={setIsModalOpen}
             />
           ),
           modalProps: {
@@ -120,7 +146,7 @@ const MainHeader = () => {
             shouldCloseOnOverlayClick: false
           }
         });
-      }
+    }
     else{
       dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
       navigate(`/projects`, { replace: true });
