@@ -1,6 +1,13 @@
 @import '../../scss/App.scss';
 @import '../../scss/variables';
 
+/**
+ * Styles for the migration step container.
+ *
+ * The migration step container is a container element that holds the content of a migration step.
+ * It has a maximum height of 70% of the viewport height and enables vertical scrolling when the content exceeds the container's height.
+ * Horizontal scrolling is disabled.
+ */
 .migration-step-container {
   max-height: 70vh;
   overflow-y: auto;

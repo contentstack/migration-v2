@@ -9,16 +9,25 @@ import {
 // Styles
 import './index.scss';
 import { LOG_OUT } from '../../common/assets';
+
+/**
+ * Renders the profile card component.
+ * @returns JSX element representing the profile card.
+ */
 const ProfileCard = () => {
-  const user = useSelector((state:RootState)=>state?.authentication?.user);
+  const user = useSelector((state: RootState) => state?.authentication?.user);
   const name = `${user?.first_name?.charAt(0)}${user?.last_name?.charAt(0)}`.toUpperCase() ?? '';
   const navigate = useNavigate();
-   // Function for Logout
-   const handleLogout = () => {
+
+  /**
+   * Handles the logout functionality.
+   */
+  const handleLogout = () => {
     if (clearLocalStorage()) {
       navigate('/', { replace: true });
     }
   };
+
   return (
     <div className="profile-card">
       <div className='profile-gray-background'/>

@@ -1,5 +1,8 @@
 @import '../../../scss/variables';
 
+/**
+ * Styles for the summary title.
+ */
 .summary-title {
   font-family: $font-family-primary;
   font-style: normal;
@@ -11,6 +14,9 @@
   margin-top: 3px;
 }
 
+/**
+ * Styles for the action summary wrapper in Step 2.
+ */
 #Step2 .action-summary-wrapper {
   background-color: rgb(247, 249, 252);
   border: none;
@@ -20,10 +26,16 @@
   top: 50%;
 }
 
+/**
+ * Styles for the step in the StepperWrapper in Step 2.
+ */
 #Step2 .StepperWrapper__step {
   padding: 0 !important;
 }
 
+/**
+ * Styles for the col-12 class.
+ */
 .col-12 {
   text-align: left;
   padding: 0;

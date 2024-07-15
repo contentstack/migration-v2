@@ -10,6 +10,14 @@ import UploadFileSummary from './Summary/UploadFileSummary';
 import LoadPreFix from './Actions/LoadPrefix';
 import PreFixSummary from './Summary/PreFixSummary';
 
+/**
+ * Returns an updated step object based on the provided parameters.
+ *
+ * @param step - The original step object.
+ * @param isCompleted - A boolean indicating whether the step is completed.
+ * @param isMigrationLocked - A boolean indicating whether the migration is locked.
+ * @returns The updated step object.
+ */
 const getComponentObject = (
   step: IStep,
   isCompleted: boolean,
@@ -70,6 +78,14 @@ const getComponentObject = (
   return updatedStep;
 };
 
+/**
+ * Retrieves the legacy CMS steps based on the provided parameters.
+ *
+ * @param isCompleted - A boolean indicating whether the steps are completed.
+ * @param isMigrationLocked - A boolean indicating whether the migration is locked.
+ * @param allSteps - An array of IStep objects representing all the steps.
+ * @returns An array of component objects representing the legacy CMS steps.
+ */
 export const getLegacyCMSSteps = (
   isCompleted: boolean,
   isMigrationLocked: boolean,

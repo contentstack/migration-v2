@@ -18,6 +18,13 @@ interface Props {
   fileDetails: FileDetails;
 }
 
+/**
+ * Renders the file component based on the provided file details.
+ *
+ * @param {Props} props - The component props.
+ * @param {FileDetails} props.fileDetails - The details of the file.
+ * @returns {React.ReactElement} The rendered file component.
+ */
 export const FileComponent: React.FC<Props> = ({ fileDetails }) => {
 
   return (
@@ -38,13 +45,20 @@ export const FileComponent: React.FC<Props> = ({ fileDetails }) => {
   );
 };
 
+/**
+ * Renders the summary component for uploading a file.
+ *
+ * @param {UploadFileSummaryProps} props - The component props.
+ * @returns {JSX.Element} The rendered component.
+ */
 const UploadFileSummary = ({
   stepComponentProps,
   stepData
 }: UploadFileSummaryProps): JSX.Element => {
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
- const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   return (
     <div className="row bg-white">
       {!isEmptyString(newMigrationData?.legacy_cms?.uploadedFile?.name) ? (

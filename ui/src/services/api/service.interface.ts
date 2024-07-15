@@ -1,13 +1,22 @@
+/**
+ * Represents an error object.
+ */
 export interface Error {
   code: number;
   message: string;
 }
 
+/**
+ * Represents the response object for an organisation.
+ */
 export interface OrganisationResponse {
   org_id: string;
   org_name: string;
 }
 
+/**
+ * Represents the response object returned by the stack API.
+ */
 export interface StackResponse {
   name: string;
   api_key: string;
@@ -16,6 +25,9 @@ export interface StackResponse {
   created_at: string;
 }
 
+/**
+ * Represents the response object for a migration.
+ */
 export interface MigrationResponse {
   legacy_cms: LegacyCms;
   _id: string;
@@ -34,11 +46,17 @@ export interface MigrationResponse {
   current_step: number;
 }
 
+/**
+ * Represents the Legacy CMS interface.
+ */
 export interface LegacyCms {
   cms: string;
   file_format: string;
 }
 
+/**
+ * Represents the default migration response object.
+ */
 export const defaultMigrationResponse: MigrationResponse = {
   legacy_cms: {
     cms: '',

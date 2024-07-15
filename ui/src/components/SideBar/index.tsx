@@ -9,6 +9,12 @@ type SettingIconProp = {
   projectId: string;
 }
 
+/**
+ * Renders the SideBar component.
+ *
+ * @param {SettingIconProp} props - The props object containing the projectId.
+ * @returns {JSX.Element} The rendered SideBar component.
+ */
 const SideBar = ({projectId}: SettingIconProp) => {
   const navigate = useNavigate();
 

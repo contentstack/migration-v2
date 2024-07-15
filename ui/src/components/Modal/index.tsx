@@ -22,6 +22,14 @@ import { useState } from 'react';
 import { createProject } from '../../services/api/project.service';
 
 
+/**
+ * Modal component for creating a project.
+ *
+ * @component
+ * @param {ProjectModalProps} props - The props for the Modal component.
+ * @returns {JSX.Element} The rendered Modal component.
+ */
+
 const Modal = (props: ProjectModalProps) => {
   const {
     closeModal,
