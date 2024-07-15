@@ -6,20 +6,10 @@ import { IStep } from '../../../context/app/app.interface';
 import './summary.scss';
 import { RootState } from '../../../store';
 
-/**
- * Props for the OrganisationSummary component.
- */
 interface OrganisationSummaryProps {
   stepData: IStep;
 }
 
-/**
- * Renders the summary of the selected organization in the destination stack.
- *
- * @component
- * @param {OrganisationSummaryProps} props - The props for the OrganisationSummary component.
- * @returns {JSX.Element} The rendered OrganisationSummary component.
- */
 const OrganisationSummary = (props: OrganisationSummaryProps): JSX.Element => {
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);

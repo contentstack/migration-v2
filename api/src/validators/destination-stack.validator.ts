@@ -1,11 +1,6 @@
 import { checkSchema } from "express-validator";
 import { VALIDATION_ERRORS } from "../constants/index.js";
 
-/**
- * Validates the 'stack_api_key' property in the request body.
- *
- * @returns {Object} The validation schema for the 'stack_api_key' property.
- */
 export default checkSchema({
   stack_api_key: {
     in: "body",

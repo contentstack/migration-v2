@@ -1,7 +1,5 @@
 @import '../../scss/variables';
-/**
- * Styles for the ProjectCard component.
- */
+
 .ProjectCard {
   background: $color-brand-white-base;
   border-radius: 0.6rem;
@@ -9,26 +7,14 @@
   transition: box-shadow 0.3s ease;
   width: 20rem;
 }
-
-/**
- * Styles for the wrapper of the ProjectCard component.
- */
 .ProjectCardWrapper {
   padding: 18px;
 }
-
-/**
- * Styles for the heading of the ProjectCard component.
- */
 .ProjectCard__heading {
   display: flex;
   margin-bottom: $px-20;
   padding: 0;
 }
-
-/**
- * Styles for the title of the ProjectCard component.
- */
 .ProjectCard__title {
   color: $color-font-base;
   display: -webkit-box;
@@ -42,10 +28,6 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-
-/**
- * Styles for the footer of the ProjectCard component.
- */
 .ProjectCard__footer {
   display: flex;
   position: relative;
@@ -57,26 +39,14 @@
   padding: 0.9375rem 1.875rem;
   align-items: center;
 }
-
-/**
- * Styles for the content of the ProjectCard component.
- */
 .ProjectCard__content {
   // margin: 0 1rem 2rem;
   padding: 0;
   text-align: center;
 }
-
-/**
- * Styles for the status unit of the ProjectCard component.
- */
 .ProjectCard__Staus-unit {
   padding: 0 1em;
 }
-
-/**
- * Styles for the unit of the ProjectCard component.
- */
 .ProjectCard__unit {
   border-left: 1px solid $color-brand-secondary-lightest;
   padding: 0 1em;
@@ -90,10 +60,6 @@
   justify-content: center;
   padding-bottom: $px-10;
 }
-
-/**
- * Styles for the stats category of the ProjectCard component.
- */
 .ProjectCard__stats-category {
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: 8px;
@@ -118,55 +84,15 @@
     background-color: $color-brand-attention-light;
   }
 }
-
-/**
- * Styles for the draft stats category of the ProjectCard component.
- */
-.ProjectCard__stats-category.draft {
-  background-color: $color-base-white-10;
-}
-
-/**
- * Styles for the completed stats category of the ProjectCard component.
- */
-.ProjectCard__stats-category.completed {
-  background-color: $color-brand-success-light;
-}
-
-/**
- * Styles for the failed stats category of the ProjectCard component.
- */
-.ProjectCard__stats-category.failed {
-  background-color: $color-brand-fail-light;
-}
-
-/**
- * Styles for the pending stats category of the ProjectCard component.
- */
-.ProjectCard__stats-category.pending {
-  background-color: $color-brand-attention-light;
-}
-
-/**
- * Styles for the stats title of the ProjectCard component.
- */
 .ProjectCard__stats-Title {
   color: $color-stepper-title;
   display: block;
   font-size: $size-font-small;
   margin-bottom: $space-4;
 }
-
-/**
- * Styles for the validation color of the ProjectCard component.
- */
 .validation-color {
   color: $color-brand-warning-medium;
 }
-
-/**
- * Styles for the CMS of the ProjectCard component.
- */
 .ProjectCard__cms {
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: 8px;
@@ -175,10 +101,6 @@
   padding: 4px 8px;
   text-transform: capitalize;
 }
-
-/**
- * Styles for the modified date of the ProjectCard component.
- */
 .ProjectCard__modified-date {
   color: $color-stepper-title;
   display: block;

@@ -7,14 +7,6 @@ type IProps = {
   redirectTo: string;
 };
 
-/**
- * Renders a private route component that checks if the user is authenticated.
- * If the user is authenticated, it renders the child components.
- * If the user is not authenticated, it redirects to the specified route.
- *
- * @param redirectTo - The route to redirect to if the user is not authenticated.
- * @returns The private route component.
- */
 const PrivateRoute: FC<IProps> = ({ redirectTo }: IProps) => {
   const isAuthenticated = !!getDataFromLocalStorage('app_token');
 

@@ -1,13 +1,5 @@
 import { Tooltip } from '@contentstack/venus-components';
 
-/**
- * Renders the action title component.
- * 
- * @param {Object} props - The component props.
- * @param {string} props.title - The title of the action.
- * @param {string} props.stepName - The name of the step.
- * @returns {JSX.Element} The rendered action title component.
- */
 export const ActionTitle = ({ title, stepName }: IActionTitleParams) => {
   return (
     <>
