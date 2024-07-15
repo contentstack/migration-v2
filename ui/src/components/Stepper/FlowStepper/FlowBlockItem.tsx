@@ -12,6 +12,9 @@ import StepTitle from './StepTitle';
 // Assets
 import { CARET_RIGHT } from '../../../common/assets';
 
+/**
+ * Props for the FlowBlockItem component.
+ */
 interface FlowBlockItemProps {
   isActive?: boolean;
   isCompleted?: boolean;
@@ -19,10 +22,17 @@ interface FlowBlockItemProps {
   onStepClick: (step: IFlowStep, isCompleted: boolean) => () => void;
 }
 
+/**
+ * Represents a single block item in the flow stepper component.
+ */
 const FlowBlockItem: FC<FlowBlockItemProps> = (props: FlowBlockItemProps) => {
 
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
+  /**
+   * Toggles the hover state of the block item.
+   * @param flag - The flag indicating whether the block item is being hovered.
+   */
   const handleHoveredToggle = (flag: boolean) => () => {
     setIsHovered(flag);
   };

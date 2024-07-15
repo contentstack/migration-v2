@@ -3,26 +3,76 @@ import './AutoVerticalStepper.scss';
 import { Heading, Paragraph } from '@contentstack/venus-components';
 
 
+/**
+ * Enum representing the status of a step in a vertical stepper.
+ */
 export enum StepStatus {
+  /**
+   * The step is currently active.
+   */
   ACTIVE = 'ACTIVE',
+  /**
+   * The step has been completed.
+   */
   COMPLETED = 'COMPLETED',
+  /**
+   * The step is disabled and cannot be accessed.
+   */
   DISABLED = 'DISABLED'
 }
 
+/**
+ * Props for the AutoVerticalStepper component.
+ */
 type AutoVerticalStepperProps = {
   steps: any[];
   className?: string;
   description?: string;
   stepComponentProps?: any;
   isEdit: boolean;
-  isRequired:boolean;
+  isRequired: boolean;
   handleOnAllStepsComplete: (flag: boolean) => void;
 };
 
+/**
+ * Represents the handles for the AutoVerticalStepper component.
+ */
 export type AutoVerticalStepperComponentHandles = {
+  /**
+   * Handles the dynamic step change in the AutoVerticalStepper.
+   * @param stepIndex - The index of the step to change to.
+   * @param closeStep - Optional parameter to indicate if the step should be closed.
+   */
   handleDynamicStepChange: (stepIndex: number, closeStep?: boolean) => void;
 };
 
+/**
+ * Represents a vertical stepper component that automatically manages the steps and their statuses.
+ *
+ * @component
+ * @example
+ * ```tsx
+ * <AutoVerticalStepper
+ *   steps={steps}
+ *   className="stepper"
+ *   description="This is a stepper component"
+ *   stepComponentProps={stepComponentProps}
+ *   isEdit={false}
+ *   handleOnAllStepsComplete={() => {
+ *     console.log('All steps completed');
+ *   }}
+ * />
+ * ```
+ *
+ * @param props - The component props.
+ * @param props.steps - An array of step objects.
+ * @param props.className - The CSS class name for the stepper component.
+ * @param props.description - The description for the stepper component.
+ * @param props.stepComponentProps - Additional props to be passed to the step components.
+ * @param props.isEdit - A boolean indicating whether the stepper is in edit mode.
+ * @param props.handleOnAllStepsComplete - A callback function to be called when all steps are completed.
+ * @returns The rendered `AutoVerticalStepper` component.
+ */
 const AutoVerticalStepper = React.forwardRef<
   AutoVerticalStepperComponentHandles,
   React.PropsWithChildren<AutoVerticalStepperProps>

@@ -1,5 +1,12 @@
 @import '../../scss/variables';
 
+/**
+ * Styles for the SchemaModal component.
+ *
+ * The SchemaModal component is responsible for rendering a modal that displays a schema.
+ * It contains styles for various elements within the modal, such as the schema entries, icons, and chevrons.
+ *
+ */
 .schema {
   min-height: 290px;
 }

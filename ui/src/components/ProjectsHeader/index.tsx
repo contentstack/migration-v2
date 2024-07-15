@@ -4,6 +4,19 @@ import { Button, Icon, PageHeader, Search } from '@contentstack/venus-components
 // Interface
 import { ProjectsHeaderType } from './projectsHeader.interface';
 
+/**
+ * Renders the ProjectsHeader component.
+ *
+ * @param {Object} props - The component props.
+ * @param {string} props.headingText - The heading text.
+ * @param {string} props.searchText - The search text.
+ * @param {Function} props.setSearchText - The function to set the search text.
+ * @param {string} props.searchPlaceholder - The search input placeholder text.
+ * @param {Object} props.cta - The call-to-action object.
+ * @param {Array} props.allProject - The array of all projects.
+ * @param {Function} props.handleModal - The function to handle modal.
+ * @returns {JSX.Element} The rendered ProjectsHeader component.
+ */
 const ProjectsHeader = ({
   headingText,
   searchText,
@@ -14,6 +27,10 @@ const ProjectsHeader = ({
   handleModal
 }: ProjectsHeaderType) => {
   let interval: ReturnType<typeof setTimeout>;
+
+  /**
+   * Sets focus on the search input element.
+   */
   function setFocus() {
     clearTimeout(interval);
     interval = setTimeout(() => {
@@ -76,7 +93,6 @@ const ProjectsHeader = ({
     </>
   );
 
-
   const pageActions: any = [
     {
       label: cta && cta?.title && (
@@ -97,7 +113,7 @@ const ProjectsHeader = ({
       type: 'primary'
     }
   ];
-  
+
   return (
     <>
       <PageHeader

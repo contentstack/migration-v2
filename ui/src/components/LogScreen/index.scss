@@ -1,4 +1,7 @@
 @import '../../scss/variables';
+/**
+ * Styles for the LogScreen component.
+ */
 
 .logs-container {
   font-family: Arial, sans-serif;
@@ -8,8 +11,13 @@
   margin: 0 $px-24 $px-24;
   position: relative;
 }
+
 .logs-wrapper {
   position: relative;
+  
+  /**
+   * Styles for the action items within the LogScreen component.
+   */
   .action-items {
     position: absolute;
     right: 48px;
@@ -17,13 +25,16 @@
   }
 }
 
-
+/**
+ * Styles for each log entry within the LogScreen component.
+ */
 .log-entry {
   align-items: center;
   background-color: $color-base-white-10;
   display: flex;
   padding: 5px 0;
   position: relative;
+  
   &::before {
     background-color: $color-base-white-5;
     border-right: 1px solid $color-brand-secondary-lightest;
@@ -36,30 +47,33 @@
     width: 50px;
   }
   
-  .log-number, .log-time, .log-message {
+  /**
+   * Styles for the log number within each log entry.
+   */
+  .log-number {
+    text-align: center;
+    min-width: 50px;
+    color: $color-font-active;
+    position: relative;
+  }
+  
+  /**
+   * Styles for the log time within each log entry.
+   */
+  .log-time {
+    color: $color-font-active;
     font-family: "IBM Plex Mono", monospace;
     font-size: $size-font-medium;
     font-weight: $font-weight-medium;
+    padding: 0 $px-16;
   }
-}
-
-.log-number {
-  text-align: center;
-  min-width: 50px;
-  color: $color-font-active;
-  position: relative;
-}
-
-.log-time {
-  color: $color-font-active;
-  font-family: "IBM Plex Mono", monospace;
-  font-size: $size-font-medium;
-  font-weight: $font-weight-medium;
-  padding: 0 $px-16;
-}
-
-.log-message {
-  color: $color-black-222;
-  flex-grow: 1;
-  padding: 0 $px-16;
+  
+  /**
+   * Styles for the log message within each log entry.
+   */
+  .log-message {
+    color: $color-black-222;
+    flex-grow: 1;
+    padding: 0 $px-16;
+  }
 }
