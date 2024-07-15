@@ -1,23 +1,29 @@
 @import '../../../scss/variables';
 
+/**
+ * Styles for the migration vertical stepper container.
+ */
 .migration-vertical-stepper-container {
   display: flex;
   align-items: baseline;
   justify-content: flex-start;
   border-bottom: 1px solid $color-brand-secondary-lightest;
   gap: 8px;
-
-
 }
 
+/**
+ * Styles for the stepper title.
+ */
 .migration-vertical-stepper .stepper-title {
   margin-bottom: $space-10;
   margin: 10px 20px;
   color: $color-font-base;
   line-height: 21px;
-
 }
 
+/**
+ * Styles for the stepper description.
+ */
 .migration-vertical-stepper .stepper-discription {
   font-family: 'Inter';
   font-style: normal;
@@ -29,6 +35,9 @@
   margin: 10px 20px;
 }
 
+/**
+ * Styles for the summery edit and summery lock icons.
+ */
 .migration-vertical-stepper .summery-edit,
 .migration-vertical-stepper .summery-lock {
   position: absolute;
@@ -36,11 +45,17 @@
   right: $space-20;
 }
 
+/**
+ * Styles for the summery edit and action icons.
+ */
 .summery-edit,
 .action {
   top: 50%;
 }
 
+/**
+ * Styles for the vertical stepper list items.
+ */
 .StepperWrapper ol.Vertical > li:before {
   width: 2rem;
   height: 2rem;
@@ -49,18 +64,30 @@
   color: #475161 !important;
 }
 
+/**
+ * Styles for the stepper title note.
+ */
 .stepper-titleNote {
   font-size: $size-font-large;
 }
 
+/**
+ * Styles for the active to disabled list item.
+ */
 .StepperWrapper ol.Vertical > li.active__to__disabled {
   border-image: linear-gradient(0deg, #c0c0cd 0%, #0469e3 100%);
 }
 
+/**
+ * Styles for the completed to active list item.
+ */
 .StepperWrapper ol.Vertical > li.completed__to__active {
   border-image: linear-gradient(0deg, #6e6b86 0%, #007a52 100%);
 }
 
+/**
+ * Styles for the list item bullet.
+ */
 .StepperWrapper ol.Vertical > li::before {
   content: url('data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%220.5%22%20y%3D%220.5%22%20width%3D%2223%22%20height%3D%2223%22%20rx%3D%2211.5%22%20fill%3D%22white%22%2F%3E%3Crect%20x%3D%220.5%22%20y%3D%220.5%22%20width%3D%2223%22%20height%3D%2223%22%20rx%3D%2211.5%22%20stroke%3D%22%236E6B86%22%2F%3E%3C%2Fsvg%3E');
   height: $space-24;
@@ -69,19 +96,31 @@
   background-color: transparent;
 }
 
+/**
+ * Styles for the active list item bullet.
+ */
 .StepperWrapper ol.Vertical > li.active::before {
   content: url('data:image/svg+xml,%3Csvg%20width%3D%2225%22%20height%3D%2224%22%20viewBox%3D%220%200%2025%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%221%22%20y%3D%220.5%22%20width%3D%2223%22%20height%3D%2223%22%20rx%3D%2211.5%22%20fill%3D%22%23F5FDFF%22%2F%3E%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M6.8889%2014.2536C6.73737%2014.4051%206.64671%2014.607%206.63413%2014.8209L6.50155%2017.0748C6.47078%2017.5978%206.90341%2018.0305%207.42642%2017.9997L9.68032%2017.8671C9.89425%2017.8545%2010.0961%2017.7639%2010.2477%2017.6123L18.245%209.61504C18.5867%209.27333%2018.5867%208.71931%2018.245%208.3776L16.1236%206.25628C15.7819%205.91457%2015.2279%205.91457%2014.8862%206.25628L6.8889%2014.2536ZM7.38283%2014.865C7.38463%2014.8344%207.39758%2014.8056%207.41923%2014.7839L13.9668%208.23635L16.1635%2010.433C16.1994%2010.469%2016.2408%2010.4961%2016.285%2010.5144L9.71733%2017.082C9.69568%2017.1037%209.66684%2017.1166%209.63628%2017.1184L7.38238%2017.251C7.30766%2017.2554%207.24586%2017.1936%207.25025%2017.1189L7.38283%2014.865ZM16.7751%2010.0242L17.7146%209.08471C17.7634%209.03589%2017.7634%208.95675%2017.7146%208.90793L15.5933%206.78661C15.5445%206.7378%2015.4654%206.7378%2015.4165%206.78661L14.4971%207.70602L16.6938%209.90271C16.7297%209.93862%2016.7568%209.98002%2016.7751%2010.0242Z%22%20fill%3D%22%230469E3%22%2F%3E%3Crect%20x%3D%221%22%20y%3D%220.5%22%20width%3D%2223%22%20height%3D%2223%22%20rx%3D%2211.5%22%20stroke%3D%22%230469E3%22%2F%3E%3C%2Fsvg%3E');
 }
 
+/**
+ * Styles for the completed list item bullet.
+ */
 .StepperWrapper ol.Vertical > li.completed::before {
   content: url('data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20x%3D%220.5%22%20y%3D%220.5%22%20width%3D%2223%22%20height%3D%2223%22%20rx%3D%2211.5%22%20fill%3D%22%23F5FFFC%22%2F%3E%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M17.7652%208.23483C17.9116%208.38128%2017.9116%208.61872%2017.7652%208.76517L10.7652%2015.7652C10.6187%2015.9116%2010.3813%2015.9116%2010.2348%2015.7652L6.73483%2012.2652C6.58839%2012.1187%206.58839%2011.8813%206.73483%2011.7348C6.88128%2011.5884%207.11872%2011.5884%207.26517%2011.7348L10.5%2014.9697L17.2348%208.23483C17.3813%208.08839%2017.6187%208.08839%2017.7652%208.23483Z%22%20fill%3D%22%23007A52%22%2F%3E%3Crect%20x%3D%220.5%22%20y%3D%220.5%22%20width%3D%2223%22%20height%3D%2223%22%20rx%3D%2211.5%22%20stroke%3D%22%23007A52%22%2F%3E%3C%2Fsvg%3E');
   border: none;
 }
 
+/**
+ * Styles for the stepper step.
+ */
 .StepperWrapper__step {
   padding: $space-10;
 }
 
+/**
+ * Styles for the action summary wrapper.
+ */
 .action-summary-wrapper {
   padding: $space-4 $space-24;
   align-items: center;
@@ -90,6 +129,9 @@
   background: $color-brand-white-base;
 }
 
+/**
+ * Styles for the action content wrapper.
+ */
 .action-content-wrapper {
   box-shadow: rgba(0, 0, 0, 0.1) 0 $space-20 $space-30 0;
   opacity: 1;
@@ -98,19 +140,30 @@
   border-radius: 10px;
 }
 
+/**
+ * Styles for the configure action logo.
+ */
 .configure_action_logo {
   width: $space-24;
   height: $space-24;
   margin-right: $space-10;
 }
-.step_block{
+
+/**
+ * Styles for the step block.
+ */
+.step_block {
   border-radius: 4px;
   border: 1px solid $color-brand-secondary-lightest;
   background-color: $color-brand-white-base;
-  padding:  24px 30px, 24px, 30px;
+  padding: 24px 30px, 24px, 30px;
   gap: 24px;
   margin-bottom: 40px;
 }
+
+/**
+ * Styles for the organization wrapper.
+ */
 .orgWrapper {
   display: flex;
   align-items: baseline;
@@ -119,11 +172,15 @@
     color: $color-stepper-title;
   }
 }
+
+/**
+ * Styles for the asterisk input.
+ */
 .asterisk_input::after {
-  content:" *"; 
+  content: " *";
   color: $color-brand-warning-medium;
-  margin: 2px 0px 0px -15px; 
-  font-size:medium; 
-  padding: 10px 5px 0 0 !important; 
+  margin: 2px 0px 0px -15px;
+  font-size: medium;
+  padding: 10px 5px 0 0 !important;
   padding-left: .25em;
 }

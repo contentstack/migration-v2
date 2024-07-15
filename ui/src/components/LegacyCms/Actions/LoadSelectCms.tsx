@@ -33,6 +33,13 @@ interface LoadSelectCmsProps {
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
 
+/**
+ * Component for loading and selecting CMS data.
+ *
+ * @component
+ * @param {LoadSelectCmsProps} props - The component props.
+ * @returns {JSX.Element} The rendered component.
+ */
 const LoadSelectCms = (props: LoadSelectCmsProps) => {
   /****  ALL HOOKS HERE  ****/
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);

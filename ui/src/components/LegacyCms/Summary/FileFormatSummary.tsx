@@ -14,6 +14,12 @@ interface FileFormatSummaryProps {
   stepData: IStep;
 }
 
+/**
+ * Renders the file format summary component.
+ *
+ * @param {FileFormatSummaryProps} props - The component props.
+ * @returns {JSX.Element} The file format summary component.
+ */
 const FileFormatSummary = ({ stepData }: FileFormatSummaryProps): JSX.Element => {
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
