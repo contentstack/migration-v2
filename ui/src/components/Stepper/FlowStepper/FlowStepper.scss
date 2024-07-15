@@ -1,11 +1,6 @@
 @import '../../../scss/variables';
 
-/**
- * Styles for the FlowStepper component.
- */
-
 .ft-block {
-  /* Background gradient for the block */
   background: linear-gradient(
       rgb(247, 249, 252) $space-30,
       $color-base-gray-40 $space-20,
@@ -21,7 +16,6 @@
 }
 
 .ft-block-disabled {
-  /* Background gradient for the disabled block */
   background: linear-gradient(
       rgb(247, 249, 252) $space-30,
       $color-base-gray-40 $space-20,
@@ -55,7 +49,6 @@
 }
 
 .ft-step-block-head:hover {
-  /* Hover styles for the step block head */
   background: $color-brand-white-base;
   cursor: pointer;
   min-height: 78px;
@@ -70,7 +63,6 @@
 }
 
 .ft-step-block-head-active {
-  /* Styles for the active step block head */
   background-color: white;
   border: 1px solid $color-base-gray-40;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -80,15 +72,12 @@
   margin-left: -$space-10;
   min-height: 78px;
 }
-
 .ft-block-item:has(.ft-step-block-head-disabled) {
   cursor: not-allowed;
 }
-
 .ft-step-block-head-disabled {
   pointer-events: none;
 }
-
 .ft-step-block-head-active:hover {
   background-color: white !important;
   cursor: pointer;

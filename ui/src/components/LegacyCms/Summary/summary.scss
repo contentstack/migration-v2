@@ -1,7 +1,4 @@
 @import '../../../scss/variables';
-/**
- * Styles for the summary title.
- */
 .summary-title {
   //font-family: $font-family-primary;
   font-style: normal;
@@ -13,61 +10,30 @@
   margin-top: 3px;
 }
 
-/**
- * Styles for the disabled checkbox label.
- */
 .Checkbox input:disabled ~ .Checkbox__label {
   opacity: 1;
 }
-
-/**
- * Styles for the checked checkbox.
- */
 .Checkbox.Checkbox--state-checked {
   display: flex;
 }
-
-/**
- * Styles for the checkbox tick SVG.
- */
 .Checkbox .Checkbox__tick svg {
   display: block;
 }
-
-/**
- * Styles for the checked and disabled checkbox.
- */
 .Checkbox.Checkbox--state-checked.Checkbox--state-disabled {
   color: #212121;
   opacity: 1;
 }
-
-/**
- * Styles for the checkbox wrapper.
- */
 .Checkbox-wrapper .Checkbox {
   display: flex;
 }
-
-/**
- * Styles for the checkbox label within the checkbox wrapper.
- */
 .Checkbox-wrapper .Checkbox .Checkbox__label {
   margin-top: -2px;
 }
-
-/**
- * Styles for the disabled and checked checkbox label.
- */
 .Checkbox input:disabled:checked ~ .Checkbox__label,
 .Checkbox input:disabled:indeterminate ~ .Checkbox__label {
   color: #212121;
   opacity: 1;
 }
-
-/**
- * Styles for the affix container.
- */
 .affix-container {
   display: flex;
   background-color: $color-base-white-5;

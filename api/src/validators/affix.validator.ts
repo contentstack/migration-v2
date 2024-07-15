@@ -1,11 +1,6 @@
 import { checkSchema } from "express-validator";
 import { VALIDATION_ERRORS, AFFIX_REGEX } from "../constants/index.js";
 
-/**
- * Validates the 'affix' property in the request body.
- *
- * @returns {Object} The validation schema for the 'affix' property.
- */
 export default checkSchema({
   affix: {
     in: "body",

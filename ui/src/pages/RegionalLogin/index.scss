@@ -1,25 +1,15 @@
 @import '../../scss/variables';
 
-/**
- * Styles for the RegionalLogin page.
- */
 .mainWrapper {
   display: flex;
 }
 
-/**
- * Styles for the cmsImageWrapper element.
- */
 .cmsImageWrapper {
   background-color: #6c5ce7;
   height: 100vh;
   max-width: 35%;
   flex: 0 0 35%;
 }
-
-/**
- * Styles for the formWrapper element.
- */
 .formWrapper {
   align-items: center;
   display: flex;
@@ -28,16 +18,9 @@
   max-width: 65%;
 }
 
-/**
- * Styles for the textStone600 class.
- */
 .textStone600 {
   color: $color-font-gray;
 }
-
-/**
- * Styles for the card element.
- */
 .card {
   border: 3px solid transparent;
   box-shadow: 0 $space-4 $space-20 0 rgba(0, 0, 0, 0.1);
@@ -49,73 +32,37 @@
   background-color: $color-base-white-5;
   background-clip: border-box;
   border-radius: 0.5rem;
-
-  /**
-   * Styles for the card element when hovered.
-   */
   &:hover {
     border: 3px solid #7c4dff;
-
-    /**
-     * Styles for link-arrow elements inside the card element when hovered.
-     */
     [class*='link-arrow'] {
       &:after {
         margin-left: $space-4;
       }
     }
-
-    /**
-     * Styles for anchor elements inside the card element when hovered.
-     */
     a {
       text-decoration: none;
     }
   }
-
-  /**
-   * Styles for the cardBody element inside the card element.
-   */
   .cardBody {
     color: $color-font-black;
     flex: 1 1 auto;
     padding: 1.25rem 1.25rem;
-
-    /**
-     * Styles for the h2 element inside the cardBody element.
-     */
     h2 {
       font-size: 1.25rem;
       font-weight: 700;
       letter-spacing: 0;
     }
-
-    /**
-     * Styles for the p element inside the cardBody element.
-     */
     p {
       color: $color-font-black;
     }
   }
-
-  /**
-   * Styles for the CardFooter element inside the card element.
-   */
   .CardFooter {
     background-color: rgba(0, 0, 0, 0);
     border-top: 0 solid rgba(34, 34, 34, 0.125);
     padding: 0.625rem 1.25rem;
-
-    /**
-     * Styles for the stretched-link class inside the CardFooter element.
-     */
     .stretched-link {
       line-height: $line-height-default;
     }
-
-    /**
-     * Styles for link-arrow elements inside the CardFooter element.
-     */
     [class*='link-arrow'] {
       &:after {
         top: 6px;
