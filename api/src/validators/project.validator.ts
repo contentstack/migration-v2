@@ -1,11 +1,6 @@
 import { checkSchema } from "express-validator";
 import { VALIDATION_ERRORS } from "../constants/index.js";
 
-/**
- * Validates the project data.
- *
- * @returns {Object} The validation schema for the project data.
- */
 export default checkSchema({
   name: {
     in: "body",

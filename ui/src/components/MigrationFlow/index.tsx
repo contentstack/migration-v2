@@ -13,17 +13,6 @@ import { CARET_RIGHT } from '../../common/assets';
 // Style
 import './index.scss';
 
-/**
- * Renders the MigrationFlow component.
- *
- * @param {Object} props - The component props.
- * @param {string} props.settingsText - The text for the settings.
- * @param {Function} props.settingsClick - The click event handler for the settings.
- * @param {boolean} props.showInfo - Indicates whether to show the info.
- * @param {string} props.migrationStepsText - The text for the migration steps.
- * @param {number} props.currentStep - The current step of the migration.
- * @returns {JSX.Element} The rendered MigrationFlow component.
- */
 const MigrationFlow = ({
   settingsText,
   settingsClick,

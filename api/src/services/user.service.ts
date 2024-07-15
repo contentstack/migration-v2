@@ -11,13 +11,6 @@ import AuthenticationModel from "../models/authentication.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
 import logger from "../utils/logger.js";
 
-/**
- * Retrieves the user profile based on the provided request.
- * @param req - The request object containing the token payload.
- * @returns A promise that resolves to the user profile.
- * @throws {BadRequestError} If the user is not found.
- * @throws {ExceptionFunction} If an error occurs while retrieving the user profile.
- */
 const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getUserProfile";
   const appTokenPayload: AppTokenPayload = req?.body?.token_payload;
