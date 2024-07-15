@@ -10,12 +10,6 @@ type Props = {
   position?: string;
 };
 
-/**
- * Renders a component that wraps text and provides a tooltip if the text exceeds a maximum length.
- *
- * @param {Props} props - The component props.
- * @returns {JSX.Element} The rendered WordWrapper component.
- */
 function WordWrapper(props: Props) {
   const { maxLength, tooltipcontent, position = 'right' } = props;
   const text = props.text || '';

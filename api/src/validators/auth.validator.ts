@@ -1,11 +1,6 @@
 import { checkSchema } from "express-validator";
 import { VALIDATION_ERRORS, CS_REGIONS } from "../constants/index.js";
 
-/**
- * Validates the authentication request body.
- *
- * @returns {Object} The validation schema for the authentication request body.
- */
 export default checkSchema({
   email: {
     in: "body",
