@@ -1,6 +1,9 @@
 import { createLogger, format, transports } from "winston";
 
-//Logger for custom logs
+/**
+ * The logger instance for logging messages.
+ * Logger for custom logs
+ */
 const logger = createLogger({
   level: "info",
   format: format.combine(format.timestamp(), format.json()),

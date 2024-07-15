@@ -10,6 +10,11 @@ import affixValidator from "./affix.validator.js";
 import affixConfirmationValidator from "./affix-confirmation.validator.js";
 import fileformatConfirmationValidator from "./fileformat-confirmation.validator.js";
 
+/**
+ * Middleware function that validates the request based on the specified route.
+ * @param route - The route to determine the validator to use.
+ * @returns The async middleware function.
+ */
 export default (route: string = "") =>
   asyncRouter(async (req: Request, res: Response, next: NextFunction) => {
     const appValidators = {

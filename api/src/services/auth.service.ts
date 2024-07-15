@@ -13,12 +13,26 @@ import {
 import AuthenticationModel from "../models/authentication.js";
 import logger from "../utils/logger.js";
 
+/**
+ * Logs in a user with the provided credentials.
+ *
+ * @param req - The request object containing user data.
+ * @returns A promise that resolves to the login service response.
+ * @throws ExceptionFunction if an error occurs during the login process.
+ */
 const login = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "Login";
 
   try {
     const userData = req?.body;
 
+    /**
+     * Authenticates the user by making a POST request to the user-session endpoint.
+     * Includes the user's organizations and roles in the response.
+     *
+     * @param userData - The user data object containing email, password, and optional tfa_token.
+     * @returns A Promise that resolves to an array containing an error object and the response object.
+     */
     const [err, res] = await safePromise(
       https({
         method: "POST",
@@ -115,6 +129,13 @@ const login = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+/**
+ * Requests an SMS token for the user.
+ *
+ * @param req - The request object containing user data.
+ * @returns A promise that resolves to the login service response.
+ * @throws InternalServerError if an error occurs during the requestSms process.
+ */
 const requestSms = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "requestSms";
 

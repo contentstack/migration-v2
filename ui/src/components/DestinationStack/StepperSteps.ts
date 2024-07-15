@@ -6,6 +6,15 @@ import OrganisationSummary from './Summary/OrganisationSummary';
 import StacksSummary from './Summary/StacksSummary';
 import { IStep } from '../../context/app/app.interface';
 
+/**
+ * Returns an updated step object based on the provided parameters.
+ *
+ * @param step - The original step object.
+ * @param isCompleted - A boolean indicating whether the step is completed.
+ * @param isMigrationLocked - A boolean indicating whether the migration is locked.
+ * @param isPrevStepLocked - A boolean indicating whether the previous step is locked. Default is false.
+ * @returns The updated step object.
+ */
 const getComponentObject = (
   step: IStep,
   isCompleted: boolean,
@@ -47,6 +56,14 @@ const getComponentObject = (
   return updatedStep;
 };
 
+/**
+ * Returns an array of component objects representing the steps in the destination stack.
+ *
+ * @param isCompleted - A boolean indicating whether the migration is completed.
+ * @param isMigrationLocked - A boolean indicating whether the migration is locked.
+ * @param allSteps - An array of IStep objects representing all the steps in the destination stack.
+ * @returns An array of component objects representing the steps in the destination stack.
+ */
 export const getDestinationStackSteps = (
   isCompleted: boolean,
   isMigrationLocked: boolean,

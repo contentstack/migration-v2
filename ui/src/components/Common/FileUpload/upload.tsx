@@ -19,6 +19,14 @@ import { returnFileSize, shortName } from '../../../utilities/functions';
 import { UPLOAD_FILE_URL } from '../../../utilities/constants';
 import './upload.scss';
 
+/**
+ * Renders a file component.
+ *
+ * @param {Object} props - The component props.
+ * @param {Object} props.file - The file object.
+ * @param {Function} props.handleRemove - The function to handle file removal.
+ * @returns {JSX.Element} The file component.
+ */
 const File = ({ file, handleRemove }: any) => {
   return (
     <div className="asset-upload__file flex-v-center">
@@ -43,6 +51,12 @@ const File = ({ file, handleRemove }: any) => {
   );
 };
 
+/**
+ * Renders an error file component.
+ * @param file - The file object.
+ * @param handleRemove - The function to handle file removal.
+ * @returns The JSX element representing the error file component.
+ */
 const ErrorFile = ({ file, handleRemove }: any) => {
   return (
     <div className="asset-upload__file flex-v-center">
@@ -62,6 +76,12 @@ const ErrorFile = ({ file, handleRemove }: any) => {
   );
 };
 
+/**
+ * Renders a component for interrupting the file upload process.
+ *
+ * @param props - The component props.
+ * @returns The rendered component.
+ */
 const InterruptUpload = (props: any) => {
   const handleProceed = () => {
     props.closeModal({ cancelUpload: true });
@@ -99,6 +119,10 @@ const InterruptUpload = (props: any) => {
     </div>
   );
 };
+
+/**
+ * Component for handling file uploads.
+ */
 
 class Upload extends Component<any, any> {
   state = {
