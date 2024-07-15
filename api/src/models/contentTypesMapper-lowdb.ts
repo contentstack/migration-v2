@@ -10,6 +10,7 @@ export interface ContentTypesMapper {
   contentstackTitle: string;
   contentstackUid: string;
   status: number;
+  type : string;
   fieldMapping: [];
 }
 
