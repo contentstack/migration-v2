@@ -89,10 +89,11 @@ export const getContentTypes = (
   skip: number,
   limit: number,
   searchText: string
-) => {
+) => { 
   try {
+    const encodedSearchText = encodeURIComponent(searchText) ; 
     return getCall(
-      `${API_VERSION}/mapper/contentTypes/${projectId}/${skip}/${limit}/${searchText}?`,
+      `${API_VERSION}/mapper/contentTypes/${projectId}/${skip}/${limit}/${encodedSearchText}?`,
       options
     );
   } catch (error: any) {
@@ -107,8 +108,9 @@ export const getFieldMapping = async (
   searchText: string
 ) => {
   try {
+    const encodedSearchText = encodeURIComponent(searchText) ;
     return await getCall(
-      `${API_VERSION}/mapper/fieldMapping/${contentTypeId}/${skip}/${limit}/${searchText}?`,
+      `${API_VERSION}/mapper/fieldMapping/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?`,
       options
     );
   } catch (error: any) {
