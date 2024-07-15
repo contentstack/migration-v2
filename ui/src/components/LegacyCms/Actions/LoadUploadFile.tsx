@@ -130,11 +130,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     dispatch(updateNewMigrationData(newMigrationDataObj));
 
     if(res?.status === 200){ 
-      setTimeout(()=>{
-        setIsValidated(true);
-        setValidationMessage('Validation is successful');
-
-      },1000);     
+      setIsValidated(true);
+      setValidationMessage('Validation is successful');
+   
       setIsDisabled(true); 
       
       if(! isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
@@ -339,7 +337,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setFileFormat(savedState.fileFormat);
       setProcessing(savedState.processing);
     }
-    if (savedState && savedState.isLoading) {
+    if (savedState && savedState.isLoading && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated) {
 
       handleOnFileUploadCompletion();
     }
@@ -376,7 +374,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   ]);
 
   useEffect(()=>{ 
-    if(newMigrationData?.legacy_cms?.uploadedFile?.isValidated)
+    if(newMigrationData?.legacy_cms?.uploadedFile?.isValidated && ! showProgress)
     {   
       
       setIsValidated(true);
@@ -431,7 +429,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               <CircularLoader/>
              </div>
              }
-            {showMessage  &&
+            {showMessage  && ! showProgress &&
               (
               <>
                 <Paragraph className={`${validationClassName}` } tagName='p' variant="p2" text={validationMessgae}/>

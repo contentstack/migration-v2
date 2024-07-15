@@ -98,6 +98,7 @@ const MainHeader = () => {
   useEffect(()=>{ 
     const handlePopState = (event: PopStateEvent) => {
       event.preventDefault();
+      window.history.pushState(null, '', window.location.href);
       handleonClick();
       
     };
