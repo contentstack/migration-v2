@@ -2,10 +2,6 @@ import { API_VERSION } from '../../utilities/constants';
 import { getDataFromLocalStorage } from '../../utilities/functions';
 import { getCall } from './service';
 
-/**
- * Retrieves user profile data from the server.
- * @returns {Promise<any>} A promise that resolves to the user profile data.
- */
 export const getUser = async () => {
   const options = {
     headers: {
@@ -20,11 +16,6 @@ export const getUser = async () => {
   }
 };
 
-/**
- * Retrieves all locales for a given organization.
- * @param orgId - The ID of the organization.
- * @returns A Promise that resolves to the locales data, or an error if the request fails.
- */
 export const getAllLocales = async (orgId: string) => {
   const options = {
     headers: {
