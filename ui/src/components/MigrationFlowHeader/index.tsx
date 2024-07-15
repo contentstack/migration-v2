@@ -27,15 +27,6 @@ type MigrationFlowHeaderProps = {
   legacyCMSRef: React.MutableRefObject<any>; 
 };
 
-/**
- * MigrationFlowHeader component displays the header of the migration flow.
- * It includes the project name and a button to save and continue the migration process.
- *
- * @param handleOnClick - The function to handle the click event of the save and continue button.
- * @param isLoading - A boolean indicating whether the save and continue button is in a loading state.
- * @param isCompleted - A boolean indicating whether the migration process is completed.
- * @param legacyCMSRef - A reference to the legacy CMS component.
- */
 const MigrationFlowHeader = ({ handleOnClick, isLoading, isCompleted , legacyCMSRef}: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
   const [currentStep, setCurrentStep] = useState<number>(0);

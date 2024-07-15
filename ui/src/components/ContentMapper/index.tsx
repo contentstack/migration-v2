@@ -99,10 +99,6 @@ const Fields: Mapping = {
   global_field: 'Global'
 };
 
-/**
- * Component for mapping content types.
- */
-
 const ContentMapper = () => {
   /** ALL CONTEXT HERE */
 

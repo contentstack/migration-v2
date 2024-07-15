@@ -1,9 +1,6 @@
 import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 
-/**
- * Represents the advanced configuration options for a field mapper.
- */
 interface Advanced {
   validationRegex: string;
   Mandatory: boolean;
@@ -12,9 +9,6 @@ interface Advanced {
   NonLocalizable: boolean;
 }
 
-/**
- * Represents a field mapper object.
- */
 interface FieldMapper {
   field_mapper: {
     id: string;
@@ -33,9 +27,6 @@ interface FieldMapper {
 
 const defaultData: FieldMapper = { field_mapper: [] };
 
-/**
- * Represents the database instance for the field mapper.
- */
 const db = new LowWithLodash(
   new JSONFile<FieldMapper>("database/field-mapper.json"),
   defaultData

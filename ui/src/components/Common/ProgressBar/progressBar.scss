@@ -1,31 +1,16 @@
 @import '../../../scss//variables';
-/**
- * Styles for the ProgressBar component.
- *
- * @class ProgressBar
- */
+
 .ProgressBar {
 	border-radius: $space-4;
 	
 	overflow: hidden;
-	
-	/**
-	 * Styles for the progress bar element.
-	 *
-	 * @class ProgressBar__bar
-	 */
 	&__bar {
+		
 		border-radius: inherit;
 		height: inherit;
 		transition: width 100ms linear;
 	}
-	
-	/**
-	 * Styles for the progress circle element.
-	 *
-	 * @class ProgressBar__circle
-	 */
-	&__circle {
+	&__circle{
 		stroke-width: 5%;
 		transform: rotate(-90deg);
 		transform-origin: 50% 50%;

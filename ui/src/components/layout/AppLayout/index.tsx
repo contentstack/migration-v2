@@ -13,12 +13,6 @@ type IProps = {
   children?: ReactNode;
 };
 
-/**
- * Represents the layout component for the application.
- * @param {Object} props - The component props.
- * @param {React.ReactNode} props.children - The child components to render.
- * @returns {JSX.Element} The rendered layout component.
- */
 const AppLayout: FC<IProps> = ({ children }) => {
   const location = useLocation();
   const dispatch = useDispatch();

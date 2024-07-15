@@ -1,9 +1,5 @@
 @import '../../scss/variables';
 
-/**
- * Styles for the Projects page.
- */
-
 .project-search-wrapper {
   margin-left: $px-12;
   .Search {
@@ -36,7 +32,6 @@
     }
   }
 }
-
 .EmptyState__description {
   p {
     color: $color-font-base;
@@ -53,7 +48,6 @@
     }
   }
 }
-
 .EmptyStateWrapper {
   .EmptyState {
     max-width: 35rem !important;

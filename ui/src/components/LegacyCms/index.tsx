@@ -33,15 +33,6 @@ type LegacyCMSComponentProps = {
   handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
-/**
- * Represents the LegacyCMSComponent.
- * @param legacyCMSData - The legacy CMS data.
- * @param projectData - The project data.
- * @param isCompleted - Indicates if the migration is completed.
- * @param handleOnAllStepsComplete - The callback function for handling all steps completion.
- * @param ref - The ref object.
- * @returns The LegacyCMSComponent.
- */
 const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted, handleOnAllStepsComplete, }: LegacyCMSComponentProps, ref) => {
   //react-redux apis
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
