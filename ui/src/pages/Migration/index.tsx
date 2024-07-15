@@ -215,7 +215,7 @@ const Migration = () => {
               result = 'Imported File';
               break;
           }
-          if (currentIndex !== 3) {
+          if (currentIndex !== 3 || currentIndex !== 4) {
             Notification({
               notificationContent: { text: `Please complete ${result} step` },
               type: 'warning'
