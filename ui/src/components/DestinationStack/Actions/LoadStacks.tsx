@@ -27,11 +27,6 @@ const defaultStack = {
   name: ''
 };
 
-/**
- * Component for loading stacks.
- * @param props - The component props.
- * @returns The LoadStacks component.
- */
 const LoadStacks = (props: LoadFileFormatProps) => {
   const ref = useRef<HTMLDivElement>(null);
   /****  ALL HOOKS HERE  ****/

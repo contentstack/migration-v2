@@ -13,12 +13,6 @@ interface PreFixSummaryProps {
   stepData: IStep;
 }
 
-/**
- * Renders the PreFixSummary component.
- *
- * @param {PreFixSummaryProps} props - The component props.
- * @returns {JSX.Element} The rendered PreFixSummary component.
- */
 const PreFixSummary = (props: PreFixSummaryProps): JSX.Element => {
   
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);

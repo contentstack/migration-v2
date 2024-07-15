@@ -12,12 +12,6 @@ interface SelectCmsSummaryProps {
   stepData: IStep;
 }
 
-/**
- * Renders the summary component for selecting CMS.
- *
- * @param {SelectCmsSummaryProps} props - The component props.
- * @returns {JSX.Element} The rendered component.
- */
 const SelectCmsSummary = (props: SelectCmsSummaryProps): JSX.Element => {
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);

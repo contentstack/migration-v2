@@ -2,13 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/custom-errors.utils.js";
 import logger from "../utils/logger.js";
 
-/**
- * Error middleware
- * @param err - Error object
- * @param req - Express request object
- * @param res - Express response object
- * @param next - Express next function
- */
 export const errorMiddleware = (
   err: Error,
   req: Request,

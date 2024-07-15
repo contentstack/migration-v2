@@ -26,13 +26,6 @@ type IProp = {
   currentStep: number;
 };
 
-/**
- * FlowStepper component displays a stepper for the migration flow steps.
- *
- * @param {IProp} props - The component props.
- * @param {number} props.currentStep - The current step of the migration flow.
- * @returns {JSX.Element} The rendered FlowStepper component.
- */
 const FlowStepper = ({ currentStep }: IProp) => {
   /** ALL HOOKS Here */
   const params = useParams();
@@ -41,13 +34,6 @@ const FlowStepper = ({ currentStep }: IProp) => {
   
   const migrationData = useSelector((state:any)=>state?.migration?.migrationData)
 
-  /**
-   * Handles the click event when a step is clicked in the stepper.
-   *
-   * @param {IFlowStep} step - The step object.
-   * @param {boolean} isCompleted - Indicates if the step is completed.
-   * @returns {Promise<void>} A Promise that resolves when the click event is handled.
-   */
   const onStepClick = (step: IFlowStep, isCompleted: boolean) => async () => {
     if (params?.stepId === `${step?.name}`) return;
     dispatch(updateMigrationData({ currentFlowStep: step }))
