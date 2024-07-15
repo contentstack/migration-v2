@@ -52,10 +52,6 @@ const MigrationExecutionComponentLazyLoaded = lazy(
 );
 
 
-/**
- * Renders the wrapper component for creating a new migration.
- * This component fetches project data and handles the flow steps.
- */
 const NewMigrationWrapper = () => {
   const params: Params<string> = useParams();
   const navigate = useNavigate();

@@ -10,11 +10,6 @@ import { FieldMapType } from '../ContentMapper/contentMapper.interface';
 import './index.scss';
 
 // Function for get icons
-/**
- * Retrieves the corresponding icon for a given field type.
- * @param field - The field object containing the ContentstackFieldType property.
- * @returns The icon name associated with the field type.
- */
 const getTopLevelIcons = (field: FieldMapType) => {
   const icons: Icons = {
     title: 'StarSmall',
@@ -93,10 +88,6 @@ const getTopLevelIcons = (field: FieldMapType) => {
   return icons[field?.ContentstackFieldType as keyof Icons];
 };
 
-/**
- * Renders a tree view component based on the provided schema.
- * @param schema - The schema data used to generate the tree view.
- */
 const TreeView = ({ schema = [] }: schemaType) => {
   const [nestedList, setNestedList] = useState<FieldMapType[]>([]);
 
@@ -123,29 +114,16 @@ const TreeView = ({ schema = [] }: schemaType) => {
     setNestedList(data);
   }, [schema]);
 
-  /**
-   * Checks if a field has nested child fields.
-   * @param field - The field to check.
-   * @returns True if the field has nested child fields, false otherwise.
-   */
+  // Check if schema is nested
   const hasNestedValue = (field: FieldMapType) => field && field?.child && field?.child?.length > 0;
 
-  /**
-   * Removes the group name from a child field name.
-   * @param text - The child field name.
-   * @param groupName - The group name.
-   * @returns The child field name without the group name.
-   */
+  // Remove Group name from its child
   const getChildFieldName = (text?: string, groupName?: string) => {
     if (text?.startsWith(groupName + ' > ')) {
       return text?.replace(groupName + ' > ', '');
     }
   };
 
-  /**
-   * Handles the click event on a tree view item.
-   * @param event - The click event.
-   */
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     if (document?.querySelector('.iconsholder.active')) {
       document?.querySelector('.iconsholder.active')?.classList.remove('active');
@@ -167,12 +145,6 @@ const TreeView = ({ schema = [] }: schemaType) => {
     }
   };
 
-  /**
-   * Generates the nested outline for a field.
-   * @param item - The field to generate the outline for.
-   * @param index - The index of the field.
-   * @returns The nested outline JSX.
-   */
   const generateNestedOutline = (item: FieldMapType, index: number) => {
     return (
       <ul className={item && item?.child && item?.child?.length > 0 ? '' : 'close'}>
@@ -261,12 +233,6 @@ const TreeView = ({ schema = [] }: schemaType) => {
   );
 };
 
-/**
- * Renders a modal component for displaying a schema preview.
- *
- * @param props - The props for the SchemaModal component.
- * @returns The rendered SchemaModal component.
- */
 const SchemaModal = (props: SchemaProps) => {
   return (
     <>

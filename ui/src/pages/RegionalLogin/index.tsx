@@ -16,17 +16,11 @@ import { RegionType } from './regionalLogin.interface';
 // Style
 import './index.scss';
 
-/**
- * Component for regional login.
- */
 const RegionalLogin = () => {
   const [data, setData] = useState<RegionType>({});
 
   const navigate = useNavigate();
 
-  /**
-   * Fetches data from CMS.
-   */
   const fetchData = async () => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
     await getCMSDataFromFile(CS_ENTRIES.REGIONS)
@@ -41,11 +35,6 @@ const RegionalLogin = () => {
     fetchData();
   }, []);
 
-  /**
-   * Handles the login click event.
-   * @param regionName - The name of the region.
-   * @param serviceName - The name of the service.
-   */
   const loginClick = (regionName: string, serviceName: string) => {
     let loginUrl: string;
 
