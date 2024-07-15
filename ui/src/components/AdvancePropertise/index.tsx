@@ -22,13 +22,7 @@ import { ContentType } from '../ContentMapper/contentMapper.interface';
 // Styles
 import './index.scss';
 
-/**
- * Component for displaying advanced properties.
- * @param props - The schema properties.
- * @returns The rendered component.
- */
 const AdvancePropertise = (props: SchemaProps) => {
-  // State for toggle states
   const [toggleStates, setToggleStates] = useState({
     minChars: props?.value?.MinChars,
     maxChars: props?.value?.MaxChars,
@@ -47,7 +41,6 @@ const AdvancePropertise = (props: SchemaProps) => {
     embedAssests: true
   });
 
-  // State for content types
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   const [ctValue, setCTValue] = useState(null);
 
@@ -55,22 +48,13 @@ const AdvancePropertise = (props: SchemaProps) => {
     fetchContentTypes('');
   }, [])
 
-  /**
-   * Fetches the content types list.
-   * @param searchText - The search text.
-   */
+  // Fetch content types list
   const fetchContentTypes = async (searchText: string) => {
     const { data } = await getContentTypes(props?.projectId ?? '', 0, 10, searchText || ''); //org id will always present
 
     setContentTypes(data?.contentTypes);
   };
 
-  /**
-   * Handles the change event for input fields.
-   * @param field - The field name.
-   * @param event - The change event.
-   * @param checkBoxChanged - Indicates if the checkbox was changed.
-   */
   const handleOnChange = (field: string, event: React.ChangeEvent<HTMLInputElement>, checkBoxChanged: boolean) => {
     setToggleStates((prevStates) => ({
       ...prevStates,
@@ -92,12 +76,6 @@ const AdvancePropertise = (props: SchemaProps) => {
     );
   };
 
-  /**
-   * Handles the toggle change event.
-   * @param field - The field name.
-   * @param value - The new value.
-   * @param checkBoxChanged - Indicates if the checkbox was changed.
-   */
   const handleToggleChange = (field: string, value: boolean, checkBoxChanged: boolean) => {
     setToggleStates((prevStates) => ({
       ...prevStates,
@@ -119,14 +97,13 @@ const AdvancePropertise = (props: SchemaProps) => {
     );
   };
 
-  // Option for content types
   const option = Array.isArray(contentTypes)
     ? contentTypes.map((option) => ({ label: option?.otherCmsTitle, value: option?.otherCmsTitle }))
     : [{ label: contentTypes, value: contentTypes }];
 
   return (
     <>
-      <ModalHeader title={`${props?.fieldtype} properties`} closeModal={props?.closeModal} className="text-capitalize" />
+      <ModalHeader title={`${props?.fieldtype} propertise`} closeModal={props?.closeModal} className="text-capitalize" />
       <ModalBody>
         <div className='modal-data'>
           {(props?.fieldtype === 'Single Line Textbox' || props?.fieldtype === 'Multi Line Textbox') && (

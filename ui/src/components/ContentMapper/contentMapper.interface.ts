@@ -50,35 +50,19 @@ export interface ContentType {
   fieldMapping?: FieldMapType[] | [];
 }
 
-/**
- * Represents the field mapping type for ContentMapper.
- */
 export interface FieldMapType {
-  /** The Contentstack field type. */
   ContentstackFieldType: string;
-  /** The child field mappings. */
   child?: FieldMapType[] | undefined;
-  /** The backup field type. */
   backupFieldType: string;
-  /** The Contentstack field name. */
   contentstackField: string;
-  /** The Contentstack field UID. */
   contentstackFieldUid: string;
-  /** Indicates if the field is deleted. */
   isDeleted: boolean;
-  /** The field name in another CMS. */
   otherCmsField: string;
-  /** The field type in another CMS. */
   otherCmsType: string;
-  /** The UID of the field mapping. */
   uid: string;
-  /** The ID of the field mapping. */
   id: string;
-  /** Indicates if the field can be selected. */
   _canSelect?: boolean;
-  /** Advanced field options. */
   advanced?: Advanced;
-  /** The Contentstack UID. */
   contentstackUid: string;
 }
 

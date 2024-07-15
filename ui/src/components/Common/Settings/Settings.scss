@@ -1,40 +1,19 @@
-/**
- * This SCSS file contains styles for the Settings component.
- */
-
 @import '../../../scss/variables';
 
 #setting-page {
   display: flex;
   width: 100%;
-
-  /**
-   * Styles for the section header.
-   */
   .SectionHeader {
     color: $color-stepper-title;
     font-weight: $font-weight-semi-bold;
     margin-bottom: 2rem;
   }
-
-  /**
-   * Styles for the page layout.
-   */
   .PageLayout {
     width: 100%;
   }
-
-  /**
-   * Styles for the page layout's head and left sidebar.
-   */
-  .PageLayout__head,
-  .PageLayout__leftSidebar {
+  .PageLayout__head, .PageLayout__leftSidebar {
     border-top: 0 none;
   }
-
-  /**
-   * Styles for the primary page layout.
-   */
   .PageLayout--primary {
     .PageLayout__content {
       .PageLayout__body {
@@ -42,20 +21,12 @@
         margin-left: 15rem;
         padding-top: $px-8;
       }
-    }
-  }
-
-  /**
-   * Styles for the action component title.
-   */
+    } 
+  } 
   .action-component-title {
     justify-content: space-between;
     width: calc(100vw - 326px);
   }
-
-  /**
-   * Styles for the content block.
-   */
   .content-block {
     margin-right: 0;
     padding: 1.5rem;
@@ -63,30 +34,28 @@
   }
 }
 
-/**
- * Styles for the field.
- */
 .Field {
   margin-bottom: $px-40;
 }
-
-/**
- * Styles for hiding the left sidebar.
- */
 .PageLayout__leftSidebar--hide {
   display: none;
 }
 
-/**
- * Styles for the left sidebar.
- */
 .leftsidebar {
   margin-top: 0 !important;
 }
 
-/**
- * Styles for the stack settings heading.
- */
+// .content-body .white-box-container {
+//   background-color: $color-brand-white-base;
+//   padding: 20px;
+//   margin-top: 50px !important;
+//   margin-left: 240px;
+//   margin-right: auto;
+//   position: relative;
+//   z-index: 10;
+//   height: 600px;
+// }
+
 .stack-settings__heading {
   color: $color-base-black-base;
   font-size: 0.875rem;
@@ -96,16 +65,26 @@
   margin-bottom: $px-20;
 }
 
-/**
- * Styles for the page layout's left sidebar.
- */
+// .toggle-class {
+//   width: calc(100% - 18.4375rem) !important;
+// }
+// .layout-container.specific-context .PageLayout__head {
+//   z-index: 10 !important;
+//   margin-left: 240px;
+//   width: 100% !important;
+// }
+// .SaveButton {
+//   padding: 30px 10px;
+// }
+
+// .layout-container.content-body .PageLayout__body {
+//   margin-top: 90px !important;
+//   margin-left: 227px !important;
+// }
+
 .PageLayout__leftSidebar {
   background-color: #f7f9fc !important;
 }
-
-/**
- * Styles for the active list row.
- */
 .ListRowV2--active {
   background-color: #fff;
   border-left: 0.125rem solid;

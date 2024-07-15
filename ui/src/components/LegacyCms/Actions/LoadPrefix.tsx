@@ -29,12 +29,6 @@ interface LoadSelectCmsProps {
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
 
-/**
- * Component for loading and handling the prefix in the Legacy CMS.
- * @param {LoadSelectCmsProps} props - The component props.
- * @returns {JSX.Element} The rendered component.
- */
-
 const LoadPreFix = (props: LoadSelectCmsProps) => {
   /****  ALL HOOKS HERE  ****/
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);

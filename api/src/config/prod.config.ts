@@ -11,6 +11,4 @@ export const prodConfig = {
     AZURE_NA: "https://azure-na-app.contentstack.com/#!",
     AZURE_EU: "https://azure-eu-app.contentstack.com/#!",
   },
-  LOG_FILE_PATH:
-    process.platform === "win32" ? ".\\combine.log" : "./combine.log", // Replace with the actual path to your log file
 };
