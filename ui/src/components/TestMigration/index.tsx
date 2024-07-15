@@ -17,6 +17,11 @@ import LogViewer from '../LogScreen';
 // CSS
 import './index.scss';
 
+/**
+ * TestMigration component.
+ * This component displays the UID and allows the user to select their current Content Management System.
+ * It also displays the execution logs using the LogViewer component.
+ */
 const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
 

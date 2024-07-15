@@ -1,5 +1,11 @@
 @import '../../scss/variables';
+/**
+ * Styles for the MigrationEditor page.
+ */
 .migration-container {
+  /**
+   * Styles for the body section of the page layout.
+   */
   #PageLayout__body {
     //display: flex;
     margin-left: 0;
@@ -8,6 +14,10 @@
     padding: 0;
     overflow: hidden;
   }
+
+  /**
+   * Styles for the page title.
+   */
   .PageTitle {
     margin-left: 1rem;
     font-weight: 700;
@@ -18,6 +28,10 @@
     white-space: nowrap;
     line-height: normal;
   }
+
+  /**
+   * Styles for the step flow wrapper tree area.
+   */
   .step-flow-wrapper-tree-area {
     // border-right: 1px solid $color-base-gray-40;
     display: flex;
@@ -26,6 +40,10 @@
     max-height: 94vh;
     min-height: calc(100vh - 115px);
   }
+
+  /**
+   * Styles for the step flow wrapper content area.
+   */
   .step-flow-wrapper-content-area {
     display: flex;
     flex-direction: column;

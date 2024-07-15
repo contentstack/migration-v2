@@ -20,6 +20,14 @@ type Props = {
   iconSize?: 'original' | 'tiny' | 'mini' | 'small' | 'large' | 'medium' | 'extraSmall';
 };
 
+/**
+ * Represents a filter modal component.
+ *
+ * @component
+ * @param {Props} props - The props for the FilterModal component.
+ * @returns {JSX.Element} The rendered FilterModal component.
+ */
+
 export const FilterModal = (props: Props) => {
   const {
     title,

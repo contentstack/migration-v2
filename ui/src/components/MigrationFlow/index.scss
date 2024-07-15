@@ -1,5 +1,9 @@
 @import '../../scss/variables';
 
+/**
+ * Styles for the MigrationFlow component.
+ */
+
 .basicinfo-tab {
   cursor: pointer;
   padding-bottom: $space-20;
@@ -16,6 +20,7 @@
     }
   }
 }
+
 .basic-info-block {
   margin: $space-10 $space-10 0;
   padding-left: $space-12;
@@ -26,6 +31,7 @@
     color: $color-font-base;
   }
 }
+
 .basic-info-block-active {
   background: $color-brand-white-base;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -40,6 +46,7 @@
     font-weight: $font-weight-semi-bold;
   }
 }
+
 .step-wrapper {
   padding: 15px 0;
 }

@@ -1,5 +1,9 @@
 @import '../../../scss/variables';
 
+/**
+ * Styles for the NewMigrationWrapper component.
+ */
+
 .step-component .action-component-title {
   // height: 60px;
   // background: $color-brand-white-base;
@@ -41,6 +45,7 @@
   font-weight: $font-weight-semi-bold;
   flex: 2;
 }
+
 #newMigration {
   .PageLayout.PageLayout--primary {
     display: flex;

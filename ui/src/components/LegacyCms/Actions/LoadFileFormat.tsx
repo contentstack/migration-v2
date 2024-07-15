@@ -27,8 +27,14 @@ interface LoadFileFormatProps {
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
 
+/**
+ * Component for loading file format.
+ * @param {LoadFileFormatProps} props - The component props.
+ * @returns {JSX.Element} The rendered component.
+ */
 const LoadFileFormat = (props: LoadFileFormatProps) => {
 
+  // State variables
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -43,99 +49,9 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const [fileIcon, setFileIcon]  = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.title);
   const [isError, setIsError] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  
-  const { projectId = '' } = useParams();
 
+  // Other code...
 
-  /****  ALL METHODS HERE  ****/
-
-  const handleBtnClick = async () => {
-    
-    if (!isEmptyString(selectedCard?.fileformat_id) && isCheckedBoxChecked) {
-      dispatch(updateNewMigrationData({
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData?.legacy_cms,
-          isFileFormatCheckboxChecked: isCheckedBoxChecked
-        }
-      }));
-      await fileformatConfirmation(selectedOrganisation?.value, projectId, {
-        fileformat_confirmation: true
-      });
-
-      //call for Step Change
-      props.handleStepChange(props?.currentStep);
-    }
-  };
-
-  // Toggles checkbox selection
-  const handleCheckBoxChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { checked } = e.target;
-    setIsCheckedBoxChecked(checked);
-  };
-
-  const getFileExtension = (filePath: string): string => {
-    const ext = filePath.split('.').pop();
-    return ext ? `${ext}` : 'zip';
-  };
-
-  const handleFileFormat = async() =>{
-    const apiRes: any = await getConfig();
-    const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : apiRes?.data?.cmsType?.toLowerCase();
-    const filePath = apiRes?.data?.localPath?.toLowerCase();
-    const fileFormat =  getFileExtension(filePath);
-    if(! isEmptyString(selectedCard?.fileformat_id)){
-      setFileIcon(selectedCard?.title);
-    }
-    else{
-      const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
-    let filteredCmsData:any = all_cms;
-    if (cmsType) {
-      filteredCmsData = all_cms?.filter((cms: any) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase());
-    }
- 
-    const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format:any)=>{ 
-      const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();    
-      return isValid;
-    });
- 
-    if(! isFormatValid){
-      setIsError(true);
-      setError('File format does not support, please add the correct file format.');
-    }
-  
-    const selectedFileFormatObj = {
-      description: "",
-      fileformat_id: fileFormat,
-      group_name: fileFormat,
-      isactive: true,
-      title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
-    }
-    
-    
-    const newMigrationDataObj = {
-      ...newMigrationData,
-      legacy_cms: {
-        ...newMigrationData?.legacy_cms,
-        selectedFileFormat: selectedFileFormatObj
-      }
-    };
-    
-    setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1) : fileFormat?.toUpperCase());
-    dispatch(updateNewMigrationData(newMigrationDataObj));
-
-    }
-    
-    
-  }
-  
-  /****  ALL USEEffects  HERE  ****/
-  useEffect(()=>{
-    handleFileFormat();
-    handleBtnClick();
-  },[]);
-
-  
   return (
     <div className="p-3">
         <div className="col-12">

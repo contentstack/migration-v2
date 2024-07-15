@@ -1,5 +1,9 @@
 import { FieldMapType } from '../ContentMapper/contentMapper.interface';
 
+/**
+ * Represents the Icons interface.
+ * This interface defines the structure of an object that contains various icon names.
+ */
 export interface Icons {
   title?: string;
   text?: string;
@@ -22,9 +26,24 @@ export interface Icons {
   tag?: string;
   experience_container?: string;
 }
+
+/**
+ * Represents the props for the SchemaModal component.
+ */
 export interface SchemaProps {
+  /**
+   * The content type of the schema.
+   */
   contentType?: string;
+  
+  /**
+   * A function to close the modal.
+   */
   closeModal: () => void;
+  
+  /**
+   * The schema data as an array of FieldMapType.
+   */
   schemaData: FieldMapType[];
 }
 

@@ -33,16 +33,21 @@ import NotificationModal from '../Common/NotificationModal';
 // Styles
 import './index.scss';
 
+/**
+ * MainHeader component displays the main header of the application.
+ * It includes user information, organization selection, and logo.
+ */
 const MainHeader = () => {
-  const user = useSelector((state:RootState)=>state?.authentication?.user);
-  const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
-  const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
+  // Selecting data from the Redux store
+  const user = useSelector((state: RootState) => state?.authentication?.user);
+  const organisationsList = useSelector((state: RootState) => state?.authentication?.organisationsList);
+  const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
+  // State variables
   const [data, setData] = useState<MainHeaderType>({});
   const [orgsList, setOrgsList] = useState<IDropDown[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -50,19 +55,24 @@ const MainHeader = () => {
 
   const { logo, organization_label: organizationLabel } = data;
 
+  // Generating user initials
   const name = `${user?.first_name?.charAt(0)}${user?.last_name?.charAt(0)}`.toUpperCase() ?? '';
-   
+
+  /**
+   * Updates the organization list state.
+   * Sets the selected organization as default and updates the organization in local storage.
+   */
   const updateOrganisationListState = () => {
     if (organisationsList) {
-      //set selected org as default
+      // Set selected org as default
       const list = organisationsList.map((org: IDropDown) => ({
         ...org,
         default: org?.value === selectedOrganisation?.value
       }));
-  
+
       setOrgsList(list);
-  
-      //Set organization in local storage, first check if selectedOrg.value exists, if not get org id from local storage and set.
+
+      // Set organization in local storage, first check if selectedOrg.value exists, if not get org id from local storage and set.
       setDataInLocalStorage(
         'organization',
         selectedOrganisation?.value || getDataFromLocalStorage('organization')
@@ -70,8 +80,12 @@ const MainHeader = () => {
     }
   };
 
+  /**
+   * Fetches data for the main header.
+   * Reads data from CMS data file if the offline CMS data field is set to true.
+   */
   const fetchData = async () => {
-    //check if offline CMS data field is set to true, if then read data from cms data file.
+    // Check if offline CMS data field is set to true, if so, read data from CMS data file.
     getCMSDataFromFile(CS_ENTRIES.MAIN_HEADER)
       .then((data) => setData(data))
       .catch((err) => {
@@ -87,7 +101,12 @@ const MainHeader = () => {
   useEffect(() => {
     updateOrganisationListState();
   }, [selectedOrganisation]);
-  
+
+  /**
+   * Handles the dropdown change event.
+   * Dispatches the selected organization and updates the organization in local storage.
+   * @param data - The selected dropdown item.
+   */
   const handleOnDropDownChange = (data: IDropDown) => {
     if (data.value === selectedOrganisation.value) return;
 
@@ -152,22 +171,24 @@ const MainHeader = () => {
       navigate(`/projects`, { replace: true });
     }
   };
+
   return (
     <div className="mainheader">
-          <div className="d-flex align-items-center" onClick={handleonClick}>
-            {logo?.image?.url ? (
-              <div className="logo">
-                <Tooltip position="right" content="Projects" wrapperElementType="div">
-                  {/* <Link to={`${logo?.url}`}> */}
-                    <img src={logo?.image?.url} width={32} alt="Contentstack" />
-                  {/* </Link> */}
-                </Tooltip>
-              </div>
-            ) : (
-              ''
-            )}
+      <div className="d-flex align-items-center" onClick={handleonClick}>
+        {logo?.image?.url ? (
+          <div className="logo">
+            <Tooltip position="right" content="Projects" wrapperElementType="div">
+              {/* <Link to={`${logo?.url}`}> */}
+              <img src={logo?.image?.url} width={32} alt="Contentstack" />
+              {/* </Link> */}
+            </Tooltip>
+          </div>
+        ) : (
+          ''
+        )}
 
-            {location.pathname === '/projects' && <div className="organisationWrapper">
+        {location.pathname === '/projects' && (
+          <div className="organisationWrapper">
             <Dropdown
               withSearch
               headerLabel={organizationLabel}
@@ -178,25 +199,28 @@ const MainHeader = () => {
               withArrow
               onChange={handleOnDropDownChange}
             ></Dropdown>
-            </div>}
           </div>
+        )}
+      </div>
 
-          {(location.pathname == '/projects' || location.pathname.includes('/projects/')) && <div className="flex-end">
-            <div className="Dropdown-wrapper">
-              <Dropdown
-                list={[
-                  {
-                    default: true,
-                    label: <ProfileCard/>,
-                  }
-                ]}
-                type="click"
-                className="Profile_card"
-              >
-                <div className="user-short-name flex-v-center flex-h-center">{name}</div>
-              </Dropdown>
-            </div>
-          </div>}
+      {(location.pathname == '/projects' || location.pathname.includes('/projects/')) && (
+        <div className="flex-end">
+          <div className="Dropdown-wrapper">
+            <Dropdown
+              list={[
+                {
+                  default: true,
+                  label: <ProfileCard />
+                }
+              ]}
+              type="click"
+              className="Profile_card"
+            >
+              <div className="user-short-name flex-v-center flex-h-center">{name}</div>
+            </Dropdown>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
