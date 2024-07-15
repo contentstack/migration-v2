@@ -201,8 +201,8 @@ const Migration = () => {
       else{
         setIsLoading(false);
 
-        if (legacyCMSRef.current) {
-          const currentIndex = legacyCMSRef.current.getInternalActiveStepIndex() + 1;         
+        if (legacyCMSRef?.current) {
+          const currentIndex = legacyCMSRef?.current?.getInternalActiveStepIndex() + 1;                
           let result;
           switch (currentIndex ) {
             case 0:
@@ -215,7 +215,7 @@ const Migration = () => {
               result = 'Imported File';
               break;
           }
-          if (currentIndex !== 3) {
+          if (currentIndex !== 3 || currentIndex !== 4) {
             Notification({
               notificationContent: { text: `Please complete ${result} step` },
               type: 'warning'
