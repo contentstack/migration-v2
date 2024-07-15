@@ -24,13 +24,6 @@ type IStyle = {
   [key: string]: string
 }
 
-/**
- * Renders a progress bar component.
- *
- * @component
- * @param {ProgressBarProps} props - The props for the ProgressBar component.
- * @returns {JSX.Element} - The rendered ProgressBar component.
- */
 const ProgressBar = (props: ProgressBarProps) => {
   const { percentage, color, height, borderRadius, type, radius, stroke, bgColor } = props
 

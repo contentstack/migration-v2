@@ -21,11 +21,6 @@ interface Props {
   fileDetails: FileDetails;
 }
 
-/**
- * Renders the file component based on the file details.
- * @param {Props} fileDetails - The file details object.
- * @returns {JSX.Element} The rendered file component.
- */
 const FileComponent = ({fileDetails}:Props ) => { 
   
   return (
@@ -46,32 +41,15 @@ const FileComponent = ({fileDetails}:Props ) => {
   );
 };
 
-/**
- * Saves the state to the local storage.
- * @param state - The state object to be saved.
- * @param projectId - The ID of the project.
- */
-const saveStateToLocalStorage = (state: any, projectId: string) => {
+const saveStateToLocalStorage = (state:any, projectId : string) => {
   sessionStorage.setItem(`uploadProgressState_${projectId}`, JSON.stringify(state));
 };
 
-/**
- * Retrieves the upload progress state from the session storage for a specific project.
- * @param projectId - The ID of the project.
- * @returns The upload progress state if found, otherwise null.
- */
-const getStateFromLocalStorage = (projectId: string) => {
+const getStateFromLocalStorage = (projectId : string) => {
   const state = sessionStorage.getItem(`uploadProgressState_${projectId}`);
   return state ? JSON.parse(state) : null;
 };
 
-/**
- * Component for loading and uploading a file.
- *
- * @component
- * @param {LoadUploadFileProps} props - The component props.
- * @returns {JSX.Element} The rendered component.
- */
 const LoadUploadFile = (props: LoadUploadFileProps) => {
   /****  ALL HOOKS HERE  ****/
   

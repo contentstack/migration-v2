@@ -1,11 +1,6 @@
 // src/models/Authentication.ts
-
 import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
-
-/**
- * Represents the structure of the authentication document.
- */
 interface AuthenticationDocument {
   users: {
     user_id: string;
@@ -16,14 +11,8 @@ interface AuthenticationDocument {
   }[];
 }
 
-/**
- * Represents the default data for the authentication document.
- */
 const defaultData: AuthenticationDocument = { users: [] };
 
-/**
- * Represents the database instance for the authentication document.
- */
 const db = new LowWithLodash(
   new JSONFile<AuthenticationDocument>("database/authentication.json"),
   defaultData

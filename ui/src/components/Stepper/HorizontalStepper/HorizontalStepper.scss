@@ -1,14 +1,9 @@
 @import '../../../scss/variables';
 
-/**
- * Styles for the horizontal stepper component.
- */
-
 .stepper-wrapper {
   margin-top: 73px;
   position: fixed;
 }
-
 .stepper {
   border-bottom: 1px solid $color-base-gray-40;
   display: flex;
@@ -16,12 +11,12 @@
   justify-content: space-between;
   gap: 0px;
   padding: 10px;
-
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
   }
-}
+  
+}   
 
 .stepWrapperContainer {
   display: flex;
@@ -29,7 +24,8 @@
   justify-content: center;
   position: relative;
   flex: 0.6;
-  margin: 0;
+  margin: 0 ;
+
 }
 
 .stepWrapper {
@@ -40,10 +36,9 @@
   position: relative;
   z-index: 1;
 
-  &.completed .badge {
-    background-color: $color-brand-primary-base;
+  &.completed .badge{
+    background-color:$color-brand-primary-base;
   }
-
   &.active .badge {
     background-color: white;
     border: $px-2 solid $color-brand-primary-base;
@@ -72,15 +67,14 @@
     overflow: hidden;
     white-space: nowrap;
     font-family: Inter;
+    
   }
-
-  &.disableEvents {
+  &.disableEvents{
     cursor: not-allowed;
-    opacity: 1 !important;
+    opacity: 1 !important; 
     color: #475161 !important;
   }
 }
-
 .stepWrapperContainer:has(.disableEvents) {
   cursor: not-allowed;
 }
@@ -89,7 +83,7 @@
   height: 4px;
   background-color: $color-brand-primary-base;
   flex-grow: 1;
-  margin: 0;
+  margin: 0; 
   margin-bottom: 30px;
   border-radius: 4px;
   margin-left: -40px;
@@ -101,16 +95,14 @@
   flex-direction: column;
   align-items: center;
 }
-
-.icon-wrapper {
+.icon-wrapper{
   width: 16px;
   height: 11px;
 }
-
-.disabled-connector {
+.disabled-connector{
   background-color: $color-base-gray-40;
   flex-grow: 1;
-  margin: 0;
+  margin: 0; 
   margin-bottom: 30px;
   border-radius: 4px;
   height: 4px;
@@ -119,7 +111,6 @@
 }
 
 /******************* Custom Classes *******************/
-
 .stepper-position {
   background-color: $color-brand-white-base;
   margin-top: 73px;
@@ -128,7 +119,6 @@
   width: calc(100% - 56px);
   z-index: 9;
 }
-
 .stepContent {
   background-color: $color-base-white-10;
   height: calc(100vh - 56px);

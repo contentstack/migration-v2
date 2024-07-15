@@ -19,10 +19,6 @@ const MigrationLazyLoad = lazy(() => import('../../pages/Migration'));
 const ProjectsLazyLoad = lazy(() => import('../../pages/Projects'));
 const SettingsLazyLoad = lazy(() => import ('../Common/Settings'))
 
-/**
- * Renders the application router.
- * @returns The application router component.
- */
 const AppRouter = () => {
   return (
     <Routes>
