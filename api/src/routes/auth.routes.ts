@@ -3,12 +3,9 @@ import { authController } from "../controllers/auth.controller.js";
 import { asyncRouter } from "../utils/async-router.utils.js";
 import validator from "../validators/index.js";
 
-/**
- * Express router for handling authentication routes.
- */
 const router = express.Router();
 
-// User session route
+// Login route
 router.post(
   "/user-session",
   validator("auth"),

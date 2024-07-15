@@ -1,8 +1,4 @@
 @import '../../scss/variables';
-/**
- * Styles for the legacy CMS component.
- */
-
 .service_list_legacy {
   text-align: center;
   display: flex;
@@ -11,105 +7,67 @@
   margin: 20px 20px ;
 }
 
-/**
- * Adds left padding of 40 pixels.
- */
 .pl-40 {
   padding-left: $px-40;
 }
 
-/**
- * Centers the element vertically.
- */
 .center-align {
   margin-top: calc(100vh - 65%);
 }
 
-/**
- * Styles for a small circular loader.
- */
 .CircularLoader--size-small {
   width: $px-80 !important;
   height: $px-80 !important;
 }
 
-/**
- * Styles for a circular loader.
- */
 .CircularLoader {
   display: inline-block !important;
   border-top: $px-5 solid $color-brand-primary-base !important;
 }
-
-/**
- * Styles for the legacy CMS container.
- */
 .legacy-cms-container {
+
   padding-left: 25px !important;
   padding-top: 26px;
   padding-right: 30px;
+
   overflow-y: auto;
   overflow-x: hidden;
   max-height: 70vh;
   background-color: $color-base-white-10;
+  
 }
 
-/**
- * Styles for the search section in the legacy CMS.
- */
 .service_list_search {
   display: flex;
   margin: $space-15;
 }
 
-/**
- * Styles for the search bar in the legacy CMS.
- */
 .service_list_search_bar {
   flex: 15;
   margin-right: $px-15;
   height: $px-35;
 }
 
-/**
- * Styles for the search input in the search bar.
- */
 .service_list_search_bar .Search-input-show {
   width: 100%;
 }
 
-/**
- * Styles for the search button in the legacy CMS.
- */
 .service_list_search_button {
   flex: 1;
 }
 
-/**
- * Styles for the filter modal in the search button.
- */
 .service_list_search_button .Filter__modal {
   right: $px-15;
 }
 
-/**
- * Styles for the filter wrapper in the search button.
- */
 .service_list_search_button .Filter__wrapper {
   position: absolute;
 }
 
-/**
- * Styles for the filter icon in the search button.
- */
 .service_list_search_button .Filter__icon {
   min-height: $px-40;
   top: -8px;
 }
-
-/**
- * Styles for the validation container.
- */
 .validation-container {
   display: flex;
   flex-direction: column;
@@ -120,20 +78,13 @@
   margin-left: 20px !important;
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: var(--TermCount, 5px);
+  
 }
-
-/**
- * Styles for the elements inside the validation container.
- */
 .validation-container > * {
   margin-right: 10px;
   margin-left: 15px;
 }
-
-/**
- * Styles for the error container.
- */
-.error-container {
+.error-container{
   display: flex;
   background-color: $color-base-white-5;
   height: 72px;
@@ -144,50 +95,27 @@
   border: 1px solid $color-brand-fail-base;
   border-radius: var(--TermCount, 5px);
 }
-
-/**
- * Styles for the elements inside the error container.
- */
 .error-container > * {
   margin-left: 10px;
   margin-top: 5px;
 }
 
-/**
- * Styles for the error message.
- */
 .errorMessage {
   color: $color-brand-warning-medium;
   font-size: 12px;
 }
-
-/**
- * Styles for the validation call-to-action.
- */
-.validation-cta {
+.validation-cta{
   margin: $space-24 $space-20 0;
   line-height: 24px;
 }
-
-/**
- * Styles for the success message.
- */
-.success {
+.success{
   color: $color-brand-success-base;
   margin-top: 5px;
 }
-
-/**
- * Styles for the error message.
- */
-.error {
+.error{
   color: $color-brand-fail-base;
 }
-
-/**
- * Styles for the link description.
- */
-.link-discription {
+.link-discription{
   font-family: $font-family-primary;
   font-style: normal;
   font-weight: $font-weight-regular;
@@ -197,41 +125,27 @@
   margin-bottom: $space-10;
   margin-top: $space-10;
 }
-
-/**
- * Styles for the bar container.
- */
-.bar-container { 
+.bar-container{ 
   height: 10px;
   width: 592px;
   align-items: center;
   margin-left: 20px !important;
   margin-top: 10px;
 }
-
-/**
- * Styles for the file icon group.
- */
-.file-icon-group {
-  display: flex;
+.file-icon-group{
+  display:flex;
   flex-direction: row;
   gap: 30px;
 }
-
-/**
- * Styles for the loader.
- */
-.loader {
+.loader{
   margin-left: 20px;
-  .CircularLoader--size-small {
+  .CircularLoader--size-small{
     width: 2rem !important;
     height: 2rem !important;
   }
+  
 }
 
-/**
- * Styles for the processing test.
- */
-.processing-test {
+.processing-test{
   margin-top: 5px;
 }

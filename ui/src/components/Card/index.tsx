@@ -12,12 +12,6 @@ import { getProject } from '../../services/api/project.service';
 import './card.scss';
 import { RootState } from '../../store';
 
-/**
- * Renders a card component for a project in a list.
- * @param {ProjectType} project - The project object.
- * @returns {JSX.Element} The card component.
- */
-
 const CardList = ({ project }: ProjectType) => {
   const navigate = useNavigate();
 

@@ -1,8 +1,6 @@
 @import '../../../../scss/variables';
-/**
- * Styles for the FilterModal component.
- */
- .Filter__modal {
+
+.Filter__modal {
   width: $px-400;
   z-index: 40;
   position: absolute;
@@ -11,48 +9,30 @@
   border-radius: $px-10;
 }
 
-/**
- * Styles for the checkboxes inside the FilterModal component.
- */
- .Filter__modal .Checkbox input:checked ~ .Checkbox__tick,
- .Filter__modal .Checkbox .Checkbox__box {
-   margin-top: $px-4;
-   font-size: $px-16;
- }
+.Filter__modal .Checkbox input:checked ~ .Checkbox__tick,
+.Filter__modal .Checkbox .Checkbox__box {
+  margin-top: $px-4;
+  font-size: $px-16;
+}
 
-/**
- * Styles for each filter item inside the FilterModal component.
- */
- .Filter__modal .Filter__item {
+.Filter__modal .Filter__item {
   cursor: pointer;
   padding: $px-10 $px-20;
 }
 
-/**
- * Styles for the filter item when hovered inside the FilterModal component.
- */
- .Filter__modal .Filter__item:hover {
+.Filter__modal .Filter__item:hover {
   background-color: $color-base-white-10;
 }
 
-/**
- * Styles for the WordWrapper element when the filter item is hovered inside the FilterModal component.
- */
- .Filter__modal .Filter__item:hover .WordWrapper {
+.Filter__modal .Filter__item:hover .WordWrapper {
   color: $color-brand-primary-base;
 }
 
-/**
- * Styles for the Checkbox__box element when the filter item is hovered inside the FilterModal component.
- */
- .Filter__modal .Filter__item:hover .Checkbox__box {
+.Filter__modal .Filter__item:hover .Checkbox__box {
   border: 1.5px solid $color-brand-primary-base;
 }
 
-/**
- * Styles for the header of the FilterModal component.
- */
- .Filter__modal-header {
+.Filter__modal-header {
   background: $color-base-white-10;
   border-bottom: 1px solid $color-brand-secondary-lightest;
   font-size: $px-20;
@@ -61,10 +41,7 @@
   padding: $px-14 $px-16;
 }
 
-/**
- * Styles for the container of the header in the FilterModal component.
- */
- .Filter__modal-header .Filter__modal-header-container {
+.Filter__modal-header .Filter__modal-header-container {
   align-items: center;
   display: flex;
   color: #222;
@@ -76,17 +53,11 @@
   font-weight: 600;
 }
 
-/**
- * Styles for the title in the header of the FilterModal component.
- */
- .Filter__modal-header .Filter__modal-header-container .Filter__modal-header-title {
+.Filter__modal-header .Filter__modal-header-container .Filter__modal-header-title {
   font-weight: 600;
 }
 
-/**
- * Styles for the counter in the header of the FilterModal component.
- */
- .Filter__modal-header .Filter__modal-header-container .Filter__modal-header-counter {
+.Filter__modal-header .Filter__modal-header-container .Filter__modal-header-counter {
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: 1rem;
   color: $color-stepper-title;
@@ -103,44 +74,26 @@
   width: fit-content;
 }
 
-/**
- * Styles for the search box inside the FilterModal component.
- */
- .Filter__searchbox .Search--primary .Search__input {
+.Filter__searchbox .Search--primary .Search__input {
   height: $px-35;
 }
 
-/**
- * Styles for the content area of the FilterModal component.
- */
- .Filter__modal-content {
+.Filter__modal-content {
   overflow: scroll;
   max-height: $px-250;
   overflow-x: hidden;
 }
 
-/**
- * Styles for the filter icon in the FilterModal component.
- */
- .Filter__icon {
+.Filter__icon {
   cursor: pointer !important;
   padding: $px-5;
   border-radius: 10%;
 }
 
-/**
- * Styles for the background color of the filter icon in the FilterModal component.
- */
- .Filter__icon:hover {
+.Filter__icon:hover {
   background-color: rgba(108, 92, 231, 0.1);
 }
 
-/**
- * Styles for the cancel button in the header of the FilterModal component.
- */
- .Filter__icon_bg_color {
-  background-color: rgba(108, 92, 231, 0.1);
-}
 .Filter__icon_bg_color {
   background-color: rgba(108, 92, 231, 0.1);
 }
@@ -155,10 +108,8 @@
 .Filter__modal-header-cancel:hover {
   background-color: $color-brand-secondary-lightest;
 }
-/**
- * Styles for the footer of the FilterModal component.
- */
- .Filter__modal-footer {
+
+.Filter__modal-footer {
   display: flex;
   border-top: 1px solid $color-brand-secondary-lightest;
   height: $px-70;
@@ -166,10 +117,7 @@
   padding: $px-20;
 }
 
-/**
- * Styles for the "no results found" message in the FilterModal component.
- */
- .Filter__no-found {
+.Filter__no-found {
   text-align: center;
   vertical-align: middle;
   line-height: $px-50;

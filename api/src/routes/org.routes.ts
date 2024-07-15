@@ -5,39 +5,20 @@ import validator from "../validators/index.js";
 
 const router = express.Router({ mergeParams: true });
 
-/**
- * GET all org stacks route
- * @route GET /stacks/:searchText?
- * @param {string} searchText - Optional search text
- * @returns {Promise<void>}
- */
+// GET all org stacks route
 router.get("/stacks/:searchText?", asyncRouter(orgController.getAllStacks));
 
-/**
- * Create a new stack route
- * @route POST /stacks
- * @param {object} project - The project data
- * @returns {Promise<void>}
- */
+// Create a new stack route
 router.post(
   "/stacks",
   validator("project"),
   asyncRouter(orgController.createStack)
 );
 
-/**
- * GET all contentstack locales route
- * @route GET /locales
- * @returns {Promise<void>}
- */
+// GET all contentstack locales route
 router.get("/locales", asyncRouter(orgController.getLocales));
 
-/**
- * GET Content_types count
- * @route POST /stack_status
- * @param {object} destination_stack - The destination stack data
- * @returns {Promise<void>}
- */
+// GET Content_types count
 router.post(
   "/stack_status",
   validator("destination_stack"),

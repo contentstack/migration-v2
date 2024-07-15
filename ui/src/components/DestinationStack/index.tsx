@@ -18,100 +18,63 @@ import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
-/**
- * Props for the DestinationStackComponent.
- */
 type DestinationStackComponentProps = {
   destination_stack: string;
   org_id: string;
   isCompleted: boolean;
   projectData: MigrationResponse;
   handleStepChange: (currentStep: number) => void;
-  handleOnAllStepsComplete: (flag: boolean) => void;
+  handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
-/**
- * Renders the DestinationStackComponent.
- * @param destination_stack - The destination stack value.
- * @param org_id - The organization ID.
- * @param projectData - The project data.
- * @param isCompleted - Flag indicating if the component is completed.
- * @param handleOnAllStepsComplete - Callback function for handling all steps completion.
- */
 const DestinationStackComponent = ({
   destination_stack,
   org_id,
   projectData,
   isCompleted,
+  // handleStepChange,
   handleOnAllStepsComplete,
 }: DestinationStackComponentProps) => {
   /** ALL HOOKS HERE */
-
-  /**
-   * Flag indicating if the component is loading.
-   */
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  /**
-   * Flag indicating if the component is migration locked.
-   */
+  // const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
-
-  /**
-   * The key for the stepper component.
-   */
   const [stepperKey, setStepperKey] = useState<string>('v-mig-destination-step');
-
-  /**
-   * The internal active step index.
-   */
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
 
-  /**
-   * Reference to the autoVerticalStepperComponent.
-   */
   const autoVerticalStepperComponent = useRef<any>(null);
 
   /** ALL CONTEXT HERE */
-
-  /**
-   * The migration data from the Redux store.
-   */
-  const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
-
-  /**
-   * The new migration data from the Redux store.
-   */
-  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-
-  /**
-   * The selected organization from the Redux store.
-   */
-  const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
-
-  /**
-   * The list of organizations from the Redux store.
-   */
-  const organisationsList = useSelector((state: RootState) => state?.authentication?.organisationsList);
-
-  /**
-   * The Redux dispatch function.
-   */
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
   const dispatch = useDispatch();
 
-  /**
-   * Handles all steps completion.
-   * @param flag - Flag indicating if all steps are completed.
-   */
+  // const { projectId = '' } = useParams();
+
+  // const navigate = useNavigate();
+
   const handleAllStepsComplete = (flag = false) => {
     handleOnAllStepsComplete(flag);
   };
 
-  /**
-   * Updates the destination stack data.
-   */
+  // const handleOnClick = async (event: MouseEvent) => {
+  //   event?.preventDefault();
+  //   //Update Data in backend
+  //   await updateDestinationStack(selectedOrganisation?.value, projectId, {
+  //     stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
+  //   });
+  //   handleStepChange(2);
+  //   const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
+  //   if (res) {
+  //     const url = `/projects/${projectId}/migration/steps/3`;
+  //     navigate(url, { replace: true });
+  //   }
+  // };
+
   const updateDestinationStackData = async () => {
-    // Update New Migration data
+    //Update New Migration data
 
     const selectedOrganisationData = validateArray(organisationsList)
       ? organisationsList?.find((org: IDropDown) => org?.value === org_id)
@@ -122,19 +85,20 @@ const DestinationStackComponent = ({
       label: '',
       master_locale: '',
       locales: [],
-      created_at: '',
+      created_at: ''
     };
 
-    // If stack is already selected and exist in backend, then fetch all stack list and filter selected stack.
+    //If stack is already selected and exist in backend, then fetch all stack list and filter selected stack.
     if (!isEmptyString(destination_stack)) {
       const stackData: any = await getAllStacksInOrg(
-        selectedOrganisationData?.value || selectedOrganisation?.value,
-        ''
+        selectedOrganisationData?.value || selectedOrganisation?.value,''
       );
 
       const stack =
         validateArray(stackData?.data?.stacks) &&
-        stackData?.data?.stacks?.find((stack: StackResponse) => stack?.api_key === destination_stack);
+        stackData?.data?.stacks?.find(
+          (stack: StackResponse) => stack?.api_key === destination_stack
+        );
 
       if (stack) {
         selectedStackData = {
@@ -142,45 +106,45 @@ const DestinationStackComponent = ({
           value: stack?.api_key,
           master_locale: stack?.master_locale,
           locales: stack?.locales,
-          created_at: stack?.created_at,
+          created_at: stack?.created_at
         };
       }
     }
 
-    // Make First Step Complete
+    //Make First Step Complete
     if (!isEmptyString(selectedOrganisationData?.value)) {
       setInternalActiveStepIndex(0);
     }
 
-    // Complete step if all step are selected.
+    //Complete step if all step are selected.
     if (
       !isEmptyString(selectedOrganisationData?.value) &&
       !isEmptyString(selectedStackData?.value)
     ) {
       setInternalActiveStepIndex(1);
+      // setIsCompleted(true);
     }
 
-    // Update newMigration Data for destination stack
+    //Update newMigration Data for destination stack
     const newMigData: IDestinationStack = {
       ...newMigrationData?.destination_stack,
       selectedOrg: selectedOrganisationData || selectedOrganisation,
-      selectedStack: selectedStackData,
+      selectedStack: selectedStackData
     };
 
     dispatch(updateNewMigrationData({ destination_stack: newMigData }));
   };
 
   /********** ALL USEEFFECT HERE *************/
-
   useEffect(() => {
-    /**
-     * Fetches the CMS data and updates the component state.
-     */
     const fetchCMSData = async () => {
-      // Check if offline CMS data field is set to true, if then read data from cms data file.
+      //check if offline CMS data field is set to true, if then read data from cms data file.
       const data = await getCMSDataFromFile(CS_ENTRIES?.DESTINATION_STACK);
 
-      // Check for null
+      //fetch Legacy CMS Component Data from Contentstack CMS
+      //const data = await getEntries({ contentType: CS_ENTRIES.DESTINATION_STACK })
+
+      //Check for null
       if (!data) {
         dispatch(updateMigrationData({ destinationStackData: DEFAULT_DESTINATION_STACK_DATA }));
         setIsLoading(false);
@@ -189,18 +153,19 @@ const DestinationStackComponent = ({
 
       const destinationStackDataMapped: IDestinationStackComponent = {
         ...data,
-        all_steps: getDestinationStackSteps(isCompleted, isMigrationLocked, data?.all_steps),
+        all_steps: getDestinationStackSteps(isCompleted, isMigrationLocked, data?.all_steps)
       };
+
+      //updateDestinationStackData();
 
       dispatch(updateMigrationData({ destinationStackData: destinationStackDataMapped }));
 
       setIsLoading(false);
 
-      // Check for migration Status and lock.
+      //Check for migration Status and lock.
       // Status where Migration is to be Locked:
       setIsMigrationLocked(projectData?.status === 2 || projectData?.status === 5);
     };
-
     fetchCMSData();
   }, []);
 
@@ -228,11 +193,7 @@ const DestinationStackComponent = ({
         );
       }
     }
-  }, [internalActiveStepIndex]);
-
-  /**
-   * Renders the DestinationStackComponent.
-   */
+  }, [internalActiveStepIndex]); 
   return (
     <>
       {isLoading ? (
@@ -243,7 +204,7 @@ const DestinationStackComponent = ({
         </div>
       ) : (
         <div className="destination-stack-container">
-          <div className="stackTitle">{migrationData?.destinationStackData?.title}</div>
+          <div className='stackTitle'>{migrationData?.destinationStackData?.title}</div>
           <AutoVerticalStepper
             key={stepperKey}
             steps={getDestinationStackSteps(

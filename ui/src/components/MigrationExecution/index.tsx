@@ -19,9 +19,6 @@ import { DEFAULT_MIGRATION_EXECUTION } from '../../context/app/app.interface';
 //stylesheet
 import './index.scss';
 
-/**
- * Component for handling migration execution.
- */
 const MigrationExecution = () => {
   //const { migrationData, updateMigrationData, newMigrationData } = useContext(AppContext);
   const dispatch = useDispatch();
@@ -51,11 +48,6 @@ const MigrationExecution = () => {
       });
   }, []);
 
-  /**
-   * Get the placeholder value based on the title.
-   * @param title - The title of the field.
-   * @returns The placeholder value.
-   */
   const getPlaceHolder = (title: string) => {
     switch (title) {
       case 'Uploaded CMS':
