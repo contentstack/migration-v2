@@ -36,6 +36,11 @@ import './index.scss';
 import { getUserDetails } from '../../store/slice/authSlice';
 
 
+/**
+ * Renders the Projects page.
+ * 
+ * @returns The Projects component.
+ */
 const Projects = () => {
   const [data, setData] = useState<ProjectsType>({});
   const {

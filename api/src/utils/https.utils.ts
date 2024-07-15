@@ -11,6 +11,13 @@ type httpType = {
   data?: any;
   timeout?: number;
 };
+
+/**
+ * Sends an HTTP request using Axios.
+ *
+ * @param obj - The HTTP request object.
+ * @returns An object containing the response headers, status, and data.
+ */
 export default async (obj: httpType) => {
   const { url, method, headers, data, timeout } = obj;
   const res = await axios(url, {

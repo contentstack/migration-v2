@@ -4,15 +4,23 @@ const read = require("fs-readdir-recursive");
 const helper = require("../utils/helper");
 
 
+/**
+ * Assigns a folder name based on the provided path.
+ *
+ * @param {Object} options - The options object.
+ * @param {string} options.path - The path to be processed.
+ * @returns {string} The modified path with the folder name.
+ */
 const assignFolderName = ({ path }) => {
   const spliter = "/sitecore";
   const newPath = path.split(spliter)?.[1];
   return `${spliter}${newPath}`;
 }
 
-
-
-
+/**
+ * Extracts configuration data from the specified sitecore_folder.
+ * @param {string} sitecore_folder - The path to the sitecore_folder.
+ */
 function ExtractConfiguration(sitecore_folder) {
   const xml_folder = read(sitecore_folder);
   const obj = {};
