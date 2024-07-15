@@ -36,13 +36,6 @@ import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import { Notification } from '@contentstack/venus-components';
 
-/**
- * Represents the Migration component.
- * This component is responsible for managing the migration process.
- * It fetches data from the CMS file, updates the app context, and handles the step changes.
- * It also renders the migration steps and provides navigation between them.
- */
-
 const Migration = () => {
   const [projectData, setProjectData] = useState<MigrationResponse>();
   const [isLoading, setIsLoading] = useState(false);

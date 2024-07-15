@@ -37,13 +37,6 @@ export interface Stack {
   locale: string;
 }
 
-/**
- * Renders the AddStack component.
- *
- * @param props - The component props.
- * @returns The JSX element representing the AddStack component.
- */
-
 const AddStack = (props: any): JSX.Element => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

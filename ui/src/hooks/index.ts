@@ -1,10 +1,4 @@
 // Use this hook for any frequent changes , that impect on performance
-/**
- * Creates a debounced version of a callback function.
- * @param callback The callback function to be debounced.
- * @param wait The debounce wait time in milliseconds (default: 250ms).
- * @returns A debounced version of the callback function.
- */
 export function useDebouncer<Params extends any[]>(callback: (...args: Params) => any, wait = 250) {
   let timeoutId: any = null;
   return (...args: Params) => {
