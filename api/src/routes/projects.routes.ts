@@ -3,6 +3,9 @@ import { projectController } from "../controllers/projects.controller.js";
 import { asyncRouter } from "../utils/async-router.utils.js";
 import validator from "../validators/index.js";
 
+/**
+ * Express router for handling project routes.
+ */
 const router = express.Router({ mergeParams: true });
 
 // GET all projects route
