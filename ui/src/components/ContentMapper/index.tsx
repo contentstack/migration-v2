@@ -1112,16 +1112,13 @@ const ContentMapper = () => {
                     >
                       <div className='cms-title'>
                         <Tooltip content={content?.type} position="bottom">
-                          {content?.type === "Content Type" 
+                          {content?.type === "content_type" 
                             ? <Icon icon={active == index ? "ContentModelsMediumActive" : "ContentModelsMedium"} size="small"  />
-                            : content?.type === "Global Field"
-                              ? <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
-                              : <></>
+                            : <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
                           }
                         </Tooltip>
                         {content?.otherCmsTitle && <span>{content?.otherCmsTitle}</span> }
                       </div>
-                      
                       
                       <div className='d-flex align-items-center ct-options'>
                         <span>
