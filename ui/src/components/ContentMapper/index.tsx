@@ -60,6 +60,85 @@ import AdvanceSettings from '../AdvancePropertise';
 
 // Styles
 import './index.scss';
+const dummy_obj:any = {
+  'single_line_text':{
+    label : 'Single Line Textbox',
+    options : {
+      'Single Line Textbox':'single_line_text',
+      'Multi Line Textbox':'multi_line_text',
+      'HTML Rich text Editor':'html',
+      'JSON Rich Text Editor':'json'}
+  },
+  'multi_line_text':{
+    label : 'Multi Line Textbox',
+    options : {
+      'HTML Rich text Editor': 'html',
+      'JSON Rich Text Editor':'json'}
+  },
+  'json':{
+    label:'JSON Rich Text Editor',
+    options : {
+      'JSON Rich Text Editor':'json'}
+  },
+  'html':{
+    label : 'HTML Rich text Editor',
+    options : {
+      'HTML Rich text Editor': 'html',
+      'JSON Rich Text Editor':'json'}
+
+  },
+  'text':{
+    label : 'Single Line Textbox',
+    options: {'Single Line Textbox':'single_line_text'}
+  },
+  'url': {
+    label: 'URL',
+    options:{'URL':'url'}
+  },
+  'file': {
+    label:'File',
+    options: {'File':'file'}
+  },
+  'number': { 
+    label:'Number',
+    options: {'Number':'number'}
+  },
+  'isodate': { label :'Date',
+    options: {'Date':'isodate'}
+  },
+  'boolean': {
+    label: 'Boolean',
+    options: {'Boolean':'boolean'}
+  },
+  'link': {
+    label:'Link',
+    options: {'Link':'link'}
+  },
+  'reference':{
+    label: 'Reference',
+    options: {'Reference':'reference'}
+  },
+  'dropdown': {
+    label:'Dropdown',
+    options: {'Dropdown':'dropdown'}
+  },
+  'radio': {
+    label :'Select',
+    options: {'Select':'select'}
+  },
+  'CheckBox': {
+    label:'Select',
+    options: {'Select':'checkbox'}
+  },
+  'global_field':{
+    label : 'Global',
+    options: {'Global':'global_field'}},
+  'group': {
+    label: 'Group',
+    options: {'Group':'group'}
+  }
+
+}
 
 const Fields: Mapping = {
   'Single Line Textbox': [
@@ -162,6 +241,7 @@ const ContentMapper = () => {
   const [contentTypeSchema, setContentTypeSchema] = useState<ContentTypesSchema[]>([]);
   const [showFilter, setShowFilter] = useState<boolean>(false);
   const [filteredContentTypes, setFilteredContentTypes] = useState<ContentType[]>([])
+  const [count, setCount] = useState<number>(0);
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -244,6 +324,7 @@ const ContentMapper = () => {
     const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
     
     setContentTypes(data?.contentTypes);
+    setCount(data?.contentTypes?.length);
     setFilteredContentTypes(data?.contentTypes);
     setSelectedContentType(data?.contentTypes?.[0]);
     setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
@@ -480,21 +561,36 @@ const ContentMapper = () => {
     });
   };
   const SelectAccessor = (data: FieldMapType) => {
-    const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
-
-    const option = Array.isArray(OptionsForRow)
-      ? OptionsForRow.map((option) => ({ label: option, value: option }))
-      : [{ label: OptionsForRow, value: OptionsForRow }];
+    
+    //const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
+    const OptionsForRow = dummy_obj?.[data?.backupFieldType]?.options ;
+    const initialOption = {
+      label: dummy_obj?.[data?.ContentstackFieldType]?.label,
+      value: dummy_obj?.[data?.ContentstackFieldType]?.label,
+    };
+    let option:any;
+    if (Array.isArray(OptionsForRow)) {
+       option = OptionsForRow.map((option) => ({
+        label: option,
+        value: option,
+      }));
+    } else if (typeof OptionsForRow === 'object') {
+      option = Object.entries(OptionsForRow).map(([label, value]) => ({
+        label,
+        value,
+      }));
+    }else{
+      option = [{ label: OptionsForRow, value: OptionsForRow }]
+    }
 
       const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
         ? data?.ContentstackFieldType : option?.[0]?.label
-        
     return (
       <div className="table-row">
         <div className="select">
           <Select
             id={data?.uid}
-            value={{ label: data?.ContentstackFieldType, value: fieldValue }}
+            value={initialOption || fieldValue}
             onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid)}
             placeholder="Select Field"
             version={'v2'}
@@ -929,13 +1025,15 @@ const ContentMapper = () => {
     }
     
     (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
-    const filteredCT = contentTypes?.filter((ct) => CONTENT_MAPPING_STATUS[ct?.status] === value);
-
+    const filteredCT = contentTypes?.filter((ct) => {return CONTENT_MAPPING_STATUS[ct?.status] === value});
+    
     if (value !== 'All') {
-      setFilteredContentTypes(filteredCT)
+      setFilteredContentTypes(filteredCT);
+      setCount(filteredCT?.length);
     } else {
-      setFilteredContentTypes(contentTypes)
-    }
+      setFilteredContentTypes(contentTypes);
+      setCount(contentTypes?.length);
+    }   
     setShowFilter(false);
   }
 
@@ -956,7 +1054,7 @@ const ContentMapper = () => {
     return result;
   }
   const tableHeight = calcHeight();
-
+   
   return (
     <div className="step-container">
       <div className="d-flex flex-wrap table-container">
@@ -964,7 +1062,7 @@ const ContentMapper = () => {
         <div className="content-types-list-wrapper">
           <div className="content-types-list-header d-flex align-items-center justify-content-between">
             {contentTypesHeading && <h2>{contentTypesHeading}</h2> }
-            {contentTypes && validateArray(contentTypes) && contentTypes?.length }
+            {contentTypes && validateArray(contentTypes) &&  count }
           </div>
 
           <div className='ct-search-wrapper'>
