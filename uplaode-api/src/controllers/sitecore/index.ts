@@ -30,9 +30,9 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
         if (jsonfileContent.hasOwnProperty(key)) {
           const element = jsonfileContent[key];
           element.type = "global_field";
+          fieldMapping.contentTypes.push(element);
         }
       }
-      fieldMapping.contentTypes.push(jsonfileContent);
       
       const config = {
         method: 'post',
