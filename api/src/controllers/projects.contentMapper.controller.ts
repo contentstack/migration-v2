@@ -1,18 +1,46 @@
 import { Request, Response } from "express";
 import { contentMapperService } from "../services/contentMapper.service.js";
+/**
+ * Handles the PUT request to update test data.
+ * 
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
 const putTestData = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.putTestData(req);
   res.status(200).json(resp);
 };
 
+/**
+ * Retrieves the content types from the content mapper service and sends the response as JSON.
+ * 
+ * @param req - The Express request object.
+ * @param res - The Express response object.
+ * @returns A Promise that resolves to void.
+ */
 const getContentTypes = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.getContentTypes(req);
   res.status(200).json(resp);
 };
+/**
+ * Retrieves the field mapping for a given request and sends the response as JSON.
+ * 
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
 const getFieldMapping = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.getFieldMapping(req);
   res.status(200).json(resp);
 };
+/**
+ * Retrieves the existing content types.
+ *
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
 const getExistingContentTypes = async (
   req: Request,
   res: Response
@@ -20,6 +48,13 @@ const getExistingContentTypes = async (
   const resp = await contentMapperService.getExistingContentTypes(req);
   res.status(201).json(resp);
 };
+/**
+ * Updates the content type fields.
+ *
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @returns {Promise<void>} A promise that resolves when the content type fields are updated.
+ */
 const putContentTypeFields = async (
   req: Request,
   res: Response
@@ -27,6 +62,13 @@ const putContentTypeFields = async (
   const resp = await contentMapperService.updateContentType(req);
   res.status(200).json(resp);
 };
+/**
+ * Resets the content type to its initial mapping.
+ * 
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
 const resetContentType = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.resetToInitialMapping(req);
   res.status(200).json(resp);
@@ -37,6 +79,13 @@ const resetContentType = async (req: Request, res: Response): Promise<void> => {
 //   res.status(200).json(resp);
 // };
 
+/**
+ * Removes a content mapper.
+ *
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @returns {Promise<void>} - A promise that resolves when the content mapper is removed.
+ */
 const removeContentMapper = async (
   req: Request,
   res: Response
@@ -45,6 +94,13 @@ const removeContentMapper = async (
   res.status(200).json(resp);
 };
 
+/**
+ * Retrieves single content types.
+ * 
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
 const getSingleContentTypes = async (
   req: Request,
   res: Response
