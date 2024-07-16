@@ -9,6 +9,13 @@ import { HTTP_TEXTS, HTTP_CODES } from "../constants/index.js";
 import { ExceptionFunction } from "../utils/custom-errors.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 
+/**
+ * Creates a test stack.
+ *
+ * @param req - The request object containing the necessary parameters.
+ * @returns A promise that resolves to a LoginServiceType object.
+ * @throws ExceptionFunction if there is an error creating the stack.
+ */
 const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "createTestStack";
   const orgId = req?.params?.orgId;
@@ -99,6 +106,11 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+/**
+ * Deletes a test stack.
+ * @param req - The request object.
+ * @returns A promise that resolves to a LoginServiceType object.
+ */
 const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "deleteTestStack";
   const projectId = req?.params?.projectId;
