@@ -50,6 +50,8 @@ interface Project {
   created_at: string;
   updated_at: string;
   isDeleted: boolean;
+  isNewStack: boolean;
+  newStackId: string;
 }
 
 interface ProjectDocument {
