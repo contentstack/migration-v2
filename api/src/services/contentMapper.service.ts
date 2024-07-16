@@ -26,7 +26,7 @@ import { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 // Developer service to create dummy contentmapping data
 const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
-  const contentTypes = req.body.contentTypes; 
+  const contentTypes = req.body.contentTypes;
 
   await FieldMapperModel.read();
   contentTypes.map((type: any, index: any) => {
@@ -35,7 +35,7 @@ const putTestData = async (req: Request) => {
       const id = field?.id || uuidv4();
       fieldIds.push(id);
       return { id, isDeleted: true, ...field };
-    });
+    }) ?? [];
     FieldMapperModel.update((data: any) => {
       data.field_mapper = [...(data?.field_mapper ?? []), ...fields];
     });
@@ -45,7 +45,7 @@ const putTestData = async (req: Request) => {
   await ContentTypesMapperModelLowdb.read();
   const contentIds: string[] = [];
   const contentType = contentTypes.map((item: any) => {
-    const id = item?.id  || uuidv4();
+    const id = item?.id || uuidv4();
     contentIds.push(id);
     return { ...item, id };
   });
@@ -532,7 +532,7 @@ const resetAllContentTypesMapping = async (projectId: string) => {
   try {
     const contentTypes = cData;
     for (const contentType of contentTypes) {
-      if (contentType &&  !isEmpty(contentType.fieldMapping)) {
+      if (contentType && !isEmpty(contentType.fieldMapping)) {
         for (const field of contentType.fieldMapping) {
           await FieldMapperModel.read();
           const fieldData = FieldMapperModel.chain
@@ -569,9 +569,7 @@ const resetAllContentTypesMapping = async (projectId: string) => {
           });
         }
       }
-
     }
-
 
     return projectDetails;
   } catch (error: any) {
@@ -735,13 +733,16 @@ const removeContentMapper = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
   await ContentTypesMapperModelLowdb.read();
-  const cData: ContentTypesMapper[] = projectDetails?.content_mapper.map((cId: string) => {
-    const contentTypeData: ContentTypesMapper = ContentTypesMapperModelLowdb.chain
-      .get("ContentTypesMappers")
-      .find({ id: cId })
-      .value();
-    return contentTypeData;
-  });
+  const cData: ContentTypesMapper[] = projectDetails?.content_mapper.map(
+    (cId: string) => {
+      const contentTypeData: ContentTypesMapper =
+        ContentTypesMapperModelLowdb.chain
+          .get("ContentTypesMappers")
+          .find({ id: cId })
+          .value();
+      return contentTypeData;
+    }
+  );
 
   try {
     const contentTypes: ContentTypesMapper[] = cData;
