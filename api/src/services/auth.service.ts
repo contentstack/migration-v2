@@ -13,9 +13,22 @@ import {
 import AuthenticationModel from "../models/authentication.js";
 import logger from "../utils/logger.js";
 
+/**
+ * Logs in a user with the provided request data.
+ *
+ * @param req - The request object containing user data.
+ * @returns A promise that resolves to a LoginServiceType object.
+ * @throws ExceptionFunction if an error occurs during the login process.
+ */
 const login = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "Login";
 
+  /*
+  handles user authentication by making a request to an API, 
+  performing various checks and validations, 
+  updating a model, and generating a JWT token. 
+  It also handles potential errors and logs appropriate messages.
+  */
   try {
     const userData = req?.body;
 
@@ -115,9 +128,20 @@ const login = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+/**
+ * Sends a request for SMS login token.
+ * @param req - The request object.
+ * @returns A promise that resolves to a LoginServiceType object.
+ * @throws {InternalServerError} If an error occurs while sending the request.
+ */
 const requestSms = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "requestSms";
 
+  /*
+  handles the authentication process by making an HTTP POST request to an API endpoint, 
+  handling any errors that occur, and returning the appropriate response or error data. 
+  It also includes logging functionality to track the execution and potential errors.
+  */
   try {
     const userData = req?.body;
     const [err, res] = await safePromise(
