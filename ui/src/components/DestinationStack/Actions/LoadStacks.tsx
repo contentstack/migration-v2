@@ -35,10 +35,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const dispatch = useDispatch();
   /****  ALL UseStates HERE  ****/
-  const [selectedStack, setSelectedStack] = useState<IDropDown>(
-    !isEmptyString(newMigrationData?.destination_stack?.selectedOrg?.value)
-      ? newMigrationData?.destination_stack?.selectedStack
-      : DEFAULT_DROPDOWN
+  const [selectedStack, setSelectedStack] = useState<any>(
+    null
   );  
 
   /****  ALL METHODS HERE  ****/
@@ -51,15 +49,15 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [placeholder, setPlaceholder] = useState('Select a stack');
   const [asyncMount, setAsyncMount] = useState(true)
-
-
+  const [ isSelectOpen, setIsSelectOpen ] = useState<boolean>(false)
   const { projectId = '' }: Params<string> = useParams();
+  
   useEffect(()=>{
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
     }
   },[newMigrationData?.destination_stack?.selectedStack])
-
+  
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
     if (isSaving) return false;
@@ -75,7 +73,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       ...data,
       master_locale: data?.locale
     });
-
+    
     setIsSaving(false);
 
     if (resp.status === 201) {
@@ -118,10 +116,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
-    const stackCleared = data?.value === '' || data?.value === null || data === null;
-    
+    const stackCleared = data?.value === '' || data?.value === null || data === null;  
     if (stackCleared === true) {
-      setPlaceholder('Select a stack');
+      setIsError(true);
+      setErrorMessage("Please select a stack");
     }
         
     if (name === 'stacks' && data?.value != '+ Create a new Stack') {
@@ -136,6 +134,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       
       dispatch(updateNewMigrationData((newMigrationDataObj)));
       if (!stackCleared) {
+        setIsError(false)
         if (props?.handleStepChange) {
           props?.handleStepChange(props?.currentStep, true);
         }
@@ -176,10 +175,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
           setIsError(true);
           setErrorMessage("Please create new stack there is no stack available");
-        } else {
-          setIsError(true)
-          setErrorMessage("Please select a stack")
-        }
+        } 
+
         stackArray.sort((a: IDropDown, b: IDropDown) => {
           return new Date(b?.created_at).getTime() - new Date(a?.created_at).getTime();
         });
@@ -218,13 +215,13 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         },
         onClose: () => {
           resetAsyncSelect();
+          setIsError(false)
           return;
         }
       }
     });
   };
 
-  const [ isSelectOpen, setIsSelectOpen ] = useState<boolean>(false)
 
   useEffect(() => {
     // Fetch the select element using its class name or testId
@@ -237,26 +234,40 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       div.onclick = handleCreateNewStack
       selectElement.appendChild(div)
     }
-  }, [asyncMount, isSelectOpen]);  
+  }, [asyncMount, isSelectOpen]); 
 
+  useEffect(() => {
+    const checkIfClickedOutside = (e: MouseEvent) => {
+      // If the menu is open and the clicked target is not within the menu,
+      // then close the menu
+      if (isSelectOpen && ref.current && !ref.current.contains(e.target as Node)) {
+        setIsSelectOpen(false);
+      }
+    };
+
+    document.body.addEventListener('mousedown', checkIfClickedOutside);
+
+    return () => {
+      // Cleanup the event listener
+      document.body.removeEventListener('mousedown', checkIfClickedOutside);
+    };
+  }, [isSelectOpen]);
   const handleDivClick = () => {
     setIsSelectOpen(!isSelectOpen)
   }
-
   return (
     <div className="">
       <div className="action-summary-wrapper ">
         <div className="service_list ">
           <div className="row">
             <div className="col-12">
-                <div  className="Dropdown-wrapper p-0 active selectElementlabel">
+                <div className="Dropdown-wrapper p-0 active selectElementlabel">
                   {asyncMount ? 
-                  <div onClick={handleDivClick}>
+                  <div ref={ref} onClick={handleDivClick} style={{ maxWidth: '600px' }}>
                     <AsyncSelect
                       version={'v2'}
                       loadMoreOptions={loadMoreOptions}
                       onChange={handleDropdownChange('stacks')}
-                      canEditOption={true}
                       value={selectedStack}
                       isSearchable={true}
                       isClearable={!emptyStackValue ? true : false }
@@ -266,7 +277,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                       placeholder={placeholder}
                       limit={10}
                       updateOption={()=> undefined}
-                      error={isLoading ? false : emptyStackValue ? true : false }
+                      error={isLoading ? false : isError ? true : false }
                       defaultOptions={true}
                       debounceTimeout={0}
                       menuIsOpen={isSelectOpen}
@@ -275,7 +286,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                     : null
                   }
                 </div>
-                {(emptyStackValue && !isLoading) && <div className='errorMessage'>{errorMessage}</div>}
+                {(isError && !isLoading) && <div className='errorMessage'>{errorMessage}</div>}
             </div> 
             <div className="col-12">
               <label className="title">Master Locale <span className='asterisk_input'></span>
