@@ -98,6 +98,8 @@ const createProject = async (req: Request) => {
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
     isDeleted: false,
+    isNewStack: false,
+    newStackId: "",
   };
 
   try {
@@ -170,6 +172,10 @@ const updateProject = async (req: Request) => {
     ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].name = updateData?.name;
       data.projects[projectIndex].description = updateData?.description;
+      if(data.projects[projectIndex].isNewStack === false && updateData?.isNewStack === true){
+        data.projects[projectIndex].isNewStack = updateData?.isNewStack ;
+        data.projects[projectIndex].newStackId = updateData?.newStackId;
+      }
       data.projects[projectIndex].updated_by = user_id;
       data.projects[projectIndex].updated_at = new Date().toISOString();
       project = data.projects[projectIndex];
@@ -351,6 +357,38 @@ const affixConfirmation = async (req: Request) => {
     },
   };
 };
+
+const updateNewStack = async (req: Request) => {
+  const srcFunc = "updateNewStack";
+  const { orgId, projectId } = req.params;
+  const { token_payload } = req.body;
+
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    srcFunc,
+    true
+  )) as number;
+
+  ProjectModelLowdb.update((data: any) => {
+    data.projects[projectIndex].isNewStack = true;
+    data.projects[projectIndex].updated_at = new Date().toISOString();
+  });
+
+  return {
+    status: HTTP_CODES.OK,
+    data: {
+      message: HTTP_TEXTS.NEW_STACK_CREATED,
+    },
+  };
+};
+
 
 const updateFileFormat = async (req: Request) => {
   const { orgId, projectId } = req.params;
@@ -813,6 +851,8 @@ const revertProject = async (req: Request) => {
     };
   }
 };
+
+
 export const projectService = {
   getAllProjects,
   getProject,
@@ -821,6 +861,7 @@ export const projectService = {
   updateLegacyCMS,
   updateAffix,
   affixConfirmation,
+  updateNewStack,
   updateFileFormat,
   fileformatConfirmation,
   updateDestinationStack,
