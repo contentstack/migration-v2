@@ -10,6 +10,16 @@ import { getLogMessage } from "../utils/index.js";
 import logger from "./logger.js";
 import { validate } from "uuid";
 
+/**
+ * Retrieves a project based on the provided project ID and query.
+ * @param projectId - The ID of the project to retrieve.
+ * @param query - The query to filter the projects.
+ * @param srcFunc - The source function name (optional).
+ * @param isIndex - Indicates whether to find the project by index (optional, default: false).
+ * @returns The retrieved project.
+ * @throws BadRequestError if the project ID is invalid or the project is not found.
+ * @throws ExceptionFunction if an error occurs during the retrieval process.
+ */
 export default async (
   projectId: string,
   query: MigrationQueryType,
