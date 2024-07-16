@@ -85,7 +85,7 @@ const Fields: Mapping = {
   'HTML Rich text Editor': 'JSON Rich Text Editor',
   'JSON Rich Text Editor': 'JSON Rich Text Editor',
   // 'Multi line': 
-  json: 'JSON Rich Text Editor',
+  json: ['HTML Rich text Editor', 'JSON Rich Text Editor'],
   URL: 'URL',
   file: 'File',
   number: 'Number',
@@ -93,7 +93,7 @@ const Fields: Mapping = {
   boolean: 'Boolean',
   link: 'Link',
   reference: 'Reference',
-  dropdown: 'Select',
+  dropdown: 'dropdown',
   radio: 'Select',
   CheckBox: 'Select',
   global_field: 'Global'
@@ -403,7 +403,7 @@ const ContentMapper = () => {
       <div>
         <div className="cms-field">{data?.otherCmsField}</div>
         <InstructionText>
-          Other CMS Type: {data?.otherCmsType}
+          Type: {data?.otherCmsType}
           <br />
           UID: {data?.uid}
         </InstructionText>
@@ -796,6 +796,10 @@ const ContentMapper = () => {
         setisDropDownCHanged(false);
         setisContentTypeMapped(true);
         setisContentTypeSaved(true);
+
+        setFilteredContentTypes(filteredContentTypes?.map(ct => 
+          ct?.id === data?.updatedContentType?.id ? { ...ct, status: data?.updatedContentType?.status } : ct
+        ))
       } else {
         Notification({
           notificationContent: { text: data?.error?.message },
