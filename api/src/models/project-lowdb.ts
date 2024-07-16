@@ -1,6 +1,9 @@
 import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 
+/**
+ * Represents the LegacyCMS object.
+ */
 interface LegacyCMS {
   cms: string;
   affix: string;
@@ -24,11 +27,17 @@ interface LegacyCMS {
   is_localPath: boolean;
 }
 
+/**
+ * Represents an execution log.
+ */
 interface ExecutionLog {
   log_url: string;
   date: Date;
 }
 
+/**
+ * Represents a project.
+ */
 interface Project {
   id: string;
   region: string;
@@ -60,6 +69,9 @@ interface ProjectDocument {
 
 const defaultData: ProjectDocument = { projects: [] };
 
+/**
+ * Represents the database instance for the project.
+ */
 const db = new LowWithLodash(
   new JSONFile<ProjectDocument>("database/project.json"),
   defaultData
