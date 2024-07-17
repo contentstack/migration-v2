@@ -3,7 +3,7 @@ import { projectService } from "../services/projects.service.js";
 
 /**
  * Retrieves all projects.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A promise that resolves to void.
@@ -27,7 +27,7 @@ const getProject = async (req: Request, res: Response): Promise<void> => {
 
 /**
  * Creates a new project.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A Promise that resolves to void.
@@ -74,7 +74,7 @@ const updateAffix = async (req: Request, res: Response) => {
 
 /**
  * Handles the affix confirmation request.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A Promise that resolves to the response data.
@@ -132,7 +132,7 @@ const updateCurrentStep = async (req: Request, res: Response) => {
 
 /**
  * Deletes a project.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A Promise that resolves to void.
