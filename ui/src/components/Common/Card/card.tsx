@@ -5,6 +5,9 @@ import { addDomainInPath } from '../../../utilities/functions';
 
 import './card.scss';
 
+/**
+ * Props for the Card component.
+ */
 type CardProps = {
   data: any;
   idField?: string;
@@ -13,6 +16,15 @@ type CardProps = {
   cardType?: string;
 };
 
+/**
+ * Renders a card component.
+ *
+ * @param data - The data object for the card.
+ * @param selectedCard - The currently selected card.
+ * @param onCardClick - The callback function to handle card click event.
+ * @param cardType - The type of the card.
+ * @param idField - The field name for the card's ID. Defaults to 'id'.
+ */
 const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id' }: CardProps) => {
   const imgStyle = {
     width: cardType === 'legacyCMS' ? '60px' : '46px',
