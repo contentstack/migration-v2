@@ -27,7 +27,7 @@ router.get(
  * @route GET /fieldMapping/:contentTypeId/:skip/:limit/:searchText?
  */
 router.get(
-  "/fieldMapping/:contentTypeId/:skip/:limit/:searchText?",
+  "/fieldMapping/:projectId/:contentTypeId/:skip/:limit/:searchText?",
   asyncRouter(contentMapperController.getFieldMapping)
 );
 

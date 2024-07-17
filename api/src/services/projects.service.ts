@@ -802,7 +802,7 @@ const deleteProject = async (req: Request) => {
       content_mapper_id.map((item: any) => {
         const contentMapperData = ContentTypesMapperModelLowdb.chain
           .get("ContentTypesMappers")
-          .find({ id: item })
+          .find({ id: item, projectId:projectId })
           .value();
 
         const fieldMappingIds = contentMapperData?.fieldMapping;
@@ -812,7 +812,7 @@ const deleteProject = async (req: Request) => {
           (fieldMappingIds || []).forEach((field: any) => {
             const fieldIndex = FieldMapperModel.chain
               .get("field_mapper")
-              .findIndex({ id: field })
+              .findIndex({ id: field,projectId:projectId })
               .value();
             if (fieldIndex > -1) {
               FieldMapperModel.update((data: any) => {
@@ -824,7 +824,7 @@ const deleteProject = async (req: Request) => {
         //delete all content Mapper which is related to Project
         const contentMapperID = ContentTypesMapperModelLowdb.chain
           .get("ContentTypesMappers")
-          .findIndex({ id: item })
+          .findIndex({ id: item, projectId: projectId })
           .value();
         ContentTypesMapperModelLowdb.update((Cdata: any) => {
           delete Cdata.ContentTypesMappers[contentMapperID];
