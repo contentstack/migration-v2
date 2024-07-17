@@ -48,7 +48,7 @@ const putTestData = async (req: Request) => {
   contentTypes.map((type: any, index: any) => {
     const fieldIds: string[] = [];
     const fields = type?.fieldMapping?.map?.((field: any) => {
-      const id = field?.id || uuidv4();
+      const id = field?.id.replace(/[{}-]/g, '').toLowerCase() || uuidv4();
       fieldIds.push(id);
       return { id, projectId, isDeleted: true, ...field };
     });
@@ -68,7 +68,7 @@ const putTestData = async (req: Request) => {
   and the generated id values are pushed into the contentIds array.
   */
   const contentType = contentTypes.map((item: any) => {
-    const id = item?.id || uuidv4();
+    const id = item?.id.replace(/[{}-]/g, '').toLowerCase() || uuidv4();
     contentIds.push(id);
     return { ...item, id, projectId };
   });
