@@ -1,6 +1,11 @@
 import { checkSchema } from "express-validator";
 import { VALIDATION_ERRORS } from "../constants/index.js";
 
+/**
+ * Validates the file format.
+ *
+ * @returns {Object} The validation schema for the file format.
+ */
 export default checkSchema({
   file_format: {
     in: "body",
