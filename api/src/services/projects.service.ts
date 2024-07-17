@@ -20,15 +20,22 @@ import getAuthtoken from "../utils/auth.utils.js";
 import https from "../utils/https.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
 import logger from "../utils/logger.js";
-import { contentMapperService } from "./contentMapper.service.js";
+// import { contentMapperService } from "./contentMapper.service.js";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Retrieves all projects based on the provided request object.
+ *
+ * @param req - The request object containing the orgId and token_payload.
+ * @returns A Promise that resolves to an array of projects.
+ * @throws {NotFoundError} If no projects are found.
+ */
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
 
   const decodedToken = req.body.token_payload;
-  const { user_id = "", region = "" } = decodedToken; 
-   
+  const { user_id = "", region = "" } = decodedToken;
+
   await ProjectModelLowdb.read();
   const projects = ProjectModelLowdb.chain
     .get("projects")
@@ -45,6 +52,11 @@ const getAllProjects = async (req: Request) => {
   return projects;
 };
 
+/**
+ * Retrieves a project based on the provided request.
+ * @param req - The request object containing the orgId, projectId, and token_payload.
+ * @returns A Promise that resolves to the retrieved project.
+ */
 const getProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
@@ -65,6 +77,12 @@ const getProject = async (req: Request) => {
   return project;
 };
 
+/**
+ * Creates a new project.
+ * @param req - The request object containing the project details.
+ * @returns An object with the status, message, and project details.
+ * @throws ExceptionFunction if there is an error creating the project.
+ */
 const createProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const { name, description } = req.body;
@@ -98,6 +116,8 @@ const createProject = async (req: Request) => {
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
     isDeleted: false,
+    isNewStack: false,
+    newStackId: "",
   };
 
   try {
@@ -143,6 +163,12 @@ const createProject = async (req: Request) => {
   }
 };
 
+/**
+ * Updates a project based on the provided request.
+ * @param req - The request object containing the necessary information.
+ * @returns An object with the updated project details.
+ * @throws ExceptionFunction if an error occurs while updating the project.
+ */
 const updateProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
@@ -170,6 +196,10 @@ const updateProject = async (req: Request) => {
     ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].name = updateData?.name;
       data.projects[projectIndex].description = updateData?.description;
+      if(data.projects[projectIndex].isNewStack === false && updateData?.isNewStack === true){
+        data.projects[projectIndex].isNewStack = updateData?.isNewStack ;
+        data.projects[projectIndex].newStackId = updateData?.newStackId;
+      }
       data.projects[projectIndex].updated_by = user_id;
       data.projects[projectIndex].updated_at = new Date().toISOString();
       project = data.projects[projectIndex];
@@ -211,6 +241,14 @@ const updateProject = async (req: Request) => {
   }
 };
 
+/**
+ * Updates the legacy CMS for a project.
+ * 
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the update operation.
+ * @throws BadRequestError if the project status is invalid.
+ * @throws ExceptionFunction if an error occurs during the update.
+ */
 const updateLegacyCMS = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, legacy_cms } = req.body;
@@ -289,6 +327,12 @@ const updateLegacyCMS = async (req: Request) => {
   }
 };
 
+/**
+ * Updates the affix of a project.
+ * 
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data properties.
+ */
 const updateAffix = async (req: Request) => {
   const srcFunc = "updateAffix";
   const { orgId, projectId } = req.params;
@@ -320,6 +364,12 @@ const updateAffix = async (req: Request) => {
   };
 };
 
+/**
+ * Affixes the confirmation to a project in the database.
+ * 
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data properties.
+ */
 const affixConfirmation = async (req: Request) => {
   const srcFunc = "affixConfirmation";
   const { orgId, projectId } = req.params;
@@ -352,9 +402,23 @@ const affixConfirmation = async (req: Request) => {
   };
 };
 
+/**
+ * Updates the file format for a project.
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data properties.
+ * @throws BadRequestError if the project status is invalid.
+ * @throws ExceptionFunction if an error occurs while updating the file format.
+ */
 const updateFileFormat = async (req: Request) => {
   const { orgId, projectId } = req.params;
-  const { token_payload, file_format,file_path,is_localPath,is_fileValid,awsDetails } = req.body;
+  const {
+    token_payload,
+    file_format,
+    file_path,
+    is_localPath,
+    is_fileValid,
+    awsDetails,
+  } = req.body;
   const srcFunc = "updateFileFormat";
   const projectIndex = (await getProjectUtil(
     projectId,
@@ -441,6 +505,11 @@ const updateFileFormat = async (req: Request) => {
   }
 };
 
+/**
+ * Updates the file format confirmation for a project.
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data properties.
+ */
 const fileformatConfirmation = async (req: Request) => {
   const srcFunc = "fileformat";
   const { orgId, projectId } = req.params;
@@ -473,6 +542,14 @@ const fileformatConfirmation = async (req: Request) => {
   };
 };
 
+/**
+ * Updates the destination stack for a project.
+ * 
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the update operation.
+ * @throws BadRequestError if the project status is invalid or the destination stack is not found.
+ * @throws ExceptionFunction if an error occurs while updating the destination stack.
+ */
 const updateDestinationStack = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, stack_api_key } = req.body;
@@ -584,6 +661,13 @@ const updateDestinationStack = async (req: Request) => {
   }
 };
 
+/**
+ * Updates the current step of a project based on the provided request.
+ * @param req - The request object containing the parameters and body.
+ * @returns The updated project object.
+ * @throws {BadRequestError} If the current step cannot be updated.
+ * @throws {ExceptionFunction} If an error occurs while updating the current step.
+ */
 const updateCurrentStep = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const token_payload = req.body.token_payload;
@@ -679,6 +763,11 @@ const updateCurrentStep = async (req: Request) => {
   }
 };
 
+/**
+ * Deletes a project.
+ * @param req - The request object containing the project ID and organization ID.
+ * @returns An object with the status and data properties.
+ */
 const deleteProject = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const decodedToken = req.body.token_payload;
@@ -764,6 +853,13 @@ const deleteProject = async (req: Request) => {
   };
 };
 
+/**
+ * Reverts a project by setting its 'isDeleted' property to false.
+ * 
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the reverted project.
+ * @throws {NotFoundError} If the project is not found.
+ */
 const revertProject = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const decodedToken = req.body.token_payload;
@@ -806,6 +902,8 @@ const revertProject = async (req: Request) => {
     };
   }
 };
+
+
 export const projectService = {
   getAllProjects,
   getProject,

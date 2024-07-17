@@ -17,10 +17,23 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
     if (infoMap?.contentTypeUids?.length) {
       const fieldMapping: any = { contentTypes: [] };
       for await (const contentType of infoMap?.contentTypeUids ?? []) {
-        fieldMapping?.contentTypes?.push(
-          JSON.parse(readFileSync(`${infoMap?.path}/content_types/${contentType}`, 'utf8'))
-        );
+        const fileContent = readFileSync(`${infoMap?.path}/content_types/${contentType}`, 'utf8');
+        const jsonfileContent = JSON.parse(fileContent);
+        jsonfileContent.type = "content_type";
+        fieldMapping?.contentTypes?.push(jsonfileContent);
       }
+
+    
+      const fileContent = readFileSync(`${infoMap?.path}/global_fields/globalfields.json`, 'utf8');
+      const jsonfileContent = JSON.parse(fileContent);
+      for (const key in jsonfileContent) {
+        if (jsonfileContent.hasOwnProperty(key)) {
+          const element = jsonfileContent[key];
+          element.type = "global_field";
+          fieldMapping.contentTypes.push(element);
+        }
+      }
+      
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
