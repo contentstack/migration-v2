@@ -316,7 +316,7 @@ const getStackStatus = async (req: Request) => {
  */
 const getStackLocal = async (token_payload: any, data: any) => {
   const srcFun = "getStackLocal";
-  return new Promise( async (resolve) => {
+  return new Promise(async (resolve) => {
     const authtoken = await getAuthtoken(
       token_payload?.region,
       token_payload?.user_id

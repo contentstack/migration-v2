@@ -47,11 +47,12 @@ const putTestData = async (req: Request) => {
   */
   contentTypes.map((type: any, index: any) => {
     const fieldIds: string[] = [];
-    const fields = type?.fieldMapping?.map?.((field: any) => {
-      const id = field?.id || uuidv4();
-      fieldIds.push(id);
-      return { id, isDeleted: true, ...field };
-    }) ?? [];
+    const fields =
+      type?.fieldMapping?.map?.((field: any) => {
+        const id = field?.id || uuidv4();
+        fieldIds.push(id);
+        return { id, isDeleted: true, ...field };
+      }) ?? [];
     FieldMapperModel.update((data: any) => {
       data.field_mapper = [...(data?.field_mapper ?? []), ...fields];
     });
@@ -433,7 +434,7 @@ const updateContentType = async (req: Request) => {
 };
 /**
  * Resets the field mapping and content mapping for a specific content type in a project.
- * 
+ *
  * @param req - The request object containing the parameters and body.
  * @returns An object with a message indicating the success of the reset operation.
  * @throws {BadRequestError} If the project status or current step is not valid for resetting the content mapping.
@@ -550,7 +551,7 @@ const resetToInitialMapping = async (req: Request) => {
 };
 /**
  * Resets all the content types mapping for a specific project.
- * 
+ *
  * @param projectId - The ID of the project.
  * @returns The project details after resetting the content types mapping.
  * @throws {BadRequestError} If the content mapper or project is not found.

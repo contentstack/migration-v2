@@ -196,8 +196,11 @@ const updateProject = async (req: Request) => {
     ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].name = updateData?.name;
       data.projects[projectIndex].description = updateData?.description;
-      if(data.projects[projectIndex].isNewStack === false && updateData?.isNewStack === true){
-        data.projects[projectIndex].isNewStack = updateData?.isNewStack ;
+      if (
+        data.projects[projectIndex].isNewStack === false &&
+        updateData?.isNewStack === true
+      ) {
+        data.projects[projectIndex].isNewStack = updateData?.isNewStack;
         data.projects[projectIndex].newStackId = updateData?.newStackId;
       }
       data.projects[projectIndex].updated_by = user_id;
@@ -243,7 +246,7 @@ const updateProject = async (req: Request) => {
 
 /**
  * Updates the legacy CMS for a project.
- * 
+ *
  * @param req - The request object containing the parameters and body.
  * @returns An object with the status and data of the update operation.
  * @throws BadRequestError if the project status is invalid.
@@ -329,7 +332,7 @@ const updateLegacyCMS = async (req: Request) => {
 
 /**
  * Updates the affix of a project.
- * 
+ *
  * @param req - The request object containing the parameters and body.
  * @returns An object with the status and data properties.
  */
@@ -366,7 +369,7 @@ const updateAffix = async (req: Request) => {
 
 /**
  * Affixes the confirmation to a project in the database.
- * 
+ *
  * @param req - The request object containing the parameters and body.
  * @returns An object with the status and data properties.
  */
@@ -544,7 +547,7 @@ const fileformatConfirmation = async (req: Request) => {
 
 /**
  * Updates the destination stack for a project.
- * 
+ *
  * @param req - The request object containing the parameters and body.
  * @returns An object with the status and data of the update operation.
  * @throws BadRequestError if the project status is invalid or the destination stack is not found.
@@ -855,7 +858,7 @@ const deleteProject = async (req: Request) => {
 
 /**
  * Reverts a project by setting its 'isDeleted' property to false.
- * 
+ *
  * @param req - The request object containing the parameters and body.
  * @returns An object with the status and data of the reverted project.
  * @throws {NotFoundError} If the project is not found.
@@ -902,7 +905,6 @@ const revertProject = async (req: Request) => {
     };
   }
 };
-
 
 export const projectService = {
   getAllProjects,
