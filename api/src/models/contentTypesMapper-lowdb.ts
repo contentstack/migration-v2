@@ -3,6 +3,7 @@ import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 
 export interface ContentTypesMapper {
   id: string;
+  projectId: string;
   otherCmsTitle: string;
   otherCmsUid: string;
   isUpdated: boolean;

@@ -17,7 +17,7 @@ router.get(
 );
 //Get FieldMapping List
 router.get(
-  "/fieldMapping/:contentTypeId/:skip/:limit/:searchText?",
+  "/fieldMapping/:projectId/:contentTypeId/:skip/:limit/:searchText?",
   asyncRouter(contentMapperController.getFieldMapping)
 );
 //Get Existing ContentTypes List
