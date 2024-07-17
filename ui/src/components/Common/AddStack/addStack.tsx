@@ -37,11 +37,22 @@ export interface Stack {
   locale: string;
 }
 
+/**
+ * Renders the AddStack component.
+ * @param props - The component props.
+ * @returns The JSX element representing the AddStack component.
+ */
 const AddStack = (props: any): JSX.Element => {
+  // State variables
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
   const [addStackCMSData, setAddStackCMSData] = useState<AddStackCMSData>(defaultAddStackCMSData);
+
+  /**
+   * Handles the form submission.
+   * @param formData - The form data.
+   */
   const onSubmit = async (formData: any) => {
     setIsProcessing(true);
     const resp = await props?.onSubmit({
@@ -63,10 +74,10 @@ const AddStack = (props: any): JSX.Element => {
   };
 
   useEffect(() => {
-    //check if offline CMS data field is set to true, if then read data from cms data file.
+    // Check if offline CMS data field is set to true, if then read data from cms data file.
     getCMSDataFromFile(CS_ENTRIES?.ADD_STACK)
       .then((data: AddStackCMSData) => {
-        //Check for null
+        // Check for null
         if (!data) {
           setAddStackCMSData(defaultAddStackCMSData);
           setIsLoading(false);
@@ -81,7 +92,7 @@ const AddStack = (props: any): JSX.Element => {
         setIsLoading(false);
       });
 
-    //fetch all locales
+    // Fetch all locales
     getAllLocales(props?.selectedOrganisation)
       .then((response: any) => {
         const rawMappedLocalesMapped =
@@ -100,7 +111,6 @@ const AddStack = (props: any): JSX.Element => {
       .catch((err: any) => {
         console.error(err);
       });
-    //org id will always be there
 
     window.addEventListener('popstate', props?.closeModal);
 
@@ -121,7 +131,7 @@ const AddStack = (props: any): JSX.Element => {
         <FinalForm
           onSubmit={onSubmit}
           keepDirtyOnReinitialize={true}
-          validate={(values:any) => {
+          validate={(values: any) => {
             const errors: any = {};
             if (!values?.name || values?.name?.trim().length < 1) {
               errors.name = 'Stack name required';
@@ -213,13 +223,13 @@ const AddStack = (props: any): JSX.Element => {
                                     error={(meta?.error || meta?.submitError) && meta?.touched}
                                   />
                                   {meta?.error && meta?.touched && (
-                                  <ValidationMessage
-                                    version="v2"
-                                    testId="cs-stack-create-description-validation"
-                                  >
-                                    {meta?.error}
-                                  </ValidationMessage>
-                                )}
+                                    <ValidationMessage
+                                      version="v2"
+                                      testId="cs-stack-create-description-validation"
+                                    >
+                                      {meta?.error}
+                                    </ValidationMessage>
+                                  )}
                                 </Field>
                               </div>
                             );
