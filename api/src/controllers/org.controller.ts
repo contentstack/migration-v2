@@ -3,7 +3,7 @@ import { orgService } from "../services/org.service.js";
 
 /**
  * Retrieves all stacks.
- * 
+ *
  * @param {Request} req - The request object.
  * @param {Response} res - The response object.
  * @returns {Promise<void>} - A promise that resolves when the operation is complete.
