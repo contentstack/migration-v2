@@ -1,5 +1,11 @@
 @import '../../../scss/variables';
 
+/**
+ * Styles for the service list container.
+ *
+ * @class service_list
+ * @memberof components.Common.Card
+ */
 .service_list {
   text-align: center;
   display: flex;
@@ -9,10 +15,18 @@
   margin-bottom: 10px;
 }
 
+/**
+ * Styles for the trigger_list class.
+ * This class sets the minimum width of 120px for the element.
+ */
 .trigger_list {
   min-width: 120px !important;
 }
 
+/**
+ * Styles for the connector list in the card component.
+ * Overrides the default styles of the tippy-box-light class.
+ */
 .connector_list .tippy-box-light {
   max-width: $px-360 !important;
   padding: $px-15 !important;
@@ -21,6 +35,9 @@
   font-weight: $font-weight-regular;
 }
 
+/**
+ * Styles for the connector list, action list, and trigger list components.
+ */
 .connector_list,
 .action_list,
 .trigger_list {
@@ -35,19 +52,61 @@
   gap: 12px;
 }
 
+/**
+ * Styles for the automation connectors help text within the connector list.
+ *
+ * Selectors:
+ * - .connector_list: The parent container for the connector list.
+ * - .tippy-box-light: The tooltip box with light theme.
+ * - #automationConnectorsHelpText: The help text element with the ID "automationConnectorsHelpText".
+ *
+ * CSS Properties:
+ * - cursor: Sets the cursor type to default.
+ * - color: Sets the text color to the base gray-20 color variable.
+ */
 .connector_list .tippy-box-light #automationConnectorsHelpText {
   cursor: default;
   color: $color-base-gray-20;
 }
 
+/**
+ * Applies a box shadow effect to the .connector_list element when hovered.
+ *
+ * @hover
+ * @cssproperty box-shadow - The box shadow effect to apply.
+ * @cssvalue 0 3px $px-5 $px-2 rgb(215 215 215) - The specific box shadow values.
+ */
 .connector_list:hover {
   box-shadow: 0 3px $px-5 $px-2 rgb(215 215 215);
 }
 
+/**
+ * Styles for the service icon in the card component.
+ *
+ * @class service_icon
+ * @memberof components.Common.Card
+ *
+ * @cssprop {padding} padding - The padding of the service icon.
+ */
 .service_icon {
   padding: $space-20 0;
 }
 
+/**
+ * Styles for the service title in the card component.
+ *
+ * @class .service_title
+ * @memberof components.Common.Card
+ *
+ * @cssprop {padding} padding - The padding of the service title.
+ * @cssprop {min-height} min-height - The minimum height of the service title.
+ * @cssprop {max-height} max-height - The maximum height of the service title.
+ * @cssprop {overflow-y} overflow-y - The overflow behavior for the service title.
+ * @cssprop {font-weight} font-weight - The font weight of the service title.
+ * @cssprop {font-size} font-size - The font size of the service title.
+ * @cssprop {border-radius} border-radius - The border radius of the service title.
+ * @cssprop {background} background - The background color of the service title.
+ */
 .service_title {
   padding: $px-5 $px-5;
   min-height: $px-40;
@@ -59,6 +118,19 @@
   background: $color-base-white-10;
 }
 
+/**
+ * Styles for the header of the full-screen page layout.
+ *
+ * @class .PageLayout--full-screen .PageLayout__head
+ * @memberof components.Common.Card
+ *
+ * @cssprop {position} position - The position of the header.
+ * @cssprop {border} border-bottom - The bottom border of the header.
+ * @cssprop {box-shadow} box-shadow - The shadow of the header.
+ * @cssprop {border} border - The border of the header.
+ * @cssprop {margin} margin-top - The top margin of the header.
+ * @cssprop {z-index} z-index - The stacking order of the header.
+ */
 .PageLayout--full-screen .PageLayout__head {
   position: relative;
   border-bottom: 1px solid rgb(226, 235, 248);
@@ -66,6 +138,13 @@
   border: 1px solid rgba(204, 204, 204, 0.6);
   margin-top: 3.5rem;
   z-index: 8;
+}
+/**
+ * CSS class for a centered card title.
+ * Adds a margin of 10px to the title.
+ */
+.centered-card-title {
+  margin: 10px;
 }
 .centered-card-title{
   margin: 10px;
