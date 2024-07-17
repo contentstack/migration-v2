@@ -165,7 +165,7 @@ const Fields: Mapping = {
   'HTML Rich text Editor': 'JSON Rich Text Editor',
   'JSON Rich Text Editor': 'JSON Rich Text Editor',
   // 'Multi line': 
-  json: 'JSON Rich Text Editor',
+  json: ['HTML Rich text Editor', 'JSON Rich Text Editor'],
   URL: 'URL',
   file: 'File',
   number: 'Number',
@@ -173,7 +173,7 @@ const Fields: Mapping = {
   boolean: 'Boolean',
   link: 'Link',
   reference: 'Reference',
-  dropdown: 'Select',
+  dropdown: 'dropdown',
   radio: 'Select',
   CheckBox: 'Select',
   global_field: 'Global'
@@ -490,7 +490,7 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
       <div>
         <div className="cms-field">{data?.otherCmsField}</div>
         <InstructionText>
-          Other CMS Type: {data?.otherCmsType}
+          Type: {data?.otherCmsType}
           <br />
           UID: {data?.uid}
         </InstructionText>
@@ -898,6 +898,10 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
         setisDropDownCHanged(false);
         setisContentTypeMapped(true);
         setisContentTypeSaved(true);
+
+        setFilteredContentTypes(filteredContentTypes?.map(ct => 
+          ct?.id === data?.updatedContentType?.id ? { ...ct, status: data?.updatedContentType?.status } : ct
+        ))
       } else {
         Notification({
           notificationContent: { text: data?.error?.message },
@@ -1121,16 +1125,13 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
                     >
                       <div className='cms-title'>
                         <Tooltip content={content?.type} position="bottom">
-                          {content?.type === "Content Type" 
+                          {content?.type === "content_type" 
                             ? <Icon icon={active == index ? "ContentModelsMediumActive" : "ContentModelsMedium"} size="small"  />
-                            : content?.type === "Global Field"
-                              ? <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
-                              : <></>
+                            : <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
                           }
                         </Tooltip>
                         {content?.otherCmsTitle && <span>{content?.otherCmsTitle}</span> }
                       </div>
-                      
                       
                       <div className='d-flex align-items-center ct-options'>
                         <span>
