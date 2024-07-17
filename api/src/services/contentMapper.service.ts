@@ -47,12 +47,11 @@ const putTestData = async (req: Request) => {
   */
   contentTypes.map((type: any, index: any) => {
     const fieldIds: string[] = [];
-    const fields =
-      type?.fieldMapping?.map?.((field: any) => {
-        const id = field?.id || uuidv4();
-        fieldIds.push(id);
-        return { id, isDeleted: true, ...field };
-      }) ?? [];
+    const fields = type?.fieldMapping?.map?.((field: any) => {
+      const id = field?.id.replace(/[{}-]/g, '').toLowerCase() || uuidv4();
+      fieldIds.push(id);
+      return { id, projectId, isDeleted: true, ...field };
+    });
     FieldMapperModel.update((data: any) => {
       data.field_mapper = [...(data?.field_mapper ?? []), ...fields];
     });
@@ -69,13 +68,13 @@ const putTestData = async (req: Request) => {
   and the generated id values are pushed into the contentIds array.
   */
   const contentType = contentTypes.map((item: any) => {
-    const id = item?.id || uuidv4();
+    const id = item?.id.replace(/[{}-]/g, '').toLowerCase() || uuidv4();
     contentIds.push(id);
-    return { ...item, id };
+    return { ...item, id, projectId };
   });
 
   await ContentTypesMapperModelLowdb.update((data: any) => {
-    data.ContentTypesMappers = contentType;
+    data.ContentTypesMappers = [...(data?.ContentTypesMappers ?? []), ...contentType];
   });
 
   await ProjectModelLowdb.read();
@@ -135,7 +134,7 @@ const getContentTypes = async (req: Request) => {
   contentMapperId.map((data: any) => {
     const contentMapperData = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
-      .find({ id: data })
+      .find({ id: data, projectId: projectId })
       .value();
     content_mapper.push(contentMapperData);
   });
@@ -173,6 +172,7 @@ const getContentTypes = async (req: Request) => {
 const getFieldMapping = async (req: Request) => {
   const srcFunc = "getFieldMapping";
   const contentTypeId = req?.params?.contentTypeId;
+  const projectId = req?.params?.projectId;
   const skip: any = req?.params?.skip;
   const limit: any = req?.params?.limit;
   const search: string = req?.params?.searchText?.toLowerCase();
@@ -185,7 +185,7 @@ const getFieldMapping = async (req: Request) => {
 
   const contentType = ContentTypesMapperModelLowdb.chain
     .get("ContentTypesMappers")
-    .find({ id: contentTypeId })
+    .find({ id: contentTypeId, projectId: projectId })
     .value();
 
   if (isEmpty(contentType)) {
@@ -201,11 +201,11 @@ const getFieldMapping = async (req: Request) => {
   const fieldData = contentType.fieldMapping.map((fields: any) => {
     const fieldMapper = FieldMapperModel.chain
       .get("field_mapper")
-      .find({ id: fields })
+      .find({ id: fields, projectId: projectId})
       .value();
+
     return fieldMapper;
   });
-
   const fieldMapping: any = fieldData;
   if (!isEmpty(fieldMapping)) {
     if (search) {
@@ -363,7 +363,7 @@ const updateContentType = async (req: Request) => {
 
     const updateIndex = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
-      .findIndex({ id: contentTypeId })
+      .findIndex({ id: contentTypeId, projectId: projectId })
       .value();
     ContentTypesMapperModelLowdb.update((data: any) => {
       if (updateIndex >= 0) {
@@ -414,7 +414,7 @@ const updateContentType = async (req: Request) => {
     await ContentTypesMapperModelLowdb.read();
     const updatedContentType = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
-      .find({ id: contentTypeId })
+      .find({ id: contentTypeId, projectId: projectId })
       .value();
 
     return { updatedContentType };
@@ -482,14 +482,14 @@ const resetToInitialMapping = async (req: Request) => {
   await ContentTypesMapperModelLowdb.read();
   const contentTypeData = ContentTypesMapperModelLowdb.chain
     .get("ContentTypesMappers")
-    .find({ id: contentTypeId })
+    .find({ id: contentTypeId,projectId: projectId })
     .value();
 
   await FieldMapperModel.read();
   const fieldMappingData = contentTypeData.fieldMapping.map((itemId: any) => {
     const fieldData = FieldMapperModel.chain
       .get("field_mapper")
-      .find({ id: itemId })
+      .find({ id: itemId, projectId: projectId })
       .value();
     return fieldData;
   });
@@ -589,7 +589,7 @@ const resetAllContentTypesMapping = async (projectId: string) => {
   const cData = contentMapperId.map((cId: any) => {
     const contentTypeData = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
-      .find({ id: cId })
+      .find({ id: cId, projectId: projectId })
       .value();
     return contentTypeData;
   });
@@ -602,11 +602,11 @@ const resetAllContentTypesMapping = async (projectId: string) => {
           await FieldMapperModel.read();
           const fieldData = FieldMapperModel.chain
             .get("field_mapper")
-            .find({ id: field })
+            .find({ id: field, projectId: projectId })
             .value();
           const fieldIndex = FieldMapperModel.chain
             .get("field_mapper")
-            .findIndex({ id: field })
+            .findIndex({ id: field,projectId: projectId })
             .value();
 
           if (fieldIndex > -1) {
@@ -625,7 +625,7 @@ const resetAllContentTypesMapping = async (projectId: string) => {
       if (!isEmpty(contentType?.id)) {
         const cIndex = ContentTypesMapperModelLowdb.chain
           .get("ContentTypesMappers")
-          .findIndex({ id: contentType?.id })
+          .findIndex({ id: contentType?.id , projectId: projectId})
           .value();
         if (cIndex > -1) {
           await ContentTypesMapperModelLowdb.update((data: any) => {
@@ -680,7 +680,7 @@ const removeMapping = async (projectId: string) => {
   const cData = projectDetails?.content_mapper.map((cId: any) => {
     const contentTypeData = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
-      .find({ id: cId })
+      .find({ id: cId, projectId: projectId })
       .value();
     return contentTypeData;
   });
@@ -695,7 +695,7 @@ const removeMapping = async (projectId: string) => {
           await FieldMapperModel.read();
           const fieldIndex = FieldMapperModel.chain
             .get("field_mapper")
-            .findIndex({ id: field })
+            .findIndex({ id: field, projectId: projectId })
             .value();
           if (fieldIndex > -1) {
             await FieldMapperModel.update((fData: any) => {
@@ -708,7 +708,7 @@ const removeMapping = async (projectId: string) => {
       if (!isEmpty(contentType?.id)) {
         const cIndex = ContentTypesMapperModelLowdb.chain
           .get("ContentTypesMappers")
-          .findIndex({ id: contentType?.id })
+          .findIndex({ id: contentType?.id, projectId: projectId})
           .value();
         if (cIndex > -1) {
           await ContentTypesMapperModelLowdb.update((data: any) => {
@@ -817,16 +817,13 @@ const removeContentMapper = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
   await ContentTypesMapperModelLowdb.read();
-  const cData: ContentTypesMapper[] = projectDetails?.content_mapper.map(
-    (cId: string) => {
-      const contentTypeData: ContentTypesMapper =
-        ContentTypesMapperModelLowdb.chain
-          .get("ContentTypesMappers")
-          .find({ id: cId })
-          .value();
-      return contentTypeData;
-    }
-  );
+  const cData: ContentTypesMapper[] = projectDetails?.content_mapper.map((cId: string) => {
+    const contentTypeData: ContentTypesMapper = ContentTypesMapperModelLowdb.chain
+      .get("ContentTypesMappers")
+      .find({ id: cId, projectId:projectId })
+      .value();
+    return contentTypeData;
+  });
 
   try {
     const contentTypes: ContentTypesMapper[] = cData;
@@ -838,7 +835,7 @@ const removeContentMapper = async (req: Request) => {
           await FieldMapperModel.read();
           const fieldIndex = FieldMapperModel.chain
             .get("field_mapper")
-            .findIndex({ id: field })
+            .findIndex({ id: field, projectId:projectId })
             .value();
           if (fieldIndex > -1) {
             await FieldMapperModel.update((fData: any) => {
@@ -851,7 +848,7 @@ const removeContentMapper = async (req: Request) => {
       if (!isEmpty(contentType?.id)) {
         const cIndex = ContentTypesMapperModelLowdb.chain
           .get("ContentTypesMappers")
-          .findIndex({ id: contentType?.id })
+          .findIndex({ id: contentType?.id, projectId: projectId })
           .value();
         if (cIndex > -1) {
           await ContentTypesMapperModelLowdb.update((data: any) => {
