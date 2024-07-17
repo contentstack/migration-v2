@@ -1,6 +1,11 @@
 import { checkSchema } from "express-validator";
 import { VALIDATION_ERRORS } from "../constants/index.js";
 
+/**
+ * Validates the 'legacy_cms' field in the request body.
+ * 
+ * @returns {Object} The validation schema for 'legacy_cms' field.
+ */
 export default checkSchema({
   legacy_cms: {
     in: "body",
