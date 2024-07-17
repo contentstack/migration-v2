@@ -2,6 +2,9 @@ import { Checkbox, Icon } from '@contentstack/venus-components';
 import { ICTA } from '../../../context/app/app.interface';
 import { ChangeEvent } from 'react';
 
+/**
+ * Represents the props for the DocLink component.
+ */
 interface IProps {
   cta: ICTA;
   isCheckedBoxChecked: boolean;
@@ -11,6 +14,34 @@ interface IProps {
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
 }
 
+/**
+ * Renders a component that displays a link and a checkbox.
+ *
+ * @component
+ * @example
+ * // Usage:
+ * <DocLink
+ *   cta={{ href: 'https://example.com', title: 'Example Link' }}
+ *   isCheckedBoxChecked={true}
+ *   isDisable={false}
+ *   label="Example Label"
+ *   isLabelFullWidth={true}
+ *   onChange={(e) => {
+ *     console.log('Checkbox changed:', e.target.checked);
+ *   }}
+ * />
+ *
+ * @param {Object} props - The component props.
+ * @param {Object} props.cta - The link details.
+ * @param {string} props.cta.href - The URL of the link.
+ * @param {string} props.cta.title - The title of the link.
+ * @param {boolean} props.isCheckedBoxChecked - Indicates whether the checkbox is checked.
+ * @param {boolean} props.isDisable - Indicates whether the component is disabled.
+ * @param {string} props.label - The label for the checkbox.
+ * @param {boolean} props.isLabelFullWidth - Indicates whether the label should take full width.
+ * @param {function} props.onChange - The event handler for the checkbox change event.
+ * @returns {JSX.Element} The rendered component.
+ */
 const DocLink = ({
   cta,
   isCheckedBoxChecked,
