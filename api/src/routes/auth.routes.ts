@@ -10,7 +10,7 @@ const router = express.Router();
 
 /**
  * Route for user login.
- * 
+ *
  * @route POST /user-session
  * @group Authentication
  * @param {object} req.body - The request body containing user credentials.
@@ -26,7 +26,7 @@ router.post(
 
 /**
  * Route for requesting SMS token.
- * 
+ *
  * @route POST /request-token-sms
  * @group Authentication
  * @param {object} req.body - The request body containing user information.
