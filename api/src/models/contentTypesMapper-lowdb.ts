@@ -11,6 +11,11 @@ export interface ContentTypesMapper {
   id: string;
 
   /**
+   * The unique identifier of the project.
+   */
+  projectId: string;
+
+  /**
    * The title of the content type in the other CMS.
    */
   otherCmsTitle: string;
