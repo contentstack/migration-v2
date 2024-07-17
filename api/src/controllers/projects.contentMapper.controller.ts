@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { contentMapperService } from "../services/contentMapper.service.js";
 /**
  * Handles the PUT request to update test data.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A Promise that resolves to void.
@@ -14,7 +14,7 @@ const putTestData = async (req: Request, res: Response): Promise<void> => {
 
 /**
  * Retrieves the content types from the content mapper service and sends the response as JSON.
- * 
+ *
  * @param req - The Express request object.
  * @param res - The Express response object.
  * @returns A Promise that resolves to void.
@@ -25,7 +25,7 @@ const getContentTypes = async (req: Request, res: Response): Promise<void> => {
 };
 /**
  * Retrieves the field mapping for a given request and sends the response as JSON.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A Promise that resolves to void.
@@ -64,7 +64,7 @@ const putContentTypeFields = async (
 };
 /**
  * Resets the content type to its initial mapping.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A Promise that resolves to void.
@@ -96,7 +96,7 @@ const removeContentMapper = async (
 
 /**
  * Retrieves single content types.
- * 
+ *
  * @param req - The request object.
  * @param res - The response object.
  * @returns A Promise that resolves to void.

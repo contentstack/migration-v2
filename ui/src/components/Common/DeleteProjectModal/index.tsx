@@ -15,6 +15,12 @@ import { deleteProject } from '../../../services/api/project.service';
 // Interfaces
 import { SettingsModalProps } from '../../../components/Modal/modal.interface';
 
+/**
+ * Renders a modal component for deleting a project.
+ *
+ * @param {SettingsModalProps} props - The component props.
+ * @returns {JSX.Element} The rendered DeleteProjectModal component.
+ */
 const DeleteProjectModal = (props: SettingsModalProps) => {
   const {
     closeModal,
@@ -24,7 +30,13 @@ const DeleteProjectModal = (props: SettingsModalProps) => {
     selectedOrg
   } = props;
 
-  const handleDeleteProject = async (closeModal: () => void) => {
+  /**
+   * Handles the deletion of the project.
+   *
+   * @param {() => void} closeModal - A function to close the modal.
+   * @returns {Promise<void>} A promise that resolves when the project is deleted.
+   */
+  const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
     const response = await deleteProject(selectedOrg?.value || '', projectId ?? '',);
 
     if (response?.status === 200) {
@@ -44,6 +56,7 @@ const DeleteProjectModal = (props: SettingsModalProps) => {
       }, 1200)
     }
   }
+
   return (
     <>
       <ModalHeader
