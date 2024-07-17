@@ -1,7 +1,15 @@
 import { checkSchema } from "express-validator";
 import { VALIDATION_ERRORS, CS_REGIONS } from "../constants/index.js";
 
+/**
+ * Validates the authentication request body.
+ *
+ * @returns {Object} The validation schema for the authentication request body.
+ */
 export default checkSchema({
+  /**
+   * The email field in the request body.
+   */
   email: {
     in: "body",
     isString: {
@@ -22,6 +30,9 @@ export default checkSchema({
       bail: true,
     },
   },
+  /**
+   * The password field in the request body.
+   */
   password: {
     in: "body",
     isString: {
@@ -30,6 +41,9 @@ export default checkSchema({
     },
     trim: true,
   },
+  /**
+   * The region field in the request body.
+   */
   region: {
     in: "body",
     isString: {
@@ -43,6 +57,9 @@ export default checkSchema({
       bail: true,
     },
   },
+  /**
+   * The 2FA token field in the request body.
+   */
   tfa_token: {
     optional: true,
     in: "body",

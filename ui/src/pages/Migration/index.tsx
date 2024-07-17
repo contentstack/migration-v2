@@ -202,8 +202,8 @@ const Migration = () => {
       else{
         setIsLoading(false);
 
-        if (legacyCMSRef.current) {
-          const currentIndex = legacyCMSRef.current.getInternalActiveStepIndex() + 1;         
+        if (legacyCMSRef?.current) {
+          const currentIndex = legacyCMSRef?.current?.getInternalActiveStepIndex() + 1;                
           let result;
           switch (currentIndex ) {
             case 0:
