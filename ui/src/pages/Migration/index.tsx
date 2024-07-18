@@ -124,7 +124,8 @@ const Migration = () => {
         title:'Destination Stack'
       },
       {
-        data: <ContentMapper />,
+        data: <ContentMapper 
+              projectData={projectData}/>,
         id:'3',
         title:'Content Mapping'
       },
