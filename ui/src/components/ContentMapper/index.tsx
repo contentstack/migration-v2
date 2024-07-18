@@ -48,7 +48,8 @@ import {
   optionsType,
   UidMap,
   ContentTypeMap,
-  Advanced
+  Advanced,
+  SavedContentType
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -57,6 +58,7 @@ import { UpdatedSettings } from '../AdvancePropertise/advanceProperties.interfac
 // Components
 import SchemaModal from '../SchemaModal';
 import AdvanceSettings from '../AdvancePropertise';
+import SaveChangesModal from '../Common/SaveChangesModal';
 
 // Styles
 import './index.scss';
@@ -425,19 +427,71 @@ const ContentMapper = () => {
     }
   };
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+
+  const [currentCt, setCurrentCt] = useState(contentTypes[0]?.otherCmsTitle);
+  const [savedContentType, setSavedContentType] = useState<SavedContentType>({'col1': true, 'col2': false});
+  console.log("savedContentType", savedContentType);
+  
+
+
   // Method to change the content type
   const openContentType = (i: number) => {
-    setActive(i);
+    // console.log("savedContentType[i - 1]", i, savedContentType[i - 1]);
+    
+    if (i > -1 && 1 < filteredContentTypes?.length) {
 
-    const otherTitle = contentTypes?.[i]?.otherCmsTitle;
-    setOtherCmsTitle(otherTitle);
-    const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
-    setOtherContentType({ label: option, value: option });
+      // filteredContentTypes?.forEach((ct: ContentType) => {
+      //   ct.otherCmsTitle = true
+      // })
 
-    setContentTypeUid(contentTypes?.[i]?.id ?? '');
-    fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
-    setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
-    setSelectedContentType(contentTypes?.[i]);
+
+    // setCurrentCt(otherTitle);
+    const updatedCT = {}
+    // updatedCT.contentTypes.[i].otherCmsTitle = true
+    // contentTypes.[i].otherCmsTitle = true
+    setSavedContentType(updatedCT)
+
+
+
+    
+
+    // console.log("isContentTypeSaved", savedContentType[i - 1]?.otherCmsTitle, savedContentType[i]?.otherCmsTitle);
+    
+      // savedCTArray.push({contentTypes?.[i]?.otherCmsTitle : true});
+    }
+
+    // console.log("savedCTArray", contentTypes?.[i]?.otherCmsTitle, i);
+    if (isDropDownChanged) {
+      console.log("otherCmsTitle", otherCmsTitle);
+      
+      setIsModalOpen(true);
+      return cbModal({
+        component: (props: ModalObj) => (
+          <SaveChangesModal
+          {...props}
+          isopen={setIsModalOpen}
+          otherCmsTitle={otherCmsTitle}
+          />
+        ),
+        modalProps: {
+          size: 'xsmall',
+          shouldCloseOnOverlayClick: false
+        }
+      });
+    } else {
+      setActive(i);
+      const otherTitle = contentTypes?.[i]?.otherCmsTitle;
+      setOtherCmsTitle(otherTitle);
+      const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
+      setOtherContentType({ label: option, value: option });
+  
+      setContentTypeUid(contentTypes?.[i]?.id ?? '');
+      fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
+      setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
+      setSelectedContentType(contentTypes?.[i]);
+    }
   };
 
   // Function to get exisiting content types list
@@ -525,6 +579,8 @@ const ContentMapper = () => {
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
+    console.log("setisDropDownCHanged", value, rowIndex);
+    
     setisDropDownCHanged(true);
     setFieldValue(value);
     const updatedRows = tableData?.map((row) => {
@@ -892,6 +948,11 @@ const ContentMapper = () => {
         setisDropDownCHanged(false);
         setisContentTypeMapped(true);
         setisContentTypeSaved(true);
+
+        // const savedCTArray: SavedContentType = {}
+        // data.updatedContentType.otherCmsTitle = true
+        // // savedCTArray = data?.updatedContentType;
+        // setSavedContentType(data?.updatedContentType?.otherCmsTitle)
 
         setFilteredContentTypes(filteredContentTypes?.map(ct => 
           ct?.id === data?.updatedContentType?.id ? { ...ct, status: data?.updatedContentType?.status } : ct
