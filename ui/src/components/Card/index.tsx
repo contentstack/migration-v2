@@ -12,16 +12,26 @@ import { getProject } from '../../services/api/project.service';
 import './card.scss';
 import { RootState } from '../../store';
 
+/**
+ * Renders a card component for a project in a list.
+ * @param project - The project object containing project details.
+ */
 const CardList = ({ project }: ProjectType) => {
   const navigate = useNavigate();
 
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
   const [projectDetails, setprojectDetails] = useState('');
 
+  /**
+   * Handles the click event when a project card is clicked.
+   * Navigates to the project migration steps page.
+   * @param id - The ID of the project.
+   */
   const onClickProject = (id: string) => {
     if (isEmptyString(id)) return;
     navigate(`/projects/${id}/migration/steps/1`);
   };
+
   const iconMapping: { [key: string]: string } = {
     '0': 'Information',
     '1': 'Warning',
@@ -31,6 +41,7 @@ const CardList = ({ project }: ProjectType) => {
     '5': 'CheckCircleDark',
     '6': 'Close',
   };
+
   const statusClassMapping: { [key: string]: string } = {
     '0': 'draft',
     '1': 'pending',
@@ -40,6 +51,7 @@ const CardList = ({ project }: ProjectType) => {
     '5': 'completed',
     '6': 'failed',
   };
+
   const status = project?.status ?? '0';
   const statusClass = statusClassMapping[status] || '';
   const icon = iconMapping[status] || '';
@@ -56,7 +68,7 @@ const CardList = ({ project }: ProjectType) => {
     };
     fetchProject();
   }, [selectedOrganisation?.value, project?.id]);
-  
+
   return (
     <div style={{ margin: '0 20px 20px 0' }}>
       <div onClick={() => onClickProject(project?.id || '')}>
@@ -66,7 +78,7 @@ const CardList = ({ project }: ProjectType) => {
               <div className="ProjectCard__heading">
                 {project?.name && <h4 className="ProjectCard__title flex-v-center">{project?.name}</h4>}
               </div>
-            </Tooltip>            
+            </Tooltip>
             <div className="ProjectCard__content">
               <div className="ProjectCard__stats">
                 <div className='ProjectCard__Staus-unit'>

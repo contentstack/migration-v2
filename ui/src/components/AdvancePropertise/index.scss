@@ -1,6 +1,15 @@
 @import '../../scss/variables';
 
 .options-class {
+  /**
+   * Styles for the AdvancePropertise component.
+   *
+   * This SCSS file contains styles for the AdvancePropertise component, which is used to define
+   * advanced properties for a UI component. The styles include flexbox properties for layout,
+   * margin, grid template columns, and gap.
+   *
+   * @module components/AdvancePropertise
+   */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -8,14 +17,34 @@
   margin-bottom: 20px;
   grid-template-columns: 1fr;
   gap: 20px;
-}
+  }
+/**
+ * Styles for the option label in the AdvancePropertise component.
+ *
+ * @class option-label
+ * @memberof components.AdvancePropertise
+ * @cssprop {margin-bottom} margin-bottom - The margin bottom value for the option label.
+ */
 .option-label {
   margin-bottom: $px-10;
 }
+/**
+ * Styles for the non-localizable-message class.
+ */
 .non-localizable-message {
   margin-top: 0;
   margin-left: 30px;
 }
+/**
+ * 
+ * This SCSS file contains styles for the AdvancePropertise component.
+ * 
+ * The styles define various classes for different elements within the component,
+ * such as radio fields, labels, info styles, options, notes, toggles, fields,
+ * separators, and select menus.
+ * 
+ * The classes are used to apply specific styling to these elements in the component.
+ */
 .modal-data {
   padding: 0.75rem;
   .radio-field {
