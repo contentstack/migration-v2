@@ -4,44 +4,73 @@ import { asyncRouter } from "../utils/async-router.utils.js";
 
 const router = express.Router({ mergeParams: true });
 
-//Developer End Point to create dummy data
+/**
+ * Developer End Point to create dummy data
+ * @route POST /createDummyData/:projectId
+ */
 router.post(
   "/createDummyData/:projectId",
   asyncRouter(contentMapperController.putTestData)
 );
 
-//Get ContentTypes List
+/**
+ * Get ContentTypes List
+ * @route GET /contentTypes/:projectId/:skip/:limit/:searchText?
+ */
 router.get(
   "/contentTypes/:projectId/:skip/:limit/:searchText?",
   asyncRouter(contentMapperController.getContentTypes)
 );
-//Get FieldMapping List
+
+/**
+ * Get FieldMapping List
+ * @route GET /fieldMapping/:contentTypeId/:skip/:limit/:searchText?
+ */
 router.get(
-  "/fieldMapping/:contentTypeId/:skip/:limit/:searchText?",
+  "/fieldMapping/:projectId/:contentTypeId/:skip/:limit/:searchText?",
   asyncRouter(contentMapperController.getFieldMapping)
 );
-//Get Existing ContentTypes List
 
+/**
+ * Get Existing ContentTypes List
+ * @route GET /:projectId
+ */
 router.get(
   "/:projectId",
   asyncRouter(contentMapperController.getExistingContentTypes)
 );
-//Update FieldMapping or contentType
+
+/**
+ * Update FieldMapping or contentType
+ * @route PUT /contentTypes/:orgId/:projectId/:contentTypeId
+ */
 router.put(
   "/contentTypes/:orgId/:projectId/:contentTypeId",
   asyncRouter(contentMapperController.putContentTypeFields)
 );
-//Reset FieldMapping or contentType
+
+/**
+ * Reset FieldMapping or contentType
+ * @route PUT /resetFields/:orgId/:projectId/:contentTypeId
+ */
 router.put(
   "/resetFields/:orgId/:projectId/:contentTypeId",
   asyncRouter(contentMapperController.resetContentType)
 );
-//get Single contenttype data
+
+/**
+ * Get Single contenttype data
+ * @route GET /:projectId/:contentTypeUid
+ */
 router.get(
   "/:projectId/:contentTypeUid",
   asyncRouter(contentMapperController.getSingleContentTypes)
 );
-//remove content mapper
+
+/**
+ * Remove content mapper
+ * @route GET /:orgId/:projectId/content-mapper
+ */
 router.get(
   "/:orgId/:projectId/content-mapper",
   asyncRouter(contentMapperController.removeContentMapper)
