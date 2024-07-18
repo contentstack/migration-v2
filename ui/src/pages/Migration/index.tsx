@@ -247,7 +247,7 @@ const Migration = () => {
       } else{
         setIsLoading(false);
         Notification({
-          notificationContent: { text: 'Please complete all steps' },
+          notificationContent: { text: 'Please select a stack to complete all steps' },
           type: 'warning'
         });
       }
