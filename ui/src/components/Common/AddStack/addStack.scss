@@ -1,11 +1,28 @@
+/**
+ * Styles for the ReactModal__add-stack class.
+ */
 .ReactModal__add-stack {
+  /**
+   * Styles for the textarea inside the Description-field class.
+   * Disables the resizing of the textarea.
+   */
   .Description-field > textarea {
     resize: none;
   }
+
+  /**
+   * Styles for the single-value inside the Select__single-value class.
+   * Overrides the width to 200px.
+   */
   .Select__single-value {
     width: 200px !important;
   }
 }
+
+/**
+ * Styles for the ReactModal__Overlay, ReactModal__Content, and ReactModal__Content__body.selectWrapperBody classes.
+ * Sets the overflow property to visible.
+ */
 .ReactModal__Overlay .ReactModal__Content .ReactModal__Content__body.selectWrapperBody {
   overflow: visible;
 }

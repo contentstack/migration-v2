@@ -3,7 +3,7 @@ import { HTTP_CODES, HTTP_TEXTS } from "../constants/index.js";
 
 /**
  * Middleware function to handle unmatched routes.
- * 
+ *
  * @param req - The Express request object.
  * @param res - The Express response object.
  */
