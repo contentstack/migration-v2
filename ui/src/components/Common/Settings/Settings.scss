@@ -34,13 +34,24 @@
   }
 }
 
+/**
+ * Styles for the Settings component.
+ */
+
 .Field {
   margin-bottom: $px-40;
 }
+
+/**
+ * Styles for hiding the left sidebar in the PageLayout component.
+ */
 .PageLayout__leftSidebar--hide {
   display: none;
 }
 
+/**
+ * Styles for the left sidebar.
+ */
 .leftsidebar {
   margin-top: 0 !important;
 }

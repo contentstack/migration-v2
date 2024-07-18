@@ -18,6 +18,7 @@ interface Advanced {
 interface FieldMapper {
   field_mapper: {
     id: string;
+    projectId: string;
     uid: string;
     otherCmsField: string;
     otherCmsType: string;

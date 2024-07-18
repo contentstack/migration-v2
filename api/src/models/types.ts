@@ -6,7 +6,7 @@ export interface User {
    * The email address of the user.
    */
   email: string;
-  
+
   /**
    * The password of the user.
    */
