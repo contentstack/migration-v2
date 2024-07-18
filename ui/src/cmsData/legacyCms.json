@@ -338,7 +338,7 @@
         "uid": "cs6c761d71844ac800"
       },
       "title": "Enter Affix",
-      "description": "Please enter the keyword to be affixed to the source. Minimum 2 characters, maximum 5 characters and should not start with numbers and not include special characters",
+      "description": "Please enter the keyword to be affixed to the source. Minimum 2 characters, maximum 5 characters and should not start with numbers and not include special characters.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": false,

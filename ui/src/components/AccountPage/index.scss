@@ -1,5 +1,11 @@
 @import '../../scss/variables';
 
+/**
+ * Styles for the AccountPage component.
+ *
+ * The AccountPage component is a container component that represents the account page of the application.
+ * It contains styles for the layout, logo, background image, action section, content, heading, and circles.
+ */
 .AccountPage {
   align-items: stretch;
   display: flex;
@@ -153,6 +159,17 @@
   }
 }
 
+/**
+ * Styles for the copyright text in the AccountPage component.
+ *
+ * CSS properties:
+ * - bottom: 1.5rem;
+ * - color: $color-font-base;
+ * - font-size: 0.75rem;
+ * - letter-spacing: 0.02em;
+ * - left: 2.5rem;
+ * - position: absolute;
+ */
 .copyright_text {
   bottom: 1.5rem;
   color: $color-font-base;

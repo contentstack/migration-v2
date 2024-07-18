@@ -1,11 +1,21 @@
 @import '../../../scss/variables';
 
 /* Asset upload window css */
+/**
+ * Styles for the asset upload component.
+ *
+ * @class .asset-upload
+ */
 .asset-upload {
   background: $color-brand-white-base;
   box-shadow: 0 $space-4 $space-30 rgba(0, 0, 0, 0.25);
   width: 31.25rem;
 
+  /**
+   * Styles for the heading section of the asset upload component.
+   *
+   * @class .asset-upload__heading
+   */
   &__heading {
     align-items: center;
     border-radius: $radii-4;
@@ -14,26 +24,58 @@
     justify-content: space-between;
     padding: 0 calc(var(--space-22) + 0.063rem);
 
+    /**
+     * Styles for the in-progress state of the heading section.
+     *
+     * @class .in-progress
+     */
     &.in-progress {
       background-color: $color-brand-primary-base;
     }
 
+    /**
+     * Styles for the success state of the heading section.
+     *
+     * @class .success
+     */
     &.success {
       background-color: $color-brand-success-base;
     }
 
+    /**
+     * Styles for the attention state of the heading section.
+     *
+     * @class .attention
+     */
     &.attention {
       background-color: $color-brand-attention-base;
     }
 
+    /**
+     * Styles for the warning state of the heading section.
+     *
+     * @class .warning
+     */
     &.warning {
       background-color: #ffab00 !important;
     }
 
+    /**
+     * Styles for the actions section of the heading.
+     *
+     * @class .asset-upload-actions
+     */
     .asset-upload-actions {
       justify-content: space-between;
       width: 4.375rem;
 
+      /**
+       * Styles for the cancel, minimize, and maximize buttons in the actions section.
+       *
+       * @class .asset-upload__cancel
+       * @class .asset-upload__minimize
+       * @class .asset-upload__maximize
+       */
       &__cancel,
       &__minimize,
       &__maximize {
@@ -45,20 +87,34 @@
         justify-content: center;
         width: $space-30;
 
+        /**
+         * Styles for the hover state of the cancel, minimize, and maximize buttons.
+         */
         &:hover {
           background: rgba(34, 34, 34, 0.2);
         }
 
+        /**
+         * Styles for the SVG icons in the cancel, minimize, and maximize buttons.
+         */
         & > svg {
           cursor: pointer;
         }
       }
 
+      /**
+       * Styles for the SVG icons in the actions section.
+       */
       & > svg {
         cursor: pointer;
       }
     }
 
+    /**
+     * Styles for the count section in the heading.
+     *
+     * @class .asset-upload__count
+     */
     .asset-upload__count {
       color: $color-font-white;
       font-size: $size-font-xl;
@@ -67,17 +123,32 @@
     }
   }
 
+  /**
+   * Styles for the body section of the asset upload component.
+   *
+   * @class .asset-upload__body
+   */
   &__body {
     height: 19.06rem;
     margin-right: $space-15;
     overflow-y: auto;
 
+    /**
+     * Styles for each file in the body section.
+     *
+     * @class .asset-upload__file
+     */
     .asset-upload__file {
       display: flex;
       height: 3.75rem;
       justify-content: space-between;
       padding: $space-15;
 
+      /**
+       * Styles for the name section of each file.
+       *
+       * @class .asset-upload__name
+       */
       &__name {
         color: $color-font-black;
         font-size: $size-font-medium;
@@ -87,17 +158,37 @@
         // @include text-wrapper;
       }
 
+      /**
+       * Styles for the actions section of each file.
+       *
+       * @class .asset-upload__actions
+       */
       &__actions {
         display: flex;
 
+        /**
+         * Styles for the progress section in the actions section.
+         *
+         * @class .asset-upload__progress
+         */
         &__progress {
           margin-right: $space-34;
 
+          /**
+           * Styles for the file loaded count in the progress section.
+           *
+           * @class .file-loaded
+           */
           .file-loaded {
             color: $color-font-base;
             font-size: $size-font-medium;
           }
 
+          /**
+           * Styles for the total size count in the progress section.
+           *
+           * @class .total-size
+           */
           .total-size {
             color: $color-font-base;
             font-size: $size-font-medium;
@@ -105,6 +196,11 @@
           }
         }
 
+        /**
+         * Styles for the cancel upload button in the actions section.
+         *
+         * @class .cancel-upload
+         */
         .cancel-upload {
           cursor: pointer;
           margin-top: calc(var(--space-2) + 0.063rem);
