@@ -11,16 +11,30 @@ type FileUploadProps = {
   projectId: string;
 };
 
+/**
+ * FileUpload component for uploading files.
+ *
+ * @param {FileUploadProps} props - The props for the FileUpload component.
+ * @returns {JSX.Element} The rendered FileUpload component.
+ */
 const FileUpload = (props: FileUploadProps) => {
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const targetRef = useRef<any>(null);
 
+  /**
+   * Empty method to handle setting upload modal to false.
+   */
   const handleSetUploadModalFalse = (): any => {
     // Empty Method
   };
 
+  /**
+   * Reads the files and opens the upload modal.
+   *
+   * @param {FileList | null} filesList - The list of files to be uploaded.
+   */
   const readFiles = (filesList: FileList | null) => {
     //handle Null check
     if (!filesList) return;
@@ -49,6 +63,11 @@ const FileUpload = (props: FileUploadProps) => {
     setIsDragOver(false);
   };
 
+  /**
+   * Handles the drop event when files are dropped onto the component.
+   *
+   * @param {DragEvent<HTMLDivElement>} e - The drop event.
+   */
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -57,22 +76,43 @@ const FileUpload = (props: FileUploadProps) => {
     e.dataTransfer.clearData();
   };
 
+  /**
+   * Handles the drag toggle event when dragging files over the component.
+   *
+   * @param {boolean} flag - The flag indicating whether the files are being dragged over the component.
+   * @returns {Function} The event handler function.
+   */
   const handleDragToggle = (flag: boolean) => (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(flag);
   };
 
+  /**
+   * Handles the file change event when a file is selected using the file input.
+   *
+   * @param {ChangeEvent<HTMLInputElement>} e - The file change event.
+   */
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
 
     readFiles(e?.target?.files);
   };
 
+  /**
+   * Handles the file select event when the "Choose file" link is clicked.
+   *
+   * @param {any} e - The file select event.
+   */
   const handleFileSelect = (e: any) => {
     e.preventDefault();
     fileInputRef?.current?.click();
   };
 
+  /**
+   * Handles the onClose event after the files are uploaded.
+   *
+   * @param {IFile[]} files - The uploaded files.
+   */
   const onCloseAfterUpload = (files: IFile[]) => {
     props.handleOnFileUpload(files);
   };
