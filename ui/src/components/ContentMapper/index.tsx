@@ -62,6 +62,7 @@ import SaveChangesModal from '../Common/SaveChangesModal';
 
 // Styles
 import './index.scss';
+import { MigrationResponse } from '../../services/api/service.interface';
 const dummy_obj:any = {
   'single_line_text':{
     label : 'Single Line Textbox',
@@ -180,7 +181,12 @@ const Fields: Mapping = {
   global_field: 'Global'
 };
 
-const ContentMapper = () => {
+type ContentMapperComponentProps = {
+  projectData: MigrationResponse;
+
+};
+
+const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
   /** ALL CONTEXT HERE */
 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -339,8 +345,8 @@ const ContentMapper = () => {
   // Get the stack status if it is empty or not
   const stackStatus = async () => {
     const contentTypeCount = await getStackStatus(
-      newMigrationData?.destination_stack?.selectedOrg?.value,
-      newMigrationData?.destination_stack?.selectedStack?.value
+      projectData?.org_id,
+      projectData?.destination_stack_id
     );
 
     if (contentTypeCount?.data?.contenttype_count > 0) {
@@ -362,7 +368,7 @@ const ContentMapper = () => {
 
   // Method to get fieldmapping
   const fetchFields = async (contentTypeId: string, searchText: string) => {
-    const { data } = await getFieldMapping(contentTypeId || '', 0, 30, searchText || '');
+    const { data } = await getFieldMapping(contentTypeId || '', 0, 30, searchText || '', projectId);
 
     try {
       const itemStatusMap: ItemStatusMapProp = {};
@@ -409,8 +415,8 @@ const ContentMapper = () => {
       updateItemStatusMap({ ...itemStatusMapCopy });
       setLoading(true);
 
-      const { data } = await getFieldMapping(contentTypeUid || '', skip, limit, searchText || '');
-
+      const { data } = await getFieldMapping(contentTypeUid || '', skip, limit, searchText || '', projectId);
+      
       const updateditemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
 
       for (let index = startIndex; index <= stopIndex; index++) {
@@ -1024,6 +1030,13 @@ const ContentMapper = () => {
       });
     } else {
       const { data } = await fetchExistingContentType(projectId, OtherContentType?.id || '');
+
+      const index = contentTypesList.findIndex(ct => ct?.uid === data?.uid);
+      if(index != -1){      
+        contentTypesList[index] = data;
+      }
+      
+      setContentTypesList(contentTypesList)
       setContentTypeSchema(data?.schema)
     }
   }
@@ -1231,7 +1244,7 @@ const ContentMapper = () => {
                   <div className='d-flex align-items-center' style={{ gap: '8px' }}>
                     {!IsEmptyStack && (
                       <Tooltip content={'fetch the content type'} position="left">
-                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType} />
+                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType}  hover={true}  />
                       </Tooltip>
                     )}
 
@@ -1241,6 +1254,7 @@ const ContentMapper = () => {
                         size="small"
                         version="v2"
                         onClick={handleResetContentType}
+                        hover={true}
                       />
                     </Tooltip>
 
