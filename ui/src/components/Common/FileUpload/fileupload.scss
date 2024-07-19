@@ -1,4 +1,7 @@
 @import '../../../scss/variables';
+/**
+ * Styles for the file upload container.
+ */
 .file-upload-container {
   display: flex;
   height: 21.25rem;
@@ -10,6 +13,9 @@
   border-radius: 0.25rem;
   border: 0.125rem dashed $color-base-gray-40;
 
+  /**
+   * Styles for the file upload element.
+   */
   .file-upload {
     display: flex;
     height: 4.5rem;
@@ -20,6 +26,9 @@
     flex-shrink: 0;
   }
 
+  /**
+   * Styles for the text inside the file upload element.
+   */
   .file-upload-text {
     text-align: center;
     font-family: Inter;
@@ -30,6 +39,9 @@
     letter-spacing: 0.16px;
   }
 
+  /**
+   * Styles for the image inside the file upload container.
+   */
   .file-upload-image {
     width: 15rem;
     height: 15rem;
@@ -37,14 +49,32 @@
   }
 }
 
+/**
+ * Adds a hover effect to the element, displaying a dashed border in the base purple color.
+ *
+ * @class hover
+ */
 .hover {
   border: 0.125rem dashed $color-base-purple;
 }
+
+/**
+ * This SCSS file contains styles for the FileUpload component.
+ */
 
 .hidden {
   display: none;
 }
 
+/**
+ * Styles for the validation container component.
+ *
+ * The validation container is a flex container that displays a validation message
+ * for a file upload component. It has a white background color, a fixed height,
+ * and a border. The container is centered vertically and has no padding.
+ *
+ * @class validation-container
+ */
 .validation-container {
   display: flex;
   background-color: $color-base-white-5;

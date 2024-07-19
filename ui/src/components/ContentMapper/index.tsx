@@ -48,7 +48,7 @@ import {
   optionsType,
   UidMap,
   ContentTypeMap,
-  Advanced
+  Advanced,
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -57,6 +57,7 @@ import { UpdatedSettings } from '../AdvancePropertise/advanceProperties.interfac
 // Components
 import SchemaModal from '../SchemaModal';
 import AdvanceSettings from '../AdvancePropertise';
+import SaveChangesModal from '../Common/SaveChangesModal';
 
 // Styles
 import './index.scss';
@@ -448,10 +449,34 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
     }
   };
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Method to change the content type
+  const handleOpenContentType = (i: number) => {
+    if (isDropDownChanged) {
+      setIsModalOpen(true);
+      return cbModal({
+        component: (props: ModalObj) => (
+          <SaveChangesModal
+            {...props}
+            isopen={setIsModalOpen}
+            otherCmsTitle={otherCmsTitle}
+            saveContentType={handleSaveContentType}
+            openContentType={() => openContentType(i)}
+          />
+        ),
+        modalProps: {
+          size: 'xsmall',
+          shouldCloseOnOverlayClick: false
+        }
+      });
+    } else {
+      openContentType(i);
+    }
+  };
+
   const openContentType = (i: number) => {
     setActive(i);
-
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
     const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
@@ -461,7 +486,7 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
     fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
     setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(contentTypes?.[i]);
-  };
+  }
 
   // Function to get exisiting content types list
   const fetchExistingContentTypes = async () => {
@@ -583,15 +608,15 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
       }
     });
   };
+  
   const SelectAccessor = (data: FieldMapType) => {
-    
     //const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
     const OptionsForRow = dummy_obj?.[data?.backupFieldType]?.options ;
     const initialOption = {
       label: dummy_obj?.[data?.ContentstackFieldType]?.label,
       value: dummy_obj?.[data?.ContentstackFieldType]?.label,
     };
-    let option:any;
+    let option: FieldTypes[];
     if (Array.isArray(OptionsForRow)) {
        option = OptionsForRow.map((option) => ({
         label: option,
@@ -602,12 +627,18 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
         label,
         value,
       }));
-    }else{
+
+      if (option?.length === 1 && option?.[0]?.label === initialOption?.label) {
+        option = [{ label: "No option available", value: "No option available" }];
+      }
+      
+    } else {
       option = [{ label: OptionsForRow, value: OptionsForRow }]
     }
 
-      const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
-        ? data?.ContentstackFieldType : option?.[0]?.label
+    const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
+      ? data?.ContentstackFieldType : option?.[0]?.label
+    
     return (
       <div className="table-row">
         <div className="select">
@@ -972,7 +1003,7 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
           notificationContent: { text: 'Content type saved successfully' },
           notificationProps: {
             position: 'bottom-center',
-            hideProgressBar: false
+            hideProgressBar: true
           },
           type: 'success'
         });
@@ -988,7 +1019,7 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
           notificationContent: { text: data?.error?.message },
           notificationProps: {
             position: 'bottom-center',
-            hideProgressBar: false
+            hideProgressBar: true
           },
           type: 'error'
         });
@@ -1203,8 +1234,8 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
                     <li
                       key={`${index.toString()}`}
                       className={`${active == index ? 'active-ct' : ''}`}
-                      onClick={() => openContentType(index)}
-                      onKeyDown={() => openContentType(index)}
+                      onClick={() => handleOpenContentType(index)}
+                      onKeyDown={() => handleOpenContentType(index)}
                     >
                       <div className='cms-title'>
                         <Tooltip content={content?.type} position="bottom">
