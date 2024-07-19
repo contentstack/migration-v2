@@ -1,5 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 
+/**
+ * Middleware function to handle request headers.
+ * Adds necessary headers for CORS support and handles OPTIONS requests.
+ *
+ * @param req - The Express Request object.
+ * @param res - The Express Response object.
+ * @param next - The next middleware function.
+ */
 export const requestHeadersMiddleware = (
   req: Request,
   res: Response,
