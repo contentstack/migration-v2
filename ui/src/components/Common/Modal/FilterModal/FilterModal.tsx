@@ -5,6 +5,9 @@ import WordWrapper from '../../WordWrapper/WordWrapper';
 import { IFilterStatusType, IFilterType } from './filterModal.interface';
 import './FilterModal.scss';
 
+/**
+ * Props for the FilterModal component.
+ */
 type Props = {
   title: string;
   list: IFilterType[];
