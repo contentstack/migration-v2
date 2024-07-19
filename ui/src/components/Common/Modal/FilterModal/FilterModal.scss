@@ -1,5 +1,10 @@
 @import '../../../../scss/variables';
 
+/**
+ * Styles for the FilterModal component.
+ *
+ * @class Filter__modal
+ */
 .Filter__modal {
   width: $px-400;
   z-index: 40;
@@ -9,29 +14,78 @@
   border-radius: $px-10;
 }
 
+/**
+ * Styles for the checkbox input and tick in the FilterModal component.
+ * 
+ * The styles target the checkbox input element when it is checked, as well as the checkbox box element.
+ * The margin-top property sets the top margin of the checkbox tick.
+ * The font-size property sets the font size of the checkbox input.
+ */
 .Filter__modal .Checkbox input:checked ~ .Checkbox__tick,
 .Filter__modal .Checkbox .Checkbox__box {
   margin-top: $px-4;
   font-size: $px-16;
 }
 
+/**
+ * Styles for the FilterModal component.
+ *
+ * @class FilterModal
+ * @memberof components.Common.Modal
+ *
+ * @cssprop {string} cursor - Specifies the type of cursor to be displayed when hovering over the Filter__item.
+ * @cssprop {string} padding - Specifies the padding of the Filter__item.
+ */
 .Filter__modal .Filter__item {
   cursor: pointer;
   padding: $px-10 $px-20;
 }
 
+/**
+ * Styles for the hover effect on the FilterModal item.
+ *
+ * This selector targets the FilterModal item when it is being hovered over by the user.
+ * It sets the background color to a lightened version of the base white color.
+ */
 .Filter__modal .Filter__item:hover {
   background-color: $color-base-white-10;
 }
 
+/**
+ * Applies a specific color to the WordWrapper element when the Filter__item is being hovered over.
+ *
+ * @selector .Filter__modal .Filter__item:hover .WordWrapper
+ * @property color - The color to apply to the WordWrapper element.
+ * @value $color-brand-primary-base - The base color of the brand primary.
+ */
 .Filter__modal .Filter__item:hover .WordWrapper {
   color: $color-brand-primary-base;
 }
 
+/**
+ * Styles for the hover effect on the Checkbox__box element within the Filter__item element
+ * in the Filter__modal component.
+ *
+ * When the Filter__item element is hovered over, the Checkbox__box element will have a border
+ * with a thickness of 1.5 pixels and a color of $color-brand-primary-base.
+ */
 .Filter__modal .Filter__item:hover .Checkbox__box {
   border: 1.5px solid $color-brand-primary-base;
 }
 
+/**
+ * Styles for the header of the filter modal.
+ *
+ * @class .Filter__modal-header
+ * @memberof components.Common.Modal.FilterModal
+ *
+ * @property {string} background - The background color of the header.
+ * @property {string} border-bottom - The bottom border of the header.
+ * @property {string} font-size - The font size of the header.
+ * @property {string} height - The height of the header.
+ * @property {string} justify-content - The alignment of the content within the header.
+ * @property {string} padding - The padding of the header.
+ */
 .Filter__modal-header {
   background: $color-base-white-10;
   border-bottom: 1px solid $color-brand-secondary-lightest;
@@ -41,6 +95,20 @@
   padding: $px-14 $px-16;
 }
 
+/**
+ * Styles for the header container of the filter modal.
+ *
+ * @class .Filter__modal-header .Filter__modal-header-container
+ * @memberOf components.Common.Modal.FilterModal.FilterModal.scss
+ *
+ * @property {string} align-items - Specifies the alignment of the items inside the container.
+ * @property {string} display - Specifies the display behavior of the container.
+ * @property {string} color - Specifies the color of the text inside the container.
+ * @property {string} font-size - Specifies the font size of the text inside the container.
+ * @property {string} height - Specifies the height of the container.
+ * @property {string} line-height - Specifies the line height of the text inside the container.
+ * @property {string} font-weight - Specifies the font weight of the text inside the container.
+ */
 .Filter__modal-header .Filter__modal-header-container {
   align-items: center;
   display: flex;
@@ -53,10 +121,19 @@
   font-weight: 600;
 }
 
+/**
+ * Styles for the title element in the header of the filter modal.
+ */
 .Filter__modal-header .Filter__modal-header-container .Filter__modal-header-title {
   font-weight: 600;
 }
 
+/**
+ * Styles for the counter element in the filter modal header.
+ *
+ * This selector targets the counter element within the header container of the filter modal.
+ * It applies styles such as border, border radius, color, font size, font weight, etc.
+ */
 .Filter__modal-header .Filter__modal-header-container .Filter__modal-header-counter {
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: 1rem;
@@ -74,30 +151,61 @@
   width: fit-content;
 }
 
+/**
+ * Styles for the search input inside the FilterModal component.
+ *
+ * @class .Filter__searchbox .Search--primary .Search__input
+ * @memberof components.Common.Modal.FilterModal
+ *
+ * @cssprop {number} height - The height of the search input in pixels.
+ */
 .Filter__searchbox .Search--primary .Search__input {
   height: $px-35;
 }
 
+/**
+ * Styles for the FilterModal component's modal content.
+ */
 .Filter__modal-content {
   overflow: scroll;
   max-height: $px-250;
   overflow-x: hidden;
 }
 
+/**
+ * Styles for the Filter__icon class.
+ *
+ * This class is used to style the filter icon in the modal.
+ * It sets the cursor to pointer, adds padding, and sets the border-radius to 10%.
+ */
 .Filter__icon {
   cursor: pointer !important;
   padding: $px-5;
   border-radius: 10%;
 }
 
+/**
+ * Styles for the hover effect on the Filter__icon element.
+ */
 .Filter__icon:hover {
   background-color: rgba(108, 92, 231, 0.1);
 }
 
+/**
+ * Sets the background color for the filter icon.
+ *
+ * @class .Filter__icon_bg_color
+ * @memberof components.Common.Modal.FilterModal
+ *
+ * @cssprop {Color} background-color - The background color of the filter icon.
+ */
 .Filter__icon_bg_color {
   background-color: rgba(108, 92, 231, 0.1);
 }
 
+/**
+ * Styles for the cancel button in the filter modal header.
+ */
 .Filter__modal-header-cancel {
   border-radius: 25%;
   cursor: pointer;
@@ -105,10 +213,24 @@
   width: $px-24;
 }
 
+/**
+ * Styles for the hover state of the cancel button in the filter modal header.
+ *
+ * @class .Filter__modal-header-cancel:hover
+ * @memberof components.Common.Modal.FilterModal.FilterModal.scss
+ *
+ * @cssprop {Color} background-color - The background color of the cancel button when hovered.
+ */
 .Filter__modal-header-cancel:hover {
   background-color: $color-brand-secondary-lightest;
 }
 
+/**
+ * Styles for the footer of the filter modal.
+ *
+ * @class .Filter__modal-footer
+ * @memberof components.Common.Modal.FilterModal
+ */
 .Filter__modal-footer {
   display: flex;
   border-top: 1px solid $color-brand-secondary-lightest;
@@ -117,6 +239,13 @@
   padding: $px-20;
 }
 
+/**
+ * Styles for the ".Filter__no-found" class.
+ *
+ * This class is used to style the text when no results are found in the filter modal.
+ * It sets the text alignment to center, vertical alignment to middle, line height to $px-50,
+ * font weight to 600, and font size to $px-14.
+ */
 .Filter__no-found {
   text-align: center;
   vertical-align: middle;
