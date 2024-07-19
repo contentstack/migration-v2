@@ -1,24 +1,20 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AsyncSelect, cbModal, TextInput } from '@contentstack/venus-components';
+import { Select, cbModal, TextInput, SkeletonTile } from '@contentstack/venus-components';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
 import { StackResponse } from '../../../services/api/service.interface';
-import AddStack from '../../Common/AddStack/addStack';
-import { Stack } from '../../Common/AddStack/addStack.interface';
+import AddStack, { Stack } from '../../../components/Common/AddStack/addStack';
 import { updateDestinationStack } from '../../../services/api/migration.service';
-import { Params, useParams } from 'react-router';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
+import { Params, useParams } from 'react-router';
 
 interface LoadFileFormatProps {
-  stepComponentProps: stepComponentPropsType;
+  stepComponentProps: any;
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
-}
-interface stepComponentPropsType {
-  isSummary: boolean;
 }
 
 const defaultStack = {
@@ -28,30 +24,43 @@ const defaultStack = {
 };
 
 const LoadStacks = (props: LoadFileFormatProps) => {
-  const ref = useRef<HTMLDivElement>(null);
   /****  ALL HOOKS HERE  ****/
-  
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const dispatch = useDispatch();
   /****  ALL UseStates HERE  ****/
   const [selectedStack, setSelectedStack] = useState<any>(
     null
-  );  
+  );
 
-  /****  ALL METHODS HERE  ****/
-
-  const [allStack, setAllStack] = useState<IDropDown[]>([]);
+  const loadingOption = [
+    {
+      uid: '',
+      label: (
+        <SkeletonTile
+        numberOfTiles={1}
+        tileBottomSpace={7}
+        tileHeight={20}
+        tileRadius={0}
+        tileTopSpace={0}
+        tileWidth={200}
+        tileleftSpace={0}
+      />) as unknown as string,
+      value: 'loading',
+      default: false,
+      master_locale: '',
+      locales: [],
+      created_at: ''
+    }
+  ];
+  const [allStack, setAllStack] = useState<IDropDown[]>(newMigrationData?.destination_stack?.stackArray);
   const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setisLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [placeholder, setPlaceholder] = useState('Select a stack');
-  const [asyncMount, setAsyncMount] = useState(true)
-  const [ isSelectOpen, setIsSelectOpen ] = useState<boolean>(false)
   const { projectId = '' }: Params<string> = useParams();
-  
+
   useEffect(()=>{
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
@@ -67,16 +76,16 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       setIsSaving(false);
       return false;
     }
-
     //Post data to backend
     const resp = await createStacksInOrg(newMigrationData?.destination_stack?.selectedOrg?.value, {
       ...data,
       master_locale: data?.locale
     });
-    
     setIsSaving(false);
 
     if (resp.status === 201) {
+      //fetch all Stacks
+      fetchData();      
       const newCreatedStack: IDropDown = {
         label: resp?.data?.stack?.name,
         value: resp?.data?.stack?.api_key,
@@ -85,13 +94,15 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         created_at: resp?.data?.stack?.created_at,
         uid: resp?.data?.stack?.api_key
       };
+
       setSelectedStack(newCreatedStack);
-      setisLoading(false)
+      setAllStack((prevState) => [...prevState, newCreatedStack]);
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
-          ...newMigrationData?.destination_stack,
-          selectedStack: newCreatedStack
+          ...newMigrationData.destination_stack,
+          selectedStack: newCreatedStack,
+          stackArray: allStack
         }
       };
 
@@ -106,13 +117,13 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       //call for Step Change
 
       props.handleStepChange(props?.currentStep, true);
+      
       return true;
     }
-
     return false;
   };
 
-  
+  /****  ALL METHODS HERE  ****/
 
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
@@ -140,59 +151,57 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         }
       }
     }
+    
   };
-
-  const resetAsyncSelect = () => {
-    setAsyncMount(false)
-    setTimeout(() => {
-      setAsyncMount(true)
-    }, 10);
-  }
-
   
-  const emptyStackValue = selectedStack?.value === undefined || selectedStack?.value === '' || selectedStack?.value === null
-
-  const loadMoreOptions: any = async ({
-    search,
-  }: {
-    search: string;
-  }) => {
-    try {
-      setisLoading(true);
-      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, search); // org id will always be there
-      if (stackData?.status === 200) {
-        const stackArray = validateArray(stackData?.data?.stacks)
-          ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
-              label: stack?.name,
-              value: stack?.api_key,
-              uid: stack?.api_key,
-              master_locale: stack?.master_locale,
-              locales: stack?.locales,
-              created_at: stack?.created_at,
-            }))
-          : [];
-
-        if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
-          setIsError(true);
-          setErrorMessage("Please create new stack there is no stack available");
-        } 
-
-        stackArray.sort((a: IDropDown, b: IDropDown) => {
-          return new Date(b?.created_at).getTime() - new Date(a?.created_at).getTime();
-        });
-        return { options: stackArray };
-      } else {
+  const fetchData = async () => {
+    if (allStack?.length <= 0) {
+      setAllStack(loadingOption);
+      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there  
+      const stackArray = validateArray(stackData?.data?.stacks)
+        ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+            label: stack?.name,
+            value: stack?.api_key,
+            uid: stack?.api_key,
+            master_locale: stack?.master_locale,
+            locales: stack?.locales,
+            created_at: stack?.created_at
+          }))
+        : [];
+  
+      stackArray.sort(
+        (a: IDropDown, b: IDropDown) =>
+          new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
+      );
+  
+      setAllStack(stackArray);
+  
+      //Set selected Stack
+      const selectedStackData = validateArray(stackArray)
+        ? stackArray.find(
+            (stack: IDropDown) =>
+              stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
+          )
+        : DEFAULT_DROPDOWN;
+  
+      setSelectedStack(selectedStackData);
+      
+      if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
         setIsError(true);
-        setErrorMessage("Failed to load stacks");
-      }
-    } catch (error) {
-      setIsError(true);
-      setErrorMessage("An error occurred while fetching stacks");
-    } finally {
-      setisLoading(false);
+        setErrorMessage("Please create new stack there is no stack available");
+      } 
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        destination_stack: {
+          ...newMigrationData?.destination_stack,
+          selectedStack: selectedStackData,
+          stackArray: stackArray
+        }
+      };  
+      // Dispatch the updated migration data to Redux
+      dispatch(updateNewMigrationData(newMigrationDataObj));
     }
   };
-
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
@@ -209,85 +218,52 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       ),
       modalProps: {
         shouldCloseOnOverlayClick: true,
-        shouldCloseOnEscape: true,
-        onOpen: () => {
+        onClose: () => {
           return;
         },
-        onClose: () => {
-          resetAsyncSelect();
-          setIsError(false)
+        onOpen: () => {
           return;
         }
       }
     });
   };
 
+  const emptyStackValue = selectedStack?.value === undefined || selectedStack?.value === '' || selectedStack?.value === null
 
+  /****  ALL USEEffects  HERE  ****/
   useEffect(() => {
-    // Fetch the select element using its class name or testId
-    const selectElement = document.querySelector('.selectElementlabel .Select__menu');
-    const selectElement1 = document.querySelector('.createStack');
-    if (selectElement && !selectElement1) {
-      const div = document.createElement('div')
-      div.textContent = "+ Create a new Stack"
-      div.className = 'createStack'
-      div.onclick = handleCreateNewStack
-      selectElement.appendChild(div)
-    }
-  }, [asyncMount, isSelectOpen]); 
-
-  useEffect(() => {
-    const checkIfClickedOutside = (e: MouseEvent) => {
-      // If the menu is open and the clicked target is not within the menu,
-      // then close the menu
-      if (isSelectOpen && ref.current && !ref.current.contains(e.target as Node)) {
-        setIsSelectOpen(false);
-      }
-    };
-
-    document.body.addEventListener('mousedown', checkIfClickedOutside);
-
-    return () => {
-      // Cleanup the event listener
-      document.body.removeEventListener('mousedown', checkIfClickedOutside);
-    };
-  }, [isSelectOpen]);
-  const handleDivClick = () => {
-    setIsSelectOpen(!isSelectOpen)
-  }
+    fetchData();
+  }, []);
   return (
     <div className="">
       <div className="action-summary-wrapper ">
         <div className="service_list ">
           <div className="row">
             <div className="col-12">
-                <div className="Dropdown-wrapper p-0 active selectElementlabel">
-                  {asyncMount ? 
-                  <div ref={ref} onClick={handleDivClick} style={{ maxWidth: '600px' }}>
-                    <AsyncSelect
-                      version={'v2'}
-                      loadMoreOptions={loadMoreOptions}
-                      onChange={handleDropdownChange('stacks')}
-                      value={selectedStack}
-                      isSearchable={true}
-                      isClearable={!emptyStackValue ? true : false }
-                      width="600px"
-                      isDisabled={props?.stepComponentProps?.isSummary || false}
-                      hideSelectedOptions={true}
-                      placeholder={placeholder}
-                      limit={10}
-                      updateOption={()=> undefined}
-                      error={isLoading ? false : isError ? true : false }
-                      defaultOptions={true}
-                      debounceTimeout={0}
-                      menuIsOpen={isSelectOpen}
-                    />
-                  </div>
-                    : null
-                  }
-                </div>
+              <div className="Dropdown-wrapper p-0 active ">
+                <Select
+                  className="stackselect"
+                  version={'v2'}
+                  options={allStack}
+                  onChange={handleDropdownChange('stacks')}
+                  value={selectedStack}
+                  isSearchable={true}
+                  isClearable={!emptyStackValue ? true : false }
+                  // hideSelectedOptions={true}
+                  isDisabled={props?.stepComponentProps?.isSummary || false}
+                  placeholder={'Select a stack'}
+                  error={isLoading ? false : isError ? true : false }
+                  width="600px"
+                  hasAddOption={true}
+                  // menuIsOpen
+                  addOptionText={
+                  <div className='createStack' onClick={handleCreateNewStack}>
+                    + Create a new Stack
+                  </div>} 
+                />
                 {(isError && !isLoading) && <div className='errorMessage'>{errorMessage}</div>}
-            </div> 
+              </div>
+            </div>
             <div className="col-12">
               <label className="title">Master Locale <span className='asterisk_input'></span>
               </label>
@@ -302,8 +278,9 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                 disabled
               />
             </div>
-          </div>
         </div>
+      
+      </div>
       </div>
     </div>
   );
