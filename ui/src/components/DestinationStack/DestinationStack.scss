@@ -32,6 +32,7 @@
   }
   .Select__v2 .Select__menu .Select__menu-list {
     max-height: 130px;
+    padding-bottom: 0;
   }
 }
 .stackselect {
@@ -95,13 +96,13 @@
       .createStack {
         background-color: $color-brand-white-base;
         border-top: 1px solid $color-brand-secondary-lightest;
-        position: sticky;
-        bottom: 0;
         cursor: pointer;
+        font-size: 1rem;
         color: $color-brand-primary-base;
         font-weight: $font-weight-semi-bold;
         line-height: 24px;
         padding: 1rem;
+        width: 100%;
       }
       .Select__v2 .Select__menu .Select__menu-list .Select__option {
         padding: 12px !important;
@@ -112,11 +113,10 @@
       }
       .Select__menu-list .Select__option--is-focused {
         background-color: $color-brand-white-base;
-        color: $color-black-2121;
         &:hover {
           background: $color-base-white-10;
-          color: $color-brand-primary-base;
         }
+
       }
       .Select .Select__control .Select__value-container input, .Select__single-value input[text]{
         font-size: 16px !important;
@@ -126,6 +126,15 @@
       }
       .Select__option {
         position: relative;
+        color: $color-font-base;
+        &.Select__option--is-selected {
+          &:hover {
+            color: $color-brand-primary-base;
+            &:focus {
+              color: $color-brand-primary-base;
+            }
+          }
+        }
       }
     }
 
