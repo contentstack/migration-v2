@@ -635,15 +635,17 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
             isClearable={false}
             options={option}
             isDisabled={
-              data?.ContentstackFieldType === 'group' ||
+              data?.otherCmsType === "Group" ||
               data?.otherCmsField === 'title' ||
-              data?.otherCmsField === 'url'
+              data?.otherCmsField === 'url' ||
+              data?.otherCmsType === "reference"
             }
           />
         </div>
-        {data?.ContentstackFieldType !== 'group' &&
+        {data?.otherCmsType !== 'Group' &&
           data?.otherCmsField !== 'title' &&
           data?.otherCmsField !== 'url' &&
+          data?.otherCmsType !== 'reference' &&
           <Tooltip 
             content="Advance propertise" 
             position="top"
