@@ -105,12 +105,13 @@ export const getFieldMapping = async (
   contentTypeId: string,
   skip: number,
   limit: number,
-  searchText: string
+  searchText: string,
+  projectId:string
 ) => {
   try {
     const encodedSearchText = encodeURIComponent(searchText) ;
     return await getCall(
-      `${API_VERSION}/mapper/fieldMapping/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?`,
+      `${API_VERSION}/mapper/fieldMapping/${projectId}/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?`,
       options
     );
   } catch (error: any) {

@@ -9,6 +9,11 @@ import { HTTP_TEXTS, HTTP_CODES } from "../constants/index.js";
 import { ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { BadRequestError } from "../utils/custom-errors.utils.js";
 
+/**
+ * Retrieves all stacks based on the provided request.
+ * @param req - The request object.
+ * @returns A promise that resolves to a LoginServiceType object.
+ */
 const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getAllStacks";
   const orgId = req?.params?.orgId;
@@ -82,6 +87,11 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+/**
+ * Creates a stack.
+ * @param req - The request object.
+ * @returns A promise that resolves to a LoginServiceType object.
+ */
 const createStack = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "createStack";
   const orgId = req?.params?.orgId;
@@ -150,6 +160,12 @@ const createStack = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+/**
+ * Retrieves the locales from the CS API.
+ * @param req - The request object.
+ * @returns A promise that resolves to the response from the CS API.
+ * @throws {ExceptionFunction} If there is an error while retrieving the locales.
+ */
 const getLocales = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getLocales";
   const { token_payload } = req.body;
@@ -204,6 +220,12 @@ const getLocales = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+/**
+ * Retrieves the status of a stack.
+ * @param req - The request object containing the orgId, token_payload, and stack_api_key.
+ * @returns An object containing the status and data of the stack.
+ * @throws ExceptionFunction if an error occurs while checking the status of the stack.
+ */
 const getStackStatus = async (req: Request) => {
   const { orgId } = req.params;
   const { token_payload, stack_api_key } = req.body;
@@ -286,15 +308,21 @@ const getStackStatus = async (req: Request) => {
   }
 };
 //get all locals of particular stack
+/**
+ * Retrieves stack local data.
+ * @param token_payload - The token payload.
+ * @param data - The data to process.
+ * @returns A promise that resolves with the stack local data.
+ */
 const getStackLocal = async (token_payload: any, data: any) => {
   const srcFun = "getStackLocal";
-  return new Promise(async (resolve, reject) => {
+  return new Promise(async (resolve) => {
     const authtoken = await getAuthtoken(
       token_payload?.region,
       token_payload?.user_id
     );
-    let stacks = [];
-    for (let stack of data) {
+    const stacks = [];
+    for (const stack of data) {
       const [err, res] = await safePromise(
         https({
           method: "GET",
@@ -322,7 +350,7 @@ const getStackLocal = async (token_payload: any, data: any) => {
           status: err.response.status,
         };
       }
-      let localesArr: any = [];
+      const localesArr: any = [];
       res?.data?.locales.map((lang: any) => {
         return localesArr.push({
           code: lang.code,
@@ -330,7 +358,7 @@ const getStackLocal = async (token_payload: any, data: any) => {
         });
       });
 
-      let obj = {
+      const obj = {
         name: stack.name,
         api_key: stack.api_key,
         master_locale: stack.master_locale,

@@ -1,36 +1,151 @@
 import { Advanced, FieldMapType } from '../ContentMapper/contentMapper.interface';
 
+/**
+ * Represents the properties of a schema.
+ */
 export interface SchemaProps {
+  /**
+   * The type of the field.
+   */
   fieldtype: string;
+  
+  /**
+   * The updated settings for the field.
+   */
   value: UpdatedSettings;
+  
+  /**
+   * The ID of the row.
+   */
   rowId: string;
+  
+  /**
+   * A function to update the field settings.
+   * @param rowId - The ID of the row.
+   * @param value - The advanced settings.
+   * @param checkBoxChanged - Indicates whether the checkbox has changed.
+   */
   updateFieldSettings: (rowId: string, value: Advanced, checkBoxChanged: boolean) => void;
+  
+  /**
+   * Indicates whether the field is localized.
+   */
   isLocalised: boolean;
+  
+  /**
+   * A function to close the modal.
+   */
   closeModal: () => void;
+  
+  /**
+   * The data for the field map.
+   */
   data: FieldMapType;
+  
+  /**
+   * The ID of the project.
+   */
   projectId?: string;
 }
 
+/**
+ * Represents the updated settings for a component.
+ */
 export interface UpdatedSettings {
+  /**
+   * The minimum number of characters allowed.
+   */
   MinChars?: string;
+
+  /**
+   * The maximum number of characters allowed.
+   */
   MaxChars?: number;
+
+  /**
+   * The minimum range allowed.
+   */
   MinRange?: number;
+
+  /**
+   * The maximum range allowed.
+   */
   MaxRange?: number;
+
+  /**
+   * The minimum size allowed.
+   */
   minSize?: string;
+
+  /**
+   * The maximum size allowed.
+   */
   maxSize?: number;
+
+  /**
+   * The default value for the component.
+   */
   DefaultValue?: string;
+
+  /**
+   * The regular expression used for validation.
+   */
   ValidationRegex?: string;
+
+  /**
+   * The title of the component.
+   */
   title?: string;
+
+  /**
+   * The URL associated with the component.
+   */
   url?: string;
+
+  /**
+   * Indicates whether the component is mandatory.
+   */
   Mandatory?: boolean;
+
+  /**
+   * Indicates whether only images are allowed.
+   */
   AllowImagesOnly?: boolean;
+
+  /**
+   * Indicates whether the component is non-localizable.
+   */
   NonLocalizable?: boolean;
 }
 
+/**
+ * Represents the props for the AdvanceProperties component.
+ */
 export interface Props {
+  /**
+   * The data for the component.
+   */
   data: SchemaProps;
+
+  /**
+   * The optional states for the component.
+   */
   states?: StateType;
+
+  /**
+   * The callback function for handling changes in the component.
+   * @param field - The field that was changed.
+   * @param event - The event object associated with the change.
+   * @param checkBoxChanged - Indicates whether the change was triggered by a checkbox.
+   */
   handleChange?: (field: string, event: any, checkBoxChanged: boolean) => void;
+
+  /**
+   * The callback function for handling toggles in the component.
+   * @param field - The field that was toggled.
+   * @param value - The new value of the toggle.
+   * @param checkBoxChanged - Indicates whether the toggle was triggered by a checkbox.
+   */
   handleToggle?: (field: string, value: boolean, checkBoxChanged: boolean) => void;
 }
 
