@@ -80,7 +80,8 @@ const dummy_obj:any = {
   'json':{
     label:'JSON Rich Text Editor',
     options : {
-      'JSON Rich Text Editor':'json'}
+      'JSON Rich Text Editor':'json'
+    }
   },
   'html':{
     label : 'HTML Rich text Editor',
@@ -99,34 +100,50 @@ const dummy_obj:any = {
   },
   'file': {
     label:'File',
-    options: {'File':'file'}
+    options: {
+      'File':'file'
+    }
   },
   'number': { 
     label:'Number',
-    options: {'Number':'number'}
+    options: {
+      'Number':'number'
+    }
   },
   'isodate': { label :'Date',
-    options: {'Date':'isodate'}
+    options: {
+      'Date':'isodate'
+    }
   },
   'boolean': {
     label: 'Boolean',
-    options: {'Boolean':'boolean'}
+    options: {
+      'Boolean':'boolean'
+    }
   },
   'link': {
     label:'Link',
-    options: {'Link':'link'}
+    options: {
+      'Link':'link'
+    }
   },
   'reference':{
     label: 'Reference',
-    options: {'Reference':'reference'}
+    options: {
+      'Reference':'reference'
+    }
   },
   'dropdown': {
     label:'Dropdown',
-    options: {'Dropdown':'dropdown'}
+    options: {
+      'Dropdown':'dropdown'
+    }
   },
   'radio': {
     label :'Select',
-    options: {'Select':'select'}
+    options: {
+      'Select':'select'
+    }
   },
   'CheckBox': {
     label:'Select',
@@ -304,7 +321,7 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
           };
         }
       });
-      setexsitingField(updatedExstingField);
+      //setexsitingField(updatedExstingField);
     }
   }, [tableData, isContentTypeSaved]);
 
@@ -709,11 +726,15 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
   };
 
   const SelectAccessorOfColumn = (data: FieldMapType) => {
+    // object for storing select options according to mapped field 
+    const OptionsForEachRow = dummy_obj?.[data?.backupFieldType]?.options;
+
+    // Mapping of field types
     const fieldsOfContentstack: Mapping = {
       'Single Line Textbox': 'text',
       'Single-Line Text': 'text',
       'text': 'text',
-      'Multi Line Textbox': 'multiline',
+      'Multi-Line Text': 'multiline',
       'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
       'JSON Rich Text Editor': 'json',
@@ -721,15 +742,21 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
       'Group': 'Group',
       'URL': 'url',
       'file': 'file',
+      'Image':'file',
       'number': 'number',
+      'Integer':'number',
       'Date': 'isodate',
       'boolean': 'boolean',
+      'Checkbox':'boolean',
       'link': 'link',
       'reference': 'reference',
       'dropdown': 'enum',
+      'Droplist':'enum',
       'radio': 'enum',
-      'CheckBox': 'enum'
+      //'CheckBox': 'enum'
     };
+
+    //array of options if exsting content type has selected 
     const OptionsForRow: optionsType[] = [];
 
     if (OtherContentType?.label && contentTypesList) {
@@ -739,17 +766,32 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
       setContentTypeSchema(ContentType?.schema)
     }
     
+     // If content type schema is available and valid
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
-      
-      contentTypeSchema.forEach((value) => {     
-        switch (fieldTypeToMatch) {
+
+      //check if UID of source cms field is matching with contentstack content type fields
+      for (const value of contentTypeSchema) {
+        if (data?.uid === value?.uid) {
+          OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
+          break;
+        }
+      }
+      // If UID does not match then check for field type
+      if(OptionsForRow.length === 0){
+      for (const value of contentTypeSchema) {   
+        const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link']);  
+
+          switch (fieldTypeToMatch) {
           case 'text':
             if (
-              value?.uid === 'title' &&
+              value?.uid !== 'title' &&
+              value?.uid !=='url' &&
+              !fieldTypes.has(value?.data_type || '') &&
               !value?.field_metadata?.multiline &&
               !value?.enum &&
               !value?.field_metadata?.allow_rich_text &&
+              !value?.field_metadata?.allow_json_rte &&
               !value?.field_metadata?.markdown
             ) {
               OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
@@ -813,34 +855,73 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
               isDisabled: false
             });
             break;
-        }
-      });
-    }
 
+        }
+        
+      }}
+    }
+    
+    // Variable to store length of options
     const selectedOption = OptionsForRow?.length;
 
-    const OptionValue: FieldTypes =
-      OptionsForRow?.length === 0
-        ? { 
-          label: data?.ContentstackFieldType, 
-          value: data?.ContentstackFieldType, 
-          isDisabled: data?.ContentstackFieldType === 'group' ||
-          data?.ContentstackFieldType === 'text' ||
-          data?.ContentstackFieldType === 'url' 
+    //variable to store the options if exsting contentstack content type is not selected
+    let option:any;
+    if (Array.isArray(OptionsForEachRow)) {
+       option = OptionsForEachRow.map((option) => ({
+        label: option,
+        value: option,
+      }));
+    } else if (typeof OptionsForEachRow === 'object') {
+      option = Object.entries(OptionsForEachRow).map(([label, value]) => ({
+        label,
+        value,
+      }));
+    }else{
+      option = [{ label: OptionsForEachRow, value: OptionsForEachRow }]
+    }
+  
+  const OptionValue: any =
+  OptionsForRow?.length === 1 && 
+  //disable url, title and group fields
+  (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' ||OptionsForRow?.[0]?.value?.uid === 'group')
+    ? { 
+        label: OptionsForRow?.[0]?.value?.display_name, 
+        value: OptionsForRow?.[0]?.value,
+        isDisabled: true 
+      }
+    : OptionsForRow?.length === 0
+      ? { 
+          label: dummy_obj[data?.ContentstackFieldType]?.label, 
+          value: dummy_obj[data?.ContentstackFieldType]?.label, 
+          isDisabled: data?.ContentstackFieldType === 'text' ||
+                     data?.ContentstackFieldType === 'group' ||
+                     data?.ContentstackFieldType === 'url'
         }
-        : { label: `${selectedOption} matches`, value: `${selectedOption} matches` };
-
-    const adjustedOptions = OptionsForRow.map((option: optionsType) => ({
+      : { 
+          label: `${selectedOption} matches`, 
+          value: `${selectedOption} matches`,
+          isDisabled: false 
+        };
+    
+    // Adjust the options based on whether existing contentstack content type is selected
+    const adjustedOptions =  OptionsForRow.length === 0 ? option
+    : OptionsForRow.map((option: optionsType) => ({
       ...option,
       isDisabled: selectedOptions?.includes(option?.label ?? '')
-    }));
-
+    }));   
+    
     return (
       <div className="table-row">
         <div className="select">
           <Select
-            value={exstingField[data?.uid] || OptionValue}
-            onChange={(selectedOption: FieldTypes) => handleFieldChange(selectedOption, data?.uid)}
+            value={OptionsForRow.length === 0 || exstingField[data?.uid] === undefined ? OptionValue  : exstingField[data?.uid]}
+            onChange={(selectedOption: FieldTypes) => {
+              if(OptionsForRow.length === 0){
+                handleValueChange(selectedOption, data?.uid)}
+             else{
+                handleFieldChange(selectedOption, data?.uid)
+
+             }}}
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
@@ -947,17 +1028,19 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
   };
 
   const handleResetContentType = async () => {
-    const orgId = newMigrationData?.destination_stack?.selectedOrg?.uid;
+    const orgId = projectData?.org_id;
     const projectID = projectId;
     setisDropDownCHanged(false);
-
+   
     const updatedRows = tableData.map((row) => {
       return { ...row, ContentstackFieldType: row.backupFieldType };
     });
     setTableData(updatedRows);
     const dataCs = {
       contentTypeData: {
+        status:selectedContentType?.status,
         id: selectedContentType?.id,
+        projectId:projectId,
         otherCmsTitle: otherCmsTitle,
         otherCmsUid: selectedContentType?.otherCmsUid,
         isUpdated: true,
