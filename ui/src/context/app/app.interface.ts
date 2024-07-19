@@ -154,6 +154,7 @@ export interface ILegacyCms {
 export interface IDestinationStack {
   selectedOrg: IDropDown;
   selectedStack: IDropDown;
+  stackArray: IDropDown[];
 }
 export interface IContentMapper {
   content_type_mapping: ContentTypeMap;
@@ -282,7 +283,8 @@ export const DEFAULT_LEGACY_CMS: ILegacyCms = {
 
 export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
   selectedOrg: DEFAULT_DROPDOWN,
-  selectedStack: DEFAULT_DROPDOWN
+  selectedStack: DEFAULT_DROPDOWN,
+  stackArray: [],
 };
 
 export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
