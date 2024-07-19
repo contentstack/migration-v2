@@ -83,11 +83,12 @@ export interface FieldMetadata {
   multiline?: boolean;
   allow_rich_text?: boolean;
   markdown?: boolean;
+  allow_json_rte?: boolean;
 }
 export interface ContentTypesSchema {
   uid?: string;
   display_name?: string;
-  data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file' | 'reference' | 'group';
+  data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file' | 'reference' | 'group' | 'boolean' | 'link';
   field_metadata?: FieldMetadata;
   enum?: any;
 }
@@ -108,9 +109,16 @@ export interface ContentTypeList {
   uid:  string;
 }
 
+interface value {
+  uid?:string;
+  data_type?: string;
+  display_name?: string;
+  options?: object;
+  'No matches found'?:string;
+}
 export interface optionsType {
   label?: string;
-  value?: object;
+  value?: value;
   isDisabled?: boolean;
 }
 
