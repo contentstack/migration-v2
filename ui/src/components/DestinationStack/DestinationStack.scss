@@ -113,11 +113,10 @@
       }
       .Select__menu-list .Select__option--is-focused {
         background-color: $color-brand-white-base;
-        color: $color-black-2121;
         &:hover {
           background: $color-base-white-10;
-          color: $color-brand-primary-base;
         }
+
       }
       .Select .Select__control .Select__value-container input, .Select__single-value input[text]{
         font-size: 16px !important;
@@ -127,6 +126,15 @@
       }
       .Select__option {
         position: relative;
+        color: $color-font-base;
+        &.Select__option--is-selected {
+          &:hover {
+            color: $color-brand-primary-base;
+            &:focus {
+              color: $color-brand-primary-base;
+            }
+          }
+        }
       }
     }
 
