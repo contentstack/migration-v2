@@ -464,7 +464,7 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
     if (isUrlfound === undefined) {
       mainSchema?.unshift(
         {
-          uid: "Url",
+          uid: "url",
           "otherCmsField": "url",
           "otherCmsType": "text",
           "contentstackField": "Url",
@@ -478,7 +478,7 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
     )
     if (isPresent === undefined) {
       mainSchema.unshift({
-        uid: "Title",
+        uid: "title",
         "otherCmsField": "title",
         "otherCmsType": "text",
         "contentstackField": "Title",

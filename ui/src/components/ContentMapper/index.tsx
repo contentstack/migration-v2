@@ -48,7 +48,7 @@ import {
   optionsType,
   UidMap,
   ContentTypeMap,
-  Advanced
+  Advanced,
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -57,9 +57,11 @@ import { UpdatedSettings } from '../AdvancePropertise/advanceProperties.interfac
 // Components
 import SchemaModal from '../SchemaModal';
 import AdvanceSettings from '../AdvancePropertise';
+import SaveChangesModal from '../Common/SaveChangesModal';
 
 // Styles
 import './index.scss';
+import { MigrationResponse } from '../../services/api/service.interface';
 const dummy_obj:any = {
   'single_line_text':{
     label : 'Single Line Textbox',
@@ -164,7 +166,7 @@ const Fields: Mapping = {
   'HTML Rich text Editor': 'JSON Rich Text Editor',
   'JSON Rich Text Editor': 'JSON Rich Text Editor',
   // 'Multi line': 
-  json: 'JSON Rich Text Editor',
+  json: ['HTML Rich text Editor', 'JSON Rich Text Editor'],
   URL: 'URL',
   file: 'File',
   number: 'Number',
@@ -172,13 +174,18 @@ const Fields: Mapping = {
   boolean: 'Boolean',
   link: 'Link',
   reference: 'Reference',
-  dropdown: 'Select',
+  dropdown: 'dropdown',
   radio: 'Select',
   CheckBox: 'Select',
   global_field: 'Global'
 };
 
-const ContentMapper = () => {
+type ContentMapperComponentProps = {
+  projectData: MigrationResponse;
+
+};
+
+const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
   /** ALL CONTEXT HERE */
 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -337,8 +344,8 @@ const ContentMapper = () => {
   // Get the stack status if it is empty or not
   const stackStatus = async () => {
     const contentTypeCount = await getStackStatus(
-      newMigrationData?.destination_stack?.selectedOrg?.value,
-      newMigrationData?.destination_stack?.selectedStack?.value
+      projectData?.org_id,
+      projectData?.destination_stack_id
     );
 
     if (contentTypeCount?.data?.contenttype_count > 0) {
@@ -360,7 +367,7 @@ const ContentMapper = () => {
 
   // Method to get fieldmapping
   const fetchFields = async (contentTypeId: string, searchText: string) => {
-    const { data } = await getFieldMapping(contentTypeId || '', 0, 30, searchText || '');
+    const { data } = await getFieldMapping(contentTypeId || '', 0, 30, searchText || '', projectId);
 
     try {
       const itemStatusMap: ItemStatusMapProp = {};
@@ -407,8 +414,8 @@ const ContentMapper = () => {
       updateItemStatusMap({ ...itemStatusMapCopy });
       setLoading(true);
 
-      const { data } = await getFieldMapping(contentTypeUid || '', skip, limit, searchText || '');
-
+      const { data } = await getFieldMapping(contentTypeUid || '', skip, limit, searchText || '', projectId);
+      
       const updateditemStatusMapCopy: ItemStatusMapProp = { ...itemStatusMap };
 
       for (let index = startIndex; index <= stopIndex; index++) {
@@ -425,10 +432,34 @@ const ContentMapper = () => {
     }
   };
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Method to change the content type
+  const handleOpenContentType = (i: number) => {
+    if (isDropDownChanged) {
+      setIsModalOpen(true);
+      return cbModal({
+        component: (props: ModalObj) => (
+          <SaveChangesModal
+            {...props}
+            isopen={setIsModalOpen}
+            otherCmsTitle={otherCmsTitle}
+            saveContentType={handleSaveContentType}
+            openContentType={() => openContentType(i)}
+          />
+        ),
+        modalProps: {
+          size: 'xsmall',
+          shouldCloseOnOverlayClick: false
+        }
+      });
+    } else {
+      openContentType(i);
+    }
+  };
+
   const openContentType = (i: number) => {
     setActive(i);
-
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
     const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
@@ -438,7 +469,7 @@ const ContentMapper = () => {
     fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
     setotherCmsUid(contentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(contentTypes?.[i]);
-  };
+  }
 
   // Function to get exisiting content types list
   const fetchExistingContentTypes = async () => {
@@ -484,7 +515,7 @@ const ContentMapper = () => {
       <div>
         <div className="cms-field">{data?.otherCmsField}</div>
         <InstructionText>
-          Other CMS Type: {data?.otherCmsType}
+          Type: {data?.otherCmsType}
           <br />
           UID: {data?.uid}
         </InstructionText>
@@ -560,15 +591,15 @@ const ContentMapper = () => {
       }
     });
   };
+  
   const SelectAccessor = (data: FieldMapType) => {
-    
     //const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
     const OptionsForRow = dummy_obj?.[data?.backupFieldType]?.options ;
     const initialOption = {
       label: dummy_obj?.[data?.ContentstackFieldType]?.label,
       value: dummy_obj?.[data?.ContentstackFieldType]?.label,
     };
-    let option:any;
+    let option: FieldTypes[];
     if (Array.isArray(OptionsForRow)) {
        option = OptionsForRow.map((option) => ({
         label: option,
@@ -579,12 +610,18 @@ const ContentMapper = () => {
         label,
         value,
       }));
-    }else{
+
+      if (option?.length === 1 && option?.[0]?.label === initialOption?.label) {
+        option = [{ label: "No option available", value: "No option available" }];
+      }
+      
+    } else {
       option = [{ label: OptionsForRow, value: OptionsForRow }]
     }
 
-      const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
-        ? data?.ContentstackFieldType : option?.[0]?.label
+    const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
+      ? data?.ContentstackFieldType : option?.[0]?.label
+    
     return (
       <div className="table-row">
         <div className="select">
@@ -885,19 +922,23 @@ const ContentMapper = () => {
           notificationContent: { text: 'Content type saved successfully' },
           notificationProps: {
             position: 'bottom-center',
-            hideProgressBar: false
+            hideProgressBar: true
           },
           type: 'success'
         });
         setisDropDownCHanged(false);
         setisContentTypeMapped(true);
         setisContentTypeSaved(true);
+
+        setFilteredContentTypes(filteredContentTypes?.map(ct => 
+          ct?.id === data?.updatedContentType?.id ? { ...ct, status: data?.updatedContentType?.status } : ct
+        ))
       } else {
         Notification({
           notificationContent: { text: data?.error?.message },
           notificationProps: {
             position: 'bottom-center',
-            hideProgressBar: false
+            hideProgressBar: true
           },
           type: 'error'
         });
@@ -959,6 +1000,13 @@ const ContentMapper = () => {
       });
     } else {
       const { data } = await fetchExistingContentType(projectId, OtherContentType?.id || '');
+
+      const index = contentTypesList.findIndex(ct => ct?.uid === data?.uid);
+      if(index != -1){      
+        contentTypesList[index] = data;
+      }
+      
+      setContentTypesList(contentTypesList)
       setContentTypeSchema(data?.schema)
     }
   }
@@ -1103,21 +1151,18 @@ const ContentMapper = () => {
                     <li
                       key={`${index.toString()}`}
                       className={`${active == index ? 'active-ct' : ''}`}
-                      onClick={() => openContentType(index)}
-                      onKeyDown={() => openContentType(index)}
+                      onClick={() => handleOpenContentType(index)}
+                      onKeyDown={() => handleOpenContentType(index)}
                     >
                       <div className='cms-title'>
                         <Tooltip content={content?.type} position="bottom">
-                          {content?.type === "Content Type" 
+                          {content?.type === "content_type" 
                             ? <Icon icon={active == index ? "ContentModelsMediumActive" : "ContentModelsMedium"} size="small"  />
-                            : content?.type === "Global Field"
-                              ? <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
-                              : <></>
+                            : <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
                           }
                         </Tooltip>
                         {content?.otherCmsTitle && <span>{content?.otherCmsTitle}</span> }
                       </div>
-                      
                       
                       <div className='d-flex align-items-center ct-options'>
                         <span>
@@ -1169,7 +1214,7 @@ const ContentMapper = () => {
                   <div className='d-flex align-items-center' style={{ gap: '8px' }}>
                     {!IsEmptyStack && (
                       <Tooltip content={'fetch the content type'} position="left">
-                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType} />
+                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType}  hover={true}  />
                       </Tooltip>
                     )}
 
@@ -1179,6 +1224,7 @@ const ContentMapper = () => {
                         size="small"
                         version="v2"
                         onClick={handleResetContentType}
+                        hover={true}
                       />
                     </Tooltip>
 
