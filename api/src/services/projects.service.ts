@@ -13,7 +13,7 @@ import {
   HTTP_CODES,
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
-  PREDEFINED_STATUS
+  PREDEFINED_STATUS,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
@@ -673,7 +673,6 @@ const updateDestinationStack = async (req: Request) => {
  * @throws {ExceptionFunction} If an error occurs while updating the current step.
  */
 const updateCurrentStep = async (req: Request) => {
-  console.log("updateCurrentStep",req);
   const { orgId, projectId } = req.params;
   const token_payload = req.body.token_payload;
   const srcFunc = "updateCurrentStep";
@@ -713,8 +712,9 @@ const updateCurrentStep = async (req: Request) => {
         ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.DESTINATION_STACK;
-            data.projects[projectIndex].status = 
-            project.current_step <= STEPPER_STEPS.CONTENT_MAPPING ? PREDEFINED_STATUS[0]
+          data.projects[projectIndex].status =
+            project.current_step <= STEPPER_STEPS.CONTENT_MAPPING
+              ? PREDEFINED_STATUS[0]
               : PREDEFINED_STATUS[1];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
@@ -807,7 +807,7 @@ const deleteProject = async (req: Request) => {
       content_mapper_id.map((item: any) => {
         const contentMapperData = ContentTypesMapperModelLowdb.chain
           .get("ContentTypesMappers")
-          .find({ id: item, projectId:projectId })
+          .find({ id: item, projectId: projectId })
           .value();
 
         const fieldMappingIds = contentMapperData?.fieldMapping;
@@ -817,7 +817,7 @@ const deleteProject = async (req: Request) => {
           (fieldMappingIds || []).forEach((field: any) => {
             const fieldIndex = FieldMapperModel.chain
               .get("field_mapper")
-              .findIndex({ id: field,projectId:projectId })
+              .findIndex({ id: field, projectId: projectId })
               .value();
             if (fieldIndex > -1) {
               FieldMapperModel.update((data: any) => {
