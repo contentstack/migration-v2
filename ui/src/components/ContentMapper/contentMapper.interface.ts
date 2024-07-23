@@ -91,6 +91,7 @@ export interface ContentTypesSchema {
   data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file' | 'reference' | 'group' | 'boolean' | 'link';
   field_metadata?: FieldMetadata;
   enum?: any;
+  schema?: ContentTypesSchema[]
 }
 // export interface ContentTypesSchema {
 //   [key: string]: ContentTypeField;
