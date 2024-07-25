@@ -21,7 +21,7 @@ router.get("/stacks/:searchText?", asyncRouter(orgController.getAllStacks));
  */
 router.post(
   "/stacks",
-  validator("project"),
+  validator("stack"),
   asyncRouter(orgController.createStack)
 );
 
