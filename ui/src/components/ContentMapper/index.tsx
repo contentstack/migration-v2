@@ -32,7 +32,7 @@ import { updateMigrationData, updateNewMigrationData } from '../../store/slice/m
 
 // Utilities
 import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping } from '../../utilities/constants';
-import { validateArray } from '../../utilities/functions';
+import { isEmptyString, validateArray } from '../../utilities/functions';
 
 // Interface
 import { DEFAULT_CONTENT_MAPPING_DATA, INewMigration } from '../../context/app/app.interface';
@@ -62,6 +62,7 @@ import SaveChangesModal from '../Common/SaveChangesModal';
 // Styles
 import './index.scss';
 import { MigrationResponse } from '../../services/api/service.interface';
+import { schemaType } from '../SchemaModal/schemaModal.interface';
 const dummy_obj:any = {
   'single_line_text':{
     label : 'Single Line Textbox',
@@ -270,6 +271,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const [filteredContentTypes, setFilteredContentTypes] = useState<ContentType[]>([])
   const [count, setCount] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [nestedList, setNestedList] = useState<FieldMapType[]>([]);
+  const [disabledOptions, setDisabledOptions] = useState<Set<string>>(new Set());
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -448,6 +451,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       
       setTableData(newTableData || []);
       setTotalCounts(data?.count);
+      
+      generateSourceGroupSchema(data?.fieldMapping);
     } catch (error) {
       console.error('fetchData -> error', error);
     }
@@ -729,10 +734,13 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
   const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string) => {
     setisDropDownCHanged(true);
+    const previousSelectedValue = exstingField[rowIndex]?.label;
+
     setexsitingField((prevOptions) => ({
       ...prevOptions,
       [rowIndex]: { label: selectedValue?.label, value: selectedValue?.value }
     }));
+    
     setadvancePropertise({
       validationRegex: selectedValue?.value?.format,
       Mandatory: selectedValue?.value?.mandatory,
@@ -741,12 +749,24 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       NonLocalizable: selectedValue?.value?.non_localizable
     });
 
-    if (isDropDownChanged && isContentTypeSaved) {
-      setSelectedOptions((prevSelected) => {
-        const newValue = selectedValue?.label;
-        return prevSelected?.includes(newValue) ? prevSelected : [...prevSelected, newValue];
-      });
-    }
+    setDisabledOptions((prevDisabledOptions) => {
+      const newDisabledOptions = new Set(prevDisabledOptions);
+      newDisabledOptions.add(selectedValue?.label);
+      return newDisabledOptions;
+    });
+
+    //add selected option to array if it is not mapped to any other field
+    setSelectedOptions((prevSelected) => {
+      const newSelectedOptions = prevSelected.filter(
+        (item) => item !== previousSelectedValue
+      );
+      const newValue = selectedValue?.label;
+      if (!newSelectedOptions.includes(newValue)) {
+        newSelectedOptions.push(newValue);
+      }
+      return newSelectedOptions;
+    });
+  
 
     const updatedRows = tableData.map((row) => {
       if (row?.uid === rowIndex) {
@@ -769,11 +789,156 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     setSelectedEntries(updatedRows as FieldMapType[]);
   };
 
-  const SelectAccessorOfColumn = (data: FieldMapType) => {
-    // object for storing select options according to mapped field 
-    const OptionsForEachRow = dummy_obj?.[data?.backupFieldType]?.options;
+  //function to generate group schema structure of source cms 
+  const generateSourceGroupSchema = ( schema:any) =>{
+    
+    let groupId = '';
+    const data: any = [];
+    schema?.forEach((field:any) => {
+      if (field?.ContentstackFieldType === 'group') {
+        groupId = field?.uid;
+        data?.push({ ...field, child: [] });
+      } else {
+        if (field?.uid?.startsWith(groupId + '.')) {
+          const obj = data[data?.length - 1];
+          if (Object.prototype.hasOwnProperty.call(obj, 'child')) {
+            obj?.child?.push(field);
+          } else {
+            obj.child = [field];
+          }
+        } else {
+          data.push({ ...field, child: [] });
+        }
+      }
+    });
+    setNestedList(data);
+  }
 
-    // Mapping of field types
+  //utility function to create option object
+  function getMatchingOption(value:any, matchFound:boolean, label:any) {
+    return matchFound ? { label, value, isDisabled: selectedOptions.includes(label) } : null
+  }
+  
+  //utility function to map the source cms field type to content type field type
+  function checkConditions(fieldTypeToMatch:any, value:any, data:any) {
+    
+    const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link','global_field']);  
+    switch (fieldTypeToMatch) {
+      case 'text':
+        return (
+          (value?.uid  !== 'title' && 
+          data?.uid !== 'title') &&
+          (value?.uid !== 'url' && 
+          data?.uid !== 'url') &&
+          !fieldTypes.has(value?.data_type || '') &&
+          !value?.field_metadata?.multiline &&
+          !value?.enum &&
+          !value?.field_metadata?.allow_rich_text &&
+          !value?.field_metadata?.allow_json_rte &&
+          !value?.field_metadata?.markdown
+        );
+      case 'multiline':
+        return value?.field_metadata?.multiline === true;
+      case 'url':
+        return value?.uid === 'url';
+      case 'file':
+        return value?.data_type === 'file';
+      case 'number':
+        return value?.data_type === 'number' && !value?.enum;
+      case 'isodate':
+        return value?.data_type === 'isodate';
+      case 'json':
+        return value?.data_type === 'json';
+      case 'enum':
+        return 'enum' in value;
+      case 'allow_rich_text':
+        return value?.field_metadata?.allow_rich_text === true;
+      case 'Group':      
+        return value?.data_type === 'group';
+      case 'reference':
+        return value?.data_type === 'reference';
+      case 'boolean':
+        return value?.data_type === 'boolean';
+      default:
+        return false;
+    }
+  }
+
+  //function to process the nested group structure present in contentstack content type
+  const processSchema = (
+    value: any,
+    data: any,
+    array: any,
+    OptionsForRow: any[],
+    fieldsOfContentstack: any,
+    currentDisplayName = ''
+  ) => {
+    // Update the current display name with the current value's display name
+    const updatedDisplayName = currentDisplayName ? `${currentDisplayName} > ${value?.display_name}` : value?.display_name;
+  
+    if (value?.data_type === 'group') {
+
+      // Check and process the group itself
+      if (data?.otherCmsType === 'Group' && checkConditions('Group', value, data)) {
+
+        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName));
+        
+        // Process nested groups within this group
+        for (const key of value.schema || []) {
+          if (key?.data_type === 'group') {
+            processSchema(key, data, array, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+          }
+        }
+      }
+      // Process nested schemas within the current group
+      for (const item of array) {
+        const fieldTypeToMatch = fieldsOfContentstack[item?.otherCmsType as keyof Mapping];
+        if (item.id === data?.id) {
+          for (const key of value.schema || []) {
+            if (checkConditions(fieldTypeToMatch, key, item)) {
+              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
+            }
+  
+            // Recursively process nested groups
+            if (key?.data_type === 'group') {
+              processSchema(key, data, array, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+            }
+          }
+        }
+      }
+    } else {
+ 
+      const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
+      if (!array.some((item :any)=> item.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
+        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName || ''));
+      }
+  
+      // Process nested schemas if value is not a group
+      for (const item of array) {
+        if (item.id === data?.id) {
+          for (const key of value.schema || []) {
+            if (checkConditions(fieldTypeToMatch, key, item)) {
+              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
+            }
+  
+            // Recursively process nested groups
+            if (key?.data_type === 'group') {
+              processSchema(key, data, array, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+            }
+          }
+        }
+      }
+    }
+  
+    return OptionsForRow;
+  };
+  
+  
+
+  const SelectAccessorOfColumn = (data: FieldMapType) => {
+    // Fetch options for the current row from dummy_obj based on backupFieldType( empty stack options)
+    const OptionsForEachRow = dummy_obj?.[data?.backupFieldType]?.options;
+  
     const fieldsOfContentstack: Mapping = {
       'Single Line Textbox': 'text',
       'Single-Line Text': 'text',
@@ -782,136 +947,70 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
       'JSON Rich Text Editor': 'json',
-      'Rich Text':'json',
+      'Rich Text': 'json',
       'Group': 'Group',
       'URL': 'url',
       'file': 'file',
-      'Image':'file',
+      'Image': 'file',
       'number': 'number',
-      'Integer':'number',
+      'Integer': 'number',
       'Date': 'isodate',
       'boolean': 'boolean',
-      'Checkbox':'boolean',
+      'Checkbox': 'boolean',
       'link': 'link',
       'reference': 'reference',
       'dropdown': 'enum',
-      'Droplist':'enum',
-      'radio': 'enum',
-      //'CheckBox': 'enum'
+      'Droplist': 'enum',
+      'radio': 'enum'
     };
-
-    //array of options if exsting content type has selected 
-    const OptionsForRow: optionsType[] = [];
-
+  
+    const OptionsForRow: any[] = [];
+  
+    // If OtherContentType label and contentTypesList are present, set the contentTypeSchema
     if (OtherContentType?.label && contentTypesList) {
-      const ContentType: any = contentTypesList?.find(
+      const ContentType:any = contentTypesList?.find(
         ({ title }) => title === OtherContentType?.label
       );
-      setContentTypeSchema(ContentType?.schema)
+      setContentTypeSchema(ContentType?.schema);
     }
-    
-     // If content type schema is available and valid
+  
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
-
-      //check if UID of source cms field is matching with contentstack content type fields
+       
+      //check if UID of souce field is matching to exsting content type field UID
       for (const value of contentTypeSchema) {
-        if (data?.uid === value?.uid) {
-          OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
+        if (data?.uid === value?.uid || (data?.uid === value?.uid && data?.otherCmsType === value?.data_type)) {
+          OptionsForRow.push({ label: value?.display_name, value, isDisabled: false });
           break;
         }
       }
-      // If UID does not match then check for field type
-      if(OptionsForRow.length === 0){
-      for (const value of contentTypeSchema) {   
-        const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link']);  
+  
+      if (OptionsForRow.length === 0) {
+        for (const value of contentTypeSchema) {
 
-          switch (fieldTypeToMatch) {
-          case 'text':
-            if (
-              value?.uid !== 'title' &&
-              value?.uid !=='url' &&
-              !fieldTypes.has(value?.data_type || '') &&
-              !value?.field_metadata?.multiline &&
-              !value?.enum &&
-              !value?.field_metadata?.allow_rich_text &&
-              !value?.field_metadata?.allow_json_rte &&
-              !value?.field_metadata?.markdown
-            ) {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'multiline':
-            if (value?.field_metadata?.multiline === true) {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'url':
-            if (value?.uid === 'url') {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'file':
-            if (value?.data_type === 'file') {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'number':
-            if (value?.data_type === 'number' && !value?.enum) {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'isodate':
-            if (value?.data_type === 'isodate') {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'json':
-            if (value?.data_type === 'json') {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'enum':
-            if ('enum' in value) {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'allow_rich_text':
-            if (value?.field_metadata?.allow_rich_text === true) {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'Group':
-            if (value?.data_type === 'group') {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
-          case 'reference':
-            if (value?.data_type === 'reference') {
-              OptionsForRow.push({ label: value?.display_name, value: value, isDisabled: false });
-            }
-            break;
+          const groupArray = nestedList.filter(item => 
+            item.child && item.child.some(e => e.id === data?.id)
+          );
+          
+          const array = groupArray[0]?.child || []
 
-          default:
-            OptionsForRow.push({
-              label: 'No matches found',
-              value: { 'No matches found': '' },
-              isDisabled: false
-            });
-            break;
-
+          if(value.data_type === 'group'){
+            processSchema(value, data, array, OptionsForRow, fieldsOfContentstack)
+          }
+          else if (!array.some(item => item.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
+            
+            OptionsForRow.push(getMatchingOption(value, true, value?.display_name || ''));
+            
+          }
         }
-        
-      }}
+      }
     }
-    
-    // Variable to store length of options
-    const selectedOption = OptionsForRow?.length;
-
-    //variable to store the options if exsting contentstack content type is not selected
-    let option:any;
+  
+    const selectedOption = OptionsForRow.length;
+  
+    let option: any;
     if (Array.isArray(OptionsForEachRow)) {
-       option = OptionsForEachRow.map((option) => ({
+      option = OptionsForEachRow.map((option) => ({
         label: option,
         value: option,
       }));
@@ -920,60 +1019,59 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         label,
         value,
       }));
-    }else{
-      option = [{ label: OptionsForEachRow, value: OptionsForEachRow }]
+    } else {
+      option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
     }
-  
-  const OptionValue: any =
-  OptionsForRow?.length === 1 && 
-  //disable url, title and group fields
-  (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' ||OptionsForRow?.[0]?.value?.uid === 'group')
-    ? { 
-        label: OptionsForRow?.[0]?.value?.display_name, 
-        value: OptionsForRow?.[0]?.value,
-        isDisabled: true 
-      }
-    : OptionsForRow?.length === 0
-      ? { 
-          label: dummy_obj[data?.ContentstackFieldType]?.label, 
-          value: dummy_obj[data?.ContentstackFieldType]?.label, 
-          isDisabled: data?.ContentstackFieldType === 'text' ||
-                     data?.ContentstackFieldType === 'group' ||
-                     data?.ContentstackFieldType === 'url'
+    
+    const OptionValue: any =
+      OptionsForRow.length === 1 &&
+      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group')
+        ? {
+          label: OptionsForRow[0]?.value?.display_name,
+          value: OptionsForRow[0]?.value,
+          isDisabled: true
         }
-      : { 
-          label: `${selectedOption} matches`, 
-          value: `${selectedOption} matches`,
-          isDisabled: false 
-        };
+        : (OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) 
+          && ! exstingField[data?.uid] ))
+          ? {
+            label: dummy_obj[data?.ContentstackFieldType]?.label,
+            value: dummy_obj[data?.ContentstackFieldType]?.label,
+            isDisabled: data?.ContentstackFieldType === 'text' ||
+              data?.ContentstackFieldType === 'group' ||
+              data?.ContentstackFieldType === 'url'
+          }
+          : {
+            label: `${selectedOption} matches`,
+            value: `${selectedOption} matches`,
+            isDisabled: false
+          };
     
-    // Adjust the options based on whether existing contentstack content type is selected
-    const adjustedOptions =  OptionsForRow.length === 0 ? option
-    : OptionsForRow.map((option: optionsType) => ({
-      ...option,
-      isDisabled: selectedOptions?.includes(option?.label ?? '')
-    }));   
-    
+    const adjustedOptions = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
+    (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === dummy_obj[data?.ContentstackFieldType]?.label) ? []
+      : OptionsForRow.map((option: optionsType) => ({
+        ...option,
+        isDisabled: selectedOptions.includes(option?.label ?? '')
+      }));
+  
+  
     return (
       <div className="table-row">
         <div className="select">
           <Select
-            value={OptionsForRow.length === 0 || exstingField[data?.uid] === undefined ? OptionValue  : exstingField[data?.uid]}
+            value={OptionsForRow.length === 0 || exstingField[data?.uid] === undefined ? OptionValue : exstingField[data?.uid]}
             onChange={(selectedOption: FieldTypes) => {
-              if(OptionsForRow.length === 0){
-                handleValueChange(selectedOption, data?.uid)}
-             else{
+              if (OptionsForRow.length === 0) {
+                handleValueChange(selectedOption, data?.uid)
+              } else {
                 handleFieldChange(selectedOption, data?.uid)
-
-             }}}
+              }
+            }}
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
             isClearable={false}
             options={adjustedOptions}
-            isDisabled={
-              OptionValue?.isDisabled
-            }
+            isDisabled={OptionValue?.isDisabled}
           />
         </div>
         {!OptionValue?.isDisabled && (
@@ -982,13 +1080,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             icon="Setting"
             size="small"
             onClick={() => {
-              // const value = {
-              //   ValidationRegex: data?.advanced?.ValidationRegex,
-              //   Mandatory: data?.advanced?.mandatory,
-              //   Multiple: data?.advanced?.multiple,
-              //   Unique: data?.advanced?.unique,
-              //   NonLocalizable: data?.advanced?.nonLocalizable
-              // };
               handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data);
             }}
           />
@@ -996,6 +1087,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       </div>
     );
   };
+  
 
   const handleSaveContentType = async () => {
     // setIsModalOpen(false);
@@ -1112,6 +1204,10 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         selectedContentType?.id || '',
         dataCs
       );
+      //setOtherContentType();
+      setexsitingField({});
+      setContentTypeSchema([]);
+      setcontentTypeMapped({});
       if (status == 200) {
         Notification({
           notificationContent: { text: 'Content type reset successfully' },
