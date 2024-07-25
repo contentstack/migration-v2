@@ -1277,7 +1277,9 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
     return result;
   }
   const tableHeight = calcHeight();
-   
+
+  //variable for button component in table
+  const onlyIcon= true;
   return (
     <div className="step-container">
       <div className="d-flex flex-wrap table-container">
@@ -1393,18 +1395,18 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
                   <div className='d-flex align-items-center' style={{ gap: '8px' }}>
                     {!IsEmptyStack && (
                       <Tooltip content={'fetch the content type'} position="left">
-                        <Icon icon="FetchTemplate" size="small" version="v2" onClick={handleFetchContentType}  hover={true}  />
+                        <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
+                         version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
+                         size='small' onClick={handleFetchContentType}>
+                        </Button>
+                        
                       </Tooltip>
                     )}
 
                     <Tooltip content={'Reset to intial mapping'} position="left">
-                      <Icon
-                        icon="ResetReverse"
-                        size="small"
-                        version="v2"
-                        onClick={handleResetContentType}
-                        hover={true}
-                      />
+                       <Button buttonType="light" icon={onlyIcon ? "v2-ResetReverse" : ''} 
+                       version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
+                       size='small' onClick={handleResetContentType}></Button>
                     </Tooltip>
 
                     {!IsEmptyStack && (
