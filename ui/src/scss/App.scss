@@ -286,7 +286,7 @@ body {
   color: $color-font-base;
   font-family: $font-family-primary;
   height: 100%;
-  line-height: 1.3rem;
+  line-height: $line-height-default;
   overflow-x: hidden;
   span,
   p {
