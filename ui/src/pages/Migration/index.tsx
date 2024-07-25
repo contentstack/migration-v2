@@ -52,6 +52,8 @@ const Migration = () => {
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
   const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
 
+  const saveRef = useRef<any>(null);
+
   useEffect(() => {
     fetchData();
   }, [params?.stepId, params?.projectId, selectedOrganisation?.value]);
@@ -125,7 +127,7 @@ const Migration = () => {
       },
       {
         data: <ContentMapper 
-              projectData={projectData}/>,
+              projectData={projectData} ref={saveRef} />,
         id:'3',
         title:'Content Mapping'
       },
@@ -311,8 +313,8 @@ const Migration = () => {
 
       <div className='steps-wrapper'>
         { projectData &&
-          <HorizontalStepper ref={stepperRef} steps={createStepper(projectData, handleClick)} />
-        }    
+          <HorizontalStepper ref={stepperRef} steps={createStepper(projectData, handleClick)} handleSaveCT={saveRef?.current?.handleSaveContentType} changeDropdownState={saveRef?.current?.handleDropdownState } />
+        }     
       </div>
     </div>
   )
