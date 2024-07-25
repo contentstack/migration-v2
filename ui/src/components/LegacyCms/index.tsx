@@ -50,7 +50,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
   const [isValidated, setisValidated] = useState<boolean>(
     newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false
   );
-
+  const [isAllStepsCompleted, setIsAllStepsCompleted] = useState(false);
   const navigate = useNavigate();
   const autoVerticalStepper = useRef<any>(null);
 
@@ -185,7 +185,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
             },
             isValidated: legacyCMSData?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
           }, //need to add backend data once endpoint exposed.
-          affix: legacyCMSData?.affix || newMigrationData?.legacy_cms?.affix || '',
+          affix: legacyCMSData?.affix || '',
           isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
           isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
         }
@@ -249,6 +249,21 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
     }
 
   },[newMigrationData]);
+  
+  useEffect(()=>{
+   if(! isEmptyString(newMigrationData?.legacy_cms?.affix) 
+      && !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.title) &&
+    ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) && 
+    newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+      setIsAllStepsCompleted(true);
+      handleAllStepsComplete(true);
+    }
+    else{
+      setIsAllStepsCompleted(false);
+      handleAllStepsComplete(false);
+
+    }
+  },[newMigrationData,isAllStepsCompleted])
 
   return (
     <>
