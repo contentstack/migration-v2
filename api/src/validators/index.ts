@@ -9,6 +9,7 @@ import destinationStackValidator from "./destination-stack.validator.js";
 import affixValidator from "./affix.validator.js";
 import affixConfirmationValidator from "./affix-confirmation.validator.js";
 import fileformatConfirmationValidator from "./fileformat-confirmation.validator.js";
+import stackValidator from "./stack.validator.js";
 
 /**
  * Middleware function that validates the request based on the specified route.
@@ -26,6 +27,7 @@ export default (route: string = "") =>
       affix: affixValidator,
       affix_confirmation_validator: affixConfirmationValidator,
       fileformat_confirmation_validator: fileformatConfirmationValidator,
+      stack: stackValidator
     };
 
     const validator = appValidators[route as keyof typeof appValidators];
