@@ -128,6 +128,17 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     } else {
       setIsError(true);
       setErrorMessage('Please enter Affix');
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData?.legacy_cms,
+          affix: value,
+          isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
+        }
+      };
+
+      dispatch(updateNewMigrationData(newMigrationDataObj));
+
     }
   });
 
