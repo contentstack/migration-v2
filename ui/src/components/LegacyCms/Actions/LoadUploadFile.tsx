@@ -155,8 +155,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
     }
     else{
-      //setIsValidated(false);
-      setValidationMessage('Validation Falied');
+      setIsValidated(false);
+      setValidationMessage('Validation is failed');
       setIsValidationAttempted(true);
       setProgressPercentage(100);
 
