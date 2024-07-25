@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FileDetails, INewMigration } from '../../../context/app/app.interface';
 import { fileValidation, getConfig } from '../../../services/api/upload.service';
@@ -57,7 +57,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
 
- 
+  const newMigrationDataRef = useRef(newMigrationData);
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isValidated, setIsValidated] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
@@ -104,9 +104,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     
    
     const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
+      ...newMigrationDataRef?.current,
       legacy_cms: {
-        ...newMigrationData?.legacy_cms,
+        ...newMigrationDataRef?.current?.legacy_cms,
         uploadedFile: {
           name: res?.data?.localPath,
           url: res?.data?.localPath,
@@ -216,9 +216,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setFileExtension(extension);
 
       const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
+        ...newMigrationDataRef?.current,
         legacy_cms: {
-          ...newMigrationData?.legacy_cms,
+          ...newMigrationDataRef?.current?.legacy_cms,
           uploadedFile: {
             name: res?.data?.localPath,
             url: res?.data?.localPath,
@@ -397,6 +397,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
   },[newMigrationData?.legacy_cms?.selectedFileFormat]);
 
+  useEffect(() => {
+    newMigrationDataRef.current = newMigrationData;
+  }, [newMigrationData]);
+  
   const validationClassName = isValidated ? 'success' : 'error';
 
   const containerClassName = `validation-container ${isValidationAttempted && !isValidated ? 'error-container pb-2' : ''}`;
