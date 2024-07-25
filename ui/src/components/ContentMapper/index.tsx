@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import {
@@ -199,10 +199,13 @@ const Fields: Mapping = {
 
 type ContentMapperComponentProps = {
   projectData: MigrationResponse;
-
 };
 
-const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
+type ContentTypeSaveHandles = {
+  handleSaveContentType?: () => {};
+}
+
+const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, ref: React.ForwardedRef<ContentTypeSaveHandles>) => {
   /** ALL CONTEXT HERE */
 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -266,11 +269,12 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
   const [showFilter, setShowFilter] = useState<boolean>(false);
   const [filteredContentTypes, setFilteredContentTypes] = useState<ContentType[]>([])
   const [count, setCount] = useState<number>(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
 
-  const ref = useRef<HTMLDivElement | null>(null);
+  const filterRef = useRef<HTMLDivElement | null>(null);
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -282,7 +286,7 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
           dispatch(updateMigrationData({ contentMappingData: DEFAULT_CONTENT_MAPPING_DATA }));
         }
 
-        dispatch(updateMigrationData({ contentMappingData: data }));
+        dispatch(updateMigrationData({ contentMappingData: data}));
       })
       .catch((err) => {
         console.error(err);
@@ -338,10 +342,46 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
   // To close the filter panel on outside click
   useEffect(() => {
     document.addEventListener('click', handleClickOutside, true);
+
     return () => {
-        document.removeEventListener('click', handleClickOutside, true);
+      document.removeEventListener('click', handleClickOutside, true);
     };
   }, []);
+
+  // To dispatch the changed dropdown state
+  useEffect(() => {
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      content_mapping: {
+        ...newMigrationData?.content_mapping,
+        // content_type_mapping: contentTypeMapped,
+        isDropDownChanged: isDropDownChanged,
+        otherCmsTitle: otherCmsTitle,
+      }
+    };
+
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
+  }, [isDropDownChanged]);
+
+  useEffect(()=>{ 
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      window.history.pushState(null, '', window.location.href);
+      handleOpenContentType();
+      
+    };
+    if(isModalOpen){
+      window.history.pushState(null, '', window.location.href);
+    }
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate',handlePopState);
+ 
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+
+  },[isModalOpen,newMigrationData]);
 
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
@@ -449,12 +489,12 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
     }
   };
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   // Method to change the content type
-  const handleOpenContentType = (i: number) => {
+  const handleOpenContentType = async (i = 0) => {
+    if(isModalOpen) return;
     if (isDropDownChanged) {
       setIsModalOpen(true);
+      handleDropdownState();
       return cbModal({
         component: (props: ModalObj) => (
           <SaveChangesModal
@@ -476,6 +516,8 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
   };
 
   const openContentType = (i: number) => {
+    // setIsModalOpen(false);
+
     setActive(i);
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
@@ -956,6 +998,8 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
   };
 
   const handleSaveContentType = async () => {
+    // setIsModalOpen(false);
+    
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
 
@@ -1027,7 +1071,16 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
         });
       }
     }
-  };
+  }
+
+  const handleDropdownState = () => {
+    setisDropDownCHanged(false);
+  }
+
+  useImperativeHandle(ref, () => ({
+    handleSaveContentType,
+    handleDropdownState
+  }));
 
   const handleResetContentType = async () => {
     const orgId = projectData?.org_id;
@@ -1168,7 +1221,7 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
 
   // Function to close filter panel on click outside
   const handleClickOutside = (evt: MouseEvent) => {
-    if (!ref.current?.contains(evt.target as Node)) {
+    if (!filterRef.current?.contains(evt.target as Node)) {
       setShowFilter(false);
     }
   };
@@ -1210,7 +1263,7 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
                 <Icon icon="Filter" version="v2" />
               </Button>
               {showFilter && (
-                <div className='filter-wrapper' ref={ref}> 
+                <div className='filter-wrapper' ref={filterRef}> 
                   <ul>
                     {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
                       <>
@@ -1347,6 +1400,7 @@ const ContentMapper = ({projectData}:ContentMapperComponentProps) => {
       </div>
     </div>
   );
-};
+});
 
+ContentMapper.displayName = 'ContentMapper';
 export default ContentMapper;
