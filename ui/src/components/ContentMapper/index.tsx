@@ -373,18 +373,17 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       handleOpenContentType();
       
     };
-    if(isModalOpen){
+
+    if(isModalOpen || isDropDownChanged){
       window.history.pushState(null, '', window.location.href);
     }
     window.history.pushState(null, '', window.location.href);
     window.addEventListener('popstate',handlePopState);
- 
-
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
 
-  },[isModalOpen,newMigrationData]);
+  },[isModalOpen]);
 
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
@@ -496,7 +495,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
   // Method to change the content type
   const handleOpenContentType = async (i = 0) => {
-    if(isModalOpen) return;
     if (isDropDownChanged) {
       setIsModalOpen(true);
       handleDropdownState();
