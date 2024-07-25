@@ -1,7 +1,13 @@
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './HorizontalStepper.scss';
-import { Icon } from '@contentstack/venus-components';
+import { Icon, cbModal } from '@contentstack/venus-components';
+
+import { useSelector } from 'react-redux';
+
+import { RootState } from '../../../store';
+import SaveChangesModal from '../../../components/Common/SaveChangesModal';
+import { ModalObj } from '../../../components/Modal/modal.interface'; 
 
 export enum StepStatus {
     ACTIVE = "ACTIVE",
@@ -25,6 +31,8 @@ export type stepperProps = {
     stepContentClassName?: string;
     stepTitleClassName?: string;
     testId?: string;
+    handleSaveCT: () => {};
+    changeDropdownState: () => void;
 };
 
 export type HorizontalStepperHandles = {
@@ -40,6 +48,12 @@ const HorizontalStepper = forwardRef(
 
         const navigate = useNavigate();
         const { projectId = '' } = useParams();
+
+        const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
+
+        const handleSaveCT = props?.handleSaveCT
+        const handleDropdownChange = props?.changeDropdownState
+
 
         useEffect(() => {
             const stepIndex = parseInt(stepId, 10) - 1;
@@ -73,14 +87,41 @@ const HorizontalStepper = forwardRef(
             }
         }));
 
+        const [isModalOpen, setIsModalOpen] = useState(false);
+
+        const handleTabStep = (idx: number) => {
+            if (newMigrationData?.content_mapping?.isDropDownChanged) {
+                setIsModalOpen(true);
+                handleDropdownChange();
+                return cbModal({
+                    component: (props: ModalObj) => (
+                    <SaveChangesModal
+                        {...props}
+                        isopen={setIsModalOpen}
+                        otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
+                        saveContentType={handleSaveCT}
+                        changeStep={() => setTabStep(idx)}
+                    />
+                    ),
+                    modalProps: {
+                    size: 'xsmall',
+                    shouldCloseOnOverlayClick: false
+                    }
+                });
+            } else {
+                setTabStep(idx);
+            }
+        };
+
         const setTabStep = (idx: number) => {
-            
             if (stepsCompleted?.includes(idx) || stepsCompleted?.length === idx) {
                 setShowStep(idx);
                 const url = `/projects/${projectId}/migration/steps/${idx + 1}`;
                 navigate(url, { replace: true });
             }
-        };
+        }
+
+        
 
         const StepsTitleCreator: React.FC = () => (
             <div className="stepper stepper-position">
@@ -99,7 +140,7 @@ const HorizontalStepper = forwardRef(
                             <div className="stepWrapperContainer">
                                 <div
                                     className={`stepWrapper ${completedClass} ${activeClass} ${disableClass}`}
-                                    onClick={() => setTabStep(idx)}
+                                    onClick={() => handleTabStep(idx)}
                                 >
                                     <div className="circle-title-wrapper">
                                         <div className="badge">
