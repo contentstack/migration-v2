@@ -1,11 +1,10 @@
-
+// Libraries
 import {
   ModalBody,
   ModalHeader,
   ModalFooter,
   ButtonGroup,
   Button,
-  Paragraph
 } from '@contentstack/venus-components';
 
 interface Props {
@@ -13,24 +12,44 @@ interface Props {
   isopen: any;
   otherCmsTitle?: string;
   saveContentType: () => void;
-  openContentType: () => void;
+  openContentType?: () => void;
+  changeStep?: () => void;
 }
 
-const SaveChangesModal = (props:Props) => {
+const SaveChangesModal = (props: Props) => {
   return(
-      <>
-      <ModalHeader title={'Save Changes'} closeModal={()=>{props?.closeModal(),props.isopen(false)}} className="text-capitalize" />
-      <ModalBody>
-        <div className='modal-data'>             
-          <Paragraph tagName="p" text={`You have unsaved changes on this page. Please save the content type ${props?.otherCmsTitle || ''}.`} variant={"p1"}/>
-        </div>
+    <>
+      <ModalHeader
+        title={'Save Changes'}
+        closeModal={() => {
+          props?.closeModal();
+          props.isopen(false);
+        }}
+        className="text-capitalize"
+      />
+      <ModalBody className="">
+          You have unsaved changes on content type <strong>{props?.otherCmsTitle || ''}</strong>. Save your changes if you don&apos;t want to lose them.
       </ModalBody>
       <ModalFooter>
         <ButtonGroup>
-          <Button buttonType="secondary"version={"v2"}  onClick={() => {props.closeModal(); props.isopen(false)}}> 
+          <Button buttonType="light"version={"v2"}  onClick={() => {props.closeModal(); props.isopen(false)}}> 
             Cancel
           </Button>
-          <Button version={"v2"} onClick={() => { props.saveContentType(); props.closeModal(); props.openContentType() }}>Save</Button>
+          <Button buttonType="secondary"version={"v2"}  onClick={() => {
+            props.closeModal(); 
+            props.openContentType?.();
+            props.isopen(false);
+            props?.changeStep?.();
+          }}
+          > 
+            Don&apos;t Save
+          </Button>
+          <Button version={"v2"} onClick={() => { 
+            props.saveContentType(); 
+            props.closeModal(); 
+            props.openContentType?.();
+            props?.changeStep?.();
+          }}>Save</Button>
         </ButtonGroup>
       </ModalFooter>
     </>
