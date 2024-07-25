@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Select, cbModal, TextInput, SkeletonTile } from '@contentstack/venus-components';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
@@ -31,8 +31,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   /****  ALL UseStates HERE  ****/
   const [selectedStack, setSelectedStack] = useState<any>(
     null
-  );
-
+  );  
   const loadingOption = [
     {
       uid: '',
@@ -60,7 +59,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const { projectId = '' }: Params<string> = useParams();
+  // console.log("......newMigrationData",newMigrationData)
+  const newMigrationDataRef = useRef(newMigrationData);
 
+  useEffect(() => {
+    newMigrationDataRef.current = newMigrationData;
+  }, [newMigrationData]);
   useEffect(()=>{
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
@@ -77,15 +81,17 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       return false;
     }
     //Post data to backend
-    const resp = await createStacksInOrg(newMigrationData?.destination_stack?.selectedOrg?.value, {
+    const resp = await createStacksInOrg(selectedOrganisation?.value, {
       ...data,
       master_locale: data?.locale
     });
     setIsSaving(false);
-
+    
     if (resp.status === 201) {
-      //fetch all Stacks
-      fetchData();      
+      if ( newMigrationData?.destination_stack?.stackArray?.length > 0 ) {
+        //fetch all Stacks
+        await fetchData();  
+      }
       const newCreatedStack: IDropDown = {
         label: resp?.data?.stack?.name,
         value: resp?.data?.stack?.api_key,
@@ -95,7 +101,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         uid: resp?.data?.stack?.api_key
       };
 
-      setSelectedStack(newCreatedStack);
+      setSelectedStack(newCreatedStack);      
       setAllStack((prevState) => [...prevState, newCreatedStack]);
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
@@ -122,7 +128,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     }
     return false;
   };
-
   /****  ALL METHODS HERE  ****/
 
   //Handle Legacy cms selection
@@ -191,17 +196,21 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         setErrorMessage("Please create new stack there is no stack available");
       } 
       const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
+        ...newMigrationDataRef?.current,
         destination_stack: {
-          ...newMigrationData?.destination_stack,
+          ...newMigrationDataRef?.current?.destination_stack,
           selectedStack: selectedStackData,
           stackArray: stackArray
         }
       };  
+      // console.log("........newMigrationDataObj",newMigrationDataObj);
+      
       // Dispatch the updated migration data to Redux
       dispatch(updateNewMigrationData(newMigrationDataObj));
     }
   };
+  
+  
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
@@ -219,6 +228,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       modalProps: {
         shouldCloseOnOverlayClick: true,
         onClose: () => {
+          setIsError(false)
           return;
         },
         onOpen: () => {
@@ -229,7 +239,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   };
 
   const emptyStackValue = selectedStack?.value === undefined || selectedStack?.value === '' || selectedStack?.value === null
-
   /****  ALL USEEffects  HERE  ****/
   useEffect(() => {
     fetchData();
@@ -248,7 +257,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   onChange={handleDropdownChange('stacks')}
                   value={selectedStack}
                   isSearchable={true}
-                  isClearable={!emptyStackValue ? true : false }
+                  isClearable={newMigrationData?.destination_stack?.stackArray?.length > 0 && !emptyStackValue ? true : false }
                   // hideSelectedOptions={true}
                   isDisabled={props?.stepComponentProps?.isSummary || false}
                   placeholder={'Select a stack'}
