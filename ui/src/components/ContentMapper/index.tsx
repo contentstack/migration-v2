@@ -357,7 +357,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       ...newMigrationData,
       content_mapping: {
         ...newMigrationData?.content_mapping,
-        // content_type_mapping: contentTypeMapped,
         isDropDownChanged: isDropDownChanged,
         otherCmsTitle: otherCmsTitle,
       }
@@ -365,25 +364,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
     dispatch(updateNewMigrationData((newMigrationDataObj)));
   }, [isDropDownChanged]);
-
-  useEffect(()=>{ 
-    const handlePopState = (event: PopStateEvent) => {
-      event.preventDefault();
-      window.history.pushState(null, '', window.location.href);
-      handleOpenContentType();
-      
-    };
-
-    if(isModalOpen || isDropDownChanged){
-      window.history.pushState(null, '', window.location.href);
-    }
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate',handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-
-  },[isModalOpen]);
 
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
@@ -497,7 +477,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const handleOpenContentType = async (i = 0) => {
     if (isDropDownChanged) {
       setIsModalOpen(true);
-      handleDropdownState();
       return cbModal({
         component: (props: ModalObj) => (
           <SaveChangesModal
@@ -506,6 +485,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             otherCmsTitle={otherCmsTitle}
             saveContentType={handleSaveContentType}
             openContentType={() => openContentType(i)}
+            dropdownStateChange={handleDropdownState}
           />
         ),
         modalProps: {
@@ -519,8 +499,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   };
 
   const openContentType = (i: number) => {
-    // setIsModalOpen(false);
-
     setActive(i);
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
@@ -1023,7 +1001,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     
     const OptionValue: any =
       OptionsForRow.length === 1 &&
-      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group')
+      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference')
         ? {
           label: OptionsForRow[0]?.value?.display_name,
           value: OptionsForRow[0]?.value,
@@ -1036,7 +1014,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             value: dummy_obj[data?.ContentstackFieldType]?.label,
             isDisabled: data?.ContentstackFieldType === 'text' ||
               data?.ContentstackFieldType === 'group' ||
-              data?.ContentstackFieldType === 'url'
+              data?.ContentstackFieldType === 'url' ||
+              data?.otherCmsType === "reference"
           }
           : {
             label: `${selectedOption} matches`,
