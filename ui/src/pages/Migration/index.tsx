@@ -146,14 +146,13 @@ const Migration = () => {
      ]
      return steps;
   }
-  const handleClick = () => {
 
+  const handleClick = () => {
     // Call handleStepChange function
     const x : string | undefined= params.stepId 
     const currentStep : number = parseInt(x || '');  
     stepperRef?.current?.handleStepChange(currentStep-1);
   };
-
 
   const handleStepChange = (currentStep: number) => { 
     if (stepperRef?.current) {
@@ -166,146 +165,155 @@ const Migration = () => {
     setIsCompleted(flag);
   };
 
-    // handle on proceed to destination stack
-    const handleOnClickLegacyCms = async (event: MouseEvent ) => {
-      setIsLoading(true);
-      if(isCompleted){
-        event.preventDefault();
-  
-      //Update Data in backend
-      await updateLegacyCMSData(selectedOrganisation?.value, projectId, {
-        legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
-      });
-      await updateAffixData(selectedOrganisation?.value, projectId, { affix: newMigrationData?.legacy_cms?.affix });
-      await fileformatConfirmation(selectedOrganisation?.value, projectId, {
-        fileformat_confirmation: true
-      });     
-      await updateFileFormatData(selectedOrganisation?.value, projectId, {
-        file_format: newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats[0]?.fileformat_id?.toString() ,
-        file_path: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
-        is_fileValid: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
-        is_localPath: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isLocalPath,
-        awsDetails:{
-          awsRegion: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
-          bucketName: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
-          buketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.buketKey
-        }
-      });
-      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
-      handleStepChange(1);
-      if (res) {
-        setIsLoading(false);
-
-        const url = `/projects/${projectId}/migration/steps/2`;
-        navigate(url, { replace: true });
-      }
-
-      }
-      else{
-        setIsLoading(false);
-
-        if (legacyCMSRef?.current) {
-          const currentIndex = legacyCMSRef?.current?.getInternalActiveStepIndex() + 1;                
-          let result;
-          switch (currentIndex ) {
-            case 0:
-              result = 'CMS';
-              break;
-            case 1:
-              result = 'Enter Affix';
-              break;
-            case 2:
-              result = 'Imported File';
-              break;
-          }
-          if (currentIndex !== 3 || currentIndex !== 4) {
-            Notification({
-              notificationContent: { text: `Please complete ${result} step` },
-              type: 'warning'
-            });
-          }
-        }
-
-      }
-      
-    };
-
-    // handle on proceed to content mapping
-    const handleOnClickDestinationStack = async (event: MouseEvent) => {
-      setIsLoading(true);
-
-      if(isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
-        event?.preventDefault();
-        //Update Data in backend
-        await updateDestinationStack(selectedOrganisation?.value, projectId, {
-          stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
-        });
-        handleStepChange(2);
-        const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
-        if (res) {
-          setIsLoading(false);
-          const url = `/projects/${projectId}/migration/steps/3`;
-          navigate(url, { replace: true });
-        }
-      } else{
-        setIsLoading(false);
-        Notification({
-          notificationContent: { text: 'Please select a stack to proceed further' },
-          type: 'warning'
-        });
-      }
-    };
-
-    const handleOnClickContentMapper = async (event: MouseEvent) => {
-      setIsLoading(true);
-
+  // handle on proceed to destination stack
+  const handleOnClickLegacyCms = async (event: MouseEvent ) => {
+    setIsLoading(true);
+    if(isCompleted){
       event.preventDefault();
 
-      const data = {
-        name: newMigrationData?.destination_stack?.selectedStack?.label,
-        description: 'test migration stack',
-        master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
-      };
-
-      const res = await createTestStack(
-        newMigrationData?.destination_stack?.selectedOrg?.value,
-        projectId,
-        data
-      );
-
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
-      };
-  
-      dispatch(updateNewMigrationData((newMigrationDataObj)));
-      if (res?.status) {
-        setIsLoading(false);
-
-        const url = `/projects/${projectId}/migration/steps/4`;
-        navigate(url, { replace: true });
-
-        await updateCurrentStepData(selectedOrganisation.value, projectId);
-        handleStepChange(3);
+    //Update Data in backend
+    await updateLegacyCMSData(selectedOrganisation?.value, projectId, {
+      legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
+    });
+    await updateAffixData(selectedOrganisation?.value, projectId, { affix: newMigrationData?.legacy_cms?.affix });
+    await fileformatConfirmation(selectedOrganisation?.value, projectId, {
+      fileformat_confirmation: true
+    });     
+    await updateFileFormatData(selectedOrganisation?.value, projectId, {
+      file_format: newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats[0]?.fileformat_id?.toString() ,
+      file_path: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
+      is_fileValid: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+      is_localPath: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isLocalPath,
+      awsDetails:{
+        awsRegion: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
+        bucketName: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
+        buketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.buketKey
       }
-    }
-
-    const handleOnClickTestMigration = async () => {
+    });
+    const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+    handleStepChange(1);
+    if (res) {
       setIsLoading(false);
 
-      const url = `/projects/${projectId}/migration/steps/5`;
+      const url = `/projects/${projectId}/migration/steps/2`;
+      navigate(url, { replace: true });
+    }
+
+    }
+    else{
+      setIsLoading(false);
+
+      if (legacyCMSRef?.current) {
+        const currentIndex = legacyCMSRef?.current?.getInternalActiveStepIndex() + 1;                
+        let result;
+        switch (currentIndex ) {
+          case 0:
+            result = 'CMS';
+            break;
+          case 1:
+            result = 'Enter Affix';
+            break;
+          case 2:
+            result = 'Imported File';
+            break;
+        }
+        if (currentIndex !== 3 || currentIndex !== 4) {
+          Notification({
+            notificationContent: { text: `Please complete ${result} step` },
+            type: 'warning'
+          });
+        }
+      }
+
+    }
+    
+  };
+
+  // handle on proceed to content mapping
+  const handleOnClickDestinationStack = async (event: MouseEvent) => {
+    setIsLoading(true);
+
+    if(isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
+      event?.preventDefault();
+      //Update Data in backend
+      await updateDestinationStack(selectedOrganisation?.value, projectId, {
+        stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
+      });
+      handleStepChange(2);
+      const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
+      if (res) {
+        setIsLoading(false);
+        const url = `/projects/${projectId}/migration/steps/3`;
+        navigate(url, { replace: true });
+      }
+    } else{
+      setIsLoading(false);
+      Notification({
+        notificationContent: { text: 'Please select a stack to proceed further' },
+        type: 'warning'
+      });
+    }
+  };
+
+  const handleOnClickContentMapper = async (event: MouseEvent) => {
+    setIsLoading(true);
+
+    event.preventDefault();
+
+    const data = {
+      name: newMigrationData?.destination_stack?.selectedStack?.label,
+      description: 'test migration stack',
+      master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
+    };
+
+    const res = await createTestStack(
+      newMigrationData?.destination_stack?.selectedOrg?.value,
+      projectId,
+      data
+    );
+
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
+    };
+
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
+    if (res?.status) {
+      setIsLoading(false);
+
+      const url = `/projects/${projectId}/migration/steps/4`;
       navigate(url, { replace: true });
 
       await updateCurrentStepData(selectedOrganisation.value, projectId);
-      handleStepChange(4);
+      handleStepChange(3);
     }
+  }
 
-    const handleOnClickFunctions = [
-      handleOnClickLegacyCms, 
-      handleOnClickDestinationStack,
-      handleOnClickContentMapper,
-      handleOnClickTestMigration 
-    ];
+  const handleOnClickTestMigration = async () => {
+    setIsLoading(false);
+
+    const url = `/projects/${projectId}/migration/steps/5`;
+    navigate(url, { replace: true });
+
+    await updateCurrentStepData(selectedOrganisation.value, projectId);
+    handleStepChange(4);
+  }
+
+  const handleOnClickFunctions = [
+    handleOnClickLegacyCms, 
+    handleOnClickDestinationStack,
+    handleOnClickContentMapper,
+    handleOnClickTestMigration 
+  ];
+
+  const changeDropdownState = () =>{
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
+    };
+
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
+  }
 
   return (
     <div className='migration-steps-wrapper'>
@@ -313,7 +321,7 @@ const Migration = () => {
 
       <div className='steps-wrapper'>
         { projectData &&
-          <HorizontalStepper ref={stepperRef} steps={createStepper(projectData, handleClick)} handleSaveCT={saveRef?.current?.handleSaveContentType} changeDropdownState={saveRef?.current?.handleDropdownState } />
+          <HorizontalStepper ref={stepperRef} steps={createStepper(projectData, handleClick)} handleSaveCT={saveRef?.current?.handleSaveContentType} changeDropdownState={changeDropdownState } />
         }     
       </div>
     </div>
