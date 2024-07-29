@@ -193,8 +193,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   };
 
   const getFileExtension = (filePath: string): string => {
-    const ext = filePath.split('.').pop();
-    return ext ? `${ext}` : '';
+    const fileName = filePath?.split('/')?.pop();
+    const ext = fileName?.split('.')?.pop();
+    const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
+    return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : 'zip';
   };
 
   //function to get config details
