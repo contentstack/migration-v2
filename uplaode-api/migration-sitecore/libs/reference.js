@@ -96,9 +96,9 @@ function ExtractRef() {
                   otherCmsType: "reference",
                   contentstackField: newKey,
                   contentstackFieldUid: uidCorrector({ uid: newKey }),
-                  ContentstackFieldType: "global_field",
+                  ContentstackFieldType: "refernce",
                   isDeleted: false,
-                  backupFieldType: "global_field",
+                  backupFieldType: "reference",
                   refrenceTo: key,
                 }
                 contentType.fieldMapping.push(schemaObject)
