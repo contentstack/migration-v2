@@ -32,6 +32,7 @@ import NotificationModal from '../Common/NotificationModal';
 
 // Styles
 import './index.scss';
+import useBlockNavigation from '../../hooks/userNavigation';
 
 const MainHeader = () => {
   const user = useSelector((state:RootState)=>state?.authentication?.user);
@@ -95,26 +96,28 @@ const MainHeader = () => {
     setDataInLocalStorage('organization', data?.value);
   };
 
-  useEffect(()=>{ 
-    const handlePopState = (event: PopStateEvent) => {
-      event.preventDefault();
-      window.history.pushState(null, '', window.location.href);
-      handleonClick();
+  // useEffect(()=>{ 
+  //   const handlePopState = (event: PopStateEvent) => {
+  //     event.preventDefault();
+  //     window.history.pushState(null, '', window.location.href);
+  //     handleonClick();
       
-    };
-    if(isModalOpen){
-      window.history.pushState(null, '', window.location.href);
+  //   };
+  //   if(isModalOpen){
+  //     window.history.pushState(null, '', window.location.href);
 
-    }
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate',handlePopState);
- 
+  //   }
+  //   window.history.pushState(null, '', window.location.href);
+  //   window.addEventListener('popstate',handlePopState);
+  //   console.log("href ::::::", window.location.href);
+    
 
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
+  //   return () => {
+  //     window.removeEventListener('popstate', handlePopState);
+  //   };
 
-  },[isModalOpen,newMigrationData]);
+  // },[isModalOpen,newMigrationData]);
+    useBlockNavigation(isModalOpen);
 
 
   const handleonClick = async () => { 
