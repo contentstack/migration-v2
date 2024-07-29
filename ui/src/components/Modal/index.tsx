@@ -34,7 +34,8 @@ const Modal = (props: ProjectModalProps) => {
       secondary_cta: secondaryCta,
       title
     },
-    selectedOrg
+    selectedOrg,
+    isOpen
   } = props;
 
   const [inputValue, setInputValue] = useState<boolean>(false);
@@ -78,8 +79,11 @@ const Modal = (props: ProjectModalProps) => {
     <>
       <ModalHeader
         title={title}
-        closeModal={closeModal}
+        closeModal={()=>{
+          closeModal();
+          isOpen(false)}}
         closeIconTestId="cs-default-header-close"
+       
       />
 
       <FinalForm
@@ -190,7 +194,7 @@ const Modal = (props: ProjectModalProps) => {
                 {((primaryCta && primaryCta?.title) ?? (secondaryCta && secondaryCta?.title)) && (
                   <ButtonGroup>
                     {secondaryCta && secondaryCta?.title && (
-                      <Button buttonType={secondaryCta?.theme} onClick={() => closeModal()} size="large" className="baseColorButton">
+                      <Button buttonType={secondaryCta?.theme} onClick={() => {closeModal();isOpen(false);}} size="large" className="baseColorButton">
                         {secondaryCta?.title}
                       </Button>
                     )}
