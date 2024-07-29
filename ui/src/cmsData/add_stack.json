@@ -9,7 +9,7 @@
   "secondary_cta": { "title": "Cancel" },
   "stack_description": "Description",
   "stack_description_placeholder": "Enter a description",
-  "stack_locale_description": "Select a Language",
+  "stack_locale_description": "Select a language",
   "stack_locales": "Set Master Language",
   "stack_name": "Name",
   "stack_name_placeholder": "Enter stack Name",
