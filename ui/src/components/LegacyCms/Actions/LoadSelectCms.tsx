@@ -187,7 +187,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           selectedCms: newSelectedCard
         }
       };
-      await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
+      //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
       dispatch(updateNewMigrationData(newMigrationDataObj));
       props?.handleStepChange(props?.currentStep);
     }

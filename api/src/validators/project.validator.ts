@@ -6,6 +6,7 @@ import { VALIDATION_ERRORS } from "../constants/index.js";
  *
  * @returns {Object} The validation schema for the project data.
  */
+
 export default checkSchema({
   name: {
     in: "body",
