@@ -2,28 +2,56 @@ import React from 'react'
 import './progressBar.scss'
 import cn from 'classnames'
 
-
+/**
+ * Props for the ProgressBar component.
+ */
 type ProgressBarProps = {
+  /**
+   * The percentage value for the progress.
+   */
   percentage: number
+  /**
+   * The color of the progress bar.
+   */
   color?: string
   /**
-   * Height of the Progress bar in pixel
+   * The height of the progress bar in pixels.
    */
   height?: number
   /**
-   * Border radius in pixel
+   * The border radius of the progress bar in pixels.
    */
   borderRadius?: number
+  /**
+   * The type of progress bar. Can be 'bar' or 'circle'.
+   */
   type?: 'bar' | 'circle',
+  /**
+   * The stroke width of the circle progress bar.
+   */
   stroke?: number
+  /**
+   * The radius of the circle progress bar.
+   */
   radius?: number | undefined
+  /**
+   * The background color of the circle progress bar.
+   */
   bgColor?: string
 }
 
+/**
+ * Interface for defining CSS styles.
+ */
 type IStyle = {
   [key: string]: string
 }
 
+/**
+ * A customizable progress bar component.
+ * @param props - The props for the ProgressBar component.
+ * @returns The rendered ProgressBar component.
+ */
 const ProgressBar = (props: ProgressBarProps) => {
   const { percentage, color, height, borderRadius, type, radius, stroke, bgColor } = props
 
