@@ -63,6 +63,7 @@ import SaveChangesModal from '../Common/SaveChangesModal';
 import './index.scss';
 import { MigrationResponse } from '../../services/api/service.interface';
 import { schemaType } from '../SchemaModal/schemaModal.interface';
+import useBlockNavigation from '../../hooks/userNavigation';
 const dummy_obj:any = {
   'single_line_text':{
     label : 'Single Line Textbox',
@@ -294,9 +295,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       .catch((err) => {
         console.error(err);
       });
-
-    fetchExistingContentTypes();
     stackStatus();
+    fetchExistingContentTypes();
   }, []);
 
   // Make title and url field non editable
@@ -365,6 +365,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     dispatch(updateNewMigrationData((newMigrationDataObj)));
   }, [isDropDownChanged]);
 
+
+  useBlockNavigation(isModalOpen);
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
     const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
@@ -383,8 +385,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   // Get the stack status if it is empty or not
   const stackStatus = async () => {
     const contentTypeCount = await getStackStatus(
-      projectData?.org_id,
-      projectData?.destination_stack_id
+      projectData?.org_id || selectedOrganisation?.value,
+      projectData?.destination_stack_id || newMigrationData?.destination_stack?.selectedStack?.value
     );
 
     if (contentTypeCount?.data?.contenttype_count > 0) {
@@ -474,7 +476,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   };
 
   // Method to change the content type
-  const handleOpenContentType = async (i = 0) => {
+  const handleOpenContentType = (i = 0) => {
     if (isDropDownChanged) {
       setIsModalOpen(true);
       return cbModal({
