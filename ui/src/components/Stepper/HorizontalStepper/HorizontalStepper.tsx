@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../../store';
 import SaveChangesModal from '../../../components/Common/SaveChangesModal';
 import { ModalObj } from '../../../components/Modal/modal.interface'; 
+import useBlockNavigation from '../../../hooks/userNavigation';
 
 export enum StepStatus {
     ACTIVE = "ACTIVE",
@@ -55,6 +56,7 @@ const HorizontalStepper = forwardRef(
 
         const handleSaveCT = props?.handleSaveCT
         const handleDropdownChange = props?.changeDropdownState;
+        useBlockNavigation(isModalOpen);
 
         useEffect(() => {
             const stepIndex = parseInt(stepId, 10) - 1;
