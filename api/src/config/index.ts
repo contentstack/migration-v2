@@ -25,12 +25,14 @@ export type ConfigType = {
     EU: string;
     AZURE_NA: string;
     AZURE_EU?: string;
+    GCP_NA?: string;
   };
   CS_URL: {
     NA: string;
     EU: string;
     AZURE_NA: string;
     AZURE_EU?: string;
+    GCP_NA?: string;
   };
 };
 
