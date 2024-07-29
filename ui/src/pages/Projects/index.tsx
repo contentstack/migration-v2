@@ -34,6 +34,7 @@ import { NO_PROJECTS, NO_PROJECTS_SEARCH } from '../../common/assets';
 // styles
 import './index.scss';
 import { getUserDetails } from '../../store/slice/authSlice';
+import useBlockNavigation from '../../hooks/userNavigation';
 
 
 const Projects = () => {
@@ -60,6 +61,7 @@ const Projects = () => {
   const [allProjects, setAllProjects] = useState<ProjectsObj[]>([]);
   const [loadStatus, setLoadStatus] = useState(true);
   const [searchText, setSearchText] = useState(search);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(()=>{
     dispatch(getUserDetails());
@@ -132,9 +134,11 @@ const Projects = () => {
   const onClose = () => {
     fetchProjects();
   };
-
+  useBlockNavigation(isModalOpen)
   // Function for open modal
   const openModal = () => {
+    setIsModalOpen(true);
+    
     cbModal({
       component: (props: ModalObj) => (
         <Modal
@@ -142,6 +146,7 @@ const Projects = () => {
             createProjectModal && validateObject(createProjectModal) ? createProjectModal : {}
           }
           selectedOrg={selectedOrganisation}
+          isOpen={setIsModalOpen}
           {...props}
         />
       ),
