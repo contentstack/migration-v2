@@ -1,4 +1,4 @@
-export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU"];
+export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA"];
 export const MODULES = [
   "Project",
   "Migration",
