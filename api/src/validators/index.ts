@@ -27,7 +27,7 @@ export default (route: string = "") =>
       affix: affixValidator,
       affix_confirmation_validator: affixConfirmationValidator,
       fileformat_confirmation_validator: fileformatConfirmationValidator,
-      stack: stackValidator
+      stack: stackValidator,
     };
 
     const validator = appValidators[route as keyof typeof appValidators];
