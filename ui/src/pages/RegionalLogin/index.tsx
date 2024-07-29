@@ -48,6 +48,9 @@ const RegionalLogin = () => {
       case regionName === 'Europe' && serviceName === 'Microsoft Azure':
         loginUrl = `/login?region=${REGIONS.AZURE_EU}`;
         break;
+      case regionName === 'North America' && serviceName === 'Google Cloud Platform':
+        loginUrl = `/login?region=${REGIONS.GCP_NA}`;
+        break;
       default:
         loginUrl = `/login?region=${REGIONS.NA}`;
         break;
