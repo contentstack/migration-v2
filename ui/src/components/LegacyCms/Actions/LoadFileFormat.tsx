@@ -75,8 +75,10 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   };
 
   const getFileExtension = (filePath: string): string => {
-    const ext = filePath.split('.').pop();
-    return ext ? `${ext}` : 'zip';
+    const fileName = filePath?.split('/')?.pop();
+    const ext = fileName?.split('.')?.pop();
+    const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
+    return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : 'zip';
   };
 
   const handleFileFormat = async() =>{

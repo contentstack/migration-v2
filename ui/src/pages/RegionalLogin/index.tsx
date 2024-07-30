@@ -48,6 +48,9 @@ const RegionalLogin = () => {
       case regionName === 'Europe' && serviceName === 'Microsoft Azure':
         loginUrl = `/login?region=${REGIONS.AZURE_EU}`;
         break;
+      case regionName === 'North America' && serviceName === 'Google Cloud Platform':
+        loginUrl = `/login?region=${REGIONS.GCP_NA}`;
+        break;
       default:
         loginUrl = `/login?region=${REGIONS.NA}`;
         break;
@@ -63,52 +66,50 @@ const RegionalLogin = () => {
         <div className="text-center mt-4">
           {heading && <h1>{heading}</h1>}
           {description && description != '' && (
-            <div className="textStone600 pt-3">{parse(description)}</div>
+            <div className="textStone600 pt-3 lh-condensed">{parse(description)}</div>
           )}
         </div>
 
-        <div className="mw-1100 mx-auto">
-          <div className="row pt-6">
-            {regions &&
-              validateArray(regions) &&
-              regions?.map((region, index) => (
-                <div key={`${index.toString()}`} className="col-md-6 col-lg-3 mb-4">
-                  <div className="card h-100">
-                    <div className="cardBody">
-                      <div className="mb-4 d-flex align-items-center">
-                        {region?.service_icon?.url && (
-                          <img
-                            src={region?.service_icon?.url}
-                            className="thumb me-2"
-                            alt={region?.service_icon?.title}
-                          />
-                        )}
-                        {region?.service_title && (
-                          <p className="mb-0 body-6 fw-bold">{region?.service_title}</p>
-                        )}
-                      </div>
-                      {region?.region_title && <h2 className="py-2">{region?.region_title}</h2>}
+        <div className="row pt-6 justify-content-center">
+          {regions &&
+            validateArray(regions) &&
+            regions?.map((region, index) => (
+              <div key={`${index.toString()}`} className="col-md-4 col-lg-2 mb-4">
+                <div className="card h-100">
+                  <div className="cardBody">
+                    <div className="d-flex align-items-center flex-grow-1">
+                      {region?.service_icon?.url && (
+                        <img
+                          src={region?.service_icon?.url}
+                          className="thumb me-2"
+                          alt={region?.service_icon?.title}
+                        />
+                      )}
+                      {region?.service_title && (
+                        <p className="mb-0 body-6 fw-bold">{region?.service_title}</p>
+                      )}
                     </div>
-                    {region?.cta?.title && (
-                      <div className="CardFooter pb-3">
-                        <a
-                          // href={loginUrl}
-                          className="body-4 fw-bold stretched-link"
-                          onClick={() =>
-                            loginClick(
-                              region?.region_title as string,
-                              region?.service_title as string
-                            )
-                          }
-                        >
-                          <span className="link-basic-icon link-arrow">{region?.cta?.title}</span>
-                        </a>
-                      </div>
-                    )}
+                    {region?.region_title && <h2 className="pt-3">{region?.region_title}</h2>}
                   </div>
+                  {region?.cta?.title && (
+                    <div className="CardFooter pb-3">
+                      <a
+                        // href={loginUrl}
+                        className="body-4 fw-bold stretched-link"
+                        onClick={() =>
+                          loginClick(
+                            region?.region_title as string,
+                            region?.service_title as string
+                          )
+                        }
+                      >
+                        <span className="link-basic-icon link-arrow">{region?.cta?.title}</span>
+                      </a>
+                    </div>
+                  )}
                 </div>
-              ))}
-          </div>
+              </div>
+            ))}
         </div>
       </div>
     </div>
