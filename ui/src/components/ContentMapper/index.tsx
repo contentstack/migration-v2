@@ -654,7 +654,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       }));
 
       if (option?.length === 1 && option?.[0]?.label === initialOption?.label) {
-        option = [{ label: "No option available", value: "No option available" }];
+        option = [];
       }
       
     } else {
@@ -916,6 +916,11 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const SelectAccessorOfColumn = (data: FieldMapType) => {
     // Fetch options for the current row from dummy_obj based on backupFieldType( empty stack options)
     const OptionsForEachRow = dummy_obj?.[data?.backupFieldType]?.options;
+
+    const initialOption = {
+      label: dummy_obj?.[data?.ContentstackFieldType]?.label,
+      value: dummy_obj?.[data?.ContentstackFieldType]?.label,
+    };
   
     const fieldsOfContentstack: Mapping = {
       'Single Line Textbox': 'text',
@@ -997,6 +1002,10 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         label,
         value,
       }));
+
+      if (option?.length === 1 && option?.[0]?.label === initialOption?.label) {
+        option = [];
+      }
     } else {
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
     }
@@ -1019,7 +1028,14 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               data?.ContentstackFieldType === 'url' ||
               data?.otherCmsType === "reference"
           }
-          : {
+          : OptionsForRow.length === 1 &&
+          (OptionsForRow[0]?.value?.uid !== 'url' || OptionsForRow[0]?.value?.uid !== 'title' || OptionsForRow[0]?.value?.data_type !== 'group' || OptionsForRow[0]?.value?.data_type !== 'reference')
+            ? {
+              label: OptionsForRow[0]?.label,
+              value: OptionsForRow[0]?.value,
+              isDisabled: false
+            }
+            : {
             label: `${selectedOption} matches`,
             value: `${selectedOption} matches`,
             isDisabled: false
@@ -1031,7 +1047,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         ...option,
         isDisabled: selectedOptions.includes(option?.label ?? '')
       }));
-  
   
     return (
       <div className="table-row">
@@ -1069,8 +1084,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   
 
   const handleSaveContentType = async () => {
-    // setIsModalOpen(false);
-    
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
 
@@ -1080,15 +1093,17 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       selectedContentType?.otherCmsUid &&
       OtherContentType?.label
     ) {
-      setcontentTypeMapped((prevSelected) => ({
-        ...prevSelected,
+      const updatedValue = {
         [otherCmsTitle]: OtherContentType?.label
-      }));
+      }
+      
+      setcontentTypeMapped(updatedValue);
 
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         content_mapping: {
-          content_type_mapping: contentTypeMapped
+          ...newMigrationData?.content_mapping,
+          content_type_mapping: updatedValue
         }
       };
 
