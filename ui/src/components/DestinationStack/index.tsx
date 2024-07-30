@@ -74,8 +74,6 @@ const DestinationStackComponent = ({
   // };
 
   const updateDestinationStackData = async () => {
-    //Update New Migration data
-
     const selectedOrganisationData = validateArray(organisationsList)
       ? organisationsList?.find((org: IDropDown) => org?.value === org_id)
       : selectedOrganisation;
@@ -93,7 +91,21 @@ const DestinationStackComponent = ({
       const stackData: any = await getAllStacksInOrg(
         selectedOrganisationData?.value || selectedOrganisation?.value,''
       );
-
+      const stackArray = validateArray(stackData?.data?.stacks)
+        ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+            label: stack?.name,
+            value: stack?.api_key,
+            uid: stack?.api_key,
+            master_locale: stack?.master_locale,
+            locales: stack?.locales,
+            created_at: stack?.created_at
+          }))
+        : [];
+  
+      stackArray.sort(
+        (a: IDropDown, b: IDropDown) =>
+          new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
+      );
       const stack =
         validateArray(stackData?.data?.stacks) &&
         stackData?.data?.stacks?.find(
@@ -109,8 +121,18 @@ const DestinationStackComponent = ({
           created_at: stack?.created_at
         };
       }
+      const newMigData: IDestinationStack = {
+        ...newMigrationData?.destination_stack,
+        selectedOrg: selectedOrganisationData || selectedOrganisation,
+        selectedStack: selectedStackData,
+        stackArray: stackArray
+      };
+      dispatch(updateNewMigrationData({ destination_stack: newMigData }));
     }
-
+        //Update newMigration Data for destination stack
+    
+      
+    
     //Make First Step Complete
     if (!isEmptyString(selectedOrganisationData?.value)) {
       setInternalActiveStepIndex(0);
@@ -124,15 +146,6 @@ const DestinationStackComponent = ({
       setInternalActiveStepIndex(1);
       // setIsCompleted(true);
     }
-
-    //Update newMigration Data for destination stack
-    const newMigData: IDestinationStack = {
-      ...newMigrationData?.destination_stack,
-      selectedOrg: selectedOrganisationData || selectedOrganisation,
-      selectedStack: selectedStackData
-    };
-
-    dispatch(updateNewMigrationData({ destination_stack: newMigData }));
   };
 
   /********** ALL USEEFFECT HERE *************/

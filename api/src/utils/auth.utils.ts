@@ -10,17 +10,12 @@ import { UnauthorizedError } from "../utils/custom-errors.utils.js";
  */
 export default async (region: string, userId: string) => {
   await AuthenticationModel.read();
-  const userIndex = AuthenticationModel.chain
-    .get("users")
-    .findIndex({
-      region: region,
-      user_id: userId,
-    })
-    .value();
+  const user = AuthenticationModel.data.users.find(
+    user => user.region === region && user.user_id === userId
+  );
 
-  const authToken = AuthenticationModel.data.users[userIndex]?.authtoken;
+  //if (userIndex < 0 || !authToken) throw new UnauthorizedError();
 
-  if (userIndex < 0 || !authToken) throw new UnauthorizedError();
-
-  return authToken;
+  if (!user || !user.authtoken) throw new UnauthorizedError();
+  return user.authtoken;
 };

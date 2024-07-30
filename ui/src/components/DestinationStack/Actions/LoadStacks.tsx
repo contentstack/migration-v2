@@ -70,6 +70,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
     }
+    setAllStack(newMigrationData?.destination_stack?.stackArray)
   },[newMigrationData?.destination_stack?.selectedStack])
   
   //Handle new stack details
@@ -125,12 +126,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       // console.log("Updating newMigrationData:", newMigrationDataObj);
       dispatch(updateNewMigrationData(newMigrationDataObj));
   
-      // API call for saving selected CMS
-      if (resp?.data?.stack?.api_key) {
-        updateDestinationStack(selectedOrganisation?.value, projectId, {
-          stack_api_key: resp?.data?.stack?.api_key
-        });
-      }
+      // // API call for saving selected CMS
+      // if (resp?.data?.stack?.api_key) {
+      //   updateDestinationStack(selectedOrganisation?.value, projectId, {
+      //     stack_api_key: resp?.data?.stack?.api_key
+      //   });
+      // }
   
       // call for Step Change
       props.handleStepChange(props?.currentStep, true);
@@ -216,7 +217,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           stackArray: stackArray
         }
       };  
-      // console.log("........newMigrationDataObj",newMigrationDataObj);
       
       // Dispatch the updated migration data to Redux
       dispatch(updateNewMigrationData(newMigrationDataObj));
@@ -254,7 +254,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const emptyStackValue = selectedStack?.value === undefined || selectedStack?.value === '' || selectedStack?.value === null
   /****  ALL USEEffects  HERE  ****/
   useEffect(() => {
-    fetchData();
+    if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
+      fetchData();
+    }
+
   }, []);
   return (
     <div className="">
