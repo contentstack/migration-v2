@@ -63,6 +63,7 @@ import SaveChangesModal from '../Common/SaveChangesModal';
 import './index.scss';
 import { MigrationResponse } from '../../services/api/service.interface';
 import { schemaType } from '../SchemaModal/schemaModal.interface';
+import useBlockNavigation from '../../hooks/userNavigation';
 const dummy_obj:any = {
   'single_line_text':{
     label : 'Single Line Textbox',
@@ -294,9 +295,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       .catch((err) => {
         console.error(err);
       });
-
-    fetchExistingContentTypes();
     stackStatus();
+    fetchExistingContentTypes();
   }, []);
 
   // Make title and url field non editable
@@ -357,7 +357,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       ...newMigrationData,
       content_mapping: {
         ...newMigrationData?.content_mapping,
-        // content_type_mapping: contentTypeMapped,
         isDropDownChanged: isDropDownChanged,
         otherCmsTitle: otherCmsTitle,
       }
@@ -366,25 +365,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     dispatch(updateNewMigrationData((newMigrationDataObj)));
   }, [isDropDownChanged]);
 
-  useEffect(()=>{ 
-    const handlePopState = (event: PopStateEvent) => {
-      event.preventDefault();
-      window.history.pushState(null, '', window.location.href);
-      handleOpenContentType();
-      
-    };
 
-    if(isModalOpen || isDropDownChanged){
-      window.history.pushState(null, '', window.location.href);
-    }
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate',handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-
-  },[isModalOpen]);
-
+  useBlockNavigation(isModalOpen);
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
     const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
@@ -403,8 +385,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   // Get the stack status if it is empty or not
   const stackStatus = async () => {
     const contentTypeCount = await getStackStatus(
-      projectData?.org_id,
-      projectData?.destination_stack_id
+      projectData?.org_id || selectedOrganisation?.value,
+      projectData?.destination_stack_id || newMigrationData?.destination_stack?.selectedStack?.value
     );
 
     if (contentTypeCount?.data?.contenttype_count > 0) {
@@ -494,10 +476,9 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   };
 
   // Method to change the content type
-  const handleOpenContentType = async (i = 0) => {
+  const handleOpenContentType = (i = 0) => {
     if (isDropDownChanged) {
       setIsModalOpen(true);
-      handleDropdownState();
       return cbModal({
         component: (props: ModalObj) => (
           <SaveChangesModal
@@ -506,6 +487,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             otherCmsTitle={otherCmsTitle}
             saveContentType={handleSaveContentType}
             openContentType={() => openContentType(i)}
+            dropdownStateChange={handleDropdownState}
           />
         ),
         modalProps: {
@@ -519,8 +501,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   };
 
   const openContentType = (i: number) => {
-    // setIsModalOpen(false);
-
     setActive(i);
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
@@ -674,7 +654,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       }));
 
       if (option?.length === 1 && option?.[0]?.label === initialOption?.label) {
-        option = [{ label: "No option available", value: "No option available" }];
+        option = [];
       }
       
     } else {
@@ -936,6 +916,11 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const SelectAccessorOfColumn = (data: FieldMapType) => {
     // Fetch options for the current row from dummy_obj based on backupFieldType( empty stack options)
     const OptionsForEachRow = dummy_obj?.[data?.backupFieldType]?.options;
+
+    const initialOption = {
+      label: dummy_obj?.[data?.ContentstackFieldType]?.label,
+      value: dummy_obj?.[data?.ContentstackFieldType]?.label,
+    };
   
     const fieldsOfContentstack: Mapping = {
       'Single Line Textbox': 'text',
@@ -1017,13 +1002,17 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         label,
         value,
       }));
+
+      if (option?.length === 1 && option?.[0]?.label === initialOption?.label) {
+        option = [];
+      }
     } else {
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
     }
     
     const OptionValue: any =
       OptionsForRow.length === 1 &&
-      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group')
+      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference')
         ? {
           label: OptionsForRow[0]?.value?.display_name,
           value: OptionsForRow[0]?.value,
@@ -1036,9 +1025,17 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             value: dummy_obj[data?.ContentstackFieldType]?.label,
             isDisabled: data?.ContentstackFieldType === 'text' ||
               data?.ContentstackFieldType === 'group' ||
-              data?.ContentstackFieldType === 'url'
+              data?.ContentstackFieldType === 'url' ||
+              data?.otherCmsType === "reference"
           }
-          : {
+          : OptionsForRow.length === 1 &&
+          (OptionsForRow[0]?.value?.uid !== 'url' || OptionsForRow[0]?.value?.uid !== 'title' || OptionsForRow[0]?.value?.data_type !== 'group' || OptionsForRow[0]?.value?.data_type !== 'reference')
+            ? {
+              label: OptionsForRow[0]?.label,
+              value: OptionsForRow[0]?.value,
+              isDisabled: false
+            }
+            : {
             label: `${selectedOption} matches`,
             value: `${selectedOption} matches`,
             isDisabled: false
@@ -1050,7 +1047,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         ...option,
         isDisabled: selectedOptions.includes(option?.label ?? '')
       }));
-  
   
     return (
       <div className="table-row">
@@ -1088,8 +1084,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   
 
   const handleSaveContentType = async () => {
-    // setIsModalOpen(false);
-    
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
 
@@ -1099,15 +1093,17 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       selectedContentType?.otherCmsUid &&
       OtherContentType?.label
     ) {
-      setcontentTypeMapped((prevSelected) => ({
-        ...prevSelected,
+      const updatedValue = {
         [otherCmsTitle]: OtherContentType?.label
-      }));
+      }
+      
+      setcontentTypeMapped(updatedValue);
 
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         content_mapping: {
-          content_type_mapping: contentTypeMapped
+          ...newMigrationData?.content_mapping,
+          content_type_mapping: updatedValue
         }
       };
 
