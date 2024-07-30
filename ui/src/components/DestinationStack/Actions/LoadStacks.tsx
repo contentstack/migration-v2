@@ -71,7 +71,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
     }
   },[newMigrationData?.destination_stack?.selectedStack])
-  
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
     if (isSaving) return false;
@@ -144,22 +143,22 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
-    const stackCleared = data?.value === '' || data?.value === null || data === null || data === undefined;
-    if (stackCleared === true) {
-      setIsError(true);
-      setErrorMessage("Please select a stack");
-      setPlaceholder('Please select a stack');
-    } 
-        
+    const stackCleared = data?.value === '' || data?.value === null || data === null || data?.value === undefined;
     if (name === 'stacks' && data?.value != '+ Create a new Stack') {
       setSelectedStack(() => ({ ...data }));
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
           ...newMigrationData?.destination_stack,
-          selectedStack: { ...data }
+          selectedStack:  { ...data }
         }
       };
+
+      if (stackCleared === true) {
+        setIsError(true);
+        setErrorMessage("Please select a stack");
+        setSelectedStack(null);
+      }
       
       dispatch(updateNewMigrationData(newMigrationDataObj));
       if (!stackCleared) {
