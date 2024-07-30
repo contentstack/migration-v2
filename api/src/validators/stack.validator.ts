@@ -37,7 +37,7 @@ export default checkSchema({
     isLength: {
       errorMessage: VALIDATION_ERRORS.LENGTH_LIMIT.replace("$", "Description"),
       options: {
-        min: 1,
+        min: 0,
         max: 512,
       },
       bail: true,
