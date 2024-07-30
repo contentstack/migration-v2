@@ -59,6 +59,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const { projectId = '' }: Params<string> = useParams();
+  const [placeholder, setPlaceholder] = useState<string>('Select a stack');
   // console.log("......newMigrationData",newMigrationData)
   const newMigrationDataRef = useRef(newMigrationData);
 
@@ -75,12 +76,13 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const handleOnSave = async (data: Stack) => {
     if (isSaving) return false;
     setIsSaving(true);
-
+  
     if (isEmptyString(data?.name) || isEmptyString(data?.locale)) {
       setIsSaving(false);
       return false;
     }
-    //Post data to backend
+  
+    // Post data to backend
     const resp = await createStacksInOrg(selectedOrganisation?.value, {
       ...data,
       master_locale: data?.locale
@@ -88,10 +90,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     setIsSaving(false);
     
     if (resp.status === 201) {
-      if ( newMigrationData?.destination_stack?.stackArray?.length > 0 ) {
-        //fetch all Stacks
+      if (newMigrationData?.destination_stack?.stackArray?.length > 0) {
         await fetchData();  
       }
+  
       const newCreatedStack: IDropDown = {
         label: resp?.data?.stack?.name,
         value: resp?.data?.stack?.api_key,
@@ -100,43 +102,54 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         created_at: resp?.data?.stack?.created_at,
         uid: resp?.data?.stack?.api_key
       };
-
-      setSelectedStack(newCreatedStack);      
-      setAllStack((prevState) => [...prevState, newCreatedStack]);
+  
+      setSelectedStack(newCreatedStack);
+      
+      const updatedStackArray = [newCreatedStack, ...allStack];
+      updatedStackArray.sort(
+        (a: IDropDown, b: IDropDown) =>
+          new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
+      );
+      
+      setAllStack(updatedStackArray);
+  
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
           ...newMigrationData.destination_stack,
           selectedStack: newCreatedStack,
-          stackArray: allStack
+          stackArray: updatedStackArray
         }
       };
-
-      dispatch(updateNewMigrationData((newMigrationDataObj)));
-
-      //API call for saving selected CMS
+  
+      // console.log("Updating newMigrationData:", newMigrationDataObj);
+      dispatch(updateNewMigrationData(newMigrationDataObj));
+  
+      // API call for saving selected CMS
       if (resp?.data?.stack?.api_key) {
         updateDestinationStack(selectedOrganisation?.value, projectId, {
           stack_api_key: resp?.data?.stack?.api_key
         });
       }
-      //call for Step Change
-
+  
+      // call for Step Change
       props.handleStepChange(props?.currentStep, true);
       
       return true;
     }
     return false;
   };
+  
   /****  ALL METHODS HERE  ****/
 
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
-    const stackCleared = data?.value === '' || data?.value === null || data === null;  
+    const stackCleared = data?.value === '' || data?.value === null || data === null || data === undefined;
     if (stackCleared === true) {
       setIsError(true);
       setErrorMessage("Please select a stack");
-    }
+      setPlaceholder('Please select a stack');
+    } 
         
     if (name === 'stacks' && data?.value != '+ Create a new Stack') {
       setSelectedStack(() => ({ ...data }));
@@ -144,11 +157,11 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         ...newMigrationData,
         destination_stack: {
           ...newMigrationData?.destination_stack,
-          selectedStack: stackCleared ? DEFAULT_DROPDOWN : { ...data }
+          selectedStack: { ...data }
         }
       };
       
-      dispatch(updateNewMigrationData((newMigrationDataObj)));
+      dispatch(updateNewMigrationData(newMigrationDataObj));
       if (!stackCleared) {
         setIsError(false)
         if (props?.handleStepChange) {
@@ -252,19 +265,21 @@ const LoadStacks = (props: LoadFileFormatProps) => {
               <div className="Dropdown-wrapper p-0 active ">
                 <Select
                   className="stackselect"
-                  version={'v2'}
+                  value={selectedStack}
                   options={allStack}
                   onChange={handleDropdownChange('stacks')}
-                  value={selectedStack}
                   isSearchable={true}
+                  // placeholder='Select a stack'
+                  placeholder={placeholder}
+
                   isClearable={newMigrationData?.destination_stack?.stackArray?.length > 0 && !emptyStackValue ? true : false }
                   // hideSelectedOptions={true}
                   isDisabled={props?.stepComponentProps?.isSummary || false}
-                  placeholder={'Select a stack'}
                   error={isLoading ? false : isError ? true : false }
                   width="600px"
                   hasAddOption={true}
                   // menuIsOpen
+                  version='v2'
                   addOptionText={
                   <div className='createStack' onClick={handleCreateNewStack}>
                     + Create a new Stack

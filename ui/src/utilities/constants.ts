@@ -25,7 +25,8 @@ export const REGIONS = {
   NA: 'NA',
   AZURE_NA: 'AZURE_NA',
   EU: 'EU',
-  AZURE_EU: 'AZURE_EU'
+  AZURE_EU: 'AZURE_EU',
+  GCP_NA: 'GCP_NA',
 };
 
 export const HEADERS = {

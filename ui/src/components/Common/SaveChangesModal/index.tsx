@@ -14,6 +14,7 @@ interface Props {
   saveContentType: () => void;
   openContentType?: () => void;
   changeStep?: () => void;
+  dropdownStateChange: () => void;
 }
 
 const SaveChangesModal = (props: Props) => {
@@ -37,6 +38,7 @@ const SaveChangesModal = (props: Props) => {
           </Button>
           <Button buttonType="secondary"version={"v2"}  onClick={() => {
             props.closeModal(); 
+            props?.dropdownStateChange();
             props.openContentType?.();
             props.isopen(false);
             props?.changeStep?.();
@@ -45,6 +47,7 @@ const SaveChangesModal = (props: Props) => {
             Don&apos;t Save
           </Button>
           <Button version={"v2"} onClick={() => { 
+            props?.dropdownStateChange();
             props.saveContentType(); 
             props.closeModal(); 
             props.openContentType?.();
