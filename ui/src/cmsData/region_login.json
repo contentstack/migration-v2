@@ -2,7 +2,7 @@
   "title": "Account Login",
   "url": "/region-login",
   "heading": "Account Login",
-  "description": "Please select Contentstack <strong>North America (AWS or Azure)</strong> or Contentstack <strong>Europe (AWS or Azure)</strong> to continue.",
+  "description": "Please select Contentstack <strong>North America (AWS, Azure or GCP)</strong> or Contentstack <strong>Europe (AWS or Azure)</strong> to continue.",
   "regions": [
     {
       "service_icon": {
@@ -52,6 +52,34 @@
     },
     {
       "service_icon": {
+          "uid": "blt57dafa9c1472b46f",
+          "created_at": "2024-07-29T10:57:59.058Z",
+          "updated_at": "2024-07-29T10:57:59.058Z",
+          "created_by": "blt181afddb6080e3df",
+          "updated_by": "blt181afddb6080e3df",
+          "content_type": "image/svg+xml",
+          "file_size": "1622",
+          "tags": [],
+          "filename": "google-cloud_1.svg",
+          "url": "https://images.contentstack.io/v3/assets/bltd3620ec6418ad3ad/blt57dafa9c1472b46f/66a775b7d14106640a554ec7/google-cloud_1.svg",
+          "ACL": [],
+          "is_dir": false,
+          "parent_uid": null,
+          "_version": 1,
+          "title": "google-cloud_1.svg"
+      },
+      "service_title": "Google Cloud Platform",
+      "region_title": "North America",
+      "cta": {
+          "title": "Continue",
+          "url": "/login"
+      },
+      "_metadata": {
+          "uid": "cs14bce3c329a87986"
+      }
+    },
+    {
+      "service_icon": {
         "uid": "bltbe45879eac0025d8",
         "created_at": "2023-10-31T06:59:22.783Z",
         "updated_at": "2023-10-31T06:59:22.783Z",
@@ -95,34 +123,6 @@
       "region_title": "Europe",
       "cta": { "title": "Continue", "url": "/login" },
       "_metadata": { "uid": "cs7c90ee35480e165e" }
-    },
-    {
-      "service_icon": {
-          "uid": "blt57dafa9c1472b46f",
-          "created_at": "2024-07-29T10:57:59.058Z",
-          "updated_at": "2024-07-29T10:57:59.058Z",
-          "created_by": "blt181afddb6080e3df",
-          "updated_by": "blt181afddb6080e3df",
-          "content_type": "image/svg+xml",
-          "file_size": "1622",
-          "tags": [],
-          "filename": "google-cloud_1.svg",
-          "url": "https://images.contentstack.io/v3/assets/bltd3620ec6418ad3ad/blt57dafa9c1472b46f/66a775b7d14106640a554ec7/google-cloud_1.svg",
-          "ACL": [],
-          "is_dir": false,
-          "parent_uid": null,
-          "_version": 1,
-          "title": "google-cloud_1.svg"
-      },
-      "service_title": "Google Cloud Platform",
-      "region_title": "North America",
-      "cta": {
-          "title": "Continue",
-          "url": "/login"
-      },
-      "_metadata": {
-          "uid": "cs14bce3c329a87986"
-      }
     }
   ],
   "tags": [],
