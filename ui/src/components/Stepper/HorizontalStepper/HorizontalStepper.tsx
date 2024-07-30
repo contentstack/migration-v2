@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../../store';
 import SaveChangesModal from '../../../components/Common/SaveChangesModal';
 import { ModalObj } from '../../../components/Modal/modal.interface'; 
+import useBlockNavigation from '../../../hooks/userNavigation';
 
 export enum StepStatus {
     ACTIVE = "ACTIVE",
@@ -44,6 +45,8 @@ const HorizontalStepper = forwardRef(
         const { steps, className, emptyStateMsg, stepComponentProps, hideTabView, testId } = props;
         const [showStep, setShowStep] = useState(0);
         const [stepsCompleted, setStepsCompleted] = useState<number[]>([]);
+        const [isModalOpen, setIsModalOpen] = useState(false);
+
         const { stepId } = useParams<{ stepId: any }>();
 
         const navigate = useNavigate();
@@ -52,8 +55,8 @@ const HorizontalStepper = forwardRef(
         const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
 
         const handleSaveCT = props?.handleSaveCT
-        const handleDropdownChange = props?.changeDropdownState
-
+        const handleDropdownChange = props?.changeDropdownState;
+        useBlockNavigation(isModalOpen);
 
         useEffect(() => {
             const stepIndex = parseInt(stepId, 10) - 1;
@@ -87,12 +90,9 @@ const HorizontalStepper = forwardRef(
             }
         }));
 
-        const [isModalOpen, setIsModalOpen] = useState(false);
-
         const handleTabStep = (idx: number) => {
             if (newMigrationData?.content_mapping?.isDropDownChanged) {
                 setIsModalOpen(true);
-                handleDropdownChange();
                 return cbModal({
                     component: (props: ModalObj) => (
                     <SaveChangesModal
@@ -101,6 +101,7 @@ const HorizontalStepper = forwardRef(
                         otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
                         saveContentType={handleSaveCT}
                         changeStep={() => setTabStep(idx)}
+                        dropdownStateChange={handleDropdownChange}
                     />
                     ),
                     modalProps: {
@@ -120,9 +121,7 @@ const HorizontalStepper = forwardRef(
                 navigate(url, { replace: true });
             }
         }
-
         
-
         const StepsTitleCreator: React.FC = () => (
             <div className="stepper stepper-position">
                 {steps?.map(({ id, title }, idx: number) => {
