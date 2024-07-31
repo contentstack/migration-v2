@@ -102,7 +102,7 @@ const CardList = ({ project }: ProjectType) => {
                   <div className="flex-v-center">
                     <Icon version="v2" icon="Clock" height="18" width="18" size='small' fill='none' stroke='#6E6B86' />
                     <span className="ProjectCard__modified-date">
-                      {getDays(project?.updated_at)}
+                      {project?.updated_at && getDays(project?.updated_at)}
                     </span>
                   </div>
                 </Tooltip>
