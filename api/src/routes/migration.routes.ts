@@ -7,7 +7,7 @@ const router = express.Router({ mergeParams: true });
 // Create a new project route
 router.post(
   "/test-stack/:orgId/:projectId",
-  asyncRouter(migrationController.createTestStack)
+  asyncRouter(migrationController.fieldMapping)
 );
 router.post(
   "/test-stack/:projectId",
