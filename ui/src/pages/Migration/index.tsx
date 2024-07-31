@@ -322,9 +322,6 @@ const Migration = () => {
 
     dispatch(updateNewMigrationData((newMigrationDataObj)));
   }
-  useEffect(() => {
-    console.log('Migration component rendered');
-  }, []);
   
   return (
     <div className='migration-steps-wrapper'>
