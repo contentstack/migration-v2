@@ -2,7 +2,7 @@ import { Request } from "express";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js"
 import FieldMapperModel from "../models/FieldMapper.js";
- 
+
 import {
   BadRequestError,
   ExceptionFunction,
@@ -35,7 +35,7 @@ const getAllProjects = async (req: Request) => {
       org_id: orgId,
       region,
       owner: user_id,
-      isDeleted:false
+      isDeleted: false
     })
     .value();
 
@@ -89,7 +89,7 @@ const createProject = async (req: Request) => {
     created_by: user_id,
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
-    isDeleted:false
+    isDeleted: false
   };
 
   try {
@@ -634,7 +634,7 @@ const updateCurrentStep = async (req: Request) => {
         ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.CONTENT_MAPPING;
-         // data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
+          // data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
@@ -750,7 +750,7 @@ const deleteProject = async (req: Request) => {
 };
 
 const revertProject = async (req: Request) => {
-  const { orgId, projectId } = req?.params;
+  const { orgId, projectId } = req?.params ?? {};
   const decodedToken = req.body.token_payload;
   const { user_id = "", region = "" } = decodedToken;
   const srcFunc = "revertProject";
@@ -769,9 +769,9 @@ const revertProject = async (req: Request) => {
   )) as number;
 
   const projects = ProjectModelLowdb.data.projects[projectIndex];
-  if (!projects){
+  if (!projects) {
     throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
-  } else{
+  } else {
     ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].isDeleted = false;
     });
@@ -786,7 +786,7 @@ const revertProject = async (req: Request) => {
       status: HTTP_CODES.OK,
       data: {
         message: HTTP_TEXTS.PROJECT_REVERT,
-        Project:projects
+        Project: projects
       },
     };
   }
