@@ -73,9 +73,9 @@ export const HTTP_TEXTS = {
   ADMIN_LOGIN_ERROR:
     "Sorry, You Don't have admin access in any of the Organisation",
   PROJECT_DELETE:
-     "Project Deleted Successfully",
+    "Project Deleted Successfully",
   PROJECT_REVERT:
-     "Project Reverted Successfully"
+    "Project Reverted Successfully"
 };
 
 export const HTTP_RESPONSE_HEADERS = {
@@ -139,3 +139,12 @@ export const NEW_PROJECT_STATUS = {
   5: 5, //MIGRATION_SUCCESSFUL
   6: 6, //MIGRATION_TERMINATED
 };
+
+// Cs Locale : Destination Local
+export const LOCALE_MAPPER: any = {
+  //not more than one locale mapping in master locale
+  masterLocale: {
+    'en-us': 'en'
+  },
+  'fr': 'fr-fr'
+}

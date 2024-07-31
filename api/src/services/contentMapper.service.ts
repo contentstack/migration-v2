@@ -157,7 +157,7 @@ const getFieldMapping = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
   }
   await FieldMapperModel.read();
-  const fieldData = contentType.fieldMapping.map((fields: any) => {
+  const fieldData = contentType?.fieldMapping?.map?.((fields: any) => {
     const fieldMapper = FieldMapperModel.chain
       .get("field_mapper")
       .find({ id: fields })
@@ -168,7 +168,7 @@ const getFieldMapping = async (req: Request) => {
   const fieldMapping: any = fieldData;
   if (!isEmpty(fieldMapping)) {
     if (search) {
-      filteredResult = fieldMapping.filter((item: any) =>
+      filteredResult = fieldMapping?.filter?.((item: any) =>
         item?.otherCmsField?.toLowerCase().includes(search)
       );
       totalCount = filteredResult.length;
