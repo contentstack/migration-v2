@@ -19,8 +19,12 @@ export const getAllStacksInOrg = async (orgId: string,searchText: string) => {
 export const createStacksInOrg = async (orgId: string, data: any) => {
   try {
     return await postCall(`${API_VERSION}/org/${orgId}/stacks`, data, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in userSession: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
   }
 };
 
@@ -30,7 +34,11 @@ export const getStackStatus = async (orgId: string, data: string) => {
       stack_api_key: data
     };
     return await postCall(`${API_VERSION}/org/${orgId}/stack_status`, stack_api, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in userSession: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
   }
 };
