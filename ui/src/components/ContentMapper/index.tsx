@@ -910,8 +910,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   
     return OptionsForRow;
   };
-  
-  
 
   const SelectAccessorOfColumn = (data: FieldMapType) => {
     // Fetch options for the current row from dummy_obj based on backupFieldType( empty stack options)
@@ -1042,17 +1040,17 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           };
     
     const adjustedOptions = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
-    (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === dummy_obj[data?.ContentstackFieldType]?.label) ? []
+      (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === dummy_obj[data?.ContentstackFieldType]?.label) ? []
       : OptionsForRow.map((option: optionsType) => ({
         ...option,
         isDisabled: selectedOptions.includes(option?.label ?? '')
       }));
-  
+
     return (
       <div className="table-row">
         <div className="select">
           <Select
-            value={OptionsForRow.length === 0 || exstingField[data?.uid] === undefined ? OptionValue : exstingField[data?.uid]}
+            value={(OptionsForRow.length === 0 || exstingField?.[data?.uid]?.label === undefined) ? OptionValue : exstingField[data?.uid]}
             onChange={(selectedOption: FieldTypes) => {
               if (OptionsForRow.length === 0) {
                 handleValueChange(selectedOption, data?.uid)
@@ -1063,7 +1061,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
-            isClearable={false}
+            isClearable={selectedOptions?.includes(exstingField?.[data?.uid]?.label ?? '')}
             options={adjustedOptions}
             isDisabled={OptionValue?.isDisabled}
           />
@@ -1081,7 +1079,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       </div>
     );
   };
-  
 
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
