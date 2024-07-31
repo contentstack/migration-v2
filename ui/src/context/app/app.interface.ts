@@ -10,6 +10,16 @@ export interface ICTA {
   href: string;
 }
 
+export type DataProps = {
+  stepComponentProps:  ()=>{}; 
+  currentStep: number;
+  handleStepChange: (step: number) => void;
+};
+
+export type SummaryProps = {
+  stepData: IStep;
+  stepComponentProps: ()=>{};
+};
 interface ContentTypeMap {
   [key: string]: string;
 }
@@ -70,8 +80,8 @@ export interface IStep {
   status?: string;
   lock: boolean;
   active?: boolean;
-  data?: (props: any) => JSX.Element;
-  summery?: (props: any) => JSX.Element;
+  data?: (props:DataProps) => JSX.Element;
+  summery?: (props: SummaryProps) => JSX.Element;
   empty_step_placeholder?: string;
 }
 
