@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { UPLOAD_FILE_RELATIVE_URL } from '../../utilities/constants';
-import { User, SmsToken } from '../../pages/Login/login.interface';
-import { API_VERSION } from '../../utilities/constants';
+import { User } from '../../pages/Login/login.interface';
 import { getDataFromLocalStorage } from '../../utilities/functions';
 
 //Axios Calls for Upload server
@@ -9,8 +8,12 @@ export const getCall = async (url: string, options?: any) => {
   try {
     const response = await axios.get(url, { ...options });
     return response;
-  } catch (err: any) {
-    return err.response;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
   }
 };
 
@@ -18,8 +21,12 @@ export const postCall = async (url: string, data: User, options?: any) => {
   try {
     const response = await axios.post(url, data, options);
     return response;
-  } catch (err: any) {
-    return err.response;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
   }
 };
 
