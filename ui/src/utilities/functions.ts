@@ -1,5 +1,6 @@
 import { Notification } from '@contentstack/venus-components';
 import { WEBSITE_BASE_URL } from './constants';
+import { Image, ObjectType } from './constants.interface';
 
 export const Locales = {
   en: 'en-us',
@@ -17,16 +18,16 @@ export const getLocaleCode = (loc = 'en') => {
 };
 
 // Validate object whether empty or not
-export const validateObject = (obj: any) =>
+export const validateObject = (obj: ObjectType) =>
   Object.keys(obj).length !== 0 && obj.constructor === Object;
 
 // Array validation - pass array in and check for length to be more than 0.
 export const validateArray = <T>(array: T[]) => Array.isArray(array) && array.length > 0;
 
 // Use: validateSingleImage(image)
-export const validateImage = (image: any) => image && image?.url;
+export const validateImage = (image: Image) => image && image?.url;
 
-export const validateLink = (link: any) => link && link?.url;
+export const validateLink = (link: Image) => link && link?.url;
 
 export const imageWithSiteDomainUrl = (url: string) => {
   if (WEBSITE_BASE_URL && url?.indexOf('https://images.contentstack.io') > -1) {
@@ -68,7 +69,12 @@ export const clearMeasures = (measreName: string, clearAll?: boolean) => {
 export const extractWindowObj = (str: string): string | null => {
   const re = /<script\b[^>]*>([\s\S]*?)<\/script>/g;
 
-  const matches: any = str.match(re);
+  const matches = str.match(re);
+
+  if (!matches) {
+    return null;
+  }
+  
   for (const matchStr of matches) {
     if (matchStr.includes('window.sso')) {
       return matchStr.replace('<script>', '').replace('</script>', '');
@@ -100,7 +106,7 @@ export const setDataInLocalStorage = (key: string, data: any) => {
   return true;
 };
 
-export const getDays = (day: any) => {
+export const getDays = (day: string | number | Date) => {
   const presentDay = new Date().getTime();
   const projectDate = new Date(day).getTime();
   const time = presentDay - projectDate;
