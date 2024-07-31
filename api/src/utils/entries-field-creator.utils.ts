@@ -3,6 +3,11 @@ import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { HTMLToJSON } from 'html-to-json-parser';
 
+interface AssetType {
+  uid: string;
+  assetPath: string;
+  // Other properties related to the asset
+}
 
 const attachJsonRte = ({ content = "" }: any) => {
   const dom = new JSDOM(content);
@@ -104,7 +109,7 @@ function flatten(data: any) {
 }
 
 
-const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any) => {
+const findAssestInJsoRte = (jsonValue: any, allAssetJSON: { [key: string]: AssetType }, idCorrector: any) => {
   const flattenHtml = flatten(jsonValue);
   for (const [key, value] of Object.entries(flattenHtml)) {
     if (value === "img") {
@@ -116,9 +121,9 @@ const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any)
         if (!uid?.match(urlRegex)) {
           let asset: any = {};
           if (uid?.includes('/')) {
-            for (const value of Object.values(allAssetJSON)) {
-              if (value?.assetPath === `${uid}/`) {
-                asset = value;
+            for (const val of Object.values(allAssetJSON)) {
+              if (val?.assetPath === `${uid}/`) {
+                asset = val;
               }
             }
           } else {
@@ -160,7 +165,9 @@ const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any)
 
 
 
-export const entriesFieldCreator = async ({ field, content, idCorrector, allAssetJSON }: any) => {
+
+
+export const entriesFieldCreator = async ({ field, content, idCorrector, allAssetJSON }: { field: any, content: any, idCorrector: any, allAssetJSON: { [key: string]: AssetType } }) => {
 
   switch (field?.ContentstackFieldType) {
     case 'multi_line_text':
@@ -191,18 +198,22 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
       const fileData = attachJsonRte({ content });
       fileData?.children?.forEach((item: any) => {
         if (item?.attrs?.['redactor-attributes']?.mediaid) {
-          // const assetUid = idCorrector({ id: item?.attrs?.['redactor-attributes']?.mediaid });
-          console.info('');
+          const assetUid = idCorrector({ id: item?.attrs?.['redactor-attributes']?.mediaid });
+          return allAssetJSON?.[assetUid] ?? null;
         } else {
-          console.info(item?.attrs)
+          for (const ast of Object.values(allAssetJSON)) {
+            if (ast?.assetPath === item?.attrs?.['redactor-attributes']?.mediapath) {
+              return allAssetJSON?.uid ?? null;
+            }
+          }
         }
       })
-      return content;
+      return null;
     }
 
     //need to change  this
     case 'link': {
-      const linkType: any = htmlConverter({ content })
+      const linkType: any = htmlConverter({ content });
       let obj: any = { title: '', url: '' };
       if (typeof linkType === 'string') {
         const parseData = JSON?.parse?.(linkType);
