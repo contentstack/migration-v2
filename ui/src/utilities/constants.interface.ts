@@ -1,3 +1,7 @@
 export interface ObjectType {
-  [key: string]: string;
+  [key: string]: any;
+}
+
+export interface Image {
+  url?: string;
 }
