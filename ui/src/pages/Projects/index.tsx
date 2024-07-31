@@ -20,8 +20,6 @@ import { ProjectsType, ProjectsObj } from './projects.interface';
 import { ModalObj } from '../../components/Modal/modal.interface';
 import { CTA } from '../Home/home.interface';
 
-// Context
-import { AppContext } from '../../context/app/app.context';
 
 // Components
 import ProjectsHeader from '../../components/ProjectsHeader';
@@ -35,6 +33,7 @@ import { NO_PROJECTS, NO_PROJECTS_SEARCH } from '../../common/assets';
 import './index.scss';
 import { getUserDetails } from '../../store/slice/authSlice';
 import useBlockNavigation from '../../hooks/userNavigation';
+import { RootState } from '../../store';
 
 
 const Projects = () => {
@@ -49,7 +48,7 @@ const Projects = () => {
   } = data;
 
   const dispatch = useDispatch();
-  const selectedOrganisation = useSelector((state:any)=>state?.authentication?.selectedOrganisation);
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   
 
   const outputIntro = HTMLReactParser(jsonToHtml(emptystate?.description ?? {}));

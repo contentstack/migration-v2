@@ -1,3 +1,4 @@
+import { ObjectType } from '../../utilities/constants.interface';
 import { API_VERSION } from '../../utilities/constants';
 import { getDataFromLocalStorage } from '../../utilities/functions';
 import { getCall, postCall, putCall } from './service';
@@ -11,56 +12,80 @@ const options = {
 export const getMigrationData = (orgId: string, projectId: string) => {
   try {
     return getCall(`${API_VERSION}/org/${orgId}/project/${projectId}/`, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in getting migrationData: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in getting migrationData');
+    }
   }
 };
 
-export const updateLegacyCMSData = (orgId: string, projectId: string, data: any) => {
+export const updateLegacyCMSData = (orgId: string, projectId: string, data: ObjectType) => {
   try {
     return putCall(`${API_VERSION}/org/${orgId}/project/${projectId}/legacy-cms`, data, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
-export const updateAffixData = (orgId: string, projectId: string, data: any) => {
+export const updateAffixData = (orgId: string, projectId: string, data: ObjectType) => {
   try {
     return putCall(`${API_VERSION}/org/${orgId}/project/${projectId}/affix`, data, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
-export const updateFileFormatData = (orgId: string, projectId: string, data: any) => {
+export const updateFileFormatData = (orgId: string, projectId: string, data: ObjectType) => {
   try {
     return putCall(`${API_VERSION}/org/${orgId}/project/${projectId}/file-format`, data, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
-export const updateDestinationStack = (orgId: string, projectId: string, data: any) => {
+export const updateDestinationStack = (orgId: string, projectId: string, data: ObjectType) => {
   try {
     return putCall(
       `${API_VERSION}/org/${orgId}/project/${projectId}/destination-stack`,
       data,
       options
     );
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
-export const updateCurrentStepData = (orgId: string, projectId: string, data: any = {}) => {
+export const updateCurrentStepData = (orgId: string, projectId: string, data: ObjectType = {}) => {
   try {
     return putCall(`${API_VERSION}/org/${orgId}/project/${projectId}/current-step`, data, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
-export const affixConfirmation = (orgId: string, projectId: string, data: any = {}) => {
+export const affixConfirmation = (orgId: string, projectId: string, data: ObjectType = {}) => {
   try {
     return putCall(
       `${API_VERSION}/org/${orgId}/project/${projectId}/affix_confirmation`,
@@ -72,7 +97,7 @@ export const affixConfirmation = (orgId: string, projectId: string, data: any = 
   }
 };
 
-export const fileformatConfirmation = (orgId: string, projectId: string, data: any = {}) => {
+export const fileformatConfirmation = (orgId: string, projectId: string, data: ObjectType = {}) => {
   try {
     return putCall(
       `${API_VERSION}/org/${orgId}/project/${projectId}/fileformat_confirmation`,
@@ -96,8 +121,12 @@ export const getContentTypes = (
       `${API_VERSION}/mapper/contentTypes/${projectId}/${skip}/${limit}/${encodedSearchText}?`,
       options
     );
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
@@ -114,16 +143,24 @@ export const getFieldMapping = async (
       `${API_VERSION}/mapper/fieldMapping/${projectId}/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?`,
       options
     );
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
 export const getExistingContentTypes = async (projectId: string) => {
   try {
     return await getCall(`${API_VERSION}/mapper/${projectId}`, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
@@ -131,7 +168,7 @@ export const updateContentType = async (
   orgId: string,
   projectId: string,
   contentTypeId: string,
-  data: any
+  data: ObjectType
 ) => {
   try {
     return await putCall(
@@ -139,8 +176,12 @@ export const updateContentType = async (
       data,
       options
     );
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
@@ -148,7 +189,7 @@ export const resetToInitialMapping = async (
   orgId: string,
   projectId: string,
   contentTypeId: string,
-  data: any
+  data: ObjectType
 ) => {
   try {
     return await putCall(
@@ -156,12 +197,16 @@ export const resetToInitialMapping = async (
       data,
       options
     );
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
-export const createTestStack = async (orgId: string, projectId: string, data: any) => {
+export const createTestStack = async (orgId: string, projectId: string, data: ObjectType) => {
   try {
     return await postCall(
       `${API_VERSION}/migration/test-stack/${orgId}/${projectId}`,
@@ -176,8 +221,12 @@ export const createTestStack = async (orgId: string, projectId: string, data: an
 export const fetchExistingContentType = async (projectId: string, contentTypeUid: string) => {
   try {
     return await getCall(`${API_VERSION}/mapper/${projectId}/${contentTypeUid}`, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 }
 

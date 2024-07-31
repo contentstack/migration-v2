@@ -11,8 +11,12 @@ export const getUser = async () => {
 
   try {
     return await getCall(`${API_VERSION}/user/profile`, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in userSession: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
   }
 };
 
@@ -25,7 +29,11 @@ export const getAllLocales = async (orgId: string) => {
 
   try {
     return await getCall(`${API_VERSION}/org/${orgId}/locales`, options);
-  } catch (error: any) {
-    return error;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in userSession: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
   }
 };
