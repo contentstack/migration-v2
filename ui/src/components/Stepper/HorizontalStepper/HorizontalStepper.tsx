@@ -1,14 +1,24 @@
+// Libraries
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import './HorizontalStepper.scss';
-import { Icon, cbModal } from '@contentstack/venus-components';
-
+import { cbModal, Button } from '@contentstack/venus-components';
 import { useSelector } from 'react-redux';
 
+// Redux
 import { RootState } from '../../../store';
-import SaveChangesModal from '../../../components/Common/SaveChangesModal';
+
+// Interface
 import { ModalObj } from '../../../components/Modal/modal.interface'; 
+
+// Components
+import SaveChangesModal from '../../../components/Common/SaveChangesModal';
+
+// Hooks
 import useBlockNavigation from '../../../hooks/userNavigation';
+
+// CSS
+import './HorizontalStepper.scss';
+
 
 export enum StepStatus {
     ACTIVE = "ACTIVE",
@@ -27,12 +37,11 @@ export type stepperProps = {
     steps: Array<stepsArray>;
     className?: string;
     emptyStateMsg?: string | JSX.Element;
-    stepComponentProps?: any;
     hideTabView?: boolean;
     stepContentClassName?: string;
     stepTitleClassName?: string;
     testId?: string;
-    handleSaveCT: () => {};
+    handleSaveCT?: () => void;
     changeDropdownState: () => void;
 };
 
@@ -42,7 +51,7 @@ export type HorizontalStepperHandles = {
 
 const HorizontalStepper = forwardRef(
     (props: stepperProps, ref: React.ForwardedRef<HorizontalStepperHandles>) => {
-        const { steps, className, emptyStateMsg, stepComponentProps, hideTabView, testId } = props;
+        const { steps, className, emptyStateMsg, hideTabView, testId } = props;
         const [showStep, setShowStep] = useState(0);
         const [stepsCompleted, setStepsCompleted] = useState<number[]>([]);
         const [isModalOpen, setIsModalOpen] = useState(false);
@@ -121,6 +130,9 @@ const HorizontalStepper = forwardRef(
                 navigate(url, { replace: true });
             }
         }
+
+        //variable for button component in table
+        const onlyIcon= true;
         
         const StepsTitleCreator: React.FC = () => (
             <div className="stepper stepper-position">
@@ -133,7 +145,6 @@ const HorizontalStepper = forwardRef(
                         !stepsCompleted.includes(idx) && idx !== showStep && !stepsCompleted?.includes(idx - 1)
                             ? 'disableEvents'
                             : '';
-                    
                     return (
                         <React.Fragment key={id}>
                             <div className="stepWrapperContainer">
@@ -145,7 +156,8 @@ const HorizontalStepper = forwardRef(
                                         <div className="badge">
                                             {completedClass ? (
                                                 <div className="icon-flex">
-                                                    <Icon icon="Check" size="tiny" active={false} height="13px" width="19px" />
+                                                    {/* <Icon icon="v2-Check" version='v2' size="tiny" active={false} height="13px" width="19px" /> */}
+                                                    <Button buttonType="light" icon={onlyIcon ? "v2-Check" : ''} version="v2" onlyIcon={true} className="iconClass"></Button>
                                                 </div>
                                             ) : (
                                                 <>{idx + 1}</>
