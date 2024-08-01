@@ -125,3 +125,13 @@
   padding-top: 190px;
   background: $color-base-white-10;
 }
+.iconClass {
+  &:hover {
+    background: transparent;
+  }
+  svg {
+    path {
+      fill: $color-brand-white-base;
+    }
+  }
+}
