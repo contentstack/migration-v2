@@ -135,4 +135,8 @@ export interface ContentTypeMap {
   [key: string]: string;
 }
 
+export interface ContentTypeSaveHandles {
+  handleSaveContentType: () => void;
+}
+
 
