@@ -24,6 +24,7 @@ import {
   IFlowStep
 } from '../../components/Stepper/FlowStepper/flowStep.interface';
 import { INewMigration } from '../../context/app/app.interface';
+import { ContentTypeSaveHandles } from '../../components/ContentMapper/contentMapper.interface';
 
 
 // Components
@@ -43,7 +44,6 @@ type LegacyCmsRef = {
   getInternalActiveStepIndex: () => number;
 };
 
-
 const Migration = () => {
   const [projectData, setProjectData] = useState<MigrationResponse>();
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +60,7 @@ const Migration = () => {
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
   const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
 
-  const saveRef = useRef<any>(null);
+  const saveRef = useRef<ContentTypeSaveHandles>(null);
 
   useEffect(() => {
     fetchData();
@@ -148,9 +148,7 @@ const Migration = () => {
         data: <MigrationExecution />,
         id:'5',
         title:'Migration Execution'
-      },
-  
-      
+      }
      ]
      return steps;
   }
