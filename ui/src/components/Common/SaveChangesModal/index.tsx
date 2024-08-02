@@ -9,9 +9,9 @@ import {
 
 interface Props {
   closeModal: () => void;
-  isopen: any;
+  isopen: (flag: boolean) => void;
   otherCmsTitle?: string;
-  saveContentType: () => void;
+  saveContentType?: () => void;
   openContentType?: () => void;
   changeStep?: () => void;
   dropdownStateChange: () => void;
@@ -48,7 +48,7 @@ const SaveChangesModal = (props: Props) => {
           </Button>
           <Button version={"v2"} onClick={() => { 
             props?.dropdownStateChange();
-            props.saveContentType(); 
+            props?.saveContentType?.(); 
             props.closeModal(); 
             props.openContentType?.();
             props?.changeStep?.();
