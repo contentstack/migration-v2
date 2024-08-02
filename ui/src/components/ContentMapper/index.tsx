@@ -49,6 +49,7 @@ import {
   UidMap,
   ContentTypeMap,
   Advanced,
+  ContentTypeSaveHandles
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -203,10 +204,6 @@ type ContentMapperComponentProps = {
   projectData: MigrationResponse;
 };
 
-type ContentTypeSaveHandles = {
-  handleSaveContentType?: () => {};
-}
-
 const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, ref: React.ForwardedRef<ContentTypeSaveHandles>) => {
   /** ALL CONTEXT HERE */
 
@@ -319,7 +316,9 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
   useEffect(() => {
     const updatedExstingField: ExistingFieldType = {};
-    if (isContentTypeSaved) {
+    const checkKey = Object.keys(contentTypeMapped).find(key => contentTypeMapped[key] === contentTypeMapped[otherCmsTitle]);
+
+    if (checkKey === otherCmsTitle) {
       tableData?.forEach((row) => {
         if (row?.contentstackField) {
           updatedExstingField[row?.uid] = {
@@ -328,9 +327,9 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           };
         }
       });
-      //setexsitingField(updatedExstingField);
+      setexsitingField(updatedExstingField);
     }
-  }, [tableData, isContentTypeSaved]);
+  }, [tableData, otherCmsTitle]);
 
   // To make all the fields checked
   useEffect(() => {
@@ -359,11 +358,12 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         ...newMigrationData?.content_mapping,
         isDropDownChanged: isDropDownChanged,
         otherCmsTitle: otherCmsTitle,
+        // isContentTypeSaved: isContentTypeSaved
       }
     };
 
     dispatch(updateNewMigrationData((newMigrationDataObj)));
-  }, [isDropDownChanged]);
+  }, [isDropDownChanged, isContentTypeSaved]);
 
 
   useBlockNavigation(isModalOpen);
@@ -896,7 +896,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         if (item.id === data?.id) {
           for (const key of value.schema || []) {
             if (checkConditions(fieldTypeToMatch, key, item)) {
-              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
+              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName}` > `${key.display_name}` || ''));
             }
   
             // Recursively process nested groups
@@ -910,8 +910,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   
     return OptionsForRow;
   };
-  
-  
 
   const SelectAccessorOfColumn = (data: FieldMapType) => {
     // Fetch options for the current row from dummy_obj based on backupFieldType( empty stack options)
@@ -972,7 +970,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         for (const value of contentTypeSchema) {
 
           const groupArray = nestedList.filter(item => 
-            item.child && item.child.some(e => e.id === data?.id)
+            item?.child?.some(e => e?.id === data?.id)
           );
           
           const array = groupArray[0]?.child || []
@@ -1028,31 +1026,24 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               data?.ContentstackFieldType === 'url' ||
               data?.otherCmsType === "reference"
           }
-          : OptionsForRow.length === 1 &&
-          (OptionsForRow[0]?.value?.uid !== 'url' || OptionsForRow[0]?.value?.uid !== 'title' || OptionsForRow[0]?.value?.data_type !== 'group' || OptionsForRow[0]?.value?.data_type !== 'reference')
-            ? {
-              label: OptionsForRow[0]?.label,
-              value: OptionsForRow[0]?.value,
-              isDisabled: false
-            }
-            : {
-            label: `${selectedOption} matches`,
-            value: `${selectedOption} matches`,
-            isDisabled: false
-          };
+          : {
+          label: `${selectedOption} matches`,
+          value: `${selectedOption} matches`,
+          isDisabled: false
+        };
     
     const adjustedOptions = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
-    (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === dummy_obj[data?.ContentstackFieldType]?.label) ? []
+      (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === dummy_obj[data?.ContentstackFieldType]?.label) ? []
       : OptionsForRow.map((option: optionsType) => ({
         ...option,
         isDisabled: selectedOptions.includes(option?.label ?? '')
       }));
-  
+
     return (
       <div className="table-row">
         <div className="select">
           <Select
-            value={OptionsForRow.length === 0 || exstingField[data?.uid] === undefined ? OptionValue : exstingField[data?.uid]}
+            value={(OptionsForRow.length === 0 || exstingField?.[data?.uid]?.label === undefined) ? OptionValue : exstingField[data?.uid]}
             onChange={(selectedOption: FieldTypes) => {
               if (OptionsForRow.length === 0) {
                 handleValueChange(selectedOption, data?.uid)
@@ -1063,7 +1054,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
-            isClearable={false}
+            isClearable={selectedOptions?.includes(exstingField?.[data?.uid]?.label ?? '')}
             options={adjustedOptions}
             isDisabled={OptionValue?.isDisabled}
           />
@@ -1081,7 +1072,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       </div>
     );
   };
-  
 
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
@@ -1093,17 +1083,19 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       selectedContentType?.otherCmsUid &&
       OtherContentType?.label
     ) {
-      const updatedValue = {
+      setcontentTypeMapped((prevState: ContentTypeMap) => ({
+        ...prevState,
         [otherCmsTitle]: OtherContentType?.label
-      }
-      
-      setcontentTypeMapped(updatedValue);
+      }));
 
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         content_mapping: {
           ...newMigrationData?.content_mapping,
-          content_type_mapping: updatedValue
+          content_type_mapping: {
+            ...newMigrationData?.content_mapping?.content_type_mapping,
+            [otherCmsTitle]: OtherContentType?.label,
+          } 
         }
       };
 
@@ -1145,7 +1137,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
         setFilteredContentTypes(filteredContentTypes?.map(ct => 
           ct?.id === data?.updatedContentType?.id ? { ...ct, status: data?.updatedContentType?.status } : ct
-        ))
+        ));
       } else {
         Notification({
           notificationContent: { text: data?.error?.message },
@@ -1441,7 +1433,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               itemSize={80}
               withExportCta={{
                 component: (
-                  <div className='d-flex align-items-center' style={{ gap: '8px' }}>
+                  <div className='d-flex align-items-center'>
                     {!IsEmptyStack && (
                       <Tooltip content={'fetch the content type'} position="left">
                         <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
@@ -1453,13 +1445,13 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                     )}
 
                     <Tooltip content={'Reset to intial mapping'} position="left">
-                       <Button buttonType="light" icon={onlyIcon ? "v2-ResetReverse" : ''} 
+                       <Button buttonType="light" icon={onlyIcon ? "v2-Restore" : ''} 
                        version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                        size='small' onClick={handleResetContentType}></Button>
                     </Tooltip>
 
                     {!IsEmptyStack && (
-                      <div className="d-flex justify-content-end">
+                      <div className="d-flex justify-content-end ml-8">
                         <Select
                           value={OtherContentType}
                           onChange={handleDropDownChange}
