@@ -70,6 +70,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
     }
+    setAllStack(newMigrationData?.destination_stack?.stackArray)
+
   },[newMigrationData?.destination_stack?.selectedStack])
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
@@ -125,11 +127,11 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       dispatch(updateNewMigrationData(newMigrationDataObj));
   
       // API call for saving selected CMS
-      if (resp?.data?.stack?.api_key) {
-        updateDestinationStack(selectedOrganisation?.value, projectId, {
-          stack_api_key: resp?.data?.stack?.api_key
-        });
-      }
+      // if (resp?.data?.stack?.api_key) {
+      //   updateDestinationStack(selectedOrganisation?.value, projectId, {
+      //     stack_api_key: resp?.data?.stack?.api_key
+      //   });
+      // }
   
       // call for Step Change
       props.handleStepChange(props?.currentStep, true);
@@ -172,7 +174,9 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   };
   
   const fetchData = async () => {
+    // console.log("..........outside fetchdata",selectedStack)
     if (allStack?.length <= 0) {
+      // console.log("..........in fetchdata",selectedStack, allStack?.length)
       setAllStack(loadingOption);
       const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there  
       const stackArray = validateArray(stackData?.data?.stacks)
@@ -192,16 +196,24 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       );
   
       setAllStack(stackArray);
-  
+      // console.log(".............stackArray",stackArray);
+      
       //Set selected Stack
       const selectedStackData = validateArray(stackArray)
         ? stackArray.find(
             (stack: IDropDown) =>
-              stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
+            {
+              // console.log(".........insdie", stack?.value,newMigrationData?.destination_stack?.selectedStack?.value)
+              return stack?.value === newMigrationDataRef?.current?.destination_stack?.selectedStack?.value
+            }
           )
         : DEFAULT_DROPDOWN;
   
       setSelectedStack(selectedStackData);
+      // console.log("..........selectedStackData", selectedStackData);
+      // console.log("..........newMigrationData", newMigrationData);
+      // console.log("..........in", newMigrationDataRef, newMigrationData);
+      
       
       if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
         setIsError(true);
@@ -216,13 +228,13 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         }
       };  
       // console.log("........newMigrationDataObj",newMigrationDataObj);
-      
+
       // Dispatch the updated migration data to Redux
       dispatch(updateNewMigrationData(newMigrationDataObj));
     }
   };
   
-  
+
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
@@ -253,8 +265,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const emptyStackValue = selectedStack?.value === undefined || selectedStack?.value === '' || selectedStack?.value === null
   /****  ALL USEEffects  HERE  ****/
   useEffect(() => {
+    // console.log("..........in useEffect",selectedStack)
     fetchData();
   }, []);
+  // console.log("..........selectedstack",selectedStack)
   return (
     <div className="">
       <div className="action-summary-wrapper ">
