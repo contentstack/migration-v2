@@ -271,6 +271,10 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nestedList, setNestedList] = useState<FieldMapType[]>([]);
   const [disabledOptions, setDisabledOptions] = useState<Set<string>>(new Set());
+  const [isUpdated, setIsUpdated] = useState(false);
+  let updatedRows: FieldMapType[] = tableData;
+  let updatedExstingField: ExistingFieldType = exstingField;
+  const updatedSelectedOptions :string[] = selectedOptions; 
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -303,7 +307,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         field._canSelect = true;
       }
     });
-  });
+  },[]);
 
   useEffect(() => {
     if (contentTypeMapped && otherCmsTitle) {
@@ -847,6 +851,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     value: any,
     data: any,
     array: any,
+    groupArray:any[],
     OptionsForRow: any[],
     fieldsOfContentstack: any,
     currentDisplayName = ''
@@ -861,30 +866,46 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
         OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName));
         
-        // Process nested groups within this group
+      }
+
+      const existingLabel = exstingField[groupArray[0]?.uid]?.label || '';
+      const lastLabelSegment = existingLabel.includes('>')
+        ? existingLabel?.split('>')?.pop()?.trim()
+        : existingLabel;
+
+      if(value.display_name === lastLabelSegment)
+      {
+          // Process nested schemas within the current group
+          for (const item of array) {
+            const fieldTypeToMatch = fieldsOfContentstack[item?.otherCmsType as keyof Mapping];
+            if (item.id === data?.id) {
+              for (const key of exstingField[groupArray[0]?.uid]?.value.schema || []) {
+                 
+                if (checkConditions(fieldTypeToMatch, key, item)) {                            
+                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
+                  break;
+                }
+      
+                // Recursively process nested groups
+                if (key?.data_type === 'group') {
+                  processSchema(key, data, array, groupArray,OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+                }
+              }
+            }
+          }
+
+      }
+      else{
         for (const key of value.schema || []) {
           if (key?.data_type === 'group') {
-            processSchema(key, data, array, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+            processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
           }
-        }
+        }        
+
       }
-      // Process nested schemas within the current group
-      for (const item of array) {
-        const fieldTypeToMatch = fieldsOfContentstack[item?.otherCmsType as keyof Mapping];
-        if (item.id === data?.id) {
-          for (const key of value.schema || []) {
-            if (checkConditions(fieldTypeToMatch, key, item)) {
-              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
-            }
-  
-            // Recursively process nested groups
-            if (key?.data_type === 'group') {
-              processSchema(key, data, array, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
-            }
-          }
-        }
-      }
-    } else {
+    
+    } 
+   else {
  
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
       if (!array.some((item :any)=> item.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
@@ -901,7 +922,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   
             // Recursively process nested groups
             if (key?.data_type === 'group') {
-              processSchema(key, data, array, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+              processSchema(key, data, array,groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
             }
           }
         }
@@ -976,7 +997,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           const array = groupArray[0]?.child || []
 
           if(value.data_type === 'group'){
-            processSchema(value, data, array, OptionsForRow, fieldsOfContentstack)
+            processSchema(value, data, array,groupArray, OptionsForRow, fieldsOfContentstack)
           }
           else if (!array.some(item => item.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
             
@@ -988,7 +1009,55 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     }
   
     const selectedOption = OptionsForRow.length;
-  
+
+    // Handle case where there is exactly one match and it is auto-mapped
+    if(OptionsForRow.length === 1 &&
+      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference'))
+    {
+        updatedRows = updatedRows.map((row) => {
+          if (row?.uid === data?.uid) {
+            return {
+              ...row,
+              contentstackField: OptionsForRow[0]?.value?.display_name,
+              advanced: {
+                validationRegex: OptionsForRow[0]?.value?.format,
+                Mandatory: OptionsForRow[0]?.value?.mandatory,
+                Multiple: OptionsForRow[0]?.value?.multiple,
+                Unique: OptionsForRow[0]?.value?.unique,
+                NonLocalizable: OptionsForRow[0]?.value?.non_localizable,
+              },
+            };
+          }
+          return row;
+        });
+
+        // Disable option if it's not already in exstingField
+        if (!exstingField[data?.uid] && OptionsForRow[0]) {         
+          OptionsForRow[0].isDisabled = true;
+        }
+        const newLabel = OptionsForRow[0]?.value?.display_name;
+        const newvalue = OptionsForRow[0]?.value;
+    
+        // Check if there's already a matching entry in updatedExstingField
+        const hasMatchingEntry = Object.values(updatedExstingField).some(         
+          (entry) =>{ return entry?.label === newLabel }
+        );
+        
+        if (!hasMatchingEntry) {
+          updatedExstingField = {
+            ...updatedExstingField,
+            [data?.uid]: { label: newLabel, value: newvalue }
+          };
+        }
+
+        const newValue = OptionsForRow[0]?.value?.display_name;
+        if (!updatedSelectedOptions[newValue]) {
+          updatedSelectedOptions.push(newValue);  
+        }
+        setIsUpdated(true);                      
+         
+    }
+    
     let option: any;
     if (Array.isArray(OptionsForEachRow)) {
       option = OptionsForEachRow.map((option) => ({
@@ -1007,9 +1076,9 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     } else {
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
     }
-    
+   
     const OptionValue: any =
-      OptionsForRow.length === 1 &&
+      OptionsForRow.length === 1 && (exstingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
       (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference')
         ? {
           label: OptionsForRow[0]?.value?.display_name,
@@ -1017,7 +1086,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           isDisabled: true
         }
         : (OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) 
-          && ! exstingField[data?.uid] ))
+          && (!exstingField[data?.uid] || ! updatedExstingField[data?.uid] ) ))
           ? {
             label: dummy_obj[data?.ContentstackFieldType]?.label,
             value: dummy_obj[data?.ContentstackFieldType]?.label,
@@ -1073,6 +1142,21 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     );
   };
 
+
+  useEffect(() => {
+    if (isUpdated) {     
+      setTableData(updatedRows as FieldMapType[]);
+      setexsitingField(updatedExstingField);
+      setSelectedOptions(updatedSelectedOptions);
+      setIsUpdated(false);
+    }
+    else{
+      setexsitingField({});
+      setSelectedOptions([]);
+
+    }
+  }, [isUpdated, OtherContentType]);
+ 
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
