@@ -125,13 +125,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       // console.log("Updating newMigrationData:", newMigrationDataObj);
       dispatch(updateNewMigrationData(newMigrationDataObj));
   
-      // API call for saving selected CMS
-      if (resp?.data?.stack?.api_key) {
-        updateDestinationStack(selectedOrganisation?.value, projectId, {
-          stack_api_key: resp?.data?.stack?.api_key
-        });
-      }
-  
       // call for Step Change
       props.handleStepChange(props?.currentStep, true);
       
