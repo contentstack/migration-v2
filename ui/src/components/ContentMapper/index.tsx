@@ -1148,6 +1148,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       setTableData(updatedRows as FieldMapType[]);
       setexsitingField(updatedExstingField);
       setSelectedOptions(updatedSelectedOptions);
+      setSelectedEntries(updatedRows);
       setIsUpdated(false);
     }
     else{
@@ -1224,7 +1225,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         ));
       } else {
         Notification({
-          notificationContent: { text: data?.error?.message },
+          notificationContent: { text: data?.message },
           notificationProps: {
             position: 'bottom-center',
             hideProgressBar: true
