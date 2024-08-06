@@ -416,6 +416,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
     setContentTypes(data?.contentTypes);
     setFilteredContentTypes(data?.contentTypes);
+    setCount(data?.contentTypes?.length);
   };
 
   // Method to get fieldmapping
@@ -1424,7 +1425,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         <div className="content-types-list-wrapper">
           <div className="content-types-list-header d-flex align-items-center justify-content-between">
             {contentTypesHeading && <h2>{contentTypesHeading}</h2> }
-            {contentTypes && validateArray(contentTypes) &&  count }
+            {contentTypes &&  count }
           </div>
 
           <div className='ct-search-wrapper'>
