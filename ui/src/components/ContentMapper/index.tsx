@@ -49,7 +49,8 @@ import {
   UidMap,
   ContentTypeMap,
   Advanced,
-  ContentTypeSaveHandles
+  ContentTypeSaveHandles,
+  MouseOrKeyboardEvent
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -296,10 +297,16 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       .catch((err) => {
         console.error(err);
       });
-    stackStatus();
+
     fetchExistingContentTypes();
     fetchContentTypes(searchText || '');
   }, []);
+
+  useEffect(() => {
+    if (newMigrationData?.destination_stack?.selectedStack?.value || projectData?.destination_stack_id) {
+      stackStatus();
+    }
+  }, [newMigrationData?.destination_stack?.selectedStack?.value || projectData?.destination_stack_id])
 
   // Make title and url field non editable
   useEffect(() => {
@@ -391,7 +398,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const stackStatus = async () => {
     const contentTypeCount = await getStackStatus(
       projectData?.org_id || selectedOrganisation?.value,
-      projectData?.destination_stack_id || newMigrationData?.destination_stack?.selectedStack?.value
+      newMigrationData?.destination_stack?.selectedStack?.value || projectData?.destination_stack_id
     );
 
     if (contentTypeCount?.data?.contenttype_count > 0) {
@@ -1221,9 +1228,12 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         setisContentTypeMapped(true);
         setisContentTypeSaved(true);
 
-        setFilteredContentTypes(filteredContentTypes?.map(ct => 
+        const savedCT = filteredContentTypes?.map(ct => 
           ct?.id === data?.updatedContentType?.id ? { ...ct, status: data?.updatedContentType?.status } : ct
-        ));
+        );
+
+        setFilteredContentTypes(savedCT);
+        setContentTypes(savedCT);
       } else {
         Notification({
           notificationContent: { text: data?.message },
@@ -1366,7 +1376,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   }
 
   // Function to filter content types as per the status
-  const handleContentTypeFilter = (value: string, e: React.MouseEvent<HTMLElement>) => {
+  const handleContentTypeFilter = (value: string, e: MouseOrKeyboardEvent) => {
     const li_list = document.querySelectorAll('.filter-wrapper li');
     if(li_list) {
       li_list.forEach((ele) => {
@@ -1375,8 +1385,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     }
     
     (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
-    const filteredCT = contentTypes?.filter((ct) => {return CONTENT_MAPPING_STATUS[ct?.status] === value});
     
+    const filteredCT = contentTypes?.filter((ct) => {return CONTENT_MAPPING_STATUS[ct?.status] === value});
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
@@ -1436,12 +1446,20 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                 <div className='filter-wrapper' ref={filterRef}> 
                   <ul>
                     {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
-                      <>
-                      <li key={`${keyInd?.toString()}`} onClick={(e) => handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e)}>
-                        {CONTENT_MAPPING_STATUS[key] && <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span> }
-                        {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
-                      </li>  
-                      </>
+                      <li key={`${keyInd?.toString()}`}>
+                        <button
+                          className='list-button'
+                          onClick={(e) => handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e);
+                            }
+                          }}
+                        >
+                          {CONTENT_MAPPING_STATUS[key] && <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span> }
+                          {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
+                        </button>
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -1454,38 +1472,51 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               <ul className="ct-list">
                 {filteredContentTypes?.map((content: ContentType, index: number) => {
                   const icon = STATUS_ICON_Mapping[content?.status] || '';
-                  
+
+                  const format = (str: string) => {
+                    const frags = str.split('_');
+                    for (let i = 0; i < frags?.length; i++) {
+                      frags[i] = frags[i].charAt(0).toUpperCase() + frags[i].slice(1);
+                    }
+                    return frags.join(' ');
+                  }
                   return (
-                    <li
-                      key={`${index.toString()}`}
-                      className={`${active == index ? 'active-ct' : ''}`}
-                      onClick={() => handleOpenContentType(index)}
-                      onKeyDown={() => handleOpenContentType(index)}
-                    >
-                      <div className='cms-title'>
-                        <Tooltip content={content?.type} position="bottom">
-                          {content?.type === "content_type" 
-                            ? <Icon icon={active == index ? "ContentModelsMediumActive" : "ContentModelsMedium"} size="small"  />
-                            : <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
+                    <li key={`${index.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
+                      <button
+                        type='button'
+                        className='list-button'
+                        onClick={() => handleOpenContentType(index)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleOpenContentType(index);
                           }
-                        </Tooltip>
-                        {content?.otherCmsTitle && <span>{content?.otherCmsTitle}</span> }
-                      </div>
-                      
-                      <div className='d-flex align-items-center ct-options'>
-                        <span>
-                          {icon && (
-                            <Tooltip content={CONTENT_MAPPING_STATUS[content?.status]} position="bottom">
-                              <Icon size="small" icon={icon} className={icon === 'CheckedCircle' ? 'mapped-icon' : ''} />
-                            </Tooltip>
-                          )}
-                        </span>
-                        <span className='ml-10'>
-                          <Tooltip content="Schema Preview" position="bottom">
-                            <Icon icon="LivePreview" version="v2" onClick={() => handleSchemaPreview(content?.otherCmsTitle)} />
+                        }}
+                      >
+                        <div className='cms-title'>
+                          <Tooltip content={format(content?.type)} position="bottom">
+                            {content?.type === "content_type" 
+                              ? <Icon icon={active == index ? "ContentModelsMediumActive" : "ContentModelsMedium"} size="small"  />
+                              : <Icon icon={active == index ? "GlobalFieldsMediumActive" : "GlobalFieldsMedium"} size="small" />
+                            }
                           </Tooltip>
-                        </span>
-                      </div>
+                          {content?.otherCmsTitle && <span title={content?.otherCmsTitle}>{content?.otherCmsTitle}</span> }
+                        </div>
+                      
+                        <div className='d-flex align-items-center ct-options'>
+                          <span>
+                            {icon && (
+                              <Tooltip content={CONTENT_MAPPING_STATUS[content?.status]} position="bottom">
+                                <Icon size="small" icon={icon} className={icon === 'CheckedCircle' ? 'mapped-icon' : ''} />
+                              </Tooltip>
+                            )}
+                          </span>
+                          <span className='ml-10'>
+                            <Tooltip content="Schema Preview" position="bottom">
+                              <Icon icon="LivePreview" version="v2" onClick={() => handleSchemaPreview(content?.otherCmsTitle)} />
+                            </Tooltip>
+                          </span>
+                        </div>
+                      </button>
                     </li>
                   )
                 })}
@@ -1503,7 +1534,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               canSearch={true}
               data={tableData?.length ? [...tableData] : []}
               columns={columns}
-              uniqueKey={'id' || ''}
+              uniqueKey={'id'}
               isRowSelect
               // fullRowSelect
               itemStatusMap={itemStatusMap}
@@ -1555,6 +1586,10 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               }}
               getSelectedRow={handleSelectedEntries}
               rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+              name={{
+                singular: '',
+                plural: `${totalCounts === 0 ? `Count` : ''}`
+              }}
             />
             <div className='text-end my-3 mx-3 px-1'>
               <Button
