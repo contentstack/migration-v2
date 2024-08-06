@@ -190,7 +190,7 @@ export interface IMigrationData {
   testmigrationData: ITestMigration;
 }
 
-export interface IDropDown {
+export interface IDropDown { 
   uid?: string;
   label: string;
   value: string;
