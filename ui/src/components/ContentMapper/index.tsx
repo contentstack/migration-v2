@@ -296,9 +296,15 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       .catch((err) => {
         console.error(err);
       });
-    stackStatus();
+
     fetchExistingContentTypes();
   }, []);
+
+  useEffect(() => {
+    if (newMigrationData?.destination_stack?.selectedStack?.value || projectData?.destination_stack_id) {
+      stackStatus();
+    }
+  }, [newMigrationData?.destination_stack?.selectedStack?.value || projectData?.destination_stack_id])
 
   // Make title and url field non editable
   useEffect(() => {
@@ -390,7 +396,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const stackStatus = async () => {
     const contentTypeCount = await getStackStatus(
       projectData?.org_id || selectedOrganisation?.value,
-      projectData?.destination_stack_id || newMigrationData?.destination_stack?.selectedStack?.value
+      newMigrationData?.destination_stack?.selectedStack?.value || projectData?.destination_stack_id
     );
 
     if (contentTypeCount?.data?.contenttype_count > 0) {
@@ -1142,21 +1148,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     );
   };
 
-
-  useEffect(() => {
-    if (isUpdated) {     
-      setTableData(updatedRows as FieldMapType[]);
-      setexsitingField(updatedExstingField);
-      setSelectedOptions(updatedSelectedOptions);
-      setIsUpdated(false);
-    }
-    else{
-      setexsitingField({});
-      setSelectedOptions([]);
-
-    }
-  }, [isUpdated, OtherContentType]);
- 
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
