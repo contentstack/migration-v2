@@ -1211,9 +1211,12 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         setisContentTypeMapped(true);
         setisContentTypeSaved(true);
 
-        setFilteredContentTypes(filteredContentTypes?.map(ct => 
+        const savedCT = filteredContentTypes?.map(ct => 
           ct?.id === data?.updatedContentType?.id ? { ...ct, status: data?.updatedContentType?.status } : ct
-        ));
+        );
+
+        setFilteredContentTypes(savedCT);
+        setContentTypes(savedCT);
       } else {
         Notification({
           notificationContent: { text: data?.error?.message },
@@ -1365,8 +1368,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     }
     
     (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
-    const filteredCT = contentTypes?.filter((ct) => {return CONTENT_MAPPING_STATUS[ct?.status] === value});
     
+    const filteredCT = contentTypes?.filter((ct) => {return CONTENT_MAPPING_STATUS[ct?.status] === value});
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
@@ -1428,6 +1431,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                     {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
                       <li key={`${keyInd?.toString()}`}>
                         <button
+                          className='list-button'
+                          onClick={(e) => handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               handleContentTypeFilter(CONTENT_MAPPING_STATUS[key], e);
@@ -1564,6 +1569,10 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               }}
               getSelectedRow={handleSelectedEntries}
               rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+              name={{
+                singular: '',
+                plural: `${totalCounts === 0 ? `Count` : ''}`
+              }}
             />
             <div className='text-end my-3 mx-3 px-1'>
               <Button
