@@ -298,6 +298,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       });
     stackStatus();
     fetchExistingContentTypes();
+    fetchContentTypes(searchText || '');
   }, []);
 
   // Make title and url field non editable
@@ -445,8 +446,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
   // Fetch table data
   const fetchData = async ({ searchText }: TableTypes) => {
-    setSearchText(searchText);
-    fetchContentTypes(searchText || '');
+    setSearchText(searchText)
+    fetchFields(contentTypeUid, searchText);
   };
 
   // Method for Load more table data
@@ -1207,7 +1208,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         dataCs
       );
 
-      if (status == 200) {
+      if (data?.status == 200) {
         Notification({
           notificationContent: { text: 'Content type saved successfully' },
           notificationProps: {
