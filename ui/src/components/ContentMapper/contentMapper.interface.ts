@@ -138,5 +138,6 @@ export interface ContentTypeMap {
 export interface ContentTypeSaveHandles {
   handleSaveContentType: () => void;
 }
+export type MouseOrKeyboardEvent = React.MouseEvent<HTMLElement, MouseEvent> | React.KeyboardEvent<HTMLButtonElement>;
 
 
