@@ -420,7 +420,9 @@ h2 {
   }
 }
 .list-button {
+  background: none;
   border: 0 none;
+  width: 100%;
 }
 ::-webkit-input-placeholder {
   color: $color-stepper-title !important;
