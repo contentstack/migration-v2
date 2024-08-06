@@ -44,11 +44,14 @@ const Modal = (props: ProjectModalProps) => {
     // const payload = {name: values?.name, description: values?.description || ''}
 
     const res = await createProject(selectedOrg?.uid || '', values);
+    if (res?.error) {
+      return res?.error;
+    }
     if (res?.status === 201) {
       const projectId = res?.data?.project?.id
       window.location.href = `/projects/${projectId}/migration/steps/1`;
     }
-    return res?.error ? false : res;
+    return res;
   };
 
   const nameValidation = (value: string) => {
