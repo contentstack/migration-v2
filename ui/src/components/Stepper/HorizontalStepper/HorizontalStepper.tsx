@@ -1,7 +1,9 @@
 // Libraries
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { cbModal, Button } from '@contentstack/venus-components';
+import './HorizontalStepper.scss';
+import { Icon, cbModal, Notification,Button } from '@contentstack/venus-components';
+
 import { useSelector } from 'react-redux';
 
 // Redux
@@ -49,6 +51,31 @@ export type HorizontalStepperHandles = {
     handleStepChange: (currentStep: number) => void;
 };
 
+const showNotification = (currentIndex:number) =>{
+    console.log("current Index ===> ", currentIndex);
+    
+    let result;
+        switch (currentIndex ) {
+          case 0:
+            result = 'CMS';
+            break;
+          case 1:
+            result = 'Enter Affix';
+            break;
+          case 2:
+            result = 'Imported File';
+            break;
+            
+        }
+    return(
+        currentIndex !== 3 && currentIndex !== 4 &&
+    Notification({
+        notificationContent: { text: `Please complete ${result} step` },
+        type: 'warning' 
+    })
+
+    )
+}
 const HorizontalStepper = forwardRef(
     (props: stepperProps, ref: React.ForwardedRef<HorizontalStepperHandles>) => {
         const { steps, className, emptyStateMsg, hideTabView, testId } = props;
@@ -118,7 +145,12 @@ const HorizontalStepper = forwardRef(
                     shouldCloseOnOverlayClick: false
                     }
                 });
-            } else {
+            } 
+            else if(-1 < newMigrationData?.legacy_cms?.currentStep  && 
+                newMigrationData?.legacy_cms?.currentStep  < 2){
+                showNotification(newMigrationData?.legacy_cms?.currentStep + 1);
+            }
+            else {
                 setTabStep(idx);
             }
         };
