@@ -286,13 +286,12 @@ const getExistingContentTypes = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs while updating the content type.
  */
 const updateContentType = async (req: Request) => {
-  const srcFun = "udateContentType";
+  const srcFun = "updateContentType";
   const { orgId, projectId, contentTypeId } = req.params;
   const { contentTypeData, token_payload } = req.body;
   const fieldMapping = contentTypeData?.fieldMapping;
 
-  // const updatedContentType: any = {};
-
+  // Read project data
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
     projectId,
@@ -307,6 +306,7 @@ const updateContentType = async (req: Request) => {
   )) as number;
   const project = ProjectModelLowdb.data.projects[projectIndex];
 
+  // Check project status
   if (
     [NEW_PROJECT_STATUS[5], NEW_PROJECT_STATUS[4]].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
@@ -318,9 +318,13 @@ const updateContentType = async (req: Request) => {
         token_payload
       )
     );
-    throw new BadRequestError(HTTP_TEXTS.CANNOT_UPDATE_CONTENT_MAPPING);
+    return {
+      status: 400,
+      message: HTTP_TEXTS.CANNOT_UPDATE_CONTENT_MAPPING
+    };
   }
 
+  // Validate contentTypeData
   if (isEmpty(contentTypeData)) {
     logger.error(
       getLogMessage(
@@ -328,14 +332,21 @@ const updateContentType = async (req: Request) => {
         `${HTTP_TEXTS.INVALID_CONTENT_TYPE} Id: ${contentTypeId}`
       )
     );
-    throw new BadRequestError(HTTP_TEXTS.INVALID_CONTENT_TYPE);
+    return {
+      status: 400,
+      message: HTTP_TEXTS.INVALID_CONTENT_TYPE
+    };
   }
 
   try {
     await ContentTypesMapperModelLowdb.read();
+    const updateIndex = ContentTypesMapperModelLowdb.chain
+      .get("ContentTypesMappers")
+      .findIndex({ id: contentTypeId, projectId: projectId })
+      .value();
 
     if (fieldMapping) {
-      fieldMapping.forEach(async (field: any) => {
+      for (const field of fieldMapping) {
         if (
           !field.ContentstackFieldType ||
           field.ContentstackFieldType === "" ||
@@ -351,25 +362,24 @@ const updateContentType = async (req: Request) => {
               )}`
             )
           );
-          await ContentTypesMapperModelLowdb.read();
-          ContentTypesMapperModelLowdb.update((data: any) => {
-            data.ContentTypesMappers[updateIndex].status =
-              CONTENT_TYPE_STATUS[3];
+          await ContentTypesMapperModelLowdb.update((data: any) => {
+            data.ContentTypesMappers[updateIndex].status = CONTENT_TYPE_STATUS[3];
           });
-          throw new BadRequestError(
-            `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
+          return {
+            status: 400, 
+            message: `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
               "$",
               "ContentstackFieldType or contentstackFieldUid"
             )}`
-          );
+          };
         }
-      });
+      }
     }
 
-    const updateIndex = ContentTypesMapperModelLowdb.chain
-      .get("ContentTypesMappers")
-      .findIndex({ id: contentTypeId, projectId: projectId })
-      .value();
+    // const updateIndex = ContentTypesMapperModelLowdb.chain
+    //   .get("ContentTypesMappers")
+    //   .findIndex({ id: contentTypeId, projectId: projectId })
+    //   .value();
     ContentTypesMapperModelLowdb.update((data: any) => {
       if (updateIndex >= 0) {
         data.ContentTypesMappers[updateIndex].otherCmsTitle =
@@ -394,12 +404,15 @@ const updateContentType = async (req: Request) => {
           `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
         )
       );
-      throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
+      return {
+        status: 404, 
+        message: HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND
+      };
     }
 
     if (!isEmpty(fieldMapping)) {
       await FieldMapperModel.read();
-      (fieldMapping || []).forEach((field: any) => {
+      fieldMapping.forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) => f?.id === field?.id
         );
@@ -411,18 +424,22 @@ const updateContentType = async (req: Request) => {
         }
       });
     }
-    await ContentTypesMapperModelLowdb.read();
     await ContentTypesMapperModelLowdb.update((data: any) => {
       data.ContentTypesMappers[updateIndex].status = CONTENT_TYPE_STATUS[2];
     });
-    // fetch updated data to return in response
+
+    // Fetch and return updated content type
     await ContentTypesMapperModelLowdb.read();
     const updatedContentType = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
       .find({ id: contentTypeId, projectId: projectId })
       .value();
 
-    return { updatedContentType };
+    return {
+      status: 200,
+      data: { updatedContentType }
+    };
+
   } catch (error: any) {
     logger.error(
       getLogMessage(
@@ -431,12 +448,13 @@ const updateContentType = async (req: Request) => {
         error
       )
     );
-    throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.status || HTTP_CODES.SERVER_ERROR
-    );
+    return {
+      status: error?.status || 500,
+      message: error?.message || HTTP_TEXTS.INTERNAL_ERROR
+    };
   }
 };
+
 /**
  * Resets the field mapping and content mapping for a specific content type in a project.
  *
