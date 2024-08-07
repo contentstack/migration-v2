@@ -74,12 +74,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
-    if (isSaving) return false;
+    // if (isSaving) return false;
     setIsSaving(true);
   
     if (isEmptyString(data?.name) || isEmptyString(data?.locale)) {
       setIsSaving(false);
-      return false;
+      // return false;
     }
   
     // Post data to backend
@@ -125,19 +125,14 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       // console.log("Updating newMigrationData:", newMigrationDataObj);
       dispatch(updateNewMigrationData(newMigrationDataObj));
   
-      // API call for saving selected CMS
-      if (resp?.data?.stack?.api_key) {
-        updateDestinationStack(selectedOrganisation?.value, projectId, {
-          stack_api_key: resp?.data?.stack?.api_key
-        });
-      }
-  
       // call for Step Change
       props.handleStepChange(props?.currentStep, true);
       
       return true;
-    }
-    return false;
+    } 
+    // else {
+    //   return false;
+    // }
   };
   
   /****  ALL METHODS HERE  ****/
