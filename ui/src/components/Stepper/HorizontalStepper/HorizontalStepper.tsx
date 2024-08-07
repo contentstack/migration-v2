@@ -52,7 +52,6 @@ export type HorizontalStepperHandles = {
 };
 
 const showNotification = (currentIndex:number) =>{
-    console.log("current Index ===> ", currentIndex);
     
     let result;
         switch (currentIndex ) {
@@ -66,7 +65,7 @@ const showNotification = (currentIndex:number) =>{
             result = 'Imported File';
             break;
             
-        }
+        }    
     return(
         currentIndex !== 3 && currentIndex !== 4 &&
     Notification({
@@ -125,7 +124,7 @@ const HorizontalStepper = forwardRef(
                 });
             }
         }));
-
+        
         const handleTabStep = (idx: number) => {
             if (newMigrationData?.content_mapping?.isDropDownChanged) {
                 setIsModalOpen(true);
@@ -149,6 +148,13 @@ const HorizontalStepper = forwardRef(
             else if(-1 < newMigrationData?.legacy_cms?.currentStep  && 
                 newMigrationData?.legacy_cms?.currentStep  < 2){
                 showNotification(newMigrationData?.legacy_cms?.currentStep + 1);
+            } 
+            else if(newMigrationData?.destination_stack?.selectedStack === undefined 
+                || newMigrationData?.destination_stack?.selectedStack === null || Object.keys(newMigrationData?.destination_stack?.selectedStack || {}).length === 0) {
+                return Notification({
+                    notificationContent: { text: `Please select a stack to proceed further` },
+                    type: 'warning' 
+                })
             }
             else {
                 setTabStep(idx);
