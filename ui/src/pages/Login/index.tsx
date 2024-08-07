@@ -1,9 +1,9 @@
 // Libraries
-import { FC, useContext, useEffect, useState } from 'react';
+import { FC,useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 
-import { getUserDetails, setAuthToken } from '../../store/slice/authSlice';
+import { setAuthToken } from '../../store/slice/authSlice';
 import {
   Button,
   Field,
@@ -36,8 +36,6 @@ import AccountPage from '../../components/AccountPage';
 
 // Styles
 import './index.scss';
-
-import { AppContext } from '../../context/app/app.context';
 
 const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
