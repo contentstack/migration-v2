@@ -65,6 +65,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
+    console.log("in useEffect selected stack ", selectedStack);
+    
   }, [newMigrationData]);
   useEffect(()=>{
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
@@ -178,7 +180,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const fetchData = async () => {
     // console.log("..........outside fetchdata",selectedStack)
     if (allStack?.length <= 0) {
-      // console.log("..........in fetchdata",selectedStack, allStack?.length)
+      console.log("..........in fetchdata",selectedStack, allStack?.length)
       setAllStack(loadingOption);
       const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there  
       const stackArray = validateArray(stackData?.data?.stacks)
@@ -205,14 +207,14 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         ? stackArray.find(
             (stack: IDropDown) =>
             {
-              console.log(".........inside", stack?.value === newMigrationData?.destination_stack?.selectedStack?.value, stack?.value === newMigrationDataRef.current?.destination_stack?.selectedStack?.value )
-              return stack?.value === newMigrationDataRef?.current?.destination_stack?.selectedStack?.value
+              console.log(".........inside", stack?.value , newMigrationData?.destination_stack?.selectedStack?.value)
+              return stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
             }
           )
         : DEFAULT_DROPDOWN;
   
       // if (!isEmptyString(selectedStackData?.value)) {
-        setSelectedStack(selectedStackData);
+        
       // }  
       console.log("..........selectedStackData", selectedStackData);
       // console.log("..........newMigrationData", newMigrationData);
@@ -223,18 +225,23 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         setIsError(true);
         setErrorMessage("Please create new stack there is no stack available");
       } 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationDataRef?.current,
-        destination_stack: {
-          ...newMigrationDataRef?.current?.destination_stack,
-          selectedStack: selectedStackData,
-          stackArray: stackArray
-        }
-      };  
-      // console.log("........newMigrationDataObj",newMigrationDataObj);
+      if(selectedStackData){
+        setSelectedStack(selectedStackData);
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationDataRef?.current,
+          destination_stack: {
+            ...newMigrationDataRef?.current?.destination_stack,
+            selectedStack: selectedStackData,
+            stackArray: stackArray
+          }
+        };  
+        // console.log("........newMigrationDataObj",newMigrationDataObj);
+  
+        // Dispatch the updated migration data to Redux
+        dispatch(updateNewMigrationData(newMigrationDataObj));
 
-      // Dispatch the updated migration data to Redux
-      dispatch(updateNewMigrationData(newMigrationDataObj));
+      }
+      
     }
   };
   
