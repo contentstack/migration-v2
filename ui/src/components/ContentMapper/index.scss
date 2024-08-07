@@ -63,43 +63,47 @@
   list-style-type: none;
   padding: 15px 0 15px 0;
   li {
-    align-items: center;
-    cursor: pointer;
-    display: flex;
-    font-size: $size-font-xl;
-    justify-content: space-between;
-    line-height: normal;
-    min-height: 42px;
-    padding: $px-8 $px-10 $px-8 $px-12;
+    .list-button {
+      align-items: center;
+      display: flex;
+      font-size: $size-font-xl;
+      justify-content: space-between;
+      line-height: normal;
+      min-height: 42px;
+      padding: $px-8 $px-10 $px-8 $px-12;
+      
+      .cms-title {
+        align-items: center;
+        display: flex;
+        margin-right: $px-12;
+        max-height: 24px;
+        white-space: nowrap;
+        width: 70%;
+        .tippy-wrapper {
+          display: flex;
+        }
+        span {
+          color: $color-font-base;
+          margin-left: $px-10;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+      .ct-options {
+        justify-content: flex-end;
+      }
+    }
     &:hover, &.active-ct {
-      background-color: $color-brand-white-base;
+      button {
+        background-color: $color-brand-white-base;
+      }
       .cms-title {
         span {
           color: $color-brand-primary-base;
         }
       }
     }
-    .cms-title {
-      align-items: center;
-      display: flex;
-      margin-right: $px-12;
-      max-height: 24px;
-      white-space: nowrap;
-      width: 80%;
-      .tippy-wrapper {
-        display: flex;
-      }
-      span {
-        color: $color-font-base;
-        margin-left: $px-10;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-    }
-    .ct-options {
-      justify-content: flex-end;
-    }
-  }
+  } 
 }
 .mapped-icon {
   circle {
@@ -243,12 +247,14 @@ div .table-row {
   top: $px-50;
   z-index: 1;
   li {
-    align-items: center;
-    cursor: pointer;
-    display: flex;
-    font-size: $size-font-medium;
-    justify-content: space-between;
-    padding: $px-8 $px-12;
+    button {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      font-size: $size-font-medium;
+      padding: $px-8 $px-12;
+    }
+    
     &:hover {
       background-color: $color-base-white-10;
       color: $color-brand-primary-base;

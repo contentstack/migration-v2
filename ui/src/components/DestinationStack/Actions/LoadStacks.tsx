@@ -75,12 +75,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   },[newMigrationData?.destination_stack?.selectedStack])
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
-    if (isSaving) return false;
+    // if (isSaving) return false;
     setIsSaving(true);
   
     if (isEmptyString(data?.name) || isEmptyString(data?.locale)) {
       setIsSaving(false);
-      return false;
+      // return false;
     }
   
     // Post data to backend
@@ -137,8 +137,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       props.handleStepChange(props?.currentStep, true);
       
       return true;
-    }
-    return false;
+    } 
+    // else {
+    //   return false;
+    // }
   };
   
   /****  ALL METHODS HERE  ****/
