@@ -1,14 +1,26 @@
+// Libraries
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './HorizontalStepper.scss';
-import { Icon, cbModal } from '@contentstack/venus-components';
+import { cbModal, Notification,Button } from '@contentstack/venus-components';
 
 import { useSelector } from 'react-redux';
 
+// Redux
 import { RootState } from '../../../store';
-import SaveChangesModal from '../../../components/Common/SaveChangesModal';
+
+// Interface
 import { ModalObj } from '../../../components/Modal/modal.interface'; 
+
+// Components
+import SaveChangesModal from '../../../components/Common/SaveChangesModal';
+
+// Hooks
 import useBlockNavigation from '../../../hooks/userNavigation';
+
+// CSS
+import './HorizontalStepper.scss';
+
 
 export enum StepStatus {
     ACTIVE = "ACTIVE",
@@ -27,12 +39,11 @@ export type stepperProps = {
     steps: Array<stepsArray>;
     className?: string;
     emptyStateMsg?: string | JSX.Element;
-    stepComponentProps?: any;
     hideTabView?: boolean;
     stepContentClassName?: string;
     stepTitleClassName?: string;
     testId?: string;
-    handleSaveCT: () => {};
+    handleSaveCT?: () => void;
     changeDropdownState: () => void;
 };
 
@@ -40,14 +51,39 @@ export type HorizontalStepperHandles = {
     handleStepChange: (currentStep: number) => void;
 };
 
+const showNotification = (currentIndex:number) =>{
+    console.log("current Index ===> ", currentIndex);
+    
+    let result;
+        switch (currentIndex ) {
+          case 0:
+            result = 'CMS';
+            break;
+          case 1:
+            result = 'Enter Affix';
+            break;
+          case 2:
+            result = 'Imported File';
+            break;
+            
+        }
+    return(
+        currentIndex !== 3 && currentIndex !== 4 &&
+    Notification({
+        notificationContent: { text: `Please complete ${result} step` },
+        type: 'warning' 
+    })
+
+    )
+}
 const HorizontalStepper = forwardRef(
     (props: stepperProps, ref: React.ForwardedRef<HorizontalStepperHandles>) => {
-        const { steps, className, emptyStateMsg, stepComponentProps, hideTabView, testId } = props;
+        const { steps, className, emptyStateMsg, hideTabView, testId } = props;
         const [showStep, setShowStep] = useState(0);
         const [stepsCompleted, setStepsCompleted] = useState<number[]>([]);
         const [isModalOpen, setIsModalOpen] = useState(false);
 
-        const { stepId } = useParams<{ stepId: any }>();
+        const { stepId } = useParams<{ stepId: string }>();
 
         const navigate = useNavigate();
         const { projectId = '' } = useParams();
@@ -59,8 +95,9 @@ const HorizontalStepper = forwardRef(
         useBlockNavigation(isModalOpen);
 
         useEffect(() => {
-            const stepIndex = parseInt(stepId, 10) - 1;
-            if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
+            const stepIndex = parseInt(stepId || '', 10) - 1;
+            
+            if (!Number.isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
                 setShowStep(stepIndex);
                 setStepsCompleted(prev => {
                     const updatedStepsCompleted = [...prev];
@@ -109,7 +146,12 @@ const HorizontalStepper = forwardRef(
                     shouldCloseOnOverlayClick: false
                     }
                 });
-            } else {
+            } 
+            else if(-1 < newMigrationData?.legacy_cms?.currentStep  && 
+                newMigrationData?.legacy_cms?.currentStep  < 2){
+                showNotification(newMigrationData?.legacy_cms?.currentStep + 1);
+            }
+            else {
                 setTabStep(idx);
             }
         };
@@ -121,6 +163,9 @@ const HorizontalStepper = forwardRef(
                 navigate(url, { replace: true });
             }
         }
+
+        //variable for button component in table
+        const onlyIcon= true;
         
         const StepsTitleCreator: React.FC = () => (
             <div className="stepper stepper-position">
@@ -133,7 +178,6 @@ const HorizontalStepper = forwardRef(
                         !stepsCompleted.includes(idx) && idx !== showStep && !stepsCompleted?.includes(idx - 1)
                             ? 'disableEvents'
                             : '';
-                    
                     return (
                         <React.Fragment key={id}>
                             <div className="stepWrapperContainer">
@@ -145,7 +189,8 @@ const HorizontalStepper = forwardRef(
                                         <div className="badge">
                                             {completedClass ? (
                                                 <div className="icon-flex">
-                                                    <Icon icon="Check" size="tiny" active={false} height="13px" width="19px" />
+                                                    {/* <Icon icon="v2-Check" version='v2' size="tiny" active={false} height="13px" width="19px" /> */}
+                                                    <Button buttonType="light" icon={onlyIcon ? "v2-Check" : ''} version="v2" onlyIcon={true} className="iconClass"></Button>
                                                 </div>
                                             ) : (
                                                 <>{idx + 1}</>
@@ -178,5 +223,6 @@ const HorizontalStepper = forwardRef(
         );
     }
 );
+
 HorizontalStepper.displayName = 'HorizontalStepper';
 export default HorizontalStepper;
