@@ -203,14 +203,16 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         ? stackArray.find(
             (stack: IDropDown) =>
             {
-              // console.log(".........insdie", stack?.value,newMigrationData?.destination_stack?.selectedStack?.value)
+              console.log(".........inside", stack?.value === newMigrationData?.destination_stack?.selectedStack?.value, stack?.value === newMigrationDataRef.current?.destination_stack?.selectedStack?.value )
               return stack?.value === newMigrationDataRef?.current?.destination_stack?.selectedStack?.value
             }
           )
         : DEFAULT_DROPDOWN;
   
-      setSelectedStack(selectedStackData);
-      // console.log("..........selectedStackData", selectedStackData);
+      // if (!isEmptyString(selectedStackData?.value)) {
+        setSelectedStack(selectedStackData);
+      // }  
+      console.log("..........selectedStackData", selectedStackData);
       // console.log("..........newMigrationData", newMigrationData);
       // console.log("..........in", newMigrationDataRef, newMigrationData);
       
