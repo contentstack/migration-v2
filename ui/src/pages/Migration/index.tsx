@@ -24,6 +24,7 @@ import {
   IFlowStep
 } from '../../components/Stepper/FlowStepper/flowStep.interface';
 import { INewMigration } from '../../context/app/app.interface';
+import { ContentTypeSaveHandles } from '../../components/ContentMapper/contentMapper.interface';
 
 
 // Components
@@ -36,6 +37,13 @@ import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import { Notification } from '@contentstack/venus-components';
 
+type StepperComponentRef = {
+  handleStepChange: (step: number) => void;
+};
+type LegacyCmsRef = {
+  getInternalActiveStepIndex: () => number;
+};
+
 const Migration = () => {
   const [projectData, setProjectData] = useState<MigrationResponse>();
   const [isLoading, setIsLoading] = useState(false);
@@ -46,13 +54,13 @@ const Migration = () => {
   const { projectId = '' } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const stepperRef = useRef<any>(null);
-  const legacyCMSRef = useRef<any>(null);
+  const stepperRef = useRef<StepperComponentRef>(null);
+  const legacyCMSRef = useRef<LegacyCmsRef>(null);
 
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
   const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
 
-  const saveRef = useRef<any>(null);
+  const saveRef = useRef<ContentTypeSaveHandles>(null);
 
   useEffect(() => {
     fetchData();
@@ -140,9 +148,7 @@ const Migration = () => {
         data: <MigrationExecution />,
         id:'5',
         title:'Migration Execution'
-      },
-  
-      
+      }
      ]
      return steps;
   }
@@ -217,7 +223,7 @@ const Migration = () => {
             result = 'Imported File';
             break;
         }
-        if (currentIndex !== 3 || currentIndex !== 4) {
+        if (currentIndex !== 3) {
           Notification({
             notificationContent: { text: `Please complete ${result} step` },
             type: 'warning'
@@ -314,7 +320,7 @@ const Migration = () => {
 
     dispatch(updateNewMigrationData((newMigrationDataObj)));
   }
-
+  
   return (
     <div className='migration-steps-wrapper'>
       <MigrationFlowHeader handleOnClick={handleOnClickFunctions[curreentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef}   />
