@@ -419,6 +419,11 @@ h2 {
     border-top: 1px solid $color-brand-secondary-lightest;
   }
 }
+.list-button {
+  background: none;
+  border: 0 none;
+  width: 100%;
+}
 ::-webkit-input-placeholder {
   color: $color-stepper-title !important;
 }

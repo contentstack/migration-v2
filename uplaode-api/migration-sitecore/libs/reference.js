@@ -96,7 +96,7 @@ function ExtractRef() {
                   otherCmsType: "reference",
                   contentstackField: newKey,
                   contentstackFieldUid: uidCorrector({ uid: newKey }),
-                  ContentstackFieldType: "refernce",
+                  ContentstackFieldType: "reference",
                   isDeleted: false,
                   backupFieldType: "reference",
                   refrenceTo: key,

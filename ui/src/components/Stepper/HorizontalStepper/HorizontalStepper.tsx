@@ -2,7 +2,7 @@
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './HorizontalStepper.scss';
-import { Icon, cbModal, Notification,Button } from '@contentstack/venus-components';
+import { cbModal, Notification,Button } from '@contentstack/venus-components';
 
 import { useSelector } from 'react-redux';
 
@@ -82,7 +82,7 @@ const HorizontalStepper = forwardRef(
         const [stepsCompleted, setStepsCompleted] = useState<number[]>([]);
         const [isModalOpen, setIsModalOpen] = useState(false);
 
-        const { stepId } = useParams<{ stepId: any }>();
+        const { stepId } = useParams<{ stepId: string }>();
 
         const navigate = useNavigate();
         const { projectId = '' } = useParams();
@@ -94,8 +94,9 @@ const HorizontalStepper = forwardRef(
         useBlockNavigation(isModalOpen);
 
         useEffect(() => {
-            const stepIndex = parseInt(stepId, 10) - 1;
-            if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
+            const stepIndex = parseInt(stepId || '', 10) - 1;
+            
+            if (!Number.isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
                 setShowStep(stepIndex);
                 setStepsCompleted(prev => {
                     const updatedStepsCompleted = [...prev];
@@ -228,5 +229,6 @@ const HorizontalStepper = forwardRef(
         );
     }
 );
+
 HorizontalStepper.displayName = 'HorizontalStepper';
 export default HorizontalStepper;
