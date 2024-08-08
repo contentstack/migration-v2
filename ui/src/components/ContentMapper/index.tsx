@@ -300,6 +300,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       });
 
     fetchExistingContentTypes();
+    fetchContentTypes(searchText || '');
   }, []);
 
   useEffect(() => {
@@ -416,6 +417,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
     setContentTypes(data?.contentTypes);
     setFilteredContentTypes(data?.contentTypes);
+    setCount(data?.contentTypes?.length);
   };
 
   // Method to get fieldmapping
@@ -453,8 +455,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
   // Fetch table data
   const fetchData = async ({ searchText }: TableTypes) => {
-    setSearchText(searchText);
-    fetchContentTypes(searchText || '');
+    setSearchText(searchText)
+    fetchFields(contentTypeUid, searchText);
   };
 
   // Method for Load more table data
@@ -1148,6 +1150,22 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     );
   };
 
+
+  useEffect(() => {
+    if (isUpdated) {     
+      setTableData(updatedRows as FieldMapType[]);
+      setexsitingField(updatedExstingField);
+      setSelectedOptions(updatedSelectedOptions);
+      setSelectedEntries(updatedRows);
+      setIsUpdated(false);
+    }
+    else{
+      setexsitingField({});
+      setSelectedOptions([]);
+
+    }
+  }, [isUpdated, OtherContentType]);
+ 
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
@@ -1197,7 +1215,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         dataCs
       );
 
-      if (status == 200) {
+      if (data?.status == 200) {
         Notification({
           notificationContent: { text: 'Content type saved successfully' },
           notificationProps: {
@@ -1218,7 +1236,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         setContentTypes(savedCT);
       } else {
         Notification({
-          notificationContent: { text: data?.error?.message },
+          notificationContent: { text: data?.message },
           notificationProps: {
             position: 'bottom-center',
             hideProgressBar: true
@@ -1408,7 +1426,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         <div className="content-types-list-wrapper">
           <div className="content-types-list-header d-flex align-items-center justify-content-between">
             {contentTypesHeading && <h2>{contentTypesHeading}</h2> }
-            {contentTypes && validateArray(contentTypes) &&  count }
+            {contentTypes &&  count }
           </div>
 
           <div className='ct-search-wrapper'>
