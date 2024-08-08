@@ -66,7 +66,7 @@ const MainHeader = () => {
       //Set organization in local storage, first check if selectedOrg.value exists, if not get org id from local storage and set.
       setDataInLocalStorage(
         'organization',
-        selectedOrganisation?.value || getDataFromLocalStorage('organization')
+        selectedOrganisation?.value || getDataFromLocalStorage('organization') || ''
       );
     }
   };
