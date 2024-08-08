@@ -23,7 +23,7 @@ exports.readFile = function (filePath, parse) {
     filePath = path.resolve(filePath);
     let data;
     if (fs.existsSync(filePath)) {
-      data = parse ? JSON.parse(fs.readFileSync(filePath, "utf-8")) : data;
+      data = parse ? JSON.parse(fs.readFileSync(filePath, "utf8")) : data;
       return data;
     } else {
       return undefined;
@@ -37,7 +37,7 @@ exports.writeFile = function (filePath, data, pathName) {
   if (fs.existsSync(filePath)) {
     filePath = path.resolve(`${filePath}/${pathName}`);
     data = typeof data === "object" ? JSON.stringify(data) : data || "{}";
-    fs.writeFileSync(`${filePath}.json`, data, "utf-8");
+    fs.writeFileSync(`${filePath}.json`, data, "utf8");
   } else {
     fs.mkdirSync(
       filePath,
@@ -45,7 +45,7 @@ exports.writeFile = function (filePath, data, pathName) {
     );
     filePath = path.resolve(`${filePath}/${pathName}`);
     data = typeof data == "object" ? JSON.stringify(data) : data || "{}";
-    fs.writeFileSync(`${filePath}.json`, data, "utf-8");
+    fs.writeFileSync(`${filePath}.json`, data, "utf8");
   }
 };
 
