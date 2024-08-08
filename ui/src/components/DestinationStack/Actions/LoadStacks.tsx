@@ -6,10 +6,8 @@ import { isEmptyString, validateArray } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
 import { StackResponse } from '../../../services/api/service.interface';
 import AddStack, { Stack } from '../../../components/Common/AddStack/addStack';
-import { updateDestinationStack } from '../../../services/api/migration.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import { Params, useParams } from 'react-router';
 
 interface LoadFileFormatProps {
   stepComponentProps: any;
@@ -29,7 +27,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const dispatch = useDispatch();
   /****  ALL UseStates HERE  ****/
-  const [selectedStack, setSelectedStack] = useState<any>(
+  const [selectedStack, setSelectedStack] = useState<IDropDown | null>(
     null
   );  
   const loadingOption = [
@@ -53,33 +51,30 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     }
   ];
   const [allStack, setAllStack] = useState<IDropDown[]>(newMigrationData?.destination_stack?.stackArray);
-  const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
+  const [allLocales] = useState<IDropDown[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [isLoading, setisLoading] = useState<boolean>(false);
+  const [isLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const { projectId = '' }: Params<string> = useParams();
-  const [placeholder, setPlaceholder] = useState<string>('Select a stack');
-  // console.log("......newMigrationData",newMigrationData)
+  const [placeholder] = useState<string>('Select a stack');
   const newMigrationDataRef = useRef(newMigrationData);
 
   useEffect(() => {
-    newMigrationDataRef.current = newMigrationData;
+    newMigrationDataRef.current = newMigrationData;    
   }, [newMigrationData]);
   useEffect(()=>{
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
     }
+    setAllStack(newMigrationData?.destination_stack?.stackArray)
+
   },[newMigrationData?.destination_stack?.selectedStack])
-  
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
-    // if (isSaving) return false;
     setIsSaving(true);
   
     if (isEmptyString(data?.name) || isEmptyString(data?.locale)) {
       setIsSaving(false);
-      // return false;
     }
   
     // Post data to backend
@@ -122,39 +117,34 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         }
       };
   
-      // console.log("Updating newMigrationData:", newMigrationDataObj);
       dispatch(updateNewMigrationData(newMigrationDataObj));
-  
       // call for Step Change
       props.handleStepChange(props?.currentStep, true);
       
       return true;
-    } 
-    // else {
-    //   return false;
-    // }
+    }
   };
   
   /****  ALL METHODS HERE  ****/
 
   //Handle Legacy cms selection
   const handleDropdownChange = (name: string) => (data: IDropDown) => {
-    const stackCleared = data?.value === '' || data?.value === null || data === null || data === undefined;
-    if (stackCleared === true) {
-      setIsError(true);
-      setErrorMessage("Please select a stack");
-      setPlaceholder('Please select a stack');
-    } 
-        
+    const stackCleared = data?.value === '' || data?.value === null || data === null || data?.value === undefined;
     if (name === 'stacks' && data?.value != '+ Create a new Stack') {
       setSelectedStack(() => ({ ...data }));
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
           ...newMigrationData?.destination_stack,
-          selectedStack: { ...data }
+          selectedStack:  { ...data }
         }
       };
+
+      if (stackCleared === true) {
+        setIsError(true);
+        setErrorMessage("Please select a stack");
+        setSelectedStack(null);
+      }
       
       dispatch(updateNewMigrationData(newMigrationDataObj));
       if (!stackCleared) {
@@ -187,38 +177,38 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
       );
   
-      setAllStack(stackArray);
-  
+      setAllStack(stackArray);      
       //Set selected Stack
       const selectedStackData = validateArray(stackArray)
         ? stackArray.find(
             (stack: IDropDown) =>
-              stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
+            {
+              return stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
+            }
           )
         : DEFAULT_DROPDOWN;
-  
-      setSelectedStack(selectedStackData);
-      
       if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
         setIsError(true);
         setErrorMessage("Please create new stack there is no stack available");
       } 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationDataRef?.current,
-        destination_stack: {
-          ...newMigrationDataRef?.current?.destination_stack,
-          selectedStack: selectedStackData,
-          stackArray: stackArray
-        }
-      };  
-      // console.log("........newMigrationDataObj",newMigrationDataObj);
-      
-      // Dispatch the updated migration data to Redux
-      dispatch(updateNewMigrationData(newMigrationDataObj));
+      if(selectedStackData){
+        setSelectedStack(selectedStackData);
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationDataRef?.current,
+          destination_stack: {
+            ...newMigrationDataRef?.current?.destination_stack,
+            selectedStack: selectedStackData,
+            stackArray: stackArray
+          }
+        };  
+        // Dispatch the updated migration data to Redux
+        dispatch(updateNewMigrationData(newMigrationDataObj));
+
+      }
     }
   };
   
-  
+
   const handleCreateNewStack = () => {
     cbModal({
       component: (props: LoadFileFormatProps) => (
