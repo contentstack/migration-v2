@@ -6,10 +6,8 @@ import { isEmptyString, validateArray } from '../../../utilities/functions';
 import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
 import { StackResponse } from '../../../services/api/service.interface';
 import AddStack, { Stack } from '../../../components/Common/AddStack/addStack';
-import { updateDestinationStack } from '../../../services/api/migration.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import { Params, useParams } from 'react-router';
 
 interface LoadFileFormatProps {
   stepComponentProps: any;
@@ -29,7 +27,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const dispatch = useDispatch();
   /****  ALL UseStates HERE  ****/
-  const [selectedStack, setSelectedStack] = useState<any>(
+  const [selectedStack, setSelectedStack] = useState<IDropDown | null>(
     null
   );  
   const loadingOption = [
@@ -53,20 +51,16 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     }
   ];
   const [allStack, setAllStack] = useState<IDropDown[]>(newMigrationData?.destination_stack?.stackArray);
-  const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
+  const [allLocales] = useState<IDropDown[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [isLoading, setisLoading] = useState<boolean>(false);
+  const [isLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const { projectId = '' }: Params<string> = useParams();
-  const [placeholder, setPlaceholder] = useState<string>('Select a stack');
-  // console.log("......newMigrationData",newMigrationData)
+  const [placeholder] = useState<string>('Select a stack');
   const newMigrationDataRef = useRef(newMigrationData);
 
   useEffect(() => {
-    newMigrationDataRef.current = newMigrationData;
-    console.log("in useEffect selected stack ", selectedStack);
-    
+    newMigrationDataRef.current = newMigrationData;    
   }, [newMigrationData]);
   useEffect(()=>{
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
@@ -77,12 +71,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   },[newMigrationData?.destination_stack?.selectedStack])
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
-    // if (isSaving) return false;
     setIsSaving(true);
   
     if (isEmptyString(data?.name) || isEmptyString(data?.locale)) {
       setIsSaving(false);
-      // return false;
     }
   
     // Post data to backend
@@ -125,24 +117,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         }
       };
   
-      // console.log("Updating newMigrationData:", newMigrationDataObj);
       dispatch(updateNewMigrationData(newMigrationDataObj));
-  
-      // API call for saving selected CMS
-      // if (resp?.data?.stack?.api_key) {
-      //   updateDestinationStack(selectedOrganisation?.value, projectId, {
-      //     stack_api_key: resp?.data?.stack?.api_key
-      //   });
-      // }
-  
       // call for Step Change
       props.handleStepChange(props?.currentStep, true);
       
       return true;
-    } 
-    // else {
-    //   return false;
-    // }
+    }
   };
   
   /****  ALL METHODS HERE  ****/
@@ -178,9 +158,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   };
   
   const fetchData = async () => {
-    // console.log("..........outside fetchdata",selectedStack)
     if (allStack?.length <= 0) {
-      console.log("..........in fetchdata",selectedStack, allStack?.length)
       setAllStack(loadingOption);
       const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there  
       const stackArray = validateArray(stackData?.data?.stacks)
@@ -199,28 +177,16 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
       );
   
-      setAllStack(stackArray);
-      // console.log(".............stackArray",stackArray);
-      
+      setAllStack(stackArray);      
       //Set selected Stack
       const selectedStackData = validateArray(stackArray)
         ? stackArray.find(
             (stack: IDropDown) =>
             {
-              console.log(".........inside", stack?.value , newMigrationData?.destination_stack?.selectedStack?.value)
               return stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
             }
           )
         : DEFAULT_DROPDOWN;
-  
-      // if (!isEmptyString(selectedStackData?.value)) {
-        
-      // }  
-      console.log("..........selectedStackData", selectedStackData);
-      // console.log("..........newMigrationData", newMigrationData);
-      // console.log("..........in", newMigrationDataRef, newMigrationData);
-      
-      
       if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
         setIsError(true);
         setErrorMessage("Please create new stack there is no stack available");
@@ -235,13 +201,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
             stackArray: stackArray
           }
         };  
-        // console.log("........newMigrationDataObj",newMigrationDataObj);
-  
         // Dispatch the updated migration data to Redux
         dispatch(updateNewMigrationData(newMigrationDataObj));
 
       }
-      
     }
   };
   
@@ -276,10 +239,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const emptyStackValue = selectedStack?.value === undefined || selectedStack?.value === '' || selectedStack?.value === null
   /****  ALL USEEffects  HERE  ****/
   useEffect(() => {
-    // console.log("..........in useEffect",selectedStack)
     fetchData();
   }, []);
-  // console.log("..........selectedstack",selectedStack)
   return (
     <div className="">
       <div className="action-summary-wrapper ">
