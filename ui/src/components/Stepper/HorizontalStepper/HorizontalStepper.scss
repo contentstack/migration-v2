@@ -126,9 +126,9 @@
 }
 .stepContent {
   background-color: $color-base-white-10;
+  display: flex;
   height: calc(100vh - 56px);
   padding-top: 190px;
-  background: $color-base-white-10;
 }
 .iconClass {
   &:hover {
