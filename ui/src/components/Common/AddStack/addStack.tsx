@@ -31,11 +31,6 @@ import './addStack.scss';
 import { getAllLocales } from '../../../services/api/user.service';
 import { validateObject } from '../../../utilities/functions';
 import { IDropDown } from '../../../context/app/app.interface';
-export interface Stack {
-  name: string;
-  description: string;
-  locale: string;
-}
 
 /**
  * Renders the AddStack component.
