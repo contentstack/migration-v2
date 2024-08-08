@@ -1,15 +1,27 @@
+// Libraries
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Params, useParams } from 'react-router';
 import { Select, cbModal, TextInput, SkeletonTile } from '@contentstack/venus-components';
-import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
-import { isEmptyString, validateArray } from '../../../utilities/functions';
-import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
-import { StackResponse } from '../../../services/api/service.interface';
-import AddStack, { Stack } from '../../../components/Common/AddStack/addStack';
-import { updateDestinationStack } from '../../../services/api/migration.service';
+
+// Redux
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import { Params, useParams } from 'react-router';
+
+// Interface
+import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
+import { StackResponse } from '../../../services/api/service.interface';
+import { Stack } from '../../../components/Common/AddStack/addStack.interface';
+
+//Utilities
+import { isEmptyString, validateArray } from '../../../utilities/functions';
+
+// Services
+import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
+import { updateDestinationStack } from '../../../services/api/migration.service';
+
+// Components
+import AddStack from '../../../components/Common/AddStack/addStack';
 
 interface LoadFileFormatProps {
   stepComponentProps: any;
