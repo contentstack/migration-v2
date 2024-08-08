@@ -199,3 +199,10 @@ export interface Errors {
   locale: string;
   description: string;
 }
+
+export interface Stack {
+  name: string;
+  description: string;
+  locale: string;
+  master_locale?: string;
+}
