@@ -48,7 +48,7 @@ const DocLink = ({
   isDisable,
   label,
   isLabelFullWidth,
-  onChange = (e: ChangeEvent<HTMLInputElement>) => {
+  onChange = () => {
     return;
   }
 }: IProps) => {
