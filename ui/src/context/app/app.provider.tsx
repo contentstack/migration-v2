@@ -10,7 +10,6 @@ import {
   clearLocalStorage,
   getDataFromLocalStorage,
   isEmptyString,
-  setDataInLocalStorage,
   validateArray
 } from '../../utilities/functions';
 
