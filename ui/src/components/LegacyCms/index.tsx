@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState , useImperativeHandle} from 'react';
+import { forwardRef, useEffect, useRef, useState , useImperativeHandle, useMemo} from 'react';
 import { useDispatch,useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getLegacyCMSSteps } from './StepperSteps';
@@ -45,7 +45,8 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
-  const [stepperKey, setStepperKey] = useState<string>('v-mig-step');
+  const [stepperKey, setStepperKey] = useState<string>('legacy-Vertical-stepper');
+
   const { projectId = '' } = useParams();
   const [isValidated, setisValidated] = useState<boolean>(
     newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false
@@ -202,7 +203,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
   }, []);
 
   useEffect(() => {
-    setStepperKey('legacy-Vertical-stepper');
+
     setisValidated(newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false);
   }, [isLoading]);
 
@@ -219,9 +220,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
         autoVerticalStepper.current.handleDynamicStepChange(internalActiveStepIndex, true);
       }
     }
-  }, [internalActiveStepIndex]);  
 
-  useEffect(()=>{
     dispatch(updateNewMigrationData(
       {
       ...newMigrationData,
@@ -232,7 +231,9 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
       
       }));
     
-  },[internalActiveStepIndex]);
+    
+  }, [internalActiveStepIndex]);  
+
 
   useEffect(()=>{
     if (!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id)) {    
