@@ -58,6 +58,11 @@
     height: 40px;
     border-radius: 50%;
     margin-right: 0px;
+    button {
+      &:focus {
+        box-shadow: none;
+      }
+    }
   }
 
   .stepper-title {
@@ -121,9 +126,9 @@
 }
 .stepContent {
   background-color: $color-base-white-10;
+  display: flex;
   height: calc(100vh - 56px);
   padding-top: 190px;
-  background: $color-base-white-10;
 }
 .iconClass {
   &:hover {
