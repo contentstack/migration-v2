@@ -1,6 +1,7 @@
 import { API_VERSION } from '../../utilities/constants';
 import { getDataFromLocalStorage } from '../../utilities/functions';
 import { getCall, postCall } from './service';
+import { Stack } from '../../components/Common/AddStack/addStack.interface';
 
 const options = {
   headers: {
@@ -16,7 +17,7 @@ export const getAllStacksInOrg = async (orgId: string,searchText: string) => {
   }
 };
 
-export const createStacksInOrg = async (orgId: string, data: any) => {
+export const createStacksInOrg = async (orgId: string, data: Stack) => {
   try {
     return await postCall(`${API_VERSION}/org/${orgId}/stacks`, data, options);
   } catch (error) {
