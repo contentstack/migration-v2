@@ -15,12 +15,12 @@ import {
   cbModal
 } from '@contentstack/venus-components';
 
+// Redux
+import { RootState } from '../../../store';
+
 // Interfaces
 import { Setting } from './setting.interface';
 import { ModalObj } from '../../../components/Modal/modal.interface';
-
-// Context
-import { AppContext } from '../../../context/app/app.context';
 
 // Service
 import { getProject, updateProject } from '../../../services/api/project.service';
@@ -32,7 +32,6 @@ import DeleteProjectModal from '../DeleteProjectModal';
 
 //stylesheet
 import './Settings.scss';
-import { RootState } from '../../../store';
 
 /**
  * Renders the Settings component.
@@ -48,7 +47,6 @@ const Settings = () => {
   const [projectDescription, setProjectDescription] = useState('');
 
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
-  const user = useSelector((state:RootState)=>state?.authentication?.user);
 
   const navigate = useNavigate();
 
