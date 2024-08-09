@@ -84,7 +84,8 @@ const dummy_obj:any = {
   'json':{
     label:'JSON Rich Text Editor',
     options : {
-      'JSON Rich Text Editor':'json'
+      'JSON Rich Text Editor':'json',
+      'HTML Rich text Editor': 'html'
     }
   },
   'html':{
