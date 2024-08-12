@@ -133,7 +133,8 @@ const Projects = () => {
   const onClose = () => {
     fetchProjects();
   };
-  useBlockNavigation(isModalOpen)
+  useBlockNavigation(isModalOpen || true);
+  
   // Function for open modal
   const openModal = () => {
     setIsModalOpen(true);

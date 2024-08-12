@@ -1,5 +1,5 @@
 // Libraries
-import { FC,useEffect, useState } from 'react';
+import { FC,useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 
@@ -66,6 +66,7 @@ const Login: FC<IProps> = () => {
   // ************* ALL States Here ************
   const [loginStates, setLoginStates] = useState<IStates>(defaultStates);
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isBlock, setIsBlock] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -177,6 +178,14 @@ const Login: FC<IProps> = () => {
     }
   };
 
+  useEffect(()=>{
+    if(region && loginStates?.tfa){
+      setIsBlock(true);
+  
+    }
+
+  },[loginStates]);
+
   // Function for TFA validation
   const TFAValidation = (value: string): string | undefined => {
     if (value?.length) {
@@ -186,6 +195,26 @@ const Login: FC<IProps> = () => {
     }
   };
 
+  
+  useEffect(()=>{ 
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      window.history.pushState(null, '', window.location.href);
+
+    };
+    if(isBlock){
+      window.history.pushState(null, '', window.location.href);
+
+    }
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate',handlePopState);
+
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+
+  },[isBlock]);
   return (
     <AccountPage data={accountData}>
       {loginStates?.tfa ? (
