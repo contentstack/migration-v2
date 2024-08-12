@@ -1,5 +1,5 @@
 // Libraries
-import { ChangeEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
@@ -20,9 +20,10 @@ import { ICardType} from '../../../components/Common/Card/card.interface';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { getConfig } from '../../../services/api/upload.service';
+import { ICMSType } from '../../../context/app/app.interface';
 
 interface LoadFileFormatProps {
-  stepComponentProps: any;
+  stepComponentProps: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
@@ -34,10 +35,10 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const dispatch = useDispatch();
 
-  const [selectedCard, setSelectedCard] = useState<ICardType>(
+  const [selectedCard] = useState<ICardType>(
     newMigrationData?.legacy_cms?.selectedFileFormat 
   );
-  const [isCheckedBoxChecked, setIsCheckedBoxChecked] = useState<boolean>(
+  const [isCheckedBoxChecked] = useState<boolean>(
     newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked || true
   );
   const [fileIcon, setFileIcon]  = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.title);
@@ -68,11 +69,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     }
   };
 
-  // Toggles checkbox selection
-  const handleCheckBoxChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { checked } = e.target;
-    setIsCheckedBoxChecked(checked);
-  };
 
   const getFileExtension = (filePath: string): string => {
     const fileName = filePath?.split('/')?.pop();
@@ -82,21 +78,22 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   };
 
   const handleFileFormat = async() =>{
-    const apiRes: any = await getConfig();
-    const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : apiRes?.data?.cmsType?.toLowerCase();
-    const filePath = apiRes?.data?.localPath?.toLowerCase();
+    const {data} = await getConfig();
+    
+    const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : data?.cmsType?.toLowerCase();
+    const filePath = data?.localPath?.toLowerCase();
     const fileFormat =  getFileExtension(filePath);
     if(! isEmptyString(selectedCard?.fileformat_id)){
       setFileIcon(selectedCard?.title);
     }
     else{
       const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
-    let filteredCmsData:any = all_cms;
+    let filteredCmsData:ICMSType[] = all_cms;
     if (cmsType) {
-      filteredCmsData = all_cms?.filter((cms: any) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase());
+      filteredCmsData = all_cms?.filter((cms) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase());
     }
  
-    const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format:any)=>{ 
+    const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format:ICardType)=>{ 
       const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();    
       return isValid;
     });
