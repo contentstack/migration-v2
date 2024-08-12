@@ -68,10 +68,10 @@ export interface FieldMapType {
 
 export interface Advanced {
   validationRegex: string;
-  Mandatory: boolean;
-  Multiple: boolean;
-  Unique: boolean;
-  NonLocalizable: boolean;
+  Mandatory?: boolean;
+  Multiple?: boolean;
+  Unique?: boolean;
+  NonLocalizable?: boolean;
   EmbedObject?: boolean;
 }
 
@@ -86,12 +86,24 @@ export interface FieldMetadata {
   allow_json_rte?: boolean;
 }
 export interface ContentTypesSchema {
-  uid?: string;
-  display_name?: string;
   data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file' | 'reference' | 'group' | 'boolean' | 'link';
-  field_metadata?: FieldMetadata;
+  display_name: string;
   enum?: any;
-  schema?: ContentTypesSchema[]
+  error_messages?: ErrorMessages;
+  field_metadata?: FieldMetadata;
+  mandatory?: boolean;
+  multiple?: boolean;
+  non_localizable?: boolean;
+  schema?: ContentTypesSchema[];
+  uid?: string;
+  unique?: boolean;
+  validationRegex?: string;
+  format?: string;
+  'No matches found'?: string;
+}
+
+interface ErrorMessages {
+  format: string;
 }
 // export interface ContentTypesSchema {
 //   [key: string]: ContentTypeField;
@@ -110,16 +122,16 @@ export interface ContentTypeList {
   uid:  string;
 }
 
-interface value {
+export interface Value {
   uid?:string;
   data_type?: string;
   display_name?: string;
   options?: object;
   'No matches found'?:string;
 }
-export interface optionsType {
+export interface OptionsType {
   label?: string;
-  value?: value;
+  value?: ContentTypesSchema;
   isDisabled?: boolean;
 }
 
@@ -139,5 +151,14 @@ export interface ContentTypeSaveHandles {
   handleSaveContentType: () => void;
 }
 export type MouseOrKeyboardEvent = React.MouseEvent<HTMLElement, MouseEvent> | React.KeyboardEvent<HTMLButtonElement>;
+
+export interface MappingFields {
+  [key: string]: MappingObj;
+}
+
+export interface MappingObj {
+  label: string;
+  options: Mapping;
+}
 
 
