@@ -123,8 +123,9 @@ const MainHeader = () => {
   const handleonClick = async () => { 
     const currentIndex = newMigrationData?.legacy_cms?.currentStep + 1;
     const pathSegments = location?.pathname.split('/');
-    const lastPathSegment = pathSegments[pathSegments.length - 4];
-    const response = await getProject(selectedOrganisation?.uid || '', lastPathSegment);
+    const lastPathSegment = pathSegments?.[pathSegments?.length - 4];
+
+    const response = lastPathSegment && await getProject(selectedOrganisation?.uid || '', lastPathSegment);
     const current_step = response?.data?.current_step;
     if(isModalOpen) return;
 
