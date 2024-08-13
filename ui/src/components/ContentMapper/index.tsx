@@ -790,8 +790,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       if (field?.ContentstackFieldType === 'group') {
         groupId = field?.uid;
         data?.push({ ...field, child: [] });
-      } else {
-        if (field?.uid?.startsWith(groupId + '.')) {
+      } else if (field?.uid?.startsWith(groupId + '.')) {
           const obj = data[data?.length - 1];
           if (Object.hasOwn(obj, 'child')) {
             obj?.child?.push(field);
@@ -801,7 +800,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         } else {
           data.push({ ...field, child: [] });
         }
-      }
     });
     setNestedList(data);
   }
@@ -821,7 +819,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           data?.uid !== 'title') &&
           (value?.uid !== 'url' && 
           data?.uid !== 'url') &&
-          !fieldTypes.has(value?.data_type || '') &&
+          !fieldTypes.has(value?.data_type ?? '') &&
           !value?.field_metadata?.multiline &&
           !value?.enum &&
           !value?.field_metadata?.allow_rich_text &&
@@ -1085,36 +1083,43 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
     }
    
-    const OptionValue: FieldTypes =
-      OptionsForRow.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
-      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference')
-        ? {
-          label: OptionsForRow[0]?.value?.display_name,
-          value: OptionsForRow[0]?.value,
-          isDisabled: true
-        }
-        : (OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) 
-          && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ))
-          ? {
-            label: dummy_obj[data?.ContentstackFieldType]?.label,
-            value: dummy_obj[data?.ContentstackFieldType]?.label,
-            isDisabled: data?.ContentstackFieldType === 'text' ||
-              data?.ContentstackFieldType === 'group' ||
-              data?.ContentstackFieldType === 'url' ||
-              data?.otherCmsType === "reference"
-          }
-          : {
-          label: `${selectedOption} matches`,
-          value: `${selectedOption} matches`,
-          isDisabled: false
-        };
-    
-    const adjustedOptions = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
-      (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === dummy_obj[data?.ContentstackFieldType]?.label) ? []
-      : OptionsForRow.map((option: OptionsType) => ({
+    let OptionValue: FieldTypes;
+    if (OptionsForRow.length === 1 && (existingField[data?.uid] || updatedExstingField[data?.uid] ) &&
+      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference')) {
+      OptionValue = {
+        label: OptionsForRow[0]?.value?.display_name,
+        value: OptionsForRow[0]?.value,
+        isDisabled: true
+      }
+    } else if ((OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ))) {
+      OptionValue = {
+        label: dummy_obj[data?.ContentstackFieldType]?.label,
+        value: dummy_obj[data?.ContentstackFieldType]?.label,
+        isDisabled: data?.ContentstackFieldType === 'text' ||
+          data?.ContentstackFieldType === 'group' ||
+          data?.ContentstackFieldType === 'url' ||
+          data?.otherCmsType === "reference"
+      }
+    } else {
+      OptionValue = {
+        label: `${selectedOption} matches`,
+        value: `${selectedOption} matches`,
+        isDisabled: false
+      };
+    }
+
+    let optionResult: OptionsType[];
+
+    if (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === dummy_obj[data?.ContentstackFieldType]?.label) {
+      optionResult = []
+    } else {
+      optionResult = OptionsForRow.map((option: OptionsType) => ({
         ...option,
         isDisabled: selectedOptions.includes(option?.label ?? '')
       }));
+    }
+    
+    const adjustedOptions = (OptionsForRow.length === 0 && !contentTypeSchema) ? option : optionResult;
 
     return (
       <div className="table-row">
@@ -1153,7 +1158,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
   useEffect(() => {
     if (isUpdated) {     
-      setTableData(updatedRows as FieldMapType[]);
+      setTableData(updatedRows);
       setExistingField(updatedExstingField);
       setSelectedOptions(updatedSelectedOptions);
       setSelectedEntries(updatedRows);
@@ -1284,10 +1289,9 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       const { status } = await resetToInitialMapping(
         orgId,
         projectID,
-        selectedContentType?.id || '',
+        selectedContentType?.id ?? '',
         dataCs
       );
-      //setOtherContentType();
       setExistingField({});
       setContentTypeSchema([]);
       setContentTypeMapped({});
@@ -1316,14 +1320,17 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         type: 'error'
       });
     } else {
-      const { data } = await fetchExistingContentType(projectId, otherContentType?.id || '');
+      const { data } = await fetchExistingContentType(projectId, otherContentType?.id ?? '');
 
       const index = contentTypesList.findIndex(ct => ct?.uid === data?.uid);
-      if(index != -1){      
-        contentTypesList[index] = data;
+
+      const contentTypesArr: ContentTypeList[] = contentTypesList;
+      
+      if(index != -1) {      
+        contentTypesArr[index] = data;
       }
       
-      setContentTypesList(contentTypesList)
+      setContentTypesList(contentTypesArr);
       setContentTypeSchema(data?.schema)
     }
   }
@@ -1590,7 +1597,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
               name={{
                 singular: '',
-                plural: `${totalCounts === 0 ? `Count` : ''}`
+                plural: `${totalCounts === 0 ? 'Count' : ''}`
               }}
             />
             <div className='text-end my-3 mx-3 px-1'>
