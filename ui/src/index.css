@@ -9,3 +9,10 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
+
+.internetConnection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80vh;
+}
