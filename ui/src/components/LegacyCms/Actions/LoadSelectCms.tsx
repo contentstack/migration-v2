@@ -1,10 +1,8 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Service
-import { updateLegacyCMSData } from '../../../services/api/migration.service';
 import { getConfig } from '../../../services/api/upload.service';
 
 // Utilities
@@ -23,12 +21,12 @@ import { CircularLoader, EmptyState } from '@contentstack/venus-components';
 import '../legacyCms.scss';
 
 import { SEARCH_ICON } from '../../../common/assets';
-import { IFilterStatusType } from '../../../components/Common/Modal/FilterModal/filterModal.interface';
+//import { IFilterStatusType } from '../../../components/Common/Modal/FilterModal/filterModal.interface';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadSelectCmsProps {
-  stepComponentProps: any;
+  stepComponentProps: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
@@ -37,25 +35,24 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   /****  ALL HOOKS HERE  ****/
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  //sconst selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
 
   const dispatch = useDispatch();
 
   const [cmsData, setCmsData] = useState<ICMSType[]>([]);
-  const [searchText, setSearchText] = useState<string>('');
-  const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
-  const [cmsFilter, setCmsFilter] = useState<string[]>([]);
+  const [searchText] = useState<string>('');
+  //const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
+  const [cmsFilter] = useState<string[]>([]);
   const [cmsType, setCmsType] = useState<ICMSType>(
     newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );
   const [selectedCard, setSelectedCard] = useState<ICMSType>(
     newMigrationData?.legacy_cms?.selectedCms
   );
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  //const [setErrorMessage] = useState<string>('');
   const [isError, setIsError] = useState<boolean>(false); 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const { projectId = '' } = useParams();
    
   /****  ALL METHODS HERE  ****/
 
@@ -86,40 +83,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   };
 
 
-  const handleDirectSelection = async (cms: any) => {
-    setSelectedCard(cms); 
-
-    dispatch(updateNewMigrationData({
-      ...newMigrationData?.legacy_cms,
-      legacy_cms: {
-        ...newMigrationData?.legacy_cms,
-        selectedCms: cms
-      }
-    }));
-
-    const res = await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: cms});
-    
-    if (!isEmptyString(cms?.title)) {
-      props?.handleStepChange(props?.currentStep, true);
-    }
-  };
-
-  //Handle CMS Filter Updation in local storage.
-  const updateCMSFilters = (cmsFilter: IFilterStatusType) => {
-    //Get Applied CMS Parent Filters
-    const cmsParentFilter: string[] = cmsFilter
-      ? Object.keys(cmsFilter)?.filter((key) => cmsFilter?.[key])
-      : [];
-
-    //Update state
-    setCmsFilter(cmsParentFilter);
-  };
-
-  //Handle CMS Filter selection
-  const applyCMSFilter = (cmsFilter: IFilterStatusType) => {
-    setCmsFilterStatus(cmsFilter);
-    updateCMSFilters(cmsFilter);
-  };
 
   // Filter CMS Data
   const filterCMSData = async (searchText: string) => {
@@ -127,9 +90,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     setSelectedCard(cmsType);
     setIsLoading(true);
 
-    const apiRes: any = await getConfig(); // api call to get cms type from upload service
+    const {data} = await getConfig(); // api call to get cms type from upload service
 
-    const cms = apiRes?.data?.cmsType?.toLowerCase();
+    const cms = data?.cmsType?.toLowerCase();
 
     
     if(isEmptyString(cmsType?.cms_id)){
@@ -177,7 +140,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     
     if (!isEmptyString(newSelectedCard?.title)) {
       setSelectedCard(newSelectedCard);
-      setErrorMessage('');
+      //setErrorMessage('');
       setIsError(false);
 
       const newMigrationDataObj: INewMigration = {
