@@ -713,8 +713,8 @@ const updateCurrentStep = async (req: Request) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.DESTINATION_STACK;
           data.projects[projectIndex].status =
-            project.current_step <= STEPPER_STEPS.CONTENT_MAPPING ? PREDEFINED_STATUS[0]
-              : PREDEFINED_STATUS[1];
+            project.current_step <= STEPPER_STEPS.CONTENT_MAPPING ? NEW_PROJECT_STATUS[0]
+              : NEW_PROJECT_STATUS[1];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
