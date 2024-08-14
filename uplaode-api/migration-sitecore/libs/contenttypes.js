@@ -31,13 +31,15 @@ const uidCorrector = ({ uid }) => {
 }
 
 
-const templatesComponents = ({ path, basePath }) => {
+const templatesComponents = ({ path }) => {
+  console.log("🚀 ~ templatesComponents ~ path:", path)
   const fields = [];
   for (let i = 0; i < path?.length; i++) {
     const allFields = [];
     const allPaths = read(path?.[i]?.pth)
+    // console.log("🚀 ~ templatesComponents ~ allPaths:", allPaths, path?.[i]?.pth)
     for (let j = 0; j < allPaths?.length; j++) {
-      if (allPaths?.[j]?.endsWith("/data.json")) {
+      if (allPaths?.[j]?.includes("/data.json")) {
         const innerField = [];
         const components = helper.readFile(
           `${path?.[i]?.pth}/${allPaths?.[j]}`
@@ -59,6 +61,7 @@ const templatesComponents = ({ path, basePath }) => {
     }
     fields?.push({ meta: path?.[i]?.obj?.item?.$, schema: allFields })
   }
+  // console.log("🚀 ~ templatesComponents ~ fields:", fields)
   return fields;
 }
 
@@ -355,6 +358,7 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
     path.join(process.cwd(), "/sitecoreMigrationData/MapperData/configurationTree.json")
   );
   let mainSchema = [];
+  console.log("🚀 ~ components?.forEach ~ components:", components)
   components?.forEach((item) => {
     if (item?.schema?.length) {
       const groupSchema = {
@@ -511,7 +515,9 @@ const contentTypeMaker = ({ template, basePath, sitecore_folder }) => {
   return content_type;
 }
 
-
+function findExactPath(path, searchTerm) {
+  return path?.endsWith(searchTerm);
+}
 
 
 function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder }) {
@@ -520,7 +526,7 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder })
   let templatesStandaedValuePath = {};
   let templatesMetaDataPath = {};
   for (let i = 0; i < newPath?.length; i++) {
-    if (newPath?.[i]?.endsWith("data.json")) {
+    if (findExactPath(newPath?.[i], "data.json")) {
       const data = helper?.readFile(`${templatePaths}/${newPath?.[i]}`);
       if (data?.item?.$?.template === "template section") {
         templatesComponentsPath?.push(
@@ -541,7 +547,7 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder })
   template.standardValues = templateStandardValues({ components: templatesStandaedValuePath })
   const contentType = contentTypeMaker({ template, basePath: globalPath, sitecore_folder })
   if (contentType?.fieldMapping?.length) {
-    helper.writeFile(
+    helper?.writeFile(
       path.join(
         process.cwd(),
         "sitecoreMigrationData/content_types",
@@ -562,7 +568,7 @@ function ExtractContentTypes(sitecore_folder) {
   const folder = read(sitecore_folder);
   const templatePaths = [];
   for (let i = 0; i < folder?.length; i++) {
-    if (folder?.[i]?.includes("templates") && folder?.[i]?.endsWith("/data.json")) {
+    if (folder?.[i]?.includes("templates") && (folder?.[i]?.includes("/data.json"))) {
       const data = helper?.readFile(`${sitecore_folder}/${folder?.[i]}`)
       if (data?.item?.$?.template === "template") {
         templatePaths?.push(`${sitecore_folder}/${folder?.[i]}`?.split("/{")?.[0])
