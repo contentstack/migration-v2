@@ -1,3 +1,4 @@
+import { LegacyCms } from '../../services/api/service.interface';
 import { CTA } from '../../types/common.interface';
 
 export interface ProjectsType {
@@ -29,11 +30,21 @@ interface EmptyState {
   empty_search_description: string;
 }
 export interface ProjectsObj {
-  uid: string;
+  legacy_cms: LegacyCms;
+  id: string;
+  uid:string;
+  region: string;
+  org_id: string;
+  owner: string;
+  created_by: string;
+  former_owner_ids: any[];
+  prefix: string;
   name: string;
+  description: string;
+  status: number;
   created_at: string;
   updated_at: string;
-  id?: string;
-  status: string;
+  destination_stack_id: string;
+  current_step: number;
   // tags?: TagPill[];
 }
