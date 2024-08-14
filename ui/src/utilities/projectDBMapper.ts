@@ -1,4 +1,14 @@
-function generateObject() {
+import { getProject } from '../services/api/project.service';
+export async function generateObject(fetchProject) {
+
+    const { data, status } = await getProject(
+        fetchProject?.selectedOrganisation?.value || '',
+        fetchProject?.projectId ?? ''
+    );
+
+      if (status === 200) {
+        console.log(data)
+      }
     return {
         "legacy_cms": {
             "currentStep": 2,
@@ -87,5 +97,3 @@ function generateObject() {
         }
     };
 }
-
-console.log(generateObject());
