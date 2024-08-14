@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "(cd ./api && npm install --force) ; (cd ./ui && npm install --force) ; (cd ./upload-api && npm install --force)"
+    "postinstall": "(cd ./api && npm install) ; (cd ./ui && npm install) ; (cd ./upload-api && npm install)"
   },
   "repository": {
     "type": "git",
