@@ -34,11 +34,11 @@ const getTopLevelIcons = (field: FieldMapType) => {
     experience_container: 'PersonalizationLogoGreySmall'
   };
 
-  if (field?.ContentstackFieldType === 'Single Line Textbox') {
+  if (field?.ContentstackFieldType === 'Single Line Textbox' || field?.ContentstackFieldType === 'single_line_text') {
     return icons['title'];
   }
 
-  if (field?.ContentstackFieldType === 'URL' || field?.ContentstackFieldType === 'single_line_text') {
+  if (field?.ContentstackFieldType === 'URL' || field?.ContentstackFieldType === 'url') {
     return icons['text'];
   }
 
@@ -54,11 +54,11 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['isodate'];
   }
 
-  if (field?.ContentstackFieldType === 'Multi Line Textbox') {
+  if (field?.ContentstackFieldType === 'Multi Line Textbox' || field?.ContentstackFieldType === 'multi_line_text') {
     return icons['multitext'];
   }
 
-  if (field?.ContentstackFieldType === 'HTML Rich text Editor') {
+  if (field?.ContentstackFieldType === 'HTML Rich text Editor' || field?.ContentstackFieldType === 'html') {
     return icons['rte'];
   }
 
@@ -77,7 +77,7 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['boolean'];
   }
 
-  if (field?.ContentstackFieldType === 'Reference') {
+  if (field?.ContentstackFieldType === 'Reference' || field?.ContentstackFieldType === 'refernce') {
     return icons['reference'];
   }
 
@@ -98,10 +98,9 @@ const TreeView = ({ schema = [] }: schemaType) => {
       if (field?.ContentstackFieldType === 'group') {
         groupId = field?.uid;
         data?.push({ ...field, child: [] });
-      } else {
-        if (field?.uid?.startsWith(groupId + '.')) {
+      } else if (field?.uid?.startsWith(groupId + '.')) {
           const obj = data[data?.length - 1];
-          if (Object.prototype.hasOwnProperty.call(obj, 'child')) {
+          if (Object.hasOwn(obj, 'child')) {
             obj?.child?.push(field);
           } else {
             obj.child = [field];
@@ -109,13 +108,12 @@ const TreeView = ({ schema = [] }: schemaType) => {
         } else {
           data.push({ ...field, child: [] });
         }
-      }
     });
     setNestedList(data);
   }, [schema]);
 
   // Check if schema is nested
-  const hasNestedValue = (field: FieldMapType) => field && field?.child && field?.child?.length > 0;
+  const hasNestedValue = (field: FieldMapType) => field?.child && field?.child?.length > 0;
 
   // Remove Group name from its child
   const getChildFieldName = (text?: string, groupName?: string) => {
@@ -147,7 +145,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
 
   const generateNestedOutline = (item: FieldMapType, index: number) => {
     return (
-      <ul className={item && item?.child && item?.child?.length > 0 ? '' : 'close'}>
+      <ul className={item?.child && item?.child?.length > 0 ? '' : 'close'}>
         {item?.child?.map((field: FieldMapType, nestedIndex: number) => {
           let fieldname = '';
           if (field?.uid) {
@@ -155,14 +153,14 @@ const TreeView = ({ schema = [] }: schemaType) => {
           }
           return (
             <li key={`${field?.otherCmsField}${field?.ContentstackFieldType}`}>
-              <div
+              <button
                 data-outlinename={fieldname}
                 onClick={(e: React.MouseEvent<HTMLElement>) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleClick(e);
                 }}
-                className={`iconsholder`}
+                className={`iconsholder list-button`}
               >
                 <span className="icons">
                   {hasNestedValue(field) && (
@@ -173,7 +171,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
                 <span className="field-title">
                   {getChildFieldName(field?.otherCmsField, item?.otherCmsField)}
                 </span>
-              </div>
+              </button>
 
               {hasNestedValue(field) && generateNestedOutline(field, nestedIndex)}
             </li>
@@ -200,28 +198,21 @@ const TreeView = ({ schema = [] }: schemaType) => {
                   key={`${item?.otherCmsField}${item?.ContentstackFieldType}`}
                   className={`${hasNested ? 'nested-child' : ''}`}
                 >
-                  <div
+                  <button
                     data-outlinename={outlineName}
-                    className={`iconsholder`}
+                    className={`iconsholder list-button`}
                     onClick={(e: React.MouseEvent<HTMLElement>) => {
                       e.preventDefault();
                       e.stopPropagation();
                       handleClick(e);
                     }}
                   >
-                    <span
-                      className={`icons ${hasNested ? 'nested' : ''}`}
-                      onMouseOver={() => {
-                        document
-                          ?.querySelector('.PageLayout__leftSidebar')
-                          ?.classList.add('hovered');
-                      }}
-                    >
+                    <span className={`icons ${hasNested ? 'nested' : ''}`}>
                       {hasNested && <Icon className={'chevron'} icon="ChevronExtraSmall" />}
                       <Icon className={'fieldicon'} icon={getTopLevelIcons(item) as string} />
                     </span>
                     <span className={`field-title`}>{item?.otherCmsField}</span>
-                  </div>
+                  </button>
                   {hasNested && generateNestedOutline(item, index)}
                 </li>
               );
