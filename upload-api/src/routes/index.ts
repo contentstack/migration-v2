@@ -82,7 +82,7 @@ router.post('/upload', upload.single('file'), async function (req: Request, res:
       await client.send(completeMultipartUploadCommand);
     }
     //successful upload
-    res.send('file uplaoded sucessfully.');
+    res.send('file uploaded sucessfully.');
   } catch (err) {
     console.error(err);
   }

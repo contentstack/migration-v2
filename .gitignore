@@ -349,9 +349,9 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
-uploade-api/node_modules
-uploade-api/build
+upload-api/node_modules
+upload-api/build
 package-lock.json
 ui/.env
-uplaode-api/sitecoreMigrationData
-uplaode-api/extracted_files
+upload-api/sitecoreMigrationData
+upload-api/extracted_files
