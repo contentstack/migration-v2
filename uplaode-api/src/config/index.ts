@@ -9,5 +9,5 @@ export default {
     bucketName: 'migartion-test',
     buketKey: 'project/package 45.zip'
   },
-  localPath: '/Users/rohit/Desktop/package 45.zip'
+  localPath: '/Users/snehal.pimple/Desktop/package 45.zip'
 };
