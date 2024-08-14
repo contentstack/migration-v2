@@ -144,3 +144,11 @@ export const CONTENT_TYPE_STATUS = {
   3: 3, //mapping failed
   4: 4, //auto-dump
 };
+// Cs Locale : Destination Local
+export const LOCALE_MAPPER: any = {
+  //not more than one locale mapping in master locale
+  masterLocale: {
+    'en-us': 'en'
+  },
+  'fr': 'fr-fr'
+}
