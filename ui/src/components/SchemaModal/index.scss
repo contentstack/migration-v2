@@ -22,8 +22,9 @@
         display: flex;
         justify-content: flex-start;
         padding: 0;
+        text-align: left;
         &:hover {
-          .title {
+          .field-title {
             color: $color-brand-primary-base;
           }
           .icons {
@@ -63,7 +64,7 @@
               }
             }
           }
-          & > .title {
+          & > .field-title {
             color: $color-brand-primary-base;
             font-weight: $font-weight-semi-bold;
           }
@@ -75,12 +76,9 @@
         font-weight: $font-weight-regular;
         line-height: $line-height-reset !important;
         opacity: 1;
-        overflow: hidden;
         padding: 0.625rem 0;
-        text-overflow: ellipsis;
         text-transform: capitalize;
         transition: opacity 0.5s linear, width 300ms linear;
-        white-space: nowrap;
         width: 12.5rem;
       }
       .icons {
@@ -103,7 +101,7 @@
         }
       }
       & > ul {
-        padding-left: 0.125rem;
+        padding-left: 1.125rem;
         & > li {
           & > ul {
             padding-left: 1.5625rem;
