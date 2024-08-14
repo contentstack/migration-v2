@@ -1,6 +1,7 @@
 import { getProject } from '../services/api/project.service';
 export async function generateObject(fetchProject) {
 
+    //fetch project data from api
     const { data, status } = await getProject(
         fetchProject?.selectedOrganisation?.value || '',
         fetchProject?.projectId ?? ''
@@ -9,6 +10,9 @@ export async function generateObject(fetchProject) {
       if (status === 200) {
         console.log(data)
       }
+
+      //generate object details from project data
+      //note that this is a dummy object and the actual object will be generated based on the project data
     return {
         "legacy_cms": {
             "currentStep": 2,
