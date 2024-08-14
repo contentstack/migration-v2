@@ -29,7 +29,7 @@ const SaveChangesModal = (props: Props) => {
         className="text-capitalize"
       />
       <ModalBody className="">
-          You have unsaved changes on content type <strong>{props?.otherCmsTitle || ''}</strong>. Save your changes if you don&apos;t want to lose them.
+          You have unsaved changes on content type <strong>{props?.otherCmsTitle ?? ''}</strong>. Save your changes if you don&apos;t want to lose them.
       </ModalBody>
       <ModalFooter>
         <ButtonGroup>

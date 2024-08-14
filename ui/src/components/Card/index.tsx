@@ -57,17 +57,17 @@ const CardList = ({ project }: ProjectType) => {
   const icon = iconMapping[status] || '';
   const statusText = NEW_PROJECT_STATUS[status];
 
-  useEffect(() => {
-    const fetchProject = async () => {
-      if (selectedOrganisation?.value && project?.id) {
-        const { data, status } = await getProject(selectedOrganisation?.value, project?.id);
-        if (status === 200 && data?.legacy_cms) {
-          setprojectDetails(data?.legacy_cms.cms);
-        }
-      }
-    };
-    fetchProject();
-  }, [selectedOrganisation?.value, project?.id]);
+  // useEffect(() => {
+  //   const fetchProject = async () => {
+  //     if (selectedOrganisation?.value && project?.id) {
+  //       const { data, status } = await getProject(selectedOrganisation?.value, project?.id);
+  //       if (status === 200 && data?.legacy_cms) {
+  //         setprojectDetails(data?.legacy_cms.cms);
+  //       }
+  //     }
+  //   };
+  //   fetchProject();
+  // }, [selectedOrganisation?.value, project?.id]);
 
   return (
     <div style={{ margin: '0 20px 20px 0' }}>
@@ -83,7 +83,7 @@ const CardList = ({ project }: ProjectType) => {
               <div className="ProjectCard__stats">
                 <div className='ProjectCard__Staus-unit'>
                   <span className="ProjectCard__stats-Title">Source</span>
-                  <div className="ProjectCard__cms">{projectDetails ? projectDetails : '-'}</div>
+                  <div className="ProjectCard__cms">{project?.legacy_cms?.cms ? project?.legacy_cms?.cms : '-'}</div>
                 </div>
                 <div className="ProjectCard__unit">
                   <span className="ProjectCard__stats-Title">Project Status</span>
