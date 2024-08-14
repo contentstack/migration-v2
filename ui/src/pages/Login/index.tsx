@@ -1,5 +1,5 @@
 // Libraries
-import { FC,useEffect, useRef, useState } from 'react';
+import { FC,useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 
@@ -116,7 +116,7 @@ const Login: FC<IProps> = () => {
           ...prevState,
           user: {
             ...prevState.user,
-            tfa_token: values?.tfa_token || ''
+            tfa_token: values?.tfa_token ?? ''
           }
         };
       });
@@ -165,7 +165,8 @@ const Login: FC<IProps> = () => {
 
   //functions for email and password validation
   const emailValidation = (value: string): string | undefined => {
-    const emailRegex = /^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6})$/i;
+    const emailRegex = /^([a-z0-9._%+-]+@[a-z.-]+\.[a-z]{2,6})$/i;
+
     return emailRegex.test(value) ? undefined : 'Please enter a valid email address';
   };
 
@@ -195,26 +196,50 @@ const Login: FC<IProps> = () => {
     }
   };
 
+  const onEmailChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    setLoginStates(prevState => updateUserEmail(prevState, event.target.value));
+  }
+
+  const updateUserEmail = (prevState: IStates, email: string): IStates => {
+    return {
+      ...prevState,
+      user: {
+        ...prevState?.user,
+        email: email
+      }
+    };
+  };
+
+  const onPasswordChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    setLoginStates(prevState => updateUserPassword(prevState, event.target.value));
+  }
+
+  const updateUserPassword = (prevState: IStates, password: string): IStates => {
+    return {
+      ...prevState,
+      user: {
+        ...prevState.user,
+        password: password
+      }
+    };
+  };
   
-  useEffect(()=>{ 
+  useEffect(() => { 
     const handlePopState = (event: PopStateEvent) => {
       event.preventDefault();
       window.history.pushState(null, '', window.location.href);
-
     };
     if(isBlock){
       window.history.pushState(null, '', window.location.href);
-
     }
     window.history.pushState(null, '', window.location.href);
     window.addEventListener('popstate',handlePopState);
 
-
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-
   },[isBlock]);
+  
   return (
     <AccountPage data={accountData}>
       {loginStates?.tfa ? (
@@ -329,13 +354,7 @@ const Login: FC<IProps> = () => {
                                   {...input}
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                                     input?.onChange(event);
-                                    setLoginStates((prevState: IStates) => ({
-                                      ...prevState,
-                                      user: {
-                                        ...prevState?.user,
-                                        email: event?.target?.value
-                                      }
-                                    }));
+                                    onEmailChange(event);
                                   }}
                                   name={login?.email}
                                   width="large"
@@ -382,13 +401,7 @@ const Login: FC<IProps> = () => {
                                   {...input}
                                   onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
                                     input?.onChange(event);
-                                    setLoginStates((prevState: IStates) => ({
-                                      ...prevState,
-                                      user: {
-                                        ...prevState?.user,
-                                        password: event?.target?.value
-                                      }
-                                    }));
+                                    onPasswordChange(event);
                                   }}
                                   width="large"
                                   canShowPassword={true}

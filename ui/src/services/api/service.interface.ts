@@ -1,3 +1,5 @@
+import { FileDetails } from "../../context/app/app.interface";
+
 export interface Error {
   code: number;
   message: string;
@@ -59,3 +61,15 @@ export const defaultMigrationResponse: MigrationResponse = {
   prefix: '',
   current_step: 1
 };
+interface data {
+  file_details : FileDetails;
+  message: string;
+  status:number;
+}
+export interface axiosResponse {
+  config ?:{};
+  data?: data;
+  status: number;
+  statusText: string;
+
+}
