@@ -1,7 +1,6 @@
 // Libraries
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Params, useParams } from 'react-router';
 import { Select, cbModal, TextInput, SkeletonTile } from '@contentstack/venus-components';
 
 // Redux
@@ -65,7 +64,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   ];
   const [allStack, setAllStack] = useState<IDropDown[]>(newMigrationData?.destination_stack?.stackArray);
   const [allLocales] = useState<IDropDown[]>([]);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
+  // const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -84,19 +83,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   },[newMigrationData?.destination_stack?.selectedStack])
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
-    setIsSaving(true);
-  
-    if (isEmptyString(data?.name) || isEmptyString(data?.locale)) {
-      setIsSaving(false);
-    }
-  
     // Post data to backend
     const resp = await createStacksInOrg(selectedOrganisation?.value, {
       ...data,
       master_locale: data?.locale
     });
-    setIsSaving(false);
-    
+        
     if (resp.status === 201) {
       if (newMigrationData?.destination_stack?.stackArray?.length > 0) {
         await fetchData();  
@@ -240,7 +232,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         shouldCloseOnOverlayClick: true,
         onClose: () => {
           setIsError(false)
-          return;
         },
         onOpen: () => {
           return;
