@@ -55,14 +55,22 @@ export const fileValidation = (projectId: string) => {
     };
     return getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`, options);
   } catch (error) {
-    return error;
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };
 
-export const getConfig = () => {
+export const getConfig = async() => {
   try {
-    return getCall(`${UPLOAD_FILE_RELATIVE_URL}config`);
+    return await getCall(`${UPLOAD_FILE_RELATIVE_URL}config`);
   } catch (error) {
-    return error;
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
   }
 };

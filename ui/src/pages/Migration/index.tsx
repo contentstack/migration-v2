@@ -8,7 +8,7 @@ import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack, updateAffixData, fileformatConfirmation, updateFileFormatData } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -185,6 +185,10 @@ const Migration = () => {
     await fileformatConfirmation(selectedOrganisation?.value, projectId, {
       fileformat_confirmation: true
     });     
+
+    await affixConfirmation(selectedOrganisation?.value, projectId, {
+      affix_confirmation: true
+    })
     await updateFileFormatData(selectedOrganisation?.value, projectId, {
       file_format: newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats[0]?.fileformat_id?.toString() ,
       file_path: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
