@@ -89,14 +89,6 @@ const Projects = () => {
     // fetchProjects();
   };
 
-  useEffect(()=>{
-    dispatch(getUserDetails());
-  },[dispatch]);
-
-  useEffect(()=>{
-    dispatch(getUserDetails());
-  },[]);
-
   useEffect(() => {
     fetchData();
   }, []);
