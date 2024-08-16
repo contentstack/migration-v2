@@ -1,10 +1,7 @@
 // Libraries
 import { ChangeEvent, useState } from 'react';
-import { useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
 
-// Service
-import { updateAffixData, affixConfirmation } from '../../../services/api/migration.service';
 
 // Utilities
 import { isEmptyString, isValidPrefix } from '../../../utilities/functions';
@@ -24,7 +21,7 @@ import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice'
 import restrictedKeywords from '../restrictedKeywords.json';
 
 interface LoadSelectCmsProps {
-  stepComponentProps: any;
+  stepComponentProps: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
@@ -32,7 +29,6 @@ interface LoadSelectCmsProps {
 const LoadPreFix = (props: LoadSelectCmsProps) => {
   /****  ALL HOOKS HERE  ****/
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
 
   const dispatch = useDispatch();
@@ -41,49 +37,16 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
 
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [isCheckedBoxChecked, setIsCheckedBoxChecked] = useState<boolean>(
+  const [isCheckedBoxChecked] = useState<boolean>(
     newMigrationData?.legacy_cms?.isRestictedKeywordCheckboxChecked || false
   );
   const [isRestrictedkey, setIsRestrictedKey] = useState<boolean>(false);
 
-  const { projectId = '' } = useParams();
 
   const idArray = restrictedKeywords.idArray;
 
 
   /****  ALL METHODS HERE  ****/
-
-  //Handle Prefix Change
-  const handleOnBlur = async (e: any) => {
-    e.preventDefault();
-    if (!isEmptyString(prefix) && !isError && isCheckedBoxChecked) {
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData.legacy_cms,
-          affix: prefix,
-          isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
-        }
-      };
-
-      dispatch(updateNewMigrationData(newMigrationDataObj));
-
-      setIsError(false);
-
-      //API call for saving Affix
-      await updateAffixData(selectedOrganisation?.value, projectId, { affix: prefix });
-      await affixConfirmation(selectedOrganisation?.value, projectId, {
-        affix_confirmation: isCheckedBoxChecked
-      });
-
-      //call for Step Change
-      props.handleStepChange(props?.currentStep);
-
-      return;
-    }
-
-    //setIsError(true);
-  };
 
   const handleOnChange = useDebouncer(async(e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -116,10 +79,6 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         dispatch(updateNewMigrationData(newMigrationDataObj));
   
         setIsError(false);
-
-        await affixConfirmation(selectedOrganisation?.value, projectId, {
-          affix_confirmation: true
-        });
   
         //call for Step Change
         props?.handleStepChange(props?.currentStep);
@@ -142,32 +101,17 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     }
   });
 
-  // Toggles checkbox selection
-  const handleCheckBoxChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { checked } = e.target;
-
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      legacy_cms: {
-        ...newMigrationData?.legacy_cms,
-        isRestictedKeywordCheckboxChecked: checked
-      }
-    };
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
-
-    setIsCheckedBoxChecked(checked);
-  };
 
   /****  ALL USEEffects  HERE  ****/
 
-  const { restricted_keyword_link = DEFAULT_URL_TYPE, restricted_keyword_checkbox_text = '' } =
+  const { restricted_keyword_link = DEFAULT_URL_TYPE } =
     migrationData.legacyCMSData;
 
   return (
     <div className="p-3">
       <div className="col-12">
         <TextInput
-          onChange={(e:any)=>{handleOnChange(e)}}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{handleOnChange(e)}}
           value={prefix}
           autoFocus={true}
           width="large"
