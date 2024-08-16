@@ -1,8 +1,7 @@
-import { forwardRef, useEffect, useRef, useState , useImperativeHandle, useMemo} from 'react';
+import { forwardRef, useEffect, useRef, useState , useImperativeHandle} from 'react';
 import { useDispatch,useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getLegacyCMSSteps } from './StepperSteps';
-import { useNavigate, useParams } from 'react-router-dom';
 import { CircularLoader } from '@contentstack/venus-components';
 // import { getEntries } from '../../services/contentstackSDK';
 import { CS_ENTRIES } from '../../utilities/constants';
@@ -18,26 +17,44 @@ import { isEmptyString, validateArray } from '../../utilities/functions';
 import { ICardType, defaultCardType } from '../Common/Card/card.interface';
 import './legacyCms.scss';
 import { IFilterType } from '../Common/Modal/FilterModal/filterModal.interface';
-import { updateCurrentStepData, updateLegacyCMSData } from '../../services/api/migration.service';
 import { MigrationResponse } from '../../services/api/service.interface';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
-
+interface AwsDetails{
+  awsRegion:string;
+  bucketName:string;
+  buketKey:string
+}
+interface LegacyCmsData {
+  affix?:string;
+  affix_confirmation?: boolean;
+  awsDetails?: AwsDetails;
+  cms?:string;
+  file_format?:string;
+  file_format_confirmation?:boolean;
+  file_path?:string;
+  is_fileValid?:boolean;
+  is_localPath?:boolean
+}
 type LegacyCMSComponentProps = {
-  legacyCMSData: any;
+  legacyCMSData: LegacyCmsData;
   projectData: MigrationResponse;
   isCompleted: boolean
   handleStepChange: (currentStep: number) => void;
   handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
+interface AutoVerticalStepperRef {
+  handleDynamicStepChange: (stepIndex: number, isLastStep?: boolean) => void;
+}
+
+
 const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted, handleOnAllStepsComplete, }: LegacyCMSComponentProps, ref) => {
   //react-redux apis
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const  newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const  selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const dispatch = useDispatch();
 
 
@@ -45,15 +62,13 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
-  const [stepperKey, setStepperKey] = useState<string>('legacy-Vertical-stepper');
+  const [stepperKey] = useState<string>('legacy-Vertical-stepper');
 
-  const { projectId = '' } = useParams();
   const [isValidated, setisValidated] = useState<boolean>(
     newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false
   );
   const [isAllStepsCompleted, setIsAllStepsCompleted] = useState(false);
-  const navigate = useNavigate();
-  const autoVerticalStepper = useRef<any>(null);
+  const autoVerticalStepper = useRef<AutoVerticalStepperRef>(null);
 
 
   //Handle on all steps are completed
@@ -65,22 +80,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
     getInternalActiveStepIndex: () => internalActiveStepIndex
   }));
   
-
-  // handle on proceed to destination stack
-  const handleOnClick = async (event: MouseEvent,handleStepChange:any ) => {
-    event.preventDefault();
-
-    //Update Data in backend
-    await updateLegacyCMSData(selectedOrganisation?.value, projectId, {
-      legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
-    });
-    const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
-    handleStepChange(1);
-    if (res) {
-      const url = `/projects/${projectId}/migration/steps/2`;
-      navigate(url, { replace: true });
-    }
-  };
 
 
   //handle on delete click
