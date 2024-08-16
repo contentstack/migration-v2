@@ -8,7 +8,7 @@ import { combineReducers, configureStore, Tuple} from '@reduxjs/toolkit';
 import storage from 'redux-persist/lib/storage'; 
 import { persistReducer, persistStore } from 'redux-persist';
 import authMiddleware from './middleware/authMiddleware';
-
+import networkReducer from './slice/networkSlice';
 
 const persistConfig = {
   key: 'root',
@@ -19,6 +19,7 @@ const persistConfig = {
 const rootReducer = combineReducers({
   migration: migrationDataSlice,
   authentication: authSlice,
+  network: networkReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
