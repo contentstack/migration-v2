@@ -886,11 +886,10 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           for (const item of array) {
             const fieldTypeToMatch = fieldsOfContentstack[item?.otherCmsType as keyof Mapping];
             if (item.id === data?.id) {
+              
               for (const key of existingField[groupArray[0]?.uid]?.value.schema || []) {
-                 
-                if (checkConditions(fieldTypeToMatch, key, item)) {                            
+                if (checkConditions(fieldTypeToMatch, key, item)) {                                
                   OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name} || ''`));
-                  break;
                 }
       
                 // Recursively process nested groups
