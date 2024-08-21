@@ -39,7 +39,7 @@ const DestinationStackComponent = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   // const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
-  const [stepperKey, setStepperKey] = useState<string>('destination-Vertical-stepper');
+  const [stepperKey] = useState<string>('destination-Vertical-stepper');
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
 
   const autoVerticalStepperComponent = useRef<any>(null);
