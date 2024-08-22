@@ -888,7 +888,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
                   OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
-                  break;
                 }
       
                 // Recursively process nested groups
