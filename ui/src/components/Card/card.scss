@@ -9,6 +9,10 @@
   border: 1px solid $color-brand-secondary-lightest;
   transition: box-shadow 0.3s ease;
   width: 20rem;
+  &:hover {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .2), 0 2px 2px 0 rgba(0, 0, 0, .12), 0 0 2px 0 rgba(0, 0, 0, .14);
+    cursor: pointer;
+  }
 }
 
 /**
@@ -41,6 +45,7 @@
   padding: 0;
   white-space: normal; 
   -webkit-line-clamp: 2;
+  line-clamp: 2;  
   -webkit-box-orient: vertical;
 }
 
@@ -63,7 +68,6 @@
  * Styles for the content of the ProjectCard component.
  */
 .ProjectCard__content {
-  // margin: 0 1rem 2rem;
   padding: 0;
   text-align: center;
 }
