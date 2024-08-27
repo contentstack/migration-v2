@@ -149,3 +149,10 @@
 .centered-card-title{
   margin: 10px;
 }
+
+.centered-card-title {
+  margin: 10px;
+  p {
+    color: $color-stepper-title;
+  }
+}
