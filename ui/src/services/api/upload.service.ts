@@ -8,12 +8,8 @@ export const getCall = async (url: string, options?: any) => {
   try {
     const response = await axios.get(url, { ...options });
     return response;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`${error.message}`);
-    } else {
-      throw new Error('Unknown error in userSession');
-    }
+  } catch (err: any) {
+    return err.response;
   }
 };
 
@@ -44,7 +40,7 @@ export const uploadFilePath = () => {
   return `${UPLOAD_FILE_RELATIVE_URL}upload`;
 };
 
-export const fileValidation = (projectId: string) => {
+export const fileValidation = async(projectId: string) => {
   try {
     const options = {
       headers: {
@@ -53,15 +49,12 @@ export const fileValidation = (projectId: string) => {
       },
       
     };
-    return getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`, options);
+    return await getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`, options);
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`${error.message}`);
-    } else {
-      throw new Error('Unknown error');
-    }
+    return error;
   }
 };
+
 
 export const getConfig = async() => {
   try {

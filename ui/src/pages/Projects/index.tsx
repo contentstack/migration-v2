@@ -80,14 +80,16 @@ const Projects = () => {
   const fetchData = async () => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
     getCMSDataFromFile(CS_ENTRIES.PROJECTS)
-      .then((data) => setData(data))
-      .catch((err) => {
-        console.error(err);
-        setData({});
-      });
-
-    // fetchProjects();
+    .then((data) => setData(data))
+    .catch((err) => {
+      console.error(err);
+      setData({});
+    });
   };
+
+  useEffect(()=>{
+    dispatch(getUserDetails());
+  },[dispatch]);
 
   useEffect(() => {
     fetchData();
