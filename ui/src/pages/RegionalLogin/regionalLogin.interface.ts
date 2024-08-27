@@ -8,6 +8,7 @@ export interface RegionType {
 
 interface Region {
   cta?: CTA;
+  region?: string;
   region_title?: string;
   service_icon?: Image;
   service_title?: string;
