@@ -300,9 +300,11 @@ h4,
 h5,
 h6 {
   color: $color-font-black;
+  font-family: $font-family-primary;
 }
 p {
   color: $color-font-gray;
+  font-family: $font-family-primary;
   line-height: $line-height-default !important;
   margin: 0;
 }
