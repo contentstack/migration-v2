@@ -1,103 +1,47 @@
-import { getProject } from '../services/api/project.service';
-// export async function generateObject(fetchProject) {
+export function createObject(projectData: any) {
+    const object = {
+        legacy_cms: {
+          selectedCms: {
+            cms_id: projectData?.legacy_cms?.cms_id,
+            allowed_file_formats: projectData?.legacy_cms?.allowed_file_formats,       
+          },
+          affix: projectData?.legacy_cms?.affix,
+          file_format: projectData?.legacy_cms?.file_format,
+            uploadedFile: {
+              file_details: {
+                localPath: projectData?.legacy_cms?.file_path,
+                awsData: {
+                  awsRegion: projectData?.legacy_cms?.awsDetails?.awsRegion,
+                  bucketName: projectData?.legacy_cms?.awsDetails?.bucketName,
+                  buketKey: projectData?.legacy_cms?.awsDetails?.buketKey
+                },
+                isLocalPath: projectData?.legacy_cms?.is_localPath
+              },
+              isValidated: projectData?.legacy_cms?.is_fileValid
+            },
+        },
+        destination_stack: {
+          selectedOrg: {
+            value: projectData?.org_id,
+            label: projectData?.org_name
+          },
+          selectedStack: {
+            value: projectData?.destination_stack_id,
+            label: projectData?.destination_stack_name,
+            master_locale: projectData?.destination_stack_master_locale
+          },
+          stackArray:{
+            value: projectData?.destination_stack_id,
+            label: projectData?.destination_stack_name,
+            master_locale: projectData?.destination_stack_master_locale,
+            created_at: projectData?.destination_stack_created_at,
+          }
+        },
+        content_mapping: {
+          isDropDownChanged: false
+        },
+        stackDetails: projectData?.stackDetails,
+      };
 
-//     //fetch project data from api
-//     const { data, status } = await getProject(
-//         fetchProject?.selectedOrganisation?.value || '',
-//         fetchProject?.projectId ?? ''
-//     );
-
-//       if (status === 200) {
-//         console.log(data)
-//       }
-
-//       //generate object details from project data
-//       //note that this is a dummy object and the actual object will be generated based on the project data
-//     return {
-//         "legacy_cms": {
-//             "currentStep": 2,
-//             "selectedCms": {
-//                 "cms_id": "sitecore v8",
-//                 "title": "Sitecore v8",
-//                 "description": "",
-//                 "group_name": "lightning",
-//                 "doc_url": {
-//                     "title": "https://www.sitecore.com/",
-//                     "href": "https://www.sitecore.com/"
-//                 },
-//                 "parent": "Sitecore",
-//                 "isactive": true,
-//                 "allowed_file_formats": [
-//                     {
-//                         "fileformat_id": "zip",
-//                         "title": "Zip",
-//                         "description": "",
-//                         "group_name": "zip",
-//                         "isactive": true,
-//                         "_metadata": {
-//                             "uid": "cs7b44e4f248dbdc92"
-//                         }
-//                     }
-//                 ],
-//                 "_metadata": {
-//                     "uid": "csef3e4691c7e23a2d"
-//                 }
-//             },
-//             "selectedFileFormat": {
-//                 "fileformat_id": "zip",
-//                 "title": "Zip",
-//                 "description": "",
-//                 "group_name": "zip",
-//                 "isactive": true,
-//                 "_metadata": {
-//                     "uid": "cs7b44e4f248dbdc92"
-//                 }
-//             },
-//             "uploadedFile": {
-//                 "file_details": {
-//                     "localPath": "/Users/snehal.pimple/Desktop/package 45.zip",
-//                     "awsData": {
-//                         "awsRegion": "us-east-2",
-//                         "bucketName": "migartion-test",
-//                         "buketKey": "project/package 45.zip"
-//                     },
-//                     "isLocalPath": true
-//                 },
-//                 "isValidated": true
-//             },
-//             "affix": "test",
-//             "isFileFormatCheckboxChecked": true,
-//             "isRestictedKeywordCheckboxChecked": true
-//         },
-//         "destination_stack": {
-//             "selectedOrg": {
-//                 "label": "",
-//                 "value": "",
-//                 "default": false,
-//                 "uid": "",
-//                 "master_locale": "",
-//                 "locales": [],
-//                 "created_at": ""
-//             },
-//             "selectedStack": {
-//                 "label": "",
-//                 "value": "",
-//                 "default": false,
-//                 "uid": "",
-//                 "master_locale": "",
-//                 "locales": [],
-//                 "created_at": ""
-//             },
-//             "stackArray": []
-//         },
-//         "content_mapping": {
-//             "content_type_mapping": {},
-//             "isDropDownChanged": false,
-//             "otherCmsTitle": ""
-//         },
-//         "test_migration": {
-//             "stack_link": "",
-//             "stack_api_key": ""
-//         }
-//     };
-// }
+    return object;
+}
