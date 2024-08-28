@@ -36,7 +36,7 @@ import ContentMapper from '../../components/ContentMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import { Notification } from '@contentstack/venus-components';
-
+import { createObject } from '../../utilities/projectDBMapper';
 type StepperComponentRef = {
   handleStepChange: (step: number) => void;
 };
@@ -107,6 +107,7 @@ const Migration = () => {
       setProjectData(data?.data);
       setIsLoading(false);
     }
+    dispatch(updateNewMigrationData(createObject(data?.data)));
   };
 
   const createStepper = (projectData: MigrationResponse,handleStepChange: (currentStep: number) => void) => {
