@@ -61,6 +61,7 @@ interface Project {
   isDeleted: boolean;
   isNewStack: boolean;
   newStackId: string;
+  stackDetails: [];
 }
 
 interface ProjectDocument {
