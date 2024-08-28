@@ -154,6 +154,18 @@ const revertProject = async (req: Request, res: Response): Promise<void> => {
   res.status(project.status).json(project);
 };
 
+/**
+ * update stack details a project.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const updateStackDetails = async (req: Request, res: Response): Promise<void> => {
+  const project = await projectService.updateStackDetails(req);
+  res.status(project.status).json(project);
+}
+
 export const projectController = {
   getAllProjects,
   getProject,
@@ -168,4 +180,5 @@ export const projectController = {
   updateCurrentStep,
   deleteProject,
   revertProject,
+  updateStackDetails
 };
