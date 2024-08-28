@@ -341,7 +341,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           };
         }
       });
-      setExistingField(updatedExstingField);
+      //setExistingField(updatedExstingField);
     }
   }, [tableData, otherCmsTitle]);
 
@@ -676,7 +676,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     }
 
     const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
-      ? data?.ContentstackFieldType : option?.[0]?.label
+      ? data?.ContentstackFieldType : initialOption?.label
     
     return (
       <div className="table-row">
@@ -703,7 +703,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           data?.otherCmsField !== 'url' &&
           data?.otherCmsType !== 'reference' &&
           <Tooltip 
-            content="Advance propertise" 
+            content="Advanced properties" 
             position="top"
             disabled={
               data?.otherCmsField === 'title' ||
@@ -712,7 +712,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           >
             <Icon
               version="v2"
-              icon="Setting"
+              icon="Sliders"
               size="small"
               onClick={() =>
                 handleAdvancedSetting(fieldLabel, advancePropertise, data?.uid, data)
@@ -884,7 +884,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           for (const item of array) {
             const fieldTypeToMatch = fieldsOfContentstack[item?.otherCmsType as keyof Mapping];
             if (item.id === data?.id) {
-              for (const key of existingField[groupArray[0]?.uid]?.value.schema || []) {
+              for (const key of existingField[groupArray[0]?.uid]?.value?.schema || []) {
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
                   OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
@@ -951,7 +951,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
       'JSON Rich Text Editor': 'json',
-      'Rich Text': 'json',
+      'Rich Text': 'allow_rich_text',
       'Group': 'Group',
       'URL': 'url',
       'file': 'file',
@@ -1130,14 +1130,25 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           />
         </div>
         {!OptionValue?.isDisabled && (
-          <Icon
+          <Tooltip
+            content="Advanced properties" 
+            position="top"
+            disabled={
+              data?.otherCmsField === 'title' ||
+              data?.otherCmsField === 'url'
+            }
+          >
+            <Icon
             version="v2"
-            icon="Setting"
+            icon="Sliders"
             size="small"
             onClick={() => {
-              handleAdvancedSetting(data?.ContentstackFieldType, advancePropertise, data?.uid, data);
+              handleAdvancedSetting(initialOption?.label, advancePropertise, data?.uid, data);
             }}
           />
+
+          </Tooltip>
+          
         )}
       </div>
     );
