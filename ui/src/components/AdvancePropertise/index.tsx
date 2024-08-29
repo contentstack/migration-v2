@@ -44,8 +44,10 @@ const AdvancePropertise = (props: SchemaProps) => {
     allowImagesOnly: props?.value?.AllowImagesOnly,
     nonLocalizable: props?.value?.NonLocalizable,
     embedObject: true,
-    embedAssests: true
+    embedAssests: true,
+    multiple: props?.value?.Multiple
   });
+
 
   // State for content types
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
@@ -54,7 +56,6 @@ const AdvancePropertise = (props: SchemaProps) => {
   useEffect(() => {
     fetchContentTypes('');
   }, [])
-
   /**
    * Fetches the content types list.
    * @param searchText - The search text.
@@ -77,16 +78,25 @@ const AdvancePropertise = (props: SchemaProps) => {
       [field]: (event.target as HTMLInputElement)?.value
     }));
 
+    const currentToggleStates = {
+      ...toggleStates,
+      [field]: (event.target as HTMLInputElement)?.value,
+    };
+
     props?.updateFieldSettings(
       props?.rowId,
       {
+        ...props?.value,
         [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: (event.target as HTMLInputElement)?.value,
         validationRegex: '',
-        Mandatory: false,
-        Multiple: false,
+        MinChars: currentToggleStates?.minChars,
+        MaxChars:currentToggleStates?.maxChars,
+        Mandatory: currentToggleStates?.mandatory,
+        Multiple: currentToggleStates?.multiple,
         Unique: false,
-        NonLocalizable: false,
-        EmbedObject: false
+        NonLocalizable: currentToggleStates?.nonLocalizable,
+        EmbedObject: currentToggleStates?.embedObject,
+        EmbedObjects: ctValue,
       },
       checkBoxChanged
     );
@@ -103,17 +113,22 @@ const AdvancePropertise = (props: SchemaProps) => {
       ...prevStates,
       [field]: value
     }));
-
+    const currentToggleStates = {
+      ...toggleStates,
+      [field]: value,
+    };
+    
     props?.updateFieldSettings(
       props?.rowId,
       {
         [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
         validationRegex: '',
-        Mandatory: false,
-        Multiple: false,
+        Mandatory: currentToggleStates?.mandatory,
+        Multiple: currentToggleStates?.multiple,
         Unique: false,
-        NonLocalizable: false,
-        EmbedObject: false
+        NonLocalizable: currentToggleStates?.nonLocalizable,
+        EmbedObject: currentToggleStates?.embedObject,
+        EmbedObjects : ctValue
       },
       checkBoxChanged
     );
