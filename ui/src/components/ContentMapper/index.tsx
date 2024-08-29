@@ -552,8 +552,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       }
       return row;
     });
-
     setTableData(newTableData);
+    setSelectedEntries(newTableData);
   };
 
   const handleSchemaPreview = (title: string) => {
@@ -1326,6 +1326,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           fieldMapping: selectedEntries
         }
       };
+     console.log("selected entries :::: ", selectedEntries);
+     
       const { data } = await updateContentType(
         orgId,
         projectID,
