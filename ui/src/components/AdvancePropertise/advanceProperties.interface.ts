@@ -117,7 +117,9 @@ export interface UpdatedSettings {
    */
   NonLocalizable?: boolean;
 
-  Multiple?: boolean
+  Multiple?: boolean;
+
+  EmbedObjects?: any
 }
 
 /**
