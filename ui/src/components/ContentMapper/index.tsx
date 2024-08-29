@@ -1326,7 +1326,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           fieldMapping: selectedEntries
         }
       };
-     console.log("selected entries :::: ", selectedEntries);
      
       const { data } = await updateContentType(
         orgId,
