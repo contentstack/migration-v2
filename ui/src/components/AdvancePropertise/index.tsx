@@ -22,6 +22,11 @@ import { ContentType } from '../ContentMapper/contentMapper.interface';
 // Styles
 import './index.scss';
 
+interface ContentTypeOption {
+  label: string;
+  value: string;
+}
+
 /**
  * Component for displaying advanced properties.
  * @param props - The schema properties.
@@ -45,13 +50,18 @@ const AdvancePropertise = (props: SchemaProps) => {
     nonLocalizable: props?.value?.NonLocalizable,
     embedObject: true,
     embedAssests: true,
-    multiple: props?.value?.Multiple
+    multiple: props?.value?.Multiple,
+    embedObjects: props?.value?.EmbedObjects
   });
 
-
+  const embedObjects = props?.value?.EmbedObjects?.map((item: string) => ({
+    label: item,
+    value: item,
+  }));
   // State for content types
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
-  const [ctValue, setCTValue] = useState(null);
+  const [ctValue, setCTValue] = useState<ContentTypeOption[] | null>(embedObjects);
+  const [embedObjectslabels, setEmbedObjectsLabels] = useState<string[]>(props?.value?.EmbedObjects);
 
   useEffect(() => {
     fetchContentTypes('');
@@ -96,7 +106,9 @@ const AdvancePropertise = (props: SchemaProps) => {
         Unique: false,
         NonLocalizable: currentToggleStates?.nonLocalizable,
         EmbedObject: currentToggleStates?.embedObject,
-        EmbedObjects: ctValue,
+        EmbedObjects: embedObjectslabels,
+        MinRange: currentToggleStates?.minRange,
+        MaxRange: currentToggleStates?.maxRange,
       },
       checkBoxChanged
     );
@@ -128,11 +140,19 @@ const AdvancePropertise = (props: SchemaProps) => {
         Unique: false,
         NonLocalizable: currentToggleStates?.nonLocalizable,
         EmbedObject: currentToggleStates?.embedObject,
-        EmbedObjects : ctValue
+        EmbedObjects : embedObjectslabels
       },
       checkBoxChanged
     );
   };
+
+  useEffect(() => {
+
+    if (ctValue && Array.isArray(ctValue)) {
+      const labels = ctValue.map((item) => item.label);
+      setEmbedObjectsLabels(labels);
+    }
+  }, [ctValue]);
 
   // Option for content types
   const option = Array.isArray(contentTypes)
@@ -338,7 +358,18 @@ const AdvancePropertise = (props: SchemaProps) => {
                     <Select
                       value={ctValue}
                       isMulti={true}
-                      onChange={setCTValue}
+                      onChange={(selectedOptions:any) => {
+                        setCTValue(selectedOptions); 
+                        const embedObject = selectedOptions.map((item: any) => item.label);// Update the state with the selected options
+                        props?.updateFieldSettings(
+                          props?.rowId,
+                        {
+                          validationRegex : toggleStates?.validationRegex || '',
+                          EmbedObjects: embedObject
+                        },
+                        true,
+                         ); 
+                      }}
                       options={option}
                       placeholder="Select Content Types"
                       version='v2'
@@ -349,16 +380,6 @@ const AdvancePropertise = (props: SchemaProps) => {
                     />
                   )}
 
-                  <div className='ToggleWrap'>
-                    <ToggleSwitch
-                      label="Embed Asset(s)"
-                      labelColor="primary"
-                      labelPosition="right"
-                      checked={toggleStates?.embedAssests}
-                      disabled={toggleStates?.embedAssests}
-                      onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('embedAssests', (e.target as HTMLInputElement)?.checked, true))}
-                    />
-                  </div>
                 </>
               )}
               {props?.fieldtype !== 'Global' && (
@@ -369,18 +390,6 @@ const AdvancePropertise = (props: SchemaProps) => {
                     labelPosition="right"
                     checked={toggleStates?.mandatory}
                     onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('mandatory', (e.target as HTMLInputElement)?.checked, true))}
-                  />
-                </div>
-              )}
-              
-              {props?.fieldtype === 'File' && (
-                <div className='ToggleWrap'>
-                  <ToggleSwitch
-                    label="Allow Images Only"
-                    labelColor="primary"
-                    labelPosition="right"
-                    checked={toggleStates?.allowImagesOnly}
-                    onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('allowImagesOnly', (e.target as HTMLInputElement)?.checked, true))}
                   />
                 </div>
               )}
