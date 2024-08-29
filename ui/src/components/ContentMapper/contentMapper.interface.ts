@@ -76,6 +76,8 @@ export interface Advanced {
   EmbedObjects?:any;
   MinChars?: string;
   MaxChars?: number;
+  MinRange?: number,
+  MaxRange?: number,
 }
 
 export interface ItemStatus {
