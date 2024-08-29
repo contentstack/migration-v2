@@ -26,7 +26,7 @@ function App() {
         // Hide the modal by setting display to none
         selectModal.style.display = 'none';
       } else {
-        // Show the modal by setting display to block (or its original value)
+        // Show the modal by setting display to block
         selectModal.style.display = 'block';
       }
     }
