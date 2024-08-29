@@ -51,7 +51,7 @@ const putTestData = async (req: Request) => {
       const id = field?.id?.replace(/[{}]/g, "")?.toLowerCase() || uuidv4();
       field.id = id;
       fieldIds.push(id);
-      return { id, projectId, isDeleted: true, ...field };
+      return { id, projectId, isDeleted: false, ...field };
     });
     FieldMapperModel.update((data: any) => {
       data.field_mapper = [...(data?.field_mapper ?? []), ...fields];
@@ -419,7 +419,7 @@ const updateContentType = async (req: Request) => {
         if (fieldIndex > -1 && field?.ContentstackFieldType !== "") {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = field;
-            data.field_mapper[fieldIndex].isDeleted = false;
+            //data.field_mapper[fieldIndex].isDeleted = false;
           });
         }
       });
