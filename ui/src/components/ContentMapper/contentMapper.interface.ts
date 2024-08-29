@@ -73,6 +73,9 @@ export interface Advanced {
   Unique?: boolean;
   NonLocalizable?: boolean;
   EmbedObject?: boolean;
+  EmbedObjects?:any;
+  MinChars?: string;
+  MaxChars?: number;
 }
 
 export interface ItemStatus {
