@@ -84,7 +84,7 @@ const AutoVerticalStepper = React.forwardRef<
             <div>
               <div className='orgWrapper'>
                 <Heading className='stepper-title' tagName='h3' text={data.title} />
-                {data?.isRequired && <span className="asterisk_input">(required)</span>  }    
+                {isRequired && <span className="FieldLabel__required-text">(required)</span>  }    
                 {data?.ifReadonly && <span>(read only)</span>}
               </div>
               <span className="stepper-titleNote">{data.titleNote ? data.titleNote : ''}</span>
