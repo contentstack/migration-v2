@@ -110,6 +110,10 @@ const Migration = () => {
     dispatch(updateNewMigrationData(createObject(data?.data)));
   };
 
+
+  //getContentTypes
+  
+
   const createStepper = (projectData: MigrationResponse,handleStepChange: (currentStep: number) => void) => {
     const steps = [
       {
