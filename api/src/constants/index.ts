@@ -42,6 +42,8 @@ export const HTTP_TEXTS = {
   FILEFORMAT_CONFIRMATION_UPDATED:
     "Project's Fileformat confirmation updated successfully",
   CMS_UPDATED: "Project's migration cms updated successfully",
+  STACK_UPDATED: "Project's migration stack details updated successfully",
+  CONTENT_MAPPER_UPDATED: "Project's migration content mapping updated successfully",
   FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
   DESTINATION_STACK_UPDATED:
     "Project's migration destination stack updated successfully",
