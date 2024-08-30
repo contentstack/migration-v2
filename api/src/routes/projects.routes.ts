@@ -77,4 +77,7 @@ router.patch("/:projectId", asyncRouter(projectController.revertProject));
 //update stack details Project Route
 router.patch("/:projectId", asyncRouter(projectController.updateStackDetails));
 
+//update content mapper details Project Route
+router.patch("/:projectId", asyncRouter(projectController.updateContentMapper));
+
 export default router;
