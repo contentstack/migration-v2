@@ -38,7 +38,7 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
         },
       })
     );
-
+    // console.info(err, res);
     if (err) {
       logger.error(
         getLogMessage(
@@ -63,10 +63,12 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
         );
       });
     }
-    const locale = await getStackLocal(token_payload, stacks);
+    // const locale:any[]
+    // const locale = await getStackLocal(token_payload, stacks);
     return {
       data: {
-        stacks: locale,
+        // stacks: locale,
+        stacks,
       },
       status: res.status,
     };
