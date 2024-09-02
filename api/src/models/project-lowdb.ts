@@ -62,6 +62,7 @@ interface Project {
   isNewStack: boolean;
   newStackId: string;
   stackDetails: [];
+  mapper_keys: [];
 }
 
 interface ProjectDocument {
