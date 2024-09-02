@@ -37,6 +37,13 @@ import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import { Notification } from '@contentstack/venus-components';
 import { createObject } from '../../utilities/projectDBMapper';
+
+import { ICMSType, ILegacyCMSComponent } from "../../context/app/app.interface";
+import { DEFAULT_CMS_TYPE } from "../../context/app/app.interface";
+import { ICardType } from "../../components/Common/Card/card.interface";
+import { defaultCardType } from "../../components/Common/Card/card.interface";
+
+
 type StepperComponentRef = {
   handleStepChange: (step: number) => void;
 };
@@ -107,7 +114,69 @@ const Migration = () => {
       setProjectData(data?.data);
       setIsLoading(false);
     }
-    dispatch(updateNewMigrationData(createObject(data?.data)));
+  
+  const projectData = data?.data;
+
+  const legacyCmsData:ILegacyCMSComponent = await  getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
+
+  const selectedCmsData: ICMSType = validateArray(legacyCmsData?.all_cms)
+  ? legacyCmsData?.all_cms?.find((cms: ICMSType) => cms?.cms_id === projectData?.legacy_cms?.cms) ?? DEFAULT_CMS_TYPE
+  : DEFAULT_CMS_TYPE;
+
+  const selectedFileFormatData: ICardType | undefined = validateArray(
+    selectedCmsData?.allowed_file_formats
+  )
+    ? selectedCmsData.allowed_file_formats?.find(
+        (cms: ICardType) => cms?.fileformat_id === projectData?.legacy_cms?.file_format
+      )
+    : defaultCardType;
+
+    const projectMapper = {
+      ...newMigrationData,
+        legacy_cms: {
+          selectedCms: selectedCmsData,
+          selectedFileFormat: selectedFileFormatData,
+          affix: projectData?.legacy_cms?.affix,
+          uploadedFile: {
+            file_details: {
+              localPath: projectData?.legacy_cms?.file_path,
+              awsData: {
+                awsRegion: projectData?.legacy_cms?.awsDetails?.awsRegion,
+                bucketName: projectData?.legacy_cms?.awsDetails?.bucketName,
+                buketKey: projectData?.legacy_cms?.awsDetails?.buketKey
+              },
+              isLocalPath: projectData?.legacy_cms?.is_localPath
+            },
+            isValidated: projectData?.legacy_cms?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated
+          },
+          isFileFormatCheckboxChecked: true, 
+          isRestictedKeywordCheckboxChecked: true,
+          projectStatus: projectData?.status
+        },
+        destination_stack: {
+          selectedOrg: {
+            value: projectData?.org_id,
+            label: projectData?.org_name
+          },
+          selectedStack: {
+            value: projectData?.destination_stack_id,
+            label: projectData?.destination_stack_name,
+            master_locale: projectData?.destination_stack_master_locale
+          },
+          stackArray:{
+            value: projectData?.destination_stack_id,
+            label: projectData?.destination_stack_name,
+            master_locale: projectData?.destination_stack_master_locale,
+            created_at: projectData?.destination_stack_created_at,
+          }
+        },
+        content_mapping: {
+          isDropDownChanged: false
+        },
+        stackDetails: projectData?.stackDetails,
+        mapper_keys: projectData?.mapper_keys,
+      };
+    dispatch(updateNewMigrationData(projectMapper));
   };
 
 
@@ -120,7 +189,6 @@ const Migration = () => {
         data: <LegacyCms
               ref={legacyCMSRef}
               legacyCMSData={projectData?.legacy_cms}
-              projectData={projectData}
               handleStepChange={handleStepChange}
               isCompleted={isCompleted}
               handleOnAllStepsComplete={handleOnAllStepsComplete}/>,

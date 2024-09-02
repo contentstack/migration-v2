@@ -278,6 +278,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   let updatedRows: FieldMapType[] = tableData;
   let updatedExstingField: ExistingFieldType = existingField;
   const updatedSelectedOptions: string[] = selectedOptions; 
+  const [initialRowSelectedData, setInitialRowSelectedData] = useState();
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -329,26 +330,59 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   }, [contentTypeMapped, otherCmsTitle]);
 
   useEffect(() => {
-    const updatedExstingField: ExistingFieldType = {};
     const checkKey = Object.keys(contentTypeMapped).find(key => contentTypeMapped[key] === contentTypeMapped[otherCmsTitle]);
 
-    if (checkKey === otherCmsTitle) {
+    // if (checkKey === otherCmsTitle) {
       tableData?.forEach((row) => {
-        if (row?.contentstackField) {
-          updatedExstingField[row?.uid] = {
-            label: row?.contentstackField,
-            value: row?.contentstackField
-          };
-        }
+        contentTypeSchema?.forEach((schema) => {
+          
+          if (row?.contentstackField === schema?.display_name) {
+            updatedExstingField[row?.uid] = {
+              label: schema?.display_name,
+              value: schema
+            };
+          }
+
+          if(schema?.schema) {
+            schema?.schema?.forEach((childSchema) => {
+              if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`){
+                
+                updatedExstingField[row?.uid] = {
+                  label: `${schema?.display_name} > ${childSchema?.display_name}`,
+                  value: childSchema
+                }
+              }
+            })
+          }
+        });
       });
-      //setExistingField(updatedExstingField);
-    }
+      
+      setExistingField(updatedExstingField);
+    // }
   }, [tableData, otherCmsTitle]);
+
+  useEffect(() => {
+    if (isUpdated) {     
+      setTableData(updatedRows);
+      setExistingField(updatedExstingField);
+      setSelectedOptions(updatedSelectedOptions);
+      setSelectedEntries(updatedRows);
+      setIsUpdated(false);
+    }
+    else{
+      setExistingField({});
+      setSelectedOptions([]);
+
+    }
+  }, [isUpdated, otherContentType]);
 
   // To make all the fields checked
   useEffect(() => {
     const selectedId = tableData.reduce<UidMap>((acc, item) => {
-      acc[item?.id] = true;
+      if(! item?.isDeleted){
+        acc[item?.id] = true;
+
+      }
       return acc;
     }, {});
     
@@ -447,6 +481,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       
       setTableData(newTableData || []);
       setTotalCounts(data?.count);
+      setInitialRowSelectedData(newTableData.filter((item:any) => !item.isDeleted))
       
       generateSourceGroupSchema(data?.fieldMapping);
     } catch (error) {
@@ -547,8 +582,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       }
       return row;
     });
-
     setTableData(newTableData);
+    setSelectedEntries(newTableData);
   };
 
   const handleSchemaPreview = (title: string) => {
@@ -579,30 +614,122 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     );
   };
 
-  // Function to handle selected fields
   const handleSelectedEntries = (singleSelectedRowIds: string[], selectedData: FieldMapType[]) => {
     const selectedObj: UidMap = {};
-
+    let Ischild = false;
+  
     singleSelectedRowIds.forEach((uid: string) => {
-      selectedObj[uid] = true;
+      const isId = selectedData?.some((item) => item?.id === uid);
+      if (isId) {
+        selectedObj[uid] = true;
+      }
     });
-    
+  
+    // Iterate over each item in selectedData to handle group and child selection logic
+    selectedData?.forEach((item) => {
+
+      // Extract the group UID if item is child of any group
+      const uidBeforeDot = item?.uid?.split('.')[0];
+      const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);
+  
+      if (groupItem) {
+        // Mark the group item as selected if any child of group is selected
+        selectedObj[groupItem?.id] = true;
+      }
+  
+      // If the item is a group, handle its child items
+      if (item?.otherCmsType === 'Group') {
+
+        // Get all child items of the group
+        const newEle = tableData?.filter((entry) => entry?.uid?.startsWith(item?.uid + '.'));
+  
+        if (newEle && validateArray(newEle)) {
+          
+          const allChildrenNotSelected = newEle.every(child => !selectedObj[child?.id || '']);
+          if (allChildrenNotSelected) {
+            
+            //if none of the child of group is selected then mark the child items as selected
+            newEle.forEach((child) => {
+              Ischild = true;
+              selectedObj[child?.id || ''] = true;
+            });
+          }
+        }
+      } 
+      else {
+        // If the item is not a group, mark it as selected in selectedObj
+        selectedObj[item?.id] = true;
+      }
+    });
+  
     const uncheckedElements = findUncheckedElement(selectedData, tableData);
+ 
     uncheckedElements && validateArray(uncheckedElements) && uncheckedElements?.forEach((field) => {
       if (field?.otherCmsType === "Group") {
-        const newEle = selectedData?.filter((entry) => entry?.uid?.startsWith(field?.uid + '.'))
 
-        newEle && validateArray(newEle) && newEle.forEach((child) => {
-          selectedObj[child?.id || ''] = false;
-          selectedData?.splice(selectedData?.indexOf(child), 1);
-        })
+        // Get all child items of the unchecked group
+        const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(field?.uid + '.'));
+  
+        if (childItems && validateArray(childItems)) {
+
+          // Check if all children are selected
+          const allChildrenSelected = childItems.every(child => selectedObj[child?.id || '']);
+          
+          if (allChildrenSelected) {
+            childItems.forEach((child) => {
+
+              // Remove each child item from selected
+              delete selectedObj[child?.id || ''];
+              
+            });
+            delete selectedObj[field?.id || ''];
+          }
+        }
+      } 
+      else {
+
+        // Extract the group UID if item is child of any group
+        const uidBeforeDot = field?.uid?.split('.')[0];
+        const groupItem = selectedData?.find((entry) => entry?.uid === uidBeforeDot);
+        const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
+
+        if (childItems && validateArray(childItems)) {
+
+          // Check if all children are not selected of group
+          const allChildrenSelected = childItems.every(child => !selectedObj[child?.id || '']);
+          
+          if (allChildrenSelected) {
+            
+            childItems.forEach((child) => {
+              delete selectedObj[child?.id || ''];
+              
+            });
+            delete selectedObj[groupItem?.id || ''];
+          }
+        }
+  
+        if (!Ischild) {
+
+          delete selectedObj[field?.id || ''];
+        }
       }
-    })
+    });
+    const updatedTableData = tableData.map((tableItem) => {
+      const found = selectedData.some((selectedItem) => selectedItem.uid === tableItem.uid);
+      
+      // Mark the item as deleted if not found in selectedData
+      return {
+        ...tableItem,
+        isDeleted: !found ? true : false,
+      };
+    });
+  
 
     setRowIds(selectedObj);
-    setSelectedEntries(selectedData);
+    setSelectedEntries(updatedTableData);
   };
-
+  
+ 
   // Function to find unchecked field
   const findUncheckedElement = (selectedData: FieldMapType[], tableData: FieldMapType[]) => {
     return tableData.filter((mainField: FieldMapType) => 
@@ -715,7 +842,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               icon="Sliders"
               size="small"
               onClick={() =>
-                handleAdvancedSetting(fieldLabel, advancePropertise, data?.uid, data)
+                handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
               }
             />
           </Tooltip>
@@ -727,8 +854,17 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string) => {
     setIsDropDownChanged(true);
     const previousSelectedValue = existingField[rowIndex]?.label;
+    const groupArray = nestedList.filter(item => 
+      item?.child?.some(e => e?.id)
+    )
+    if(groupArray[0].child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
+       for(const item of groupArray[0].child){
+        delete existingField[item?.uid]
+       }
+    }
 
-    setExistingField((prevOptions) => ({
+    
+    setExistingField((prevOptions: any) => ({
       ...prevOptions,
       [rowIndex]: { label: selectedValue?.label, value: selectedValue?.value }
     }));
@@ -765,12 +901,15 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         return {
           ...row,
           contentstackField: selectedValue?.label,
+          contentstackFieldUid: selectedValue?.value?.uid,
           advanced: {
             validationRegex: selectedValue?.value?.format,
             Mandatory: selectedValue?.value?.mandatory,
             Multiple: selectedValue?.value?.multiple,
             Unique: selectedValue?.value?.unique,
-            NonLocalizable: selectedValue?.value?.non_localizable
+            NonLocalizable: selectedValue?.value?.non_localizable,
+            MinChars: selectedValue?.value?.max,
+            MaxChars: selectedValue?.value?.min
           }
         };
       }
@@ -864,7 +1003,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     currentDisplayName = ''
   ) => {
     // Update the current display name with the current value's display name
-    const updatedDisplayName = currentDisplayName ? `${currentDisplayName} '>' ${value?.display_name}` : value?.display_name;
+    const updatedDisplayName = currentDisplayName ? `${currentDisplayName} > ${value?.display_name}` : value?.display_name;
   
     if (value?.data_type === 'group') {
 
@@ -1021,6 +1160,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             return {
               ...row,
               contentstackField: OptionsForRow[0]?.value?.display_name ?? '',
+              contentstackFieldUid: OptionsForRow[0]?.value?.uid ?? '',
               advanced: {
                 validationRegex: OptionsForRow[0]?.value?.format ?? '',
                 Mandatory: OptionsForRow[0]?.value?.mandatory,
@@ -1042,7 +1182,9 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     
         // Check if there's already a matching entry in updatedExstingField
         const hasMatchingEntry = Object.values(updatedExstingField).some(         
-          (entry) =>{ return entry?.label === newLabel }
+          (entry) =>{ 
+            return entry?.label === newLabel 
+          }
         );
         
         if (!hasMatchingEntry) {
@@ -1138,15 +1280,20 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               data?.otherCmsField === 'url'
             }
           >
-            <Icon
-            version="v2"
+          <Button
+          buttonType="light"
+          disabled={contentTypeSchema && existingField[data?.uid] ? true : false}>
+          <Icon
+            version={'v2'}
             icon="Sliders"
             size="small"
             onClick={() => {
-              handleAdvancedSetting(initialOption?.label, advancePropertise, data?.uid, data);
+              handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
             }}
           />
 
+          </Button>
+          
           </Tooltip>
           
         )}
@@ -1155,20 +1302,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   };
 
 
-  useEffect(() => {
-    if (isUpdated) {     
-      setTableData(updatedRows);
-      setExistingField(updatedExstingField);
-      setSelectedOptions(updatedSelectedOptions);
-      setSelectedEntries(updatedRows);
-      setIsUpdated(false);
-    }
-    else{
-      setExistingField({});
-      setSelectedOptions([]);
-
-    }
-  }, [isUpdated, otherContentType]);
+  
  
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
@@ -1212,6 +1346,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           fieldMapping: selectedEntries
         }
       };
+     
       const { data } = await updateContentType(
         orgId,
         projectID,
@@ -1553,7 +1688,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               tableHeight={tableHeight}
               equalWidthColumns={true}
               columnSelector={false}
-              initialRowSelectedData={tableData}
+              initialRowSelectedData={initialRowSelectedData}
               initialSelectedRowIds={rowIds}
               itemSize={80}
               withExportCta={{
