@@ -330,21 +330,51 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   }, [contentTypeMapped, otherCmsTitle]);
 
   useEffect(() => {
-    const updatedExstingField: ExistingFieldType = {};
     const checkKey = Object.keys(contentTypeMapped).find(key => contentTypeMapped[key] === contentTypeMapped[otherCmsTitle]);
 
-    if (checkKey === otherCmsTitle) {
+    // if (checkKey === otherCmsTitle) {
       tableData?.forEach((row) => {
-        if (row?.contentstackField) {
-          updatedExstingField[row?.uid] = {
-            label: row?.contentstackField,
-            value: row?.contentstackField
-          };
-        }
+        contentTypeSchema?.forEach((schema) => {
+          
+          if (row?.contentstackField === schema?.display_name) {
+            updatedExstingField[row?.uid] = {
+              label: schema?.display_name,
+              value: schema
+            };
+          }
+
+          if(schema?.schema) {
+            schema?.schema?.forEach((childSchema) => {
+              if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`){
+                
+                updatedExstingField[row?.uid] = {
+                  label: `${schema?.display_name} > ${childSchema?.display_name}`,
+                  value: childSchema
+                }
+              }
+            })
+          }
+        });
       });
-      //setExistingField(updatedExstingField);
-    }
+      
+      setExistingField(updatedExstingField);
+    // }
   }, [tableData, otherCmsTitle]);
+
+  useEffect(() => {
+    if (isUpdated) {     
+      setTableData(updatedRows);
+      setExistingField(updatedExstingField);
+      setSelectedOptions(updatedSelectedOptions);
+      setSelectedEntries(updatedRows);
+      setIsUpdated(false);
+    }
+    else{
+      setExistingField({});
+      setSelectedOptions([]);
+
+    }
+  }, [isUpdated, otherContentType]);
 
   // To make all the fields checked
   useEffect(() => {
@@ -834,7 +864,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     }
 
     
-    setExistingField((prevOptions) => ({
+    setExistingField((prevOptions: any) => ({
       ...prevOptions,
       [rowIndex]: { label: selectedValue?.label, value: selectedValue?.value }
     }));
@@ -871,6 +901,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         return {
           ...row,
           contentstackField: selectedValue?.label,
+          contentstackFieldUid: selectedValue?.value?.uid,
           advanced: {
             validationRegex: selectedValue?.value?.format,
             Mandatory: selectedValue?.value?.mandatory,
@@ -878,8 +909,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             Unique: selectedValue?.value?.unique,
             NonLocalizable: selectedValue?.value?.non_localizable,
             MinChars: selectedValue?.value?.max,
-            MaxChars: selectedValue?.value?.min,       
-
+            MaxChars: selectedValue?.value?.min
           }
         };
       }
@@ -1130,6 +1160,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             return {
               ...row,
               contentstackField: OptionsForRow[0]?.value?.display_name ?? '',
+              contentstackFieldUid: OptionsForRow[0]?.value?.uid ?? '',
               advanced: {
                 validationRegex: OptionsForRow[0]?.value?.format ?? '',
                 Mandatory: OptionsForRow[0]?.value?.mandatory,
@@ -1151,7 +1182,9 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     
         // Check if there's already a matching entry in updatedExstingField
         const hasMatchingEntry = Object.values(updatedExstingField).some(         
-          (entry) =>{ return entry?.label === newLabel }
+          (entry) =>{ 
+            return entry?.label === newLabel 
+          }
         );
         
         if (!hasMatchingEntry) {
@@ -1269,20 +1302,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   };
 
 
-  useEffect(() => {
-    if (isUpdated) {     
-      setTableData(updatedRows);
-      setExistingField(updatedExstingField);
-      setSelectedOptions(updatedSelectedOptions);
-      setSelectedEntries(updatedRows);
-      setIsUpdated(false);
-    }
-    else{
-      setExistingField({});
-      setSelectedOptions([]);
-
-    }
-  }, [isUpdated, otherContentType]);
+  
  
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
