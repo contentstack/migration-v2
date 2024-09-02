@@ -150,7 +150,8 @@ const Migration = () => {
             isValidated: projectData?.legacy_cms?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated
           },
           isFileFormatCheckboxChecked: true, 
-          isRestictedKeywordCheckboxChecked: true
+          isRestictedKeywordCheckboxChecked: true,
+          projectStatus: projectData?.status
         },
         destination_stack: {
           selectedOrg: {
@@ -188,7 +189,6 @@ const Migration = () => {
         data: <LegacyCms
               ref={legacyCMSRef}
               legacyCMSData={projectData?.legacy_cms}
-              projectData={projectData}
               handleStepChange={handleStepChange}
               isCompleted={isCompleted}
               handleOnAllStepsComplete={handleOnAllStepsComplete}/>,
