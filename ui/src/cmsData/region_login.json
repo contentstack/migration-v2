@@ -53,7 +53,7 @@
       "_metadata": { "uid": "cs77a3bf15c456afbb" }
     },
     {
-      "region": "EU",
+      "region": "GCP_NA",
       "service_icon": {
           "uid": "blt57dafa9c1472b46f",
           "created_at": "2024-07-29T10:57:59.058Z",
@@ -82,7 +82,7 @@
       }
     },
     {
-      "region": "AZURE_EU",
+      "region": "EU",
       "service_icon": {
         "uid": "bltbe45879eac0025d8",
         "created_at": "2023-10-31T06:59:22.783Z",
@@ -106,7 +106,7 @@
       "_metadata": { "uid": "csf578f8fbea1ae0c0" }
     },
     {
-      "region": "GCP_NA",
+      "region": "AZURE_EU",
       "service_icon": {
         "uid": "blt85d2a7024c613199",
         "created_at": "2023-10-31T07:00:56.567Z",
