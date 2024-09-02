@@ -116,6 +116,10 @@ export interface UpdatedSettings {
    * Indicates whether the component is non-localizable.
    */
   NonLocalizable?: boolean;
+
+  Multiple?: boolean;
+
+  EmbedObjects?: any
 }
 
 /**
