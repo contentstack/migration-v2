@@ -17,7 +17,6 @@ import { isEmptyString, validateArray } from '../../utilities/functions';
 import { ICardType, defaultCardType } from '../Common/Card/card.interface';
 import './legacyCms.scss';
 import { IFilterType } from '../Common/Modal/FilterModal/filterModal.interface';
-import { MigrationResponse } from '../../services/api/service.interface';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
@@ -40,7 +39,6 @@ interface LegacyCmsData {
 }
 type LegacyCMSComponentProps = {
   legacyCMSData: LegacyCmsData;
-  projectData: MigrationResponse;
   isCompleted: boolean
   handleStepChange: (currentStep: number) => void;
   handleOnAllStepsComplete:(flag : boolean)=>void;
@@ -51,7 +49,7 @@ interface AutoVerticalStepperRef {
 }
 
 
-const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted, handleOnAllStepsComplete, }: LegacyCMSComponentProps, ref) => {
+const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAllStepsComplete, }: LegacyCMSComponentProps, ref) => {
   //react-redux apis
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const  newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
@@ -171,30 +169,30 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
       ) {
         setInternalActiveStepIndex(2);
       }   
-      dispatch(updateNewMigrationData({
-        ...newMigrationData,
-        legacy_cms: {
-          currentStep: internalActiveStepIndex,
-          selectedCms: selectedCmsData,
-          selectedFileFormat: selectedFileFormatData || newMigrationData?.legacy_cms?.selectedFileFormat ,
-          uploadedFile: {
-            file_details:{
-              localPath: legacyCMSData?.file_path,
-              awsData: legacyCMSData?.awsDetails,
-              isLocalPath: legacyCMSData?.is_localPath
-            },
-            isValidated: legacyCMSData?.is_fileValid ,
-          }, //need to add backend data once endpoint exposed.
-          affix: legacyCMSData?.affix || '',
-          isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
-          isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
-        }
-      }))
+      // dispatch(updateNewMigrationData({
+      //   ...newMigrationData,
+      //   legacy_cms: {
+      //     currentStep: internalActiveStepIndex,
+      //     //selectedCms: selectedCmsData,
+      //     //selectedFileFormat: selectedFileFormatData || newMigrationData?.legacy_cms?.selectedFileFormat ,
+      //     uploadedFile: {
+      //       file_details:{
+      //         localPath: legacyCMSData?.file_path,
+      //         awsData: legacyCMSData?.awsDetails,
+      //         isLocalPath: legacyCMSData?.is_localPath
+      //       },
+      //       isValidated: legacyCMSData?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated ,
+      //     }, //need to add backend data once endpoint exposed.
+      //     //affix: legacyCMSData?.affix || '',
+      //     //isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
+      //     isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
+      //   }
+      // }));
       setIsLoading(false);          
   
       //Check for migration Status and lock.
       // Status where Migration is to be Locked:
-      setIsMigrationLocked(projectData?.status === 2 || projectData?.status === 5);
+      setIsMigrationLocked(newMigrationData?.legacy_cms?.projectStatus === 2 || newMigrationData?.legacy_cms?.projectStatus  === 5);
     };
    
 

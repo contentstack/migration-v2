@@ -10,6 +10,10 @@ interface Advanced {
   Multiple: boolean;
   Unique: boolean;
   NonLocalizable: boolean;
+  EmbedObject: boolean;
+  EmbedObjects:any;
+  MinChars: string;
+  MaxChars: number;
 }
 
 /**
