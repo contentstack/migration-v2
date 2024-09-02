@@ -17,7 +17,6 @@ import { isEmptyString, validateArray } from '../../utilities/functions';
 import { ICardType, defaultCardType } from '../Common/Card/card.interface';
 import './legacyCms.scss';
 import { IFilterType } from '../Common/Modal/FilterModal/filterModal.interface';
-import { MigrationResponse } from '../../services/api/service.interface';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
@@ -40,7 +39,6 @@ interface LegacyCmsData {
 }
 type LegacyCMSComponentProps = {
   legacyCMSData: LegacyCmsData;
-  projectData: MigrationResponse;
   isCompleted: boolean
   handleStepChange: (currentStep: number) => void;
   handleOnAllStepsComplete:(flag : boolean)=>void;
@@ -51,7 +49,7 @@ interface AutoVerticalStepperRef {
 }
 
 
-const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted, handleOnAllStepsComplete, }: LegacyCMSComponentProps, ref) => {
+const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAllStepsComplete, }: LegacyCMSComponentProps, ref) => {
   //react-redux apis
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const  newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
@@ -194,7 +192,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, projectData, isCompleted
   
       //Check for migration Status and lock.
       // Status where Migration is to be Locked:
-      setIsMigrationLocked(projectData?.status === 2 || projectData?.status === 5);
+      setIsMigrationLocked(newMigrationData?.legacy_cms?.projectStatus === 2 || newMigrationData?.legacy_cms?.projectStatus  === 5);
     };
    
 
