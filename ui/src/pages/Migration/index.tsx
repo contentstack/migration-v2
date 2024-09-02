@@ -147,7 +147,7 @@ const Migration = () => {
               },
               isLocalPath: projectData?.legacy_cms?.is_localPath
             },
-            isValidated: projectData?.legacy_cms?.is_fileValid
+            isValidated: projectData?.legacy_cms?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated
           },
           isFileFormatCheckboxChecked: true, 
           isRestictedKeywordCheckboxChecked: true
