@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { FullPageLoader } from '@contentstack/venus-components';
@@ -17,6 +17,20 @@ import { useNetworkCheck } from './components/NetworkProvider';
 
 function App() {
   const isOnline = useNetworkCheck();
+
+  useEffect(() => {
+    const selectModal = document.querySelector('.ReactModalPortal');
+    
+    if (selectModal instanceof HTMLElement) {
+      if (!isOnline) {
+        // Hide the modal by setting display to none
+        selectModal.style.display = 'none';
+      } else {
+        // Show the modal by setting display to block
+        selectModal.style.display = 'block';
+      }
+    }
+  }, [isOnline]);
 
   return (
     <>
@@ -38,5 +52,4 @@ function App() {
     </>
   );
 }
-
 export default App;
