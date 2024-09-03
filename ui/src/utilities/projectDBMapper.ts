@@ -41,6 +41,7 @@ export function createObject(projectData: any) {
           isDropDownChanged: false
         },
         stackDetails: projectData?.stackDetails,
+        mapper_keys: projectData?.mapper_keys,
       };
 
     return object;
