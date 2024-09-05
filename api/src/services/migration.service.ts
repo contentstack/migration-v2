@@ -216,12 +216,15 @@ const runCli = async (rg: string, user_id: string) => {
 
 const fieldMapping = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
+  const contentTypes = await fieldAttacher({ orgId, projectId });
+  const packagePath = '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/uplaode-api/extracted_files/package 45';
+  await siteCoreService?.createEntry({ packagePath, contentTypes });
+  await siteCoreService.createLocale(req);
   // const { region, user_id } = req?.body?.token_payload ?? {};
+  // console.info("🚀 ~ fieldMapping ~ region, user_id:", region, user_id)
   // runCli(region, user_id); 
-  const contentTypes = await fieldAttacher({ orgId, projectId })
-  // const packagePath = '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/uplaode-api/extracted_files/package 45';
-  // await siteCoreService?.createEntry({ packagePath, contentTypes });
 }
+
 
 
 export const migrationService = {

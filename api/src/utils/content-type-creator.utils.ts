@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-const contentSave = 'sitecoreMigrationData/content_types'
-
+const contentSave = path.join('sitecoreMigrationData', 'content_types');
+const globalSave = path.join('sitecoreMigrationData', 'global_fields');
 interface Group {
   data_type: string;
   display_name?: string; // Assuming item?.contentstackField might be undefined
@@ -11,6 +11,12 @@ interface Group {
   multiple: boolean;
   mandatory: boolean;
   unique: boolean;
+}
+
+interface ContentType {
+  title: string | undefined;
+  uid: string | undefined;
+  schema: any[]; // Replace `any` with the specific type if known
 }
 
 function extractValue(input: string, prefix: string, anoter: string): any {
@@ -328,14 +334,78 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
           "multiple": false
         }
       } else {
-        console.info(field?.ContentstackFieldType)
+        console.info('Contnet Type Filed', field?.contentstackField)
       }
     }
   }
 }
 
+const saveContent = async (ct: any) => {
+  try {
+    // Check if the directory exists
+    await fs.promises.access(contentSave).catch(async () => {
+      // If the directory doesn't exist, create it
+      await fs.promises.mkdir(contentSave, { recursive: true });
+    });
+    // Write the individual content to its own file
+    const filePath = path.join(process.cwd(), contentSave, `${ct?.uid}.json`);
+    await fs.promises.writeFile(filePath, JSON.stringify(ct));
+    // Append the content to schema.json
+    const schemaFilePath = path.join(process.cwd(), contentSave, 'schema.json');
+    let schemaData = [];
+    try {
+      // Read existing schema.json file if it exists
+      const schemaFileContent = await fs.promises.readFile(schemaFilePath, 'utf8');
+      schemaData = JSON.parse(schemaFileContent);
+    } catch (readError: any) {
+      if (readError?.code !== 'ENOENT') {
+        throw readError; // rethrow if it's not a "file not found" error
+      }
+    }
+    // Append new content to schemaData
+    schemaData.push(ct);
+    // Write the updated schemaData back to schema.json
+    await fs.promises.writeFile(schemaFilePath, JSON.stringify(schemaData, null, 2));
+
+  } catch (err) {
+    console.error("Error:", err);
+  }
+
+}
+
+
+const writeGlobalField = async (schema: any) => {
+  const filePath = path.join(process.cwd(), globalSave, 'globalfields.json');
+  try {
+    await fs.promises.access(globalSave);
+  } catch (err) {
+    try {
+      await fs.promises.mkdir(globalSave, { recursive: true });
+    } catch (mkdirErr) {
+      console.error("🚀 ~ fs.mkdir ~ err:", mkdirErr);
+      return;
+    }
+  }
+  let globalfields: any[] = [];
+  try {
+    const data = await fs.promises.readFile(filePath, 'utf8');
+    globalfields = JSON.parse(data);
+  } catch (readErr: any) {
+    if (readErr?.code !== 'ENOENT') {
+      console.error("🚀 ~ fs.readFile ~ err:", readErr);
+      return;
+    }
+  }
+  globalfields.push(schema);
+  try {
+    await fs.promises.writeFile(filePath, JSON.stringify(globalfields, null, 2));
+  } catch (writeErr) {
+    console.error("🚀 ~ fs.writeFile ~ err:", writeErr);
+  }
+};
+
 export const contenTyprMaker = async ({ contentType }: any) => {
-  const ct: any = {
+  const ct: ContentType = {
     title: contentType?.contentstackTitle,
     uid: contentType?.contentstackUid,
     schema: []
@@ -360,8 +430,8 @@ export const contenTyprMaker = async ({ contentType }: any) => {
           title: extractValue(element?.contentstackField, item?.contentstackField, ' >')?.trim(),
         }
         const schema: any = convertToSchemaFormate({ field });
-        if (typeof schema === 'object') {
-          group?.schema?.push(schema);
+        if (typeof schema === 'object' && Array.isArray(group?.schema)) {
+          group.schema.push(schema);
         }
       })
       ct?.schema?.push(group);
@@ -378,13 +448,13 @@ export const contenTyprMaker = async ({ contentType }: any) => {
     }
   })
   if (ct?.uid) {
-    fs.writeFileSync(
-      path.join(
-        process.cwd(),
-        contentSave,
-        `${ct?.uid}.json`
-      ),
-      JSON.stringify(ct)
-    );
+    if (contentType?.type === 'global_field') {
+      await writeGlobalField(ct);
+    } else {
+      await saveContent(ct);
+    }
+  } else {
+    console.info(contentType?.contentstackUid, 'missing')
   }
 }
+

@@ -140,8 +140,8 @@ export const NEW_PROJECT_STATUS = {
   6: 6, //MIGRATION_TERMINATED
 };
 
-// Cs Locale : Destination Local
-export const LOCALE_MAPPER: any = {
+// Cs Locale : Destination Locale
+export const LOCALE_MAPPER: { [key: string]: string | { [key: string]: string } } = {
   //not more than one locale mapping in master locale
   masterLocale: {
     'en-us': 'en'
