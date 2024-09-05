@@ -120,6 +120,7 @@ const createProject = async (req: Request) => {
     isNewStack: false,
     newStackId: "",
     stackDetails: [],
+    mapperKeys: []
   };
 
   try {
@@ -208,6 +209,8 @@ const updateProject = async (req: Request) => {
       data.projects[projectIndex].updated_by = user_id;
       data.projects[projectIndex].updated_at = new Date().toISOString();
       data.projects[projectIndex].stackDetails = updateData?.stackDetails;
+      data.projects[projectIndex].mapperKeys = updateData?.mapperKeys;
+
       project = data.projects[projectIndex];
     });
 
@@ -983,9 +986,12 @@ const updateStackDetails = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs during the update.
  */
 const updateContentMapper = async (req: Request) => {
+  console.info("updateContentMapper", req.params, req.body);
+
   const { orgId, projectId } = req.params;
   const { token_payload, content_mapper } = req.body;
   const srcFunc = "updateContentMapper";
+
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -1002,7 +1008,7 @@ const updateContentMapper = async (req: Request) => {
 
   try {
     ProjectModelLowdb.update((data: any) => {
-      data.projects[projectIndex].mapper_keys = content_mapper;
+      data.projects[projectIndex].mapperKeys = content_mapper;
       data.projects[projectIndex].updated_at = new Date().toISOString();
     });
 
@@ -1049,6 +1055,5 @@ export const projectService = {
   updateCurrentStep,
   deleteProject,
   revertProject,
-  updateStackDetails,
-  updateContentMapper,
+  updateStackDetails
 };

@@ -37,11 +37,9 @@ export function createObject(projectData: any) {
             created_at: projectData?.destination_stack_created_at,
           }
         },
-        content_mapping: {
-          isDropDownChanged: false
-        },
+        content_mapping: projectData?.content_mapping,
         stackDetails: projectData?.stackDetails,
-        mapper_keys: projectData?.mapper_keys,
+        mapperKeys: projectData?.mapperKeys,
       };
 
     return object;
