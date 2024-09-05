@@ -279,6 +279,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   let updatedExstingField: ExistingFieldType = existingField;
   const updatedSelectedOptions: string[] = selectedOptions; 
   const [initialRowSelectedData, setInitialRowSelectedData] = useState();
+  const selectedTableData: string[] = [];
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -397,6 +398,27 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       document.removeEventListener('click', handleClickOutside, true);
     };
   }, []);
+
+  // if exsting content type is changed in contentstack, reflect those changes for 
+  // maaped fields
+  useEffect(()=>{
+
+    if (existingField) {
+      contentTypeSchema?.forEach((item) => {
+        for (const [key, value] of Object.entries(existingField)) {
+          if (value?.label === item?.display_name) {
+
+            setExistingField((prevOptions: any) => ({
+              ...prevOptions,
+              [key]: { label: value?.label, value: item },
+            }));
+
+          }
+        }})
+     
+    }
+
+  },[contentTypeSchema]);
 
   // To dispatch the changed dropdown state
   useEffect(() => {
@@ -1367,6 +1389,14 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         setIsContentTypeMapped(true);
         setIsContentTypeSaved(true);
 
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
+        };
+       
+       
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
+      
         const savedCT = filteredContentTypes?.map(ct => 
           ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
         );
@@ -1454,7 +1484,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         type: 'error'
       });
     } else {
-      const { data } = await fetchExistingContentType(projectId, otherContentType?.id ?? '');
+      const { data , status} = await fetchExistingContentType(projectId, otherContentType?.id ?? '');
 
       const index = contentTypesList.findIndex(ct => ct?.uid === data?.uid);
 
@@ -1465,7 +1495,18 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       }
       
       setContentTypesList(contentTypesArr);
-      setContentTypeSchema(data?.schema)
+      setContentTypeSchema(data?.schema);
+      if (status == 201) {
+        Notification({
+          notificationContent: { text: 'Content type fetched successfully' },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: false
+          },
+          type: 'success'
+        });
+      }
+      
     }
   }
 
