@@ -63,22 +63,20 @@
   list-style-type: none;
   padding: 15px 0 15px 0;
   li {
-    .list-button {
-      align-items: center;
-      display: flex;
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    min-height: 42px;
+    padding: $px-8 $px-10 $px-8 $px-12;
+    .ct-names {
       font-size: $size-font-xl;
-      justify-content: space-between;
       line-height: normal;
-      min-height: 42px;
-      padding: $px-8 $px-10 $px-8 $px-12;
-      
+      width: calc(100% - 50px);
       .cms-title {
         align-items: center;
         display: flex;
-        margin-right: $px-12;
         max-height: 24px;
         white-space: nowrap;
-        width: 70%;
         .tippy-wrapper {
           display: flex;
         }
@@ -93,10 +91,15 @@
         justify-content: flex-end;
       }
     }
-    &:hover, &.active-ct {
-      button {
-        background-color: $color-brand-white-base;
+    .schema-preview {
+      padding: 0;
+      svg {
+        height: 20px;
+        width: 20px;
       }
+    }
+    &:hover, &.active-ct {
+      background-color: $color-brand-white-base;
       .cms-title {
         span {
           color: $color-brand-primary-base;
