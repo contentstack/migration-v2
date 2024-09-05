@@ -119,7 +119,9 @@ export interface UpdatedSettings {
 
   Multiple?: boolean;
 
-  EmbedObjects?: any
+  EmbedObjects?: any;
+
+  Default_value?: boolean;
 }
 
 /**
