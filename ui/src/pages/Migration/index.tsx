@@ -153,31 +153,36 @@ const Migration = () => {
           isRestictedKeywordCheckboxChecked: true,
           projectStatus: projectData?.status
         },
-        destination_stack: {
-          selectedOrg: {
-            value: projectData?.org_id,
-            label: projectData?.org_name
-          },
-          selectedStack: {
-            value: projectData?.destination_stack_id,
-            label: projectData?.destination_stack_name,
-            master_locale: projectData?.destination_stack_master_locale
-          },
-          stackArray:{
-            value: projectData?.destination_stack_id,
-            label: projectData?.destination_stack_name,
-            master_locale: projectData?.destination_stack_master_locale,
-            created_at: projectData?.destination_stack_created_at,
-          }
-        },
+        // destination_stack: {
+        //   selectedOrg: {
+        //     value: projectData?.org_id,
+        //     label: projectData?.org_name
+        //   },
+        //   selectedStack: {
+        //     value: projectData?.destination_stack_id,
+        //     label: projectData?.destination_stack_name,
+        //     master_locale: projectData?.destination_stack_master_locale
+        //   },
+        //   stackArray:{
+        //     value: projectData?.destination_stack_id,
+        //     label: projectData?.destination_stack_name,
+        //     master_locale: projectData?.destination_stack_master_locale,
+        //     created_at: projectData?.destination_stack_created_at,
+        //   }
+        // },
         content_mapping: {
-          isDropDownChanged: false
+          isDropDownChanged: false,
+          content_type_mapping: projectData?.mapperKeys
         },
         stackDetails: projectData?.stackDetails,
-        mapper_keys: projectData?.mapper_keys,
+        // mapperKeys: projectData?.mapperKeys,
       };
+    console.log("projectData", projectData);
+
     dispatch(updateNewMigrationData(projectMapper));
   };
+
+  
 
 
   //getContentTypes
