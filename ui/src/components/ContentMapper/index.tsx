@@ -22,7 +22,8 @@ import {
   getExistingContentTypes,
   updateContentType,
   resetToInitialMapping,
-  fetchExistingContentType
+  fetchExistingContentType,
+  updateContentMapper
 } from '../../services/api/migration.service';
 import { getStackStatus } from '../../services/api/stacks.service';
 
@@ -66,6 +67,7 @@ import SaveChangesModal from '../Common/SaveChangesModal';
 
 // Styles
 import './index.scss';
+import { SCHEMA_PREVIEW } from '../../common/assets';
 
 const dummy_obj:MappingFields = {
   'single_line_text':{
@@ -241,7 +243,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [isDropDownChanged, setIsDropDownChanged] = useState<boolean>(false);
   const [contentTypeMapped, setContentTypeMapped] = useState<ContentTypeMap>(
-    newMigrationData?.content_mapping?.content_type_mapping || {}
+    newMigrationData?.content_mapping?.content_type_mapping?.[0] || {}
   );
   const [otherContentType, setOtherContentType] = useState<FieldTypes>({
     label: contentTypeMapped?.[otherCmsTitle],
@@ -306,10 +308,10 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   }, []);
 
   useEffect(() => {
-    if (newMigrationData?.destination_stack?.selectedStack?.value || projectData?.destination_stack_id) {
+    if (newMigrationData?.destination_stack?.selectedStack?.value) {
       stackStatus();
     }
-  }, [newMigrationData?.destination_stack?.selectedStack?.value || projectData?.destination_stack_id])
+  }, [newMigrationData?.destination_stack?.selectedStack?.value])
 
   // Make title and url field non editable
   useEffect(() => {
@@ -329,9 +331,12 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     }
   }, [contentTypeMapped, otherCmsTitle]);
 
+  console.log("data =============", tableData, otherContentType, contentTypeMapped, updatedExstingField);
+  
+
   useEffect(() => {
     const checkKey = Object.keys(contentTypeMapped).find(key => contentTypeMapped[key] === contentTypeMapped[otherCmsTitle]);
-
+    
     // if (checkKey === otherCmsTitle) {
       tableData?.forEach((row) => {
         contentTypeSchema?.forEach((schema) => {
@@ -405,13 +410,15 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       content_mapping: {
         ...newMigrationData?.content_mapping,
         isDropDownChanged: isDropDownChanged,
-        otherCmsTitle: otherCmsTitle,
-        // isContentTypeSaved: isContentTypeSaved
+        content_type_mapping: [
+          ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
+          {[otherCmsTitle]: contentTypeMapped?.[otherCmsTitle]}
+        ]
       }
     };
 
     dispatch(updateNewMigrationData((newMigrationDataObj)));
-  }, [isDropDownChanged, isContentTypeSaved]);
+  }, [isDropDownChanged, contentTypeMapped, otherCmsTitle]);
 
 
   useBlockNavigation(isModalOpen);
@@ -433,8 +440,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   // Get the stack status if it is empty or not
   const stackStatus = async () => {
     const contentTypeCount = await getStackStatus(
-      projectData?.org_id || selectedOrganisation?.value,
-      newMigrationData?.destination_stack?.selectedStack?.value || projectData?.destination_stack_id
+      selectedOrganisation?.value,
+      newMigrationData?.destination_stack?.selectedStack?.value
     );
 
     if (contentTypeCount?.data?.contenttype_count > 0) {
@@ -1323,12 +1330,16 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         ...newMigrationData,
         content_mapping: {
           ...newMigrationData?.content_mapping,
-          content_type_mapping: {
-            ...newMigrationData?.content_mapping?.content_type_mapping,
-            [otherCmsTitle]: otherContentType?.label,
-          } 
+          content_type_mapping: [
+            
+            // {...newMigrationData?.content_mapping?.content_type_mapping},
+            {[otherCmsTitle]: otherContentType?.label}
+          ] 
         }
       };
+
+      console.log("newMigrationDataObj", newMigrationDataObj);
+      
 
       dispatch(updateNewMigrationData((newMigrationDataObj)));
     }
@@ -1373,6 +1384,29 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
         setFilteredContentTypes(savedCT);
         setContentTypes(savedCT);
+
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          content_mapping: { 
+            ...newMigrationData?.content_mapping, 
+            isDropDownChanged: false,
+            content_type_mapping: [
+              // ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
+              {[otherCmsTitle]: otherContentType?.label}
+            ]
+          }
+        };
+
+        console.log("newMigrationDataObj", newMigrationDataObj);
+    
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
+
+        console.log("mapperkeys", newMigrationData?.content_mapping?.content_type_mapping);
+
+        
+        
+        await updateContentMapper(orgId, projectID, [{[otherCmsTitle]: otherContentType?.label}]);
+
       } else {
         Notification({
           notificationContent: { text: data?.message },
@@ -1396,7 +1430,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   }));
 
   const handleResetContentType = async () => {
-    const orgId = projectData?.org_id;
+    const orgId = selectedOrganisation?.value;
     const projectID = projectId;
     setIsDropDownChanged(false);
    
@@ -1627,7 +1661,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                     <li key={`${index.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
                       <button
                         type='button'
-                        className='list-button'
+                        className='list-button ct-names'
                         onClick={() => handleOpenContentType(index)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -1644,7 +1678,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                           </Tooltip>
                           {content?.otherCmsTitle && <span title={content?.otherCmsTitle}>{content?.otherCmsTitle}</span> }
                         </div>
-                      
+                        </button>
                         <div className='d-flex align-items-center ct-options'>
                           <span>
                             {icon && (
@@ -1655,11 +1689,11 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                           </span>
                           <span className='ml-10'>
                             <Tooltip content="Schema Preview" position="bottom">
-                              <Icon icon="LivePreview" version="v2" onClick={() => handleSchemaPreview(content?.otherCmsTitle)} />
+                              <button className='list-button schema-preview' onClick={() => handleSchemaPreview(content?.otherCmsTitle)}>{SCHEMA_PREVIEW}</button>
                             </Tooltip>
                           </span>
                         </div>
-                      </button>
+                      
                     </li>
                   )
                 })}
