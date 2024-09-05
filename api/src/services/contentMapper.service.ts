@@ -912,6 +912,71 @@ const removeContentMapper = async (req: Request) => {
   }
 };
 
+/**
+ * Updates the content mapper details for a project.
+ *
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the update operation.
+ * @throws BadRequestError if the project status is invalid.
+ * @throws ExceptionFunction if an error occurs during the update.
+ */
+const updateContentMapper = async (req: Request) => {
+  console.info("updateContentMapper", req.params, req.body);
+
+  const { orgId, projectId } = req.params;
+  const { token_payload, content_mapper } = req.body;
+  const srcFunc = "updateContentMapper";
+
+console.info("HERE",content_mapper)
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    srcFunc,
+    true
+  )) as number;
+
+  try {
+    ProjectModelLowdb.update((data: any) => {
+      console.info("data ===============", data, content_mapper)
+      data.projects[projectIndex].mapperKeys = content_mapper;
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
+
+    logger.info(
+      getLogMessage(
+        srcFunc,
+        `Content mapping for project [Id : ${projectId}] has been successfully updated.`,
+        token_payload
+      )
+    );
+    return {
+      status: HTTP_CODES.OK,
+      data: {
+        message: HTTP_TEXTS.CONTENT_MAPPER_UPDATED,
+      },
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while updating content mapping for project [Id : ${projectId}].`,
+        token_payload,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -923,4 +988,5 @@ export const contentMapperService = {
   removeContentMapper,
   removeMapping,
   getSingleContentTypes,
+  updateContentMapper
 };
