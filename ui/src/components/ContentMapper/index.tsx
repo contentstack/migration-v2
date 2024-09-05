@@ -347,11 +347,14 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           if(schema?.schema) {
             schema?.schema?.forEach((childSchema) => {
               if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`){
-                
-                updatedExstingField[row?.uid] = {
-                  label: `${schema?.display_name} > ${childSchema?.display_name}`,
-                  value: childSchema
+                if(existingField[row?.uid]){
+                  updatedExstingField[row?.uid] = {
+                    label: `${schema?.display_name} > ${childSchema?.display_name}`,
+                    value: childSchema
+                  }
+
                 }
+                
               }
             })
           }
@@ -362,20 +365,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     // }
   }, [tableData, otherCmsTitle]);
 
-  useEffect(() => {
-    if (isUpdated) {     
-      setTableData(updatedRows);
-      setExistingField(updatedExstingField);
-      setSelectedOptions(updatedSelectedOptions);
-      setSelectedEntries(updatedRows);
-      setIsUpdated(false);
-    }
-    else{
-      setExistingField({});
-      setSelectedOptions([]);
-
-    }
-  }, [isUpdated, otherContentType]);
 
   // To make all the fields checked
   useEffect(() => {
@@ -1323,7 +1312,20 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     );
   };
 
+useEffect(() => {
+    if (isUpdated) {     
+      setTableData(updatedRows);
+      setExistingField(updatedExstingField);
+      setSelectedOptions(updatedSelectedOptions);
+      setSelectedEntries(updatedRows);
+      setIsUpdated(false);
+    }
+    else{
+      setExistingField({});
+      setSelectedOptions([]);
 
+    }
+  }, [isUpdated, otherContentType]);
   
  
   const handleSaveContentType = async () => {
