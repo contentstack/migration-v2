@@ -43,4 +43,12 @@ router.post(
   asyncRouter(orgController.getStackStatus)
 );
 
+/**
+ * GET all contentstack locales route.
+ * @param req - Express request object.
+ * @param res - Express response object.
+ */
+router.get("/get_stack_locales", asyncRouter(orgController.getStackLocale));
+
+
 export default router;
