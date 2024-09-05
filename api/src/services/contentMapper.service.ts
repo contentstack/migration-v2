@@ -320,7 +320,7 @@ const updateContentType = async (req: Request) => {
     );
     return {
       status: 400,
-      message: HTTP_TEXTS.CANNOT_UPDATE_CONTENT_MAPPING
+      message: HTTP_TEXTS.CANNOT_UPDATE_CONTENT_MAPPING,
     };
   }
 
@@ -334,7 +334,7 @@ const updateContentType = async (req: Request) => {
     );
     return {
       status: 400,
-      message: HTTP_TEXTS.INVALID_CONTENT_TYPE
+      message: HTTP_TEXTS.INVALID_CONTENT_TYPE,
     };
   }
 
@@ -363,14 +363,15 @@ const updateContentType = async (req: Request) => {
             )
           );
           await ContentTypesMapperModelLowdb.update((data: any) => {
-            data.ContentTypesMappers[updateIndex].status = CONTENT_TYPE_STATUS[3];
+            data.ContentTypesMappers[updateIndex].status =
+              CONTENT_TYPE_STATUS[3];
           });
           return {
-            status: 400, 
+            status: 400,
             message: `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
               "$",
               "ContentstackFieldType or contentstackFieldUid"
-            )}`
+            )}`,
           };
         }
       }
@@ -405,8 +406,8 @@ const updateContentType = async (req: Request) => {
         )
       );
       return {
-        status: 404, 
-        message: HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND
+        status: 404,
+        message: HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND,
       };
     }
 
@@ -437,9 +438,8 @@ const updateContentType = async (req: Request) => {
 
     return {
       status: 200,
-      data: { updatedContentType }
+      data: { updatedContentType },
     };
-
   } catch (error: any) {
     logger.error(
       getLogMessage(
@@ -450,7 +450,7 @@ const updateContentType = async (req: Request) => {
     );
     return {
       status: error?.status || 500,
-      message: error?.message || HTTP_TEXTS.INTERNAL_ERROR
+      message: error?.message || HTTP_TEXTS.INTERNAL_ERROR,
     };
   }
 };
