@@ -11,9 +11,10 @@ interface Advanced {
   Unique: boolean;
   NonLocalizable: boolean;
   EmbedObject: boolean;
-  EmbedObjects:any;
+  EmbedObjects: any;
   MinChars: string;
   MaxChars: number;
+  Default_value: boolean;
 }
 
 /**
