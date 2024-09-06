@@ -7,6 +7,7 @@ import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 interface AuthenticationDocument {
   users: {
     user_id: string;
+    email: string;
     region: string;
     authtoken: string;
     created_at: string;
