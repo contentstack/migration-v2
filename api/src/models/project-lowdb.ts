@@ -27,6 +27,14 @@ interface LegacyCMS {
   is_localPath: boolean;
 }
 
+interface StackDetails{
+  uid: string;
+  label: string;
+  master_locale: string;
+  created_at: string; 
+
+}
+
 /**
  * Represents an execution log.
  */
@@ -61,7 +69,7 @@ interface Project {
   isDeleted: boolean;
   isNewStack: boolean;
   newStackId: string;
-  stackDetails: [];
+  stackDetails: StackDetails;
   mapper_keys: [];
 }
 
