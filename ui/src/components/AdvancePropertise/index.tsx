@@ -9,7 +9,8 @@ import {
   ToggleSwitch,
   Tooltip,
   Icon,
-  Select
+  Select,
+  Radio
 } from '@contentstack/venus-components';
 
 // Service
@@ -51,7 +52,8 @@ const AdvancePropertise = (props: SchemaProps) => {
     embedObject: true,
     embedAssests: true,
     multiple: props?.value?.Multiple,
-    embedObjects: props?.value?.EmbedObjects
+    embedObjects: props?.value?.EmbedObjects,
+    Default_value: props?.value?.Default_value,
   });
 
   const embedObjects = props?.value?.EmbedObjects?.map((item: string) => ({
@@ -145,6 +147,36 @@ const AdvancePropertise = (props: SchemaProps) => {
       checkBoxChanged
     );
   };
+
+
+  const handleRadioChange = (field: string,value:boolean) => {
+    setToggleStates((prevStates) => ({
+      ...prevStates,
+      [field]: value
+    }));
+    const currentToggleStates = {
+      ...toggleStates,
+      [field]: value,
+    };
+
+    props?.updateFieldSettings(
+      props?.rowId,
+      {
+        [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
+        validationRegex: '',
+        Mandatory: currentToggleStates?.mandatory,
+        Multiple: currentToggleStates?.multiple,
+        Unique: false,
+        NonLocalizable: currentToggleStates?.nonLocalizable,
+        EmbedObject: currentToggleStates?.embedObject,
+        EmbedObjects : embedObjectslabels
+      },
+      true
+    );
+    
+  };
+
+  
 
   useEffect(() => {
 
@@ -335,6 +367,28 @@ const AdvancePropertise = (props: SchemaProps) => {
                 />
               </Field>
               </>
+          )}
+
+          {props?.fieldtype === 'Boolean' && (
+            <Field>
+            <FieldLabel className="option-label" htmlFor="options" version="v2">
+              Default Value
+            </FieldLabel>
+            <div className="Radio-class">
+              <Radio
+                label={'True'}
+                checked={toggleStates?.Default_value === true}
+                onChange={() => handleRadioChange('Default_value',true)}>
+              </Radio>
+              <Radio
+                label={'False'}
+                checked={toggleStates?.Default_value === false}
+                onChange={() => handleRadioChange('Default_value',false)}>
+              </Radio>
+
+            </div>
+            
+            </Field>
           )}
 
           <Field>

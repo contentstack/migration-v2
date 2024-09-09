@@ -246,8 +246,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     newMigrationData?.content_mapping?.content_type_mapping?.[0] || {}
   );
   const [otherContentType, setOtherContentType] = useState<FieldTypes>({
-    label: contentTypeMapped?.[otherCmsTitle],
-    value: contentTypeMapped?.[otherCmsTitle]
+    label: newMigrationData?.content_mapping?.content_type_mapping?.[0]?.[otherCmsTitle],
+    value: newMigrationData?.content_mapping?.content_type_mapping?.[0]?.[otherCmsTitle],
   });
   const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
   const [isContentTypeMapped, setIsContentTypeMapped] = useState<boolean>(false);
@@ -281,6 +281,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   let updatedExstingField: ExistingFieldType = existingField;
   const updatedSelectedOptions: string[] = selectedOptions; 
   const [initialRowSelectedData, setInitialRowSelectedData] = useState();
+  const selectedTableData: string[] = [];
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -322,22 +323,66 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     });
   },[tableData]);
 
-  useEffect(() => {
-    if (contentTypeMapped && otherCmsTitle) {
-      setOtherContentType({
-        label: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack',
-        value: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack'
-      });
-    }
-  }, [contentTypeMapped, otherCmsTitle]);
+  console.log("newMigrationData", newMigrationData, newMigrationData?.mapperKeys?.[0], otherCmsTitle, contentTypes);
 
-  console.log("data =============", tableData, otherContentType, contentTypeMapped, updatedExstingField);
+  // useEffect(() => {
+  //   if (otherCmsTitle) {
+  //     setOtherContentType({
+  //       label: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack',
+  //       value: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack'
+  //     });
+  //   }
+  // }, [otherCmsTitle]);
+
+
+
+  // useEffect(() => {
+  //   if(otherCmsTitle) {
+  //     setOtherContentType({
+  //       label: newMigrationData?.content_mapping?.content_type_mapping[0]?.[otherCmsTitle],
+  //       value: newMigrationData?.content_mapping?.content_type_mapping[0]?.[otherCmsTitle]
+  //     })
+  //   }
+  // }, [otherCmsTitle])
   
+
+  // useEffect(() => {
+  //   if (contentTypeMapped && otherCmsTitle) {
+  //     console.log("inside if ==========", contentTypeMapped, otherCmsTitle, newMigrationData?.content_mapping?.content_type_mapping[0]);
+      
+  //     setOtherContentType({
+  //       label: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack',
+  //       value: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack'
+  //     });
+  //   }
+  // }, [contentTypeMapped, otherCmsTitle]);
+
+  // useEffect(() => {
+  //      if (contentTypeMapped && otherCmsTitle) {
+  // //       console.log("inside if ==========", contentTypeMapped, otherCmsTitle, newMigrationData?.content_mapping?.content_type_mapping[0]);
+        
+  //       setOtherContentType({
+  //         label: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack',
+  //         value: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack'
+  //       });
+
+  //       //  newMigrationData?.content_mapping?.content_type_mapping?.map((ctMapped) => {
+  //       //    console.log("ctMapped:::::::::::::::::", ctMapped, ctMapped?.[otherCmsTitle]);
+          
+  //       //    setOtherContentType({
+  //       //      label: ctMapped?.[otherCmsTitle],
+  //       //      value: ctMapped?.[otherCmsTitle]
+  //       //    });
+
+  //       //   //  setContentTypeMapped(ctMapped)
+  //       //  })        
+  //      }
+  //   }, [contentTypeMapped, otherCmsTitle]);
 
   useEffect(() => {
     const checkKey = Object.keys(contentTypeMapped).find(key => contentTypeMapped[key] === contentTypeMapped[otherCmsTitle]);
     
-    // if (checkKey === otherCmsTitle) {
+    if (checkKey === otherCmsTitle) {
       tableData?.forEach((row) => {
         contentTypeSchema?.forEach((schema) => {
           
@@ -363,7 +408,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       });
       
       setExistingField(updatedExstingField);
-    // }
+    }
   }, [tableData, otherCmsTitle]);
 
   useEffect(() => {
@@ -403,22 +448,45 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     };
   }, []);
 
-  // To dispatch the changed dropdown state
-  useEffect(() => {
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      content_mapping: {
-        ...newMigrationData?.content_mapping,
-        isDropDownChanged: isDropDownChanged,
-        content_type_mapping: [
-          ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
-          {[otherCmsTitle]: contentTypeMapped?.[otherCmsTitle]}
-        ]
-      }
-    };
+  // if exsting content type is changed in contentstack, reflect those changes for 
+  // maaped fields
+  useEffect(()=>{
 
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
-  }, [isDropDownChanged, contentTypeMapped, otherCmsTitle]);
+    if (existingField) {
+      contentTypeSchema?.forEach((item) => {
+        for (const [key, value] of Object.entries(existingField)) {
+          if (value?.label === item?.display_name) {
+
+            setExistingField((prevOptions: any) => ({
+              ...prevOptions,
+              [key]: { label: value?.label, value: item },
+            }));
+
+          }
+        }})
+     
+    }
+
+  },[contentTypeSchema]);
+
+  // To dispatch the changed dropdown state
+  // useEffect(() => {
+  //   console.log("============", contentTypeMapped, {[otherCmsTitle]: contentTypeMapped?.[otherCmsTitle]});
+    
+  //   const newMigrationDataObj: INewMigration = {
+  //     ...newMigrationData,
+  //     content_mapping: {
+  //       ...newMigrationData?.content_mapping,
+  //       isDropDownChanged: isDropDownChanged,
+  //       content_type_mapping: [
+  //         ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
+  //         {[otherCmsTitle]: contentTypeMapped?.[otherCmsTitle]}
+  //       ]
+  //     }
+  //   };
+
+  //   dispatch(updateNewMigrationData((newMigrationDataObj)));
+  // }, [isDropDownChanged, contentTypeMapped, otherCmsTitle]);
 
 
   useBlockNavigation(isModalOpen);
@@ -561,8 +629,33 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     setActive(i);
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
-    const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
-    setOtherContentType({ label: option, value: option });
+    // const option = contentTypeMapped?.[otherTitle] ?? 'Select Content Type';
+    // const option: FieldTypes;
+    // newMigrationData?.content_mapping?.content_type_mapping?.map((otherCT: any) => {
+    // //   if (otherTitle === otherCmsTitle) {
+    //   console.log("otherCT==================", otherCT?.[contentTypes?.[i]?.otherCmsTitle], contentTypeMapped[contentTypes?.[i]?.otherCmsTitle]);
+
+    // //   // setContentTypeMapped(otherCT);
+    //   option = { label: otherCT?.[contentTypes?.[i]?.otherCmsTitle], value: otherCT?.[contentTypes?.[i]?.otherCmsTitle] }
+    // //   }
+    // setOtherContentType({ label: otherCT?.[contentTypes?.[i]?.otherCmsTitle], value: otherCT?.[contentTypes?.[i]?.otherCmsTitle] });
+
+
+    // })
+
+      // const newOpt = newMigrationData?.content_mapping?.content_type_mapping.find((otherCT) => {
+        console.log("!!!!!!!!!!!!!!!", newMigrationData?.content_mapping?.content_type_mapping?.[i]?.[otherTitle]);
+        
+      //   otherCT[otherCmsTitle] === otherCmsTitle
+      // } )
+      // const option = {label: newMigrationData?.content_mapping?.content_type_mapping[i], value: otherCT[contentTypes?.[i]?.otherCmsTitle]}
+      // console.log("newOpt", newOpt);
+      
+    setOtherContentType({ label: newMigrationData?.content_mapping?.content_type_mapping?.[i]?.[otherTitle], value: newMigrationData?.content_mapping?.content_type_mapping?.[i]?.[otherTitle] });
+
+    // })
+    // const option = newMigrationData?.content_mapping?.content_type_mapping[otherTitle]
+
 
     setContentTypeUid(contentTypes?.[i]?.id ?? '');
     fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
@@ -1326,22 +1419,22 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         [otherCmsTitle]: otherContentType?.label
       }));
 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        content_mapping: {
-          ...newMigrationData?.content_mapping,
-          content_type_mapping: [
+      // const newMigrationDataObj: INewMigration = {
+      //   ...newMigrationData,
+      //   content_mapping: {
+      //     ...newMigrationData?.content_mapping,
+      //     content_type_mapping: [
             
-            // {...newMigrationData?.content_mapping?.content_type_mapping},
-            {[otherCmsTitle]: otherContentType?.label}
-          ] 
-        }
-      };
+      //       ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
+      //       {[otherCmsTitle]: otherContentType?.label}
+      //     ] 
+      //   }
+      // };
 
-      console.log("newMigrationDataObj", newMigrationDataObj);
+      // // console.log("newMigrationDataObj", contentTypeMapped, newMigrationDataObj);
       
 
-      dispatch(updateNewMigrationData((newMigrationDataObj)));
+      // dispatch(updateNewMigrationData((newMigrationDataObj)));
     }
 
     if (orgId && contentTypeUid && selectedContentType) {
@@ -1378,34 +1471,21 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         setIsContentTypeMapped(true);
         setIsContentTypeSaved(true);
 
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
+        };
+       
+       
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
+      
         const savedCT = filteredContentTypes?.map(ct => 
           ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
         );
 
         setFilteredContentTypes(savedCT);
         setContentTypes(savedCT);
-
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          content_mapping: { 
-            ...newMigrationData?.content_mapping, 
-            isDropDownChanged: false,
-            content_type_mapping: [
-              // ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
-              {[otherCmsTitle]: otherContentType?.label}
-            ]
-          }
-        };
-
-        console.log("newMigrationDataObj", newMigrationDataObj);
-    
-        dispatch(updateNewMigrationData((newMigrationDataObj)));
-
-        console.log("mapperkeys", newMigrationData?.content_mapping?.content_type_mapping);
-
-        
-        
-        await updateContentMapper(orgId, projectID, [{[otherCmsTitle]: otherContentType?.label}]);
+        await updateContentMapper(orgId, projectID, [contentTypeMapped,{[otherCmsTitle]: otherContentType?.label}]);
 
       } else {
         Notification({
@@ -1488,7 +1568,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         type: 'error'
       });
     } else {
-      const { data } = await fetchExistingContentType(projectId, otherContentType?.id ?? '');
+      const { data , status} = await fetchExistingContentType(projectId, otherContentType?.id ?? '');
 
       const index = contentTypesList.findIndex(ct => ct?.uid === data?.uid);
 
@@ -1499,7 +1579,18 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       }
       
       setContentTypesList(contentTypesArr);
-      setContentTypeSchema(data?.schema)
+      setContentTypeSchema(data?.schema);
+      if (status == 201) {
+        Notification({
+          notificationContent: { text: 'Content type fetched successfully' },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: false
+          },
+          type: 'success'
+        });
+      }
+      
     }
   }
 
@@ -1593,6 +1684,9 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
   //variable for button component in table
   const onlyIcon= true;
+
+  console.log("otherContentType", otherContentType, contentTypeMapped, newMigrationData);
+  
 
   return (
     <div className="step-container">
