@@ -1,7 +1,7 @@
 import { ObjectType } from '../../utilities/constants.interface';
 import { API_VERSION } from '../../utilities/constants';
 import { getDataFromLocalStorage } from '../../utilities/functions';
-import { getCall, postCall, putCall } from './service';
+import { getCall, patchCall, postCall, putCall } from './service';
 
 const options = {
   headers: {
@@ -233,6 +233,20 @@ export const fetchExistingContentType = async (projectId: string, contentTypeUid
 export const removeContentMapper = async(orgId: string, projectId: string) => {
   try {
     return await getCall(`${API_VERSION}/mapper/${orgId}/${projectId}/content-mapper`, options);   
+  } catch (error) {
+    return error;
+    
+  }
+}
+
+export const updateStackDetails = async(orgId: string, projectId: string, data:any)=>{
+  try {
+    const Data  = {
+        stack_details:data
+      
+    };
+    return await patchCall(`${API_VERSION}/org/${orgId}/project/${projectId}/stack-details`, Data,options)
+    
   } catch (error) {
     return error;
     
