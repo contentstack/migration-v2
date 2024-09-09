@@ -1,6 +1,7 @@
 // Libraries
 import { useEffect, useState } from 'react';
 import parse from 'html-react-parser';
+import { useNavigate } from 'react-router-dom';
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -17,6 +18,8 @@ import './index.scss';
 
 const RegionalLogin = () => {
   const [data, setData] = useState<RegionType>({});
+
+  const navigate = useNavigate();
 
   const fetchData = async () => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
@@ -71,6 +74,10 @@ const RegionalLogin = () => {
                         <a
                           href={`/login?region=${region?.region}`}
                           className="body-4 fw-bold stretched-link"
+                          onClick={(e) =>{
+                            e.preventDefault();
+                            navigate(`/login?region=${region?.region}`)}
+                          }
                         >
                           <span className="link-basic-icon link-arrow">{region?.cta?.title}</span>
                         </a>
