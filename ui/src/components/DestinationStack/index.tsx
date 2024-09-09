@@ -36,7 +36,7 @@ const DestinationStackComponent = ({
   handleOnAllStepsComplete,
 }: DestinationStackComponentProps) => {
   /** ALL HOOKS HERE */
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  
   // const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
   const [stepperKey] = useState<string>('destination-Vertical-stepper');
@@ -50,6 +50,7 @@ const DestinationStackComponent = ({
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
   const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
 
   // const { projectId = '' } = useParams();
 
@@ -127,7 +128,7 @@ const DestinationStackComponent = ({
         selectedStack: selectedStackData,
         stackArray: stackArray
       };
-      dispatch(updateNewMigrationData({ destination_stack: newMigData }));
+      //dispatch(updateNewMigrationData({ destination_stack: newMigData }));
     }
         //Update newMigration Data for destination stack
     
@@ -183,9 +184,9 @@ const DestinationStackComponent = ({
   }, []);
 
 
-  useEffect(() => {
-    updateDestinationStackData();
-  }, [selectedOrganisation]);
+  // useEffect(() => {
+  //   updateDestinationStackData();
+  // }, [selectedOrganisation]);
 
   useEffect(() => {
     if (autoVerticalStepperComponent?.current) {

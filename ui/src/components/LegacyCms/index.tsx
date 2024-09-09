@@ -58,7 +58,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
 
   /** ALL HOOKS HERE */
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
   const [stepperKey] = useState<string>('legacy-Vertical-stepper');
 
@@ -230,8 +230,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
     
     
   }, [internalActiveStepIndex]);  
-
-
+  
   useEffect(()=>{
     if (!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id)) {    
       setInternalActiveStepIndex(0);

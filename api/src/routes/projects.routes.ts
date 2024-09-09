@@ -75,7 +75,7 @@ router.delete("/:projectId", asyncRouter(projectController.deleteProject));
 router.patch("/:projectId", asyncRouter(projectController.revertProject));
 
 //update stack details Project Route
-router.patch("/:projectId", asyncRouter(projectController.updateStackDetails));
+router.patch("/:projectId/stack-details", asyncRouter(projectController.updateStackDetails));
 
 //update content mapper details Project Route
 router.patch("/:projectId", asyncRouter(projectController.updateContentMapper));
