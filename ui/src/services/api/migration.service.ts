@@ -244,7 +244,6 @@ export const updateContentMapper = async (
   projectId: string,
   data: ObjectType
 ) => {
-  // const content_mapper = data;
   const mapperKeys = {content_mapper: data}
   console.log("::::::::::::", mapperKeys, data);
   
