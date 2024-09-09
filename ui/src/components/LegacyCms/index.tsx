@@ -169,25 +169,25 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
       ) {
         setInternalActiveStepIndex(2);
       }   
-      // dispatch(updateNewMigrationData({
-      //   ...newMigrationData,
-      //   legacy_cms: {
-      //     currentStep: internalActiveStepIndex,
-      //     //selectedCms: selectedCmsData,
-      //     //selectedFileFormat: selectedFileFormatData || newMigrationData?.legacy_cms?.selectedFileFormat ,
-      //     uploadedFile: {
-      //       file_details:{
-      //         localPath: legacyCMSData?.file_path,
-      //         awsData: legacyCMSData?.awsDetails,
-      //         isLocalPath: legacyCMSData?.is_localPath
-      //       },
-      //       isValidated: legacyCMSData?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated ,
-      //     }, //need to add backend data once endpoint exposed.
-      //     //affix: legacyCMSData?.affix || '',
-      //     //isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
-      //     isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
-      //   }
-      // }));
+      dispatch(updateNewMigrationData({
+        ...newMigrationData,
+        legacy_cms: {
+          currentStep: internalActiveStepIndex,
+          selectedCms: selectedCmsData,
+          selectedFileFormat: selectedFileFormatData || newMigrationData?.legacy_cms?.selectedFileFormat ,
+          uploadedFile: {
+            file_details:{
+              localPath: legacyCMSData?.file_path,
+              awsData: legacyCMSData?.awsDetails,
+              isLocalPath: legacyCMSData?.is_localPath
+            },
+            isValidated: legacyCMSData?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+          }, //need to add backend data once endpoint exposed.
+          affix: legacyCMSData?.affix || '',
+          isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
+          isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
+        }
+      }))
       setIsLoading(false);          
   
       //Check for migration Status and lock.
