@@ -178,6 +178,7 @@ export interface INewMigration {
   content_mapping: IContentMapper;
   test_migration: ITestMigration;
   isprojectMapped: boolean;
+  stackDetails: IDropDown;
 }
 
 export interface IMigrationData {
@@ -319,6 +320,7 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   content_mapping: DEFAULT_CONTENT_MAPPER,
   test_migration: DEFAULT_TEST_MIGRATION,
   isprojectMapped: false,
+  stackDetails: DEFAULT_DROPDOWN
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {
