@@ -71,6 +71,7 @@ interface Project {
   newStackId: string;
   stackDetails: [];
   mapperKeys: [];
+  extract_path: string;
 }
 
 interface ProjectDocument {
