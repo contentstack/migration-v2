@@ -1,11 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import read from 'fs-readdir-recursive';
+import { v4 as uuidv4 } from "uuid";
 import _ from 'lodash';
 import { LOCALE_MAPPER } from '../constants/index.js';
 import { entriesFieldCreator, unflatten } from '../utils/entries-field-creator.utils.js';
-const assetsSave = 'sitecoreMigrationData/assets';
-const entrySave = 'sitecoreMigrationData/entries';
+import { orgService } from './org.service.js';
+const assetsSave = path.join('sitecoreMigrationData', 'assets');
+const entrySave = path.join('sitecoreMigrationData', 'entries');
+const localeSave = path.join('sitecoreMigrationData', 'locale');
 const append = "a";
 
 const idCorrector = ({ id }: any) => {
@@ -35,12 +38,7 @@ const AssetsPathSpliter = ({ path, id }: any) => {
   return newPath;
 }
 
-// const getFolderName = ({ assetPath }: any) => {
-//   const name = assetPath?.split("/")
-//   if (name?.length) {
-//     return name[name?.length - 2]
-//   }
-// }
+
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
   fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
@@ -83,7 +81,7 @@ const uidCorrector = ({ uid }: any) => {
 
 const cretaeAssets = async ({ packagePath }: any) => {
   const allAssetJSON: any = {};
-  const folderName: any = path.join(packagePath, 'items/master/sitecore/media library');
+  const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'media library');
   const entryPath = read?.(folderName);
   for await (const file of entryPath) {
     if (file?.endsWith('data.json')) {
@@ -107,18 +105,18 @@ const cretaeAssets = async ({ packagePath }: any) => {
           mestaData.size = field?.content;
         }
       })
-      const blobPath: any = path.join(packagePath, '/blob/master');
+      const blobPath: any = path.join(packagePath, 'blob', 'master');
       const assetsPath = read(blobPath);
       if (assetsPath?.length) {
         const isIdPresent = assetsPath?.find((ast) => ast?.includes(mestaData?.id));
         if (isIdPresent) {
           try {
-            const assets = fs.readFileSync(`${blobPath}/${isIdPresent}`);
-            fs.mkdirSync(`${assetsSave}/files/${mestaData?.uid}`, { recursive: true });
+            const assets = fs.readFileSync(path.join(blobPath, isIdPresent));
+            fs.mkdirSync(path.join(assetsSave, 'files', mestaData?.uid), { recursive: true });
             fs.writeFileSync(
               path.join(
                 process.cwd(),
-                `${assetsSave}/files/${mestaData?.uid}`,
+                assetsSave, 'files', mestaData?.uid,
                 `${jsonAsset?.item?.$?.name}.${mestaData?.extension}`
               )
               , assets)
@@ -165,10 +163,10 @@ const cretaeAssets = async ({ packagePath }: any) => {
   return allAssetJSON;
 }
 
-const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' }: any) => {
+const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' }: { packagePath: any; contentTypes: any; master_locale?: string }) => {
   try {
     const allAssetJSON: any = await cretaeAssets({ packagePath });
-    const folderName: any = path.join(packagePath, 'items/master/sitecore/content');
+    const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'content');
     const entriesData: any = [];
     if (fs.existsSync(folderName)) {
       const entryPath = read?.(folderName);
@@ -200,8 +198,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' 
         for await (const locale of locales) {
           let newLocale = locale;
           const entryLocale: any = {};
-          console.info('1')
-          if (LOCALE_MAPPER?.masterLocale?.[master_locale] === locale) {
+          if (typeof LOCALE_MAPPER?.masterLocale === 'object' && LOCALE_MAPPER?.masterLocale !== null && LOCALE_MAPPER?.masterLocale?.[master_locale] === locale) {
             newLocale = Object?.keys(LOCALE_MAPPER?.masterLocale)?.[0];
             Object.entries(entryPresent?.locale?.[locale] || {}).forEach(async ([uid, entry]: any) => {
               const entryObj: any = {};
@@ -222,10 +219,8 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' 
                   }
                 }
               }
-              console.info('uid', entryObj, ctType?.contentstackUid)
               entryLocale[uid] = unflatten(entryObj) ?? {};
             });
-            console.info('2', entryLocale)
           }
           const fileMeta = { "1": `${locale}.json` };
           const entryPath = path.join(
@@ -245,9 +240,48 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' 
   }
 }
 
-
+const createLocale = async (req: any) => {
+  const allLocalesResp = await orgService.getLocales(req)
+  const masterLocale = Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
+  const msLocale: any = {};
+  const uid = uuidv4();
+  msLocale[uid] = {
+    "code": masterLocale,
+    "fallback_locale": null,
+    "uid": uid,
+    "name": allLocalesResp?.data?.locales?.[masterLocale] ?? ''
+  }
+  const allLocales: any = {};
+  for (const [key, value] of Object.entries(LOCALE_MAPPER)) {
+    const localeUid = uuidv4();
+    if (key !== 'masterLocale' && typeof value === 'string') {
+      allLocales[localeUid] = {
+        "code": value,
+        "fallback_locale": masterLocale,
+        "uid": localeUid,
+        "name": allLocalesResp?.data?.locales?.[value] ?? ''
+      }
+    }
+  }
+  const masterPath = path.join(localeSave, 'master-locale.json');
+  const allLocalePath = path.join(localeSave, 'locales.json');
+  fs.access(localeSave, async (err) => {
+    if (err) {
+      fs.mkdir(localeSave, { recursive: true }, async (err) => {
+        if (!err) {
+          await writeOneFile(masterPath, msLocale);
+          await writeOneFile(allLocalePath, allLocales);
+        }
+      })
+    } else {
+      await writeOneFile(masterPath, msLocale);
+      await writeOneFile(allLocalePath, allLocales);
+    }
+  })
+}
 
 export const siteCoreService = {
   createEntry,
-  cretaeAssets
+  cretaeAssets,
+  createLocale
 };
