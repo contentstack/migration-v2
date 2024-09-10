@@ -69,8 +69,9 @@ interface Project {
   isDeleted: boolean;
   isNewStack: boolean;
   newStackId: string;
-  stackDetails: StackDetails;
-  mapper_keys: [];
+  stackDetails: [];
+  mapperKeys: [];
+  extract_path: string;
 }
 
 interface ProjectDocument {

@@ -78,6 +78,7 @@ export interface Advanced {
   MaxChars?: number;
   MinRange?: number,
   MaxRange?: number,
+  Default_value?:boolean,
 }
 
 export interface ItemStatus {
