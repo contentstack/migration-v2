@@ -100,7 +100,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
         data.users.push({
           ...appTokenPayload,
           authtoken: res?.data.user?.authtoken,
-          email: res?.data.user?.email,
+          email : res?.data.user?.email,
           updated_at: new Date().toISOString(),
           created_at: new Date().toISOString(),
         });

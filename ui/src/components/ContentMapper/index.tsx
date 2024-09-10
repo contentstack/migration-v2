@@ -359,11 +359,14 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           if(schema?.schema) {
             schema?.schema?.forEach((childSchema) => {
               if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`){
-                
-                updatedExstingField[row?.uid] = {
-                  label: `${schema?.display_name} > ${childSchema?.display_name}`,
-                  value: childSchema
+                if(existingField[row?.uid]){
+                  updatedExstingField[row?.uid] = {
+                    label: `${schema?.display_name} > ${childSchema?.display_name}`,
+                    value: childSchema
+                  }
+
                 }
+                
               }
             })
           }
