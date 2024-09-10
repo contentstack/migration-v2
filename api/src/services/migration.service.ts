@@ -230,7 +230,7 @@ const fieldMapping = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   // const { region, user_id } = req?.body?.token_payload ?? {};
   // runCli(region, user_id); 
-  const contentTypes = await fieldAttacher({ orgId, projectId })
+  const contentTypes = await fieldAttacher({ orgId, projectId });
   // const packagePath = '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/uplaode-api/extracted_files/package 45';
   // await siteCoreService?.createEntry({ packagePath, contentTypes });
 }
