@@ -233,8 +233,8 @@ const fieldMapping = async (req: Request): Promise<any> => {
   // runCli(region, user_id); 
   const contentTypes = await fieldAttacher({ orgId, projectId });
   console.info("🚀 ~ fieldMapping ~ contentTypes:", contentTypes)
-  // const packagePath = '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/uplaode-api/extracted_files/package 45';
-  // await siteCoreService?.createEntry({ packagePath, contentTypes });
+  const packagePath = '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/uplaode-api/extracted_files/package 45';
+  await siteCoreService?.createEntry({ packagePath, contentTypes });
 }
 
 
