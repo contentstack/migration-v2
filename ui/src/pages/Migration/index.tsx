@@ -195,10 +195,11 @@ const Migration = () => {
         stackArray:[]
       },
       content_mapping: {
-        isDropDownChanged: false
+        isDropDownChanged: false,
+        content_type_mapping: projectData?.mapperKeys
       },
       stackDetails: projectData?.stackDetails,
-      mapper_keys: projectData?.mapper_keys,
+      // mapper_keys: projectData?.mapper_keys,
     };
 
   dispatch(updateNewMigrationData(projectMapper));
