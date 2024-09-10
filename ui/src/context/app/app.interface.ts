@@ -177,6 +177,7 @@ export interface INewMigration {
   destination_stack: IDestinationStack;
   content_mapping: IContentMapper;
   test_migration: ITestMigration;
+  isprojectMapped: boolean;
 }
 
 export interface IMigrationData {
@@ -316,7 +317,8 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   legacy_cms: DEFAULT_LEGACY_CMS,
   destination_stack: DEFAULT_DESTINATION_STACK,
   content_mapping: DEFAULT_CONTENT_MAPPER,
-  test_migration: DEFAULT_TEST_MIGRATION
+  test_migration: DEFAULT_TEST_MIGRATION,
+  isprojectMapped: false,
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {
