@@ -245,6 +245,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   useEffect(() => {
     fetchData();
   }, []);
+
   return (
     <div className="">
       <div className="action-summary-wrapper ">
