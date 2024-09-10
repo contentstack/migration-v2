@@ -245,8 +245,7 @@ export const updateContentMapper = async (
   data: ObjectType
 ) => {
   const mapperKeys = {content_mapper: data}
-  console.log("::::::::::::", mapperKeys, data);
-  
+
   try {
     return await patchCall(
       `${API_VERSION}/mapper/${orgId}/${projectId}/mapper_keys`,
@@ -261,3 +260,17 @@ export const updateContentMapper = async (
     }
   }
 };
+
+export const updateStackDetails = async(orgId: string, projectId: string, data:any)=>{
+  try {
+    const Data  = {
+        stack_details:data
+      
+    };
+    return await patchCall(`${API_VERSION}/org/${orgId}/project/${projectId}/stack-details`, Data,options)
+    
+  } catch (error) {
+    return error;
+    
+  }
+}
