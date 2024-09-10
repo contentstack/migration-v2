@@ -167,12 +167,12 @@ export interface IDestinationStack {
   stackArray: IDropDown[];
 }
 export interface IContentMapper {
-  content_type_mapping: ContentTypeMap;
+  content_type_mapping: ContentTypeMap[];
   isDropDownChanged?: boolean;
   otherCmsTitle?: string;
 }
-
 export interface INewMigration {
+  mapperKeys: ContentTypeMap[];
   legacy_cms: ILegacyCms;
   destination_stack: IDestinationStack;
   content_mapping: IContentMapper;
@@ -302,7 +302,7 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
 };
 
 export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
-  content_type_mapping: {},
+  content_type_mapping: [],
   isDropDownChanged: false,
   otherCmsTitle: ''
 };
@@ -313,6 +313,7 @@ export const DEFAULT_TEST_MIGRATION: ITestMigration = {
 };
 
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
+  mapperKeys: [],
   legacy_cms: DEFAULT_LEGACY_CMS,
   destination_stack: DEFAULT_DESTINATION_STACK,
   content_mapping: DEFAULT_CONTENT_MAPPER,
