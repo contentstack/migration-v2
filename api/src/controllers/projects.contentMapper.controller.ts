@@ -109,6 +109,18 @@ const getSingleContentTypes = async (
   res.status(201).json(resp);
 };
 
+/** 
+* update content mapping details a project.
+*
+* @param req - The request object.
+* @param res - The response object.
+* @returns A Promise that resolves to void.
+*/
+const updateContentMapper = async (req: Request, res: Response): Promise<void> => {
+  const project = await contentMapperService.updateContentMapper(req);
+  res.status(project.status).json(project);
+ }
+
 export const contentMapperController = {
   getContentTypes,
   getFieldMapping,
@@ -119,4 +131,5 @@ export const contentMapperController = {
   // removeMapping,
   getSingleContentTypes,
   removeContentMapper,
+  updateContentMapper
 };
