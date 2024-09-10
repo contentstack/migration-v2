@@ -1,7 +1,7 @@
 import { ObjectType } from '../../utilities/constants.interface';
 import { API_VERSION } from '../../utilities/constants';
 import { getDataFromLocalStorage } from '../../utilities/functions';
-import { getCall, patchCall, postCall, putCall } from './service';
+import { getCall, postCall, putCall, patchCall } from './service';
 
 const options = {
   headers: {
@@ -238,6 +238,28 @@ export const removeContentMapper = async(orgId: string, projectId: string) => {
     
   }
 }
+
+export const updateContentMapper = async (
+  orgId: string,
+  projectId: string,
+  data: ObjectType
+) => {
+  const mapperKeys = {content_mapper: data}
+
+  try {
+    return await patchCall(
+      `${API_VERSION}/mapper/${orgId}/${projectId}/mapper_keys`,
+      mapperKeys,
+      options
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
 
 export const updateStackDetails = async(orgId: string, projectId: string, data:any)=>{
   try {
