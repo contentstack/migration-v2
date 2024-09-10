@@ -119,7 +119,12 @@ const createProject = async (req: Request) => {
     isDeleted: false,
     isNewStack: false,
     newStackId: "",
-    stackDetails: [],
+    stackDetails: {
+      uid: '',
+      label: '',
+      master_locale: '',
+      created_at: '', 
+    },
     mapperKeys: []
   };
 
