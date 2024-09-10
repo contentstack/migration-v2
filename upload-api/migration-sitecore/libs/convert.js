@@ -27,9 +27,9 @@ const config = {
 function ExtractFiles(sitecore_folder) {
   const xml_folder = read(sitecore_folder)
   for (let i = 0; i < xml_folder.length; i++) {
-    if (xml_folder?.[i]?.includes?.("/xml")) {
-      const xml_data = `${sitecore_folder}/${xml_folder?.[i]}`;
-      const json_data = xml_data.replace('/xml', '');
+    if (xml_folder?.[i]?.endsWith?.("xml")) {
+      const xml_data = path?.join?.(sitecore_folder, xml_folder?.[i]);
+      const json_data = xml_data.replace('xml', '');
       parseString(helper.readXMLFile(xml_data), { explicitArray: false }, function (err, result) {
         if (err) {
           console.error("failed to parse xml: ", err);
