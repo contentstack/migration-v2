@@ -125,7 +125,7 @@ const HorizontalStepper = forwardRef(
                 });
             }
         }));
-        
+
         const handleTabStep = (idx: number) => {
             if (newMigrationData?.content_mapping?.isDropDownChanged) {
                 setIsModalOpen(true);
@@ -154,6 +154,11 @@ const HorizontalStepper = forwardRef(
                 || newMigrationData?.destination_stack?.selectedStack === null || Object.keys(newMigrationData?.destination_stack?.selectedStack || {}).length === 0) {
                 return Notification({
                     notificationContent: { text: `Please select a stack to proceed further` },
+                    type: 'warning' 
+                })
+            } else if (newMigrationData?.destination_stack?.selectedStack?.value !== newMigrationData?.stackDetails?.value) {
+                return Notification({
+                    notificationContent: { text: `Please save the stack to proceed further` },
                     type: 'warning' 
                 })
             }
