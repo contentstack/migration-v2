@@ -15,6 +15,7 @@ interface Advanced {
   MinChars: string;
   MaxChars: number;
   Default_value: boolean;
+  options: any[];
 }
 
 /**
