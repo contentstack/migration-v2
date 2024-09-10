@@ -228,11 +228,11 @@ const runCli = async (rg: string, user_id: string) => {
 
 const fieldMapping = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
-  const { region, user_id } = req?.body?.token_payload ?? {};
-  runCli(region, user_id);
-  const contentTypes = await fieldAttacher({ orgId, projectId })
-  const packagePath = '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/upload-api/extracted_files/package 45';
-  await siteCoreService?.createEntry({ packagePath, contentTypes });
+  // const { region, user_id } = req?.body?.token_payload ?? {};
+  // runCli(region, user_id); 
+  const contentTypes = await fieldAttacher({ orgId, projectId });
+  // const packagePath = '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/uplaode-api/extracted_files/package 45';
+  // await siteCoreService?.createEntry({ packagePath, contentTypes });
 }
 
 
