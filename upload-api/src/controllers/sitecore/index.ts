@@ -1,5 +1,6 @@
 import axios from "axios";
 import { readFileSync } from "fs";
+import path from 'path';
 import { deleteFolderSync } from "../../helper";
 import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS } from "../../constants";
@@ -7,24 +8,22 @@ import { HTTP_CODES, HTTP_TEXTS } from "../../constants";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { contentTypes, ExtractConfiguration, reference, ExtractFiles } = require('migration-sitecore');
 
-const createSitecoreMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[]) => {
+const createSitecoreMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: object) => {
   try {
-    const path = `${filePath}/items`;
-    await ExtractFiles(path);
-    await ExtractConfiguration(path);
-    await contentTypes(path);
+    const newPath = path.join(filePath, 'items');
+    await ExtractFiles(newPath);
+    await ExtractConfiguration(newPath);
+    await contentTypes(newPath, affix, config);
     const infoMap = await reference();
     if (infoMap?.contentTypeUids?.length) {
       const fieldMapping: any = { contentTypes: [] };
       for await (const contentType of infoMap?.contentTypeUids ?? []) {
-        const fileContent = readFileSync(`${infoMap?.path}/content_types/${contentType}`, 'utf8');
+        const fileContent = readFileSync(path?.join?.(infoMap?.path, 'content_types', contentType), 'utf8');
         const jsonfileContent = JSON.parse(fileContent);
         jsonfileContent.type = "content_type";
         fieldMapping?.contentTypes?.push(jsonfileContent);
       }
-
-    
-      const fileContent = readFileSync(`${infoMap?.path}/global_fields/globalfields.json`, 'utf8');
+      const fileContent = readFileSync(path?.join(infoMap?.path, 'global_fields', 'globalfields.json'), 'utf8');
       const jsonfileContent = JSON.parse(fileContent);
       for (const key in jsonfileContent) {
         if (jsonfileContent.hasOwnProperty(key)) {
@@ -33,7 +32,6 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           fieldMapping.contentTypes.push(element);
         }
       }
-      
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
