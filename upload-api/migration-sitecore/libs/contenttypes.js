@@ -121,6 +121,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
       }
     }
     case 'Checkbox': {
+      default_value = default_value === "1" ? true : false;
       return {
         id: id,
         uid: sitecoreKey,
