@@ -13,7 +13,6 @@ import {
   HTTP_CODES,
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
-  PREDEFINED_STATUS,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
@@ -44,7 +43,7 @@ const getAllProjects = async (req: Request) => {
       org_id: orgId,
       region,
       owner: user_id,
-      isDeleted: false,
+      isDeleted: false
     })
     .value();
 
@@ -1061,5 +1060,6 @@ export const projectService = {
   updateCurrentStep,
   deleteProject,
   revertProject,
-  updateStackDetails
+  updateStackDetails,
+  updateContentMapper
 };
