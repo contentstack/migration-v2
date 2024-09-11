@@ -90,6 +90,7 @@ const putTestData = async (req: Request) => {
   if (index > -1) {
     ProjectModelLowdb.update((data: any) => {
       data.projects[index].content_mapper = contentIds;
+      data.projects[index].extract_path = req?.body?.extractPath;
     });
   }
 
