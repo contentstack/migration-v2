@@ -1046,6 +1046,7 @@ const updateContentMapper = async (req: Request) => {
   }
 };
 
+
 export const projectService = {
   getAllProjects,
   getProject,
