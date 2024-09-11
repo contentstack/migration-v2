@@ -1,7 +1,7 @@
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
 import FieldMapperModel from "../models/FieldMapper.js";
-import { contenTyprMaker } from "./content-type-creator.utils.js";
+import { contenTypeMaker } from "./content-type-creator.utils.js";
 
 export const fieldAttacher = async ({ projectId, orgId }: any) => {
   await ProjectModelLowdb.read();
@@ -27,7 +27,7 @@ export const fieldAttacher = async ({ projectId, orgId }: any) => {
           return field;
         })
       }
-      await contenTyprMaker({ contentType })
+      await contenTypeMaker({ contentType })
       contentTypes?.push?.(contentType);
     }
   }

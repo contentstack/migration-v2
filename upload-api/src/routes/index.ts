@@ -93,6 +93,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
   try {
     const projectId: string | string[] = req?.headers?.projectid ?? "";
     const app_token: string | string[] = req?.headers?.app_token ?? "";
+    const affix: string | string[] = req?.headers?.affix ?? "csm";
     const cmsType = config?.cmsType?.toLowerCase();
 
     if (config?.isLocalPath) {
@@ -135,8 +136,8 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
           const data = await handleFileProcessing(fileExt, zipBuffer, cmsType);
           res.status(data?.status || 200).json(data);
           if (data?.status === 200) {
-            const filePath = path.join(__dirname, '../../extracted_files', name);
-            createSitecoreMapper(filePath, projectId, app_token)
+            const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+            createSitecoreMapper(filePath, projectId, app_token, affix, config)
           }
         });
         return;
@@ -187,9 +188,9 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
         const data = await handleFileProcessing(fileExt, zipBuffer, cmsType);
         res.json(data);
         res.send('file valited sucessfully.');
-        const filePath = path.join(__dirname, '../../extracted_files', fileName);
+        const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
         console.log("🚀 ~ bodyStream.on ~ filePath:", filePath)
-        // createSitecoreMapper(filePath, projectId, app_token)
+        createSitecoreMapper(filePath, projectId, app_token, affix, config);
       });
     }
 
