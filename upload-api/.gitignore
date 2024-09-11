@@ -8,7 +8,6 @@ build
 data
 
 # Environment variables
-.env
 
 # Package lock file
 package-lock.json

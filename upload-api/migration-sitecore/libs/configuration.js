@@ -18,17 +18,17 @@ function ExtractConfiguration(sitecore_folder) {
   const obj = {};
   const treeObj = {};
   for (let i = 0; i < xml_folder?.length; i++) {
-    if ((xml_folder?.[i]?.includes("data.json") || xml_folder?.[i]?.includes("data.json.json")) && !xml_folder?.[i]?.includes("undefined.json")) {
-      const path = xml_folder?.[i]
-      const data = helper?.readFile(`${sitecore_folder}/${xml_folder?.[i]}`)
+    if (xml_folder?.[i]?.endsWith("data.json") && !xml_folder?.[i]?.includes("undefined.json")) {
+      const nwPath = xml_folder?.[i];
+      const data = helper?.readFile(path?.join?.(sitecore_folder, xml_folder?.[i]));
       if (data?.item?.$?.template === "configuration group") {
-        let newPath = path?.split("/{")?.[0];
-        const groupPath = read(`${sitecore_folder}/${newPath}`)
+        let newPath = nwPath?.split("/{")?.[0];
+        const groupPath = read(path?.join?.(sitecore_folder, newPath));
         let arrayValue = [];
         let multiValueArrayTree = [];
         groupPath?.forEach((item) => {
-          if ((item?.includes("data.json") || item?.includes("data.json.json")) && !item?.includes("undefined.json")) {
-            const conf = helper?.readFile(`${sitecore_folder}/${newPath}/${item}`)
+          if (item?.endsWith("data.json") && !item?.includes("undefined.json")) {
+            const conf = helper?.readFile(path?.join?.(sitecore_folder, newPath, item))
             const value = conf?.item?.fields?.field?.find((item) => item?.$?.key === "value")
             if (value) {
               arrayValue.push({ key: conf?.item?.$?.name, value: value?.content !== "" ? value?.content : conf?.item?.$?.name })
@@ -38,15 +38,16 @@ function ExtractConfiguration(sitecore_folder) {
             multiValueArrayTree.push({ key: conf?.item?.$?.name, value: conf?.item?.$?.id })
           }
         })
-        obj[assignFolderName({ path: `${sitecore_folder}/${newPath}` })] = arrayValue;
-        treeObj[assignFolderName({ path: `${sitecore_folder}/${newPath}` })] = multiValueArrayTree;
+        obj[assignFolderName({ path: path?.join?.(sitecore_folder, newPath) })] = arrayValue;
+        treeObj[assignFolderName({ path: path?.join?.(sitecore_folder, newPath) })] = multiValueArrayTree;
       }
     }
   }
   helper.writeFile(
     path.join(
       process.cwd(),
-      "sitecoreMigrationData/MapperData",
+      'sitecoreMigrationData',
+      'MapperData',
     ),
     JSON.stringify(obj, null, 4),
     "configuration",
@@ -57,7 +58,8 @@ function ExtractConfiguration(sitecore_folder) {
   helper.writeFile(
     path.join(
       process.cwd(),
-      "sitecoreMigrationData/MapperData",
+      'sitecoreMigrationData',
+      'MapperData',
     ),
     JSON.stringify(treeObj, null, 4),
     "configurationTree",

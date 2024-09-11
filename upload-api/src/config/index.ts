@@ -1,4 +1,7 @@
 export default {
+  plan: {
+    dropdown: { optionLimit: 100 }
+  },
   cmsType: 'Sitecore',
   isLocalPath: true,
   awsData: {
@@ -9,5 +12,5 @@ export default {
     bucketName: 'migartion-test',
     buketKey: 'project/package 45.zip'
   },
-  localPath: '/Users/rohit/Desktop/package 45.zip'
+  localPath: '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/upload-api/extracted_files/package 45.zip'
 };
