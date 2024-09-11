@@ -61,6 +61,7 @@ interface Project {
   isDeleted: boolean;
   isNewStack: boolean;
   newStackId: string;
+  extract_path: string;
 }
 
 interface ProjectDocument {
