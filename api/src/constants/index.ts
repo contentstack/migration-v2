@@ -77,7 +77,7 @@ export const HTTP_TEXTS = {
   PROJECT_DELETE:
     "Project Deleted Successfully",
   PROJECT_REVERT:
-    "Project Reverted Successfully"
+    "Project Reverted Successfully",
 };
 
 export const HTTP_RESPONSE_HEADERS = {
