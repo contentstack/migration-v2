@@ -280,8 +280,20 @@ const createLocale = async (req: any) => {
   })
 }
 
+const createVersionFile = async () => {
+  fs.writeFile(path?.join?.('sitecoreMigrationData', 'export-info.json'), JSON.stringify({
+    "contentVersion": 2,
+    "logsPath": ""
+  }), (err) => {
+    if (err) {
+      console.error('Error writing file: 3', err);
+    }
+  });
+}
+
 export const siteCoreService = {
   createEntry,
   cretaeAssets,
-  createLocale
+  createLocale,
+  createVersionFile
 };
