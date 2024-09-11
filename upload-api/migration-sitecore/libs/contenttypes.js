@@ -5,8 +5,9 @@ const read = require("fs-readdir-recursive");
 const helper = require("../utils/helper");
 const restrictedUid = require("../utils");
 const extraField = "title";
-const configChecker = "/content/Common/Configuration";
-const append = "a"
+const configChecker = path?.join('content', 'Common', 'Configuration');
+const append = "a";
+let config = {};
 
 
 function isKeyPresent(keyToFind, timeZones) {
@@ -31,18 +32,16 @@ const uidCorrector = ({ uid }) => {
 }
 
 
-const templatesComponents = ({ path }) => {
-  console.log("🚀 ~ templatesComponents ~ path:", path)
+const templatesComponents = ({ path: newPath }) => {
   const fields = [];
-  for (let i = 0; i < path?.length; i++) {
+  for (let i = 0; i < newPath?.length; i++) {
     const allFields = [];
-    const allPaths = read(path?.[i]?.pth)
-    // console.log("🚀 ~ templatesComponents ~ allPaths:", allPaths, path?.[i]?.pth)
+    const allPaths = read(newPath?.[i]?.pth)
     for (let j = 0; j < allPaths?.length; j++) {
-      if (allPaths?.[j]?.includes("/data.json")) {
+      if (allPaths?.[j]?.endsWith("data.json")) {
         const innerField = [];
         const components = helper.readFile(
-          `${path?.[i]?.pth}/${allPaths?.[j]}`
+          path?.join?.(newPath?.[i]?.pth, allPaths?.[j]),
         );
         const data = components?.item?.$ ?? {};
         components?.item?.fields?.field.forEach((item) => {
@@ -59,9 +58,8 @@ const templatesComponents = ({ path }) => {
         }
       }
     }
-    fields?.push({ meta: path?.[i]?.obj?.item?.$, schema: allFields })
+    fields?.push({ meta: newPath?.[i]?.obj?.item?.$, schema: allFields })
   }
-  // console.log("🚀 ~ templatesComponents ~ fields:", fields)
   return fields;
 }
 
@@ -83,7 +81,7 @@ const templateStandardValues = ({ components }) => {
 const contentTypeKeyMapper = ({ template, contentType, contentTypeKey = "contentTypeKey" }) => {
   let keyMapper = {};
   const keys = helper.readFile(
-    path.join(process.cwd(), `/sitecoreMigrationData/MapperData/${contentTypeKey}.json`)
+    path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', `${contentTypeKey}.json`)
   );
   if (keys) {
     keyMapper = keys;
@@ -92,7 +90,8 @@ const contentTypeKeyMapper = ({ template, contentType, contentTypeKey = "content
   helper.writeFile(
     path.join(
       process.cwd(),
-      "sitecoreMigrationData/MapperData"
+      'sitecoreMigrationData',
+      'MapperData'
     ),
     JSON.stringify(keyMapper, null, 4),
     contentTypeKey,
@@ -102,10 +101,10 @@ const contentTypeKeyMapper = ({ template, contentType, contentTypeKey = "content
   );
 }
 
-const ContentTypeSchema = ({ type, name, uid, default_value = "", description = "", id, choices = [{ value: "NF" }], advanced, sourLet, sitecoreKey, isFromMapper = false }) => {
+const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = [], sourLet, sitecoreKey, affix }) => {
   const isPresent = restrictedUid?.find((item) => item === uid);
   if (isPresent) {
-    uid = `${uid}_changed`
+    uid = `${affix}_${uid}`
   }
   switch (type) {
     case 'Single-Line Text': {
@@ -117,7 +116,8 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
         "contentstackField": name,
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "single_line_text",
-        "backupFieldType": "single_line_text"
+        "backupFieldType": "single_line_text",
+        "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
     }
     case 'Checkbox': {
@@ -129,8 +129,8 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
         "contentstackField": name,
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "boolean",
-        "backupFieldType": "boolean"
-
+        "backupFieldType": "boolean",
+        "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
     }
     case 'Rich Text': {
@@ -142,7 +142,8 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
         "contentstackField": name,
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "json",
-        "backupFieldType": "json"
+        "backupFieldType": "json",
+        "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -155,10 +156,10 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
         "contentstackField": name,
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "dropdown",
-        "backupFieldType": "dropdown"
+        "backupFieldType": "dropdown",
+        "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null }
       }
     }
-
     case "Image": {
       return {
         id: id,
@@ -168,7 +169,8 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
         "contentstackField": name,
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "file",
-        "backupFieldType": "file"
+        "backupFieldType": "file",
+        "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
     }
     case "General Link":
@@ -181,7 +183,8 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
         "contentstackField": name,
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "link",
-        "backupFieldType": "link"
+        "backupFieldType": "link",
+        "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -194,7 +197,8 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
         "contentstackField": name,
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "multi_line_text",
-        "backupFieldType": "multi_line_text"
+        "backupFieldType": "multi_line_text",
+        "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -209,7 +213,8 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
         "contentstackField": name,
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "number",
-        "backupFieldType": "number"
+        "backupFieldType": "number",
+        "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -224,7 +229,8 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
         "contentstackField": name,
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "isodate",
-        "backupFieldType": "isodate"
+        "backupFieldType": "isodate",
+        "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -238,7 +244,8 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", description = 
           "contentstackField": name,
           "contentstackFieldUid": uid,
           "ContentstackFieldType": "dropdown",
-          "backupFieldType": "dropdown"
+          "backupFieldType": "dropdown",
+          "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null }
         }
       }
       break;
@@ -350,15 +357,14 @@ const groupFlat = (data, item) => {
 }
 
 
-const contentTypeMapper = ({ components, standardValues, content_type, basePath, sitecore_folder }) => {
+const contentTypeMapper = ({ components, standardValues, content_type, basePath, sitecore_folder, affix }) => {
   const source = helper.readFile(
-    path.join(process.cwd(), "/sitecoreMigrationData/MapperData/configuration.json")
+    path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'configuration.json')
   );
   const sourceTree = helper.readFile(
-    path.join(process.cwd(), "/sitecoreMigrationData/MapperData/configurationTree.json")
+    path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'configurationTree.json')
   );
   let mainSchema = [];
-  console.log("🚀 ~ components?.forEach ~ components:", components)
   components?.forEach((item) => {
     if (item?.schema?.length) {
       const groupSchema = {
@@ -412,15 +418,15 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
                 if (item?.content?.includes("datasource=")) {
                   const gUid = item?.content?.split("}")?.[0]?.replace("datasource={", "")
                   if (gUid) {
-                    const dataSourcePaths = read(`${sitecore_folder}/master/sitecore/content/Common`)
+                    const dataSourcePaths = read(path?.join?.(sitecore_folder, 'master', 'sitecore', 'content', 'Common'))
                     let isDataSourcePresent = dataSourcePaths?.find((sur) => sur?.includes(`{${gUid}}`));
                     isDataSourcePresent = isDataSourcePresent?.split(`{${gUid}}`)?.[0]
                     if (isDataSourcePresent) {
-                      const optionsPath = read(`${sitecore_folder}/master/sitecore/content/Common/${isDataSourcePresent}`)
+                      const optionsPath = read(path?.join?.(sitecore_folder, 'master', 'sitecore', 'content', 'Common', isDataSourcePresent));
                       const refName = [];
                       optionsPath?.forEach((newPath) => {
-                        if (newPath?.endsWith("data.json.json")) {
-                          const data = helper.readFile(`${sitecore_folder}/master/sitecore/content/Common/${isDataSourcePresent}/${newPath}`)
+                        if (newPath?.endsWith("data.json")) {
+                          const data = helper.readFile(path?.join?.(sitecore_folder, 'master', 'sitecore', 'content', 'Common', isDataSourcePresent, newPath));
                           if (data?.item?.$?.template) {
                             refName.push(data?.item?.$?.template)
                           }
@@ -454,11 +460,12 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
             type: compType?.content,
             default_value: compType?.standardValues?.content,
             id: field?.id,
-            choices: sourceType?.slice(0, 98),
+            choices: sourceType?.slice(0, config?.plan?.dropdown?.optionLimit - 2 ?? 98),
             advanced,
             sourLet,
             sitecoreKey: field?.key,
-            isFromMapper: true
+            isFromMapper: true,
+            affix
           }));
         }
       }
@@ -495,10 +502,10 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
   return mainSchema;
 }
 
-const contentTypeMaker = ({ template, basePath, sitecore_folder }) => {
+const contentTypeMaker = ({ template, basePath, sitecore_folder, affix }) => {
   const content_type = {
     id: template?.id,
-    status:1,
+    status: 1,
     "otherCmsTitle": template?.name,
     "otherCmsUid": template?.key,
     "isUpdated": false,
@@ -511,7 +518,7 @@ const contentTypeMaker = ({ template, basePath, sitecore_folder }) => {
       contentTypeKeyMapper({ template, contentType: { uid: { ...item?.$, content: item?.content } }, contentTypeKey: "base" })
     }
   })
-  content_type.fieldMapping = contentTypeMapper({ components: template?.components, standardValues: template?.standardValues, content_type, basePath, sitecore_folder })
+  content_type.fieldMapping = contentTypeMapper({ components: template?.components, standardValues: template?.standardValues, content_type, basePath, sitecore_folder, affix })
   return content_type;
 }
 
@@ -520,18 +527,18 @@ function findExactPath(path, searchTerm) {
 }
 
 
-function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder }) {
+function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder, affix }) {
   const newPath = read(templatePaths);
   const templatesComponentsPath = [];
   let templatesStandaedValuePath = {};
   let templatesMetaDataPath = {};
   for (let i = 0; i < newPath?.length; i++) {
     if (findExactPath(newPath?.[i], "data.json")) {
-      const data = helper?.readFile(`${templatePaths}/${newPath?.[i]}`);
+      const data = helper?.readFile(path?.join?.(templatePaths, newPath?.[i]));
       if (data?.item?.$?.template === "template section") {
         templatesComponentsPath?.push(
           {
-            pth: `${templatePaths}/${newPath?.[i]}`?.split("/{")?.[0],
+            pth: path?.join?.(templatePaths, newPath?.[i] ?? '')?.split("/{")?.[0],
             obj: data
           }
         );
@@ -545,12 +552,12 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder })
   const template = createTemplate({ components: templatesMetaDataPath });
   template.components = templatesComponents({ path: templatesComponentsPath, basePath: templatePaths });
   template.standardValues = templateStandardValues({ components: templatesStandaedValuePath })
-  const contentType = contentTypeMaker({ template, basePath: globalPath, sitecore_folder })
+  const contentType = contentTypeMaker({ template, basePath: globalPath, sitecore_folder, affix })
   if (contentType?.fieldMapping?.length) {
     helper?.writeFile(
       path.join(
         process.cwd(),
-        "sitecoreMigrationData/content_types",
+        'sitecoreMigrationData', 'content_types',
       ),
       JSON.stringify(contentType, null, 4),
       contentType?.contentstackUid,
@@ -564,21 +571,22 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder })
 }
 
 
-function ExtractContentTypes(sitecore_folder) {
+function ExtractContentTypes(sitecore_folder, affix, configData) {
+  config = configData;
   const folder = read(sitecore_folder);
   const templatePaths = [];
   for (let i = 0; i < folder?.length; i++) {
-    if (folder?.[i]?.includes("templates") && (folder?.[i]?.includes("/data.json"))) {
-      const data = helper?.readFile(`${sitecore_folder}/${folder?.[i]}`)
+    if (folder?.[i]?.includes("templates") && (folder?.[i]?.endsWith("data.json"))) {
+      const data = helper?.readFile(path?.join?.(sitecore_folder, folder?.[i]));
       if (data?.item?.$?.template === "template") {
-        templatePaths?.push(`${sitecore_folder}/${folder?.[i]}`?.split("/{")?.[0])
+        templatePaths?.push(path?.join?.(sitecore_folder, folder?.[i])?.split("/{")?.[0])
       }
     }
   }
   if (templatePaths?.length) {
     const unique = [...new Set(templatePaths)]
     unique?.forEach((item) => {
-      singleContentTypeCreate({ templatePaths: item, globalPath: folder, sitecore_folder })
+      singleContentTypeCreate({ templatePaths: item, globalPath: folder, sitecore_folder, affix })
     })
   } else {
     throw { message: "Templates Not Found." }
