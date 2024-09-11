@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Params, useNavigate, useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
+import {  Notification } from '@contentstack/venus-components';
 
 // Redux files
 import { RootState } from '../../store';
@@ -16,17 +17,14 @@ import { CS_ENTRIES } from '../../utilities/constants';
 import { isEmptyString, validateArray } from '../../utilities/functions';
 
 // Interface
-import {
-  MigrationResponse,
-  StackResponse,
-} from '../../services/api/service.interface';
+import { MigrationResponse } from '../../services/api/service.interface';
 import {
   DEFAULT_IFLOWSTEP,
   IFlowStep
 } from '../../components/Stepper/FlowStepper/flowStep.interface';
-import { IDropDown, INewMigration } from '../../context/app/app.interface';
+import { IDropDown, INewMigration, ICMSType, ILegacyCMSComponent, DEFAULT_CMS_TYPE } from '../../context/app/app.interface';
 import { ContentTypeSaveHandles } from '../../components/ContentMapper/contentMapper.interface';
-
+import { ICardType, defaultCardType } from "../../components/Common/Card/card.interface";
 
 // Components
 import MigrationFlowHeader from '../../components/MigrationFlowHeader';
@@ -36,15 +34,6 @@ import DestinationStackComponent from '../../components/DestinationStack';
 import ContentMapper from '../../components/ContentMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
-import {  Notification } from '@contentstack/venus-components';
-import { createObject } from '../../utilities/projectDBMapper';
-
-import { ICMSType, ILegacyCMSComponent } from "../../context/app/app.interface";
-import { DEFAULT_CMS_TYPE } from "../../context/app/app.interface";
-import { ICardType } from "../../components/Common/Card/card.interface";
-import { defaultCardType } from "../../components/Common/Card/card.interface";
-import { getAllStacksInOrg } from '../../services/api/stacks.service';
-
 
 type StepperComponentRef = {
   handleStepChange: (step: number) => void;
@@ -154,7 +143,8 @@ const Migration = () => {
     label: '',
     master_locale: '',
     locales: [],
-    created_at: ''
+    created_at: '',
+    isNewStack: false
   };
   
   selectedStackData = {
@@ -162,7 +152,8 @@ const Migration = () => {
     value: projectData?.stackDetails?.value,
     master_locale: projectData?.stackDetails?. master_locale,
     created_at: projectData?.stackDetails?.created_at,
-    locales:[]
+    locales:[],
+    isNewStack: projectData?.stackDetails?.isNewStack
   };
   
   const projectMapper = {
@@ -351,7 +342,8 @@ const Migration = () => {
         label:newMigrationData?.destination_stack?.selectedStack?.label,
         value:newMigrationData?.destination_stack?.selectedStack?.value,
         master_locale:newMigrationData?.destination_stack?.selectedStack?.master_locale,
-        created_at:newMigrationData?.destination_stack?.selectedStack?.created_at
+        created_at:newMigrationData?.destination_stack?.selectedStack?.created_at,
+        isNewStack: newMigrationData?.destination_stack?.selectedStack?.isNewStack
       })
       handleStepChange(2);
       const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
