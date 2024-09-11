@@ -201,6 +201,7 @@ export interface IDropDown {
   master_locale: string;
   locales: locales[];
   created_at: string;
+  isNewStack?: boolean;
 }
 export interface ITestMigration {
   stack_link: string;
@@ -230,7 +231,8 @@ export const DEFAULT_DROPDOWN: IDropDown = {
   uid: '',
   master_locale: '',
   locales: [],
-  created_at: ''
+  created_at: '',
+  isNewStack: false
 };
 
 export const DEFAULT_ORGANISATION: Organization = {
