@@ -124,6 +124,7 @@ const createProject = async (req: Request) => {
       label: '',
       master_locale: '',
       created_at: '', 
+      isNewStack: false
     },
     mapperKeys: []
   };
