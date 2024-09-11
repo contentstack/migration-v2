@@ -26,7 +26,6 @@ import {
   fetchExistingContentType,
   updateContentMapper
 } from '../../services/api/migration.service';
-import { getStackStatus } from '../../services/api/stacks.service';
 
 // Redux
 import { RootState } from '../../store';
@@ -239,7 +238,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const [otherCmsTitle, setOtherCmsTitle] = useState(contentTypes[0]?.otherCmsTitle);
   const [contentTypeUid, setContentTypeUid] = useState<string>('');
   const [contentTypesList, setContentTypesList] = useState<ContentTypeList[]>([]);
-  const [isEmptyStack, setIsEmptyStack] = useState(false);
   const [selectedContentType, setSelectedContentType] = useState<ContentType>();
   const [existingField, setExistingField] = useState<ExistingFieldType>({});
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -283,7 +281,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   let updatedExstingField: ExistingFieldType = existingField;
   const updatedSelectedOptions: string[] = selectedOptions; 
   const [initialRowSelectedData, setInitialRowSelectedData] = useState();
-  const selectedTableData: string[] = [];
+
+  const isNewStack = newMigrationData?.stackDetails?.isNewStack;
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -312,12 +311,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     fetchExistingContentTypes();
     fetchContentTypes(searchText || '');
   }, []);
-
-  useEffect(() => {
-    if (newMigrationData?.destination_stack?.selectedStack?.value) {
-      stackStatus();
-    }
-  }, [newMigrationData?.destination_stack?.selectedStack?.value])
 
   // Make title and url field non editable
   useEffect(() => {
@@ -423,7 +416,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         for (const [key, value] of Object.entries(existingField)) {
           if (value?.label === item?.display_name) {
 
-            setExistingField((prevOptions: any) => ({
+            setExistingField((prevOptions: ExistingFieldType) => ({
               ...prevOptions,
               [key]: { label: value?.label, value: item },
             }));
@@ -468,20 +461,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid);
   };
 
-  // Get the stack status if it is empty or not
-  const stackStatus = async () => {
-    const contentTypeCount = await getStackStatus(
-      selectedOrganisation?.value,
-      newMigrationData?.destination_stack?.selectedStack?.value
-    );
-
-    if (contentTypeCount?.data?.contenttype_count > 0) {
-      setIsEmptyStack(false);
-    } else {
-      setIsEmptyStack(true);
-    }
-  };
-
   // Method to search content types
   const handleSearch = async (searchCT: string) => {
     setSearchContentType(searchCT);
@@ -519,7 +498,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       
       setTableData(newTableData || []);
       setTotalCounts(data?.count);
-      setInitialRowSelectedData(newTableData.filter((item:any) => !item.isDeleted))
+      setInitialRowSelectedData(newTableData.filter((item: FieldMapType) => !item.isDeleted))
       
       generateSourceGroupSchema(data?.fieldMapping);
     } catch (error) {
@@ -905,7 +884,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     }
 
     
-    setExistingField((prevOptions: any) => ({
+    setExistingField((prevOptions: ExistingFieldType) => ({
       ...prevOptions,
       [rowIndex]: { label: selectedValue?.label, value: selectedValue?.value }
     }));
@@ -1242,7 +1221,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         setIsUpdated(true);   
       }
     
-    let option: any;
+    let option: FieldTypes[];
     if (Array.isArray(OptionsForEachRow)) {
       option = OptionsForEachRow.map((option) => ({
         label: option,
@@ -1261,7 +1240,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
     }
    
-    const OptionValue: any =
+    const OptionValue: FieldTypes =
       OptionsForRow.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
       (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference')
         ? {
@@ -1538,10 +1517,12 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     }
   ];
 
-  if (!isEmptyStack) {
+  const isOtherContentType = contentTypesList?.some((ct) => ct?.title === otherContentType?.label);
+
+  if (!isNewStack) {
     columns?.push({
       disableSortBy: true,
-      Header: `Contentstack: ${otherContentType?.label ?? ''}`,
+      Header: `Contentstack: ${isOtherContentType ? otherContentType?.label : otherCmsTitle}`,
       // accessor: 'ct_field',
       accessor: SelectAccessorOfColumn,
       id: 'contentstack_field',
@@ -1550,7 +1531,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   } else {
     columns?.push({
       disableSortBy: true,
-      Header: `Contentstack: ${isEmptyStack ? otherCmsTitle : otherContentType?.label ?? ''}`,
+      Header: `Contentstack: ${isNewStack ? otherCmsTitle : otherContentType?.label ?? ''}`,
       accessor: SelectAccessor,
       id: 'contentstack_cms_field',
       default: false
@@ -1758,7 +1739,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
               withExportCta={{
                 component: (
                   <div className='d-flex align-items-center'>
-                    {!isEmptyStack && (
+                    {!isNewStack && (
                       <Tooltip content={'fetch the content type'} position="left">
                         <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
                          version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
@@ -1774,7 +1755,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                        size='small' onClick={handleResetContentType}></Button>
                     </Tooltip>
 
-                    {!isEmptyStack && (
+                    {!isNewStack && (
                       <div className="d-flex justify-content-end ml-8">
                         <Select
                           value={otherContentType}
