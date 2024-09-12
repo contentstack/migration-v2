@@ -42,6 +42,8 @@ export const HTTP_TEXTS = {
   FILEFORMAT_CONFIRMATION_UPDATED:
     "Project's Fileformat confirmation updated successfully",
   CMS_UPDATED: "Project's migration cms updated successfully",
+  STACK_UPDATED: "Project's migration stack details updated successfully",
+  CONTENT_MAPPER_UPDATED: "Project's migration content mapping updated successfully",
   FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
   DESTINATION_STACK_UPDATED:
     "Project's migration destination stack updated successfully",
@@ -72,8 +74,10 @@ export const HTTP_TEXTS = {
     "Sorry, the requested content mapper id does not exists.",
   ADMIN_LOGIN_ERROR:
     "Sorry, You Don't have admin access in any of the Organisation",
-  PROJECT_DELETE: "Project Deleted Successfully",
-  PROJECT_REVERT: "Project Reverted Successfully",
+  PROJECT_DELETE:
+    "Project Deleted Successfully",
+  PROJECT_REVERT:
+    "Project Reverted Successfully",
 };
 
 export const HTTP_RESPONSE_HEADERS = {
@@ -144,3 +148,11 @@ export const CONTENT_TYPE_STATUS = {
   3: 3, //mapping failed
   4: 4, //auto-dump
 };
+// Cs Locale : Destination Local
+export const LOCALE_MAPPER: any = {
+  //not more than one locale mapping in master locale
+  masterLocale: {
+    'en-us': 'en'
+  },
+  'fr': 'fr-fr'
+}
