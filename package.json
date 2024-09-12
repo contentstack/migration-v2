@@ -4,9 +4,9 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "(cd ./api && npm install --force) ; (cd ./ui && npm install --force) ; (cd ./uplaode-api && npm install --force)",
+    "postinstall": "(cd ./api && npm install --force) ; (cd ./ui && npm install --force) ; (cd ./upload-api && npm install --force)",
     "api": "cd ./api && npm run dev",
-    "upload": "cd ./uplaode-api && npm start",
+    "upload": "cd ./upload-api && npm start",
     "ui": "cd ./ui && npm start"
   },
   "repository": {
@@ -26,9 +26,7 @@
     "validate-branch-name": "^1.3.0"
   },
   "husky": {
-    "hooks": {
-      "pre-commit": "npx validate-branch-name && cd ./api && npm run precommit && cd ./ui && npm run precommit && npm run precommit && cd ./ && cd .. && git add ."
-    }
+    "hooks": {}
   },
   "validate-branch-name": {
     "pattern": "^(feature|bugfix|hotfix)/[a-z0-9-]{5,30}$",

@@ -20,6 +20,11 @@ const createTestStack = async (req: Request, res: Response): Promise<void> => {
  * @param {Response} res - The response object.
  * @returns {Promise<void>} - A Promise that resolves when the stack is deleted.
  */
+const fieldMapping = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.fieldMapping(req);
+  res.status(200).json(resp);
+};
+
 const deleteTestStack = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.deleteTestStack(req);
   res.status(200).json(resp);
@@ -28,4 +33,5 @@ const deleteTestStack = async (req: Request, res: Response): Promise<void> => {
 export const migrationController = {
   createTestStack,
   deleteTestStack,
+  fieldMapping,
 };

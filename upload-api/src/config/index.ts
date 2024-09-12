@@ -1,4 +1,7 @@
 export default {
+  plan: {
+    dropdown: { optionLimit: 100 }
+  },
   cmsType: 'Sitecore',
   isLocalPath: true,
   awsData: {
