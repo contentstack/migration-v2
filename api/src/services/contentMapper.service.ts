@@ -53,6 +53,7 @@ const putTestData = async (req: Request) => {
       fieldIds.push(id);
       return { id, projectId, isDeleted: false, ...field };
     });
+
     FieldMapperModel.update((data: any) => {
       data.field_mapper = [...(data?.field_mapper ?? []), ...fields];
     });
@@ -90,6 +91,7 @@ const putTestData = async (req: Request) => {
   if (index > -1) {
     ProjectModelLowdb.update((data: any) => {
       data.projects[index].content_mapper = contentIds;
+      data.projects[index].extract_path = req?.body?.extractPath;
     });
   }
 
@@ -203,7 +205,7 @@ const getFieldMapping = async (req: Request) => {
     throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
   }
   await FieldMapperModel.read();
-  const fieldData = contentType.fieldMapping.map((fields: any) => {
+  const fieldData = contentType?.fieldMapping?.map?.((fields: any) => {
     const fieldMapper = FieldMapperModel.chain
       .get("field_mapper")
       .find({ id: fields, projectId: projectId })
@@ -214,7 +216,7 @@ const getFieldMapping = async (req: Request) => {
   const fieldMapping: any = fieldData;
   if (!isEmpty(fieldMapping)) {
     if (search) {
-      filteredResult = fieldMapping.filter((item: any) =>
+      filteredResult = fieldMapping?.filter?.((item: any) =>
         item?.otherCmsField?.toLowerCase().includes(search)
       );
       totalCount = filteredResult.length;
@@ -912,6 +914,70 @@ const removeContentMapper = async (req: Request) => {
   }
 };
 
+/**
+ * Updates the content mapper details for a project.
+ *
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the update operation.
+ * @throws BadRequestError if the project status is invalid.
+ * @throws ExceptionFunction if an error occurs during the update.
+ */
+const updateContentMapper = async (req: Request) => {
+  console.info("updateContentMapper", req.params, req.body);
+
+  const { orgId, projectId } = req.params;
+  const { token_payload, content_mapper } = req.body;
+  const srcFunc = "updateContentMapper";
+
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    srcFunc,
+    true
+  )) as number;
+
+  try {
+    ProjectModelLowdb.update((data: any) => {
+      // console.info("data ===============", data, content_mapper)
+      data.projects[projectIndex].mapperKeys = content_mapper;
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
+
+    logger.info(
+      getLogMessage(
+        srcFunc,
+        `Content mapping for project [Id : ${projectId}] has been successfully updated.`,
+        token_payload
+      )
+    );
+    return {
+      status: HTTP_CODES.OK,
+      data: {
+        message: HTTP_TEXTS.CONTENT_MAPPER_UPDATED,
+      },
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while updating content mapping for project [Id : ${projectId}].`,
+        token_payload,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -923,4 +989,5 @@ export const contentMapperService = {
   removeContentMapper,
   removeMapping,
   getSingleContentTypes,
+  updateContentMapper
 };
