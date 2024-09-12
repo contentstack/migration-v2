@@ -162,10 +162,11 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     filterCMSData(searchText);
   }, []);
 
-  useEffect(() => {
-    filterCMSData(searchText);
-  }, [cmsFilter]);
+  // useEffect(() => {
+  //   filterCMSData(searchText);
+  // }, [cmsFilter]);
     
+
   return (
     <div>
       <div className="col-12">
