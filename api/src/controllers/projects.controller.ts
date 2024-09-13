@@ -166,7 +166,6 @@ const updateStackDetails = async (req: Request, res: Response): Promise<void> =>
   res.status(project.status).json(project);
 }
 
-
 export const projectController = {
   getAllProjects,
   getProject,
