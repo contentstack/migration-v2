@@ -12,6 +12,7 @@ import {
 } from "../utils/custom-errors.utils.js";
 import AuthenticationModel from "../models/authentication.js";
 import logger from "../utils/logger.js";
+// import  * as configHandler  from "@contentstack/cli-utilities";
 
 /**
  * Logs in a user with the provided request data.
@@ -22,7 +23,7 @@ import logger from "../utils/logger.js";
  */
 const login = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "Login";
-
+  const cliUtilities: any = await import('@contentstack/cli-utilities');
   /*
   handles user authentication by making a request to an API, 
   performing various checks and validations, 
@@ -109,6 +110,10 @@ const login = async (req: Request): Promise<LoginServiceType> => {
         data.users[userIndex].authtoken = res?.data.user?.authtoken;
         data.users[userIndex].updated_at = new Date().toISOString();
       }
+      
+      cliUtilities?.configHandler?.set('region', userData?.region);
+      cliUtilities?.configHandler?.set('authtoken', res?.data.user?.authtoken);
+      
     });
 
     // JWT token generation
