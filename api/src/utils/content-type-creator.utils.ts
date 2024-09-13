@@ -49,15 +49,16 @@ const arrangGroups = ({ schema }: any) => {
 }
 
 const convertToSchemaFormate = ({ field, advanced = true }: any) => {
+  // console.info("🚀 ~ convertToSchemaFormate ~ field:", field)
   switch (field?.ContentstackFieldType) {
     case 'single_line_text': {
       return {
         "data_type": "text",
         "display_name": field?.title,
-        uid: field?.title,
+        uid: field?.uid,
         "field_metadata": {
-          // description,
-          // default_value
+          description: "",
+          default_value: field?.advanced?.Default_value ?? ''
         },
         "format": "",
         "error_messages": {
@@ -70,21 +71,19 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     }
 
     case 'boolean': {
-      // default_value = default_value === "1" ? true : false;
       return {
         "data_type": "boolean",
         "display_name": field?.title,
         uid: field?.uid,
         "field_metadata": {
-          // description,
-          default_value: false,
+          description: "",
+          default_value: field?.advanced?.Default_value ?? false,
         },
         "multiple": false,
         "mandatory": false,
         "unique": false
       }
     }
-
 
     case 'json': {
       return {
@@ -94,8 +93,6 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "field_metadata": {
           "allow_json_rte": true,
           "rich_text_type": "advanced",
-          // description,
-          // default_value
         },
         "reference_to": [],
         "non_localizable": false,
@@ -122,7 +119,6 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
       // }
     }
 
-    //   // case "":
     case 'dropdown': {
       const data = {
         "data_type": "text",
@@ -130,22 +126,18 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "display_type": "dropdown",
         "enum": {
           "advanced": advanced,
-          choices: field?.choices?.length ? field?.choices : [{ value: "NF" }],
+          choices: field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }],
         },
         "multiple": false,
         uid: field?.uid,
         "field_metadata": {
-          // description,
+          description: "",
+          default_value: null,
         },
         "mandatory": false,
         "unique": false
       };
-      // if (default_value) {
-      //   data.field_metadata.default_value = default_value
-      // }
-      // if (advanced && default_value) {
-      //   data.field_metadata.default_key = default_value;
-      // }
+      data.field_metadata.default_value = field?.advanced?.Default_value ?? null;
       return data;
     }
 
@@ -156,7 +148,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         uid: field?.uid,
         "extensions": [],
         "field_metadata": {
-          // description,
+          description: "",
           "rich_text_type": "standard"
         },
         "multiple": false,
@@ -171,7 +163,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "display_name": field?.title,
         uid: field?.uid,
         "field_metadata": {
-          // description,
+          description: "",
           "default_value": {
             "title": "",
             "url": '',
@@ -189,8 +181,8 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "display_name": field?.title,
         uid: field?.uid,
         "field_metadata": {
-          // description,
-          // default_value,
+          description: "",
+          default_value: field?.advanced?.Default_value ?? '',
           "multiline": true
         },
         "format": "",
@@ -224,8 +216,8 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "display_name": field?.title,
         uid: field?.uid,
         "field_metadata": {
-          // description,
-          // default_value
+          description: "",
+          default_value: field?.advanced?.Default_value ?? ''
         },
         "multiple": false,
         "mandatory": false,
@@ -241,7 +233,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "startDate": null,
         "endDate": null,
         "field_metadata": {
-          // description,
+          description: "",
           "default_value": {},
           "hide_time": true
         },
