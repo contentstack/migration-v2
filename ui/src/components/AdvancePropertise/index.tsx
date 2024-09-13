@@ -237,7 +237,8 @@ const AdvancePropertise = (props: SchemaProps) => {
         Unique: false,
         NonLocalizable: currentToggleStates?.nonLocalizable,
         EmbedObject: currentToggleStates?.embedObject,
-        EmbedObjects : embedObjectslabels
+        EmbedObjects : embedObjectslabels,
+        options:options
       },
       true
     );
@@ -267,7 +268,8 @@ const AdvancePropertise = (props: SchemaProps) => {
         Unique: false,
         NonLocalizable: currentToggleStates?.nonLocalizable,
         EmbedObject: currentToggleStates?.embedObject,
-        EmbedObjects : embedObjectslabels
+        EmbedObjects : embedObjectslabels,
+        options: options
       },
       true
     );
