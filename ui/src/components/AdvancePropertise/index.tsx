@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ModalBody,
   ModalHeader,
@@ -10,7 +10,8 @@ import {
   Tooltip,
   Icon,
   Select,
-  Radio
+  Radio,
+  Button
 } from '@contentstack/venus-components';
 
 // Service
@@ -54,6 +55,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     multiple: props?.value?.Multiple,
     embedObjects: props?.value?.EmbedObjects,
     Default_value: props?.value?.Default_value,
+    option: props?.value?.options
   });
 
   const embedObjects = props?.value?.EmbedObjects?.map((item: string) => ({
@@ -64,7 +66,22 @@ const AdvancePropertise = (props: SchemaProps) => {
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   const [ctValue, setCTValue] = useState<ContentTypeOption[] | null>(embedObjects);
   const [embedObjectslabels, setEmbedObjectsLabels] = useState<string[]>(props?.value?.EmbedObjects);
+  const [showOptions, setShowOptions] = useState<Record<number, boolean>>({});
+  const [showIcon, setShowIcon] = useState<number>();
+  const filterRef = useRef<HTMLDivElement | null>(null);
+  const [options, setOptions] = useState(props?.value?.options || []);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  
+  useEffect(()=>{
+    const defaultIndex = toggleStates?.option?.findIndex(
+      (item: any) => toggleStates?.Default_value === item?.key
+    );
+  
+    if (defaultIndex !== -1) {
+      setShowIcon(defaultIndex);
+    }
 
+  },[]);
   useEffect(() => {
     fetchContentTypes('');
   }, [])
@@ -176,6 +193,121 @@ const AdvancePropertise = (props: SchemaProps) => {
     
   };
 
+  const stringToBoolean = (value:string) =>{
+   
+      if(value?.toLowerCase() === 'true'){
+        return true
+      }
+      else{
+        return false;
+      }
+  
+
+  }
+
+  const handleOnClick = ( index:number) =>{
+    
+    setShowOptions((prev) => ({
+      
+      [index]: !prev[index], 
+    }));
+  }
+ 
+  const handleDefalutValue = (index:number, option:any) => {
+    setShowIcon(index);
+    setShowOptions((prev) => ({
+        
+      [index]: false, 
+    }));
+    setToggleStates((prevStates) => ({
+      ...prevStates,
+      ['Default_value']: option?.key
+    }));
+    const currentToggleStates = {
+      ...toggleStates,
+      ['Default_value']: option?.key
+    };
+    props?.updateFieldSettings(
+      props?.rowId,
+      {
+        ['Default_value']: option?.key,
+        validationRegex: '',
+        Mandatory: currentToggleStates?.mandatory,
+        Multiple: currentToggleStates?.multiple,
+        Unique: false,
+        NonLocalizable: currentToggleStates?.nonLocalizable,
+        EmbedObject: currentToggleStates?.embedObject,
+        EmbedObjects : embedObjectslabels
+      },
+      true
+    );
+  
+  }
+  const handleRemoveDefalutValue = (index:number, option:any)=>{
+    setShowIcon(-1);
+    setShowOptions((prev) => ({
+        
+      [index]: false, 
+    }));
+    setToggleStates((prevStates) => ({
+      ...prevStates,
+      ['Default_value']: ''
+    }));
+    const currentToggleStates = {
+      ...toggleStates,
+      ['Default_value']: ''
+    };
+    props?.updateFieldSettings(
+      props?.rowId,
+      {
+        ['Default_value']: '',
+        validationRegex: '',
+        Mandatory: currentToggleStates?.mandatory,
+        Multiple: currentToggleStates?.multiple,
+        Unique: false,
+        NonLocalizable: currentToggleStates?.nonLocalizable,
+        EmbedObject: currentToggleStates?.embedObject,
+        EmbedObjects : embedObjectslabels
+      },
+      true
+    );
+  }
+
+  const handleDragStart = (index:any) => {
+    setDraggedIndex(index);
+    document.querySelectorAll('.element-wrapper').forEach((el, i) => {
+      if (i === index) {
+        el.classList.add('dragging'); 
+      }
+    });
+  };
+
+  const handleDragOver = (e:any, index:number) => {
+    e.preventDefault(); 
+    document.querySelectorAll('.element-wrapper').forEach((el, i) => {
+      if (i === index) {
+        el.classList.remove('dragging'); 
+      } else {
+        el.classList.remove('dragging'); 
+      }
+    });
+  };
+
+  const handleDrop = (index:any) => {
+    if (draggedIndex === null) return;
+  
+     const updatedOptions = [...options]; 
+     const draggedItem = updatedOptions[draggedIndex];
+     const targetItem = updatedOptions[index];
+   
+     updatedOptions[draggedIndex] = targetItem;
+     updatedOptions[index] = draggedItem;
+   
+     setOptions(updatedOptions); 
+     setDraggedIndex(null); 
+   
+    
+  };
   
 
   useEffect(() => {
@@ -220,6 +352,70 @@ const AdvancePropertise = (props: SchemaProps) => {
               </div>
             </Field>
           )}
+
+          {(props?.fieldtype === 'Dropdown') && 
+          <>
+             <FieldLabel htmlFor="noOfCharacters" version="v2">
+              Choice 
+              
+            </FieldLabel>
+            <span className='read-only-text'>(read only)</span>
+            <div className='dropdown-choices-wrapper'>
+              {options?.map((option:any,index)=>(
+              <>
+                      <div className='element-wrapper' key={index} draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e)=> handleDragOver(e,index)}
+                    onDrop={() => handleDrop(index)}>
+                    <div 
+                    
+                    className='term-drag-icon'>
+                        <Icon  icon="ActionBar" size='medium' version='v2' />
+                    </div>
+                    <TextInput version={"v2"} placeholder='Enter value here'
+                    suffixVisible={true}
+                    disabled={true}
+                    value={option?.key}
+                    suffix={
+                    <>
+                    {index === showIcon && <Icon icon={'CheckSquareOffset'}  version='v2' size='medium'/>}
+                    
+                    </>}></TextInput>
+          
+                    <Button buttonType="light" version={"v2"} onlyIcon={true} canCloseOnClickOutside={true}
+                    size={'small'} icon={'v2-DotsThreeLargeVertical'}
+                    onClick={()=>handleOnClick(index)}>
+                    
+                    </Button>
+
+                    {showOptions[index]  && (
+                    <div className='dropdown-filter-wrapper' ref={filterRef}>
+                          {showIcon !== index ? 
+                          <Button version={'v2'} buttonType="light" icon={'v2-CheckSquareOffset'} size={'small'}
+                          onClick={()=>handleDefalutValue(index,option)} >Mark as Default</Button>
+                          :
+                          <Button version={'v2'} buttonType="light" icon={'v2-CheckSquareOffset'} size={'small'}
+                          onClick={()=>handleRemoveDefalutValue(index,option)} >Remove as Default</Button>
+                          
+                          }
+                                                  
+                  
+                    </div>
+                  )}
+                              
+                    
+                    
+                  </div>
+                 
+              </>))}
+              
+
+            </div>
+            
+          
+          </>
+       
+          }
       
           {(props?.fieldtype === 'Single Line Textbox' || props?.fieldtype === 'Multi Line Textbox') && (
             <>
@@ -237,10 +433,10 @@ const AdvancePropertise = (props: SchemaProps) => {
                 </Tooltip>
                 <TextInput
                   type="text"
-                  value={toggleStates?.defaultValue}
+                  value={toggleStates?.Default_value}
                   placeholder="Enter value"
                   version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('defaultValue', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('Default_value', e, true))}
                 />
               </Field>
           
@@ -377,12 +573,12 @@ const AdvancePropertise = (props: SchemaProps) => {
             <div className="Radio-class">
               <Radio
                 label={'True'}
-                checked={toggleStates?.Default_value === true}
+                checked={stringToBoolean(toggleStates?.Default_value || '') === true}
                 onChange={() => handleRadioChange('Default_value',true)}>
               </Radio>
               <Radio
                 label={'False'}
-                checked={toggleStates?.Default_value === false}
+                checked={stringToBoolean(toggleStates?.Default_value || '') === false}
                 onChange={() => handleRadioChange('Default_value',false)}>
               </Radio>
 
