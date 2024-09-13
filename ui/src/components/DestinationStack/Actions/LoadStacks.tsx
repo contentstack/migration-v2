@@ -34,6 +34,8 @@ const defaultStack = {
 };
 
 const LoadStacks = (props: LoadFileFormatProps) => {
+  console.log("props", props);
+  
   /****  ALL HOOKS HERE  ****/
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
@@ -42,6 +44,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const [selectedStack, setSelectedStack] = useState<IDropDown | null>(
     null
   );  
+  const [newStackCreated, setNewStackCreated] = useState<boolean>(false);
+
   const loadingOption = [
     {
       uid: '',
@@ -83,6 +87,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   },[newMigrationData?.destination_stack?.selectedStack])
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
+
     // Post data to backend
     const resp = await createStacksInOrg(selectedOrganisation?.value, {
       ...data,
@@ -100,10 +105,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         master_locale: resp?.data?.stack?.master_locale,
         locales: resp?.data?.stack?.locales,
         created_at: resp?.data?.stack?.created_at,
-        uid: resp?.data?.stack?.api_key
+        uid: resp?.data?.stack?.api_key,
+        isNewStack: true
       };
   
       setSelectedStack(newCreatedStack);
+      setNewStackCreated(true)
       
       const updatedStackArray = [newCreatedStack, ...allStack];
       updatedStackArray.sort(
@@ -137,6 +144,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     const stackCleared = data?.value === '' || data?.value === null || data === null || data?.value === undefined;
     if (name === 'stacks' && data?.value != '+ Create a new Stack') {
       setSelectedStack(() => ({ ...data }));
+      setNewStackCreated(newStackCreated);
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
@@ -149,6 +157,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         setIsError(true);
         setErrorMessage("Please select a stack");
         setSelectedStack(null);
+        setNewStackCreated(false);
       }
       
       dispatch(updateNewMigrationData(newMigrationDataObj));
@@ -165,7 +174,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const fetchData = async () => {
     if (allStack?.length <= 0) {
       setAllStack(loadingOption);
-      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there  
+      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
+        
       const stackArray = validateArray(stackData?.data?.stacks)
         ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
             label: stack?.name,
@@ -173,7 +183,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
             uid: stack?.api_key,
             master_locale: stack?.master_locale,
             locales: stack?.locales,
-            created_at: stack?.created_at
+            created_at: stack?.created_at,
+            isNewStack: newStackCreated
           }))
         : [];
   
@@ -198,6 +209,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       } 
       if(selectedStackData){
         setSelectedStack(selectedStackData);
+        setNewStackCreated(false);
         const newMigrationDataObj: INewMigration = {
           ...newMigrationDataRef?.current,
           destination_stack: {
@@ -245,6 +257,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   useEffect(() => {
     fetchData();
   }, []);
+
   return (
     <div className="">
       <div className="action-summary-wrapper ">
