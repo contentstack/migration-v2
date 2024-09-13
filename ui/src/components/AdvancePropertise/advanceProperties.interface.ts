@@ -121,7 +121,8 @@ export interface UpdatedSettings {
 
   EmbedObjects?: any;
 
-  Default_value?: boolean;
+  Default_value?: string;
+  options?: []
 }
 
 /**
