@@ -14,7 +14,8 @@ interface Advanced {
   EmbedObjects: any;
   MinChars: string;
   MaxChars: number;
-  Default_value: boolean;
+  Default_value: string;
+  options: any[];
 }
 
 /**

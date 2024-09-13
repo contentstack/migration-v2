@@ -23,7 +23,8 @@ const emptyGlobalFiled = () => {
   helper.writeFile(
     path.join(
       process.cwd(),
-      "sitecoreMigrationData/global_fields",
+      'sitecoreMigrationData',
+      'global_fields',
     ),
     JSON.stringify([], null, 4),
     "globalfields",
@@ -36,14 +37,14 @@ const emptyGlobalFiled = () => {
 
 function ExtractRef() {
   emptyGlobalFiled()
-  const basePages = helper.readFile(path.join(process.cwd(), "/sitecoreMigrationData/MapperData/base.json"));
-  const contentTypeKeys = helper.readFile(path.join(process.cwd(), "/sitecoreMigrationData/MapperData/contentTypeKey.json"));
-  const treeListRef = helper.readFile(path.join(process.cwd(), "/sitecoreMigrationData/MapperData/treeListRef.json"));
+  const basePages = helper.readFile(path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'base.json'));
+  const contentTypeKeys = helper.readFile(path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'contentTypeKey.json'));
+  const treeListRef = helper.readFile(path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'treeListRef.json'));
   const globalFieldUids = [];
   const contentTypesPaths = read(contentFolderPath);
   if (contentTypesPaths?.length && basePages && contentTypeKeys && treeListRef) {
     contentTypesPaths?.forEach((item) => {
-      const contentType = helper.readFile(`${contentFolderPath}/${item}`)
+      const contentType = helper.readFile(path?.join?.(contentFolderPath, `${item}`))
       if (contentType?.id || contentType?.contentstackUid) {
         const refTree = treeListRef[contentType?.contentstackUid]
         if (refTree?.unique?.length) {
@@ -93,12 +94,12 @@ function ExtractRef() {
                 const schemaObject = {
                   uid: newKey,
                   otherCmsField: newKey,
-                  otherCmsType: "reference",
+                  otherCmsType: "base template",
                   contentstackField: newKey,
                   contentstackFieldUid: uidCorrector({ uid: newKey }),
-                  ContentstackFieldType: "reference",
+                  ContentstackFieldType: "global_field",
                   isDeleted: false,
-                  backupFieldType: "reference",
+                  backupFieldType: "global_field",
                   refrenceTo: key,
                 }
                 contentType.fieldMapping.push(schemaObject)
@@ -110,7 +111,8 @@ function ExtractRef() {
       helper.writeFile(
         path.join(
           process.cwd(),
-          "sitecoreMigrationData/content_types"
+          'sitecoreMigrationData',
+          'content_types'
         ),
         JSON.stringify(contentType, null, 4),
         contentType?.contentstackUid,
@@ -125,14 +127,15 @@ function ExtractRef() {
     const allGlobalFiels = [];
     const data = helper.readFile(path.join(
       process.cwd(),
-      "sitecoreMigrationData/global_fields",
+      'sitecoreMigrationData',
+      'global_fields',
       "globalfields"
     ))
     if (data?.length) {
       allGlobalFiels.push(...data)
     }
     unique?.forEach((item) => {
-      const content = helper.readFile(`${contentFolderPath}/${item}.json`)
+      const content = helper.readFile(path?.join?.(contentFolderPath, `${item}.json`))
       allGlobalFiels?.push(content);
     })
     if (allGlobalFiels?.length) {
@@ -148,7 +151,8 @@ function ExtractRef() {
       helper.writeFile(
         path.join(
           process.cwd(),
-          "sitecoreMigrationData/global_fields"
+          'sitecoreMigrationData',
+          'global_fields'
         ),
         JSON.stringify(allGlobalFiels, null, 4),
         "globalfields",
@@ -158,7 +162,7 @@ function ExtractRef() {
       );
     }
     unique?.forEach((item) => {
-      fs.unlinkSync(`${contentFolderPath}/${item}.json`)
+      fs.unlinkSync(path?.join?.(contentFolderPath, `${item}.json`));
     })
   }
   return {
@@ -168,11 +172,13 @@ function ExtractRef() {
     ),
     contentTypeUids: read(path.join(
       process.cwd(),
-      "sitecoreMigrationData/content_types"
+      'sitecoreMigrationData',
+      'content_types'
     )),
     globalFieldUids: read(path.join(
       process.cwd(),
-      "sitecoreMigrationData/global_fields"
+      'sitecoreMigrationData',
+      'global_fields'
     ))
   };
 }
