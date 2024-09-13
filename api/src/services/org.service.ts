@@ -310,67 +310,62 @@ const getStackStatus = async (req: Request) => {
   }
 };
 //get all locals of particular stack
+
 /**
- * Retrieves stack local data.
- * @param token_payload - The token payload.
- * @param data - The data to process.
- * @returns A promise that resolves with the stack local data.
+ * Retrieves the status of a stack.
+ * @param req - The request object containing the orgId, token_payload, and stack_api_key.
+ * @returns An object containing the status and data of the stack.
+ * @throws ExceptionFunction if an error occurs while checking the status of the stack.
  */
-const getStackLocal = async (token_payload: any, data: any) => {
-  const srcFun = "getStackLocal";
-  return new Promise(async (resolve) => {
-    const authtoken = await getAuthtoken(
-      token_payload?.region,
-      token_payload?.user_id
+const getStackLocale = async (req: Request) => {
+  const { token_payload, stack_api_key } = req.body;
+  const srcFunc = "getStackStatus";
+
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+
+  try {
+    const [stackErr, stackRes] = await safePromise(
+      https({
+        method: "GET",
+        url: `${config.CS_API[
+          token_payload?.region as keyof typeof config.CS_API
+        ]!}/locales`,
+        headers: {
+          api_key: stack_api_key,
+          authtoken,
+        },
+      })
     );
-    const stacks = [];
-    for (const stack of data) {
-      const [err, res] = await safePromise(
-        https({
-          method: "GET",
-          url: `${config.CS_API[
-            token_payload?.region as keyof typeof config.CS_API
-          ]!}/locales`,
-          headers: {
-            api_key: stack.api_key,
-            authtoken,
-          },
-        })
-      );
-      if (err) {
-        logger.error(
-          getLogMessage(
-            srcFun,
-            HTTP_TEXTS.CS_ERROR,
-            token_payload,
-            err.response.data
-          )
-        );
 
-        return {
-          data: err.response.data,
-          status: err.response.status,
-        };
-      }
-      const localesArr: any = [];
-      res?.data?.locales.map((lang: any) => {
-        return localesArr.push({
-          code: lang.code,
-          name: lang.name,
-        });
-      });
-
-      const obj = {
-        name: stack.name,
-        api_key: stack.api_key,
-        master_locale: stack.master_locale,
-        created_at: stack.created_at,
-        locales: localesArr,
+    if (stackErr)
+      return {
+        data: {
+          message: HTTP_TEXTS.DESTINATION_STACK_ERROR,
+        },
+        status: stackErr.response.status,
       };
-      stacks.push(obj);
-    }
-    resolve(stacks);
-  });
+
+    return {
+      status: HTTP_CODES.OK,
+      data: stackRes.data,
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while getting locales a stack.`,
+        token_payload,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
 };
 
 export const orgService = {
@@ -378,4 +373,5 @@ export const orgService = {
   getLocales,
   createStack,
   getStackStatus,
+  getStackLocale,
 };

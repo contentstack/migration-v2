@@ -76,4 +76,7 @@ router.get(
   asyncRouter(contentMapperController.removeContentMapper)
 );
 
+//update content mapper details 
+router.patch("/:orgId/:projectId/mapper_keys", asyncRouter(contentMapperController.updateContentMapper));
+
 export default router;

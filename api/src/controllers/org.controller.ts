@@ -49,9 +49,24 @@ const getStackStatus = async (req: Request, res: Response) => {
   res.status(resp.status).json(resp.data);
 };
 
+
+/**
+ * Retrieves the stack status.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to the stack status response.
+ */
+const getStackLocale = async (req: Request, res: Response) => {
+  const resp = await orgService.getStackLocale(req);
+  res.status(resp.status).json(resp.data);
+};
+
+
 export const orgController = {
   getAllStacks,
   createStack,
   getLocales,
   getStackStatus,
+  getStackLocale
 };
