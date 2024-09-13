@@ -122,7 +122,7 @@ export interface UpdatedSettings {
   EmbedObjects?: any;
 
   Default_value?: string;
-  options?: []
+  options?: any[]
 }
 
 /**
