@@ -13,7 +13,6 @@ import {
   HTTP_CODES,
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
-  PREDEFINED_STATUS,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
@@ -44,7 +43,7 @@ const getAllProjects = async (req: Request) => {
       org_id: orgId,
       region,
       owner: user_id,
-      isDeleted: false,
+      isDeleted: false
     })
     .value();
 
@@ -119,6 +118,14 @@ const createProject = async (req: Request) => {
     isDeleted: false,
     isNewStack: false,
     newStackId: "",
+    stackDetails: {
+      uid: '',
+      label: '',
+      master_locale: '',
+      created_at: '', 
+      isNewStack: false
+    },
+    mapperKeys: []
   };
 
   try {
@@ -206,6 +213,9 @@ const updateProject = async (req: Request) => {
       }
       data.projects[projectIndex].updated_by = user_id;
       data.projects[projectIndex].updated_at = new Date().toISOString();
+      data.projects[projectIndex].stackDetails = updateData?.stackDetails;
+      data.projects[projectIndex].mapperKeys = updateData?.mapperKeys;
+
       project = data.projects[projectIndex];
     });
 
@@ -713,8 +723,7 @@ const updateCurrentStep = async (req: Request) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.DESTINATION_STACK;
           data.projects[projectIndex].status =
-            project.current_step <= STEPPER_STEPS.CONTENT_MAPPING
-              ? NEW_PROJECT_STATUS[0]
+            project.current_step <= STEPPER_STEPS.CONTENT_MAPPING ? NEW_PROJECT_STATUS[0]
               : NEW_PROJECT_STATUS[1];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
@@ -742,6 +751,7 @@ const updateCurrentStep = async (req: Request) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.CONTENT_MAPPING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
+          // data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
@@ -869,7 +879,7 @@ const deleteProject = async (req: Request) => {
  * @throws {NotFoundError} If the project is not found.
  */
 const revertProject = async (req: Request) => {
-  const { orgId, projectId } = req.params;
+  const { orgId, projectId } = req?.params ?? {};
   const decodedToken = req.body.token_payload;
   const { user_id = "", region = "" } = decodedToken;
   const srcFunc = "revertProject";
@@ -905,11 +915,137 @@ const revertProject = async (req: Request) => {
       status: HTTP_CODES.OK,
       data: {
         message: HTTP_TEXTS.PROJECT_REVERT,
-        Project: projects,
+        Project: projects
       },
     };
   }
 };
+
+/**
+ * Updates the stack details for a project.
+ *
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the update operation.
+ * @throws BadRequestError if the project status is invalid.
+ * @throws ExceptionFunction if an error occurs during the update.
+ */
+const updateStackDetails = async (req: Request) => {
+  const { orgId, projectId } = req.params;
+  const { token_payload, stack_details } = req.body;
+  const srcFunc = "updateStackDetails";
+
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    srcFunc,
+    true
+  )) as number;
+
+  try {
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].stackDetails = stack_details;
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
+
+    logger.info(
+      getLogMessage(
+        srcFunc,
+        `Stack Details for project [Id : ${projectId}] has been successfully updated.`,
+        token_payload
+      )
+    );
+    return {
+      status: HTTP_CODES.OK,
+      data: {
+        message: HTTP_TEXTS.STACK_UPDATED,
+      },
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while updating stack details for project [Id : ${projectId}].`,
+        token_payload,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
+/**
+ * Updates the content mapper details for a project.
+ *
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the update operation.
+ * @throws BadRequestError if the project status is invalid.
+ * @throws ExceptionFunction if an error occurs during the update.
+ */
+const updateContentMapper = async (req: Request) => {
+  console.info("updateContentMapper", req.params, req.body);
+
+  const { orgId, projectId } = req.params;
+  const { token_payload, content_mapper } = req.body;
+  const srcFunc = "updateContentMapper";
+
+
+  await ProjectModelLowdb.read();
+  const projectIndex = (await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    srcFunc,
+    true
+  )) as number;
+
+  try {
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].mapperKeys = content_mapper;
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
+
+    logger.info(
+      getLogMessage(
+        srcFunc,
+        `Content mapping for project [Id : ${projectId}] has been successfully updated.`,
+        token_payload
+      )
+    );
+    return {
+      status: HTTP_CODES.OK,
+      data: {
+        message: HTTP_TEXTS.CONTENT_MAPPER_UPDATED,
+      },
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while updating content mapping for project [Id : ${projectId}].`,
+        token_payload,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
 
 export const projectService = {
   getAllProjects,
@@ -925,4 +1061,6 @@ export const projectService = {
   updateCurrentStep,
   deleteProject,
   revertProject,
+  updateStackDetails,
+  updateContentMapper
 };
