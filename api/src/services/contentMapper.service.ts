@@ -53,6 +53,7 @@ const putTestData = async (req: Request) => {
       fieldIds.push(id);
       return { id, projectId, isDeleted: false, ...field };
     });
+
     FieldMapperModel.update((data: any) => {
       data.field_mapper = [...(data?.field_mapper ?? []), ...fields];
     });
@@ -90,6 +91,7 @@ const putTestData = async (req: Request) => {
   if (index > -1) {
     ProjectModelLowdb.update((data: any) => {
       data.projects[index].content_mapper = contentIds;
+      data.projects[index].extract_path = req?.body?.extractPath;
     });
   }
 
@@ -927,7 +929,6 @@ const updateContentMapper = async (req: Request) => {
   const { token_payload, content_mapper } = req.body;
   const srcFunc = "updateContentMapper";
 
-console.info("HERE",content_mapper)
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
     projectId,

@@ -32,7 +32,7 @@ interface StackDetails{
   label: string;
   master_locale: string;
   created_at: string; 
-
+  isNewStack: boolean;
 }
 
 /**
