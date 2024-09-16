@@ -34,8 +34,6 @@ const defaultStack = {
 };
 
 const LoadStacks = (props: LoadFileFormatProps) => {
-  console.log("props", props);
-  
   /****  ALL HOOKS HERE  ****/
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
