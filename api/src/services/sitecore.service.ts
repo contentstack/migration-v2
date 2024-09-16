@@ -6,9 +6,7 @@ import _ from 'lodash';
 import { LOCALE_MAPPER } from '../constants/index.js';
 import { entriesFieldCreator, unflatten } from '../utils/entries-field-creator.utils.js';
 import { orgService } from './org.service.js';
-const assetsSave = path.join('sitecoreMigrationData', 'assets');
-const entrySave = path.join('sitecoreMigrationData', 'entries');
-const localeSave = path.join('sitecoreMigrationData', 'locale');
+
 const append = "a";
 
 const idCorrector = ({ id }: any) => {
@@ -26,7 +24,7 @@ function startsWithNumber(str: string) {
 
 function getLastKey(path: string) {
   const keys = path?.split?.('.');
-  const lastKey = keys[keys.length - 1];
+  const lastKey = keys?.[keys?.length - 1];
   return lastKey;
 }
 
@@ -79,7 +77,8 @@ const uidCorrector = ({ uid }: any) => {
   return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
 }
 
-const cretaeAssets = async ({ packagePath }: any) => {
+const cretaeAssets = async ({ packagePath, baseDir }: any) => {
+  const assetsSave = path.join(baseDir, 'assets');
   const allAssetJSON: any = {};
   const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'media library');
   const entryPath = read?.(folderName);
@@ -163,9 +162,11 @@ const cretaeAssets = async ({ packagePath }: any) => {
   return allAssetJSON;
 }
 
-const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' }: { packagePath: any; contentTypes: any; master_locale?: string }) => {
+const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us', destinationStackId }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string }) => {
   try {
-    const allAssetJSON: any = await cretaeAssets({ packagePath });
+    const baseDir = path.join('sitecoreMigrationData', destinationStackId);
+    const entrySave = path.join(baseDir, 'entries');
+    const allAssetJSON: any = await cretaeAssets({ packagePath, baseDir });
     const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'content');
     const entriesData: any = [];
     if (fs.existsSync(folderName)) {
@@ -240,7 +241,9 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' 
   }
 }
 
-const createLocale = async (req: any) => {
+const createLocale = async (req: any, destinationStackId: string) => {
+  const baseDir = path.join('sitecoreMigrationData', destinationStackId);
+  const localeSave = path.join(baseDir, 'locale');
   const allLocalesResp = await orgService.getLocales(req)
   const masterLocale = Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
   const msLocale: any = {};
@@ -280,8 +283,9 @@ const createLocale = async (req: any) => {
   })
 }
 
-const createVersionFile = async () => {
-  fs.writeFile(path?.join?.('sitecoreMigrationData', 'export-info.json'), JSON.stringify({
+const createVersionFile = async (destinationStackId: string) => {
+  const baseDir = path.join('sitecoreMigrationData', destinationStackId);
+  fs.writeFile(path?.join?.(baseDir, 'export-info.json'), JSON.stringify({
     "contentVersion": 2,
     "logsPath": ""
   }), (err) => {
