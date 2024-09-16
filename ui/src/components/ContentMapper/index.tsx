@@ -281,8 +281,9 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   let updatedExstingField: ExistingFieldType = existingField;
   const updatedSelectedOptions: string[] = selectedOptions; 
   const [initialRowSelectedData, setInitialRowSelectedData] = useState();
-
+  const deletedExstingField : ExistingFieldType= existingField;
   const isNewStack = newMigrationData?.stackDetails?.isNewStack;
+  const [isFieldDeleted, setIsFieldDeleted] = useState<boolean>(false);
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -352,13 +353,20 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           if(schema?.schema) {
             schema?.schema?.forEach((childSchema) => {
               if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`){
-                if(existingField[row?.uid]){
+                if(!isFieldDeleted) {
+
                   updatedExstingField[row?.uid] = {
                     label: `${schema?.display_name} > ${childSchema?.display_name}`,
                     value: childSchema
                   }
 
                 }
+                // else if(existingField[row?.uid]){
+                //   updatedExstingField[row?.uid] = {
+                //     label: `${schema?.display_name} > ${childSchema?.display_name}`,
+                //     value: childSchema
+                //   }
+                // }
                 
               }
             })
@@ -429,20 +437,20 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   },[contentTypeSchema]);
 
   // To dispatch the changed dropdown state
-  useEffect(() => {
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      content_mapping: {
-        ...newMigrationData?.content_mapping,
-        isDropDownChanged: isDropDownChanged,
-        content_type_mapping: [
-          ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
-        ]
-      }
-    };
+  // useEffect(() => {
+  //   const newMigrationDataObj: INewMigration = {
+  //     ...newMigrationData,
+  //     content_mapping: {
+  //       ...newMigrationData?.content_mapping,
+  //       isDropDownChanged: isDropDownChanged,
+  //       content_type_mapping: [
+  //         ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
+  //       ]
+  //     }
+  //   };
 
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
-  }, [isDropDownChanged]);
+  //   dispatch(updateNewMigrationData((newMigrationDataObj)));
+  // }, [isDropDownChanged]);
 
 
   useBlockNavigation(isModalOpen);
@@ -568,6 +576,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   };
 
   const openContentType = (i: number) => {
+    setIsFieldDeleted(false);
     setActive(i);
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
@@ -870,7 +879,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       </div>
     );
   };
-
+  // console.log("false", isFieldDeleted);
   const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string) => {
     setIsDropDownChanged(true);
     const previousSelectedValue = existingField[rowIndex]?.label;
@@ -879,9 +888,32 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     )
     if(groupArray[0].child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
        for(const item of groupArray[0].child){
+        deletedExstingField[item?.uid] = {
+          label:item?.uid,
+          value:existingField[item?.uid]
+
+        }
+        setIsFieldDeleted(true);
+        // console.log(deletedExstingField);
+        
         delete existingField[item?.uid]
+
+     
+        const index = selectedOptions?.indexOf(`${item.contentstackField}`);
+        //console.log(index);
+        if(index > -1){
+          selectedOptions.slice(index,1 )
+        }
+        
+        
        }
     }
+    else{
+     
+      
+      setIsFieldDeleted(false);
+    }
+    
 
     
     setExistingField((prevOptions: ExistingFieldType) => ({
@@ -1346,7 +1378,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         }
       };
 
-      dispatch(updateNewMigrationData((newMigrationDataObj)));
+
+      dispatch(updateNewMigrationData(newMigrationDataObj));
     }
 
     if (orgId && contentTypeUid && selectedContentType) {
@@ -1383,13 +1416,13 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         setIsContentTypeMapped(true);
         setIsContentTypeSaved(true);
 
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
-        };
+        // const newMigrationDataObj: INewMigration = {
+        //   ...newMigrationData,
+        //   content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
+        // };
        
        
-        dispatch(updateNewMigrationData((newMigrationDataObj)));
+        // dispatch(updateNewMigrationData((newMigrationDataObj)));
       
         const savedCT = filteredContentTypes?.map(ct => 
           ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
@@ -1397,7 +1430,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
         setFilteredContentTypes(savedCT);
         setContentTypes(savedCT);
-        await updateContentMapper(orgId, projectID, [contentTypeMapped,{[otherCmsTitle]: otherContentType?.label}]);
+        await updateContentMapper(orgId, projectID, [...newMigrationData.content_mapping.content_type_mapping,{[otherCmsTitle]: otherContentType?.label}]);
 
       } else {
         Notification({
