@@ -70,7 +70,7 @@ interface Project {
   isNewStack: boolean;
   newStackId: string;
   stackDetails: [];
-  mapperKeys: [];
+  mapperKeys: {};
   extract_path: string;
 }
 
