@@ -437,20 +437,20 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   },[contentTypeSchema]);
 
   // To dispatch the changed dropdown state
-  useEffect(() => {
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      content_mapping: {
-        ...newMigrationData?.content_mapping,
-        isDropDownChanged: isDropDownChanged,
-        content_type_mapping: [
-          ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
-        ]
-      }
-    };
+  // useEffect(() => {
+  //   const newMigrationDataObj: INewMigration = {
+  //     ...newMigrationData,
+  //     content_mapping: {
+  //       ...newMigrationData?.content_mapping,
+  //       isDropDownChanged: isDropDownChanged,
+  //       content_type_mapping: [
+  //         ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
+  //       ]
+  //     }
+  //   };
 
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
-  }, [isDropDownChanged]);
+  //   dispatch(updateNewMigrationData((newMigrationDataObj)));
+  // }, [isDropDownChanged]);
 
 
   useBlockNavigation(isModalOpen);
@@ -879,7 +879,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       </div>
     );
   };
-  console.log("false", isFieldDeleted);
+  // console.log("false", isFieldDeleted);
   const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string) => {
     setIsDropDownChanged(true);
     const previousSelectedValue = existingField[rowIndex]?.label;
@@ -894,7 +894,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
         }
         setIsFieldDeleted(true);
-        console.log(deletedExstingField);
+        // console.log(deletedExstingField);
         
         delete existingField[item?.uid]
 
@@ -1416,13 +1416,13 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         setIsContentTypeMapped(true);
         setIsContentTypeSaved(true);
 
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
-        };
+        // const newMigrationDataObj: INewMigration = {
+        //   ...newMigrationData,
+        //   content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
+        // };
        
        
-        dispatch(updateNewMigrationData((newMigrationDataObj)));
+        // dispatch(updateNewMigrationData((newMigrationDataObj)));
       
         const savedCT = filteredContentTypes?.map(ct => 
           ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
