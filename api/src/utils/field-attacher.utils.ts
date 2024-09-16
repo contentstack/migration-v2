@@ -3,7 +3,7 @@ import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js"
 import FieldMapperModel from "../models/FieldMapper.js";
 import { contenTypeMaker } from "./content-type-creator.utils.js";
 
-export const fieldAttacher = async ({ projectId, orgId }: any) => {
+export const fieldAttacher = async ({ projectId, orgId, destinationStackId }: any) => {
   await ProjectModelLowdb.read();
   const projectData = ProjectModelLowdb.chain.get("projects").find({
     id: projectId,
@@ -27,7 +27,7 @@ export const fieldAttacher = async ({ projectId, orgId }: any) => {
           return field;
         })
       }
-      await contenTypeMaker({ contentType })
+      await contenTypeMaker({ contentType, destinationStackId })
       contentTypes?.push?.(contentType);
     }
   }
