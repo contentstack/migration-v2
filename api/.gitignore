@@ -362,3 +362,4 @@ package-lock.json
 
 database/
 /sitecoreMigrationData
+/migration-data
