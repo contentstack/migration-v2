@@ -355,4 +355,3 @@ package-lock.json
 ui/.env
 upload-api/sitecoreMigrationData
 upload-api/extracted_files
-locale-cli
