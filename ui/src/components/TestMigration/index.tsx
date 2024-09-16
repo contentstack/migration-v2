@@ -79,7 +79,7 @@ const TestMigration = () => {
       <div className='content-block'>
         <div className='content-header'>Execution Logs</div>
         <div>
-          <LogViewer serverPath="http://localhost:5001" />
+          <LogViewer serverPath="http://localhost:5000" />
         </div>
       </div>
     </div>
