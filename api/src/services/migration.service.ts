@@ -16,6 +16,7 @@ import AuthenticationModel from "../models/authentication.js";
 import { siteCoreService } from "./sitecore.service.js";
 import { fileURLToPath } from 'url';
 import { copyDirectory } from '../utils/index.js'
+import { v4 } from "uuid";
 
 
 
@@ -202,9 +203,11 @@ const cliLogger = (child: any) => {
     console.info(`Error: Failed to install @contentstack/cli. Exit code: ${child.code}`);
     console.info(`stderr: ${child.stderr}`);
   } else {
-    console.info('Installation successful', child, child?.stdout);
+    console.info(child?.stdout);
   }
 };
+
+
 
 const runCli = async (rg: string, user_id: string, project: any) => {
   try {
@@ -219,7 +222,7 @@ const runCli = async (rg: string, user_id: string, project: any) => {
       const __filename = fileURLToPath(import.meta.url);
       const dirPath = path.join(path.dirname(__filename), '..', '..');
       const sourcePath = path.join(dirPath, 'sitecoreMigrationData', project?.destination_stack_id);
-      const backupPath = path.join(process.cwd(), 'migration-data', project?.destination_stack_id);
+      const backupPath = path.join(process.cwd(), 'migration-data', `${project?.destination_stack_id}_${v4().slice(0, 4)}`);
       await copyDirectory(sourcePath, backupPath);
       shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));
       const pwd = shell.exec('pwd');
@@ -228,7 +231,7 @@ const runCli = async (rg: string, user_id: string, project: any) => {
       cliLogger(region);
       const login = shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
       cliLogger(login);
-      const exportData = shell.exec(`node bin/run cm:stacks:import  -k ${project?.destination_stack_id} -d ${sourcePath} --backup-dir=${backupPath}  --yes`);
+      const exportData = shell.exec(`node bin/run cm:stacks:import  -k ${project?.destination_stack_id} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
       cliLogger(exportData);
     } else {
       console.info('user not found.')
