@@ -880,17 +880,13 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
         }
         setIsFieldDeleted(true);
-        // console.log(deletedExstingField);
-        
-        delete existingField[item?.uid]
+        const index = selectedOptions?.indexOf(existingField[item?.uid]?.value?.label);
 
-     
-        const index = selectedOptions?.indexOf(`${item.contentstackField}`);
-        //console.log(index);
         if(index > -1){
-          selectedOptions.slice(index,1 )
+          selectedOptions.splice(index,1 );
+          
         }
-        
+        delete existingField[item?.uid]    
         
        }
     }
@@ -1027,6 +1023,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         return value?.data_type === 'json';
       case 'enum':
         return 'enum' in value;
+      case 'display_type':
+        return value?.display_type === 'dropdown';
       case 'allow_rich_text':
         return value?.field_metadata?.allow_rich_text === true;
       case 'Group':      
@@ -1151,7 +1149,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       'link': 'link',
       'reference': 'reference',
       'dropdown': 'enum',
-      'Droplist': 'enum',
+      'Droplist': 'display_type',
       'radio': 'enum'
     };
   
