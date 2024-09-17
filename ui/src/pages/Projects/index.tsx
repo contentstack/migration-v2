@@ -1,6 +1,6 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { PageLayout, EmptyState, Button, Icon, cbModal } from '@contentstack/venus-components';
+import { PageLayout, EmptyState, Button, Icon, cbModal,  StackCardSkeleton} from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
@@ -67,6 +67,7 @@ const Projects = () => {
   },[]);
 
   const fetchProjects = async () => {
+       setLoadStatus(true); 
     if (selectedOrganisation?.value) {
       const { data, status } = await getAllProjects(selectedOrganisation?.value || ''); //org id will always present
       if (status === 200) {
@@ -171,7 +172,7 @@ const Projects = () => {
         {loadStatus ? (
           <div className="flex-wrap">
             {[...Array(20)].map((e, i) => (
-              <CardList key={i} />
+               <StackCardSkeleton key={i} />
             ))}
           </div>
         ) : (
@@ -182,7 +183,7 @@ const Projects = () => {
           ))
         )}
 
-        {projects && projects?.length === 0 && !searchText && (
+        {!loadStatus && projects?.length === 0 && !searchText && allProjects?.length === 0 && (
           <EmptyState
             forPage="emptyStateV2"
             heading={emptystate?.heading}
