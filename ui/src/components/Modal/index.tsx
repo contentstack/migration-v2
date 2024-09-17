@@ -57,7 +57,7 @@ const Modal = (props: ProjectModalProps) => {
   const nameValidation = (value: string) => {
     if (!value) {
       setInputValue(false);
-      return;
+      return 'Project name is required.'; 
     } else if (!/^[^\s].*$/.test(value)) { 
       setInputValue(false);
       return 'Please enter project name.';
@@ -141,7 +141,7 @@ const Modal = (props: ProjectModalProps) => {
                             maxLength="200"
                             error={(meta?.error || meta?.submitError) && meta?.touched}
                           />
-                          {meta?.error && (
+                          {meta.touched && meta.error && (
                             <ValidationMessage
                               testId="cs-description-error"
                               className="mt-2"
