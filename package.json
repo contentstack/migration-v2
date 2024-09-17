@@ -4,7 +4,10 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "(cd ./api && npm install --force) ; (cd ./ui && npm install --force) ; (cd ./uplaode-api && npm install --force)"
+    "postinstall": "(cd ./api && npm install --force) ; (cd ./ui && npm install --force) ; (cd ./uplaode-api && npm install --force)",
+    "api": "cd ./api && npm run dev",
+    "upload": "cd ./uplaode-api && npm start",
+    "ui": "cd ./ui && npm start"
   },
   "repository": {
     "type": "git",
