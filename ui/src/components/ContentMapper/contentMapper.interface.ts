@@ -93,6 +93,7 @@ export interface FieldMetadata {
   allow_json_rte?: boolean;
 }
 export interface ContentTypesSchema {
+  display_type: string;
   data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file' | 'reference' | 'group' | 'boolean' | 'link';
   display_name: string;
   enum?: any;
