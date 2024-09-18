@@ -17,7 +17,7 @@ import { siteCoreService } from "./sitecore.service.js";
 import { fileURLToPath } from 'url';
 import { copyDirectory } from '../utils/index.js'
 import { v4 } from "uuid";
-
+import { setLogFilePath } from "../server.js";
 
 
 
@@ -224,6 +224,10 @@ const runCli = async (rg: string, user_id: string, project: any) => {
       const sourcePath = path.join(dirPath, 'sitecoreMigrationData', project?.destination_stack_id);
       const backupPath = path.join(process.cwd(), 'migration-data', `${project?.destination_stack_id}_${v4().slice(0, 4)}`);
       await copyDirectory(sourcePath, backupPath);
+      
+      const loggerPath = path.join(backupPath, 'logs', 'import','success.log');
+      console.info('loggerPath', loggerPath);
+      await setLogFilePath(loggerPath);
       shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));
       const pwd = shell.exec('pwd');
       cliLogger(pwd);
@@ -231,7 +235,7 @@ const runCli = async (rg: string, user_id: string, project: any) => {
       cliLogger(region);
       const login = shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
       cliLogger(login);
-      const exportData = shell.exec(`node bin/run cm:stacks:import  -k ${project?.destination_stack_id} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
+      const exportData = shell.exec(`node bin/run cm:stacks:import  -k ${project?.destination_stack_id} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true }, { async: true });
       cliLogger(exportData);
     } else {
       console.info('user not found.')
