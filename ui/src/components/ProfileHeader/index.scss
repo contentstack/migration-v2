@@ -2,20 +2,20 @@
 
 .profile-card {
   width: 300px;
-  padding: 16px;
+  padding: 11px 16px;
   // background-color: #f8f9fa;
-  border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
 .profile-card__avatar {
-  margin-bottom: 16px;
+  height: 60px;
+  margin-bottom: 8px;
 }
 
 .profile-card__initials {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background-color: #2c3e50;
   color: white;
@@ -27,21 +27,17 @@
   
 }
 
-.profile-card__details {
-  margin-bottom: 16px;
-}
-
 .profile-card__name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #2c3e50;
+  color: #6E6B86;
+  font-size: $size-font-large;
+  font-weight: $font-weight-semi-bold;
   margin-bottom: 5px;
+  text-transform: capitalize;
 }
 
 .profile-card__email {
-  font-size: 14px;
-  color: #7f8c8d;
-  margin-bottom: 5px;
+  font-size: $size-font-small;
+  color: #6E6B86;
 }
 
 .profile-card__logout {
@@ -59,13 +55,18 @@
 }
 
 .profile-card__logout-text {
-  text-decoration: underline;
+  color: #6E6B86;
+  font-size: $size-font-large;
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .profile-gray-background {
+  border-radius: 8px 8px 0 0;
   min-height: 20px;
   position: absolute;
-  width: 350px;
+  width: 300px;
   height: 64px;
   top: 0;
   left: 0;
