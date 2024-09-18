@@ -45,6 +45,7 @@
     color: $color-font-base;
     a {
       color: $color-brand-primary-base;
+      text-decoration: underline;
     }
   }
 }
@@ -55,4 +56,7 @@
   .EmptyState__title {
     padding-top: 15px;
   }
+}
+.create-project-cta {
+  line-height: $line-height-default;
 }
