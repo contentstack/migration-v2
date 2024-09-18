@@ -2,7 +2,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Params, useNavigate, useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
-import {  Notification } from '@contentstack/venus-components';
 
 // Redux files
 import { RootState } from '../../store';
@@ -34,6 +33,9 @@ import DestinationStackComponent from '../../components/DestinationStack';
 import ContentMapper from '../../components/ContentMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
+import { cbModal, Notification } from '@contentstack/venus-components';
+import SaveChangesModal from '../../components/Common/SaveChangesModal';
+import { ModalObj } from '../../components/Modal/modal.interface';
 
 type StepperComponentRef = {
   handleStepChange: (step: number) => void;
@@ -48,6 +50,7 @@ const Migration = () => {
   const [curreentStepIndex, setCurrentStepIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isProjectMapper, setIsProjectMapper] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const params: Params<string> = useParams();
   const { projectId = '' } = useParams();
@@ -362,37 +365,92 @@ const Migration = () => {
   };
 
   const handleOnClickContentMapper = async (event: MouseEvent) => {
-    setIsLoading(true);
+    setIsModalOpen(true);
 
-    event.preventDefault();
+    if(newMigrationData?.content_mapping?.isDropDownChanged){
+      return cbModal({
+        component: (props: ModalObj) => (
+        <SaveChangesModal
+            {...props}
+            isopen={setIsModalOpen}
+            otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
+            saveContentType={saveRef?.current?.handleSaveContentType}
+            changeStep={async () => {
+              setIsLoading(true);
+              const data = {
+                name: newMigrationData?.destination_stack?.selectedStack?.label,
+                description: 'test migration stack',
+                master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
+              };
+          
+              const res = await createTestStack(
+                newMigrationData?.destination_stack?.selectedOrg?.value,
+                projectId,
+                data
+              );
+          
+              if (res?.status) {
+                setIsLoading(false);
+                const newMigrationDataObj: INewMigration = {
+                  ...newMigrationData,
+                    content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false },
 
-    const data = {
-      name: newMigrationData?.destination_stack?.selectedStack?.label,
-      description: 'test migration stack',
-      master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
-    };
+                  test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
+                };
+            
+                dispatch(updateNewMigrationData((newMigrationDataObj)));
+          
+                const url = `/projects/${projectId}/migration/steps/4`;
+                navigate(url, { replace: true });
+          
+                await updateCurrentStepData(selectedOrganisation.value, projectId);
+                handleStepChange(3);
+              }}}
+            dropdownStateChange={changeDropdownState}
+        />
+        ),
+        modalProps: {
+        size: 'xsmall',
+        shouldCloseOnOverlayClick: false
+        }
+    });
 
-    const res = await createTestStack(
-      newMigrationData?.destination_stack?.selectedOrg?.value,
-      projectId,
-      data
-    );
-
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
-    };
-
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
-    if (res?.status) {
-      setIsLoading(false);
-
-      const url = `/projects/${projectId}/migration/steps/4`;
-      navigate(url, { replace: true });
-
-      await updateCurrentStepData(selectedOrganisation.value, projectId);
-      handleStepChange(3);
     }
+    else{
+      event.preventDefault();
+      setIsLoading(true);
+      const data = {
+        name: newMigrationData?.destination_stack?.selectedStack?.label,
+        description: 'test migration stack',
+        master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
+      };
+  
+      const res = await createTestStack(
+        newMigrationData?.destination_stack?.selectedOrg?.value,
+        projectId,
+        data
+      );
+  
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
+      };
+  
+      dispatch(updateNewMigrationData((newMigrationDataObj)));
+      if (res?.status) {
+        setIsLoading(false);
+  
+        const url = `/projects/${projectId}/migration/steps/4`;
+        navigate(url, { replace: true });
+  
+        await updateCurrentStepData(selectedOrganisation.value, projectId);
+        handleStepChange(3);
+      }
+
+    }
+  
+    
+
   }
 
   const handleOnClickTestMigration = async () => {
@@ -405,13 +463,6 @@ const Migration = () => {
     handleStepChange(4);
   }
 
-  const handleOnClickFunctions = [
-    handleOnClickLegacyCms, 
-    handleOnClickDestinationStack,
-    handleOnClickContentMapper,
-    handleOnClickTestMigration 
-  ];
-
   const changeDropdownState = () =>{
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
@@ -420,6 +471,15 @@ const Migration = () => {
 
     dispatch(updateNewMigrationData((newMigrationDataObj)));
   }
+
+  const handleOnClickFunctions = [
+    handleOnClickLegacyCms, 
+    handleOnClickDestinationStack,
+    handleOnClickContentMapper,
+    handleOnClickTestMigration 
+  ];
+
+
   
   return (
      
