@@ -1,7 +1,7 @@
 // Libraries
 import { FC,useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { setAuthToken } from '../../store/slice/authSlice';
 import {
@@ -157,7 +157,14 @@ const Login: FC<IProps> = () => {
     if (response?.status === 200 && response?.data?.message === LOGIN_SUCCESSFUL_MESSAGE) {
       setIsLoading(false);
       setDataInLocalStorage('app_token', response?.data?.app_token);
-      dispatch(setAuthToken(response?.data?.token));
+      const authenticationObj =  {
+      
+        authToken: response?.data?.app_token,
+        isAuthenticated: true
+       }
+
+      dispatch(setAuthToken(authenticationObj));
+
       setLoginStates((prev) => ({ ...prev, submitted: true }));
       navigate(`/projects`, { replace: true });
     }
