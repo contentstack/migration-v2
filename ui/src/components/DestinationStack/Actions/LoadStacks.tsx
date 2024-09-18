@@ -274,10 +274,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   // placeholder='Select a stack'
                   placeholder={placeholder}
 
-                  isClearable={newMigrationData?.destination_stack?.stackArray?.length > 0 && !emptyStackValue ? true : false }
+                  isClearable={newMigrationData?.destination_stack?.stackArray?.length > 0 && !emptyStackValue}
                   // hideSelectedOptions={true}
                   // isDisabled={props?.stepComponentProps?.isSummary || false}
-                  error={isLoading ? false : isError ? true : false }
+                  error={isLoading ? false : !!isError }
                   width="600px"
                   hasAddOption={true}
                   // menuIsOpen
