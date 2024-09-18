@@ -35,6 +35,7 @@ export type ConfigType = {
     AZURE_EU?: string;
     GCP_NA?: string;
   };
+  LOG_FILE_PATH: string;
 };
 
 /**
