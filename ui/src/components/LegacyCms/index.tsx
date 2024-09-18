@@ -181,7 +181,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
               awsData: legacyCMSData?.awsDetails,
               isLocalPath: legacyCMSData?.is_localPath
             },
-            isValidated: legacyCMSData?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+            isValidated: legacyCMSData?.is_fileValid ,
           }, //need to add backend data once endpoint exposed.
           affix: legacyCMSData?.affix || '',
           isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
