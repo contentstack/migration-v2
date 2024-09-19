@@ -11,3 +11,4 @@ coverage
 tsconfig.tsbuildinfo
 /merge_scripts
 /merge-summary.json
+!bin
