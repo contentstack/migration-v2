@@ -18,11 +18,10 @@ import contentMapperRoutes from "./routes/contentMapper.routes.js";
 import migrationRoutes from "./routes/migration.routes.js";
 import chokidar from "chokidar";
 import { Server } from "socket.io";
-import http from "http";
 import fs from "fs";
 
 // Initialize file watcher for the log file
-const watcher = chokidar.watch(config.LOG_FILE_PATH,{
+const watcher = chokidar.watch(config.LOG_FILE_PATH, {
   usePolling: true,     // Enables polling to detect changes in all environments
   interval: 100,        // Poll every 100ms (you can adjust this if needed)
   awaitWriteFinish: {   // Wait for file to finish being written before triggering
@@ -35,12 +34,12 @@ const watcher = chokidar.watch(config.LOG_FILE_PATH,{
 let io: Server; // Socket.IO server instance
 
 // Dynamically change the log file path and update the watcher
-export async function setLogFilePath(path:string) {
+export async function setLogFilePath(path: string) {
   console.info(`Setting new log file path: ${path}`);
-  
+
   // Stop watching the old log file
   watcher.unwatch(config.LOG_FILE_PATH);
-  
+
   // Update the config and start watching the new log file
   config.LOG_FILE_PATH = path;
   watcher.add(path);
@@ -48,7 +47,7 @@ export async function setLogFilePath(path:string) {
 
 try {
   const app = express();
-  
+
   // Set security-related HTTP headers
   app.use(
     helmet({
@@ -62,7 +61,7 @@ try {
   // Parsing request bodies
   app.use(express.urlencoded({ extended: false, limit: "10mb" }));
   app.use(express.json({ limit: "10mb" }));
-  
+
   // Custom middleware for logging and request headers
   app.use(loggerMiddleware);
   app.use(requestHeadersMiddleware);
@@ -104,14 +103,12 @@ try {
     // File watcher for log file changes
     watcher.on("change", (path) => {
       console.info(`File changed: ${path}`);
-      
       // Read the updated file content
       fs.readFile(path, "utf8", (err, data) => {
         if (err) {
           logger.error(`Error reading log file: ${err}`);
           return;
         }
-        
         try {
           // Emit the updated log content to connected clients
           io.emit("logUpdate", data);

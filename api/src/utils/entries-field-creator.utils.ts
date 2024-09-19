@@ -176,8 +176,19 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
     case 'dropdown': {
       if (content?.includes('{')) {
         return idCorrector({ id: content });
+      } else {
+        const isOptionPresent = field?.advanced?.options?.find((ops: any) => ops?.key === content || ops?.value === content);
+        if (isOptionPresent) {
+          if (isOptionPresent?.value?.includes('{')) {
+            return { key: isOptionPresent?.key, value: content }
+          } else if (!isOptionPresent?.key) {
+            return { value: content }
+          }
+          return { key: isOptionPresent?.key, value: content }
+        } else {
+          return { value: field?.advanced?.Default_value }
+        }
       }
-      return content;
     }
 
     case 'number': {
