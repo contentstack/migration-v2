@@ -1,13 +1,15 @@
 // Libraries
 import { FC, ReactNode, useEffect } from 'react';
 import { Params, useLocation, useParams } from 'react-router';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { getUserDetails } from '../../../store/slice/authSlice';
 
 // Component
 import MainHeader from '../../MainHeader';
 import SideBar from '../../SideBar';
+import { RootState } from '../../../store';
+import useAuthCheck from '../../../hooks/authentication';
 
 type IProps = {
   children?: ReactNode;
@@ -17,12 +19,16 @@ const AppLayout: FC<IProps> = ({ children }) => {
   const location = useLocation();
   const dispatch = useDispatch();
 
+  const  authentication = useSelector((state:RootState)=>state?.authentication?.isAuthenticated);
+
   const projectId = location?.pathname?.split('/')?.[2];
 
   useEffect(()=>{
     dispatch(getUserDetails());
 
-  },[dispatch])
+  },[dispatch]);
+
+  useAuthCheck();
 
   return (
     <>
