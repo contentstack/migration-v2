@@ -243,11 +243,11 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [isDropDownChanged, setIsDropDownChanged] = useState<boolean>(false);
   const [contentTypeMapped, setContentTypeMapped] = useState<ContentTypeMap>(
-    newMigrationData?.content_mapping?.content_type_mapping?.[0] || {}
+    newMigrationData?.content_mapping?.content_type_mapping || {}
   );
   const [otherContentType, setOtherContentType] = useState<FieldTypes>({
-    label: newMigrationData?.content_mapping?.content_type_mapping?.[0]?.[otherCmsTitle] || 'Select content type from existing stack',
-    value: newMigrationData?.content_mapping?.content_type_mapping?.[0]?.[otherCmsTitle] || 'Select content type from existing stack',
+    label: contentTypeMapped?.[otherCmsTitle] || 'Select content type from existing stack',
+    value: contentTypeMapped?.[otherCmsTitle] || 'Select content type from existing stack',
   });
   const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
   const [isContentTypeMapped, setIsContentTypeMapped] = useState<boolean>(false);
@@ -323,23 +323,16 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   },[tableData]);
 
   useEffect(() => {
-    if(otherCmsTitle) {
-      newMigrationData?.content_mapping?.content_type_mapping?.forEach((ctMap) => {
-        if (ctMap?.[otherCmsTitle] !== undefined) {
-          
-          setOtherContentType({
-            label: ctMap?.[otherCmsTitle] ?? 'Select content type from existing stack',
-            value: ctMap?.[otherCmsTitle] ?? 'Select content type from existing stack'
-          })
-        }
-      })
+    if (contentTypeMapped && otherCmsTitle) {
+      setOtherContentType({
+        label: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack',
+        value: contentTypeMapped?.[otherCmsTitle] ?? 'Select content type from existing stack'
+      });
     }
-  }, [otherCmsTitle]);
+  }, [contentTypeMapped, otherCmsTitle]);
 
   useEffect(() => {
-    const checkKey = newMigrationData?.content_mapping?.content_type_mapping?.find(ctMap => ctMap[otherCmsTitle] === otherContentType?.label);
-    
-    if (checkKey?.[otherCmsTitle] !== undefined) {
+    if (contentTypeMapped[otherCmsTitle] === otherContentType?.label) {
       tableData?.forEach((row) => {
         contentTypeSchema?.forEach((schema) => {
           
@@ -361,13 +354,6 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                   }
 
                 }
-                // else if(existingField[row?.uid]){
-                //   updatedExstingField[row?.uid] = {
-                //     label: `${schema?.display_name} > ${childSchema?.display_name}`,
-                //     value: childSchema
-                //   }
-                // }
-                
               }
             })
           }
@@ -582,8 +568,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     setOtherCmsTitle(otherTitle);
       
     setOtherContentType({ 
-      label: newMigrationData?.content_mapping?.content_type_mapping?.[i]?.[otherTitle] || 'Select content type from existing stack', 
-      value: newMigrationData?.content_mapping?.content_type_mapping?.[i]?.[otherTitle] || 'Select content type from existing stack'
+      label: contentTypeMapped?.[otherTitle] || 'Select content type from existing stack', 
+      value: contentTypeMapped?.[otherTitle] || 'Select content type from existing stack'
     });
 
     setContentTypeUid(contentTypes?.[i]?.id ?? '');
@@ -778,6 +764,16 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     });
     setTableData(updatedRows);
     setSelectedEntries(updatedRows);
+
+    const dropdownChangeState: INewMigration = {
+      ...newMigrationData,
+      content_mapping: {
+        ...newMigrationData?.content_mapping,
+        isDropDownChanged: true,
+        otherCmsTitle: otherCmsTitle
+      }
+    }
+    dispatch(updateNewMigrationData((dropdownChangeState)));
   };
 
   const handleDropDownChange = (value: FieldTypes) => {
@@ -894,26 +890,18 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
         }
         setIsFieldDeleted(true);
-        // console.log(deletedExstingField);
-        
-        delete existingField[item?.uid]
+        const index = selectedOptions?.indexOf(existingField[item?.uid]?.value?.label);
 
-     
-        const index = selectedOptions?.indexOf(`${item.contentstackField}`);
-        //console.log(index);
         if(index > -1){
-          selectedOptions.slice(index,1 )
+          selectedOptions.splice(index,1 );
         }
-        
+        delete existingField[item?.uid]    
         
        }
     }
-    else{
-     
-      
+    else {
       setIsFieldDeleted(false);
     }
-    
 
     
     setExistingField((prevOptions: ExistingFieldType) => ({
@@ -970,6 +958,17 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
     setTableData(updatedRows);
     setSelectedEntries(updatedRows);
+
+    const dropdownChangeState: INewMigration = {
+      ...newMigrationData,
+      content_mapping: {
+        ...newMigrationData?.content_mapping,
+        isDropDownChanged: true,
+        otherCmsTitle: otherCmsTitle
+      }
+    }
+    dispatch(updateNewMigrationData((dropdownChangeState)));
+
   };
 
   //function to generate group schema structure of source cms 
@@ -1031,6 +1030,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         return value?.data_type === 'json';
       case 'enum':
         return 'enum' in value;
+      case 'display_type':
+        return value?.display_type === 'dropdown';
       case 'allow_rich_text':
         return value?.field_metadata?.allow_rich_text === true;
       case 'Group':      
@@ -1155,7 +1156,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       'link': 'link',
       'reference': 'reference',
       'dropdown': 'enum',
-      'Droplist': 'enum',
+      'Droplist': 'display_type',
       'radio': 'enum'
     };
   
@@ -1370,11 +1371,11 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         ...newMigrationData,
         content_mapping: {
           ...newMigrationData?.content_mapping,
-          content_type_mapping: [
+          content_type_mapping: {
             
-            ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
-            {[otherCmsTitle]: otherContentType?.label}
-          ] 
+            ...newMigrationData?.content_mapping?.content_type_mapping ?? {},
+            [otherCmsTitle]: otherContentType?.label
+          } 
         }
       };
 
@@ -1430,7 +1431,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
         setFilteredContentTypes(savedCT);
         setContentTypes(savedCT);
-        await updateContentMapper(orgId, projectID, [...newMigrationData.content_mapping.content_type_mapping,{[otherCmsTitle]: otherContentType?.label}]);
+        await updateContentMapper(orgId, projectID, {...contentTypeMapped, [otherCmsTitle]: otherContentType?.label});
 
       } else {
         Notification({
@@ -1447,6 +1448,14 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
   const handleDropdownState = () => {
     setIsDropDownChanged(false);
+    const dropdownChangeState: INewMigration = {
+      ...newMigrationData,
+      content_mapping: {
+        ...newMigrationData?.content_mapping,
+        isDropDownChanged: false
+      }
+    }
+    dispatch(updateNewMigrationData((dropdownChangeState )));
   }
 
   useImperativeHandle(ref, () => ({
@@ -1535,6 +1544,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
           type: 'success'
         });
       }
+    
       
     }
   }
