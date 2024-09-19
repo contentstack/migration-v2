@@ -1,3 +1,4 @@
+// Libraries
 import { Suspense, useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -9,11 +10,12 @@ import { persistor, store } from './store';
 import AppRouter from './components/Common/router';
 import ErrorBoundary from './components/ErrorBoundary';
 import AppLayout from './components/layout/AppLayout';
+import { useNetworkCheck } from './components/NetworkProvider';
+
 
 // Styles
 import '@contentstack/venus-components/build/main.css';
 import './scss/App.scss';
-import { useNetworkCheck } from './components/NetworkProvider';
 
 function App() {
   const isOnline = useNetworkCheck();
@@ -25,9 +27,6 @@ function App() {
       if (!isOnline) {
         // Hide the modal by setting display to none
         selectModal.style.display = 'none';
-      } else {
-        // Show the modal by setting display to block
-        selectModal.style.display = 'block';
       }
     }
   }, [isOnline]);
