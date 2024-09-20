@@ -60,9 +60,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           isFileFormatCheckboxChecked: isCheckedBoxChecked
         }
       }));
-      await fileformatConfirmation(selectedOrganisation?.value, projectId, {
-        fileformat_confirmation: true
-      });
 
       //call for Step Change
       props.handleStepChange(props?.currentStep);
@@ -138,16 +135,21 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   return (
     <div className="p-3">
         <div className="col-12">
-          <TextInput
-          value={fileIcon}
-          version="v2"              
-          isReadOnly={true}
-          disabled={true}
-          width="large"
-          placeholder=""
-          prefix={
-          <Icon icon={fileIcon} size="medium" version='v2'/>}
-          />
+          <label htmlFor='file-format'>
+            <TextInput
+            value={fileIcon}
+            version="v2"              
+            isReadOnly={true}
+            disabled={true}
+            width="large"
+            placeholder=""
+            prefix={
+            <Icon icon={fileIcon} size="medium" version='v2'
+            aria-label='fileformat'/>}
+            />
+
+          </label>
+         
           {isError && <p className="errorMessage">{error}</p>}
         </div>
         
