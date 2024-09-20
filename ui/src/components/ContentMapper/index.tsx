@@ -808,6 +808,16 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     });
     setTableData(updatedRows);
     setSelectedEntries(updatedRows);
+
+    const dropdownChangeState: INewMigration = {
+      ...newMigrationData,
+      content_mapping: {
+        ...newMigrationData?.content_mapping,
+        isDropDownChanged: true,
+        otherCmsTitle: otherCmsTitle
+      }
+    }
+    dispatch(updateNewMigrationData((dropdownChangeState)));
   };
 
   const handleDropDownChange = (value: FieldTypes) => {
@@ -928,18 +938,14 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
         if(index > -1){
           selectedOptions.splice(index,1 );
-          
         }
         delete existingField[item?.uid]    
         
        }
     }
-    else{
-     
-      
+    else {
       setIsFieldDeleted(false);
     }
-    
 
     
     setExistingField((prevOptions: ExistingFieldType) => ({
@@ -1001,7 +1007,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       ...newMigrationData,
       content_mapping: {
         ...newMigrationData?.content_mapping,
-        isDropDownChanged: true
+        isDropDownChanged: true,
+        otherCmsTitle: otherCmsTitle
       }
     }
     dispatch(updateNewMigrationData((dropdownChangeState)));
