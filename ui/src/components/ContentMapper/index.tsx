@@ -537,7 +537,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   // Fetch table data
   const fetchData = async ({ searchText }: TableTypes) => {
     setSearchText(searchText)
-    fetchFields(contentTypeUid, searchText);
+    contentTypeUid && fetchFields(contentTypeUid, searchText);
   };
 
   // Method for Load more table data
@@ -1289,6 +1289,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
             ...updatedExstingField,
             [data?.uid]: { label: newLabel, value: newvalue }
           };
+          existingField[data?.uid] = { label: newLabel, value: newvalue }
         }
 
         const newValue: string = OptionsForRow[0]?.value?.display_name;
@@ -1569,17 +1570,16 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   // Function to fetch single content type
   const handleFetchContentType = async () => {
     const { data , status} = await fetchExistingContentType(projectId,'') ;
-    // if(status === 201){
-    //   Notification({
-    //     notificationContent: { text: "All Content Types fetched successfully" },
-    //     notificationProps: {
-    //       position: 'bottom-center',
-    //       hideProgressBar: false
-    //     },
-    //     type: 'success'
-    //   });
-
-    // }
+    if(data?.contentTypes?.length <= 0){
+      Notification({
+        notificationContent: { text: "No content found in the stack" },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: false
+        },
+        type: 'error'
+      });
+    }
     const contentTypesArr: ContentTypeList[] = contentTypesList;
     const index = contentTypesList.findIndex(ct => ct?.uid === data?.uid);
       
@@ -1638,7 +1638,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       setContentTypeSchema(data?.schema);
       if (status == 201) {
         Notification({
-          notificationContent: { text: 'Content type fetched successfully' },
+          notificationContent: { text: 'Content type data fetched successfully' },
           notificationProps: {
             position: 'bottom-center',
             hideProgressBar: false
