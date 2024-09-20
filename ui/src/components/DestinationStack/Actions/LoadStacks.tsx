@@ -76,13 +76,15 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;    
   }, [newMigrationData]);
-  useEffect(()=>{
+  
+  useEffect(() => {
     if(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
       setSelectedStack(newMigrationData?.destination_stack?.selectedStack);
     }
-    setAllStack(newMigrationData?.destination_stack?.stackArray)
+    // setAllStack(newMigrationData?.destination_stack?.stackArray)
 
   },[newMigrationData?.destination_stack?.selectedStack])
+
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
 
@@ -272,10 +274,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   // placeholder='Select a stack'
                   placeholder={placeholder}
 
-                  isClearable={newMigrationData?.destination_stack?.stackArray?.length > 0 && !emptyStackValue ? true : false }
+                  isClearable={newMigrationData?.destination_stack?.stackArray?.length > 0 && !emptyStackValue}
                   // hideSelectedOptions={true}
-                  isDisabled={props?.stepComponentProps?.isSummary || false}
-                  error={isLoading ? false : isError ? true : false }
+                  // isDisabled={props?.stepComponentProps?.isSummary || false}
+                  error={isLoading ? false : !!isError }
                   width="600px"
                   hasAddOption={true}
                   // menuIsOpen
