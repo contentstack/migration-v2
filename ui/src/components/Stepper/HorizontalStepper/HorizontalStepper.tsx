@@ -77,12 +77,14 @@ const showNotification = (currentIndex:number) =>{
 }
 const HorizontalStepper = forwardRef(
     (props: stepperProps, ref: React.ForwardedRef<HorizontalStepperHandles>) => {
+        
+        const { stepId } = useParams<{ stepId: string }>();
+        const stepIndex = parseInt(stepId || '', 10) - 1;
+        
         const { steps, className, emptyStateMsg, hideTabView, testId } = props;
-        const [showStep, setShowStep] = useState(0);
+        const [showStep, setShowStep] = useState(stepIndex);
         const [stepsCompleted, setStepsCompleted] = useState<number[]>([]);
         const [isModalOpen, setIsModalOpen] = useState(false);
-
-        const { stepId } = useParams<{ stepId: string }>();
 
         const navigate = useNavigate();
         const { projectId = '' } = useParams();
@@ -156,7 +158,8 @@ const HorizontalStepper = forwardRef(
                     notificationContent: { text: `Please select a stack to proceed further` },
                     type: 'warning' 
                 })
-            } else if (newMigrationData?.destination_stack?.selectedStack?.value !== newMigrationData?.stackDetails?.value) {
+            } 
+            else if (newMigrationData?.destination_stack?.selectedStack?.value !== newMigrationData?.stackDetails?.value) {
                 return Notification({
                     notificationContent: { text: `Please save the stack to proceed further` },
                     type: 'warning' 
