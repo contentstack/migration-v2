@@ -5,6 +5,7 @@ import {
 import { ICardType, defaultCardType } from '../../components/Common/Card/card.interface';
 import { CTA } from '../../types/common.interface';
 import { IFilterType } from '../../components/Common/Modal/FilterModal/filterModal.interface';
+import { ContentTypeList } from '../../components/ContentMapper/contentMapper.interface';
 export interface ICTA {
   title: string;
   href: string;
@@ -170,6 +171,7 @@ export interface IContentMapper {
   content_type_mapping: ContentTypeMap;
   isDropDownChanged?: boolean;
   otherCmsTitle?: string;
+  contentTypeList:ContentTypeList[]
 }
 export interface INewMigration {
   mapperKeys: ContentTypeMap;
@@ -307,7 +309,8 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
 export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
   content_type_mapping: {},
   isDropDownChanged: false,
-  otherCmsTitle: ''
+  otherCmsTitle: '',
+  contentTypeList: [],
 };
 
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
