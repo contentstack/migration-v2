@@ -1462,13 +1462,13 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
         setIsContentTypeMapped(true);
         setIsContentTypeSaved(true);
 
-        // const newMigrationDataObj: INewMigration = {
-        //   ...newMigrationData,
-        //   content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
-        // };
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
+        };
        
        
-        // dispatch(updateNewMigrationData((newMigrationDataObj)));
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
       
         const savedCT = filteredContentTypes?.map(ct => 
           ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
