@@ -60,9 +60,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           isFileFormatCheckboxChecked: isCheckedBoxChecked
         }
       }));
-      await fileformatConfirmation(selectedOrganisation?.value, projectId, {
-        fileformat_confirmation: true
-      });
 
       //call for Step Change
       props.handleStepChange(props?.currentStep);
