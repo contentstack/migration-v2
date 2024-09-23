@@ -268,7 +268,6 @@ const getExistingContentTypes = async (req: Request) => {
       data: err.response.data,
       status: err.response.status,
     };
-
   const contentTypes = res.data.content_types.map((singleCT: any) => {
     return {
       title: singleCT.title,
@@ -280,6 +279,57 @@ const getExistingContentTypes = async (req: Request) => {
   //Add logic to get Project from DB
   return { contentTypes };
 };
+
+/**
+ * Retrieves existing global fields for a given project.
+ * @param req - The request object containing the project ID and token payload.
+ * @returns An object containing the retrieved content types.
+ */
+const getExistingGlobalFields = async (req: Request) => {
+  const projectId = req?.params?.projectId;
+
+  const { token_payload } = req.body;
+
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+  await ProjectModelLowdb.read();
+  const project = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .value();
+  const stackId = project?.destination_stack_id;
+  const [err, res] = await safePromise(
+    https({
+      method: "GET",
+      url: `${config.CS_API[
+        token_payload?.region as keyof typeof config.CS_API
+      ]!}/global_fields`,
+      headers: {
+        api_key: stackId,
+        authtoken: authtoken,
+      },
+    })
+  );
+
+  if (err)
+    return {
+      data: err.response.data,
+      status: err.response.status,
+    };
+  const globalFields = res.data.global_fields.map((global: any) => {
+    return {
+      title: global.title,
+      uid: global.uid,
+      schema: global.schema,
+    };
+  });
+
+  //Add logic to get Project from DB
+  return { globalFields };
+};
+
 /**
  * Updates the content type based on the provided request.
  * @param req - The request object containing the necessary parameters and data.
@@ -923,8 +973,6 @@ const removeContentMapper = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs during the update.
  */
 const updateContentMapper = async (req: Request) => {
-  console.info("updateContentMapper", req.params, req.body);
-
   const { orgId, projectId } = req.params;
   const { token_payload, content_mapper } = req.body;
   const srcFunc = "updateContentMapper";
@@ -944,7 +992,6 @@ const updateContentMapper = async (req: Request) => {
 
   try {
     ProjectModelLowdb.update((data: any) => {
-      // console.info("data ===============", data, content_mapper)
       data.projects[projectIndex].mapperKeys = content_mapper;
       data.projects[projectIndex].updated_at = new Date().toISOString();
     });
@@ -989,5 +1036,6 @@ export const contentMapperService = {
   removeContentMapper,
   removeMapping,
   getSingleContentTypes,
-  updateContentMapper
+  updateContentMapper,
+  getExistingGlobalFields
 };
