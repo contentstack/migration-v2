@@ -41,6 +41,15 @@ router.get(
 );
 
 /**
+ * Get Existing GlobalFields List
+ * @route GET /:projectId
+ */
+router.get(
+  "/globalFields/:projectId",
+  asyncRouter(contentMapperController.getExistingGlobalFields)
+);
+
+/**
  * Update FieldMapping or contentType
  * @route PUT /contentTypes/:orgId/:projectId/:contentTypeId
  */
