@@ -255,8 +255,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     newMigrationData?.content_mapping?.content_type_mapping || {}
   );
   const [otherContentType, setOtherContentType] = useState<FieldTypes>({
-    label: contentTypeMapped?.[otherCmsTitle] || 'Select content type from existing stack',
-    value: contentTypeMapped?.[otherCmsTitle] || 'Select content type from existing stack',
+    label: contentTypeMapped?.[otherCmsTitle] || `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+    value: contentTypeMapped?.[otherCmsTitle] || `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
   });
   const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
   const [isContentTypeMapped, setIsContentTypeMapped] = useState<boolean>(false);
@@ -348,8 +348,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       } else {
 
         setOtherContentType({
-          label: 'Select content type from existing stack',
-          value: 'Select content type from existing stack',
+          label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+          value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
         });
 
       }  
@@ -1637,8 +1637,8 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
       });
       await updateContentMapper(selectedOrganisation?.value, projectId, {... updatedState} );
       setOtherContentType({
-        label: 'Select content type from existing stack',
-        value: 'Select content type from existing stack'
+        label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+        value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
 
       });
     }
@@ -1937,7 +1937,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
                           options={adjustedOption}
                           width="440px"
                           maxWidth="440px"
-                          placeholder={otherContentType && 'Select content type from existing stack'}
+                          placeholder={otherContentType && `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`}
                           version="v2"
                         />
                       </div>
