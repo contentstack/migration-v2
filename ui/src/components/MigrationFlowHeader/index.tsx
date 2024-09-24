@@ -13,6 +13,7 @@ import { getProject } from '../../services/api/project.service';
 // Interfaces
 import { DEFAULT_NEW_MIGRATION } from '../../context/app/app.interface';
 import { ModalObj } from '../Modal/modal.interface';
+import { MigrationResponse } from '../../services/api/service.interface';
 
 // CSS
 import './index.scss';
@@ -25,9 +26,10 @@ type MigrationFlowHeaderProps = {
   isLoading: boolean;
   isCompleted: boolean;
   legacyCMSRef: React.MutableRefObject<any>; 
+  projectData:MigrationResponse
 };
 
-const MigrationFlowHeader = ({ handleOnClick, isLoading, isCompleted , legacyCMSRef}: MigrationFlowHeaderProps) => {
+const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, isCompleted , legacyCMSRef}: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
   const [currentStep, setCurrentStep] = useState<number>(0);
 
@@ -46,16 +48,16 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading, isCompleted , legacyCMS
 
   /******** Function to get project  ********/
   const fetchProject = async () => {
-    const response = await getProject(selectedOrganisation?.value || '', params?.projectId || '');
+    //const response = await getProject(selectedOrganisation?.value || '', params?.projectId || '');
 
-    if (response?.status === 200) {
-      setProjectName(response?.data?.name);
-      setCurrentStep(response?.data?.current_step);
+    //if (response?.status === 200) {
+      setProjectName(projectData?.name);
+      setCurrentStep(projectData?.current_step);
 
       //Navigate to lastest or active Step
-      const url = `/projects/${params?.projectId}/migration/steps/${response?.data?.current_step}`;
+      const url = `/projects/${params?.projectId}/migration/steps/${projectData.current_step}`;
       navigate(url, { replace: true });
-    }
+   // }
   };
 
   const backNavigation = () => {
