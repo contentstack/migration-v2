@@ -197,7 +197,7 @@ const Projects = () => {
                 <Button
                   key={`${index.toString()}`}
                   buttonType={cta?.theme}
-                  className="mt-10 no-project-add-btn"
+                  className="mt-10 no-project-add-btn create-project-cta"
                   onClick={() => openModal()}
                   size="large"
                 >

@@ -225,8 +225,7 @@ const Migration = () => {
         title:'Destination Stack'
       },
       {
-        data: <ContentMapper 
-              projectData={projectData} ref={saveRef} />,
+        data: <ContentMapper ref={saveRef} />,
         id:'3',
         title:'Content Mapping'
       },
