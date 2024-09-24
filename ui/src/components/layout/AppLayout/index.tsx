@@ -25,8 +25,7 @@ const AppLayout: FC<IProps> = ({ children }) => {
 
   useEffect(()=>{
     dispatch(getUserDetails());
-
-  },[dispatch]);
+  },[]);
 
   useAuthCheck();
 
