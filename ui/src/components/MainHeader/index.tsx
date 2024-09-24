@@ -54,7 +54,6 @@ const MainHeader = () => {
   const name = user ? `${user?.first_name?.charAt(0)}${user?.last_name?.charAt(0)}`.toUpperCase() ?? '' : '';
    
   const updateOrganisationListState = () => {
-    console.log("otgs ", organisationsList, user);
     
     if (organisationsList) {
       //set selected org as default
