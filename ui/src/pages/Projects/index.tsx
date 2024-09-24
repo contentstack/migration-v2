@@ -6,6 +6,9 @@ import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
+// Redux
+import { RootState } from '../../store';
+import useBlockNavigation from '../../hooks/userNavigation';
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -31,10 +34,6 @@ import { NO_PROJECTS, NO_PROJECTS_SEARCH } from '../../common/assets';
 
 // styles
 import './index.scss';
-import { getUserDetails } from '../../store/slice/authSlice';
-import useBlockNavigation from '../../hooks/userNavigation';
-import { RootState } from '../../store';
-
 
 const Projects = () => {
   const [data, setData] = useState<ProjectsType>({});
@@ -47,9 +46,7 @@ const Projects = () => {
     create_project_modal: createProjectModal
   } = data;
 
-  const dispatch = useDispatch();
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
-  
 
   const outputIntro = HTMLReactParser(jsonToHtml(emptystate?.description ?? {}));
 
@@ -61,10 +58,6 @@ const Projects = () => {
   const [loadStatus, setLoadStatus] = useState(true);
   const [searchText, setSearchText] = useState(search);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // useEffect(()=>{
-  //   dispatch(getUserDetails());
-  // },[]);
 
   const fetchProjects = async () => {
        setLoadStatus(true); 
@@ -87,10 +80,6 @@ const Projects = () => {
       setData({});
     });
   };
-
-  // useEffect(()=>{
-  //   dispatch(getUserDetails());
-  // },[dispatch]);
 
   useEffect(() => {
     fetchData();
