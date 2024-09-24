@@ -48,6 +48,22 @@ const getExistingContentTypes = async (
   const resp = await contentMapperService.getExistingContentTypes(req);
   res.status(201).json(resp);
 };
+
+/**
+ * Retrieves the existing global fields.
+ *
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
+const getExistingGlobalFields = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const resp = await contentMapperService.getExistingGlobalFields(req);
+  res.status(201).json(resp);
+};
+
 /**
  * Updates the content type fields.
  *
@@ -131,5 +147,6 @@ export const contentMapperController = {
   // removeMapping,
   getSingleContentTypes,
   removeContentMapper,
-  updateContentMapper
+  updateContentMapper,
+  getExistingGlobalFields
 };
