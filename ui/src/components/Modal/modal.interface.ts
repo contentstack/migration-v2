@@ -18,3 +18,7 @@ export interface SettingsModalProps {
   closeModal: () => void;
   navigate: (url: string) => void;
 }
+
+export interface FormData {
+  name?: string;
+}

@@ -354,23 +354,20 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     
   }, [contentTypeMapped, otherCmsTitle, contentModels]);
 
-
-
   useEffect(()=>{
-    if(isContentDeleted){
+    if(isContentDeleted) {
       setContentTypeMapped((prevState: ContentTypeMap) => {
-            const { [otherCmsTitle]: removed, ...newState } = prevState; 
+        const { [otherCmsTitle]: removed, ...newState } = prevState; 
           
-            return newState;
-          });
+        return newState;
+      });
        
-          setIsFieldDeleted(false);
+      setIsFieldDeleted(false);
     }
- 
 
-  },[isContentDeleted, contentModels, otherCmsTitle])
-  
+  },[isContentDeleted, contentModels, otherCmsTitle]);
 
+  // useEffect for rendering mapped fields with existing stack
   useEffect(() => {
     if (contentTypeMapped[otherCmsTitle] === otherContentType?.label) {
       tableData?.forEach((row) => {
@@ -383,17 +380,45 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
             };
           }
 
+          // 1st level group nesting
           if(schema?.schema) {
             schema?.schema?.forEach((childSchema) => {
-              if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`){
+              if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`) {
                 if(!isFieldDeleted) {
-
                   updatedExstingField[row?.uid] = {
                     label: `${schema?.display_name} > ${childSchema?.display_name}`,
                     value: childSchema
                   }
-
                 }
+              }
+              
+              // 2nd level group nesting
+              if (childSchema?.schema) {
+                // console.log("!!!!!!!!!!!!!!!!!!!", row, childSchema);
+                childSchema?.schema?.forEach((nestedSchema) => {
+                  if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`) {
+                    if(!isFieldDeleted) {
+                      updatedExstingField[row?.uid] = {
+                        label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`,
+                        value: nestedSchema
+                      }
+                    }
+                  }
+
+                  // 3rd level group nesting
+                  if (nestedSchema?.schema) {
+                    nestedSchema?.schema?.forEach((nestedChild) => {
+                      if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`) {
+                        if(!isFieldDeleted) {
+                          updatedExstingField[row?.uid] = {
+                            label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`,
+                            value: nestedChild
+                          }
+                        }
+                      }
+                    })
+                  }
+                })
               }
             })
           }
