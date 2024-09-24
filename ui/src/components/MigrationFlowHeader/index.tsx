@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, cbModal } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
@@ -116,7 +116,7 @@ const MigrationFlowHeader = ({ handleOnClick, isLoading, isCompleted , legacyCMS
         aria-label='Save and Continue'
         isLoading={isLoading}
       >
-        {params?.stepId === '5' ? 'Start' : 'Save and Continue'}
+        {params?.stepId === '3' || params?.stepId === '4' ? 'Continue' : params?.stepId === '5' ? 'Start' : 'Save and Continue'}
       </Button>
     </div>
   )
