@@ -15,7 +15,7 @@ import {
 import { Field as FinalField, Form as FinalForm } from 'react-final-form';
 
 // Interface
-import { ProjectModalProps } from './modal.interface';
+import { ProjectModalProps, FormData } from './modal.interface';
 
 // Services
 import { useState } from 'react';
@@ -55,13 +55,7 @@ const Modal = (props: ProjectModalProps) => {
   };
 
   const nameValidation = (value: string) => {
-    if (!value) {
-      setInputValue(false);
-      return 'Project name is required.'; 
-    } else if (!/^[^\s].*$/.test(value)) { 
-      setInputValue(false);
-      return 'Please enter project name.';
-    } else if (value && value?.length > 200) {
+    if (value && value?.length > 200) {
       setInputValue(false);
       return 'Project Name should not be more than 200 chars';
     } else {
@@ -92,6 +86,16 @@ const Modal = (props: ProjectModalProps) => {
       <FinalForm
         className="customForm"
         onSubmit={handleSubmit}
+        keepDirtyOnReinitialize={true}
+        validate={(values): any => {
+            const errors: any = {};
+            if (!values.name || values.name === "") {
+              errors.name = 'Project name required';
+            } else if (!/^[^\s].*$/.test(values.name)) {
+              errors.name = 'Please enter a valid project name.';
+            }
+            return errors
+        }}
         render={({ handleSubmit }): JSX.Element => {
           return (
             <form
@@ -134,7 +138,7 @@ const Modal = (props: ProjectModalProps) => {
                               input.onChange(event);
                             }}
                             version="v2"
-                            autoFocus={true}
+                            // autoFocus={true}
                             placeholder={namePlaceholder}
                             data-testid="title-input"
                             name="name"
