@@ -62,9 +62,9 @@ const Projects = () => {
   const [searchText, setSearchText] = useState(search);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(()=>{
-    dispatch(getUserDetails());
-  },[]);
+  // useEffect(()=>{
+  //   dispatch(getUserDetails());
+  // },[]);
 
   const fetchProjects = async () => {
        setLoadStatus(true); 
@@ -88,9 +88,9 @@ const Projects = () => {
     });
   };
 
-  useEffect(()=>{
-    dispatch(getUserDetails());
-  },[dispatch]);
+  // useEffect(()=>{
+  //   dispatch(getUserDetails());
+  // },[dispatch]);
 
   useEffect(() => {
     fetchData();

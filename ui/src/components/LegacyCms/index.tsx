@@ -91,7 +91,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
 
   useEffect(() => {
     const fetchCMSData = async () => {
-      setIsLoading(true);
+      //setIsLoading(true);
   
       //check if offline CMS data field is set to true, if then read data from cms data file.
       const data = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
