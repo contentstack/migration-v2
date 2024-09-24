@@ -82,7 +82,7 @@ const ProjectsHeader = ({
       label: cta && cta?.title && (
         <Button
           buttonType={cta?.theme}
-          className="ml-10"
+          className="ml-10 create-project-cta"
           onClick={handleModal}
           version="v2"
           size="medium"
