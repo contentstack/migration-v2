@@ -206,11 +206,7 @@ const Fields: Mapping = {
   global_field: 'Global'
 };
 
-type ContentMapperComponentProps = {
-  projectData: MigrationResponse;
-};
-
-const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, ref: React.ForwardedRef<ContentTypeSaveHandles>) => {
+const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSaveHandles>) => {
   /** ALL CONTEXT HERE */
 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -693,7 +689,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
   const accessorCall = (data: FieldMapType) => {
     return (
       <div>
-        <div className="cms-field">{data?.otherCmsField}</div>
+        <Tooltip content={data?.otherCmsField} position='bottom'><div className="cms-field">{data?.otherCmsField}</div></Tooltip>
         <InstructionText>
           Type: {data?.otherCmsType}
           <br />
@@ -1599,7 +1595,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
 
   // Function to fetch single content type
   const handleFetchContentType = async () => {
-    const { data , status} = await fetchExistingContentType(projectId,'') ;
+    const { data } = await fetchExistingContentType(projectId,'') ;
     if(data?.contentTypes?.length <= 0){
       Notification({
         notificationContent: { text: "No content found in the stack" },
@@ -1620,7 +1616,7 @@ const ContentMapper = forwardRef(({projectData}: ContentMapperComponentProps, re
     setContentModels(data?.contentTypes);
     
 
-    const content_type = data?.contentTypes?.find((item:any)=>item?.title === otherContentType?.label);
+    const content_type = data?.contentTypes?.find((item: ContentTypeList)=>item?.title === otherContentType?.label);
     const contentTypeKey = Object.keys(contentTypeMapped).find(key => contentTypeMapped[key] === otherContentType?.label);
 
     
