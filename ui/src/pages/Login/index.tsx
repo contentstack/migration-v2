@@ -3,7 +3,7 @@ import { FC,useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { setAuthToken } from '../../store/slice/authSlice';
+import { getUserDetails, setAuthToken } from '../../store/slice/authSlice';
 import {
   Button,
   Field,
@@ -166,6 +166,9 @@ const Login: FC<IProps> = () => {
       dispatch(setAuthToken(authenticationObj));
 
       setLoginStates((prev) => ({ ...prev, submitted: true }));
+      
+      dispatch(getUserDetails());
+      
       navigate(`/projects`, { replace: true });
     }
   };
