@@ -29,7 +29,7 @@ const CardList = ({ project }: ProjectType) => {
    */
   const onClickProject = (id: string) => {
     if (isEmptyString(id)) return;
-    navigate(`/projects/${id}/migration/steps/1`);
+    navigate(`/projects/${id}/migration/steps/${project?.current_step}`);
   };
 
   const iconMapping: { [key: string]: string } = {
