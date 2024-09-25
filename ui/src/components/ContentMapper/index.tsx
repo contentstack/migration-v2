@@ -99,6 +99,13 @@ const dummy_obj:MappingFields = {
       'JSON Rich Text Editor':'json'}
 
   },
+  'markdown':{
+    label : 'Markdown',
+    options : {
+      'Markdown':'markdown',
+      'HTML Rich text Editor':'html',
+      'JSON Rich Text Editor':'json'}
+  },
   'text':{
     label : 'Single Line Textbox',
     options: {'Single Line Textbox':'single_line_text'}
@@ -154,7 +161,7 @@ const dummy_obj:MappingFields = {
       'Select':'select'
     }
   },
-  'CheckBox': {
+  'checkbox': {
     label:'Select',
     options: {'Select':'checkbox'}
   },
@@ -202,7 +209,8 @@ const Fields: Mapping = {
   reference: 'Reference',
   dropdown: 'dropdown',
   radio: 'Select',
-  CheckBox: 'Select',
+  checkbox: 'Select',
+  markdown:['HTML Rich text Editor', 'JSON Rich Text Editor'],
   global_field: 'Global'
 };
 
@@ -1857,11 +1865,11 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
                   const icon = STATUS_ICON_Mapping[content?.status] || '';
 
                   const format = (str: string) => {
-                    const frags = str.split('_');
+                    const frags = str?.split('_');
                     for (let i = 0; i < frags?.length; i++) {
-                      frags[i] = frags[i].charAt(0).toUpperCase() + frags[i].slice(1);
+                      frags[i] = frags[i]?.charAt(0).toUpperCase() + frags[i]?.slice(1);
                     }
-                    return frags.join(' ');
+                    return frags?.join(' ');
                   }
                   return (
                     <li key={`${index.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
@@ -1908,7 +1916,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
             : <div className='no-content'>No Content Types Found.</div>
           }
         </div>
-
+        
         {/* Content Type Fields */}
         <div className="content-types-fields-wrapper">
           <div className="table-wrapper">
