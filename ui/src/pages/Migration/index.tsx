@@ -225,8 +225,7 @@ const Migration = () => {
         title:'Destination Stack'
       },
       {
-        data: <ContentMapper 
-              projectData={projectData} ref={saveRef} />,
+        data: <ContentMapper ref={saveRef} />,
         id:'3',
         title:'Content Mapping'
       },
@@ -485,12 +484,14 @@ const Migration = () => {
      
  
     <div className='migration-steps-wrapper'>
-      <MigrationFlowHeader handleOnClick={handleOnClickFunctions[curreentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef}   />
+      {projectData && 
+      <>
+      <MigrationFlowHeader projectData={projectData} handleOnClick={handleOnClickFunctions[curreentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef}   />
       <div className='steps-wrapper'>
-        { projectData && 
           <HorizontalStepper ref={stepperRef} steps={createStepper(projectData, handleClick)} handleSaveCT={saveRef?.current?.handleSaveContentType} changeDropdownState={changeDropdownState } />
-        }     
       </div>
+      </>
+      }
     </div>
 
     

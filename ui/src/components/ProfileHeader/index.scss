@@ -3,7 +3,6 @@
 .profile-card {
   width: 300px;
   padding: 11px 16px;
-  // background-color: #f8f9fa;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
@@ -31,13 +30,15 @@
   color: #6E6B86;
   font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
+  line-height: $line-height-default;
   margin-bottom: 5px;
   text-transform: capitalize;
 }
 
 .profile-card__email {
-  font-size: $size-font-small;
   color: #6E6B86;
+  font-size: $size-font-small;
+  line-height: $line-height-default;
 }
 
 .profile-card__logout {
