@@ -153,6 +153,10 @@
     }
     .cms-field {
       text-transform: capitalize;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 445px;
     }
     .InstructionText {
       font-size: $size-font-small;
