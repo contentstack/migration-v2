@@ -41,7 +41,7 @@ const MainHeader = () => {
   const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
 
   const [data, setData] = useState<MainHeaderType>({});
-  const [orgsList, setOrgsList] = useState<IDropDown[]>([]);
+  const [orgsList, setOrgsList] = useState<IDropDown[]>(organisationsList ?? []);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
 
@@ -51,9 +51,10 @@ const MainHeader = () => {
 
   const { logo, organization_label: organizationLabel } = data;
 
-  const name = `${user?.first_name?.charAt(0)}${user?.last_name?.charAt(0)}`.toUpperCase() ?? '';
+  const name = user ? `${user?.first_name?.charAt(0)}${user?.last_name?.charAt(0)}`.toUpperCase() ?? '' : '';
    
   const updateOrganisationListState = () => {
+    
     if (organisationsList) {
       //set selected org as default
       const list = organisationsList.map((org: IDropDown) => ({
@@ -87,7 +88,7 @@ const MainHeader = () => {
 
   useEffect(() => {
     updateOrganisationListState();
-  }, [selectedOrganisation]);
+  }, [selectedOrganisation,organisationsList]);
   
   const handleOnDropDownChange = (data: IDropDown) => {
     if (data.value === selectedOrganisation.value) return;
