@@ -1974,7 +1974,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
                 plural: `${totalCounts === 0 ? 'Count' : ''}`
               }}
             />
-            <div className='text-end my-3 mx-3 px-1'>
+            <div className='text-end my-2 mx-3 px-1 py-1'>
               <Button
                   className="saveButton"
                   onClick={handleSaveContentType}
