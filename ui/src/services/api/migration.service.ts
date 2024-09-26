@@ -164,6 +164,18 @@ export const getExistingContentTypes = async (projectId: string) => {
   }
 };
 
+export const getExistingGlobalFields = async (projectId: string) => {
+  try {
+    return await getCall(`${API_VERSION}/mapper/globalFields/${projectId}`, options);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
+
 export const updateContentType = async (
   orgId: string,
   projectId: string,
@@ -270,3 +282,13 @@ export const updateStackDetails = async(orgId: string, projectId: string, data: 
     
   }
 }
+
+export const getOrgDetails = async(orgId: string) => {
+  try {
+    return await getCall(`${API_VERSION}/org/${orgId}/get_org_details`, options);   
+  } catch (error) {
+    return error;
+  }
+}
+
+// const { orgId } = req.params;
