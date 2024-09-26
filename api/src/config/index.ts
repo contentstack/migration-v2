@@ -42,7 +42,7 @@ export type ConfigType = {
  * Configuration object for the application.
  */
 export const config: ConfigType = {
-  APP_TOKEN_EXP: "1d",
+  APP_TOKEN_EXP: "2d",
   PORT: process.env.PORT!,
   APP_ENV: process.env.NODE_ENV!,
   APP_TOKEN_KEY: process.env.APP_TOKEN_KEY!,
