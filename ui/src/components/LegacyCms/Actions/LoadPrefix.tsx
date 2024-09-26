@@ -118,6 +118,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           placeholder={'Enter Affix'}
           version="v2"
           error={isError}
+          aria-label='affix'
         />
         {isError && <p className="errorMessage">{errorMessage}</p>}       
         
