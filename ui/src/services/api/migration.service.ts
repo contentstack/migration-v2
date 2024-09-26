@@ -282,3 +282,13 @@ export const updateStackDetails = async(orgId: string, projectId: string, data: 
     
   }
 }
+
+export const getOrgDetails = async(orgId: string) => {
+  try {
+    return await getCall(`${API_VERSION}/org/${orgId}/get_org_details`, options);   
+  } catch (error) {
+    return error;
+  }
+}
+
+// const { orgId } = req.params;
