@@ -368,10 +368,68 @@ const getStackLocale = async (req: Request) => {
   }
 };
 
+/**
+ * Retrieves the plan details of a org.
+ * @param req - The request object containing the orgId, token_payload.
+ * @returns An object containing the org details.
+ * @throws ExceptionFunction if an error occurs while getting the org details.
+ */
+const getOrgDetails = async (req: Request) => {
+  const { orgId } = req.params;
+  const { token_payload } = req.body;
+  const srcFunc = "getOrgDetails";
+
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+
+  try {
+    const [stackErr, stackRes] = await safePromise(
+      https({
+        method: "GET",
+        url: `${config.CS_API[
+          token_payload?.region as keyof typeof config.CS_API
+        ]!}/organizations/${orgId}?include_plan=true`,
+        headers: {
+          authtoken,
+        },
+      })
+    );
+
+    if (stackErr)
+      return {
+        data: {
+          message: HTTP_TEXTS.DESTINATION_STACK_ERROR,
+        },
+        status: stackErr.response.status,
+      };
+
+    return {
+      status: HTTP_CODES.OK,
+      data: stackRes.data,
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while getting locales a stack.`,
+        token_payload,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
 export const orgService = {
   getAllStacks,
   getLocales,
   createStack,
   getStackStatus,
   getStackLocale,
+  getOrgDetails,
 };
