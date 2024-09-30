@@ -62,11 +62,24 @@ const getStackLocale = async (req: Request, res: Response) => {
   res.status(resp.status).json(resp.data);
 };
 
+/* Retrieves the org details.
+*
+* @param req - The request object.
+* @param res - The response object.
+* @returns A Promise that resolves to the org details response.
+*/
+const getOrgDetails = async (req: Request, res: Response) => {
+ const resp = await orgService.getOrgDetails(req);
+ res.status(resp.status).json(resp.data);
+};
+
+
 
 export const orgController = {
   getAllStacks,
   createStack,
   getLocales,
   getStackStatus,
-  getStackLocale
+  getStackLocale,
+  getOrgDetails,
 };
