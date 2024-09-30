@@ -1,5 +1,6 @@
 import { Request } from "express";
-import cliUtilities from '@contentstack/cli-utilities';
+import fs from 'fs';
+// import cliUtilities from '@contentstack/cli-utilities';
 import { config } from "../config/index.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
 import https from "../utils/https.utils.js";
@@ -10,12 +11,18 @@ import { HTTP_TEXTS, HTTP_CODES, CS_REGIONS } from "../constants/index.js";
 import { ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { fieldAttacher } from "../utils/field-attacher.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
-// import shell from 'shelljs'
-// import path from "path";
+import shell from 'shelljs'
+import path from "path";
 import AuthenticationModel from "../models/authentication.js";
 import { siteCoreService } from "./sitecore.service.js";
+import { fileURLToPath } from 'url';
+import { copyDirectory } from '../utils/index.js'
+import { v4 } from "uuid";
+import { setLogFilePath } from "../server.js";
+import { mkdirp } from 'mkdirp';
 
-// const importCmd: any = await import('@contentstack/cli-cm-import');
+
+
 
 /**
  * Creates a test stack.
@@ -198,61 +205,75 @@ const cliLogger = (child: any) => {
     console.info(`Error: Failed to install @contentstack/cli. Exit code: ${child.code}`);
     console.info(`stderr: ${child.stderr}`);
   } else {
-    console.info('Installation successful', child?.stdout);
+    console.info(child?.stdout);
   }
 };
 
-const runCli = async (rg: string, user_id: string) => {
+function createDirectoryAndFile(filePath: string) {
+  // Get the directory from the file path
+  const dirPath = path.dirname(filePath);
+  // Create the directory if it doesn't exist
+  mkdirp.sync(dirPath);
+  // Check if the file exists; if not, create it
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, '', { mode: 0o666 }); // Create file with read/write for everyone
+    console.info(`File created at: ${filePath}`);
+  } else {
+    console.info(`File already exists at: ${filePath}`);
+  }
+}
+
+
+const runCli = async (rg: string, user_id: string, project: any) => {
   try {
     const regionPresent = CS_REGIONS?.find((item: string) => item === rg) ?? 'NA';
-    // const email = 'umesh.more+10@contentstack.com'
     await AuthenticationModel.read();
     const userData = AuthenticationModel.chain
       .get("users")
       .find({ region: regionPresent, user_id })
       .value();
-    if (userData?.authtoken) {
-
-      cliUtilities?.configHandler?.set('region', regionPresent);
-      cliUtilities?.configHandler?.set('authtoken', userData?.authtoken);
-      // shell.cd(path.resolve(process.cwd(), `../cli/packages/contentstack`));
-      // const pwd = shell.exec('pwd');
-      // cliLogger(pwd);
-      // const region = shell.exec(`node bin/run config:set:region ${regionPresent}`);
-      // cliLogger(region);
-      // const login = shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${email}`)
-      // cliLogger(login);
-      // const exportData = shell.exec(`node bin/run cm:stacks:import  -k blt3e7d2a4135d8bfab -d "/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/data" --backup-dir="/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/migrations/blt3e7d2a4135d8bfab"`);
-      // cliLogger(exportData);
-      // const cmd = [`-k ${userData?.authtoken}`, "-d /Users/umesh.more/Documents/ui-migration/migration-v2-node-server/api/sitecoreMigrationData", "--backup-dir=/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/migrations/blt3e7d2a4135d8bfab", "--yes"]
-
-      // await importCmd.default.run(cmd);  // This will bypass the type issue
-      // shell.cd(path.resolve(process.cwd(), '..', 'locale-cli', 'packages', 'contentstack'));
-      // const pwd = shell.exec('pwd');
-      // cliLogger(pwd);
-      // const region = shell.exec(`node bin/run config:set:region ${regionPresent}`);
-      // cliLogger(region);
-      // const login = shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${email}`)
-      // cliLogger(login);
-      // const exportData = shell.exec(`node bin/run cm:stacks:import  -k blt69235b992c3d99c6 -d "/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/api/sitecoreMigrationData" --backup-dir="/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/test"`);
-      // cliLogger(exportData);
+    if (userData?.authtoken && project?.destination_stack_id) {
+      // Manually define __filename and __dirname
+      const __filename = fileURLToPath(import.meta.url);
+      const dirPath = path.join(path.dirname(__filename), '..', '..');
+      const sourcePath = path.join(dirPath, 'sitecoreMigrationData', project?.destination_stack_id);
+      const backupPath = path.join(process.cwd(), 'migration-data', `${project?.destination_stack_id}_${v4().slice(0, 4)}`);
+      await copyDirectory(sourcePath, backupPath);
+      const loggerPath = path.join(backupPath, 'logs', 'import', 'combine.log');
+      createDirectoryAndFile(loggerPath);
+      await setLogFilePath(loggerPath);
+      shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));
+      const pwd = shell.exec('pwd');
+      cliLogger(pwd);
+      const region = shell.exec(`node bin/run config:set:region ${regionPresent}`);
+      cliLogger(region);
+      const login = shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
+      cliLogger(login);
+      const exportData = shell.exec(`node bin/run cm:stacks:import  -k ${project?.destination_stack_id} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
+      cliLogger(exportData);
     } else {
       console.info('user not found.')
     }
   } catch (er) {
-    console.info("🚀 ~ runCli ~ er:", er)
+    console.error("🚀 ~ runCli ~ er:", er)
   }
 }
 
 const fieldMapping = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
-  const contentTypes = await fieldAttacher({ orgId, projectId });
-  const packagePath = '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/upload-api/extracted_files/package 45';
-  await siteCoreService?.createEntry({ packagePath, contentTypes });
-  await siteCoreService?.createLocale(req);
-  await siteCoreService?.createVersionFile();
   const { region, user_id } = req?.body?.token_payload ?? {};
-  await runCli(region, user_id);
+  const project = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .value();
+  if (project?.extract_path && project?.destination_stack_id) {
+    const packagePath = project?.extract_path;
+    const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.destination_stack_id });
+    await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id });
+    await siteCoreService?.createLocale(req, project?.destination_stack_id);
+    await siteCoreService?.createVersionFile(project?.destination_stack_id);
+    await runCli(region, user_id, project);
+  }
 }
 
 export const migrationService = {
