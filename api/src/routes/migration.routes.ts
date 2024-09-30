@@ -33,4 +33,17 @@ router.post(
   asyncRouter(migrationController.deleteTestStack)
 );
 
+/**
+ * Route for creating a test stack.
+ * @route POST /test-stack/:projectId
+ * @group Migration
+ * @param {string} projectId - The ID of the project.
+ * @returns {Promise<void>} - A promise that resolves when the test stack is deleted.
+ */
+router.post(
+  "/create-test-stack/:projectId",
+  asyncRouter(migrationController.createTestStack)
+);
+
+
 export default router;
