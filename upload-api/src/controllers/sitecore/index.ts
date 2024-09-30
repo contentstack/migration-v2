@@ -16,7 +16,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
     await contentTypes(newPath, affix, config);
     const infoMap = await reference();
     if (infoMap?.contentTypeUids?.length) {
-      const fieldMapping: any = { contentTypes: [] };
+      const fieldMapping: any = { contentTypes: [], extractPath: filePath };
       for await (const contentType of infoMap?.contentTypeUids ?? []) {
         const fileContent = readFileSync(path?.join?.(infoMap?.path, 'content_types', contentType), 'utf8');
         const jsonfileContent = JSON.parse(fileContent);
