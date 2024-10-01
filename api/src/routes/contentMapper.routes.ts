@@ -45,7 +45,7 @@ router.get(
  * @route GET /:projectId
  */
 router.get(
-  "/globalFields/:projectId",
+  "/:projectId/globalFields",
   asyncRouter(contentMapperController.getExistingGlobalFields)
 );
 
@@ -85,7 +85,18 @@ router.get(
   asyncRouter(contentMapperController.removeContentMapper)
 );
 
-//update content mapper details 
+/**
+ * Update content mapper
+ * @route GET /:orgId/:projectId
+ */
 router.patch("/:orgId/:projectId/mapper_keys", asyncRouter(contentMapperController.updateContentMapper));
+
+/**
+ * Get Single Global Field data
+ * @route GET /:projectId/:globalFieldUid
+ */
+router.get("/:projectId/globalFields/:globalFieldUid",
+  asyncRouter(contentMapperController.getSingleGlobalField)
+);
 
 export default router;
