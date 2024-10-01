@@ -168,6 +168,8 @@ export interface IDestinationStack {
   stackArray: IDropDown[];
 }
 export interface IContentMapper {
+  existingGlobal: ContentTypeList[] | (() => ContentTypeList[]);
+  existingCT: ContentTypeList[] | (() => ContentTypeList[]);
   content_type_mapping: ContentTypeMap;
   isDropDownChanged?: boolean;
   otherCmsTitle?: string;
@@ -311,6 +313,8 @@ export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
   isDropDownChanged: false,
   otherCmsTitle: '',
   contentTypeList: [],
+  existingCT: [],
+  existingGlobal: []
 };
 
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
