@@ -236,11 +236,8 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
   const [otherCmsTitle, setOtherCmsTitle] = useState(contentTypes[0]?.otherCmsTitle);
   const [contentTypeUid, setContentTypeUid] = useState<string>('');
 
-  const [existingContentTypes, setExistingContentTypes] = useState<ContentTypeList[]>(newMigrationData?.content_mapping?.existingCT);
-  const [existingGlobalFields, setExistingGlobalFields] = useState<ContentTypeList[]>(newMigrationData?.content_mapping?.existingGlobal)
   const [isContentType, setIsContentType] = useState<boolean>(contentTypes?.[0]?.type === "content_type");
   const [contentModels, setContentModels] = useState<ContentTypeList[]>([]);
-
 
   const [selectedContentType, setSelectedContentType] = useState<ContentType>();
   const [existingField, setExistingField] = useState<ExistingFieldType>({});
@@ -327,7 +324,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
   },[tableData]);
 
   useEffect(() => {
-    const mappedContentType = contentModels && contentModels?.find((item)=>item?.title === contentTypeMapped?.[otherCmsTitle]);
+    const mappedContentType = contentModels && contentModels?.find((item)=> item?.title === contentTypeMapped?.[otherCmsTitle]);
 
     if (contentTypeMapped && otherCmsTitle  ) {
       
@@ -339,17 +336,13 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
         });
         setIsContentDeleted(false);
       } else {
-
         setOtherContentType({
           label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
           value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
         });
-
-      }  
-     
+      }
     }
-    
-  }, [contentTypeMapped, otherCmsTitle, existingContentTypes, existingGlobalFields]);
+  }, [contentTypeMapped, otherCmsTitle, contentModels]);
 
   useEffect(()=>{
     if(isContentDeleted) {
@@ -455,23 +448,14 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
 
   // To fetch existing content types or global fields as per the type
   useEffect(() => {
-    if(isContentType) {
-      setContentModels(existingContentTypes);
+    if(isContentType) {      
+      setContentModels(newMigrationData?.content_mapping?.existingCT);
     } else {
-      setContentModels(existingGlobalFields);
+      setContentModels(newMigrationData?.content_mapping?.existingGlobal);
     }
 
-    const mappedContentType = existingContentTypes?.find((item:ContentTypeList)=>item?.title === contentTypeMapped?.[otherCmsTitle]);
-      
-    if (mappedContentType?.uid) {
-      setOtherContentType({
-        id: mappedContentType?.uid,
-        label: contentTypeMapped?.[otherCmsTitle],
-        value: contentTypeMapped?.[otherCmsTitle],
-      });
-      setIsContentDeleted(false);
-    }
-  }, [existingContentTypes, existingGlobalFields, isContentType])
+    
+  }, [isContentType, newMigrationData?.content_mapping?.existingCT, newMigrationData?.content_mapping?.existingGlobal]);
 
   // To close the filter panel on outside click
   useEffect(() => {
@@ -665,7 +649,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
   const fetchExistingContentTypes = async () => {
     const { data, status } = await getExistingContentTypes(projectId);
     if (status === 201) {
-      setExistingContentTypes(data?.contentTypes);
+      // setExistingContentTypes(data?.contentTypes);
       const mappedContentType = data?.contentTypes && data?.contentTypes?.find((item:ContentTypeList)=>item?.title === contentTypeMapped?.[otherCmsTitle]);
       
       if (mappedContentType?.uid) {
@@ -684,7 +668,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     const { data, status } = await getExistingGlobalFields(projectId);
 
     if (status === 201) {
-      setExistingGlobalFields(data?.globalFields);
+      // setExistingGlobalFields(data?.globalFields);
     }
   }
 
