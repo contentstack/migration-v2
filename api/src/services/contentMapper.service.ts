@@ -863,9 +863,56 @@ const getSingleContentTypes = async (req: Request) => {
   return {
     title: res?.data?.content_type?.title,
     uid: res?.data?.content_type?.uid,
-    schema: res?.data?.content_type?.schema,
+    schema: res?.data?.content_type?.schema
   };
 };
+
+/**
+ * Retrieves a single global field from the specified project.
+ * @param req - The request object containing the project ID, content type UID, and token payload.
+ * @returns An object containing the title, UID, and schema of the content type, or an error object if an error occurs.
+ */
+const getSingleGlobalField = async (req: Request) => {
+  const projectId = req?.params?.projectId;
+  const globalFieldUID = req?.params?.globalFieldUid;
+  const { token_payload } = req.body;
+
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+  await ProjectModelLowdb.read();
+  const project = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .value();
+  const stackId = project?.destination_stack_id;
+
+  const [err, res] = await safePromise(
+    https({
+      method: "GET",
+      url: `${config.CS_API[
+        token_payload?.region as keyof typeof config.CS_API
+      ]!}/global_fields/${globalFieldUID}`,
+      headers: {
+        api_key: stackId,
+        authtoken: authtoken,
+      },
+    })
+  );
+  
+  if (err)
+    return {
+      data: err.response.data,
+      status: err.response.status,
+    };
+
+  return {
+    title: res?.data?.global_field?.title,
+    uid: res?.data?.global_field?.uid,
+    schema: res?.data?.global_field?.schema
+  };
+}
 /**
  * Removes the content mapping for a project.
  * @param req - The request object containing the project ID.
@@ -1037,5 +1084,6 @@ export const contentMapperService = {
   removeMapping,
   getSingleContentTypes,
   updateContentMapper,
-  getExistingGlobalFields
+  getExistingGlobalFields,
+  getSingleGlobalField
 };
