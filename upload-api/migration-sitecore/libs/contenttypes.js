@@ -158,7 +158,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "contentstackFieldUid": uid,
         "ContentstackFieldType": "dropdown",
         "backupFieldType": "dropdown",
-        "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null }
+        "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null, Multiple: false }
       }
     }
     case "Image": {
@@ -246,7 +246,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
           "contentstackFieldUid": uid,
           "ContentstackFieldType": "dropdown",
           "backupFieldType": "dropdown",
-          "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null }
+          "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null, Multiple: false }
         }
       }
       break;

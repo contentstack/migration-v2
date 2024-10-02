@@ -2,7 +2,7 @@
  * taxonomy lookup
  */
 import find from 'lodash/find';
-import { log } from '.';
+import { log } from './';
 import { ImportConfig } from '../types';
 
 /**

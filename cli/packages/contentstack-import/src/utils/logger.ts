@@ -92,6 +92,7 @@ function init(_logPath: string) {
     logger = winston.createLogger({
       transports: [
         new winston.transports.File(successTransport),
+        new winston.transports.File(combineTransport),
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.simple(),
@@ -105,6 +106,7 @@ function init(_logPath: string) {
     errorLogger = winston.createLogger({
       transports: [
         new winston.transports.File(errorTransport),
+        new winston.transports.File(combineTransport),
         new winston.transports.Console({
           level: 'error',
           format: winston.format.combine(
@@ -128,10 +130,6 @@ function init(_logPath: string) {
       ],
       levels: myCustomLevels.levels,
     });
-
-    // Change file permissions for combine.log to read/write for everyone
-    const combineLogPath = path.join(sanitizePath(logsDir), 'combine.log');
-    fs.chmodSync(combineLogPath, 0o666); // Read/write for everyone
   }
 
   return {

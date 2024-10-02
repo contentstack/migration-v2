@@ -13,10 +13,10 @@ import {
 } from '@contentstack/cli-utilities';
 
 import { log } from './logger';
-import { trace } from './log';
+import { trace } from '../utils/log';
 import { ImportConfig, Installation } from '../types';
-import { formatError } from '.';
-import { getAppName, askAppName, selectConfiguration } from './interactive';
+import { formatError } from '../utils';
+import { getAppName, askAppName, selectConfiguration } from '../utils/interactive';
 
 export const getAllStackSpecificApps = async (
   config: ImportConfig,

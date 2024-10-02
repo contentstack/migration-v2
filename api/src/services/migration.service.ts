@@ -15,11 +15,11 @@ import shell from 'shelljs'
 import path from "path";
 import AuthenticationModel from "../models/authentication.js";
 import { siteCoreService } from "./sitecore.service.js";
-import { fileURLToPath } from 'url';
 import { copyDirectory } from '../utils/index.js'
 import { v4 } from "uuid";
 import { setLogFilePath } from "../server.js";
 import { mkdirp } from 'mkdirp';
+import { testFolderCreator } from "../utils/test-folder-creator.utils.js";
 
 
 
@@ -233,13 +233,10 @@ const runCli = async (rg: string, user_id: string, project: any) => {
       .find({ region: regionPresent, user_id })
       .value();
     if (userData?.authtoken && project?.destination_stack_id) {
-      // Manually define __filename and __dirname
-      const __filename = fileURLToPath(import.meta.url);
-      const dirPath = path.join(path.dirname(__filename), '..', '..');
-      const sourcePath = path.join(dirPath, 'sitecoreMigrationData', project?.destination_stack_id);
+      const sourcePath = path.join(process.cwd(), 'sitecoreMigrationData', project?.destination_stack_id);
       const backupPath = path.join(process.cwd(), 'migration-data', `${project?.destination_stack_id}_${v4().slice(0, 4)}`);
       await copyDirectory(sourcePath, backupPath);
-      const loggerPath = path.join(backupPath, 'logs', 'import', 'combine.log');
+      const loggerPath = path.join(backupPath, 'logs', 'import', 'success.log');
       createDirectoryAndFile(loggerPath);
       await setLogFilePath(loggerPath);
       shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));
@@ -272,6 +269,7 @@ const fieldMapping = async (req: Request): Promise<any> => {
     await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id });
     await siteCoreService?.createLocale(req, project?.destination_stack_id);
     await siteCoreService?.createVersionFile(project?.destination_stack_id);
+    await testFolderCreator?.({ destinationStackId: project?.destination_stack_id });
     await runCli(region, user_id, project);
   }
 }

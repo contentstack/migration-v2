@@ -122,23 +122,23 @@ const cretaeAssets = async ({ packagePath, baseDir }: any) => {
           } catch (err) {
             console.error("🚀 ~ file: assets.js:52 ~ xml_folder?.forEach ~ err:", err)
           }
+          allAssetJSON[mestaData?.uid] = {
+            urlPath: `/assets/${mestaData?.uid}`,
+            uid: mestaData?.uid,
+            content_type: mestaData?.content_type,
+            file_size: mestaData.size,
+            tags: [],
+            filename: `${jsonAsset?.item?.$?.name}.${mestaData?.extension}`,
+            is_dir: false,
+            parent_uid: null,
+            title: jsonAsset?.item?.$?.name,
+            publish_details: [],
+            assetPath
+          }
+          allAssetJSON[mestaData?.uid].parent_uid = '2146b0cee522cc3a38d'
         } else {
-          console.info("asstes id not found.")
+          console.info('blob is not there for this asstes', mestaData?.uid, '.')
         }
-        allAssetJSON[mestaData?.uid] = {
-          urlPath: `/assets/${mestaData?.uid}`,
-          uid: mestaData?.uid,
-          content_type: mestaData?.content_type,
-          file_size: mestaData.size,
-          tags: [],
-          filename: `${jsonAsset?.item?.$?.name}.${mestaData?.extension}`,
-          is_dir: false,
-          parent_uid: null,
-          title: jsonAsset?.item?.$?.name,
-          publish_details: [],
-          assetPath
-        }
-        allAssetJSON[mestaData?.uid].parent_uid = '2146b0cee522cc3a38d'
       }
     }
   }
@@ -191,7 +191,6 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
         }
       }
     }
-
     for await (const ctType of contentTypes) {
       const entryPresent: any = entriesData?.find((item: any) => uidCorrector({ uid: item?.template }) === ctType?.contentstackUid)
       if (entryPresent) {
@@ -201,7 +200,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
           const entryLocale: any = {};
           if (typeof LOCALE_MAPPER?.masterLocale === 'object' && LOCALE_MAPPER?.masterLocale !== null && LOCALE_MAPPER?.masterLocale?.[master_locale] === locale) {
             newLocale = Object?.keys(LOCALE_MAPPER?.masterLocale)?.[0];
-            Object.entries(entryPresent?.locale?.[locale] || {}).forEach(async ([uid, entry]: any) => {
+            Object.entries(entryPresent?.locale?.[locale] || {}).map(async ([uid, entry]: any) => {
               const entryObj: any = {};
               entryObj.uid = uid;
               for await (const field of entry?.fields?.field ?? []) {
@@ -214,28 +213,31 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
                       entryObj[fsc?.contentstackFieldUid] = `/${entry?.meta?.key}`;
                     }
                     if (getLastKey(fsc?.uid) === field?.$?.key) {
-                      const content: any = await entriesFieldCreator({ field: fsc, content: field?.content, idCorrector, allAssetJSON })
+                      const content: any = await entriesFieldCreator({ field: fsc, content: field?.content, idCorrector, allAssetJSON, contentTypes, entriesData, locale })
                       entryObj[fsc?.contentstackFieldUid] = content;
                     }
                   }
                 }
               }
-              entryLocale[uid] = unflatten(entryObj) ?? {};
+              if (Object.keys?.(entryObj)?.length > 1) {
+                entryLocale[uid] = unflatten(entryObj) ?? {};
+              }
             });
           }
-          const fileMeta = { "1": `${locale}.json` };
+          const fileMeta = { "1": `${newLocale}.json` };
           const entryPath = path.join(
             process.cwd(),
             entrySave,
             ctType?.contentstackUid,
             newLocale
           );
-          await writeFiles(entryPath, fileMeta, entryLocale, locale)
+          await writeFiles(entryPath, fileMeta, entryLocale, newLocale)
         }
       } else {
         console.info('Entries missing for', ctType?.contentstackUid)
       }
     }
+    return true;
   } catch (err) {
     console.error("🚀 ~ createEntry ~ err:", err)
   }
