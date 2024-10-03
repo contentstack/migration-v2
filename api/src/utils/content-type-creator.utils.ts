@@ -86,17 +86,28 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     case 'json': {
       return {
         "data_type": "json",
-        "display_name": field?.name,
+        "display_name": field?.title ?? field?.uid,
         "uid": field?.uid,
         "field_metadata": {
           "allow_json_rte": true,
+          "embed_entry": false,
+          "description": "",
+          "default_value": "",
+          "multiline": false,
           "rich_text_type": "advanced",
+          "options": []
         },
-        "reference_to": [],
-        "non_localizable": false,
+        "format": "",
+        "error_messages": {
+          "format": ""
+        },
+        "reference_to": [
+          "sys_assets"
+        ],
         "multiple": false,
-        "mandatory": false,
-        "unique": false
+        "non_localizable": false,
+        "unique": false,
+        "mandatory": false
       }
       // return {
       //   "display_name": name,
@@ -316,7 +327,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
           "display_name": field?.title,
           "uid": field?.uid,
           "data_type": "text",
-          "mandatory": true,
+          "mandatory": false,
           "unique": true,
           "field_metadata": {
             "_default": true
@@ -409,7 +420,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId }: any) 
         "field_metadata": {},
         "schema": [],
         "uid": item?.contentstackFieldUid,
-        "multiple": true,
+        "multiple": false,
         "mandatory": false,
         "unique": false
       }
