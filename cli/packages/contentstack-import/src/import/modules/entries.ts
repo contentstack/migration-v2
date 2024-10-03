@@ -187,8 +187,7 @@ export default class EntriesImport extends BaseClass {
           await this.publishEntries(entryRequestOption).catch((error) => {
             log(
               this.importConfig,
-              `Error in publishing entries of ${entryRequestOption.cTUid} in locale ${
-                entryRequestOption.locale
+              `Error in publishing entries of ${entryRequestOption.cTUid} in locale ${entryRequestOption.locale
               } ${formatError(error)}`,
               'error',
             );
@@ -360,7 +359,7 @@ export default class EntriesImport extends BaseClass {
         if (!isMasterLocale && !additionalInfo[entry.uid]?.isLocalized) {
           this.autoCreatedEntries.push({ cTUid, locale, entryUid: response.uid });
         }
-        this.entriesUidMapper[entry.uid] = response.uid;
+        this.entriesUidMapper[entry?.uid] = response.uid;
         entry.sourceEntryFilePath = path.join(sanitizePath(basePath), sanitizePath(additionalInfo.entryFileName)); // stores source file path temporarily
         entry.entryOldUid = entry.uid; // stores old uid temporarily
         entriesCreateFileHelper.writeIntoFile({ [entry.uid]: entry } as any, { mapKeyVal: true });
@@ -463,7 +462,7 @@ export default class EntriesImport extends BaseClass {
       delete entry.publish_details;
       // checking the entry is a localized one or not
       if (!isMasterLocale && this.entriesUidMapper.hasOwnProperty(entry.uid)) {
-        const entryResponse = this.stack.contentType(contentType.uid).entry(this.entriesUidMapper[entry.uid]);
+        const entryResponse = this.stack.contentType(contentType.uid).entry(this.entriesUidMapper[entry?.uid]);
         Object.assign(entryResponse, cloneDeep(entry), { uid: this.entriesUidMapper[entry.uid] });
         apiOptions.apiData = entryResponse;
         apiOptions.additionalInfo[entryResponse.uid] = {
@@ -513,7 +512,7 @@ export default class EntriesImport extends BaseClass {
 
     const onSuccess = ({ response, apiData: entry, additionalInfo }: any) => {
       log(this.importConfig, `Replaced entry: '${entry.title}' of content type ${cTUid} in locale ${locale}`, 'info');
-      this.entriesUidMapper[entry.uid] = response.uid;
+      this.entriesUidMapper[entry?.uid] = response.uid;
       entriesReplaceFileHelper.writeIntoFile({ [entry.uid]: entry } as any, { mapKeyVal: true });
     };
     const onReject = ({ error, apiData: { uid, title } }: any) => {
@@ -956,7 +955,7 @@ export default class EntriesImport extends BaseClass {
     } = {
       environments: [],
       locales: [],
-      entryUid: this.entriesUidMapper[entry.uid],
+      entryUid: this.entriesUidMapper[entry?.uid],
     };
     if (entry.publish_details && entry.publish_details?.length > 0) {
       forEach(entry.publish_details, (pubObject) => {
