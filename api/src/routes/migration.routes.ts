@@ -41,7 +41,7 @@ router.post(
  * @returns {Promise<void>} - A promise that resolves when the test stack is deleted.
  */
 router.post(
-  "/create-test-stack/:projectId",
+  "/create-test-stack/:orgId/:projectId",
   asyncRouter(migrationController.createTestStack)
 );
 
