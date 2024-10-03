@@ -7,7 +7,7 @@ import https from "../utils/https.utils.js";
 import { LoginServiceType } from "../models/types.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
-import { HTTP_TEXTS, HTTP_CODES, CS_REGIONS } from "../constants/index.js";
+import { HTTP_TEXTS, HTTP_CODES, CS_REGIONS, LOCALE_MAPPER } from "../constants/index.js";
 import { ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { fieldAttacher } from "../utils/field-attacher.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
@@ -35,7 +35,11 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "createTestStack";
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
-  const { token_payload, name, description, master_locale } = req.body;
+  const { token_payload } = req.body;
+  const description = 'This is a system-generated test stack.'
+  const name = 'Test';
+  const master_locale = Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
+
 
   try {
     const authtoken = await getAuthtoken(
@@ -44,8 +48,9 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     );
 
     await ProjectModelLowdb.read();
-    const projectData = ProjectModelLowdb.chain.get("projects").value();
-    const testStackCount = projectData[0]?.test_stacks?.length + 1;
+    const projectData: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
+    console.info("🚀 ~ createTestStack ~ projectData:", projectData)
+    const testStackCount = projectData?.test_stacks?.length + 1;
     const newName = name + "-" + testStackCount;
 
     const [err, res] = await safePromise(
@@ -88,11 +93,10 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       .get("projects")
       .findIndex({ id: projectId })
       .value();
-    console.info(index);
     if (index > -1) {
       ProjectModelLowdb.update((data: any) => {
-        data.projects[index].current_test_stack_id = res.data.stack.uid;
-        data.projects[index].test_stacks.push(res.data.stack.uid);
+        data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
+        data.projects[index].test_stacks.push({ stackUid: res?.data?.stack?.api_key, isMigrated: false });
       });
     }
     return {
@@ -224,7 +228,7 @@ function createDirectoryAndFile(filePath: string) {
 }
 
 
-const runCli = async (rg: string, user_id: string, project: any) => {
+const runCli = async (rg: string, user_id: string, stack_uid: any) => {
   try {
     const regionPresent = CS_REGIONS?.find((item: string) => item === rg) ?? 'NA';
     await AuthenticationModel.read();
@@ -232,9 +236,9 @@ const runCli = async (rg: string, user_id: string, project: any) => {
       .get("users")
       .find({ region: regionPresent, user_id })
       .value();
-    if (userData?.authtoken && project?.destination_stack_id) {
-      const sourcePath = path.join(process.cwd(), 'sitecoreMigrationData', project?.destination_stack_id);
-      const backupPath = path.join(process.cwd(), 'migration-data', `${project?.destination_stack_id}_${v4().slice(0, 4)}`);
+    if (userData?.authtoken && stack_uid) {
+      const sourcePath = path.join(process.cwd(), 'sitecoreMigrationData', stack_uid);
+      const backupPath = path.join(process.cwd(), 'migration-data', `${stack_uid}_${v4().slice(0, 4)}`);
       await copyDirectory(sourcePath, backupPath);
       const loggerPath = path.join(backupPath, 'logs', 'import', 'success.log');
       createDirectoryAndFile(loggerPath);
@@ -246,7 +250,7 @@ const runCli = async (rg: string, user_id: string, project: any) => {
       cliLogger(region);
       const login = shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
       cliLogger(login);
-      const exportData = shell.exec(`node bin/run cm:stacks:import  -k ${project?.destination_stack_id} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
+      const exportData = shell.exec(`node bin/run cm:stacks:import  -k ${stack_uid} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
       cliLogger(exportData);
     } else {
       console.info('user not found.')
@@ -259,18 +263,23 @@ const runCli = async (rg: string, user_id: string, project: any) => {
 const fieldMapping = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id } = req?.body?.token_payload ?? {};
-  const project = ProjectModelLowdb.chain
-    .get("projects")
-    .find({ id: projectId })
-    .value();
-  if (project?.extract_path && project?.destination_stack_id) {
+  const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
+  if (project?.extract_path && project?.current_test_stack_id) {
     const packagePath = project?.extract_path;
-    const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.destination_stack_id });
-    await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id });
-    await siteCoreService?.createLocale(req, project?.destination_stack_id);
-    await siteCoreService?.createVersionFile(project?.destination_stack_id);
-    await testFolderCreator?.({ destinationStackId: project?.destination_stack_id });
-    await runCli(region, user_id, project);
+    const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
+    await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id });
+    await siteCoreService?.createLocale(req, project?.current_test_stack_id);
+    await siteCoreService?.createVersionFile(project?.current_test_stack_id);
+    await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
+    await runCli(region, user_id, project?.current_test_stack_id);
+    // const projectIndex = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
+    // if (projectIndex > -1) {
+    //   ProjectModelLowdb.update((data: any) => {
+    //     const index = data.projects[projectIndex].test_stacks.findIndex((item: any) => item?.stackUid === project?.current_test_stack_id);
+    //     console.info("🚀 ~ ProjectModelLowdb.update ~ index:", index)
+    //     data.projects[projectIndex].current_test_stack_id = '';
+    //   });
+    // }
   }
 }
 
