@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { Field, FieldLabel, TextInput, Link, Icon, Tooltip, Button, Notification } from '@contentstack/venus-components';
 import { useSelector, useDispatch } from 'react-redux';
@@ -30,6 +30,7 @@ import './index.scss';
 const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isMigrationStarted, setIsMigrationStarted] = useState<boolean>(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
@@ -100,6 +101,10 @@ const TestMigration = () => {
       newMigrationData?.destination_stack?.selectedOrg?.value,
       projectId
     );
+
+    if (testRes?.status === 200) {
+      setIsMigrationStarted(true);
+    }
   }
 
   return (
@@ -154,7 +159,7 @@ const TestMigration = () => {
                   className="ml-8"
                   onClick={handleTestMigration}
                   version="v2"
-                  // size="medium" 
+                  disabled={isMigrationStarted}
                 >
                   Start Test Migration
                 </Button>
