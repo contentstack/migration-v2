@@ -67,7 +67,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
         version="v2"
         aria-label='Save and Continue'
         isLoading={isLoading}
-        disabled={newMigrationData?.testStacks?.length > 0}
+        disabled={newMigrationData?.testStacks?.some((stack) => stack?.isMigrated === false)}
       >
         {stepValue}
       </Button>
