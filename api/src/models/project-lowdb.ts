@@ -1,3 +1,4 @@
+import path from 'path';
 import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 
@@ -27,11 +28,11 @@ interface LegacyCMS {
   is_localPath: boolean;
 }
 
-interface StackDetails{
+interface StackDetails {
   uid: string;
   label: string;
   master_locale: string;
-  created_at: string; 
+  created_at: string;
   isNewStack: boolean;
 }
 
@@ -84,7 +85,7 @@ const defaultData: ProjectDocument = { projects: [] };
  * Represents the database instance for the project.
  */
 const db = new LowWithLodash(
-  new JSONFile<ProjectDocument>("database/project.json"),
+  new JSONFile<ProjectDocument>(path.join(process.cwd(), "database/project.json")),
   defaultData
 );
 
