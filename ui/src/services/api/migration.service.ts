@@ -114,9 +114,9 @@ export const getContentTypes = (
   skip: number,
   limit: number,
   searchText: string
-) => { 
+) => {
   try {
-    const encodedSearchText = encodeURIComponent(searchText) ; 
+    const encodedSearchText = encodeURIComponent(searchText);
     return getCall(
       `${API_VERSION}/mapper/contentTypes/${projectId}/${skip}/${limit}/${encodedSearchText}?`,
       options
@@ -135,10 +135,10 @@ export const getFieldMapping = async (
   skip: number,
   limit: number,
   searchText: string,
-  projectId:string
+  projectId: string
 ) => {
   try {
-    const encodedSearchText = encodeURIComponent(searchText) ;
+    const encodedSearchText = encodeURIComponent(searchText);
     return await getCall(
       `${API_VERSION}/mapper/fieldMapping/${projectId}/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?`,
       options
@@ -242,12 +242,13 @@ export const fetchGlobalField = async (projectId: string, globalFieldUid: string
   }
 }
 
-export const removeContentMapper = async(orgId: string, projectId: string) => {
+
+export const removeContentMapper = async (orgId: string, projectId: string) => {
   try {
-    return await getCall(`${API_VERSION}/mapper/${orgId}/${projectId}/content-mapper`, options);   
+    return await getCall(`${API_VERSION}/mapper/${orgId}/${projectId}/content-mapper`, options);
   } catch (error) {
     return error;
-    
+
   }
 }
 
@@ -256,7 +257,7 @@ export const updateContentMapper = async (
   projectId: string,
   data: ObjectType
 ) => {
-  const mapperKeys = {content_mapper: data}
+  const mapperKeys = { content_mapper: data }
 
   try {
     return await patchCall(
@@ -273,19 +274,19 @@ export const updateContentMapper = async (
   }
 };
 
-export const updateStackDetails = async(orgId: string, projectId: string, data: ObjectType)=>{
+export const updateStackDetails = async (orgId: string, projectId: string, data: ObjectType) => {
   try {
-    const Data  = { stack_details: data };
-    return await patchCall(`${API_VERSION}/org/${orgId}/project/${projectId}/stack-details`, Data,options);
+    const Data = { stack_details: data };
+    return await patchCall(`${API_VERSION}/org/${orgId}/project/${projectId}/stack-details`, Data, options);
   } catch (error) {
     return error;
-    
+
   }
 }
 
-export const getOrgDetails = async(orgId: string) => {
+export const getOrgDetails = async (orgId: string) => {
   try {
-    return await getCall(`${API_VERSION}/org/${orgId}/get_org_details`, options);   
+    return await getCall(`${API_VERSION}/org/${orgId}/get_org_details`, options);
   } catch (error) {
     return error;
   }
@@ -306,7 +307,7 @@ export const createTestStack = async (orgId: string, projectId: string, data: Ob
 export const createTestMigration = async (orgId: string, projectId: string) => {
   try {
     return await postCall(
-      `${API_VERSION}/migration/test-stack/${orgId}/${projectId}`, options);
+      `${API_VERSION}/migration/test-stack/${orgId}/${projectId}`, {}, options);
   } catch (error) {
     return error;
   }
