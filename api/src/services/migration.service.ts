@@ -204,14 +204,6 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
-const cliLogger = (child: any) => {
-  if (child.code !== 0) {
-    console.info(`Error: Failed to install @contentstack/cli. Exit code: ${child.code}`);
-    console.info(`stderr: ${child.stderr}`);
-  } else {
-    console.info(child?.stdout);
-  }
-};
 
 function createDirectoryAndFile(filePath: string) {
   // Get the directory from the file path
@@ -228,7 +220,7 @@ function createDirectoryAndFile(filePath: string) {
 }
 
 
-const runCli = async (rg: string, user_id: string, stack_uid: any) => {
+const runCli = async (rg: string, user_id: string, stack_uid: any, projectId: string) => {
   try {
     const regionPresent = CS_REGIONS?.find((item: string) => item === rg) ?? 'NA';
     await AuthenticationModel.read();
@@ -244,14 +236,25 @@ const runCli = async (rg: string, user_id: string, stack_uid: any) => {
       createDirectoryAndFile(loggerPath);
       await setLogFilePath(loggerPath);
       shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));
-      const pwd = shell.exec('pwd');
-      cliLogger(pwd);
-      const region = shell.exec(`node bin/run config:set:region ${regionPresent}`);
-      cliLogger(region);
-      const login = shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
-      cliLogger(login);
+      shell.exec('pwd');
+      shell.exec(`node bin/run config:set:region ${regionPresent}`);
+      shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
       const exportData = shell.exec(`node bin/run cm:stacks:import  -k ${stack_uid} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
-      cliLogger(exportData);
+      exportData.on('exit', (code) => {
+        console.info(`Process exited with code: ${code}`);
+        if (code === 1) {
+          const projectIndex = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
+          if (projectIndex > -1) {
+            ProjectModelLowdb?.data.projects[projectIndex].test_stacks.map((item: any) => {
+              if (item?.stackUid === stack_uid) {
+                item.isMigrated = true;
+              }
+              return item;
+            })
+            ProjectModelLowdb.write();
+          }
+        }
+      });
     } else {
       console.info('user not found.')
     }
@@ -264,22 +267,14 @@ const fieldMapping = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id } = req?.body?.token_payload ?? {};
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
-  if (project?.extract_path && project?.current_test_stack_id) {
-    const packagePath = project?.extract_path;
+  const packagePath = project?.extract_path;
+  if (packagePath && project?.current_test_stack_id) {
     const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
     await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id });
     await siteCoreService?.createLocale(req, project?.current_test_stack_id);
     await siteCoreService?.createVersionFile(project?.current_test_stack_id);
     await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
-    await runCli(region, user_id, project?.current_test_stack_id);
-    // const projectIndex = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
-    // if (projectIndex > -1) {
-    //   ProjectModelLowdb.update((data: any) => {
-    //     const index = data.projects[projectIndex].test_stacks.findIndex((item: any) => item?.stackUid === project?.current_test_stack_id);
-    //     console.info("🚀 ~ ProjectModelLowdb.update ~ index:", index)
-    //     data.projects[projectIndex].current_test_stack_id = '';
-    //   });
-    // }
+    await runCli(region, user_id, project?.current_test_stack_id, projectId);
   }
 }
 
