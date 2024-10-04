@@ -1,7 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-const contentSave = path.join('sitecoreMigrationData', 'content_types');
-const globalSave = path.join('sitecoreMigrationData', 'global_fields');
 interface Group {
   data_type: string;
   display_name?: string; // Assuming item?.contentstackField might be undefined
@@ -88,17 +86,28 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     case 'json': {
       return {
         "data_type": "json",
-        "display_name": field?.name,
+        "display_name": field?.title ?? field?.uid,
         "uid": field?.uid,
         "field_metadata": {
           "allow_json_rte": true,
+          "embed_entry": false,
+          "description": "",
+          "default_value": "",
+          "multiline": false,
           "rich_text_type": "advanced",
+          "options": []
         },
-        "reference_to": [],
-        "non_localizable": false,
+        "format": "",
+        "error_messages": {
+          "format": ""
+        },
+        "reference_to": [
+          "sys_assets"
+        ],
         "multiple": false,
-        "mandatory": false,
-        "unique": false
+        "non_localizable": false,
+        "unique": false,
+        "mandatory": false
       }
       // return {
       //   "display_name": name,
@@ -318,7 +327,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
           "display_name": field?.title,
           "uid": field?.uid,
           "data_type": "text",
-          "mandatory": true,
+          "mandatory": false,
           "unique": true,
           "field_metadata": {
             "_default": true
@@ -332,7 +341,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
   }
 }
 
-const saveContent = async (ct: any) => {
+const saveContent = async (ct: any, contentSave: string) => {
   try {
     // Check if the directory exists
     await fs.promises.access(contentSave).catch(async () => {
@@ -366,7 +375,7 @@ const saveContent = async (ct: any) => {
 }
 
 
-const writeGlobalField = async (schema: any) => {
+const writeGlobalField = async (schema: any, globalSave: string) => {
   const filePath = path.join(process.cwd(), globalSave, 'globalfields.json');
   try {
     await fs.promises.access(globalSave);
@@ -396,7 +405,7 @@ const writeGlobalField = async (schema: any) => {
   }
 };
 
-export const contenTypeMaker = async ({ contentType }: any) => {
+export const contenTypeMaker = async ({ contentType, destinationStackId }: any) => {
   const ct: ContentType = {
     title: contentType?.contentstackTitle,
     uid: contentType?.contentstackUid,
@@ -411,7 +420,7 @@ export const contenTypeMaker = async ({ contentType }: any) => {
         "field_metadata": {},
         "schema": [],
         "uid": item?.contentstackFieldUid,
-        "multiple": true,
+        "multiple": false,
         "mandatory": false,
         "unique": false
       }
@@ -441,9 +450,11 @@ export const contenTypeMaker = async ({ contentType }: any) => {
   })
   if (ct?.uid) {
     if (contentType?.type === 'global_field') {
-      await writeGlobalField(ct);
+      const globalSave = path.join('sitecoreMigrationData', destinationStackId, 'global_fields');
+      await writeGlobalField(ct, globalSave);
     } else {
-      await saveContent(ct);
+      const contentSave = path.join('sitecoreMigrationData', destinationStackId, 'content_types');
+      await saveContent(ct, contentSave);
     }
   } else {
     console.info(contentType?.contentstackUid, 'missing')
