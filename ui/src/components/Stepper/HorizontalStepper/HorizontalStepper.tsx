@@ -97,9 +97,6 @@ const HorizontalStepper = forwardRef(
 
         useEffect(() => {
             const stepIndex = parseInt(stepId || '', 10) - 1;
-
-            console.log("stepIndex", stepIndex);
-
             
             if (!Number.isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
                 setShowStep(stepIndex);
@@ -193,7 +190,7 @@ const HorizontalStepper = forwardRef(
                         !stepsCompleted.includes(idx) && idx !== showStep && !stepsCompleted?.includes(idx - 1)
                             ? 'disableEvents'
                             : '';
-                    const completeDisable = stepsCompleted?.includes(idx) && idx < steps?.length - 1 ? 'completed disableEvents' : '';
+                    const completeDisable = stepsCompleted?.includes(idx) && idx < steps?.length - 3 ? 'completed disableEvents' : '';
                     return (
                         <React.Fragment key={id}>
                             <div className="stepWrapperContainer">
