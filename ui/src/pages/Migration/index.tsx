@@ -8,7 +8,8 @@ import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails, getOrgDetails } from '../../services/api/migration.service';
+import { getAllStacksInOrg } from '../../services/api/stacks.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -365,6 +366,25 @@ const Migration = () => {
 
   const handleOnClickContentMapper = async (event: MouseEvent) => {
     setIsModalOpen(true);
+
+    //get org plan details
+    const orgDetails = await getOrgDetails(selectedOrganisation?.value);
+    const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features).find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
+
+    const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
+
+    const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
+        
+    const stack_count = stackData?.data?.stacks?.length;
+
+    if (stack_count >= max_stack_limit) {
+      setIsLoading(false);
+      Notification({
+        notificationContent: { text: 'You have reached the maximum limit of stacks for your organization' },
+        type: 'warning'
+      });
+      return;
+    }
 
     if(newMigrationData?.content_mapping?.isDropDownChanged){
       return cbModal({
