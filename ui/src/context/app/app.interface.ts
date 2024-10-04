@@ -168,12 +168,15 @@ export interface IDestinationStack {
   stackArray: IDropDown[];
 }
 export interface IContentMapper {
+  existingGlobal: ContentTypeList[] | (() => ContentTypeList[]);
+  existingCT: ContentTypeList[] | (() => ContentTypeList[]);
   content_type_mapping: ContentTypeMap;
   isDropDownChanged?: boolean;
   otherCmsTitle?: string;
   contentTypeList:ContentTypeList[]
 }
 export interface INewMigration {
+  testStacks: TestStacks[];
   mapperKeys: ContentTypeMap;
   legacy_cms: ILegacyCms;
   destination_stack: IDestinationStack;
@@ -181,6 +184,11 @@ export interface INewMigration {
   test_migration: ITestMigration;
   isprojectMapped: boolean;
   stackDetails: IDropDown;
+}
+
+export interface TestStacks {
+  stackUid?: string;
+  isMigrated?: boolean;
 }
 
 export interface IMigrationData {
@@ -311,6 +319,8 @@ export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
   isDropDownChanged: false,
   otherCmsTitle: '',
   contentTypeList: [],
+  existingCT: [],
+  existingGlobal: []
 };
 
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
@@ -325,7 +335,8 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   content_mapping: DEFAULT_CONTENT_MAPPER,
   test_migration: DEFAULT_TEST_MIGRATION,
   isprojectMapped: false,
-  stackDetails: DEFAULT_DROPDOWN
+  stackDetails: DEFAULT_DROPDOWN,
+  testStacks: []
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {

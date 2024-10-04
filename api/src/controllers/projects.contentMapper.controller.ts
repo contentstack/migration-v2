@@ -125,6 +125,18 @@ const getSingleContentTypes = async (
   res.status(201).json(resp);
 };
 
+/**
+ * Retrieves single global field.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const getSingleGlobalField = async(req: Request, res: Response): Promise<void> => {
+  const resp = await contentMapperService.getSingleGlobalField(req);
+  res.status(201).json(resp);
+}
+
 /** 
 * update content mapping details a project.
 *
@@ -148,5 +160,6 @@ export const contentMapperController = {
   getSingleContentTypes,
   removeContentMapper,
   updateContentMapper,
-  getExistingGlobalFields
+  getExistingGlobalFields,
+  getSingleGlobalField
 };

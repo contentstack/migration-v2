@@ -55,12 +55,24 @@ const Modal = (props: ProjectModalProps) => {
   };
 
   const nameValidation = (value: string) => {
-    if (value && value?.length > 200) {
+    if (!value) {
       setInputValue(false);
-      return 'Project Name should not be more than 200 chars';
+      return 'Project name is required.'; 
+    } else if (!/^[^\s].*$/.test(value)) { 
+      setInputValue(false);
+      return 'Please enter a valid project name.';
     } else {
       setInputValue(true);
     }
+  };
+
+  // Validation function for maxLength (immediate validation)
+  const validateMaxLength = (value: string) => {
+    if (value && value.length > 200) {
+      setInputValue(false);
+      return 'Project Name should not be more than 200 chars';
+    }
+    return undefined;
   };
 
   const descValidation = (value: string) => {
@@ -76,7 +88,7 @@ const Modal = (props: ProjectModalProps) => {
     <>
       <ModalHeader
         title={title}
-        closeModal={()=>{
+        closeModal={()=> {
           closeModal();
           isOpen(false)}}
         closeIconTestId="cs-default-header-close"
@@ -86,16 +98,7 @@ const Modal = (props: ProjectModalProps) => {
       <FinalForm
         className="customForm"
         onSubmit={handleSubmit}
-        keepDirtyOnReinitialize={true}
-        validate={(values): any => {
-            const errors: any = {};
-            if (!values.name || values.name === "") {
-              errors.name = 'Project name required';
-            } else if (!/^[^\s].*$/.test(values.name)) {
-              errors.name = 'Please enter a valid project name.';
-            }
-            return errors
-        }}
+        
         render={({ handleSubmit }): JSX.Element => {
           return (
             <form
@@ -138,16 +141,26 @@ const Modal = (props: ProjectModalProps) => {
                               input.onChange(event);
                             }}
                             version="v2"
-                            // autoFocus={true}
                             placeholder={namePlaceholder}
                             data-testid="title-input"
                             name="name"
                             maxLength="200"
                             error={(meta?.error || meta?.submitError) && meta?.touched}
                           />
-                          {meta.touched && meta.error && (
+                          {/* Show maxLength error immediately */}
+                          {validateMaxLength(input.value) && (
                             <ValidationMessage
-                              testId="cs-description-error"
+                            testId="cs-name-length-error"
+                            className="mt-2"
+                            version="v2"
+                          >
+                            {validateMaxLength(input.value)}
+                          </ValidationMessage>
+                          )}
+                          {/* Show required error only after the field has been touched */}
+                          {meta.error && meta.touched && !validateMaxLength(input.value) && (
+                            <ValidationMessage
+                              testId="cs-name-error"
                               className="mt-2"
                               version="v2"
                             >

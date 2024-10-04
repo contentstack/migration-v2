@@ -10,6 +10,7 @@ dotenv.config({
   path: path.resolve(process.cwd(), `${process.env.NODE_ENV}.env`),
 });
 
+
 /**
  * Configuration type for the application.
  */
@@ -34,6 +35,7 @@ export type ConfigType = {
     AZURE_EU?: string;
     GCP_NA?: string;
   };
+  LOG_FILE_PATH: string;
 };
 
 /**
