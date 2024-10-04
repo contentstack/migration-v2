@@ -122,7 +122,7 @@ const createProject = async (req: Request) => {
       uid: '',
       label: '',
       master_locale: '',
-      created_at: '', 
+      created_at: '',
       isNewStack: false
     },
     mapperKeys: {}
@@ -542,11 +542,13 @@ const fileformatConfirmation = async (req: Request) => {
     true
   )) as number;
 
-  ProjectModelLowdb.update((data: any) => {
-    data.projects[projectIndex].legacy_cms.file_format_confirmation =
-      fileformat_confirmation;
-    data.projects[projectIndex].updated_at = new Date().toISOString();
-  });
+  if (!fileformat_confirmation) {
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].legacy_cms.file_format_confirmation =
+        fileformat_confirmation;
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
+  }
 
   return {
     status: HTTP_CODES.OK,

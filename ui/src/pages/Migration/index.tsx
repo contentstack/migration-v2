@@ -8,7 +8,7 @@ import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails, getExistingContentTypes, getExistingGlobalFields } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -69,7 +69,7 @@ const Migration = () => {
     fetchData();
   }, [params?.stepId, params?.projectId, selectedOrganisation?.value]);
 
-  useEffect(()=>{
+  useEffect(()=> {
     dispatch(updateNewMigrationData({
       ...newMigrationData,
       isprojectMapped : isProjectMapper
@@ -77,6 +77,23 @@ const Migration = () => {
     }));
     
   },[isProjectMapper]);
+
+   // Function to get exisiting content types list
+   const fetchExistingContentTypes = async () => {
+    const { data, status } = await getExistingContentTypes(projectId);
+    if (status === 201) {
+      return data?.contentTypes;
+    }
+  };
+
+  // Function to get exisiting global fields list
+  const fetchExistingGlobalFields = async () => {
+    const { data, status } = await getExistingGlobalFields(projectId);
+
+    if (status === 201) {
+      return data?.globalFields;
+    }
+  }
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -104,7 +121,7 @@ const Migration = () => {
       migration_steps_heading: data?.migration_steps_heading,
       settings: data?.settings
     }));
-
+    
     await fetchProjectData();
     const stepIndex = data?.all_steps?.findIndex((step: IFlowStep) => `${step?.name}` === params?.stepId);
     setCurrentStepIndex(stepIndex !== -1 ? stepIndex : 0);
@@ -158,6 +175,10 @@ const Migration = () => {
     locales:[],
     isNewStack: projectData?.stackDetails?.isNewStack
   };
+
+  const existingContentTypes = await fetchExistingContentTypes();
+  const existingGlobalFields = await fetchExistingGlobalFields();
+  
   
   const projectMapper = {
     ...newMigrationData,
@@ -190,10 +211,12 @@ const Migration = () => {
       },
       content_mapping: {
         isDropDownChanged: false,
-        content_type_mapping: projectData?.mapperKeys
+        content_type_mapping: projectData?.mapperKeys,
+        existingCT: existingContentTypes,
+        existingGlobal: existingGlobalFields
       },
       stackDetails: projectData?.stackDetails,
-      // mapper_keys: projectData?.mapper_keys,
+      testStacks: projectData?.test_stacks
     };
 
   dispatch(updateNewMigrationData(projectMapper));
@@ -366,7 +389,7 @@ const Migration = () => {
   const handleOnClickContentMapper = async (event: MouseEvent) => {
     setIsModalOpen(true);
 
-    if(newMigrationData?.content_mapping?.isDropDownChanged){
+    if(newMigrationData?.content_mapping?.isDropDownChanged) {
       return cbModal({
         component: (props: ModalObj) => (
         <SaveChangesModal
@@ -375,36 +398,12 @@ const Migration = () => {
             otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
             saveContentType={saveRef?.current?.handleSaveContentType}
             changeStep={async () => {
-              setIsLoading(true);
-              const data = {
-                name: newMigrationData?.destination_stack?.selectedStack?.label,
-                description: 'test migration stack',
-                master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
-              };
-          
-              const res = await createTestStack(
-                newMigrationData?.destination_stack?.selectedOrg?.value,
-                projectId,
-                data
-              );
-          
-              if (res?.status) {
-                setIsLoading(false);
-                const newMigrationDataObj: INewMigration = {
-                  ...newMigrationData,
-                    content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false },
-
-                  test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
-                };
-            
-                dispatch(updateNewMigrationData((newMigrationDataObj)));
-          
                 const url = `/projects/${projectId}/migration/steps/4`;
                 navigate(url, { replace: true });
           
                 await updateCurrentStepData(selectedOrganisation.value, projectId);
                 handleStepChange(3);
-              }}}
+              }}
             dropdownStateChange={changeDropdownState}
         />
         ),
@@ -417,38 +416,12 @@ const Migration = () => {
     }
     else{
       event.preventDefault();
-      setIsLoading(true);
-      const data = {
-        name: newMigrationData?.destination_stack?.selectedStack?.label,
-        description: 'test migration stack',
-        master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
-      };
-  
-      const res = await createTestStack(
-        newMigrationData?.destination_stack?.selectedOrg?.value,
-        projectId,
-        data
-      );
-  
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
-      };
-  
-      dispatch(updateNewMigrationData((newMigrationDataObj)));
-      if (res?.status) {
-        setIsLoading(false);
-  
-        const url = `/projects/${projectId}/migration/steps/4`;
-        navigate(url, { replace: true });
-  
-        await updateCurrentStepData(selectedOrganisation.value, projectId);
-        handleStepChange(3);
-      }
+      const url = `/projects/${projectId}/migration/steps/4`;
+      navigate(url, { replace: true });
 
+      await updateCurrentStepData(selectedOrganisation.value, projectId);
+      handleStepChange(3);
     }
-  
-    
 
   }
 
@@ -477,12 +450,8 @@ const Migration = () => {
     handleOnClickContentMapper,
     handleOnClickTestMigration 
   ];
-
-
   
   return (
-     
- 
     <div className='migration-steps-wrapper'>
       {projectData && 
       <>

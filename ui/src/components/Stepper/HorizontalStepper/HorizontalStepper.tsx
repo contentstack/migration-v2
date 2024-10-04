@@ -51,7 +51,7 @@ export type HorizontalStepperHandles = {
     handleStepChange: (currentStep: number) => void;
 };
 
-const showNotification = (currentIndex:number) =>{
+const showNotification = (currentIndex:number) => {
     
     let result;
         switch (currentIndex ) {
@@ -184,19 +184,18 @@ const HorizontalStepper = forwardRef(
         const StepsTitleCreator: React.FC = () => (
             <div className="stepper stepper-position">
                 {steps?.map(({ id, title }, idx: number) => {
-                
-                    
                     const completedClass = stepsCompleted?.includes(idx)  ? 'completed' : '';
                     const activeClass = idx === showStep  && !stepsCompleted?.includes(idx)? 'active' : '';           
                     const disableClass =
                         !stepsCompleted.includes(idx) && idx !== showStep && !stepsCompleted?.includes(idx - 1)
                             ? 'disableEvents'
                             : '';
+                    const completeDisable = stepsCompleted?.includes(idx) && stepIndex === steps?.length - 1 ? 'completed disableEvents' : '';
                     return (
                         <React.Fragment key={id}>
                             <div className="stepWrapperContainer">
                                 <div
-                                    className={`stepWrapper ${completedClass} ${activeClass} ${disableClass}`}
+                                    className={`stepWrapper ${completedClass} ${activeClass} ${disableClass} ${completeDisable}`}
                                     onClick={() => handleTabStep(idx)}
                                 >
                                     <div className="circle-title-wrapper">

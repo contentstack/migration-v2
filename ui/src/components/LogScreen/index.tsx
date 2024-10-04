@@ -1,5 +1,5 @@
 // Libraries
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Icon } from '@contentstack/venus-components';
 import io from 'socket.io-client';
 
@@ -110,9 +110,17 @@ const LogViewer = ({ serverPath }: LogsType) => {
     }
   };
 
+  const logsContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (logsContainerRef.current) {
+      logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
+
   return (
     <div className='logs-wrapper'>
-      <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }}>
+      <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
         <div className="logs-magnify">
           {logs?.map((log, index) => {
             // console.log(log);
@@ -124,7 +132,7 @@ const LogViewer = ({ serverPath }: LogsType) => {
               return (
                 <div key={index} style={logStyles[level] || logStyles.info} className="log-entry">
                   <div className="log-number">{index}</div>
-                  <div className="log-time">{new Date(timestamp).toTimeString().split(' ')[0]}</div>
+                  <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
                   <div className="log-message">{message}</div>
                 </div>
               );

@@ -1,9 +1,11 @@
+import fs from 'fs-extra';
 /**
  * Throws an error with a custom message and status code.
  * @param message - The error message.
  * @param statusCode - The HTTP status code associated with the error.
  * @throws {Error} - The error object with the specified message and status code.
  */
+
 export const throwError = (message: string, statusCode: number) => {
   throw Object.assign(new Error(message), { statusCode });
 };
@@ -37,6 +39,7 @@ export const safePromise = (promise: Promise<any>): Promise<any> =>
  * @param error - The error object. Optional.
  * @returns The log message object.
  */
+
 export const getLogMessage = (
   methodName: string,
   message: string,
@@ -50,3 +53,24 @@ export const getLogMessage = (
     ...(error && { error }),
   };
 };
+
+/*
+ * Recursively copies a directory from source to destination
+ * @param srcDir - Source directory path
+ * @param destDir - Destination directory path
+*/
+
+export async function copyDirectory(srcDir: string, destDir: string): Promise<void> {
+  try {
+    // Ensure the destination directory exists, if not, create it
+    await fs.ensureDir(destDir);
+
+    // Copy the source directory to the destination
+    await fs.copy(srcDir, destDir);
+
+    console.info(`Directory copied from ${srcDir} to ${destDir}`);
+
+  } catch (error) {
+    console.error(`Error copying directory: ${error}`);
+  }
+}
