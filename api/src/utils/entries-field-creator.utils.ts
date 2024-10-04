@@ -3,6 +3,20 @@ import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { HTMLToJSON } from 'html-to-json-parser';
 
+const append = "a";
+
+function startsWithNumber(str: string) {
+  return /^\d/.test(str);
+}
+
+const uidCorrector = ({ uid }: any) => {
+  if (startsWithNumber(uid)) {
+    return `${append}_${_.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()}`
+  }
+  return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
+}
+
+
 
 const attachJsonRte = ({ content = "" }: any) => {
   const dom = new JSDOM(content);
@@ -160,7 +174,7 @@ const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any)
 
 
 
-export const entriesFieldCreator = async ({ field, content, idCorrector, allAssetJSON }: any) => {
+export const entriesFieldCreator = async ({ field, content, idCorrector, allAssetJSON, contentTypes, entriesData, locale }: any) => {
 
   switch (field?.ContentstackFieldType) {
     case 'multi_line_text':
@@ -174,10 +188,29 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
     }
 
     case 'dropdown': {
-      if (content?.includes('{')) {
-        return idCorrector({ id: content });
+      const isOptionPresent = field?.advanced?.options?.find((ops: any) => ops?.key === content || ops?.value === content);
+      if (isOptionPresent) {
+        if (field?.advanced?.Multiple) {
+          if (!isOptionPresent?.key) {
+            return isOptionPresent
+          }
+          return isOptionPresent;
+        }
+        return isOptionPresent?.value ?? null;
+      } else {
+        if (field?.advanced?.Default_value) {
+          const isOptionDefaultValue = field?.advanced?.options?.find((ops: any) => ops?.key === field?.advanced?.Default_value || ops?.value === field?.advanced?.Default_value);
+          if (field?.advanced?.Multiple) {
+            if (!isOptionDefaultValue?.key) {
+              return isOptionDefaultValue
+            }
+            return isOptionDefaultValue;
+          }
+          return isOptionDefaultValue?.value ?? null;
+        } else {
+          return field?.advanced?.Default_value;
+        }
       }
-      return content;
     }
 
     case 'number': {
@@ -191,19 +224,19 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
       const fileData = attachJsonRte({ content });
       fileData?.children?.forEach((item: any) => {
         if (item?.attrs?.['redactor-attributes']?.mediaid) {
-          // const assetUid = idCorrector({ id: item?.attrs?.['redactor-attributes']?.mediaid });
-          console.info('');
+          const assetUid = idCorrector({ id: item?.attrs?.['redactor-attributes']?.mediaid });
+          return allAssetJSON?.[assetUid] ?? null;
         } else {
-          console.info(item?.attrs)
+          console.info('more', item?.attrs)
         }
       })
-      return content;
+      return null;
     }
 
     //need to change  this
     case 'link': {
-      const linkType: any = htmlConverter({ content })
-      let obj: any = { title: '', url: '' };
+      const linkType: any = await htmlConverter({ content })
+      let obj: any = { title: '', href: '' };
       if (typeof linkType === 'string') {
         const parseData = JSON?.parse?.(linkType);
         if (parseData?.type === 'div') {
@@ -211,7 +244,7 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
             if (item?.type === 'link') {
               obj = {
                 title: item?.attributes?.id,
-                url: item?.attributes?.url ?? ''
+                href: item?.attributes?.url ?? ''
               }
             }
           })
@@ -220,8 +253,78 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
       return obj;
     }
 
+    case 'reference': {
+      const refs: any = [];
+      if (field?.refrenceTo?.length) {
+        field?.refrenceTo?.forEach((entry: any) => {
+          const templatePresent = entriesData?.find((tel: any) => uidCorrector({ uid: tel?.template }) === entry);
+          content?.split('|')?.forEach((id: string) => {
+            const entryid = templatePresent?.locale?.[locale]?.[idCorrector({ id })];
+            if (entryid) {
+              refs?.push({
+                "uid": idCorrector({ id }),
+                "_content_type_uid": entry
+              })
+            } else {
+              // console.info("no entry for following id", id)
+            }
+          })
+        })
+      } else {
+        console.info('test ====>');
+      }
+      return refs;
+    }
+
+    case 'text': {
+      return content;
+    }
+
+    case 'global_field': {
+      const globalFieldsSchema = contentTypes?.find?.((gfd: any) =>
+        gfd?.contentstackUid === field?.contentstackFieldUid && gfd?.type === 'global_field'
+      );
+      if (globalFieldsSchema?.fieldMapping) {
+        const mainSchema = [];
+        const group: any = {};
+        globalFieldsSchema?.fieldMapping?.forEach((item: any) => {
+          if (item?.ContentstackFieldType === 'group') {
+            group[item?.contentstackFieldUid] = { ...item, fieldMapping: [] };
+          } else {
+            const groupSchema = group[item?.contentstackFieldUid?.split('.')?.[0]];
+            if (groupSchema) {
+              group?.[groupSchema?.contentstackFieldUid]?.fieldMapping?.push(item);
+            } else {
+              mainSchema?.push(item);
+            }
+          }
+        });
+        mainSchema?.push(group);
+        const obj: any = {};
+        mainSchema?.forEach(async (field: any) => {
+          if (field?.['uid']) {
+            obj[field?.contentstackFieldUid] = await entriesFieldCreator({ field, content });
+          } else {
+            Object?.values(field)?.forEach((item: any) => {
+              if (item?.ContentstackFieldType === 'group') {
+                item?.fieldMapping?.forEach(async (ele: any) => {
+                  obj[ele?.contentstackFieldUid] = await entriesFieldCreator({ field: ele, content });
+                })
+              }
+            })
+          }
+        })
+        return await obj;
+      }
+      break;
+    }
+
+    case 'boolean': {
+      return typeof content === 'string' && content === '1' ? true : false;
+    }
+
     default: {
-      console.info(field?.ContentstackFieldType);
+      console.info(field?.ContentstackFieldType, 'umesh');
       return content;
     }
   }
