@@ -28,6 +28,8 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
   const params: Params<string> = useParams();
 
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+
 
   useEffect(() => {
     fetchProject();
@@ -65,6 +67,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
         version="v2"
         aria-label='Save and Continue'
         isLoading={isLoading}
+        disabled={newMigrationData?.testStacks?.length > 0}
       >
         {stepValue}
       </Button>
