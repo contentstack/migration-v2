@@ -8,7 +8,7 @@ import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails, getOrgDetails } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, createTestStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails, getOrgDetails, getExistingContentTypes, getExistingGlobalFields } from '../../services/api/migration.service';
 import { getAllStacksInOrg } from '../../services/api/stacks.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
@@ -70,7 +70,7 @@ const Migration = () => {
     fetchData();
   }, [params?.stepId, params?.projectId, selectedOrganisation?.value]);
 
-  useEffect(()=>{
+  useEffect(()=> {
     dispatch(updateNewMigrationData({
       ...newMigrationData,
       isprojectMapped : isProjectMapper
@@ -78,6 +78,23 @@ const Migration = () => {
     }));
     
   },[isProjectMapper]);
+
+   // Function to get exisiting content types list
+   const fetchExistingContentTypes = async () => {
+    const { data, status } = await getExistingContentTypes(projectId);
+    if (status === 201) {
+      return data?.contentTypes;
+    }
+  };
+
+  // Function to get exisiting global fields list
+  const fetchExistingGlobalFields = async () => {
+    const { data, status } = await getExistingGlobalFields(projectId);
+
+    if (status === 201) {
+      return data?.globalFields;
+    }
+  }
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -105,7 +122,7 @@ const Migration = () => {
       migration_steps_heading: data?.migration_steps_heading,
       settings: data?.settings
     }));
-
+    
     await fetchProjectData();
     const stepIndex = data?.all_steps?.findIndex((step: IFlowStep) => `${step?.name}` === params?.stepId);
     setCurrentStepIndex(stepIndex !== -1 ? stepIndex : 0);
@@ -159,6 +176,10 @@ const Migration = () => {
     locales:[],
     isNewStack: projectData?.stackDetails?.isNewStack
   };
+
+  const existingContentTypes = await fetchExistingContentTypes();
+  const existingGlobalFields = await fetchExistingGlobalFields();
+  
   
   const projectMapper = {
     ...newMigrationData,
@@ -191,7 +212,9 @@ const Migration = () => {
       },
       content_mapping: {
         isDropDownChanged: false,
-        content_type_mapping: projectData?.mapperKeys
+        content_type_mapping: projectData?.mapperKeys,
+        existingCT: existingContentTypes,
+        existingGlobal: existingGlobalFields
       },
       stackDetails: projectData?.stackDetails,
       // mapper_keys: projectData?.mapper_keys,
