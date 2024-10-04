@@ -190,7 +190,7 @@ const HorizontalStepper = forwardRef(
                         !stepsCompleted.includes(idx) && idx !== showStep && !stepsCompleted?.includes(idx - 1)
                             ? 'disableEvents'
                             : '';
-                    const completeDisable = stepsCompleted?.includes(idx) && idx < steps?.length - 3 ? 'completed disableEvents' : '';
+                    const completeDisable = stepsCompleted?.includes(idx) && stepIndex === steps?.length - 1 ? 'completed disableEvents' : '';
                     return (
                         <React.Fragment key={id}>
                             <div className="stepWrapperContainer">
