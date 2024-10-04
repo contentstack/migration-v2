@@ -6,9 +6,7 @@ import _ from 'lodash';
 import { LOCALE_MAPPER } from '../constants/index.js';
 import { entriesFieldCreator, unflatten } from '../utils/entries-field-creator.utils.js';
 import { orgService } from './org.service.js';
-const assetsSave = path.join('sitecoreMigrationData', 'assets');
-const entrySave = path.join('sitecoreMigrationData', 'entries');
-const localeSave = path.join('sitecoreMigrationData', 'locale');
+
 const append = "a";
 
 const idCorrector = ({ id }: any) => {
@@ -26,7 +24,7 @@ function startsWithNumber(str: string) {
 
 function getLastKey(path: string) {
   const keys = path?.split?.('.');
-  const lastKey = keys[keys.length - 1];
+  const lastKey = keys?.[keys?.length - 1];
   return lastKey;
 }
 
@@ -79,7 +77,8 @@ const uidCorrector = ({ uid }: any) => {
   return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
 }
 
-const cretaeAssets = async ({ packagePath }: any) => {
+const cretaeAssets = async ({ packagePath, baseDir }: any) => {
+  const assetsSave = path.join(baseDir, 'assets');
   const allAssetJSON: any = {};
   const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'media library');
   const entryPath = read?.(folderName);
@@ -123,23 +122,23 @@ const cretaeAssets = async ({ packagePath }: any) => {
           } catch (err) {
             console.error("🚀 ~ file: assets.js:52 ~ xml_folder?.forEach ~ err:", err)
           }
+          allAssetJSON[mestaData?.uid] = {
+            urlPath: `/assets/${mestaData?.uid}`,
+            uid: mestaData?.uid,
+            content_type: mestaData?.content_type,
+            file_size: mestaData.size,
+            tags: [],
+            filename: `${jsonAsset?.item?.$?.name}.${mestaData?.extension}`,
+            is_dir: false,
+            parent_uid: null,
+            title: jsonAsset?.item?.$?.name,
+            publish_details: [],
+            assetPath
+          }
+          allAssetJSON[mestaData?.uid].parent_uid = '2146b0cee522cc3a38d'
         } else {
-          console.info("asstes id not found.")
+          console.info('blob is not there for this asstes', mestaData?.uid, '.')
         }
-        allAssetJSON[mestaData?.uid] = {
-          urlPath: `/assets/${mestaData?.uid}`,
-          uid: mestaData?.uid,
-          content_type: mestaData?.content_type,
-          file_size: mestaData.size,
-          tags: [],
-          filename: `${jsonAsset?.item?.$?.name}.${mestaData?.extension}`,
-          is_dir: false,
-          parent_uid: null,
-          title: jsonAsset?.item?.$?.name,
-          publish_details: [],
-          assetPath
-        }
-        allAssetJSON[mestaData?.uid].parent_uid = '2146b0cee522cc3a38d'
       }
     }
   }
@@ -163,9 +162,11 @@ const cretaeAssets = async ({ packagePath }: any) => {
   return allAssetJSON;
 }
 
-const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' }: { packagePath: any; contentTypes: any; master_locale?: string }) => {
+const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us', destinationStackId }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string }) => {
   try {
-    const allAssetJSON: any = await cretaeAssets({ packagePath });
+    const baseDir = path.join('sitecoreMigrationData', destinationStackId);
+    const entrySave = path.join(baseDir, 'entries');
+    const allAssetJSON: any = await cretaeAssets({ packagePath, baseDir });
     const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'content');
     const entriesData: any = [];
     if (fs.existsSync(folderName)) {
@@ -190,7 +191,6 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' 
         }
       }
     }
-
     for await (const ctType of contentTypes) {
       const entryPresent: any = entriesData?.find((item: any) => uidCorrector({ uid: item?.template }) === ctType?.contentstackUid)
       if (entryPresent) {
@@ -200,7 +200,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' 
           const entryLocale: any = {};
           if (typeof LOCALE_MAPPER?.masterLocale === 'object' && LOCALE_MAPPER?.masterLocale !== null && LOCALE_MAPPER?.masterLocale?.[master_locale] === locale) {
             newLocale = Object?.keys(LOCALE_MAPPER?.masterLocale)?.[0];
-            Object.entries(entryPresent?.locale?.[locale] || {}).forEach(async ([uid, entry]: any) => {
+            Object.entries(entryPresent?.locale?.[locale] || {}).map(async ([uid, entry]: any) => {
               const entryObj: any = {};
               entryObj.uid = uid;
               for await (const field of entry?.fields?.field ?? []) {
@@ -213,34 +213,39 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us' 
                       entryObj[fsc?.contentstackFieldUid] = `/${entry?.meta?.key}`;
                     }
                     if (getLastKey(fsc?.uid) === field?.$?.key) {
-                      const content: any = await entriesFieldCreator({ field: fsc, content: field?.content, idCorrector, allAssetJSON })
+                      const content: any = await entriesFieldCreator({ field: fsc, content: field?.content, idCorrector, allAssetJSON, contentTypes, entriesData, locale })
                       entryObj[fsc?.contentstackFieldUid] = content;
                     }
                   }
                 }
               }
-              entryLocale[uid] = unflatten(entryObj) ?? {};
+              if (Object.keys?.(entryObj)?.length > 1) {
+                entryLocale[uid] = unflatten(entryObj) ?? {};
+              }
             });
           }
-          const fileMeta = { "1": `${locale}.json` };
+          const fileMeta = { "1": `${newLocale}.json` };
           const entryPath = path.join(
             process.cwd(),
             entrySave,
             ctType?.contentstackUid,
             newLocale
           );
-          await writeFiles(entryPath, fileMeta, entryLocale, locale)
+          await writeFiles(entryPath, fileMeta, entryLocale, newLocale)
         }
       } else {
         console.info('Entries missing for', ctType?.contentstackUid)
       }
     }
+    return true;
   } catch (err) {
     console.error("🚀 ~ createEntry ~ err:", err)
   }
 }
 
-const createLocale = async (req: any) => {
+const createLocale = async (req: any, destinationStackId: string) => {
+  const baseDir = path.join('sitecoreMigrationData', destinationStackId);
+  const localeSave = path.join(baseDir, 'locale');
   const allLocalesResp = await orgService.getLocales(req)
   const masterLocale = Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
   const msLocale: any = {};
@@ -280,8 +285,9 @@ const createLocale = async (req: any) => {
   })
 }
 
-const createVersionFile = async () => {
-  fs.writeFile(path?.join?.('sitecoreMigrationData', 'export-info.json'), JSON.stringify({
+const createVersionFile = async (destinationStackId: string) => {
+  const baseDir = path.join('sitecoreMigrationData', destinationStackId);
+  fs.writeFile(path?.join?.(baseDir, 'export-info.json'), JSON.stringify({
     "contentVersion": 2,
     "logsPath": ""
   }), (err) => {
