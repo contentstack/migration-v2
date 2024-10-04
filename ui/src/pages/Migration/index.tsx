@@ -217,7 +217,7 @@ const Migration = () => {
         existingGlobal: existingGlobalFields
       },
       stackDetails: projectData?.stackDetails,
-      // mapper_keys: projectData?.mapper_keys,
+      testStacks: projectData?.test_stacks
     };
 
   dispatch(updateNewMigrationData(projectMapper));
@@ -451,12 +451,8 @@ const Migration = () => {
     handleOnClickContentMapper,
     handleOnClickTestMigration 
   ];
-
-
   
   return (
-     
- 
     <div className='migration-steps-wrapper'>
       {projectData && 
       <>

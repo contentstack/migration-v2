@@ -18,7 +18,7 @@ import { CS_ENTRIES } from '../../utilities/constants';
 
 // Interface
 import { MigrationType } from './testMigration.interface';
-import { INewMigration } from '../../context/app/app.interface';
+import { INewMigration, TestStacks } from '../../context/app/app.interface';
 
 
 // Component
@@ -29,7 +29,7 @@ import './index.scss';
 
 const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
-  const [showLogs, setShowLogs] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
@@ -47,11 +47,10 @@ const TestMigration = () => {
       });
   }, []);
 
-  console.log("projectId", projectId);
-  
-
   // Method to create test stack
   const handleCreateTestStack = async () => {
+    setIsLoading(true);
+
     //get org plan details
     const orgDetails = await getOrgDetails(selectedOrganisation?.value);
     const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features).find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
@@ -83,12 +82,17 @@ const TestMigration = () => {
       data
     );
 
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
-    };
+    if (res?.status === 200) {
+      setIsLoading(false);
 
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
+
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
+      };
+
+      dispatch(updateNewMigrationData((newMigrationDataObj)));
+    }
   }
 
   const handleTestMigration = async () => {
@@ -96,9 +100,6 @@ const TestMigration = () => {
       newMigrationData?.destination_stack?.selectedOrg?.value,
       projectId
     );
-
-    console.log("testRes", testRes);
-    
   }
 
   return (
@@ -111,9 +112,10 @@ const TestMigration = () => {
             className="mt-3"
             onClick={handleCreateTestStack}
             version="v2"
-            // size="medium"
+            disabled={newMigrationData?.testStacks?.some((stack: TestStacks) => stack?.isMigrated === false)}
+            isLoading={isLoading}
           >
-          Create Test Stack
+            Create Test Stack
           </Button>
           {(newMigrationData?.test_migration?.stack_api_key || newMigrationData?.test_migration?.stack_link) &&
             <Field
