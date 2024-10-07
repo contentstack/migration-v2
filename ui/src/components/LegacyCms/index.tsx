@@ -174,7 +174,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
         legacy_cms: {
           currentStep: internalActiveStepIndex,
           selectedCms: selectedCmsData,
-          selectedFileFormat: selectedFileFormatData || newMigrationData?.legacy_cms?.selectedFileFormat ,
+          selectedFileFormat: selectedFileFormatData,
           uploadedFile: {
             file_details:{
               localPath: legacyCMSData?.file_path,
@@ -264,7 +264,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
 
   return (
     <>
-      {isLoading ? (
+      {isLoading || newMigrationData?.isprojectMapped ? (
         <div className="row">
           <div className="col-12 text-center center-align">
             <CircularLoader />
