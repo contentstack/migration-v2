@@ -292,47 +292,43 @@ const Migration = () => {
   // handle on proceed to destination stack
   const handleOnClickLegacyCms = async (event: MouseEvent ) => {
     setIsLoading(true);
-    if(isCompleted){
+
+    if (isCompleted) {
       event.preventDefault();
-      console.log("======= isCompleted", isCompleted);
-      
 
-    //Update Data in backend
-    await updateLegacyCMSData(selectedOrganisation?.value, projectId, {
-      legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
-    });
-    await updateAffixData(selectedOrganisation?.value, projectId, { affix: newMigrationData?.legacy_cms?.affix });
-    await fileformatConfirmation(selectedOrganisation?.value, projectId, {
-      fileformat_confirmation: true
-    });     
+      //Update Data in backend
+      await updateLegacyCMSData(selectedOrganisation?.value, projectId, {
+        legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
+      });
+      await updateAffixData(selectedOrganisation?.value, projectId, { affix: newMigrationData?.legacy_cms?.affix });
+      await fileformatConfirmation(selectedOrganisation?.value, projectId, {
+        fileformat_confirmation: true
+      });     
 
-    await affixConfirmation(selectedOrganisation?.value, projectId, {
-      affix_confirmation: true
-    })
-    await updateFileFormatData(selectedOrganisation?.value, projectId, {
-      file_format: newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats[0]?.fileformat_id?.toString() ,
-      file_path: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
-      is_fileValid: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
-      is_localPath: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isLocalPath,
-      awsDetails:{
-        awsRegion: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
-        bucketName: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
-        buketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.buketKey
+      await affixConfirmation(selectedOrganisation?.value, projectId, {
+        affix_confirmation: true
+      });
+      await updateFileFormatData(selectedOrganisation?.value, projectId, {
+        file_format: newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats[0]?.fileformat_id?.toString() ,
+        file_path: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
+        is_fileValid: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+        is_localPath: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isLocalPath,
+        awsDetails:{
+          awsRegion: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
+          bucketName: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
+          buketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.buketKey
+        }
+      });
+      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+      handleStepChange(1);
+      if (res) {
+        setIsLoading(false);
+
+        const url = `/projects/${projectId}/migration/steps/2`;
+        navigate(url, { replace: true });
       }
-    });
-    const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
-    handleStepChange(1);
-    if (res) {
-      setIsLoading(false);
-
-      const url = `/projects/${projectId}/migration/steps/2`;
-      navigate(url, { replace: true });
-    }
-
     }
     else {
-      console.log("inside else");
-      
       setIsLoading(false);
 
       if (legacyCMSRef?.current) {
