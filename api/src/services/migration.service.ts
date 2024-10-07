@@ -7,7 +7,7 @@ import https from "../utils/https.utils.js";
 import { LoginServiceType } from "../models/types.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
-import { HTTP_TEXTS, HTTP_CODES, CS_REGIONS, LOCALE_MAPPER } from "../constants/index.js";
+import { HTTP_TEXTS, HTTP_CODES, CS_REGIONS, LOCALE_MAPPER, STEPPER_STEPS } from "../constants/index.js";
 import { ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { fieldAttacher } from "../utils/field-attacher.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
@@ -38,7 +38,6 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   const { token_payload } = req.body;
   const description = 'This is a system-generated test stack.'
   const name = 'Test';
-  const master_locale = Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
 
 
   try {
@@ -49,7 +48,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
 
     await ProjectModelLowdb.read();
     const projectData: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
-    console.info("🚀 ~ createTestStack ~ projectData:", projectData)
+    const master_locale = projectData?.stackDetails?.master_locale ?? Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
     const testStackCount = projectData?.test_stacks?.length + 1;
     const newName = name + "-" + testStackCount;
 
@@ -95,6 +94,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       .value();
     if (index > -1) {
       ProjectModelLowdb.update((data: any) => {
+        data.projects[index].current_step = STEPPER_STEPS['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
         data.projects[index].test_stacks.push({ stackUid: res?.data?.stack?.api_key, isMigrated: false });
       });
