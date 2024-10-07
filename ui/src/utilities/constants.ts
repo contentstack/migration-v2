@@ -29,6 +29,14 @@ export const REGIONS = {
   GCP_NA: 'GCP_NA',
 };
 
+export const CS_URL: ObjectType = {
+  NA: "https://app.contentstack.com/#!",
+  EU: "https://eu-app.contentstack.com/#!",
+  AZURE_NA: "https://azure-na-app.contentstack.com/#!",
+  AZURE_EU: "https://azure-eu-app.contentstack.com/#!",
+  GCP_NA: "https://gcp-na-app.contentstack.com/#!",
+}
+
 export const HEADERS = {
   'Content-Type': 'application/json',
   Authorization: `${TOKEN}`
