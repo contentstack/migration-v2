@@ -66,7 +66,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     }
   };
 
-
   const getFileExtension = (filePath: string): string => {
     const fileName = filePath?.split('/')?.pop();
     const ext = fileName?.split('.')?.pop();
@@ -85,44 +84,41 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     }
     else{
       const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
-    let filteredCmsData:ICMSType[] = all_cms;
-    if (cmsType) {
-      filteredCmsData = all_cms?.filter((cms) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase());
-    }
- 
-    const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format:ICardType)=>{ 
-      const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();    
-      return isValid;
-    });
- 
-    if(! isFormatValid){
-      setIsError(true);
-      setError('File format does not support, please add the correct file format.');
-    }
-  
-    const selectedFileFormatObj = {
-      description: "",
-      fileformat_id: fileFormat,
-      group_name: fileFormat,
-      isactive: true,
-      title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
-    }
-    
-    
-    const newMigrationDataObj = {
-      ...newMigrationData,
-      legacy_cms: {
-        ...newMigrationData?.legacy_cms,
-        selectedFileFormat: selectedFileFormatObj
+      let filteredCmsData:ICMSType[] = all_cms;
+      if (cmsType) {
+        filteredCmsData = all_cms?.filter((cms) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase());
       }
-    };
+  
+      const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format:ICardType)=>{ 
+        const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();    
+        return isValid;
+      });
+ 
+      if(!isFormatValid){
+        setIsError(true);
+        setError('File format does not support, please add the correct file format.');
+      }
+  
+      const selectedFileFormatObj = {
+        description: "",
+        fileformat_id: fileFormat,
+        group_name: fileFormat,
+        isactive: true,
+        title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
+      }
+      
+      const newMigrationDataObj = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData?.legacy_cms,
+          selectedFileFormat: selectedFileFormatObj
+        }
+      };
     
-    setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1) : fileFormat?.toUpperCase());
-    dispatch(updateNewMigrationData(newMigrationDataObj));
+      setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1) : fileFormat?.toUpperCase());
+      dispatch(updateNewMigrationData(newMigrationDataObj));
 
     }
-    
-    
   }
   
   /****  ALL USEEffects  HERE  ****/
