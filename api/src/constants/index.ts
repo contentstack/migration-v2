@@ -116,7 +116,7 @@ export const PROJECT_STATUS = {
   FAILED: "Failed",
   SUCCESS: "Success",
 };
-export const STEPPER_STEPS = {
+export const STEPPER_STEPS: any = {
   LEGACY_CMS: 1,
   DESTINATION_STACK: 2,
   CONTENT_MAPPING: 3,
