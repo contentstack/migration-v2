@@ -18,7 +18,7 @@ const router = express.Router({ mergeParams: true });
  */
 router.post(
   "/test-stack/:orgId/:projectId",
-  asyncRouter(migrationController.fieldMapping)
+  asyncRouter(migrationController.startTestMigration)
 );
 
 /**
@@ -56,7 +56,7 @@ router.post(
  */
 router.post(
   "/start/:orgId/:projectId",
-  asyncRouter(migrationController.fieldMapping)
+  asyncRouter(migrationController.startMigration)
 );
 
 
