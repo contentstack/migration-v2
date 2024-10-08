@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { Field, FieldLabel, TextInput, Link, Icon, Tooltip, Button, Notification } from '@contentstack/venus-components';
+import { Field, FieldLabel, TextInput, Link, Icon, Tooltip, Button, Notification, CircularLoader } from '@contentstack/venus-components';
 import { useSelector, useDispatch } from 'react-redux';
 
 // Redux files
@@ -28,12 +28,15 @@ import LogViewer from '../LogScreen';
 import './index.scss';
 
 const TestMigration = () => {
-  const [data, setData] = useState<MigrationType>({});
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isMigrationStarted, setIsMigrationStarted] = useState<boolean>(false);
-
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
+
+  const [data, setData] = useState<MigrationType>({});
+  const [isLoading, setIsLoading] = useState(newMigrationData?.isprojectMapped);
+  const [isStackLoading, setIsStackLoading] = useState<boolean>(false);
+  const [isMigrationStarted, setIsMigrationStarted] = useState<boolean>(false);
+
+  
   const { projectId = '' } = useParams();
   const dispatch = useDispatch();
 
@@ -41,7 +44,10 @@ const TestMigration = () => {
   useEffect(() => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
     getCMSDataFromFile(CS_ENTRIES.TEST_MIGRATION)
-      .then((data) => setData(data))
+      .then((data) => { 
+        setData(data);
+        setIsLoading(false);
+      })
       .catch((err) => {
         console.error(err);
         setData({});
@@ -50,7 +56,7 @@ const TestMigration = () => {
 
   // Method to create test stack
   const handleCreateTestStack = async () => {
-    setIsLoading(true);
+    setIsStackLoading(true);
 
     //get org plan details
     const orgDetails = await getOrgDetails(selectedOrganisation?.value);
@@ -84,7 +90,7 @@ const TestMigration = () => {
     );
 
     if (res?.status === 200) {
-      setIsLoading(false);
+      setIsStackLoading(false);
 
 
       const newMigrationDataObj: INewMigration = {
@@ -108,7 +114,13 @@ const TestMigration = () => {
   }
 
   return (
-    <div className='migration-step-container'>
+    isLoading || newMigrationData?.isprojectMapped
+      ? <div className="row">
+      <div className="col-12 text-center center-align">
+        <CircularLoader />
+      </div>
+    </div>
+    : <div className='migration-step-container'>
       <div className='content-block'>
         <div className='content-header text-uppercase'>UID</div>
         <div className='content-body'>
@@ -118,11 +130,11 @@ const TestMigration = () => {
             onClick={handleCreateTestStack}
             version="v2"
             disabled={newMigrationData?.testStacks?.some((stack: TestStacks) => stack?.isMigrated === false)}
-            isLoading={isLoading}
+            isLoading={isStackLoading}
           >
             Create Test Stack
           </Button>
-          {(newMigrationData?.test_migration?.stack_api_key || newMigrationData?.test_migration?.stack_link) &&
+          {newMigrationData?.test_migration?.stack_api_key &&
             <Field
               id="stack"
               name="stack"
@@ -143,9 +155,9 @@ const TestMigration = () => {
                   />
                 )}
 
-                {newMigrationData?.test_migration?.stack_link && (
+                {newMigrationData?.test_migration?.stack_api_key && (
                   <Link href={`${newMigrationData?.test_migration?.stack_link}`} target='_blank' className='ml-8'>
-                    <Tooltip content='Stack Link' position="right">
+                    <Tooltip content='Stack Link' position="bottom">
                       <Icon
                         icon="Link"
                         size="small"
