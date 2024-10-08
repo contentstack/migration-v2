@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Icon, Field, TextInput, FieldLabel } from '@contentstack/venus-components';
+import { useEffect, useState } from 'react';
+import { Icon, Field, TextInput, FieldLabel, CircularLoader } from '@contentstack/venus-components';
 import { useSelector, useDispatch } from 'react-redux';
 
 // Services
@@ -29,6 +29,8 @@ const MigrationExecution = () => {
     migrationexecution: { migration_information: MigrationInformation }
   } = migrationData;
 
+  const [isLoading, setIsLoading] = useState(newMigrationData?.isprojectMapped);
+
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
@@ -37,11 +39,15 @@ const MigrationExecution = () => {
         //Check for null
         if (!data) {
           //updateMigrationData({ migrationexecution: DEFAULT_MIGRATION_EXECUTION });
-          dispatch(updateMigrationData({ migrationexecution: DEFAULT_MIGRATION_EXECUTION }))
+          dispatch(updateMigrationData({ migrationexecution: DEFAULT_MIGRATION_EXECUTION }));
+          setIsLoading(false);
+          return;
         }
 
         //updateMigrationData({ migrationexecution: data });
         dispatch(updateMigrationData({ migrationexecution: data }))
+        setIsLoading(false);
+
       })
       .catch((err) => {
         console.error(err);
@@ -65,7 +71,13 @@ const MigrationExecution = () => {
   };
 
   return (
-    <div className='step-content-wrapper'>
+    isLoading || newMigrationData?.isprojectMapped
+      ? <div className="row">
+      <div className="col-12 text-center center-align">
+        <CircularLoader />
+      </div>
+    </div>
+    : <div className='step-content-wrapper'>
       <div className='content-block'>
         <div className='content-header'>Path</div>
         <div className='content-body step-desc'>Select your organization maintained on Contentstack.</div>
