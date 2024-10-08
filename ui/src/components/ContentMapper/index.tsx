@@ -1818,7 +1818,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
   const onlyIcon= true;
 
   return (
-    isLoading
+    isLoading || newMigrationData?.isprojectMapped
       ? <div className="row">
       <div className="col-12 text-center center-align">
         <CircularLoader />
