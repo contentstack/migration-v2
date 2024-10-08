@@ -207,7 +207,7 @@ const DestinationStackComponent = ({
   }, [internalActiveStepIndex]); 
   return (
     <>
-      {isLoading ? (
+      {isLoading || newMigrationData?.isprojectMapped ? (
         <div className="row">
           <div className="col-12 text-center center-align">
             <CircularLoader />
@@ -220,7 +220,7 @@ const DestinationStackComponent = ({
             key={stepperKey}
             steps={getDestinationStackSteps(
               isCompleted,
-              isMigrationLocked == false,
+              !isMigrationLocked,
               migrationData?.destinationStackData?.all_steps
             )}
             description={migrationData?.destinationStackData?.description}
