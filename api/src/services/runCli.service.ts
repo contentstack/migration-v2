@@ -1,4 +1,5 @@
 import path from "path";
+import fs from 'fs';
 import shell from 'shelljs'
 import { v4 } from "uuid";
 import { setLogFilePath } from "../server.js";
@@ -7,7 +8,19 @@ import { CS_REGIONS } from "../constants/index.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import AuthenticationModel from "../models/authentication.js";
 
-
+const addCustomMessageInCliLogs = async (loggerPath: string, level: string = 'info', message: string) => {
+  try {
+    const logEntry = {
+      level,
+      message,
+      timestamp: new Date().toISOString(),
+    };
+    const logMessage = JSON.stringify(logEntry) + '\n'; // Convert to JSON and add a newline
+    await fs.promises.appendFile(loggerPath, logMessage);
+  } catch (error) {
+    console.error('Error reading the file:', error);
+  }
+}
 
 
 export const runCli = async (rg: string, user_id: string, stack_uid: any, projectId: string, isTest = false) => {
@@ -30,7 +43,7 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
       shell.exec(`node bin/run config:set:region ${regionPresent}`);
       shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
       const importData = shell.exec(`node bin/run cm:stacks:import  -k ${stack_uid} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
-      importData.on('exit', (code) => {
+      importData.on('exit', async (code) => {
         console.info(`Process exited with code: ${code}`);
         if (code === 1) {
           const projectIndex = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
@@ -43,8 +56,10 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
             })
             ProjectModelLowdb.write();
           }
+          await addCustomMessageInCliLogs(loggerPath, 'info', 'Test Migration Process Completed');
         }
       });
+
     } else {
       console.info('user not found.')
     }
