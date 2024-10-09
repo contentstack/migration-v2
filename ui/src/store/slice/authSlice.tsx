@@ -80,7 +80,10 @@ const authSlice = createSlice({
             state.isAuthenticated = action?.payload?.isAuthenticated;
         },
         setUser : (state, action) => {
-            state.user = action?.payload;
+          state.user = {
+            ...state.user,             
+            ...action?.payload,        
+          };
         },
         reInitiliseState: (state) => {
             state.authToken = '';
@@ -101,7 +104,10 @@ const authSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder.addCase(getUserDetails?.fulfilled,(state, action:any)=>{          
-            state.user = action?.payload?.user;
+          state.user = {
+            ...state.user,          
+            ...action.payload.user, 
+          };
             state.organisationsList = action?.payload?.organisationsList;
             state.selectedOrganisation = action?.payload?.selectedOrganisation ;
             state.isAuthenticated = !isEmptyString(state?.authToken || '');
