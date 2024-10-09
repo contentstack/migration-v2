@@ -45,7 +45,7 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
       const importData = shell.exec(`node bin/run cm:stacks:import  -k ${stack_uid} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
       importData.on('exit', async (code) => {
         console.info(`Process exited with code: ${code}`);
-        if (code === 1) {
+        if (code === 1 || code === 0) {
           const projectIndex = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
           if (projectIndex > -1 && isTest) {
             ProjectModelLowdb?.data?.projects?.[projectIndex]?.test_stacks?.map((item: any) => {
