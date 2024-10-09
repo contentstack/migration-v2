@@ -16,6 +16,9 @@ import { validateArray } from '../../utilities/functions';
 // Interface
 import { DEFAULT_MIGRATION_EXECUTION } from '../../context/app/app.interface';
 
+// Component
+import LogViewer from '../LogScreen';
+
 //stylesheet
 import './index.scss';
 
@@ -23,8 +26,8 @@ const MigrationExecution = () => {
   //const { migrationData, updateMigrationData, newMigrationData } = useContext(AppContext);
   const dispatch = useDispatch();
 
-  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
-  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const {
     migrationexecution: { migration_information: MigrationInformation }
   } = migrationData;
@@ -73,42 +76,48 @@ const MigrationExecution = () => {
   return (
     isLoading || newMigrationData?.isprojectMapped
       ? <div className="row">
-      <div className="col-12 text-center center-align">
-        <CircularLoader />
+        <div className="col-12 text-center center-align">
+          <CircularLoader />
+        </div>
       </div>
-    </div>
-    : <div className='step-content-wrapper'>
-      <div className='content-block'>
-        <div className='content-header'>Path</div>
-        <div className='content-body step-desc'>Select your organization maintained on Contentstack.</div>
-        <div className='content-body'>
-          <div className='select-wrapper'>
-            {MigrationInformation &&
-              validateArray(MigrationInformation) &&
-              MigrationInformation?.map((item, index) => (
-              <div className="select-wrapper" key={`${index.toString()}`}>
-                <Field disabled={item?.disable}>
-                  <FieldLabel className="selectedOptions" htmlFor="label">
-                    {item?.title}
-                  </FieldLabel>
-                  <TextInput
-                    type="text"
-                    isReadOnly
-                    name="stackKey"
-                    value={getPlaceHolder(item?.title)}
-                    version="v2"
-                    // width="regular"
-                  />
-                </Field>
-                {index < MigrationInformation?.length - 1 && (
-                  <Icon className="arrow-wrapper" icon="ArrowRight" size="large" />
-                )}
-              </div>
-            ))}
+      : <div className='migration-step-container'>
+        <div className='content-block'>
+          <div className='content-body step-desc'>We have Uploaded CMS, Organization, Selected stack and locale. The actual migration process can be started here.</div>
+          <div className='content-body'>
+            <div className='select-wrapper'>
+              {MigrationInformation &&
+                validateArray(MigrationInformation) &&
+                MigrationInformation?.map((item, index) => (
+                  <div className="select-wrapper" key={`${index.toString()}`}>
+                    <Field disabled={item?.disable}>
+                      <FieldLabel className="selectedOptions" htmlFor="label">
+                        {item?.title}
+                      </FieldLabel>
+                      <TextInput
+                        type="text"
+                        isReadOnly
+                        name="stackKey"
+                        value={getPlaceHolder(item?.title)}
+                        version="v2"
+                      // width="regular"
+                      />
+                    </Field>
+                    {index < MigrationInformation?.length - 1 && (
+                      <Icon className="arrow-wrapper" icon="ArrowRight" size="large" />
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        <div className='content-block'>
+          <div className='content-header'>Execution Logs</div>
+          <div>
+            <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} />
           </div>
         </div>
       </div>
-    </div>
   );
 };
 
