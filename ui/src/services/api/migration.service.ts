@@ -312,3 +312,12 @@ export const createTestMigration = async (orgId: string, projectId: string) => {
     return error;
   }
 };
+
+export const startMigration = async (orgId: string, projectId: string) => {
+  try {
+    return await postCall(
+      `${API_VERSION}/migration/start/${orgId}/${projectId}`, {}, options);
+  } catch (error) {
+    return error;
+  }
+};
