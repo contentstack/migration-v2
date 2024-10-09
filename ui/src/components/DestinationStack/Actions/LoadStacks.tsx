@@ -192,7 +192,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         (a: IDropDown, b: IDropDown) =>
           new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
       );
-      console.log("stack array: ", newMigrationData.destination_stack.stackArray, stackArray);
       
       setAllStack(stackArray);      
       //Set selected Stack
