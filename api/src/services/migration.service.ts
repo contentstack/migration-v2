@@ -204,6 +204,7 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
 const startTestMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id } = req?.body?.token_payload ?? {};
+  await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const packagePath = project?.extract_path;
   if (packagePath && project?.current_test_stack_id) {
@@ -225,6 +226,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
 const startMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id } = req?.body?.token_payload ?? {};
+  await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const packagePath = project?.extract_path;
   if (packagePath && project?.destination_stack_id) {
