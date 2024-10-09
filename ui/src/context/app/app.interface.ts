@@ -45,6 +45,7 @@ export interface User {
   mobile_number: string;
   country_code: string;
   organizations: Organization[];
+  region:string;
 }
 export interface FileDetails {
   isLocalPath?: boolean;
@@ -221,7 +222,7 @@ export interface IAppContext {
   authToken: string;
   setAuthToken: (token: string) => void;
   user: User;
-  updateUser: (user: User) => void;
+  setUser: (user: User) => void;
   organisationsList: IDropDown[];
   updateOrganisationsList: (list: IDropDown[]) => void;
   selectedOrganisation: IDropDown;
@@ -264,7 +265,8 @@ export const DEFAULT_USER: User = {
   last_name: '',
   mobile_number: '',
   country_code: '',
-  organizations: []
+  organizations: [],
+  region:''
 };
 
 export const DEFAULT_FILE: IFile = {
@@ -413,7 +415,7 @@ export const DEFAULT_APP_CONTEXT: IAppContext = {
     return;
   },
   user: DEFAULT_USER,
-  updateUser: function (): void {
+  setUser: function (): void {
     return;
   },
   isAuthenticated: false,

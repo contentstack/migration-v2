@@ -4,7 +4,7 @@ import { PageLayout, EmptyState, Button, Icon, cbModal,  StackCardSkeleton} from
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import {useSelector } from 'react-redux';
 
 // Redux
 import { RootState } from '../../store';
