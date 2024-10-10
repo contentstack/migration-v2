@@ -218,7 +218,9 @@ const Migration = () => {
       },
       test_migration: {
         stack_link: stackLink,
-        stack_api_key: projectData?.current_test_stack_id
+        stack_api_key: projectData?.current_test_stack_id,
+        isMigrationStarted: false,
+        isMigrationComplete: false
       },
       stackDetails: projectData?.stackDetails,
       testStacks: projectData?.test_stacks
