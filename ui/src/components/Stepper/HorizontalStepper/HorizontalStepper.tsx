@@ -190,7 +190,9 @@ const HorizontalStepper = forwardRef(
                         !stepsCompleted.includes(idx) && idx !== showStep && !stepsCompleted?.includes(idx - 1)
                             ? 'disableEvents'
                             : '';
-                    const completeDisable = stepsCompleted?.includes(idx) && stepIndex === steps?.length - 1 ? 'completed disableEvents' : '';
+
+                    const currentTestStack = newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key);
+                    const completeDisable = stepsCompleted?.includes(idx) && currentTestStack?.isMigrated === true && newMigrationData?.test_migration?.isMigrationComplete === false ? 'disableEvents' : '';
                     return (
                         <React.Fragment key={id}>
                             <div className="stepWrapperContainer">

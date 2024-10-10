@@ -73,7 +73,7 @@
   flex-direction: column;
   justify-content: center;
   background-color: $color-base-white-5;
-  height: 72px;
+  min-height: 72px;
   width: 592px;
   margin-left: 20px !important;
   border: 1px solid $color-brand-secondary-lightest;
