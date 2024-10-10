@@ -1,7 +1,15 @@
 // Libraries
 import React, { useEffect, useState, useRef } from 'react';
-import { Icon } from '@contentstack/venus-components';
+import { Icon, Notification } from '@contentstack/venus-components';
 import io from 'socket.io-client';
+import { useSelector, useDispatch } from 'react-redux';
+
+// Redux files
+import { RootState } from '../../store';
+import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+
+// Interface
+import { INewMigration } from '../../context/app/app.interface';
 
 // CSS
 import './index.scss';
@@ -17,14 +25,21 @@ const logStyles: { [key: string]: React.CSSProperties } = {
 
 type LogsType = {
   serverPath: string;
+  isMigrationStarted?: boolean;
+  sendDataToParent?: (isMigrationStarted: boolean) => void | undefined;
 }
 
 /**
  * LogViewer component displays logs received from the server.
  * @param {string} serverPath - The path of the server to connect to.
  */
-const LogViewer = ({ serverPath }: LogsType) => {
+const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
   const [logs, setLogs] = useState(["Loading logs..."]);
+  const [isMigrationComplete, setIsMigrationComplete] = useState<boolean>(false);
+
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const socket = io(serverPath || ''); // Connect to the server
@@ -116,6 +131,36 @@ const LogViewer = ({ serverPath }: LogsType) => {
     if (logsContainerRef.current) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
+
+    logs?.forEach((log) => {
+      try {
+        const logObject = JSON.parse(log);
+        const message = logObject.message;
+
+        if (message === "Test Migration Process Completed") {
+          Notification({
+            notificationContent: { text: 'Test Migration completed successfully' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'success'
+          });
+          sendDataToParent?.(false);
+          setIsMigrationComplete(true);
+  
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            test_migration: { ...newMigrationData?.test_migration, isMigrationComplete: true }
+          };
+  
+          dispatch(updateNewMigrationData((newMigrationDataObj)));
+  
+        }
+      } catch (error) {
+        console.error('Invalid JSON string', error);
+      }
+    });
   }, [logs]);
 
   return (

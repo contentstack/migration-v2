@@ -1,6 +1,6 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { Button } from '@contentstack/venus-components';
+import { Button, Tooltip } from '@contentstack/venus-components';
 import { useSelector } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
 
@@ -57,7 +57,10 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>
-        { projectName && <h1>{projectName}</h1> }
+        { projectName && 
+        <Tooltip content={projectName} position='top' version={'v2'}>
+          <h1 className='project-name-ellipsis'>{projectName}</h1> 
+        </Tooltip>}
       </div>
 
       <Button
@@ -67,7 +70,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
         version="v2"
         aria-label='Save and Continue'
         isLoading={isLoading}
-        disabled={newMigrationData?.testStacks?.some((stack) => stack?.isMigrated === false)}
+        disabled={params?.stepId === '4' && !newMigrationData?.test_migration?.isMigrationComplete}
       >
         {stepValue}
       </Button>
