@@ -5,9 +5,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "(cd ./api && npm install --force) ; (cd ./ui && npm install --force) ; (cd ./upload-api && npm install --force)",
+    "env": "npm start",
     "api": "cd ./api && npm run dev",
     "upload": "cd ./upload-api && npm start",
-    "ui": "cd ./ui && npm start"
+    "ui": "cd ./ui && npm start",
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
