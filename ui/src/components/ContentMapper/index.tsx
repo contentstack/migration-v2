@@ -1819,11 +1819,9 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
 
   return (
     isLoading || newMigrationData?.isprojectMapped
-      ? <div className="leader-container row">
-      <div className="col-12 text-center center-align">
+      ? <div className="loader-container">
         <CircularLoader />
       </div>
-    </div>
     : <div className="step-container">
       <div className="d-flex flex-wrap table-container">
         {/* Content Types List */}
