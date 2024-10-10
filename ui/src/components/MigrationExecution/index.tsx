@@ -16,6 +16,9 @@ import { validateArray } from '../../utilities/functions';
 // Interface
 import { DEFAULT_MIGRATION_EXECUTION } from '../../context/app/app.interface';
 
+// Component
+import LogViewer from '../LogScreen';
+
 //stylesheet
 import './index.scss';
 
@@ -72,17 +75,16 @@ const MigrationExecution = () => {
 
   return (
     isLoading || newMigrationData?.isprojectMapped
-      ? <div className="row">
+      ? <div className="leader-container row">
       <div className="col-12 text-center center-align">
         <CircularLoader />
       </div>
     </div>
-    : <div className='step-content-wrapper'>
+    : <div className='migration-step-container'>
       <div className='content-block'>
-        <div className='content-header'>Path</div>
-        <div className='content-body step-desc'>Select your organization maintained on Contentstack.</div>
         <div className='content-body'>
-          <div className='select-wrapper'>
+          <p>We have Uploaded CMS, Organization, Selected stack and locale. The actual migration process can be started here.</p>
+          <div className='select-wrapper mt-3'>
             {MigrationInformation &&
               validateArray(MigrationInformation) &&
               MigrationInformation?.map((item, index) => (
@@ -106,6 +108,13 @@ const MigrationExecution = () => {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className='content-block'>
+        <div className='content-header'>Execution Logs</div>
+        <div>
+          <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} />
         </div>
       </div>
     </div>

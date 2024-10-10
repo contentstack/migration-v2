@@ -190,12 +190,16 @@ const HorizontalStepper = forwardRef(
                         !stepsCompleted.includes(idx) && idx !== showStep && !stepsCompleted?.includes(idx - 1)
                             ? 'disableEvents'
                             : '';
-                    const completeDisable = stepsCompleted?.includes(idx) && stepIndex === steps?.length - 1 ? 'completed disableEvents' : '';
+                    
+                    const completeDisable = stepsCompleted?.includes(idx) && idx < stepIndex - 1 ? 'disableEvents' : '';
+
+                    const disableMapper = stepsCompleted?.includes(idx) && idx === 2 && newMigrationData?.test_migration?.isMigrationStarted && !newMigrationData?.test_migration?.isMigrationComplete ? 'disableEvents' : '';
+                    
                     return (
                         <React.Fragment key={id}>
                             <div className="stepWrapperContainer">
                                 <div
-                                    className={`stepWrapper ${completedClass} ${activeClass} ${disableClass} ${completeDisable}`}
+                                    className={`stepWrapper ${completedClass} ${activeClass} ${disableClass} ${completeDisable} ${disableMapper}`}
                                     onClick={() => handleTabStep(idx)}
                                 >
                                     <div className="circle-title-wrapper">

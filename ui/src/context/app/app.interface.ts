@@ -45,6 +45,7 @@ export interface User {
   mobile_number: string;
   country_code: string;
   organizations: Organization[];
+  region:string;
 }
 export interface FileDetails {
   isLocalPath?: boolean;
@@ -216,12 +217,14 @@ export interface IDropDown {
 export interface ITestMigration {
   stack_link: string;
   stack_api_key: string;
+  isMigrationStarted: boolean;
+  isMigrationComplete: boolean;
 }
 export interface IAppContext {
   authToken: string;
   setAuthToken: (token: string) => void;
   user: User;
-  updateUser: (user: User) => void;
+  setUser: (user: User) => void;
   organisationsList: IDropDown[];
   updateOrganisationsList: (list: IDropDown[]) => void;
   selectedOrganisation: IDropDown;
@@ -264,7 +267,8 @@ export const DEFAULT_USER: User = {
   last_name: '',
   mobile_number: '',
   country_code: '',
-  organizations: []
+  organizations: [],
+  region:''
 };
 
 export const DEFAULT_FILE: IFile = {
@@ -325,7 +329,9 @@ export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
 
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   stack_link: '',
-  stack_api_key: ''
+  stack_api_key: '',
+  isMigrationStarted: false,
+  isMigrationComplete: false
 };
 
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
@@ -413,7 +419,7 @@ export const DEFAULT_APP_CONTEXT: IAppContext = {
     return;
   },
   user: DEFAULT_USER,
-  updateUser: function (): void {
+  setUser: function (): void {
     return;
   },
   isAuthenticated: false,
