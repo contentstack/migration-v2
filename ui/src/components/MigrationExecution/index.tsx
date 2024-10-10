@@ -82,9 +82,9 @@ const MigrationExecution = () => {
     </div>
     : <div className='migration-step-container'>
       <div className='content-block'>
-        <div className='content-body step-desc'>We have Uploaded CMS, Organization, Selected stack and locale. The actual migration process can be started here.</div>
         <div className='content-body'>
-          <div className='select-wrapper'>
+          <p>We have Uploaded CMS, Organization, Selected stack and locale. The actual migration process can be started here.</p>
+          <div className='select-wrapper mt-3'>
             {MigrationInformation &&
               validateArray(MigrationInformation) &&
               MigrationInformation?.map((item, index) => (
