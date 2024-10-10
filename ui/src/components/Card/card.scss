@@ -101,8 +101,10 @@
  * Styles for the stats category of the ProjectCard component.
  */
 .ProjectCard__stats-category {
+  align-items: center;
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: 8px;
+  display: flex;
   font-size: $size-font-large;
   line-height: 21px;
   color: $color-font-base;
