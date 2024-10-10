@@ -217,6 +217,7 @@ export interface IDropDown {
 export interface ITestMigration {
   stack_link: string;
   stack_api_key: string;
+  isMigrationStarted: boolean;
   isMigrationComplete: boolean;
 }
 export interface IAppContext {
@@ -329,6 +330,7 @@ export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   stack_link: '',
   stack_api_key: '',
+  isMigrationStarted: false,
   isMigrationComplete: false
 };
 
