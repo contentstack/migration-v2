@@ -1,6 +1,6 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { cbModal, Dropdown, Tooltip} from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -164,9 +164,9 @@ const MainHeader = () => {
             {logo?.image?.url ? (
               <div className="logo">
                 <Tooltip position="right" content="Projects" wrapperElementType="div">
-                  {/* <Link to={`${logo?.url}`}> */}
+                  <Link to={`${logo?.url}`}>
                     <img src={logo?.image?.url} width={32} alt="Contentstack" />
-                  {/* </Link> */}
+                  </Link>
                 </Tooltip>
               </div>
             ) : (
@@ -189,18 +189,22 @@ const MainHeader = () => {
 
           {(location.pathname == '/projects' || location.pathname.includes('/projects/')) && <div className="flex-end">
             <div className="Dropdown-wrapper">
-              <Dropdown
-                list={[
-                  {
-                    default: true,
-                    label: <ProfileCard/>,
-                  }
-                ]}
-                type="click"
-                className="Profile_card"
-              >
-                <div className="user-short-name flex-v-center flex-h-center">{name}</div>
-              </Dropdown>
+              <Tooltip content={'Profile'} position='top'>
+                <Dropdown
+                  list={[
+                    {
+                      default: true,
+                      label: <ProfileCard/>,
+                    }
+                  ]}
+                  type="click"
+                  className="Profile_card"
+                >
+                  <div className="user-short-name flex-v-center flex-h-center">{name}</div>
+                </Dropdown>
+
+              </Tooltip>
+              
             </div>
           </div>}
     </div>

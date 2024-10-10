@@ -89,7 +89,7 @@ const CardList = ({ project }: ProjectType) => {
                   <span className="ProjectCard__stats-Title">Project Status</span>
                   <div className={`ProjectCard__stats-category ${statusClass}`}>
                     {icon && <Icon size="mini" icon={icon} version="v2" />}
-                    {statusText}
+                    {statusText && <span className='ml-5'>{statusText}</span>}
                   </div>
                 </div>
               </div>
