@@ -149,3 +149,14 @@
 .processing-test{
   margin-top: 5px;
 }
+.leader-container{
+  padding-left: 25px !important;
+  padding-top: 40px;
+  padding-right: 30px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 70vh;
+  background-color: $color-base-white-10;
+
+}
