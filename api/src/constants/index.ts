@@ -66,6 +66,10 @@ export const HTTP_TEXTS = {
     "You cannot proceed if the project is not in draft or if any Legacy CMS details are missing.",
   CANNOT_PROCEED_DESTINATION_STACK:
     "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack details are missing.",
+  CANNOT_PROCEED_CONTENT_MAPPING:
+    "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping details are missing.",
+  CANNOT_PROCEED_TEST_MIGRATION:
+    "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping or Test Migration details are missing.",
   CANNOT_UPDATE_CONTENT_MAPPING:
     "Updating the content mapping is restricted. Please verify the status and review preceding actions.",
   CANNOT_RESET_CONTENT_MAPPING:
