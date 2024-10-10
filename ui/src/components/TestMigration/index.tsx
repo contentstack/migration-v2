@@ -115,7 +115,7 @@ const TestMigration = () => {
 
   return (
     isLoading || newMigrationData?.isprojectMapped
-      ? <div className="row">
+      ? <div className="leader-container row">
       <div className="col-12 text-center center-align">
         <CircularLoader />
       </div>
