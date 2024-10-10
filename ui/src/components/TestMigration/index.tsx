@@ -18,7 +18,7 @@ import { CS_ENTRIES } from '../../utilities/constants';
 
 // Interface
 import { MigrationType } from './testMigration.interface';
-import { INewMigration, TestStacks } from '../../context/app/app.interface';
+import { INewMigration } from '../../context/app/app.interface';
 
 
 // Component
@@ -91,11 +91,19 @@ const TestMigration = () => {
 
     if (res?.status === 200) {
       setIsStackLoading(false);
+      Notification({
+        notificationContent: { text: 'Test Stack created successfully' },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
+        type: 'success'
+      });
 
 
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
-        test_migration: { stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
+        test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
       };
 
       dispatch(updateNewMigrationData((newMigrationDataObj)));
@@ -108,28 +116,49 @@ const TestMigration = () => {
       projectId
     );
 
+    console.log("testRes", testRes);
+    
+
     if (testRes?.status === 200) {
-      setIsMigrationStarted(true);
+      handleMigrationState(true);
+      Notification({
+        notificationContent: { text: 'Test Migration started' },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: false
+        },
+        type: 'message'
+      });
     }
   }
 
+  // Function to update the parent state
+  const handleMigrationState = (newState: boolean) => {
+    setIsMigrationStarted(newState);
+
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      test_migration: { ...newMigrationData?.test_migration, isMigrationStarted: newState }
+    };
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
+  } ;
+
   return (
     isLoading || newMigrationData?.isprojectMapped
-      ? <div className="row">
+      ? <div className="leader-container row">
       <div className="col-12 text-center center-align">
         <CircularLoader />
       </div>
     </div>
     : <div className='migration-step-container'>
       <div className='content-block'>
-        <div className='content-header text-uppercase'>UID</div>
         <div className='content-body'>
           <p>Test Migration is a step where some content types are migrated in a test stack for review. A user can verify the stack and data. If the data is migrated properly then it can proceed with the final Migration Execution process.</p>
           <Button
             className="mt-3"
             onClick={handleCreateTestStack}
             version="v2"
-            disabled={newMigrationData?.testStacks?.some((stack: TestStacks) => stack?.isMigrated === false)}
+            disabled={newMigrationData?.test_migration?.stack_api_key}
             isLoading={isStackLoading}
           >
             Create Test Stack
@@ -183,7 +212,7 @@ const TestMigration = () => {
       <div className='content-block'>
         <div className='content-header'>Execution Logs</div>
         <div>
-          <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} />
+          <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
         </div>
       </div>
     </div>

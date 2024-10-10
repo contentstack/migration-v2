@@ -3,7 +3,7 @@ import { FC,useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { getUserDetails, setAuthToken } from '../../store/slice/authSlice';
+import { getUserDetails, setAuthToken, setUser } from '../../store/slice/authSlice';
 import {
   Button,
   Field,
@@ -36,6 +36,7 @@ import AccountPage from '../../components/AccountPage';
 
 // Styles
 import './index.scss';
+import { RootState } from '../../store';
 
 const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
@@ -56,7 +57,7 @@ const Login: FC<IProps> = () => {
   }, []);
 
   const { login, two_factor_authentication: twoFactorAuthentication } = data;
-
+  const user = useSelector((state:RootState)=>state?.authentication?.user);
   const accountData = {
     heading: data?.heading,
     subtitle: data?.subtitle,
@@ -162,7 +163,11 @@ const Login: FC<IProps> = () => {
         authToken: response?.data?.app_token,
         isAuthenticated: true
        }
-
+      const userObj  = {
+        ...user,
+        region : region,
+      }
+      dispatch( setUser(userObj));
       dispatch(setAuthToken(authenticationObj));
 
       setLoginStates((prev) => ({ ...prev, submitted: true }));
@@ -234,24 +239,20 @@ const Login: FC<IProps> = () => {
     };
   };
   
-  useEffect(() => { 
+  useEffect(()=>{ 
     const handlePopState = (event: PopStateEvent) => {
-      if (isBlock) {
-        event.preventDefault();
-        window.history.pushState(null, '', window.location.href);
-      }
+      event.preventDefault();
+      window.history.pushState(null, '', window.location.href);
     };
-  
-    if (isBlock) {
+    if(isBlock){
       window.history.pushState(null, '', window.location.href);
     }
-  
-    window.addEventListener('popstate', handlePopState);
-  
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate',handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [isBlock]);
+  },[isBlock]);
   
   
   return (

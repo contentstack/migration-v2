@@ -29,6 +29,11 @@ const ProfileCard = () => {
         <div className="profile-card__name">{user?.first_name} {user?.last_name}</div>
         <div className="profile-card__email">{user?.email}</div>
       </div>
+
+      <div className="profile-card__email">Region : {user?.region}</div>
+      <div>
+
+      </div>
       <div
         className="profile-card__logout"
         role="button"
