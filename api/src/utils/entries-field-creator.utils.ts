@@ -324,7 +324,7 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
     }
 
     default: {
-      console.info(field?.ContentstackFieldType, 'umesh');
+      console.info(field?.ContentstackFieldType, 'field missing');
       return content;
     }
   }
