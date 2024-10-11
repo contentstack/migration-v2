@@ -264,10 +264,8 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
   return (
     <>
       {isLoading || newMigrationData?.isprojectMapped ? (
-        <div className="leader-container row">
-          <div className="col-12 text-center center-align">
-            <CircularLoader />
-          </div>
+        <div className="loader-container">
+          <CircularLoader />
         </div>
       ) : (
         <div className="legacy-cms-container">

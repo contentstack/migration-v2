@@ -75,49 +75,47 @@ const MigrationExecution = () => {
 
   return (
     isLoading || newMigrationData?.isprojectMapped
-      ? <div className="leader-container row">
-      <div className="col-12 text-center center-align">
+      ? <div className="loader-container">
         <CircularLoader />
       </div>
-    </div>
-    : <div className='migration-step-container'>
-      <div className='content-block'>
-        <div className='content-body'>
-          <p>We have Uploaded CMS, Organization, Selected stack and locale. The actual migration process can be started here.</p>
-          <div className='select-wrapper mt-3'>
-            {MigrationInformation &&
-              validateArray(MigrationInformation) &&
-              MigrationInformation?.map((item, index) => (
-              <div className="select-wrapper" key={`${index.toString()}`}>
-                <Field disabled={item?.disable}>
-                  <FieldLabel className="selectedOptions" htmlFor="label">
-                    {item?.title}
-                  </FieldLabel>
-                  <TextInput
-                    type="text"
-                    isReadOnly
-                    name="stackKey"
-                    value={getPlaceHolder(item?.title)}
-                    version="v2"
-                    // width="regular"
-                  />
-                </Field>
-                {index < MigrationInformation?.length - 1 && (
-                  <Icon className="arrow-wrapper" icon="ArrowRight" size="large" />
-                )}
-              </div>
-            ))}
+      : <div className='migration-step-container'>
+        <div className='content-block'>
+          <div className='content-body'>
+            <p>We have Uploaded CMS, Organization, Selected stack and locale. The actual migration process can be started here.</p>
+            <div className='select-wrapper mt-3'>
+              {MigrationInformation &&
+                validateArray(MigrationInformation) &&
+                MigrationInformation?.map((item, index) => (
+                <div className="select-wrapper" key={`${index.toString()}`}>
+                  <Field disabled={item?.disable}>
+                    <FieldLabel className="selectedOptions" htmlFor="label">
+                      {item?.title}
+                    </FieldLabel>
+                    <TextInput
+                      type="text"
+                      isReadOnly
+                      name="stackKey"
+                      value={getPlaceHolder(item?.title)}
+                      version="v2"
+                      // width="regular"
+                    />
+                  </Field>
+                  {index < MigrationInformation?.length - 1 && (
+                    <Icon className="arrow-wrapper" icon="ArrowRight" size="large" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className='content-block'>
+          <div className='content-header'>Execution Logs</div>
+          <div>
+            <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} />
           </div>
         </div>
       </div>
-
-      <div className='content-block'>
-        <div className='content-header'>Execution Logs</div>
-        <div>
-          <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} />
-        </div>
-      </div>
-    </div>
   );
 };
 
