@@ -145,77 +145,75 @@ const TestMigration = () => {
 
   return (
     isLoading || newMigrationData?.isprojectMapped
-      ? <div className="leader-container row">
-      <div className="col-12 text-center center-align">
+      ? <div className="loader-container">
         <CircularLoader />
       </div>
-    </div>
-    : <div className='migration-step-container'>
-      <div className='content-block'>
-        <div className='content-body'>
-          <p>Test Migration is a step where some content types are migrated in a test stack for review. A user can verify the stack and data. If the data is migrated properly then it can proceed with the final Migration Execution process.</p>
-          <Button
-            className="mt-3"
-            onClick={handleCreateTestStack}
-            version="v2"
-            disabled={newMigrationData?.test_migration?.stack_api_key}
-            isLoading={isStackLoading}
-          >
-            Create Test Stack
-          </Button>
-          {newMigrationData?.test_migration?.stack_api_key &&
-            <Field
-              id="stack"
-              name="stack"
-              className='pt-4'
+      : <div className='migration-step-container'>
+        <div className='content-block'>
+          <div className='content-body'>
+            <p>Test Migration is a step where some content types are migrated in a test stack for review. A user can verify the stack and data. If the data is migrated properly then it can proceed with the final Migration Execution process.</p>
+            <Button
+              className="mt-3"
+              onClick={handleCreateTestStack}
+              version="v2"
+              disabled={newMigrationData?.test_migration?.stack_api_key}
+              isLoading={isStackLoading}
             >
-              <FieldLabel htmlFor="stackKey" version="v2" requiredText="(read only)">
-                Test Stack
-              </FieldLabel>
-              <div className='d-flex align-items-center'>
-                {newMigrationData?.test_migration?.stack_api_key && (
-                  <TextInput
-                    type="text"
-                    isReadOnly
-                    name="stackKey"
-                    value={`${newMigrationData?.test_migration?.stack_api_key}`}
+              Create Test Stack
+            </Button>
+            {newMigrationData?.test_migration?.stack_api_key &&
+              <Field
+                id="stack"
+                name="stack"
+                className='pt-4'
+              >
+                <FieldLabel htmlFor="stackKey" version="v2" requiredText="(read only)">
+                  Test Stack
+                </FieldLabel>
+                <div className='d-flex align-items-center'>
+                  {newMigrationData?.test_migration?.stack_api_key && (
+                    <TextInput
+                      type="text"
+                      isReadOnly
+                      name="stackKey"
+                      value={`${newMigrationData?.test_migration?.stack_api_key}`}
+                      version="v2"
+                      width="medium"
+                    />
+                  )}
+
+                  {newMigrationData?.test_migration?.stack_api_key && (
+                    <Link href={`${newMigrationData?.test_migration?.stack_link}`} target='_blank' className='ml-8'>
+                      <Tooltip content='Stack Link' position="bottom">
+                        <Icon
+                          icon="Link"
+                          size="small"
+                          version="v2"
+                        />
+                      </Tooltip>
+                    </Link>
+                  )}
+
+                  <Button
+                    className="ml-8"
+                    onClick={handleTestMigration}
                     version="v2"
-                    width="medium"
-                  />
-                )}
-
-                {newMigrationData?.test_migration?.stack_api_key && (
-                  <Link href={`${newMigrationData?.test_migration?.stack_link}`} target='_blank' className='ml-8'>
-                    <Tooltip content='Stack Link' position="bottom">
-                      <Icon
-                        icon="Link"
-                        size="small"
-                        version="v2"
-                      />
-                    </Tooltip>
-                  </Link>
-                )}
-
-                <Button
-                  className="ml-8"
-                  onClick={handleTestMigration}
-                  version="v2"
-                  disabled={isMigrationStarted}
-                >
-                  Start Test Migration
-                </Button>
-              </div>
-            </Field>
-          }
+                    disabled={isMigrationStarted}
+                  >
+                    Start Test Migration
+                  </Button>
+                </div>
+              </Field>
+            }
+          </div>
+        </div>
+        <div className='content-block'>
+          <div className='content-header'>Execution Logs</div>
+          <div>
+            <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
+          </div>
         </div>
       </div>
-      <div className='content-block'>
-        <div className='content-header'>Execution Logs</div>
-        <div>
-          <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
-        </div>
-      </div>
-    </div>
   );
 };
 
