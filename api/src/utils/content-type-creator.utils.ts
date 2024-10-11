@@ -1,5 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import logger from './logger.js';
+import { getLogMessage } from './index.js';
+
 interface Group {
   data_type: string;
   display_name?: string; // Assuming item?.contentstackField might be undefined
@@ -406,6 +409,7 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
 };
 
 export const contenTypeMaker = async ({ contentType, destinationStackId }: any) => {
+  const srcFunc = 'contenTypeMaker';
   const ct: ContentType = {
     title: contentType?.contentstackTitle,
     uid: contentType?.contentstackUid,
@@ -451,9 +455,23 @@ export const contenTypeMaker = async ({ contentType, destinationStackId }: any) 
   if (ct?.uid) {
     if (contentType?.type === 'global_field') {
       const globalSave = path.join('sitecoreMigrationData', destinationStackId, 'global_fields');
+      logger.info(
+        getLogMessage(
+          srcFunc,
+          `Global Field ${ct?.uid} has been successfully Transformed.`,
+          {}
+        )
+      )
       await writeGlobalField(ct, globalSave);
     } else {
       const contentSave = path.join('sitecoreMigrationData', destinationStackId, 'content_types');
+      logger.info(
+        getLogMessage(
+          srcFunc,
+          `ContentType ${ct?.uid} has been successfully Transformed.`,
+          {}
+        )
+      )
       await saveContent(ct, contentSave);
     }
   } else {
