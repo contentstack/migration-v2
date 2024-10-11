@@ -13,23 +13,38 @@ const getFileName = (params: { Key: string }) => {
   return obj;
 };
 
-const saveZip = async (zip: any) => {
+const saveZip = async (zip: any, name: string) => {
   try {
+    const newMainFolderName = name;  
     const keys = Object?.keys(zip.files);
-    for await (const filename of keys) {
-      const file = zip?.files?.[filename];
-      if (!file?.dir) { // Ignore directories
-        const filePath = path.join(__dirname, '../../extracted_files', filename);
-        // Ignore __MACOSX folder asynchronously
-        if (!(filePath.includes("__MACOSX"))) {
-          // Ensure the directory exists asynchronously
-          await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-          // Write the file asynchronously
-          const content = await file.async('nodebuffer');
-          await fs.promises.writeFile(filePath, content);
+
+        // Determine if there's a top-level folder in the ZIP archive
+        const hasTopLevelFolder = keys.some(key => key.startsWith('package 45/'));
+
+      for await (const filename of keys) {
+        const file = zip?.files?.[filename];
+        if (!file?.dir) { // Ignore directories
+          let newFilePath = filename;
+
+          if (hasTopLevelFolder) {
+            newFilePath = filename.replace(/^package 45\//, `${newMainFolderName}/`);
+          }
+
+          // Construct the full path where you want to save the file
+          const filePath = path.join(__dirname, '../../extracted_files', newFilePath);
+
+          // Ignore __MACOSX folder asynchronously
+          if (!(filePath.includes("__MACOSX"))) {
+            
+              // Ensure the directory exists asynchronously
+              await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+      
+              const content = await file.async('nodebuffer');
+              await fs.promises.writeFile(filePath, content);
+          }
         }
       }
-    }
+
     return true;
   } catch (err: any) {
     console.error(err);
