@@ -133,7 +133,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
           if (!zipBuffer) {
             throw new Error('No data collected from the stream.');
           }
-          const data = await handleFileProcessing(fileExt, zipBuffer, cmsType);
+          const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,name);
           res.status(data?.status || 200).json(data);
           if (data?.status === 200) {
             const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
@@ -185,7 +185,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
           throw new Error('No data collected from the stream.');
         }
 
-        const data = await handleFileProcessing(fileExt, zipBuffer, cmsType);
+        const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,fileName);
         res.json(data);
         res.send('file valited sucessfully.');
         const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
