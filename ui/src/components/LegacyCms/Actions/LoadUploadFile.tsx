@@ -39,7 +39,7 @@ const FileComponent = ({fileDetails}:Props ) => {
   return (
     <div>
       {fileDetails?.isLocalPath && (!isEmptyString(fileDetails?.localPath) || !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
-        <div>
+        <div className='file-container'>
           <Paragraph tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
           
         </div>
