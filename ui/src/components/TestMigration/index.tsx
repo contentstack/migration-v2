@@ -135,7 +135,13 @@ const TestMigration = () => {
   // Function to update the parent state
   const handleMigrationState = (newState: boolean) => {
     setIsMigrationStarted(newState);
-} ;
+
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      test_migration: { ...newMigrationData?.test_migration, isMigrationStarted: newState }
+    };
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
+  } ;
 
   return (
     isLoading || newMigrationData?.isprojectMapped
