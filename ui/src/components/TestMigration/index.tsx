@@ -34,11 +34,15 @@ const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
   const [isLoading, setIsLoading] = useState(newMigrationData?.isprojectMapped);
   const [isStackLoading, setIsStackLoading] = useState<boolean>(false);
-  const [isMigrationStarted, setIsMigrationStarted] = useState<boolean>(false);
+  const [disableTestMigration, setdisableTestMigration] = useState<boolean>(false);
+
+  const [disableCreateStack, setDisableCreateStack] = useState<boolean>(false);
 
   
   const { projectId = '' } = useParams();
   const dispatch = useDispatch();
+
+  const { create_stack_cta: createStackCta, subtitle, start_migration_cta: startMigrationCta } = data
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -53,6 +57,18 @@ const TestMigration = () => {
         setData({});
       });
   }, []);
+
+  // to disable buttons as per isMigrated state
+  useEffect(() => {
+    if (newMigrationData?.testStacks.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === false) {
+      setDisableCreateStack(true);
+    }
+
+    if (newMigrationData?.testStacks.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
+      setdisableTestMigration(true);
+    }
+  }, [newMigrationData]);
+
 
   // Method to create test stack
   const handleCreateTestStack = async () => {
@@ -91,6 +107,8 @@ const TestMigration = () => {
 
     if (res?.status === 200) {
       setIsStackLoading(false);
+      setDisableCreateStack(true);
+      setdisableTestMigration(false)
       Notification({
         notificationContent: { text: 'Test Stack created successfully' },
         notificationProps: {
@@ -110,14 +128,12 @@ const TestMigration = () => {
     }
   }
 
+  // Method to start test migration
   const handleTestMigration = async () => {
     const testRes = await createTestMigration(
       newMigrationData?.destination_stack?.selectedOrg?.value,
       projectId
     );
-
-    console.log("testRes", testRes);
-    
 
     if (testRes?.status === 200) {
       handleMigrationState(true);
@@ -130,11 +146,19 @@ const TestMigration = () => {
         type: 'message'
       });
     }
+
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      testStacks: [...newMigrationData?.testStacks ?? [], {isMigrated: true, stackUid: newMigrationData?.test_migration?.stack_api_key} ]
+    };
+
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
   }
 
   // Function to update the parent state
   const handleMigrationState = (newState: boolean) => {
-    setIsMigrationStarted(newState);
+    setDisableCreateStack(newState);
+    setdisableTestMigration(!newState)
 
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
@@ -151,17 +175,17 @@ const TestMigration = () => {
       : <div className='migration-step-container'>
         <div className='content-block'>
           <div className='content-body'>
-            <p>Test Migration is a step where some content types are migrated in a test stack for review. A user can verify the stack and data. If the data is migrated properly then it can proceed with the final Migration Execution process.</p>
+            {subtitle && <p>{subtitle}</p> }
             <Button
               className="mt-3"
               onClick={handleCreateTestStack}
               version="v2"
-              disabled={newMigrationData?.test_migration?.stack_api_key}
+              disabled={disableCreateStack}
               isLoading={isStackLoading}
             >
-              Create Test Stack
+              {createStackCta?.title}
             </Button>
-            {newMigrationData?.test_migration?.stack_api_key &&
+            {newMigrationData?.test_migration?.stack_api_key && 
               <Field
                 id="stack"
                 name="stack"
@@ -198,9 +222,9 @@ const TestMigration = () => {
                     className="ml-8"
                     onClick={handleTestMigration}
                     version="v2"
-                    disabled={isMigrationStarted}
+                    disabled={disableTestMigration}
                   >
-                    Start Test Migration
+                    {startMigrationCta?.title}
                   </Button>
                 </div>
               </Field>
