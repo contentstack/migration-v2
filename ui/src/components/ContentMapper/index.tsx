@@ -716,111 +716,116 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
   };
 
   const handleSelectedEntries = (singleSelectedRowIds: string[], selectedData: FieldMapType[]) => {
-    // eslint-disable-next-line no-debugger
-    // debugger
     const selectedObj: UidMap = {};
-    const isChildSelected = false;
+    let Ischild = false;
   
-    // First, mark the explicitly selected row ids
     singleSelectedRowIds.forEach((uid: string) => {
       const isId = selectedData?.some((item) => item?.id === uid);
       if (isId) {
-        console.log("pre loop");
-        
         selectedObj[uid] = true;
       }
     });
   
-    // Handle parent-child relationship for selection
+    // Iterate over each item in selectedData to handle group and child selection logic
     selectedData?.forEach((item) => {
-      
-      const uidBeforeDot = item?.uid?.split('.')[0]; // Extract group UID
+
+      // Extract the group UID if item is child of any group
+      const uidBeforeDot = item?.uid?.split('.')[0];
       const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);
   
       if (groupItem) {
-        // If any child is selected, mark the parent as selected
+        // Mark the group item as selected if any child of group is selected
         selectedObj[groupItem?.id] = true;
       }
   
-      // If the item is a group (parent), handle its child items
+      // If the item is a group, handle its child items
       if (item?.otherCmsType === 'Group') {
-        console.log(item);
-        
-        const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(item?.uid + '.'));
+
+        // Get all child items of the group
+        const newEle = tableData?.filter((entry) => entry?.uid?.startsWith(item?.uid + '.'));
   
-        if (childItems && validateArray(childItems)) {
-          const allChildrenUnselected = childItems.every(child => !selectedObj[child?.id || '']);
-  
-          if (allChildrenUnselected) {
-            // If none of the children are selected, mark all children as unselected
-            childItems.forEach((child) => {
-              selectedObj[child?.id || ''] = false;
+        if (newEle && validateArray(newEle)) {
+          
+          const allChildrenNotSelected = newEle.every(child => !selectedObj[child?.id || '']);
+          if (allChildrenNotSelected) {
+            
+            //if none of the child of group is selected then mark the child items as selected
+            newEle.forEach((child) => {
+              Ischild = true;
+              selectedObj[child?.id || ''] = true;
             });
-          } else {
-            // If the parent is checked, ensure all children are checked
-            if (selectedObj[item?.id]) {
-              childItems.forEach((child) => {
-                selectedObj[child?.id || ''] = true;
-              });
-            }
           }
         }
+      } 
+      else {
+        // If the item is not a group, mark it as selected in selectedObj
+        selectedObj[item?.id] = true;
       }
     });
   
-    // Handle unchecked elements for groups and children
     const uncheckedElements = findUncheckedElement(selectedData, tableData);
-  
-    uncheckedElements && validateArray(uncheckedElements) && uncheckedElements.forEach((field) => {
+ 
+    uncheckedElements && validateArray(uncheckedElements) && uncheckedElements?.forEach((field) => {
       if (field?.otherCmsType === "Group") {
+
+        // Get all child items of the unchecked group
         const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(field?.uid + '.'));
   
         if (childItems && validateArray(childItems)) {
+
+          // Check if all children are selected
           const allChildrenSelected = childItems.every(child => selectedObj[child?.id || '']);
           
           if (allChildrenSelected) {
-            // Uncheck all child items when the group (parent) is unchecked
             childItems.forEach((child) => {
-              selectedObj[child?.id || ''] = false;
+
+              // Remove each child item from selected
+              delete selectedObj[child?.id || ''];
+              
             });
-  
-            // Remove group from selection if all children are unselected
             delete selectedObj[field?.id || ''];
           }
         }
-      } else {
-        const uidBeforeDot = field?.uid?.split('.')[0]; // Extract group UID
+      } 
+      else {
+
+        // Extract the group UID if item is child of any group
+        const uidBeforeDot = field?.uid?.split('.')[0];
         const groupItem = selectedData?.find((entry) => entry?.uid === uidBeforeDot);
         const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
-  
+
         if (childItems && validateArray(childItems)) {
-          const allChildrenDeselected = childItems.every(child => !selectedObj[child?.id || '']);
-  
-          if (allChildrenDeselected) {
+
+          // Check if all children are not selected of group
+          const allChildrenSelected = childItems.every(child => !selectedObj[child?.id || '']);
+          
+          if (allChildrenSelected) {
+            
             childItems.forEach((child) => {
               delete selectedObj[child?.id || ''];
+              
             });
             delete selectedObj[groupItem?.id || ''];
           }
         }
   
-        if (!isChildSelected) {
+        if (!Ischild) {
+
           delete selectedObj[field?.id || ''];
         }
       }
     });
-  
-    // Update tableData with selection status
     const updatedTableData = tableData.map((tableItem) => {
       const found = selectedData.some((selectedItem) => selectedItem.uid === tableItem.uid);
-  
-      // Mark item as deleted if not found in selectedData
+      
+      // Mark the item as deleted if not found in selectedData
       return {
         ...tableItem,
-        isDeleted: !found,
+        isDeleted: !found ? true : false,
       };
     });
   
+
     setRowIds(selectedObj);
     setSelectedEntries(updatedTableData);
   };
