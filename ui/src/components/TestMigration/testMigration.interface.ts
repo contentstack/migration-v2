@@ -1,6 +1,7 @@
 export interface MigrationType {
-  cta?: CTA;
+  create_stack_cta?: CTA;
   subtitle?: string;
+  start_migration_cta?: CTA;
 }
 
 export interface CTA {
