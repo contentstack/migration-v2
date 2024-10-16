@@ -90,9 +90,15 @@ const AdvancePropertise = (props: SchemaProps) => {
    * @param searchText - The search text.
    */
   const fetchContentTypes = async (searchText: string) => {
-    const { data } = await getContentTypes(props?.projectId ?? '', 0, 10, searchText || ''); //org id will always present
+    try {
+      const { data } = await getContentTypes(props?.projectId ?? '', 0, 10, searchText || ''); //org id will always present
 
-    setContentTypes(data?.contentTypes);
+      setContentTypes(data?.contentTypes);
+    } catch (error) {
+      return error;
+      
+    }
+    
   };
 
   /**
