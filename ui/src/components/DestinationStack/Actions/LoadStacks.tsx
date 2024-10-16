@@ -22,7 +22,7 @@ import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stac
 import AddStack from '../../../components/Common/AddStack/addStack';
 
 interface LoadFileFormatProps {
-  stepComponentProps: any;
+  stepComponentProps: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
