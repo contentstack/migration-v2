@@ -89,48 +89,54 @@ const DestinationStackComponent = ({
 
     //If stack is already selected and exist in backend, then fetch all stack list and filter selected stack.
     if (!isEmptyString(destination_stack)) {
-      const stackData: any = await getAllStacksInOrg(
-        selectedOrganisationData?.value || selectedOrganisation?.value,''
-      );
-      const stackArray = validateArray(stackData?.data?.stacks)
-        ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+      try {
+        const stackData: any = await getAllStacksInOrg(
+          selectedOrganisationData?.value || selectedOrganisation?.value,''
+        );
+        const stackArray = validateArray(stackData?.data?.stacks)
+          ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+              label: stack?.name,
+              value: stack?.api_key,
+              uid: stack?.api_key,
+              master_locale: stack?.master_locale,
+              locales: stack?.locales,
+              created_at: stack?.created_at
+            }))
+          : [];
+    
+        stackArray.sort(
+          (a: IDropDown, b: IDropDown) =>
+            new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
+        );
+        const stack =
+          validateArray(stackData?.data?.stacks) &&
+          stackData?.data?.stacks?.find(
+            (stack: StackResponse) => stack?.api_key === destination_stack
+          );
+  
+        if (stack) {
+          selectedStackData = {
             label: stack?.name,
             value: stack?.api_key,
-            uid: stack?.api_key,
             master_locale: stack?.master_locale,
             locales: stack?.locales,
             created_at: stack?.created_at
-          }))
-        : [];
-  
-      stackArray.sort(
-        (a: IDropDown, b: IDropDown) =>
-          new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
-      );
-      const stack =
-        validateArray(stackData?.data?.stacks) &&
-        stackData?.data?.stacks?.find(
-          (stack: StackResponse) => stack?.api_key === destination_stack
-        );
-
-      if (stack) {
-        selectedStackData = {
-          label: stack?.name,
-          value: stack?.api_key,
-          master_locale: stack?.master_locale,
-          locales: stack?.locales,
-          created_at: stack?.created_at
+          };
+        }
+        const newMigData: IDestinationStack = {
+          ...newMigrationData?.destination_stack,
+          selectedOrg: selectedOrganisationData || selectedOrganisation,
+          selectedStack: selectedStackData,
+          stackArray: stackArray
         };
+        
+      } catch (error) {
+        return error;
+        
       }
-      const newMigData: IDestinationStack = {
-        ...newMigrationData?.destination_stack,
-        selectedOrg: selectedOrganisationData || selectedOrganisation,
-        selectedStack: selectedStackData,
-        stackArray: stackArray
-      };
-      //dispatch(updateNewMigrationData({ destination_stack: newMigData }));
+      
+     
     }
-        //Update newMigration Data for destination stack
     
       
     
