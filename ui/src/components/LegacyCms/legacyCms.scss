@@ -11,10 +11,6 @@
   padding-left: $px-40;
 }
 
-.center-align {
-  margin-top: calc(100vh - 65%);
-}
-
 .CircularLoader--size-small {
   width: $px-80 !important;
   height: $px-80 !important;
@@ -163,17 +159,6 @@
 .processing-test{
   margin-top: 5px;
 }
-.leader-container{
-  padding-left: 25px !important;
-  padding-top: 40px;
-  padding-right: 30px;
-
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-height: 70vh;
-  background-color: $color-base-white-10;
-
-}
 .file-container{
   overflow: hidden;
   padding: 0;
@@ -182,5 +167,4 @@
   line-clamp: 2;  
   -webkit-box-orient: vertical;
   width: 540px;
-
 }
