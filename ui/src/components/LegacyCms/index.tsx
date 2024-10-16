@@ -44,7 +44,7 @@ type LegacyCMSComponentProps = {
   handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
-interface AutoVerticalStepperRef {
+export interface AutoVerticalStepperRef {
   handleDynamicStepChange: (stepIndex: number, isLastStep?: boolean) => void;
 }
 
