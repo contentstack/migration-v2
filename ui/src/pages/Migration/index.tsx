@@ -80,19 +80,33 @@ const Migration = () => {
 
    // Function to get exisiting content types list
    const fetchExistingContentTypes = async () => {
-    const { data, status } = await getExistingContentTypes(projectId);
-    if (status === 201) {
-      return data?.contentTypes;
+    try {
+      const { data, status } = await getExistingContentTypes(projectId);
+      if (status === 201) {
+        return data?.contentTypes;
+      }
+      
+    } catch (error) {
+      return error;
+      
     }
+    
   };
 
   // Function to get exisiting global fields list
   const fetchExistingGlobalFields = async () => {
-    const { data, status } = await getExistingGlobalFields(projectId);
+    try {
+      const { data, status } = await getExistingGlobalFields(projectId);
 
-    if (status === 201) {
-      return data?.globalFields;
+      if (status === 201) {
+        return data?.globalFields;
+      }
+      
+    } catch (error) {
+      return error;
+      
     }
+   
   }
 
   const fetchData = async () => {

@@ -86,6 +86,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
   // Filter CMS Data
   const filterCMSData = async (searchText: string) => {
+    try {
+
     const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
     setSelectedCard(cmsType);
     setIsLoading(true);
@@ -153,6 +155,11 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
       dispatch(updateNewMigrationData(newMigrationDataObj));
       props?.handleStepChange(props?.currentStep);
+    }
+      
+    } catch (error) {
+      return error;
+      
     }
     
   };
