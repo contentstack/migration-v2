@@ -16,7 +16,8 @@ import { getAllStacksInOrg } from '../../services/api/stacks.service';
 import { MigrationResponse, StackResponse } from '../../services/api/service.interface';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
-import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+import { updateMigrationData } from '../../store/slice/migrationDataSlice';
+import { AutoVerticalStepperRef } from '../LegacyCms';
 
 type DestinationStackComponentProps = {
   destination_stack: string;
@@ -42,7 +43,7 @@ const DestinationStackComponent = ({
   const [stepperKey] = useState<string>('destination-Vertical-stepper');
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
 
-  const autoVerticalStepperComponent = useRef<any>(null);
+  const autoVerticalStepperComponent = useRef<AutoVerticalStepperRef>(null);
 
   /** ALL CONTEXT HERE */
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);

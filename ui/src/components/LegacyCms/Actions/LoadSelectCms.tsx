@@ -42,7 +42,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [cmsData, setCmsData] = useState<ICMSType[]>([]);
   const [searchText] = useState<string>('');
   //const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
-  const [cmsFilter] = useState<string[]>([]);
   const [cmsType, setCmsType] = useState<ICMSType>(
     newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );

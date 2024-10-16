@@ -1,16 +1,11 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router';
 import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
 import { isEmptyString } from '../../../utilities/functions';
 
-// Services
-import {
-  fileformatConfirmation
-} from '../../../services/api/migration.service';
 
 // Interface
 import { ICardType} from '../../../components/Common/Card/card.interface';
@@ -31,7 +26,6 @@ interface LoadFileFormatProps {
 const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const dispatch = useDispatch();
 
@@ -44,8 +38,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const [fileIcon, setFileIcon]  = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.title);
   const [isError, setIsError] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  
-  const { projectId = '' } = useParams();
 
 
   /****  ALL METHODS HERE  ****/
