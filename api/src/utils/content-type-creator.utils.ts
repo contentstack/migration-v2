@@ -1,5 +1,14 @@
 import fs from 'fs';
 import path from 'path';
+import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
+
+const { 
+  GLOBAL_FIELDS_FILE_NAME,
+  GLOBAL_FIELDS_DIR_NAME,
+  CONTENT_TYPES_DIR_NAME,
+  CONTENT_TYPES_SCHEMA_FILE
+} = MIGRATION_DATA_CONFIG;
+
 interface Group {
   data_type: string;
   display_name?: string; // Assuming item?.contentstackField might be undefined
@@ -352,7 +361,7 @@ const saveContent = async (ct: any, contentSave: string) => {
     const filePath = path.join(process.cwd(), contentSave, `${ct?.uid}.json`);
     await fs.promises.writeFile(filePath, JSON.stringify(ct));
     // Append the content to schema.json
-    const schemaFilePath = path.join(process.cwd(), contentSave, 'schema.json');
+    const schemaFilePath = path.join(process.cwd(), contentSave, CONTENT_TYPES_SCHEMA_FILE);
     let schemaData = [];
     try {
       // Read existing schema.json file if it exists
@@ -376,7 +385,7 @@ const saveContent = async (ct: any, contentSave: string) => {
 
 
 const writeGlobalField = async (schema: any, globalSave: string) => {
-  const filePath = path.join(process.cwd(), globalSave, 'globalfields.json');
+  const filePath = path.join(process.cwd(), globalSave, GLOBAL_FIELDS_FILE_NAME);
   try {
     await fs.promises.access(globalSave);
   } catch (err) {
@@ -450,10 +459,10 @@ export const contenTypeMaker = async ({ contentType, destinationStackId }: any) 
   })
   if (ct?.uid) {
     if (contentType?.type === 'global_field') {
-      const globalSave = path.join('sitecoreMigrationData', destinationStackId, 'global_fields');
+      const globalSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, GLOBAL_FIELDS_DIR_NAME);
       await writeGlobalField(ct, globalSave);
     } else {
-      const contentSave = path.join('sitecoreMigrationData', destinationStackId, 'content_types');
+      const contentSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, CONTENT_TYPES_DIR_NAME);
       await saveContent(ct, contentSave);
     }
   } else {
