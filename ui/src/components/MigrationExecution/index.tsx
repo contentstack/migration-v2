@@ -23,7 +23,6 @@ import LogViewer from '../LogScreen';
 import './index.scss';
 
 const MigrationExecution = () => {
-  //const { migrationData, updateMigrationData, newMigrationData } = useContext(AppContext);
   const dispatch = useDispatch();
 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
