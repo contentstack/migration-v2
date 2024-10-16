@@ -70,7 +70,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   const [showIcon, setShowIcon] = useState<number>();
   const filterRef = useRef<HTMLDivElement | null>(null);
   const [options, setOptions] = useState(props?.value?.options || []);
-  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   
   useEffect(()=>{
     const defaultIndex = toggleStates?.option?.findIndex(
@@ -252,7 +252,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   }
   const handleRemoveDefalutValue = (index:number)=>{
     setShowIcon(-1);
-    setShowOptions((prev) => ({
+    setShowOptions(() => ({
         
       [index]: false, 
     }));
@@ -281,7 +281,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     );
   }
 
-  const handleDragStart = (index:any) => {
+  const handleDragStart = (index: number) => {
     setDraggedIndex(index);
     document.querySelectorAll('.element-wrapper').forEach((el, i) => {
       if (i === index) {
