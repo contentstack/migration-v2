@@ -18,7 +18,7 @@ import {
 import { getContentTypes } from '../../services/api/migration.service';
 
 // Interfaces
-import { SchemaProps } from './advanceProperties.interface'; 
+import { optionsType, SchemaProps } from './advanceProperties.interface'; 
 import { ContentType } from '../ContentMapper/contentMapper.interface';
 
 // Styles
@@ -74,7 +74,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   
   useEffect(()=>{
     const defaultIndex = toggleStates?.option?.findIndex(
-      (item: any) => toggleStates?.Default_value === item?.key
+      (item: optionsType) => toggleStates?.Default_value === item?.key
     );
   
     if (defaultIndex !== -1) {
@@ -219,9 +219,9 @@ const AdvancePropertise = (props: SchemaProps) => {
     }));
   }
  
-  const handleDefalutValue = (index:number, option:any) => {
+  const handleDefalutValue = (index:number, option:optionsType) => {
     setShowIcon(index);
-    setShowOptions((prev) => ({
+    setShowOptions(() => ({
         
       [index]: false, 
     }));
@@ -250,7 +250,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     );
   
   }
-  const handleRemoveDefalutValue = (index:number, option:any)=>{
+  const handleRemoveDefalutValue = (index:number)=>{
     setShowIcon(-1);
     setShowOptions((prev) => ({
         
@@ -290,7 +290,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     });
   };
 
-  const handleDragOver = (e:any, index:number) => {
+  const handleDragOver = (e:React.DragEvent<HTMLDivElement>, index:number) => {
     e.preventDefault(); 
     document.querySelectorAll('.element-wrapper').forEach((el, i) => {
       if (i === index) {
@@ -301,7 +301,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     });
   };
 
-  const handleDrop = (index:any) => {
+  const handleDrop = (index:number) => {
     if (draggedIndex === null) return;
   
      const updatedOptions = [...options]; 
@@ -369,7 +369,7 @@ const AdvancePropertise = (props: SchemaProps) => {
             </FieldLabel>
             <span className='read-only-text'>(read only)</span>
             <div className='dropdown-choices-wrapper'>
-              {options?.map((option:any,index)=>(
+              {options?.map((option: optionsType,index)=>(
               <>
                       <div className='element-wrapper' key={index} draggable
                     onDragStart={() => handleDragStart(index)}
@@ -403,7 +403,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                           onClick={()=>handleDefalutValue(index,option)} >Mark as Default</Button>
                           :
                           <Button version={'v2'} buttonType="light" icon={'v2-CheckSquareOffset'} size={'small'}
-                          onClick={()=>handleRemoveDefalutValue(index,option)} >Remove as Default</Button>
+                          onClick={()=>handleRemoveDefalutValue(index)} >Remove as Default</Button>
                           
                           }
                                                   
@@ -616,9 +616,10 @@ const AdvancePropertise = (props: SchemaProps) => {
                     <Select
                       value={ctValue}
                       isMulti={true}
-                      onChange={(selectedOptions:any) => {
+                      onChange={(selectedOptions:ContentTypeOption[]) => {
+                        console.log(selectedOptions)
                         setCTValue(selectedOptions); 
-                        const embedObject = selectedOptions.map((item: any) => item.label);// Update the state with the selected options
+                        const embedObject = selectedOptions.map((item: optionsType) => item.label);// Update the state with the selected options
                         props?.updateFieldSettings(
                           props?.rowId,
                         {
