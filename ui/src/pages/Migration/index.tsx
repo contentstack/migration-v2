@@ -50,7 +50,6 @@ const Migration = () => {
   const [curreentStepIndex, setCurrentStepIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isProjectMapper, setIsProjectMapper] = useState<boolean>(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const params: Params<string> = useParams();
   const { projectId = '' } = useParams();
@@ -180,6 +179,9 @@ const Migration = () => {
     created_at: '',
     isNewStack: false
   };
+
+  console.log('projectData', projectData);
+  
   
   selectedStackData = {
     label: projectData?.stackDetails?.label,
@@ -408,14 +410,14 @@ const Migration = () => {
   };
 
   const handleOnClickContentMapper = async (event: MouseEvent) => {
-    setIsModalOpen(true);
+    // setIsModalOpen(true);
 
     if(newMigrationData?.content_mapping?.isDropDownChanged) {
       return cbModal({
         component: (props: ModalObj) => (
         <SaveChangesModal
             {...props}
-            isopen={setIsModalOpen}
+            // isopen={setIsModalOpen}
             otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
             saveContentType={saveRef?.current?.handleSaveContentType}
             changeStep={async () => {
