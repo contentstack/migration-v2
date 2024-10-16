@@ -716,119 +716,115 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
   };
 
   const handleSelectedEntries = (singleSelectedRowIds: string[], selectedData: FieldMapType[]) => {
+    // eslint-disable-next-line no-debugger
+    // debugger
     const selectedObj: UidMap = {};
-    let Ischild = false;
+    const isChildSelected = false;
   
+    // First, mark the explicitly selected row ids
     singleSelectedRowIds.forEach((uid: string) => {
       const isId = selectedData?.some((item) => item?.id === uid);
       if (isId) {
+        console.log("pre loop");
+        
         selectedObj[uid] = true;
       }
     });
   
-    // Iterate over each item in selectedData to handle group and child selection logic
+    // Handle parent-child relationship for selection
     selectedData?.forEach((item) => {
-
-      // Extract the group UID if item is child of any group
-      const uidBeforeDot = item?.uid?.split('.')[0];
+      
+      const uidBeforeDot = item?.uid?.split('.')[0]; // Extract group UID
       const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);
   
       if (groupItem) {
-        // Mark the group item as selected if any child of group is selected
+        // If any child is selected, mark the parent as selected
         selectedObj[groupItem?.id] = true;
       }
   
-      // If the item is a group, handle its child items
+      // If the item is a group (parent), handle its child items
       if (item?.otherCmsType === 'Group') {
-
-        // Get all child items of the group
-        const newEle = tableData?.filter((entry) => entry?.uid?.startsWith(item?.uid + '.'));
+        console.log(item);
+        
+        const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(item?.uid + '.'));
   
-        if (newEle && validateArray(newEle)) {
-          
-          const allChildrenNotSelected = newEle.every(child => !selectedObj[child?.id || '']);
-          if (allChildrenNotSelected) {
-            
-            //if none of the child of group is selected then mark the child items as selected
-            newEle.forEach((child) => {
-              Ischild = true;
-              selectedObj[child?.id || ''] = true;
+        if (childItems && validateArray(childItems)) {
+          const allChildrenUnselected = childItems.every(child => !selectedObj[child?.id || '']);
+  
+          if (allChildrenUnselected) {
+            // If none of the children are selected, mark all children as unselected
+            childItems.forEach((child) => {
+              selectedObj[child?.id || ''] = false;
             });
+          } else {
+            // If the parent is checked, ensure all children are checked
+            if (selectedObj[item?.id]) {
+              childItems.forEach((child) => {
+                selectedObj[child?.id || ''] = true;
+              });
+            }
           }
         }
-      } 
-      else {
-        // If the item is not a group, mark it as selected in selectedObj
-        selectedObj[item?.id] = true;
       }
     });
   
+    // Handle unchecked elements for groups and children
     const uncheckedElements = findUncheckedElement(selectedData, tableData);
- 
-    uncheckedElements && validateArray(uncheckedElements) && uncheckedElements?.forEach((field) => {
+  
+    uncheckedElements && validateArray(uncheckedElements) && uncheckedElements.forEach((field) => {
       if (field?.otherCmsType === "Group") {
-
-        // Get all child items of the unchecked group
         const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(field?.uid + '.'));
   
         if (childItems && validateArray(childItems)) {
-
-          // Check if all children are selected
           const allChildrenSelected = childItems.every(child => selectedObj[child?.id || '']);
           
           if (allChildrenSelected) {
+            // Uncheck all child items when the group (parent) is unchecked
             childItems.forEach((child) => {
-
-              // Remove each child item from selected
-              delete selectedObj[child?.id || ''];
-              
+              selectedObj[child?.id || ''] = false;
             });
+  
+            // Remove group from selection if all children are unselected
             delete selectedObj[field?.id || ''];
           }
         }
-      } 
-      else {
-
-        // Extract the group UID if item is child of any group
-        const uidBeforeDot = field?.uid?.split('.')[0];
+      } else {
+        const uidBeforeDot = field?.uid?.split('.')[0]; // Extract group UID
         const groupItem = selectedData?.find((entry) => entry?.uid === uidBeforeDot);
         const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
-
+  
         if (childItems && validateArray(childItems)) {
-
-          // Check if all children are not selected of group
-          const allChildrenSelected = childItems.every(child => !selectedObj[child?.id || '']);
-          
-          if (allChildrenSelected) {
-            
+          const allChildrenDeselected = childItems.every(child => !selectedObj[child?.id || '']);
+  
+          if (allChildrenDeselected) {
             childItems.forEach((child) => {
               delete selectedObj[child?.id || ''];
-              
             });
             delete selectedObj[groupItem?.id || ''];
           }
         }
   
-        if (!Ischild) {
-
+        if (!isChildSelected) {
           delete selectedObj[field?.id || ''];
         }
       }
     });
+  
+    // Update tableData with selection status
     const updatedTableData = tableData.map((tableItem) => {
       const found = selectedData.some((selectedItem) => selectedItem.uid === tableItem.uid);
-      
-      // Mark the item as deleted if not found in selectedData
+  
+      // Mark item as deleted if not found in selectedData
       return {
         ...tableItem,
-        isDeleted: !found ? true : false,
+        isDeleted: !found,
       };
     });
   
-
     setRowIds(selectedObj);
     setSelectedEntries(updatedTableData);
   };
+  
   
  
   // Function to find unchecked field
