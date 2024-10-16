@@ -3,11 +3,23 @@ import path from 'path';
 import read from 'fs-readdir-recursive';
 import { v4 as uuidv4 } from "uuid";
 import _ from 'lodash';
-import { LOCALE_MAPPER } from '../constants/index.js';
+import { LOCALE_MAPPER, MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import { entriesFieldCreator, unflatten } from '../utils/entries-field-creator.utils.js';
 import { orgService } from './org.service.js';
 
 const append = "a";
+
+const baseDirName = MIGRATION_DATA_CONFIG.DATA
+const { 
+  ENTRIES_DIR_NAME,
+  LOCALE_DIR_NAME,
+  LOCALE_MASTER_LOCALE,
+  LOCALE_FILE_NAME,
+  EXPORT_INFO_FILE,
+  ASSETS_DIR_NAME,
+  ASSETS_FILE_NAME,
+  ASSETS_SCHEMA_FILE
+} = MIGRATION_DATA_CONFIG;
 
 const idCorrector = ({ id }: any) => {
   const newId = id?.replace(/[-{}]/g, (match: any) => match === '-' ? '' : '')
@@ -78,7 +90,7 @@ const uidCorrector = ({ uid }: any) => {
 }
 
 const cretaeAssets = async ({ packagePath, baseDir }: any) => {
-  const assetsSave = path.join(baseDir, 'assets');
+  const assetsSave = path.join(baseDir, ASSETS_DIR_NAME);
   const allAssetJSON: any = {};
   const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'media library');
   const entryPath = read?.(folderName);
@@ -147,7 +159,7 @@ const cretaeAssets = async ({ packagePath, baseDir }: any) => {
     path.join(
       process.cwd(),
       assetsSave,
-      'assets.json'
+      ASSETS_FILE_NAME
     ),
     JSON.stringify(fileMeta)
   );
@@ -155,7 +167,7 @@ const cretaeAssets = async ({ packagePath, baseDir }: any) => {
     path.join(
       process.cwd(),
       assetsSave,
-      'index.json'
+      ASSETS_SCHEMA_FILE
     ),
     JSON.stringify(allAssetJSON)
   );
@@ -164,8 +176,8 @@ const cretaeAssets = async ({ packagePath, baseDir }: any) => {
 
 const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us', destinationStackId }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string }) => {
   try {
-    const baseDir = path.join('sitecoreMigrationData', destinationStackId);
-    const entrySave = path.join(baseDir, 'entries');
+    const baseDir = path.join(baseDirName, destinationStackId);
+    const entrySave = path.join(baseDir, ENTRIES_DIR_NAME);
     const allAssetJSON: any = await cretaeAssets({ packagePath, baseDir });
     const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'content');
     const entriesData: any = [];
@@ -244,8 +256,8 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
 }
 
 const createLocale = async (req: any, destinationStackId: string) => {
-  const baseDir = path.join('sitecoreMigrationData', destinationStackId);
-  const localeSave = path.join(baseDir, 'locale');
+  const baseDir = path.join(baseDirName, destinationStackId);
+  const localeSave = path.join(baseDir, LOCALE_DIR_NAME);
   const allLocalesResp = await orgService.getLocales(req)
   const masterLocale = Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
   const msLocale: any = {};
@@ -268,8 +280,8 @@ const createLocale = async (req: any, destinationStackId: string) => {
       }
     }
   }
-  const masterPath = path.join(localeSave, 'master-locale.json');
-  const allLocalePath = path.join(localeSave, 'locales.json');
+  const masterPath = path.join(localeSave, LOCALE_MASTER_LOCALE);
+  const allLocalePath = path.join(localeSave, LOCALE_FILE_NAME);
   fs.access(localeSave, async (err) => {
     if (err) {
       fs.mkdir(localeSave, { recursive: true }, async (err) => {
@@ -286,8 +298,8 @@ const createLocale = async (req: any, destinationStackId: string) => {
 }
 
 const createVersionFile = async (destinationStackId: string) => {
-  const baseDir = path.join('sitecoreMigrationData', destinationStackId);
-  fs.writeFile(path?.join?.(baseDir, 'export-info.json'), JSON.stringify({
+  const baseDir = path.join(baseDirName, destinationStackId);
+  fs.writeFile(path?.join?.(baseDir, EXPORT_INFO_FILE), JSON.stringify({
     "contentVersion": 2,
     "logsPath": ""
   }), (err) => {

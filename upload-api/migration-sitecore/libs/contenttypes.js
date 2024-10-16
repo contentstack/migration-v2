@@ -4,10 +4,19 @@ const _ = require("lodash");
 const read = require("fs-readdir-recursive");
 const helper = require("../utils/helper");
 const restrictedUid = require("../utils");
+const { MIGRATION_DATA_CONFIG } = require("../constants/index");
+
 const extraField = "title";
 const configChecker = path?.join('content', 'Common', 'Configuration');
 const append = "a";
 let config = {};
+
+const {
+  DATA_MAPPER_DIR,
+  DATA_MAPPER_CONFIG_FILE,
+  DATA_MAPPER_CONFIG_TREE_FILE,
+  CONTENT_TYPES_DIR_NAME
+} = MIGRATION_DATA_CONFIG;
 
 
 function isKeyPresent(keyToFind, timeZones) {
@@ -81,7 +90,7 @@ const templateStandardValues = ({ components }) => {
 const contentTypeKeyMapper = ({ template, contentType, contentTypeKey = "contentTypeKey" }) => {
   let keyMapper = {};
   const keys = helper.readFile(
-    path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', `${contentTypeKey}.json`)
+    path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, `${contentTypeKey}.json`)
   );
   if (keys) {
     keyMapper = keys;
@@ -90,8 +99,8 @@ const contentTypeKeyMapper = ({ template, contentType, contentTypeKey = "content
   helper.writeFile(
     path.join(
       process.cwd(),
-      'sitecoreMigrationData',
-      'MapperData'
+      MIGRATION_DATA_CONFIG.DATA,
+      DATA_MAPPER_DIR
     ),
     JSON.stringify(keyMapper, null, 4),
     contentTypeKey,
@@ -360,10 +369,10 @@ const groupFlat = (data, item) => {
 
 const contentTypeMapper = ({ components, standardValues, content_type, basePath, sitecore_folder, affix }) => {
   const source = helper.readFile(
-    path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'configuration.json')
+    path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, DATA_MAPPER_CONFIG_FILE)
   );
   const sourceTree = helper.readFile(
-    path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'configurationTree.json')
+    path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, DATA_MAPPER_CONFIG_TREE_FILE)
   );
   let mainSchema = [];
   components?.forEach((item) => {
@@ -558,7 +567,7 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder, a
     helper?.writeFile(
       path.join(
         process.cwd(),
-        'sitecoreMigrationData', 'content_types',
+        MIGRATION_DATA_CONFIG.DATA, CONTENT_TYPES_DIR_NAME,
       ),
       JSON.stringify(contentType, null, 4),
       contentType?.contentstackUid,
