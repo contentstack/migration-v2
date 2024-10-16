@@ -37,7 +37,6 @@ const TestMigration = () => {
   const [disableTestMigration, setdisableTestMigration] = useState<boolean>(false);
 
   const [disableCreateStack, setDisableCreateStack] = useState<boolean>(false);
-
   
   const { projectId = '' } = useParams();
   const dispatch = useDispatch();
@@ -75,22 +74,26 @@ const TestMigration = () => {
     setIsStackLoading(true);
 
     //get org plan details
-    const orgDetails = await getOrgDetails(selectedOrganisation?.value);
-    const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features).find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
+    try {
+      const orgDetails = await getOrgDetails(selectedOrganisation?.value);
+      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features).find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
 
-    const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
+      const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
 
-    const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
+      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
         
-    const stack_count = stackData?.data?.stacks?.length;
+      const stack_count = stackData?.data?.stacks?.length;
 
-    if (stack_count >= max_stack_limit) {
-      // setIsLoading(false);
-      Notification({
-        notificationContent: { text: 'You have reached the maximum limit of stacks for your organization' },
-        type: 'warning'
-      });
-      return;
+      if (stack_count >= max_stack_limit) {
+        // setIsLoading(false);
+        Notification({
+          notificationContent: { text: 'You have reached the maximum limit of stacks for your organization' },
+          type: 'warning'
+        });
+        return;
+      }
+    } catch (error) {
+      return error;
     }
 
     const data = {
@@ -98,60 +101,66 @@ const TestMigration = () => {
       description: 'test migration stack',
       master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
     };
+    
+    try {
+      const res = await createTestStack(
+        newMigrationData?.destination_stack?.selectedOrg?.value,
+        projectId,
+        data
+      );
 
-    const res = await createTestStack(
-      newMigrationData?.destination_stack?.selectedOrg?.value,
-      projectId,
-      data
-    );
-
-    if (res?.status === 200) {
-      setIsStackLoading(false);
-      setDisableCreateStack(true);
-      setdisableTestMigration(false)
-      Notification({
-        notificationContent: { text: 'Test Stack created successfully' },
-        notificationProps: {
-          position: 'bottom-center',
-          hideProgressBar: true
-        },
-        type: 'success'
-      });
+      if (res?.status === 200) {
+        setIsStackLoading(false);
+        setDisableCreateStack(true);
+        setdisableTestMigration(false)
+        Notification({
+          notificationContent: { text: 'Test Stack created successfully' },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: true
+          },
+          type: 'success'
+        });
 
 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
-      };
-
-      dispatch(updateNewMigrationData((newMigrationDataObj)));
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
+        };
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
+      }
+    } catch (err) {
+      return err;
     }
   }
 
   // Method to start test migration
   const handleTestMigration = async () => {
-    const testRes = await createTestMigration(
-      newMigrationData?.destination_stack?.selectedOrg?.value,
-      projectId
-    );
+    try {
+      const testRes = await createTestMigration(
+        newMigrationData?.destination_stack?.selectedOrg?.value,
+        projectId
+      );
 
-    if (testRes?.status === 200) {
-      handleMigrationState(true);
-      Notification({
-        notificationContent: { text: 'Test Migration started' },
-        notificationProps: {
-          position: 'bottom-center',
-          hideProgressBar: false
-        },
-        type: 'message'
-      });
+      if (testRes?.status === 200) {
+        handleMigrationState(true);
+        Notification({
+          notificationContent: { text: 'Test Migration started' },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: false
+          },
+          type: 'message'
+        });
+      }
+    } catch (error) {
+      return error;
     }
 
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       testStacks: [...newMigrationData?.testStacks ?? [], {isMigrated: true, stackUid: newMigrationData?.test_migration?.stack_api_key} ]
     };
-
     dispatch(updateNewMigrationData((newMigrationDataObj)));
   }
 
