@@ -210,8 +210,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     value: contentTypeMapped?.[otherCmsTitle] || `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
   });
   const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
-  const [isContentTypeMapped, setIsContentTypeMapped] = useState<boolean>(false);
-  const [isContentTypeSaved, setIsContentTypeSaved] = useState<boolean>(false);
+  
   const [advancePropertise, setAdvancePropertise] = useState<Advanced>({
     validationRegex: '',
     Mandatory: false,
@@ -219,9 +218,6 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     Unique: false,
     NonLocalizable: false
   });
-  const [isLocalised, setIsLocalised] = useState<boolean>(
-    newMigrationData?.destination_stack?.selectedStack?.locales?.length > 1
-  );
 
   const [active, setActive] = useState<number>(0);
 
@@ -814,7 +810,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
           rowId={rowId}
           value={fieldvalue}
           fieldtype={fieldtype}
-          isLocalised={isLocalised}
+          isLocalised={newMigrationData?.destination_stack?.selectedStack?.locales?.length > 1}
           updateFieldSettings={updateFieldSettings}
           data={data}
           projectId={projectId}
@@ -1443,8 +1439,6 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
             type: 'success'
           });
           setIsDropDownChanged(false);
-          setIsContentTypeMapped(true);
-          setIsContentTypeSaved(true);
 
           const newMigrationDataObj: INewMigration = {
             ...newMigrationData,
