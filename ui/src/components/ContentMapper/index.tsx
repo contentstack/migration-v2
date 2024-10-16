@@ -770,6 +770,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     setSelectedEntries(updatedTableData);
   };
   
+  
  
   // Function to find unchecked field
   const findUncheckedElement = (selectedData: FieldMapType[], tableData: FieldMapType[]) => {
