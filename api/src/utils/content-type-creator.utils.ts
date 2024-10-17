@@ -1,5 +1,14 @@
 import fs from 'fs';
 import path from 'path';
+import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
+
+const { 
+  GLOBAL_FIELDS_FILE_NAME,
+  GLOBAL_FIELDS_DIR_NAME,
+  CONTENT_TYPES_DIR_NAME,
+  CONTENT_TYPES_SCHEMA_FILE
+} = MIGRATION_DATA_CONFIG;
+
 interface Group {
   data_type: string;
   display_name?: string; // Assuming item?.contentstackField might be undefined
@@ -29,7 +38,7 @@ function extractValue(input: string, prefix: string, anoter: string): any {
 const arrangGroups = ({ schema }: any) => {
   const dtSchema: any = [];
   schema?.forEach((item: any) => {
-    if (item?.ContentstackFieldType === 'group') {
+    if (item?.contentstackFieldType === 'group') {
       const groupSchema: any = { ...item, schema: [] }
       schema?.forEach((et: any) => {
         if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`)) {
@@ -48,7 +57,7 @@ const arrangGroups = ({ schema }: any) => {
 
 const convertToSchemaFormate = ({ field, advanced = true }: any) => {
   // console.info("🚀 ~ convertToSchemaFormate ~ field:", field)
-  switch (field?.ContentstackFieldType) {
+  switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
         "data_type": "text",
@@ -322,7 +331,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     }
 
     default: {
-      if (field?.ContentstackFieldType) {
+      if (field?.contentstackFieldType) {
         return {
           "display_name": field?.title,
           "uid": field?.uid,
@@ -352,7 +361,7 @@ const saveContent = async (ct: any, contentSave: string) => {
     const filePath = path.join(process.cwd(), contentSave, `${ct?.uid}.json`);
     await fs.promises.writeFile(filePath, JSON.stringify(ct));
     // Append the content to schema.json
-    const schemaFilePath = path.join(process.cwd(), contentSave, 'schema.json');
+    const schemaFilePath = path.join(process.cwd(), contentSave, CONTENT_TYPES_SCHEMA_FILE);
     let schemaData = [];
     try {
       // Read existing schema.json file if it exists
@@ -376,7 +385,7 @@ const saveContent = async (ct: any, contentSave: string) => {
 
 
 const writeGlobalField = async (schema: any, globalSave: string) => {
-  const filePath = path.join(process.cwd(), globalSave, 'globalfields.json');
+  const filePath = path.join(process.cwd(), globalSave, GLOBAL_FIELDS_FILE_NAME);
   try {
     await fs.promises.access(globalSave);
   } catch (err) {
@@ -413,7 +422,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId }: any) 
   }
   const ctData: any = arrangGroups({ schema: contentType?.fieldMapping })
   ctData?.forEach((item: any) => {
-    if (item?.ContentstackFieldType === 'group') {
+    if (item?.contentstackFieldType === 'group') {
       const group: Group = {
         "data_type": "group",
         "display_name": item?.contentstackField,
@@ -450,10 +459,10 @@ export const contenTypeMaker = async ({ contentType, destinationStackId }: any) 
   })
   if (ct?.uid) {
     if (contentType?.type === 'global_field') {
-      const globalSave = path.join('sitecoreMigrationData', destinationStackId, 'global_fields');
+      const globalSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, GLOBAL_FIELDS_DIR_NAME);
       await writeGlobalField(ct, globalSave);
     } else {
-      const contentSave = path.join('sitecoreMigrationData', destinationStackId, 'content_types');
+      const contentSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, CONTENT_TYPES_DIR_NAME);
       await saveContent(ct, contentSave);
     }
   } else {

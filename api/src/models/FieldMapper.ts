@@ -30,7 +30,7 @@ interface FieldMapper {
     otherCmsType: string;
     contentstackField: string;
     contentstackFieldUid: string;
-    ContentstackFieldType: string;
+    contentstackFieldType: string;
     isDeleted: boolean;
     backupFieldType: string;
     refrenceTo: { uid: string; title: string };

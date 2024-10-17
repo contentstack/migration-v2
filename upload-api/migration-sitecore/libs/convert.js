@@ -10,15 +10,16 @@ const read = require("fs-readdir-recursive");
  * Internal module Dependencies.
  */
 const helper = require("../utils/helper");
+const { MIGRATION_DATA_CONFIG } = require("../constants/index");
 const config = {
-  "data": "./sitecoreMigrationData",
+  "data": "./"+MIGRATION_DATA_CONFIG.DATA,
   "backup": "./backupMigrationData",
   "xml_filename": "",
   "sitecore_folder": "",
   "json_file": "",
   "json_filename": "data.json",
   "table_prefix": "wp_",
-  "entryfolder": "entries",
+  "entryfolder": MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME,
 }
 /**
  * Create folders and files if they are not created
