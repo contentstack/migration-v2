@@ -155,7 +155,7 @@ const dummy_obj:MappingFields = {
       'Select':'select'
     }
   },
-  'CheckBox': {
+  'checkBox': {
     label:'Select',
     options: {'Select':'checkbox'}
   },
@@ -203,7 +203,7 @@ const Fields: Mapping = {
   reference: 'Reference',
   dropdown: 'dropdown',
   radio: 'Select',
-  CheckBox: 'Select',
+  checkBox: 'Select',
   global_field: 'Global'
 };
 
@@ -844,7 +844,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     setFieldValue(value);
     const updatedRows: FieldMapType[] = tableData?.map((row) => {
       if (row?.uid === rowIndex) {
-        return { ...row, ContentstackFieldType: value?.value };
+        return { ...row, contentstackFieldType: value?.value };
       }
       return row;
     });
@@ -890,8 +890,8 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     //const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
     const OptionsForRow = dummy_obj?.[data?.backupFieldType]?.options ;
     const initialOption = {
-      label: dummy_obj?.[data?.ContentstackFieldType]?.label,
-      value: dummy_obj?.[data?.ContentstackFieldType]?.label,
+      label: dummy_obj?.[data?.contentstackFieldType]?.label,
+      value: dummy_obj?.[data?.contentstackFieldType]?.label,
     };
     let option: FieldTypes[];
     if (Array.isArray(OptionsForRow)) {
@@ -913,8 +913,8 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
       option = [{ label: OptionsForRow, value: OptionsForRow }]
     }
 
-    const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
-      ? data?.ContentstackFieldType : initialOption?.label
+    const fieldLabel = data?.contentstackFieldType === 'url' || data?.contentstackFieldType === 'group'
+      ? data?.contentstackFieldType : initialOption?.label
     
     return (
       <div className="table-row">
@@ -1063,7 +1063,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     let groupId = '';
     const data: FieldMapType[] = [];
     schema?.forEach((field: FieldMapType) => {
-      if (field?.ContentstackFieldType === 'group') {
+      if (field?.contentstackFieldType === 'group') {
         groupId = field?.uid;
         data?.push({ ...field, child: [] });
       } else if (field?.uid?.startsWith(groupId + '.')) {
@@ -1217,8 +1217,8 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     const OptionsForEachRow = dummy_obj?.[data?.backupFieldType]?.options;
 
     const initialOption = {
-      label: dummy_obj?.[data?.ContentstackFieldType]?.label,
-      value: dummy_obj?.[data?.ContentstackFieldType]?.label,
+      label: dummy_obj?.[data?.contentstackFieldType]?.label,
+      value: dummy_obj?.[data?.contentstackFieldType]?.label,
     };
   
     const fieldsOfContentstack: Mapping = {
@@ -1371,11 +1371,11 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
         : (OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) 
           && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ))
           ? {
-            label: dummy_obj[data?.ContentstackFieldType]?.label,
-            value: dummy_obj[data?.ContentstackFieldType]?.label,
-            isDisabled: data?.ContentstackFieldType === 'text' ||
-              data?.ContentstackFieldType === 'group' ||
-              data?.ContentstackFieldType === 'url' ||
+            label: dummy_obj[data?.contentstackFieldType]?.label,
+            value: dummy_obj[data?.contentstackFieldType]?.label,
+            isDisabled: data?.contentstackFieldType === 'text' ||
+              data?.contentstackFieldType === 'group' ||
+              data?.contentstackFieldType === 'url' ||
               data?.otherCmsType === "reference"
           }
           : {
@@ -1385,7 +1385,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
         };
     
     const adjustedOptions = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
-      (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === dummy_obj[data?.ContentstackFieldType]?.label) ? []
+      (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === dummy_obj[data?.contentstackFieldType]?.label) ? []
       : OptionsForRow.map((option: OptionsType) => ({
         ...option,
         isDisabled: selectedOptions.includes(option?.label ?? '')
@@ -1556,7 +1556,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
     setIsDropDownChanged(false);
    
     const updatedRows: FieldMapType[] = tableData.map((row) => {
-      return { ...row, ContentstackFieldType: row.backupFieldType };
+      return { ...row, contentstackFieldType: row.backupFieldType };
     });
     setTableData(updatedRows);
 

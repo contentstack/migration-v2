@@ -217,7 +217,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
               entryObj.uid = uid;
               for await (const field of entry?.fields?.field ?? []) {
                 for await (const fsc of ctType?.fieldMapping ?? []) {
-                  if (fsc?.ContentstackFieldType !== 'group' && !field?.$?.key?.includes('__')) {
+                  if (fsc?.contentstackFieldType !== 'group' && !field?.$?.key?.includes('__')) {
                     if (fsc?.contentstackFieldUid === 'title') {
                       entryObj[fsc?.contentstackFieldUid] = entry?.meta?.name;
                     }
