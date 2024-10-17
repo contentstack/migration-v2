@@ -4,7 +4,7 @@ import shell from 'shelljs'
 import { v4 } from "uuid";
 import { setLogFilePath } from "../server.js";
 import { copyDirectory, createDirectoryAndFile } from '../utils/index.js'
-import { CS_REGIONS } from "../constants/index.js";
+import { CS_REGIONS, MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import AuthenticationModel from "../models/authentication.js";
 
@@ -32,10 +32,11 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
       .find({ region: regionPresent, user_id })
       .value();
     if (userData?.authtoken && stack_uid) {
-      const sourcePath = path.join(process.cwd(), 'sitecoreMigrationData', stack_uid);
-      const backupPath = path.join(process.cwd(), 'migration-data', `${stack_uid}_${v4().slice(0, 4)}`);
+      const { BACKUP_DATA, BACKUP_LOG_DIR, BACKUP_FOLDER_NAME, BACKUP_FILE_NAME}  = MIGRATION_DATA_CONFIG;
+      const sourcePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, stack_uid);
+      const backupPath = path.join(process.cwd(), BACKUP_DATA, `${stack_uid}_${v4().slice(0, 4)}`);
       await copyDirectory(sourcePath, backupPath);
-      const loggerPath = path.join(backupPath, 'logs', 'import', 'success.log');
+      const loggerPath = path.join(backupPath, BACKUP_LOG_DIR, BACKUP_FOLDER_NAME, BACKUP_FILE_NAME);
       createDirectoryAndFile(loggerPath);
       await setLogFilePath(loggerPath);
       shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));

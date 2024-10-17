@@ -51,7 +51,7 @@ export interface ContentType {
 }
 
 export interface FieldMapType {
-  ContentstackFieldType: string;
+  contentstackFieldType: string;
   child?: FieldMapType[] | undefined;
   backupFieldType: string;
   contentstackField: string;
