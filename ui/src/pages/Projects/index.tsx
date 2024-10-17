@@ -62,12 +62,18 @@ const Projects = () => {
   const fetchProjects = async () => {
        setLoadStatus(true); 
     if (selectedOrganisation?.value) {
-      const { data, status } = await getAllProjects(selectedOrganisation?.value || ''); //org id will always present
-      if (status === 200) {
-        setLoadStatus(false);
-        setProjects(data);
-        setAllProjects(data);
+      try {
+        const { data, status } = await getAllProjects(selectedOrganisation?.value || ''); //org id will always present
+        if (status === 200) {
+          setLoadStatus(false);
+          setProjects(data);
+          setAllProjects(data);
+        }
+        
+      } catch (error) {
+        return error
       }
+      
     }
   };
 

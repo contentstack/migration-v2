@@ -9,7 +9,7 @@ import {
 
 interface Props {
   closeModal: () => void;
-  isopen: (flag: boolean) => void;
+  isopen?: (flag: boolean) => void;
   otherCmsTitle?: string;
   saveContentType?: () => void;
   openContentType?: () => void;
@@ -24,7 +24,7 @@ const SaveChangesModal = (props: Props) => {
         title={'Save Changes'}
         closeModal={() => {
           props?.closeModal();
-          props.isopen(false);
+          props?.isopen?.(false);
         }}
         className="text-capitalize"
       />
@@ -33,14 +33,14 @@ const SaveChangesModal = (props: Props) => {
       </ModalBody>
       <ModalFooter>
         <ButtonGroup>
-          <Button buttonType="light"version={"v2"}  onClick={() => {props.closeModal(); props.isopen(false)}}> 
+          <Button buttonType="light"version={"v2"}  onClick={() => {props.closeModal(); props?.isopen?.(false)}}> 
             Cancel
           </Button>
           <Button buttonType="secondary"version={"v2"}  onClick={() => {
             props.closeModal(); 
             props?.dropdownStateChange();
             props.openContentType?.();
-            props.isopen(false);
+            props?.isopen?.(false);
             props?.changeStep?.();
           }}
           > 

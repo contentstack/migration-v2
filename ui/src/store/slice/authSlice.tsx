@@ -1,9 +1,8 @@
 //redux dependencies
 import { createAsyncThunk, createSlice} from '@reduxjs/toolkit';
-import { useNavigate } from 'react-router';
 
 //initial values from app interface
-import { DEFAULT_ORGANISATION,DEFAULT_USER, IDropDown, DEFAULT_DROPDOWN  } from './../../context/app/app.interface';
+import { DEFAULT_USER, IDropDown, DEFAULT_DROPDOWN  } from './../../context/app/app.interface';
 
 //utilities
 import { clearLocalStorage, getDataFromLocalStorage, isEmptyString, validateArray } from '../../utilities/functions';
@@ -81,7 +80,7 @@ const authSlice = createSlice({
         },
         setUser : (state, action) => {
           state.user = {
-            ...state.user,             
+            ...state?.user,             
             ...action?.payload,        
           };
         },
@@ -103,10 +102,10 @@ const authSlice = createSlice({
 
     },
     extraReducers: (builder) => {
-        builder.addCase(getUserDetails?.fulfilled,(state, action:any)=>{          
+        builder.addCase(getUserDetails?.fulfilled,(state, action)=>{          
           state.user = {
-            ...state.user,          
-            ...action.payload.user, 
+            ...state?.user,          
+            ...action?.payload?.user, 
           };
             state.organisationsList = action?.payload?.organisationsList;
             state.selectedOrganisation = action?.payload?.selectedOrganisation ;

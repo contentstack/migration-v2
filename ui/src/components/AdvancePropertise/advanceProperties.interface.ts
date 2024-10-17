@@ -235,3 +235,9 @@ export interface StateType {
    */
   embedAssests?: boolean;
 }
+
+export interface optionsType{
+  label?:string;
+  key?:string;
+  value:string
+}

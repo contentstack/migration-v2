@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { IDropDown, INewMigration } from '../../../context/app/app.interface';
 import { TextInput } from '@contentstack/venus-components';
@@ -8,13 +8,7 @@ import { isEmptyString } from '../../../utilities/functions';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
-interface LoadOrganisationProps {
-  stepComponentProps: any;
-  currentStep: number;
-  handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
-}
-
-const LoadOrganisation = (props: LoadOrganisationProps) => {
+const LoadOrganisation = () => {
   /****  ALL HOOKS HERE  ****/
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
@@ -34,11 +28,11 @@ const LoadOrganisation = (props: LoadOrganisationProps) => {
   /****  ALL USEEffects  HERE  ****/
 
   useEffect(() => {
-    const org = !isEmptyString(newMigrationData.destination_stack.selectedOrg.label)
+    const org :IDropDown = !isEmptyString(newMigrationData.destination_stack.selectedOrg.label)
       ? newMigrationData?.destination_stack?.selectedOrg
       : selectedOrganisation;
 
-    setSelectedOrg(org as any);
+    setSelectedOrg(org);
 
     setNewMigrationData({
       ...newMigrationData,

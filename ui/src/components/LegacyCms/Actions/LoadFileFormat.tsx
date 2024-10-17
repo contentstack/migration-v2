@@ -1,16 +1,11 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router';
 import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
 import { isEmptyString } from '../../../utilities/functions';
 
-// Services
-import {
-  fileformatConfirmation
-} from '../../../services/api/migration.service';
 
 // Interface
 import { ICardType} from '../../../components/Common/Card/card.interface';
@@ -31,7 +26,6 @@ interface LoadFileFormatProps {
 const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const dispatch = useDispatch();
 
@@ -44,8 +38,6 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const [fileIcon, setFileIcon]  = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.title);
   const [isError, setIsError] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  
-  const { projectId = '' } = useParams();
 
 
   /****  ALL METHODS HERE  ****/
@@ -74,51 +66,58 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   };
 
   const handleFileFormat = async() =>{
-    const {data} = await getConfig();
+    try {
+      const {data} = await getConfig();
     
-    const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : data?.cmsType?.toLowerCase();
-    const filePath = data?.localPath?.toLowerCase();
-    const fileFormat =  getFileExtension(filePath);
-    if(! isEmptyString(selectedCard?.fileformat_id)){
-      setFileIcon(selectedCard?.title);
-    }
-    else{
-      const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
-      let filteredCmsData:ICMSType[] = all_cms;
-      if (cmsType) {
-        filteredCmsData = all_cms?.filter((cms) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase());
+      const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : data?.cmsType?.toLowerCase();
+      const filePath = data?.localPath?.toLowerCase();
+      const fileFormat =  getFileExtension(filePath);
+      if(! isEmptyString(selectedCard?.fileformat_id)){
+        setFileIcon(selectedCard?.title);
       }
+      else{
+        const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
+        let filteredCmsData:ICMSType[] = all_cms;
+        if (cmsType) {
+          filteredCmsData = all_cms?.filter((cms) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase());
+        }
+    
+        const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format:ICardType)=>{ 
+          const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();    
+          return isValid;
+        });
+   
+        if(!isFormatValid){
+          setIsError(true);
+          setError('File format does not support, please add the correct file format.');
+        }
+    
+        const selectedFileFormatObj = {
+          description: "",
+          fileformat_id: fileFormat,
+          group_name: fileFormat,
+          isactive: true,
+          title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
+        }
+        
+        const newMigrationDataObj = {
+          ...newMigrationData,
+          legacy_cms: {
+            ...newMigrationData?.legacy_cms,
+            selectedFileFormat: selectedFileFormatObj
+          }
+        };
+      
+        setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1) : fileFormat?.toUpperCase());
+        dispatch(updateNewMigrationData(newMigrationDataObj));
   
-      const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find((format:ICardType)=>{ 
-        const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();    
-        return isValid;
-      });
- 
-      if(!isFormatValid){
-        setIsError(true);
-        setError('File format does not support, please add the correct file format.');
-      }
-  
-      const selectedFileFormatObj = {
-        description: "",
-        fileformat_id: fileFormat,
-        group_name: fileFormat,
-        isactive: true,
-        title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
       }
       
-      const newMigrationDataObj = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData?.legacy_cms,
-          selectedFileFormat: selectedFileFormatObj
-        }
-      };
-    
-      setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1) : fileFormat?.toUpperCase());
-      dispatch(updateNewMigrationData(newMigrationDataObj));
-
+    } catch (error) {
+       return error;
+      
     }
+   
   }
   
   /****  ALL USEEffects  HERE  ****/
