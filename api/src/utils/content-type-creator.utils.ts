@@ -38,7 +38,7 @@ function extractValue(input: string, prefix: string, anoter: string): any {
 const arrangGroups = ({ schema }: any) => {
   const dtSchema: any = [];
   schema?.forEach((item: any) => {
-    if (item?.ContentstackFieldType === 'group') {
+    if (item?.contentstackFieldType === 'group') {
       const groupSchema: any = { ...item, schema: [] }
       schema?.forEach((et: any) => {
         if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`)) {
@@ -57,7 +57,7 @@ const arrangGroups = ({ schema }: any) => {
 
 const convertToSchemaFormate = ({ field, advanced = true }: any) => {
   // console.info("🚀 ~ convertToSchemaFormate ~ field:", field)
-  switch (field?.ContentstackFieldType) {
+  switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
         "data_type": "text",
@@ -331,7 +331,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     }
 
     default: {
-      if (field?.ContentstackFieldType) {
+      if (field?.contentstackFieldType) {
         return {
           "display_name": field?.title,
           "uid": field?.uid,
@@ -422,7 +422,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId }: any) 
   }
   const ctData: any = arrangGroups({ schema: contentType?.fieldMapping })
   ctData?.forEach((item: any) => {
-    if (item?.ContentstackFieldType === 'group') {
+    if (item?.contentstackFieldType === 'group') {
       const group: Group = {
         "data_type": "group",
         "display_name": item?.contentstackField,

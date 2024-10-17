@@ -124,7 +124,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "single_line_text",
+        "contentstackFieldType": "single_line_text",
         "backupFieldType": "single_line_text",
         "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
@@ -138,7 +138,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "boolean",
+        "contentstackFieldType": "boolean",
         "backupFieldType": "boolean",
         "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
@@ -151,7 +151,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "json",
+        "contentstackFieldType": "json",
         "backupFieldType": "json",
         "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
@@ -165,7 +165,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "dropdown",
+        "contentstackFieldType": "dropdown",
         "backupFieldType": "dropdown",
         "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null, Multiple: false }
       }
@@ -178,7 +178,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "file",
+        "contentstackFieldType": "file",
         "backupFieldType": "file",
         "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
@@ -192,7 +192,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "link",
+        "contentstackFieldType": "link",
         "backupFieldType": "link",
         "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
@@ -206,7 +206,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "multi_line_text",
+        "contentstackFieldType": "multi_line_text",
         "backupFieldType": "multi_line_text",
         "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
@@ -222,7 +222,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "number",
+        "contentstackFieldType": "number",
         "backupFieldType": "number",
         "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
@@ -238,7 +238,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "isodate",
+        "contentstackFieldType": "isodate",
         "backupFieldType": "isodate",
         "advanced": { Default_value: default_value !== "" ? default_value : null }
       }
@@ -253,7 +253,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
           "otherCmsType": type,
           "contentstackField": name,
           "contentstackFieldUid": uid,
-          "ContentstackFieldType": "dropdown",
+          "contentstackFieldType": "dropdown",
           "backupFieldType": "dropdown",
           "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null, Multiple: false }
         }
@@ -269,7 +269,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
           "otherCmsType": type,
           "contentstackField": name,
           "contentstackFieldUid": uid,
-          "ContentstackFieldType": "reference",
+          "contentstackFieldType": "reference",
           "backupFieldType": "reference"
         }
       }
@@ -283,7 +283,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "reference",
+        "contentstackFieldType": "reference",
         "backupFieldType": "reference"
       }
     }
@@ -348,7 +348,7 @@ const groupFlat = (data, item) => {
       otherCmsType: 'Group',
       contentstackField: item?.meta?.name,
       contentstackFieldUid: uidCorrector({ uid: item?.meta?.key }),
-      ContentstackFieldType: 'group',
+      contentstackFieldType: 'group',
       backupFieldType: 'group'
     }
     flat?.push(group);
@@ -490,7 +490,7 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
           "otherCmsType": "text",
           "contentstackField": "Url",
           "contentstackFieldUid": "url",
-          "ContentstackFieldType": "url",
+          "contentstackFieldType": "url",
           "backupFieldType": "url"
         })
     }
@@ -504,7 +504,7 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
         "otherCmsType": "text",
         "contentstackField": "Title",
         "contentstackFieldUid": "title",
-        "ContentstackFieldType": "text",
+        "contentstackFieldType": "text",
         "backupFieldType": "text"
       })
     }
