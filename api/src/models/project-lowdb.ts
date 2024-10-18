@@ -63,7 +63,7 @@ interface Project {
   test_stacks: [];
   current_test_stack_id: string;
   legacy_cms: LegacyCMS;
-  content_mapper: [];
+  content_mapper: any[];
   execution_log: [ExecutionLog];
   created_at: string;
   updated_at: string;

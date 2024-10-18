@@ -19,14 +19,15 @@ import migrationRoutes from "./routes/migration.routes.js";
 import chokidar from "chokidar";
 import { Server } from "socket.io";
 import fs from "fs";
+import path from "path";
 
 // Initialize file watcher for the log file
 const watcher = chokidar.watch(config.LOG_FILE_PATH, {
   usePolling: true,     // Enables polling to detect changes in all environments
-  interval: 100,        // Poll every 100ms (you can adjust this if needed)
+  interval: 1,        // Poll every 100ms (you can adjust this if needed)
   awaitWriteFinish: {   // Wait for file to finish being written before triggering
-    stabilityThreshold: 500,  // Time to wait before considering the file stable
-    pollInterval: 100,        // Interval at which to poll for file stability
+    stabilityThreshold: 1,  // Time to wait before considering the file stable
+    pollInterval: 1,        // Interval at which to poll for file stability
   },
   persistent: true,     // Keeps watching the file even after initial change
 }); // Initialize with initial log path
@@ -34,15 +35,32 @@ const watcher = chokidar.watch(config.LOG_FILE_PATH, {
 let io: Server; // Socket.IO server instance
 
 // Dynamically change the log file path and update the watcher
-export async function setLogFilePath(path: string) {
-  console.info(`Setting new log file path: ${path}`);
+export async function setLogFilePath(newPath: string) {
+  try {
+    // Ensure the new log file path is absolute and valid
+    const absolutePath = path.resolve(newPath);
+    console.info(`Attempting to set new log file path: ${absolutePath}`);
+    // Check if the new log file exists
+    // Stop watching the old log file
+    if (config.LOG_FILE_PATH) {
+      console.info(`Stopping watcher for previous log file: ${config.LOG_FILE_PATH}`);
+      watcher.unwatch(config.LOG_FILE_PATH);
+    }
+    // Update the config to use the new log file path
+    config.LOG_FILE_PATH = absolutePath;
 
-  // Stop watching the old log file
-  watcher.unwatch(config.LOG_FILE_PATH);
+    // Start watching the new log file
+    console.info(`Starting watcher for new log file: ${absolutePath}`);
+    watcher.add(absolutePath);
 
-  // Update the config and start watching the new log file
-  config.LOG_FILE_PATH = path;
-  watcher.add(path);
+  } catch (error: any) {
+    console.error(`Failed to set new log file path: ${error.message}`);
+    // Optional: fallback to default or previous log file if the new path is invalid
+    if (config.LOG_FILE_PATH) {
+      console.info(`Reverting to previous log file path: ${config.LOG_FILE_PATH}`);
+      watcher.add(config.LOG_FILE_PATH); // Re-watch previous log file
+    }
+  }
 }
 
 try {
@@ -99,26 +117,20 @@ try {
     });
 
     // Emit initial log file content to connected clients
-
-    // File watcher for log file changes
-    watcher.on("change", (path) => {
+    //  File watcher for log file changes
+    watcher.on("change", async (path) => {
       console.info(`File changed: ${path}`);
       // Read the updated file content
-      fs.readFile(path, "utf8", (err, data) => {
-        if (err) {
-          logger.error(`Error reading log file: ${err}`);
-          return;
-        }
-        try {
-          // Emit the updated log content to connected clients
-          io.emit("logUpdate", data);
-        } catch (error) {
-          logger.error(`Error emitting log data: ${error}`);
-        }
-      });
+      try {
+        const data = await fs.promises.readFile(path, "utf8")
+        // Emit the updated log content to connected clients
+        io.emit("logUpdate", data);
+      } catch (error) {
+        logger.error(`Error emitting log data: ${error}`);
+      }
     });
-
   })();
+
 } catch (e) {
   logger.error("Error while starting the server!");
   logger.error(e);
