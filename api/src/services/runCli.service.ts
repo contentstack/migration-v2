@@ -2,11 +2,12 @@ import path from "path";
 import fs from 'fs';
 import shell from 'shelljs'
 import { v4 } from "uuid";
-import { setLogFilePath } from "../server.js";
 import { copyDirectory, createDirectoryAndFile } from '../utils/index.js'
 import { CS_REGIONS } from "../constants/index.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import AuthenticationModel from "../models/authentication.js";
+import watchLogs from "../utils/watch.utils.js";
+import { setLogFilePath } from "../server.js";
 
 const addCustomMessageInCliLogs = async (loggerPath: string, level: string = 'info', message: string) => {
   try {
@@ -22,8 +23,7 @@ const addCustomMessageInCliLogs = async (loggerPath: string, level: string = 'in
   }
 }
 
-
-export const runCli = async (rg: string, user_id: string, stack_uid: any, projectId: string, isTest = false) => {
+export const runCli = async (rg: string, user_id: string, stack_uid: any, projectId: string, isTest = false, transformePath: string) => {
   try {
     const regionPresent = CS_REGIONS?.find((item: string) => item === rg) ?? 'NA';
     await AuthenticationModel.read();
@@ -36,10 +36,10 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
       const backupPath = path.join(process.cwd(), 'migration-data', `${stack_uid}_${v4().slice(0, 4)}`);
       await copyDirectory(sourcePath, backupPath);
       const loggerPath = path.join(backupPath, 'logs', 'import', 'success.log');
-      createDirectoryAndFile(loggerPath);
+      await createDirectoryAndFile(loggerPath, transformePath);
       await setLogFilePath(loggerPath);
+      await watchLogs(loggerPath, transformePath);
       shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));
-      shell.exec('pwd');
       shell.exec(`node bin/run config:set:region ${regionPresent}`);
       shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
       const importData = shell.exec(`node bin/run cm:stacks:import  -k ${stack_uid} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
