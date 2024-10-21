@@ -34,6 +34,7 @@ const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
   const contentTypes = req.body.contentTypes;
 
+
   await FieldMapperModel.read();
 
   /*
@@ -61,7 +62,7 @@ const putTestData = async (req: Request) => {
   });
 
   await ContentTypesMapperModelLowdb.read();
-  const contentIds: string[] = [];
+  const contentIds: any[] = [];
 
   /*
   this code snippet is iterating over an array called contentTypes and 
@@ -70,7 +71,7 @@ const putTestData = async (req: Request) => {
   and the generated id values are pushed into the contentIds array.
   */
   const contentType = contentTypes.map((item: any) => {
-    const id = item?.id.replace(/[{}]/g, "")?.toLowerCase() || uuidv4();
+    const id = item?.id?.replace(/[{}]/g, "")?.toLowerCase() || uuidv4();
     item.id = id;
     contentIds.push(id);
     return { ...item, id, projectId };
@@ -88,11 +89,12 @@ const putTestData = async (req: Request) => {
     .get("projects")
     .findIndex({ id: projectId })
     .value();
-  if (index > -1) {
-    ProjectModelLowdb.update((data: any) => {
-      data.projects[index].content_mapper = contentIds;
-      data.projects[index].extract_path = req?.body?.extractPath;
-    });
+  if (index > -1 && contentIds?.length) {
+    ProjectModelLowdb.data.projects[index].content_mapper = contentIds;
+    ProjectModelLowdb.data.projects[index].extract_path = req?.body?.extractPath;
+    ProjectModelLowdb.write();
+  } else {
+    throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
   }
 
   const pData = ProjectModelLowdb.chain
@@ -900,7 +902,7 @@ const getSingleGlobalField = async (req: Request) => {
       },
     })
   );
-  
+
   if (err)
     return {
       data: err.response.data,
