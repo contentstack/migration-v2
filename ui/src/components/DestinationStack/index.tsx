@@ -16,7 +16,8 @@ import { getAllStacksInOrg } from '../../services/api/stacks.service';
 import { MigrationResponse, StackResponse } from '../../services/api/service.interface';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
-import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+import { updateMigrationData } from '../../store/slice/migrationDataSlice';
+import { AutoVerticalStepperRef } from '../LegacyCms';
 
 type DestinationStackComponentProps = {
   destination_stack: string;
@@ -42,7 +43,7 @@ const DestinationStackComponent = ({
   const [stepperKey] = useState<string>('destination-Vertical-stepper');
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
 
-  const autoVerticalStepperComponent = useRef<any>(null);
+  const autoVerticalStepperComponent = useRef<AutoVerticalStepperRef>(null);
 
   /** ALL CONTEXT HERE */
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -89,48 +90,54 @@ const DestinationStackComponent = ({
 
     //If stack is already selected and exist in backend, then fetch all stack list and filter selected stack.
     if (!isEmptyString(destination_stack)) {
-      const stackData: any = await getAllStacksInOrg(
-        selectedOrganisationData?.value || selectedOrganisation?.value,''
-      );
-      const stackArray = validateArray(stackData?.data?.stacks)
-        ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+      try {
+        const stackData: any = await getAllStacksInOrg(
+          selectedOrganisationData?.value || selectedOrganisation?.value,''
+        );
+        const stackArray = validateArray(stackData?.data?.stacks)
+          ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+              label: stack?.name,
+              value: stack?.api_key,
+              uid: stack?.api_key,
+              master_locale: stack?.master_locale,
+              locales: stack?.locales,
+              created_at: stack?.created_at
+            }))
+          : [];
+    
+        stackArray.sort(
+          (a: IDropDown, b: IDropDown) =>
+            new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
+        );
+        const stack =
+          validateArray(stackData?.data?.stacks) &&
+          stackData?.data?.stacks?.find(
+            (stack: StackResponse) => stack?.api_key === destination_stack
+          );
+  
+        if (stack) {
+          selectedStackData = {
             label: stack?.name,
             value: stack?.api_key,
-            uid: stack?.api_key,
             master_locale: stack?.master_locale,
             locales: stack?.locales,
             created_at: stack?.created_at
-          }))
-        : [];
-  
-      stackArray.sort(
-        (a: IDropDown, b: IDropDown) =>
-          new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
-      );
-      const stack =
-        validateArray(stackData?.data?.stacks) &&
-        stackData?.data?.stacks?.find(
-          (stack: StackResponse) => stack?.api_key === destination_stack
-        );
-
-      if (stack) {
-        selectedStackData = {
-          label: stack?.name,
-          value: stack?.api_key,
-          master_locale: stack?.master_locale,
-          locales: stack?.locales,
-          created_at: stack?.created_at
+          };
+        }
+        const newMigData: IDestinationStack = {
+          ...newMigrationData?.destination_stack,
+          selectedOrg: selectedOrganisationData || selectedOrganisation,
+          selectedStack: selectedStackData,
+          stackArray: stackArray
         };
+        
+      } catch (error) {
+        return error;
+        
       }
-      const newMigData: IDestinationStack = {
-        ...newMigrationData?.destination_stack,
-        selectedOrg: selectedOrganisationData || selectedOrganisation,
-        selectedStack: selectedStackData,
-        stackArray: stackArray
-      };
-      //dispatch(updateNewMigrationData({ destination_stack: newMigData }));
+      
+     
     }
-        //Update newMigration Data for destination stack
     
       
     
@@ -208,10 +215,8 @@ const DestinationStackComponent = ({
   return (
     <>
       {isLoading || newMigrationData?.isprojectMapped ? (
-        <div className=" leader-container row">
-          <div className="col-12 text-center center-align">
-            <CircularLoader />
-          </div>
+        <div className="loader-container">
+          <CircularLoader />
         </div>
       ) : (
         <div className="destination-stack-container">
