@@ -179,8 +179,6 @@ const Migration = () => {
     created_at: '',
     isNewStack: false
   };
-
-  console.log('projectData', projectData);
   
   
   selectedStackData = {
@@ -214,7 +212,8 @@ const Migration = () => {
             },
             isLocalPath: projectData?.legacy_cms?.is_localPath
           },
-          isValidated: projectData?.legacy_cms?.is_fileValid 
+          isValidated: projectData?.legacy_cms?.is_fileValid,
+          reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
         },
         isFileFormatCheckboxChecked: true, 
         isRestictedKeywordCheckboxChecked: true,
@@ -239,7 +238,8 @@ const Migration = () => {
         isMigrationComplete: false
       },
       stackDetails: projectData?.stackDetails,
-      testStacks: projectData?.test_stacks
+      testStacks: projectData?.test_stacks,
+      project_current_step: projectData?.current_step,
     };
 
     dispatch(updateNewMigrationData(projectMapper));
@@ -271,7 +271,7 @@ const Migration = () => {
         title:'Destination Stack'
       },
       {
-        data: <ContentMapper ref={saveRef} />,
+        data: <ContentMapper ref={saveRef} handleStepChange={handleStepChange}/>,
         id:'3',
         title:'Content Mapping'
       },
