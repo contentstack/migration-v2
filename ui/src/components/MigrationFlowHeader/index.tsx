@@ -71,7 +71,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
         aria-label='Save and Continue'
         isLoading={isLoading}
         disabled={(params?.stepId === '4' && !newMigrationData?.test_migration?.isMigrationComplete) ||
-           (params?.stepId && params?.stepId <= '2' && currentStep > 2)
+           (params?.stepId && params?.stepId <= '2' && currentStep.toString() !== params?.stepId)
         }
       >
         {stepValue}
