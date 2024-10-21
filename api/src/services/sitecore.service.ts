@@ -6,6 +6,9 @@ import _ from 'lodash';
 import { LOCALE_MAPPER } from '../constants/index.js';
 import { entriesFieldCreator, unflatten } from '../utils/entries-field-creator.utils.js';
 import { orgService } from './org.service.js';
+import { getLogMessage } from '../utils/index.js';
+import customLogger from '../utils/custom-logger.utils.js';
+
 
 const append = "a";
 
@@ -77,7 +80,8 @@ const uidCorrector = ({ uid }: any) => {
   return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
 }
 
-const cretaeAssets = async ({ packagePath, baseDir }: any) => {
+const cretaeAssets = async ({ packagePath, baseDir, destinationStackId, projectId }: any) => {
+  const srcFunc = 'cretaeAssets';
   const assetsSave = path.join(baseDir, 'assets');
   const allAssetJSON: any = {};
   const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'media library');
@@ -121,6 +125,13 @@ const cretaeAssets = async ({ packagePath, baseDir }: any) => {
               , assets)
           } catch (err) {
             console.error("🚀 ~ file: assets.js:52 ~ xml_folder?.forEach ~ err:", err)
+            const message = getLogMessage(
+              srcFunc,
+              `Not able to read the asset"${jsonAsset?.item?.$?.name}(${mestaData?.uid})".`,
+              {},
+              err
+            )
+            await customLogger(projectId, destinationStackId, 'error', message);
           }
           allAssetJSON[mestaData?.uid] = {
             urlPath: `/assets/${mestaData?.uid}`,
@@ -135,9 +146,20 @@ const cretaeAssets = async ({ packagePath, baseDir }: any) => {
             publish_details: [],
             assetPath
           }
+          const message = getLogMessage(
+            srcFunc,
+            `Asset "${jsonAsset?.item?.$?.name}" has been successfully transformed.`,
+            {}
+          )
+          await customLogger(projectId, destinationStackId, 'info', message);
           allAssetJSON[mestaData?.uid].parent_uid = '2146b0cee522cc3a38d'
         } else {
-          console.info('blob is not there for this asstes', mestaData?.uid, '.')
+          const message = getLogMessage(
+            srcFunc,
+            `Asset "${jsonAsset?.item?.$?.name}" blob is not there for this asstes.`,
+            {}
+          )
+          await customLogger(projectId, destinationStackId, 'error', message);
         }
       }
     }
@@ -162,11 +184,12 @@ const cretaeAssets = async ({ packagePath, baseDir }: any) => {
   return allAssetJSON;
 }
 
-const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us', destinationStackId }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string }) => {
+const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us', destinationStackId, projectId }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string, projectId: string }) => {
   try {
+    const srcFunc = 'createEntry';
     const baseDir = path.join('sitecoreMigrationData', destinationStackId);
     const entrySave = path.join(baseDir, 'entries');
-    const allAssetJSON: any = await cretaeAssets({ packagePath, baseDir });
+    const allAssetJSON: any = await cretaeAssets({ packagePath, baseDir, destinationStackId, projectId });
     const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'content');
     const entriesData: any = [];
     if (fs.existsSync(folderName)) {
@@ -192,6 +215,12 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
       }
     }
     for await (const ctType of contentTypes) {
+      const message = getLogMessage(
+        srcFunc,
+        `Transforming entries of Content Type ${ctType?.contentstackUid} has begun.`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
       const entryPresent: any = entriesData?.find((item: any) => uidCorrector({ uid: item?.template }) === ctType?.contentstackUid)
       if (entryPresent) {
         const locales: any = Object?.keys(entryPresent?.locale);
@@ -221,6 +250,12 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
               }
               if (Object.keys?.(entryObj)?.length > 1) {
                 entryLocale[uid] = unflatten(entryObj) ?? {};
+                const message = getLogMessage(
+                  srcFunc,
+                  `Entry title "${entryObj?.title}"(${ctType?.contentstackUid}) in the ${newLocale} locale has been successfully transformed.`,
+                  {}
+                )
+                await customLogger(projectId, destinationStackId, 'info', message)
               }
             });
           }
@@ -234,6 +269,12 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
           await writeFiles(entryPath, fileMeta, entryLocale, newLocale)
         }
       } else {
+        const message = getLogMessage(
+          srcFunc,
+          `No entries found for the content type ${ctType?.contentstackUid}.`,
+          {}
+        )
+        await customLogger(projectId, destinationStackId, 'error', message)
         console.info('Entries missing for', ctType?.contentstackUid)
       }
     }
@@ -243,46 +284,69 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
   }
 }
 
-const createLocale = async (req: any, destinationStackId: string) => {
-  const baseDir = path.join('sitecoreMigrationData', destinationStackId);
-  const localeSave = path.join(baseDir, 'locale');
-  const allLocalesResp = await orgService.getLocales(req)
-  const masterLocale = Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
-  const msLocale: any = {};
-  const uid = uuidv4();
-  msLocale[uid] = {
-    "code": masterLocale,
-    "fallback_locale": null,
-    "uid": uid,
-    "name": allLocalesResp?.data?.locales?.[masterLocale] ?? ''
-  }
-  const allLocales: any = {};
-  for (const [key, value] of Object.entries(LOCALE_MAPPER)) {
-    const localeUid = uuidv4();
-    if (key !== 'masterLocale' && typeof value === 'string') {
-      allLocales[localeUid] = {
-        "code": value,
-        "fallback_locale": masterLocale,
-        "uid": localeUid,
-        "name": allLocalesResp?.data?.locales?.[value] ?? ''
+const createLocale = async (req: any, destinationStackId: string, projectId: string) => {
+  const srcFunc = 'createLocale';
+  try {
+    const baseDir = path.join('sitecoreMigrationData', destinationStackId);
+    const localeSave = path.join(baseDir, 'locale');
+    const allLocalesResp = await orgService.getLocales(req)
+    const masterLocale = Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
+    const msLocale: any = {};
+    const uid = uuidv4();
+    msLocale[uid] = {
+      "code": masterLocale,
+      "fallback_locale": null,
+      "uid": uid,
+      "name": allLocalesResp?.data?.locales?.[masterLocale] ?? ''
+    }
+    const message = getLogMessage(
+      srcFunc,
+      `Master locale ${masterLocale} has been successfully transformed.`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+    const allLocales: any = {};
+    for (const [key, value] of Object.entries(LOCALE_MAPPER)) {
+      const localeUid = uuidv4();
+      if (key !== 'masterLocale' && typeof value === 'string') {
+        allLocales[localeUid] = {
+          "code": value,
+          "fallback_locale": masterLocale,
+          "uid": localeUid,
+          "name": allLocalesResp?.data?.locales?.[value] ?? ''
+        }
+        const message = getLogMessage(
+          srcFunc,
+          `locale ${value} has been successfully transformed.`,
+          {}
+        )
+        await customLogger(projectId, destinationStackId, 'info', message);
       }
     }
+    const masterPath = path.join(localeSave, 'master-locale.json');
+    const allLocalePath = path.join(localeSave, 'locales.json');
+    fs.access(localeSave, async (err) => {
+      if (err) {
+        fs.mkdir(localeSave, { recursive: true }, async (err) => {
+          if (!err) {
+            await writeOneFile(masterPath, msLocale);
+            await writeOneFile(allLocalePath, allLocales);
+          }
+        })
+      } else {
+        await writeOneFile(masterPath, msLocale);
+        await writeOneFile(allLocalePath, allLocales);
+      }
+    })
+  } catch (err) {
+    const message = getLogMessage(
+      srcFunc,
+      `error while Createing the locales.`,
+      {},
+      err
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
   }
-  const masterPath = path.join(localeSave, 'master-locale.json');
-  const allLocalePath = path.join(localeSave, 'locales.json');
-  fs.access(localeSave, async (err) => {
-    if (err) {
-      fs.mkdir(localeSave, { recursive: true }, async (err) => {
-        if (!err) {
-          await writeOneFile(masterPath, msLocale);
-          await writeOneFile(allLocalePath, allLocales);
-        }
-      })
-    } else {
-      await writeOneFile(masterPath, msLocale);
-      await writeOneFile(allLocalePath, allLocales);
-    }
-  })
 }
 
 const createVersionFile = async (destinationStackId: string) => {

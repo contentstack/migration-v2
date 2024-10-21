@@ -1,4 +1,5 @@
 import { Request } from "express";
+import path from "path";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import { config } from "../config/index.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
@@ -12,6 +13,9 @@ import { fieldAttacher } from "../utils/field-attacher.utils.js";
 import { siteCoreService } from "./sitecore.service.js";
 import { testFolderCreator } from "../utils/test-folder-creator.utils.js";
 import { utilsCli } from './runCli.service.js';
+import customLogger from "../utils/custom-logger.utils.js";
+import { setLogFilePath } from "../server.js";
+
 
 
 
@@ -208,12 +212,16 @@ const startTestMigration = async (req: Request): Promise<any> => {
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const packagePath = project?.extract_path;
   if (packagePath && project?.current_test_stack_id) {
+    const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.current_test_stack_id}.log`);
+    const message = getLogMessage('startTestMigration', 'Starting Test Migration...', {});
+    await customLogger(projectId, project?.current_test_stack_id, 'info', message);
+    await setLogFilePath(loggerPath);
     const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
-    await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id });
-    await siteCoreService?.createLocale(req, project?.current_test_stack_id);
+    await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id, projectId });
+    await siteCoreService?.createLocale(req, project?.current_test_stack_id, projectId);
     await siteCoreService?.createVersionFile(project?.current_test_stack_id);
     await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
-    await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true);
+    await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
   }
 }
 
@@ -230,11 +238,15 @@ const startMigration = async (req: Request): Promise<any> => {
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const packagePath = project?.extract_path;
   if (packagePath && project?.destination_stack_id) {
+    const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.destination_stack_id}.log`);
+    const message = getLogMessage('startTestMigration', 'Starting Migration...', {});
+    await customLogger(projectId, project?.destination_stack_id, 'info', message);
+    await setLogFilePath(loggerPath);
     const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.destination_stack_id });
-    await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id });
-    await siteCoreService?.createLocale(req, project?.destination_stack_id);
+    await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id, projectId });
+    await siteCoreService?.createLocale(req, project?.destination_stack_id, projectId);
     await siteCoreService?.createVersionFile(project?.destination_stack_id);
-    await utilsCli?.runCli(region, user_id, project?.destination_stack_id, projectId);
+    await utilsCli?.runCli(region, user_id, project?.destination_stack_id, projectId, false, loggerPath);
   }
 }
 

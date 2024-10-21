@@ -11,8 +11,8 @@ import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice'
 const LoadOrganisation = () => {
   /****  ALL HOOKS HERE  ****/
 
-  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
 
   const dispatch = useDispatch();
 
@@ -23,7 +23,7 @@ const LoadOrganisation = () => {
   const setNewMigrationData = (data: INewMigration) => {
     dispatch(updateNewMigrationData((data)));
   };
-   
+
 
   /****  ALL USEEffects  HERE  ****/
 
@@ -42,10 +42,10 @@ const LoadOrganisation = () => {
       }
     });
   }, []);
-  
+
   return (
     <div className="action-content-wrapper p-3">
-      <TextInput 
+      <TextInput
         version={'v2'}
         value={selectedOrg?.label || 'Organisation'}
         width="600px"

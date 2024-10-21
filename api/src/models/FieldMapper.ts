@@ -1,5 +1,6 @@
 import { JSONFile } from "lowdb/node";
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
+import path from "path";
 
 /**
  * Represents the advanced configuration options for a field mapper.
@@ -44,7 +45,7 @@ const defaultData: FieldMapper = { field_mapper: [] };
  * Represents the database instance for the FieldMapper model.
  */
 const db = new LowWithLodash(
-  new JSONFile<FieldMapper>("database/field-mapper.json"),
+  new JSONFile<FieldMapper>(path.join(process.cwd(), "database", "field-mapper.json")),
   defaultData
 );
 
