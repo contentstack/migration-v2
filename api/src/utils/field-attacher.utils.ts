@@ -27,7 +27,7 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId }: an
           return field;
         })
       }
-      await contenTypeMaker({ contentType, destinationStackId })
+      await contenTypeMaker({ contentType, destinationStackId, projectId })
       contentTypes?.push?.(contentType);
     }
   }
