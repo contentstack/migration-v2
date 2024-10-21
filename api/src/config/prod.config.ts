@@ -14,5 +14,5 @@ export const prodConfig = {
     GCP_NA: "https://gcp-na-app.contentstack.com/#!",
   },
   LOG_FILE_PATH:
-    process.platform === "win32" ? ".\\combine.log" : "./combine.log", // Replace with the actual path to your log file
+    process.platform === "win32" ? ".\\sample.log" : "./sample.log", // Replace with the actual path to your log file
 };
