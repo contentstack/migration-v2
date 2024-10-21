@@ -1,5 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import logger from './logger.js';
+import { getLogMessage } from './index.js';
+import customLogger from './custom-logger.utils.js';
+
 interface Group {
   data_type: string;
   display_name?: string; // Assuming item?.contentstackField might be undefined
@@ -47,7 +51,7 @@ const arrangGroups = ({ schema }: any) => {
 }
 
 const convertToSchemaFormate = ({ field, advanced = true }: any) => {
-  // console.info("🚀 ~ convertToSchemaFormate ~ field:", field)
+
   switch (field?.ContentstackFieldType) {
     case 'single_line_text': {
       return {
@@ -405,7 +409,8 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
 };
 
-export const contenTypeMaker = async ({ contentType, destinationStackId }: any) => {
+export const contenTypeMaker = async ({ contentType, destinationStackId, projectId }: any) => {
+  const srcFunc = 'contenTypeMaker';
   const ct: ContentType = {
     title: contentType?.contentstackTitle,
     uid: contentType?.contentstackUid,
@@ -451,9 +456,13 @@ export const contenTypeMaker = async ({ contentType, destinationStackId }: any) 
   if (ct?.uid) {
     if (contentType?.type === 'global_field') {
       const globalSave = path.join('sitecoreMigrationData', destinationStackId, 'global_fields');
+      const message = getLogMessage(srcFunc, `Global Field ${ct?.uid} has been successfully Transformed.`, {});
+      await customLogger(projectId, destinationStackId, 'info', message);
       await writeGlobalField(ct, globalSave);
     } else {
       const contentSave = path.join('sitecoreMigrationData', destinationStackId, 'content_types');
+      const message = getLogMessage(srcFunc, `ContentType ${ct?.uid} has been successfully Transformed.`, {});
+      await customLogger(projectId, destinationStackId, 'info', message);
       await saveContent(ct, contentSave);
     }
   } else {
