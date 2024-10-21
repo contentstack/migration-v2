@@ -1,7 +1,7 @@
 // Libraries
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   InfiniteScrollTable,
   Select,
@@ -12,7 +12,8 @@ import {
   Notification,
   cbModal,
   InstructionText,
-  CircularLoader
+  CircularLoader,
+  EmptyState
 } from '@contentstack/venus-components';
 
 // Services
@@ -66,7 +67,7 @@ import SaveChangesModal from '../Common/SaveChangesModal';
 
 // Styles and Assets
 import './index.scss';
-import { SCHEMA_PREVIEW } from '../../common/assets';
+import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
 
 const Fields: MappingFields = {
   'single_line_text':{
@@ -165,8 +166,11 @@ const Fields: MappingFields = {
   }
 
 }
+type contentMapperProps  = {
+  handleStepChange: (currentStep: number) => void;
+}
 
-const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSaveHandles>) => {
+const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: React.ForwardedRef<ContentTypeSaveHandles>) => {
   /** ALL CONTEXT HERE */
 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -241,9 +245,12 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
   const isNewStack = newMigrationData?.stackDetails?.isNewStack;
   const [isFieldDeleted, setIsFieldDeleted] = useState<boolean>(false);
   const [isContentDeleted, setIsContentDeleted] = useState<boolean>(false);
+  const [isProjectMapped, setIsProjectMapped] = useState(newMigrationData?.isprojectMapped);
+
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
+  const navigate = useNavigate();
 
   const filterRef = useRef<HTMLDivElement | null>(null);
 
@@ -464,7 +471,7 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
   const fetchContentTypes = async (searchText: string) => {
     try {
       const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
-      
+
       setContentTypes(data?.contentTypes);
       setCount(data?.contentTypes?.length);
       setFilteredContentTypes(data?.contentTypes);
@@ -1781,13 +1788,21 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
   //variable for button component in table
   const onlyIcon= true;
 
+  const modalProps = {
+    body: 'There is something error occured while generating content mapper. Please go to Legacy Cms step and validate the file again.',
+    isCancel : false,
+    header: "",
+  }
+
   return (
-    isLoading || newMigrationData?.isprojectMapped
+    isLoading || newMigrationData?.isprojectMapped 
       ? <div className="loader-container">
         <CircularLoader />
       </div>
-    : <div className="step-container">
-      <div className="d-flex flex-wrap table-container">
+    : 
+      <div className="step-container">
+        {contentTypes.length > 0 ?
+         <div className="d-flex flex-wrap table-container">
         {/* Content Types List */}
         <div className="content-types-list-wrapper">
           <div className="content-types-list-header d-flex align-items-center justify-content-between">
@@ -1970,8 +1985,49 @@ const ContentMapper = forwardRef((props, ref: React.ForwardedRef<ContentTypeSave
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </div> : 
+        <EmptyState
+        forPage="emptyStateV2"
+        heading={<div className="empty_search_heading">No Content Types available</div>}
+        description={
+          <div className="empty_search_description">
+            {modalProps?.body}
+          </div>
+        }
+        className="mapper-emptystate"
+        img={NoDataFound}
+        actions={
+          <>
+            <Button buttonType="secondary" size="small" version="v2"
+            onClick={()=>{
+              const newMigrationDataObj :INewMigration = {
+                ...newMigrationData,
+                legacy_cms:{
+                  ...newMigrationData?.legacy_cms,
+                  uploadedFile:{
+                    ...newMigrationData?.legacy_cms?.uploadedFile,
+                    reValidate: true
+          
+                  }
+                }
+                
+          
+              }
+              
+              dispatch(updateNewMigrationData(newMigrationDataObj));
+              handleStepChange(0);
+              const url = `/projects/${projectId}/migration/steps/1`;
+              navigate(url, { replace: true });
+            }}
+            className='ml-10'>Go to Legacy CMS</Button>
+          </>
+        }
+        version="v2"
+        testId="no-results-found-page"
+      />}
+
+    </div> 
+       
   );
 });
 

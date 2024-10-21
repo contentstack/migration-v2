@@ -290,7 +290,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
                   isClearable={newMigrationData?.destination_stack?.stackArray?.length > 0 && !emptyStackValue}
                   // hideSelectedOptions={true}
-                  // isDisabled={props?.stepComponentProps?.isSummary || false}
+                  isDisabled={newMigrationData?.project_current_step > 2}
                   error={isLoading ? false : !!isError }
                   width="600px"
                   hasAddOption={true}
