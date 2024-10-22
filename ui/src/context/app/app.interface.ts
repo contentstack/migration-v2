@@ -66,6 +66,7 @@ export interface IFile {
   validation?: string;
   file_details?: FileDetails;
   isValidated: boolean;
+  reValidate: boolean
 }
 
 export interface ICMSType extends ICardType {
@@ -186,6 +187,7 @@ export interface INewMigration {
   isprojectMapped: boolean;
   stackDetails: IDropDown;
   migration_execution: IMigrationExecutionStep;
+  project_current_step: number;
 }
 
 export interface TestStacks {
@@ -291,7 +293,8 @@ export const DEFAULT_FILE: IFile = {
       buketKey: ''
     }
   },
-  isValidated: false
+  isValidated: false,
+  reValidate: false,
 };
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
@@ -352,7 +355,8 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   isprojectMapped: false,
   stackDetails: DEFAULT_DROPDOWN,
   testStacks: [],
-  migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP
+  migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP,
+  project_current_step: 0,
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {
