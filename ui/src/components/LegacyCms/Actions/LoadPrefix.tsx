@@ -21,7 +21,7 @@ import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice'
 import restrictedKeywords from '../restrictedKeywords.json';
 
 interface LoadSelectCmsProps {
-  stepComponentProps: ()=>{};
+  stepComponentProps?: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
