@@ -191,7 +191,7 @@ const HorizontalStepper = forwardRef(
                             ? 'disableEvents'
                             : '';
                     
-                    const completeDisable = stepsCompleted?.includes(idx) && idx < stepIndex - 1 ? 'disableEvents' : '';
+                    const completeDisable = stepsCompleted?.includes(idx) && idx < stepIndex - 1 && newMigrationData?.test_migration?.isMigrationStarted ? 'disableEvents' : '';
 
                     const disableMapper = stepsCompleted?.includes(idx) && idx === 2 && newMigrationData?.test_migration?.isMigrationStarted && !newMigrationData?.test_migration?.isMigrationComplete ? 'disableEvents' : '';
                     
