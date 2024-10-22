@@ -67,7 +67,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   /****  ALL HOOKS HERE  ****/
   
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  //const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
+  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
 
   const newMigrationDataRef = useRef(newMigrationData);
@@ -86,6 +86,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [showProgress, setShowProgress]= useState<boolean>(false);
   const [fileFormat, setFileFormat] = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);
   const [processing, setProcessing] = useState('');
+  const [reValidate, setReValidate] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
   //const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
   //const [setIsFormatValid] = useState<boolean>(false);
 
@@ -123,6 +124,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             url: data?.file_details?.localPath,
             validation: data?.message,
             isValidated: status == 200 ? true : false,
+            reValidate: false,
             file_details: {
               isLocalPath: data?.file_details?.isLocalPath,
               cmsType: data?.file_details?.cmsType,
@@ -243,6 +245,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             name: data?.localPath,
             url: data?.localPath,
             isValidated: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+            reValidate: false,
             file_details: {
               isLocalPath: data?.isLocalPath,
               cmsType: data?.cmsType,
@@ -374,7 +377,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   ]);
 
   useEffect(()=>{ 
-    if(newMigrationData?.legacy_cms?.uploadedFile?.isValidated && ! showProgress)
+    if(newMigrationData?.legacy_cms?.uploadedFile?.isValidated && ! showProgress && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate)
     {   
       
       setIsValidated(true);
@@ -382,14 +385,19 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setValidationMessage('Validation is successful');
       setIsDisabled(true);
       ! isEmptyString(newMigrationData?.legacy_cms?.affix) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) && props.handleStepChange(props?.currentStep, true);
-  
+      
+      
     }
-
+    if(newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
+      setValidationMessage('');
+    }
+   
     // else{
     //   setIsValidated(false);
     // }
-    
-  },[isValidated,newMigrationData])
+    setReValidate(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
+  },[isValidated,newMigrationData]);
+
 
   useEffect(()=>{
     if(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id){
