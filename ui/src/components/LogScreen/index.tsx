@@ -155,7 +155,6 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
           };
   
           dispatch(updateNewMigrationData((newMigrationDataObj)));
-  
         }
       } catch (error) {
         console.error('Invalid JSON string', error);
