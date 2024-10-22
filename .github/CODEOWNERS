@@ -1,0 +1,4 @@
+.github/workflows/sca-scan.yml @contentstack/security-admin
+.github/workflows/sast-scan.yml @contentstack/security-admin
+.github/workflows/jira.yml @contentstack/security-admin
+**/.snyk @contentstack/security-admin
