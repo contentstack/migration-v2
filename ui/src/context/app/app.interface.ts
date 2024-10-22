@@ -132,7 +132,7 @@ export interface MigrationExecution {
   width: string;
 }
 export interface IMigrationExecution {
-  migration_information: MigrationExecution[];
+  migration_information?: MigrationExecution[];
 }
 
 interface ActionCta {
@@ -185,6 +185,7 @@ export interface INewMigration {
   test_migration: ITestMigration;
   isprojectMapped: boolean;
   stackDetails: IDropDown;
+  migration_execution: IMigrationExecutionStep;
 }
 
 export interface TestStacks {
@@ -219,6 +220,10 @@ export interface ITestMigration {
   stack_api_key: string;
   isMigrationStarted: boolean;
   isMigrationComplete: boolean;
+}
+
+export interface IMigrationExecutionStep {
+  migrationStarted: boolean;
 }
 export interface IAppContext {
   authToken: string;
@@ -334,6 +339,10 @@ export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   isMigrationComplete: false
 };
 
+export const DEFAULT_MIGRATION_EXECUTION_STEP: IMigrationExecutionStep = {
+  migrationStarted: false
+}
+
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
   mapperKeys: {},
   legacy_cms: DEFAULT_LEGACY_CMS,
@@ -342,7 +351,8 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   test_migration: DEFAULT_TEST_MIGRATION,
   isprojectMapped: false,
   stackDetails: DEFAULT_DROPDOWN,
-  testStacks: []
+  testStacks: [],
+  migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {
