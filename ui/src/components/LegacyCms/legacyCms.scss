@@ -71,7 +71,7 @@
   background-color: $color-base-white-5;
   min-height: 72px;
   width: 560px;
-  margin-left: 20px !important;
+  margin-left: 10px !important;
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: var(--TermCount, 5px);
   
@@ -104,7 +104,7 @@
   font-size: 12px;
 }
 .validation-cta{
-  margin: $space-24 $space-20 0;
+  margin: $space-16 $space-12 0;
   line-height: 24px;
 }
 .success{
@@ -128,7 +128,7 @@
   height: 10px;
   width: 560px;
   align-items: center;
-  margin-left: 20px !important;
+  margin-left: 10px !important;
   margin-top: 10px;
 }
 .file-icon-group{
