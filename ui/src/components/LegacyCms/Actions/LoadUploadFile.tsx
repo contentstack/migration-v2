@@ -12,7 +12,7 @@ import { ICardType } from '../../../components/Common/Card/card.interface';
 //import progressbar
 import ProgressBar from '../../../components/Common/ProgressBar';
 interface LoadUploadFileProps {
-  stepComponentProps: ()=>{};
+  stepComponentProps?: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep: boolean) => void;
 }

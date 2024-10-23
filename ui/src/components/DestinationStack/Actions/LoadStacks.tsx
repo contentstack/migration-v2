@@ -22,7 +22,7 @@ import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stac
 import AddStack from '../../../components/Common/AddStack/addStack';
 
 interface LoadFileFormatProps {
-  stepComponentProps: ()=>{};
+  stepComponentProps?: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
@@ -272,7 +272,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   return (
     <div className="">
       <div className="action-summary-wrapper ">
-        <div className="service_list ">
+        <div>
           <div className="row">
             <div className="col-12">
               <div className="Dropdown-wrapper p-0 active ">
