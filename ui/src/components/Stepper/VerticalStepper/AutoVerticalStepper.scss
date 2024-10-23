@@ -83,11 +83,11 @@
 }
 
 .action-summary-wrapper {
-  padding: $space-4 $space-24;
-  align-items: center;
-  border: 1px solid $color-base-gray-40;
-  border-radius: var(--TermCount, 5px);
-  background: $color-brand-white-base;
+   padding: $space-4 $space-24;
+   align-items: center;
+  //border: 1px solid $color-base-gray-40;
+  //border-radius: var(--TermCount, 5px);
+  //background: $color-brand-white-base;
 }
 
 .action-content-wrapper {

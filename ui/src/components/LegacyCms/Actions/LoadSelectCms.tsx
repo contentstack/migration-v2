@@ -26,7 +26,7 @@ import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadSelectCmsProps {
-  stepComponentProps: ()=>{};
+  stepComponentProps?: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
