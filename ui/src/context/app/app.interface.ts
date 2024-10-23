@@ -12,7 +12,7 @@ export interface ICTA {
 }
 
 export type DataProps = {
-  stepComponentProps:  ()=>{}; 
+  stepComponentProps?:  ()=>{}; 
   currentStep: number;
   handleStepChange: (step: number) => void;
 };
@@ -86,6 +86,9 @@ export interface IStep {
   data?: (props:DataProps) => JSX.Element;
   summery?: (props: SummaryProps) => JSX.Element;
   empty_step_placeholder?: string;
+  ifReadonly?:boolean;
+  isRequired?: boolean;
+  titleNote?: string;
 }
 
 export interface IURLType {
