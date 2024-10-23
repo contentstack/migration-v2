@@ -18,7 +18,7 @@ import { getConfig } from '../../../services/api/upload.service';
 import { ICMSType } from '../../../context/app/app.interface';
 
 interface LoadFileFormatProps {
-  stepComponentProps: ()=>{};
+  stepComponentProps?: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
