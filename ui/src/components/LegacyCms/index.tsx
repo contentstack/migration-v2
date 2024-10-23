@@ -282,9 +282,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
                 isEdit={!isMigrationLocked}
                 isRequired={true}
                 handleOnAllStepsComplete={handleAllStepsComplete}
-                stepComponentProps={{
-                  handleDeleteFile: handleOnClickDeleteUploadedFile
-                }}
               />
             </div>
           </div>
