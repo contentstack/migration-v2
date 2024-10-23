@@ -4,11 +4,7 @@ import { StepStatus } from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import LoadFileFormat from './Actions/LoadFileFormat';
 import LoadSelectCms from './Actions/LoadSelectCms';
 import LoadUploadFile from './Actions/LoadUploadFile';
-import FileFormatSummary from './Summary/FileFormatSummary';
-import SelectCmsSummary from './Summary/SelectCmsSummary';
-import UploadFileSummary from './Summary/UploadFileSummary';
 import LoadPreFix from './Actions/LoadPrefix';
-import PreFixSummary from './Summary/PreFixSummary';
 
 const getComponentObject = (
   step: IStep,
@@ -22,7 +18,6 @@ const getComponentObject = (
       updatedStep = {
         ...updatedStep,
         data: LoadSelectCms,
-        summery: SelectCmsSummary,
         status: isCompleted ? StepStatus.COMPLETED : StepStatus.ACTIVE,
       };
       break;
@@ -33,7 +28,6 @@ const getComponentObject = (
       updatedStep = {
         ...updatedStep,
         data: LoadPreFix,
-        summery: PreFixSummary,
         status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED,
       };
       break;
@@ -44,7 +38,6 @@ const getComponentObject = (
       updatedStep = {
         ...updatedStep,
         data: LoadFileFormat,
-        summery: FileFormatSummary,
         status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED,
       };
       break;
@@ -55,7 +48,6 @@ const getComponentObject = (
       updatedStep = {
         ...updatedStep,
         data: LoadUploadFile,
-        summery: UploadFileSummary,
         status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED,
       };
       break;
