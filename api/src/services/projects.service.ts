@@ -125,7 +125,8 @@ const createProject = async (req: Request) => {
       created_at: '',
       isNewStack: false
     },
-    mapperKeys: {}
+    mapperKeys: {},
+    isMigrationStarted: false
   };
 
   try {
