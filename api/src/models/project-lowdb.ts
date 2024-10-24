@@ -73,6 +73,7 @@ interface Project {
   stackDetails: [];
   mapperKeys: {};
   extract_path: string;
+  isMigrationStarted: boolean;
 }
 
 interface ProjectDocument {
