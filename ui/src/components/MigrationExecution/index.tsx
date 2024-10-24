@@ -7,7 +7,7 @@ import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Redux
 import { RootState } from '../../store';
-import { setMigrationData, updateMigrationData } from '../../store/slice/migrationDataSlice';
+import { updateMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
@@ -21,6 +21,7 @@ import LogViewer from '../LogScreen';
 
 //stylesheet
 import './index.scss';
+
 
 const MigrationExecution = () => {
   const dispatch = useDispatch();
