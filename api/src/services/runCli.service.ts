@@ -25,6 +25,7 @@ const addCustomMessageInCliLogs = async (loggerPath: string, level: string = 'in
 
 export const runCli = async (rg: string, user_id: string, stack_uid: any, projectId: string, isTest = false, transformePath: string) => {
   try {
+    const message: string =  isTest ? 'Test Migration Process Completed' : 'Migration Process Completed'
     const regionPresent = CS_REGIONS?.find((item: string) => item === rg) ?? 'NA';
     await AuthenticationModel.read();
     const userData = AuthenticationModel.chain
@@ -56,7 +57,7 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
             })
             ProjectModelLowdb.write();
           }
-          await addCustomMessageInCliLogs(loggerPath, 'info', 'Test Migration Process Completed');
+          await addCustomMessageInCliLogs(loggerPath, 'info', message);
         }
       });
 
