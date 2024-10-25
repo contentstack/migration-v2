@@ -16,13 +16,13 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId }: an
     for await (const contentId of projectData?.content_mapper ?? []) {
       const contentType: any = ContentTypesMapperModelLowdb.chain
         .get("ContentTypesMappers")
-        .find({ id: contentId })
+        .find({ id: contentId, projectId: projectId })
         .value();
       if (contentType?.fieldMapping?.length) {
         contentType.fieldMapping = contentType?.fieldMapping?.map((fieldUid: any) => {
           const field = FieldMapperModel.chain
             .get("field_mapper")
-            .find({ id: fieldUid })
+            .find({ id: fieldUid, projectId: projectId })
             .value()
           return field;
         })

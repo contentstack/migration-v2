@@ -82,6 +82,8 @@ export const HTTP_TEXTS = {
     "Project Deleted Successfully",
   PROJECT_REVERT:
     "Project Reverted Successfully",
+  LOGS_NOT_FOUND: 
+    "Sorry, no logs found for requested stack migration."
 };
 
 export const HTTP_RESPONSE_HEADERS = {
