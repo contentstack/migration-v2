@@ -59,5 +59,11 @@ router.post(
   asyncRouter(migrationController.startMigration)
 );
 
+router.get(
+  "/get_migration_logs/:orgId/:projectId/:stackId",
+  asyncRouter(migrationController.getLogs)
+
+)
+
 
 export default router;
