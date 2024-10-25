@@ -9,7 +9,7 @@ import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails, getExistingContentTypes, getExistingGlobalFields } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails, getExistingContentTypes, getExistingGlobalFields, startMigration } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -50,6 +50,8 @@ const Migration = () => {
   const [curreentStepIndex, setCurrentStepIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isProjectMapper, setIsProjectMapper] = useState<boolean>(false);
+
+  const [migrationStarted, setMigrationStarted] = useState(false);
 
   const params: Params<string> = useParams();
   const { projectId = '' } = useParams();
@@ -236,6 +238,9 @@ const Migration = () => {
         stack_api_key: projectData?.current_test_stack_id,
         isMigrationStarted: false,
         isMigrationComplete: false
+      },
+      migration_execution: {
+        migrationStarted: migrationStarted
       },
       stackDetails: projectData?.stackDetails,
       testStacks: projectData?.test_stacks,
@@ -458,6 +463,37 @@ const Migration = () => {
     handleStepChange(4);
   }
 
+  const handleOnClickMigrationExecution = async () => {
+    setIsLoading(true);
+
+    try {
+      const migrationRes = await startMigration(newMigrationData?.destination_stack?.selectedOrg?.value, projectId);
+
+      console.log("migrationRes", migrationRes);
+
+      if (migrationRes?.status === 200) {
+        setIsLoading(false);
+        setMigrationStarted(true)
+        Notification({
+          notificationContent: { text: 'Migration Execution process started' },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: false
+          },
+          type: 'message'
+        });
+      }
+    } catch (error) {
+      return error;
+    }
+
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      migration_execution: {migrationStarted: true}
+    };
+    dispatch(updateNewMigrationData((newMigrationDataObj)));
+  }
+
   const changeDropdownState = () =>{
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
@@ -471,7 +507,8 @@ const Migration = () => {
     handleOnClickLegacyCms, 
     handleOnClickDestinationStack,
     handleOnClickContentMapper,
-    handleOnClickTestMigration 
+    handleOnClickTestMigration,
+    handleOnClickMigrationExecution
   ];
   
   return (

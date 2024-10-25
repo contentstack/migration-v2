@@ -25,7 +25,6 @@ const logStyles: { [key: string]: React.CSSProperties } = {
 
 type LogsType = {
   serverPath: string;
-  isMigrationStarted?: boolean;
   sendDataToParent?: (isMigrationStarted: boolean) => void | undefined;
 }
 
@@ -35,7 +34,6 @@ type LogsType = {
  */
 const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
   const [logs, setLogs] = useState(["Loading logs..."]);
-  const [isMigrationComplete, setIsMigrationComplete] = useState<boolean>(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
@@ -147,7 +145,6 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
             type: 'success'
           });
           sendDataToParent?.(false);
-          setIsMigrationComplete(true);
   
           const newMigrationDataObj: INewMigration = {
             ...newMigrationData,
@@ -155,7 +152,6 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
           };
   
           dispatch(updateNewMigrationData((newMigrationDataObj)));
-  
         }
       } catch (error) {
         console.error('Invalid JSON string', error);
