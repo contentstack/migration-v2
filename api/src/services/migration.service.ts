@@ -8,13 +8,14 @@ import { LoginServiceType } from "../models/types.js"
 import getAuthtoken from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
 import { HTTP_TEXTS, HTTP_CODES, LOCALE_MAPPER, STEPPER_STEPS } from "../constants/index.js";
-import { ExceptionFunction } from "../utils/custom-errors.utils.js";
+import { BadRequestError, ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { fieldAttacher } from "../utils/field-attacher.utils.js";
 import { siteCoreService } from "./sitecore.service.js";
 import { testFolderCreator } from "../utils/test-folder-creator.utils.js";
 import { utilsCli } from './runCli.service.js';
 import customLogger from "../utils/custom-logger.utils.js";
 import { setLogFilePath } from "../server.js";
+import fs from 'fs';
 
 
 
@@ -250,9 +251,62 @@ const startMigration = async (req: Request): Promise<any> => {
   }
 }
 
+const getLogs = async (req: Request): Promise<any> => {
+  const orgId = req?.params?.orgId;
+  const projectId = req?.params?.projectId;
+  const stackId = req?.params?.stackId;
+  const srcFunc = "getLogs";
+  const { region, user_id } = req?.body?.token_payload ?? {};
+  try {
+    const loggerPath = path.join(process.cwd(), 'logs', projectId, `${stackId}.log`);
+    if(fs.existsSync(loggerPath)){
+      const logs = fs.readFileSync(loggerPath,'utf-8');
+      const logEntries = logs
+            .split('\n')
+            .map(line => {
+                try {
+                    return JSON.parse(line); 
+                } catch (error) {
+                    return null; 
+                }
+            })
+            .filter(entry => entry !== null);
+      return logEntries
+
+    }
+    else{
+      logger.error(
+        getLogMessage(
+          srcFunc,
+          HTTP_TEXTS.LOGS_NOT_FOUND,
+          
+        )
+      );
+      throw new BadRequestError(HTTP_TEXTS.LOGS_NOT_FOUND);
+      
+    }
+    
+  } catch (error:any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        HTTP_TEXTS.LOGS_NOT_FOUND,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+    
+  }
+
+}
+
 export const migrationService = {
   createTestStack,
   deleteTestStack,
   startTestMigration,
-  startMigration
+  startMigration,
+  getLogs,
 };
