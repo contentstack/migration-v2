@@ -116,7 +116,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       updatedStackArray.sort(
         (a: IDropDown, b: IDropDown) =>
           new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
-      );
+      );      
       
       setAllStack(updatedStackArray);
   
@@ -215,30 +215,27 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           setIsError(true);
           setErrorMessage("Please create new stack there is no stack available");
         } 
+
         if(selectedStackData){
           setSelectedStack(selectedStackData);
           setNewStackCreated(false);
           const newMigrationDataObj: INewMigration = {
-            ...newMigrationDataRef?.current,
+            // ...newMigrationDataRef?.current,
+            ...newMigrationData,
             destination_stack: {
-              ...newMigrationDataRef?.current?.destination_stack,
+              ...newMigrationData?.destination_stack,
               selectedStack: selectedStackData,
               stackArray: stackArray
             }
           };  
           // Dispatch the updated migration data to Redux
           dispatch(updateNewMigrationData(newMigrationDataObj));
-  
         }
       }
-      
     } catch (error) {
       return error;
-      
     }
-   
   };
-  
 
   const handleCreateNewStack = () => {
     cbModal({
@@ -288,7 +285,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   // placeholder='Select a stack'
                   placeholder={placeholder}
 
-                  isClearable={newMigrationData?.destination_stack?.stackArray?.length > 0 && !emptyStackValue}
+                  isClearable={allStack?.length > 0 && !emptyStackValue}
                   // hideSelectedOptions={true}
                   isDisabled={newMigrationData?.project_current_step > 2}
                   error={isLoading ? false : !!isError }

@@ -237,6 +237,14 @@ const startMigration = async (req: Request): Promise<any> => {
   const { region, user_id } = req?.body?.token_payload ?? {};
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
+
+  const index = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
+  if (index > -1) {
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[index].isMigrationStarted = true;
+    });
+  }
+
   const packagePath = project?.extract_path;
   if (packagePath && project?.destination_stack_id) {
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.destination_stack_id}.log`);
