@@ -55,22 +55,22 @@ export interface UpdatedSettings {
   /**
    * The minimum number of characters allowed.
    */
-  MinChars?: string;
+  minChars?: string;
 
   /**
    * The maximum number of characters allowed.
    */
-  MaxChars?: number;
+  maxChars?: number;
 
   /**
    * The minimum range allowed.
    */
-  MinRange?: number;
+  minRange?: number;
 
   /**
    * The maximum range allowed.
    */
-  MaxRange?: number;
+  maxRange?: number;
 
   /**
    * The minimum size allowed.
@@ -85,12 +85,12 @@ export interface UpdatedSettings {
   /**
    * The default value for the component.
    */
-  DefaultValue?: string;
+  defaultValue?: string;
 
   /**
    * The regular expression used for validation.
    */
-  ValidationRegex?: string;
+  validationRegex?: string;
 
   /**
    * The title of the component.
@@ -105,23 +105,23 @@ export interface UpdatedSettings {
   /**
    * Indicates whether the component is mandatory.
    */
-  Mandatory?: boolean;
+  mandatory?: boolean;
 
   /**
    * Indicates whether only images are allowed.
    */
-  AllowImagesOnly?: boolean;
+  allowImagesOnly?: boolean;
 
   /**
    * Indicates whether the component is non-localizable.
    */
-  NonLocalizable?: boolean;
+  nonLocalizable?: boolean;
 
-  Multiple?: boolean;
+  multiple?: boolean;
 
-  EmbedObjects?: any;
+  embedObjects?: any;
 
-  Default_value?: string;
+  default_value?: string;
   options?: any[]
 }
 
