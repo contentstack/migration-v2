@@ -139,7 +139,7 @@ const AppContextProvider: FC<IProps> = ({ children }) => {
     authToken: authToken,
     setAuthToken: (token: string) => setAuthToken(() => token),
     user: user,
-    updateUser: (user: User) => setUser(user),
+    setUser: (user: User) => setUser(user),
     isAuthenticated: isAuthenticated,
     setIsAuthenticated: (flag: boolean) => setIsAuthenticated(flag),
     newMigrationData: newMigration,

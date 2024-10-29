@@ -4,7 +4,7 @@ import { PageLayout, EmptyState, Button, Icon, cbModal,  StackCardSkeleton} from
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import {useSelector } from 'react-redux';
 
 // Redux
 import { RootState } from '../../store';
@@ -62,12 +62,18 @@ const Projects = () => {
   const fetchProjects = async () => {
        setLoadStatus(true); 
     if (selectedOrganisation?.value) {
-      const { data, status } = await getAllProjects(selectedOrganisation?.value || ''); //org id will always present
-      if (status === 200) {
-        setLoadStatus(false);
-        setProjects(data);
-        setAllProjects(data);
+      try {
+        const { data, status } = await getAllProjects(selectedOrganisation?.value || ''); //org id will always present
+        if (status === 200) {
+          setLoadStatus(false);
+          setProjects(data);
+          setAllProjects(data);
+        }
+        
+      } catch (error) {
+        return error
       }
+      
     }
   };
 

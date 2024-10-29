@@ -1,4 +1,6 @@
 import fs from 'fs-extra';
+import path from "path";
+import { mkdirp } from 'mkdirp';
 /**
  * Throws an error with a custom message and status code.
  * @param message - The error message.
@@ -72,5 +74,24 @@ export async function copyDirectory(srcDir: string, destDir: string): Promise<vo
 
   } catch (error) {
     console.error(`Error copying directory: ${error}`);
+  }
+}
+
+export async function createDirectoryAndFile(filePath: string, sourceFile: string) {
+  try {
+    // Get the directory from the file path
+    const dirPath = path.dirname(filePath);
+    // Create the directory if it doesn't exist
+    await mkdirp(dirPath);
+    // Check if the file exists; if not, create it
+    if (!fs.existsSync(filePath)) {
+      const transformeLogs = await fs.promises.readFile(sourceFile, 'utf8');
+      await fs.promises.writeFile(filePath, transformeLogs, { mode: 0o666 }); // Create file with read/write for everyone
+      console.info(`File created at: ${filePath}`);
+    } else {
+      console.info(`File already exists at: ${filePath}`);
+    }
+  } catch (error: any) {
+    console.error(`Error creating directory or file: ${error.message}`);
   }
 }
