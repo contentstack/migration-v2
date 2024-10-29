@@ -1,5 +1,5 @@
 import { HTTP_TEXTS, HTTP_CODES } from '../constants';
-import { saveZip } from '../helper';
+import { parseXmlToJson, saveJson, saveZip } from '../helper';
 import JSZip from 'jszip';
 import validator from '../validators';
 import config from '../config/index';
@@ -33,6 +33,32 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
         message: HTTP_TEXTS?.VALIDATION_ERROR,
         file_details: config
       };
+    }
+  } else if (fileExt === 'xml') {
+    if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt }) ) {
+      const parsedJson = await parseXmlToJson(zipBuffer);
+      const isSaved = await saveJson(parsedJson,"data.json");
+      if (isSaved) {
+        logger.info('Validation success:', {
+          status: HTTP_CODES?.OK,
+          message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
+        });
+        return {
+          status: HTTP_CODES?.OK,
+          message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
+          file_details: config
+        };
+      } else {
+        logger.warn('Validation error:', {
+          status: HTTP_CODES?.UNAUTHORIZED,
+          message: HTTP_TEXTS?.VALIDATION_ERROR
+        });
+        return {
+          status: HTTP_CODES?.UNAUTHORIZED,
+          message: HTTP_TEXTS?.VALIDATION_ERROR,
+          file_details: config
+        };
+      }
     }
   } else {
     // if file is not zip
