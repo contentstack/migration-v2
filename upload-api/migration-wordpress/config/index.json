@@ -1,0 +1,50 @@
+{
+  "data": "./cmsMigrationData",
+  "backup": "./backupMigrationData",
+  "xml_filename": "",
+  "json_file": "",
+  "json_filename": "data.json",
+  "entryfolder": "entries",
+  "modules": {
+    "contentTypes": {
+      "dirName": "content_types",
+      "fileName": "contenttype.json",
+      "masterfile": "contenttypes.json"
+    },
+    "authors": {
+      "dirName": "authors",
+      "fileName": "en-us.json",
+      "masterfile": "authors.json"
+    },
+    "categories": {
+      "dirName": "categories",
+      "fileName": "en-us.json",
+      "masterfile": "categories.json"
+    },
+    "tag": {
+      "dirName": "tag",
+      "fileName": "en-us.json",
+      "masterfile": "tag.json"
+    },
+    "terms": {
+      "dirName": "terms",
+      "fileName": "en-us.json",
+      "masterfile": "terms.json"
+    },
+    "references": {
+      "dirName": "reference",
+      "fileName": "reference.json"
+    },
+    "asset": {
+      "dirName": "assets",
+      "fileName": "assets.json",
+      "featuredfileName": "_featured.json",
+      "masterfile": "url_master.json"
+    },
+    "posts": {
+      "dirName": "posts",
+      "fileName": "en-us.json",
+      "masterfile": "posts.json"
+    }
+  }
+}
