@@ -11,3 +11,9 @@
     padding: 0;
   }
 }
+.project-name-ellipsis {
+  max-width:  1210px; 
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

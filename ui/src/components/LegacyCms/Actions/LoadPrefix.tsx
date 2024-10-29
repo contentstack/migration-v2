@@ -21,7 +21,7 @@ import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice'
 import restrictedKeywords from '../restrictedKeywords.json';
 
 interface LoadSelectCmsProps {
-  stepComponentProps: ()=>{};
+  stepComponentProps?: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
@@ -119,6 +119,8 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           version="v2"
           error={isError}
           aria-label='affix'
+          disabled={newMigrationData?.project_current_step > 1}
+          isReadOnly={newMigrationData?.project_current_step > 1}
         />
         {isError && <p className="errorMessage">{errorMessage}</p>}       
         

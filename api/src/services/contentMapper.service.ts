@@ -34,6 +34,7 @@ const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
   const contentTypes = req.body.contentTypes;
 
+
   await FieldMapperModel.read();
 
   /*
@@ -61,7 +62,7 @@ const putTestData = async (req: Request) => {
   });
 
   await ContentTypesMapperModelLowdb.read();
-  const contentIds: string[] = [];
+  const contentIds: any[] = [];
 
   /*
   this code snippet is iterating over an array called contentTypes and 
@@ -88,11 +89,12 @@ const putTestData = async (req: Request) => {
     .get("projects")
     .findIndex({ id: projectId })
     .value();
-  if (index > -1) {
-    ProjectModelLowdb.update((data: any) => {
-      data.projects[index].content_mapper = contentIds;
-      data.projects[index].extract_path = req?.body?.extractPath;
-    });
+  if (index > -1 && contentIds?.length) {
+    ProjectModelLowdb.data.projects[index].content_mapper = contentIds;
+    ProjectModelLowdb.data.projects[index].extract_path = req?.body?.extractPath;
+    ProjectModelLowdb.write();
+  } else {
+    throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
   }
 
   const pData = ProjectModelLowdb.chain
@@ -400,9 +402,9 @@ const updateContentType = async (req: Request) => {
     if (fieldMapping) {
       for (const field of fieldMapping) {
         if (
-          !field.ContentstackFieldType ||
-          field.ContentstackFieldType === "" ||
-          field.ContentstackFieldType === "No matches found" ||
+          !field.contentstackFieldType ||
+          field.contentstackFieldType === "" ||
+          field.contentstackFieldType === "No matches found" ||
           field.contentstackFieldUid === ""
         ) {
           logger.error(
@@ -410,7 +412,7 @@ const updateContentType = async (req: Request) => {
               srcFun,
               `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
                 "$",
-                "ContentstackFieldType or contentstackFieldUid"
+                "contentstackFieldType or contentstackFieldUid"
               )}`
             )
           );
@@ -422,7 +424,7 @@ const updateContentType = async (req: Request) => {
             status: 400,
             message: `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
               "$",
-              "ContentstackFieldType or contentstackFieldUid"
+              "contentstackFieldType or contentstackFieldUid"
             )}`,
           };
         }
@@ -469,7 +471,7 @@ const updateContentType = async (req: Request) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) => f?.id === field?.id
         );
-        if (fieldIndex > -1 && field?.ContentstackFieldType !== "") {
+        if (fieldIndex > -1 && field?.contentstackFieldType !== "") {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = field;
             //data.field_mapper[fieldIndex].isDeleted = false;
@@ -592,7 +594,7 @@ const resetToInitialMapping = async (req: Request) => {
               ...field,
               contentstackField: "",
               contentstackFieldUid: "",
-              ContentstackFieldType: field.backupFieldType,
+              contentstackFieldType: field.backupFieldType,
             };
           });
         }
@@ -690,7 +692,7 @@ const resetAllContentTypesMapping = async (projectId: string) => {
                 ...fieldData,
                 contentstackField: "",
                 contentstackFieldUid: "",
-                ContentstackFieldType: fieldData.backupFieldType,
+                contentstackFieldType: fieldData.backupFieldType,
               };
             });
           }
@@ -863,9 +865,56 @@ const getSingleContentTypes = async (req: Request) => {
   return {
     title: res?.data?.content_type?.title,
     uid: res?.data?.content_type?.uid,
-    schema: res?.data?.content_type?.schema,
+    schema: res?.data?.content_type?.schema
   };
 };
+
+/**
+ * Retrieves a single global field from the specified project.
+ * @param req - The request object containing the project ID, content type UID, and token payload.
+ * @returns An object containing the title, UID, and schema of the content type, or an error object if an error occurs.
+ */
+const getSingleGlobalField = async (req: Request) => {
+  const projectId = req?.params?.projectId;
+  const globalFieldUID = req?.params?.globalFieldUid;
+  const { token_payload } = req.body;
+
+  const authtoken = await getAuthtoken(
+    token_payload?.region,
+    token_payload?.user_id
+  );
+  await ProjectModelLowdb.read();
+  const project = ProjectModelLowdb.chain
+    .get("projects")
+    .find({ id: projectId })
+    .value();
+  const stackId = project?.destination_stack_id;
+
+  const [err, res] = await safePromise(
+    https({
+      method: "GET",
+      url: `${config.CS_API[
+        token_payload?.region as keyof typeof config.CS_API
+      ]!}/global_fields/${globalFieldUID}`,
+      headers: {
+        api_key: stackId,
+        authtoken: authtoken,
+      },
+    })
+  );
+
+  if (err)
+    return {
+      data: err.response.data,
+      status: err.response.status,
+    };
+
+  return {
+    title: res?.data?.global_field?.title,
+    uid: res?.data?.global_field?.uid,
+    schema: res?.data?.global_field?.schema
+  };
+}
 /**
  * Removes the content mapping for a project.
  * @param req - The request object containing the project ID.
@@ -1037,5 +1086,6 @@ export const contentMapperService = {
   removeMapping,
   getSingleContentTypes,
   updateContentMapper,
-  getExistingGlobalFields
+  getExistingGlobalFields,
+  getSingleGlobalField
 };
