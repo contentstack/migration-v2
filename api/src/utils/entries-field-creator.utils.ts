@@ -176,7 +176,7 @@ const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any)
 
 export const entriesFieldCreator = async ({ field, content, idCorrector, allAssetJSON, contentTypes, entriesData, locale }: any) => {
 
-  switch (field?.ContentstackFieldType) {
+  switch (field?.contentstackFieldType) {
     case 'multi_line_text':
     case 'single_line_text': {
       return content;
@@ -198,8 +198,8 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
         }
         return isOptionPresent?.value ?? null;
       } else {
-        if (field?.advanced?.Default_value) {
-          const isOptionDefaultValue = field?.advanced?.options?.find((ops: any) => ops?.key === field?.advanced?.Default_value || ops?.value === field?.advanced?.Default_value);
+        if (field?.advanced?.default_value) {
+          const isOptionDefaultValue = field?.advanced?.options?.find((ops: any) => ops?.key === field?.advanced?.default_value || ops?.value === field?.advanced?.default_value);
           if (field?.advanced?.Multiple) {
             if (!isOptionDefaultValue?.key) {
               return isOptionDefaultValue
@@ -208,7 +208,7 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
           }
           return isOptionDefaultValue?.value ?? null;
         } else {
-          return field?.advanced?.Default_value;
+          return field?.advanced?.default_value;
         }
       }
     }
@@ -288,7 +288,7 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
         const mainSchema = [];
         const group: any = {};
         globalFieldsSchema?.fieldMapping?.forEach((item: any) => {
-          if (item?.ContentstackFieldType === 'group') {
+          if (item?.contentstackFieldType === 'group') {
             group[item?.contentstackFieldUid] = { ...item, fieldMapping: [] };
           } else {
             const groupSchema = group[item?.contentstackFieldUid?.split('.')?.[0]];
@@ -306,7 +306,7 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
             obj[field?.contentstackFieldUid] = await entriesFieldCreator({ field, content });
           } else {
             Object?.values(field)?.forEach((item: any) => {
-              if (item?.ContentstackFieldType === 'group') {
+              if (item?.contentstackFieldType === 'group') {
                 item?.fieldMapping?.forEach(async (ele: any) => {
                   obj[ele?.contentstackFieldUid] = await entriesFieldCreator({ field: ele, content });
                 })
@@ -324,7 +324,7 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
     }
 
     default: {
-      console.info(field?.ContentstackFieldType, 'umesh');
+      console.info(field?.contentstackFieldType, 'field missing');
       return content;
     }
   }

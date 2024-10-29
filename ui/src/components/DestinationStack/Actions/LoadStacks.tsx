@@ -22,7 +22,7 @@ import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stac
 import AddStack from '../../../components/Common/AddStack/addStack';
 
 interface LoadFileFormatProps {
-  stepComponentProps: any;
+  stepComponentProps?: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
@@ -87,8 +87,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
-
-    // Post data to backend
+    try {
+       // Post data to backend
     const resp = await createStacksInOrg(selectedOrganisation?.value, {
       ...data,
       master_locale: data?.locale
@@ -116,7 +116,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       updatedStackArray.sort(
         (a: IDropDown, b: IDropDown) =>
           new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
-      );
+      );      
       
       setAllStack(updatedStackArray);
   
@@ -135,6 +135,13 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       
       return true;
     }
+      
+    } catch (error) {
+      return error;
+      
+    }
+
+   
   };
   
   /****  ALL METHODS HERE  ****/
@@ -172,59 +179,63 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   };
   
   const fetchData = async () => {
-    if (allStack?.length <= 0) {
-      setAllStack(loadingOption);
-      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
+    try {
+      if (allStack?.length <= 0) {
+        setAllStack(loadingOption);
+        const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
+          
+        const stackArray = validateArray(stackData?.data?.stacks)
+          ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+              label: stack?.name,
+              value: stack?.api_key,
+              uid: stack?.api_key,
+              master_locale: stack?.master_locale,
+              locales: stack?.locales,
+              created_at: stack?.created_at,
+              isNewStack: newStackCreated
+            }))
+          : [];
+    
+        stackArray.sort(
+          (a: IDropDown, b: IDropDown) =>
+            new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
+        );
         
-      const stackArray = validateArray(stackData?.data?.stacks)
-        ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
-            label: stack?.name,
-            value: stack?.api_key,
-            uid: stack?.api_key,
-            master_locale: stack?.master_locale,
-            locales: stack?.locales,
-            created_at: stack?.created_at,
-            isNewStack: newStackCreated
-          }))
-        : [];
-  
-      stackArray.sort(
-        (a: IDropDown, b: IDropDown) =>
-          new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
-      );
-  
-      setAllStack(stackArray);      
-      //Set selected Stack
-      const selectedStackData = validateArray(stackArray)
-        ? stackArray.find(
-            (stack: IDropDown) =>
-            {
-              return stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
-            }
-          )
-        : DEFAULT_DROPDOWN;
-      if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
-        setIsError(true);
-        setErrorMessage("Please create new stack there is no stack available");
-      } 
-      if(selectedStackData){
-        setSelectedStack(selectedStackData);
-        setNewStackCreated(false);
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationDataRef?.current,
-          destination_stack: {
-            ...newMigrationDataRef?.current?.destination_stack,
-            selectedStack: selectedStackData,
-            stackArray: stackArray
-          }
-        };  
-        // Dispatch the updated migration data to Redux
-        dispatch(updateNewMigrationData(newMigrationDataObj));
+        setAllStack(stackArray);      
+        //Set selected Stack
+        const selectedStackData = validateArray(stackArray)
+          ? stackArray.find(
+              (stack: IDropDown) =>
+              {
+                return stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
+              }
+            )
+          : DEFAULT_DROPDOWN;
+        if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
+          setIsError(true);
+          setErrorMessage("Please create new stack there is no stack available");
+        } 
 
+        if(selectedStackData){
+          setSelectedStack(selectedStackData);
+          setNewStackCreated(false);
+          const newMigrationDataObj: INewMigration = {
+            // ...newMigrationDataRef?.current,
+            ...newMigrationData,
+            destination_stack: {
+              ...newMigrationData?.destination_stack,
+              selectedStack: selectedStackData,
+              stackArray: stackArray
+            }
+          };  
+          // Dispatch the updated migration data to Redux
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+        }
       }
+    } catch (error) {
+      return error;
     }
   };
-  
 
   const handleCreateNewStack = () => {
     cbModal({
@@ -261,7 +272,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   return (
     <div className="">
       <div className="action-summary-wrapper ">
-        <div className="service_list ">
+        <div>
           <div className="row">
             <div className="col-12">
               <div className="Dropdown-wrapper p-0 active ">
@@ -274,9 +285,9 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   // placeholder='Select a stack'
                   placeholder={placeholder}
 
-                  isClearable={newMigrationData?.destination_stack?.stackArray?.length > 0 && !emptyStackValue}
+                  isClearable={allStack?.length > 0 && !emptyStackValue}
                   // hideSelectedOptions={true}
-                  // isDisabled={props?.stepComponentProps?.isSummary || false}
+                  isDisabled={newMigrationData?.project_current_step > 2}
                   error={isLoading ? false : !!isError }
                   width="600px"
                   hasAddOption={true}
