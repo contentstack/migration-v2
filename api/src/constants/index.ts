@@ -66,6 +66,10 @@ export const HTTP_TEXTS = {
     "You cannot proceed if the project is not in draft or if any Legacy CMS details are missing.",
   CANNOT_PROCEED_DESTINATION_STACK:
     "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack details are missing.",
+  CANNOT_PROCEED_CONTENT_MAPPING:
+    "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping details are missing.",
+  CANNOT_PROCEED_TEST_MIGRATION:
+    "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping or Test Migration details are missing.",
   CANNOT_UPDATE_CONTENT_MAPPING:
     "Updating the content mapping is restricted. Please verify the status and review preceding actions.",
   CANNOT_RESET_CONTENT_MAPPING:
@@ -78,6 +82,8 @@ export const HTTP_TEXTS = {
     "Project Deleted Successfully",
   PROJECT_REVERT:
     "Project Reverted Successfully",
+  LOGS_NOT_FOUND: 
+    "Sorry, no logs found for requested stack migration."
 };
 
 export const HTTP_RESPONSE_HEADERS = {
@@ -116,7 +122,7 @@ export const PROJECT_STATUS = {
   FAILED: "Failed",
   SUCCESS: "Success",
 };
-export const STEPPER_STEPS = {
+export const STEPPER_STEPS: any = {
   LEGACY_CMS: 1,
   DESTINATION_STACK: 2,
   CONTENT_MAPPING: 3,
@@ -155,4 +161,49 @@ export const LOCALE_MAPPER: any = {
     'en-us': 'en'
   },
   'fr': 'fr-fr'
+}
+
+export const MIGRATION_DATA_CONFIG = {
+  DATA :"cmsMigrationData",
+
+  BACKUP_DATA: "migration-data",
+  BACKUP_LOG_DIR: "logs",
+  BACKUP_FOLDER_NAME: "import",
+  BACKUP_FILE_NAME: "success.log",
+
+  LOCALE_DIR_NAME : "locale",
+  LOCALE_FILE_NAME : "locales.json",
+  LOCALE_MASTER_LOCALE : "master-locale.json",
+  LOCALE_CF_LANGUAGE : "language.json",
+
+  WEBHOOKS_DIR_NAME : "webhooks",
+  WEBHOOKS_FILE_NAME : "webhooks.json",
+
+  ENVIRONMENTS_DIR_NAME : "environments",
+  ENVIRONMENTS_FILE_NAME : "environments.json",
+
+  CONTENT_TYPES_DIR_NAME : "content_types",
+  CONTENT_TYPES_FILE_NAME : "contenttype.json",
+  CONTENT_TYPES_MASTER_FILE : "contenttypes.json",
+  CONTENT_TYPES_SCHEMA_FILE : "schema.json",
+
+  REFERENCES_DIR_NAME : "reference",
+  REFERENCES_FILE_NAME : "reference.json",
+
+  RTE_REFERENCES_DIR_NAME : "rteReference",
+  RTE_REFERENCES_FILE_NAME : "rteReference.json",
+
+  ASSETS_DIR_NAME : "assets",
+  ASSETS_FILE_NAME : "assets.json",
+  ASSETS_SCHEMA_FILE : "index.json",
+  ASSETS_FAILED_FILE : "cs_failed.json",
+  ASSETS_METADATA_FILE :"metadata.json",
+
+  ENTRIES_DIR_NAME : "entries",
+  ENTRIES_MASTER_FILE : "index.json",
+
+  GLOBAL_FIELDS_DIR_NAME : "global_fields",
+  GLOBAL_FIELDS_FILE_NAME : "globalfields.json",
+
+  EXPORT_INFO_FILE: "export-info.json"
 }

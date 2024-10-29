@@ -6,12 +6,12 @@ import config from '../config/index';
 import logger from '../utils/logger.js';
 
 
-const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: string) => {
+const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: string, name :string) => {
   if (fileExt === 'zip') {
     const zip = new JSZip();
-    await zip.loadAsync(zipBuffer);
+      await zip.loadAsync(zipBuffer);
     if (await validator({ data: zip, type: cmsType, extension: fileExt })) {    
-      const isSaved = await saveZip(zip);
+      const isSaved = await saveZip(zip, name);
       if (isSaved) {
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
