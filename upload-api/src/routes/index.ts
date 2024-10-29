@@ -14,6 +14,7 @@ import { fileOperationLimiter } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import createSitecoreMapper from '../controllers/sitecore';
 import config from '../config/index';
+import createWordpressMapper from '../controllers/wordpress';
 
 const router: Router = express.Router();
 // Use memory storage to avoid saving the file locally
@@ -115,31 +116,58 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
             file_details: config
           });
         });
+        if (fileExt === 'zip') {
+          // Create a writable stream to save the downloaded zip file
+          let zipBuffer = Buffer.alloc(0);
 
-        // Create a writable stream to save the downloaded zip file
-        let zipBuffer = Buffer.alloc(0);
+          // Collect the data from the stream into a buffer
+          bodyStream.on('data', (chunk) => {
+            if (!Buffer.isBuffer(chunk)) {
+              throw new Error('Expected chunk to be a Buffer');
+            } else {
+              zipBuffer = Buffer.concat([zipBuffer, chunk]);
+            }
+          });
 
-        // Collect the data from the stream into a buffer
+          //buffer fully stremd
+          bodyStream.on('end', async () => {
+            if (!zipBuffer) {
+              throw new Error('No data collected from the stream.');
+            }
+            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,name);
+            res.status(data?.status || 200).json(data);
+            if (data?.status === 200) {
+              const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+              createSitecoreMapper(filePath, projectId, app_token, affix, config);
+            }
+          });
+      } else if (fileExt === 'xml') {
+        let xmlData = '';
+
+        // Collect the data from the stream as a string
         bodyStream.on('data', (chunk) => {
-          if (!Buffer.isBuffer(chunk)) {
-            throw new Error('Expected chunk to be a Buffer');
+          if (typeof chunk !== 'string' && !Buffer.isBuffer(chunk)) {
+            throw new Error('Expected chunk to be a string or a Buffer');
           } else {
-            zipBuffer = Buffer.concat([zipBuffer, chunk]);
+            // Convert chunk to string (if it's a Buffer)
+            xmlData += chunk.toString();
           }
         });
 
-        //buffer fully stremd
+        // When the stream ends, process the XML data
         bodyStream.on('end', async () => {
-          if (!zipBuffer) {
+          if (!xmlData) {
             throw new Error('No data collected from the stream.');
           }
-          const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,name);
+
+          const data = await handleFileProcessing(fileExt, xmlData, cmsType,name);
           res.status(data?.status || 200).json(data);
           if (data?.status === 200) {
-            const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
-            createSitecoreMapper(filePath, projectId, app_token, affix, config)
+            const filePath = path.join(__dirname, '..', '..', 'extracted_files', "data.json");
+            createWordpressMapper(filePath, projectId, app_token, affix, config);
           }
         });
+      }
         return;
       }
     } else {
