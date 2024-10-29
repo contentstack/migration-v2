@@ -9,7 +9,7 @@ import { migrationController } from "../controllers/migration.controller.js";
 const router = express.Router({ mergeParams: true });
 
 /**
- * Route for creating a new test stack.
+ * Route for test migration .
  * @route POST /test-stack/:orgId/:projectId
  * @group Migration
  * @param {string} orgId - The ID of the organization.
@@ -18,7 +18,7 @@ const router = express.Router({ mergeParams: true });
  */
 router.post(
   "/test-stack/:orgId/:projectId",
-  asyncRouter(migrationController.fieldMapping)
+  asyncRouter(migrationController.startTestMigration)
 );
 
 /**
@@ -44,6 +44,26 @@ router.post(
   "/create-test-stack/:orgId/:projectId",
   asyncRouter(migrationController.createTestStack)
 );
+
+
+/**
+ * Route for final migration .
+ * @route POST /test-stack/:orgId/:projectId
+ * @group Migration
+ * @param {string} orgId - The ID of the organization.
+ * @param {string} projectId - The ID of the project.
+ * @returns {Promise<void>} - A promise that resolves when the test stack is created.
+ */
+router.post(
+  "/start/:orgId/:projectId",
+  asyncRouter(migrationController.startMigration)
+);
+
+router.get(
+  "/get_migration_logs/:orgId/:projectId/:stackId",
+  asyncRouter(migrationController.getLogs)
+
+)
 
 
 export default router;

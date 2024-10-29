@@ -44,7 +44,7 @@ type LegacyCMSComponentProps = {
   handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
-interface AutoVerticalStepperRef {
+export interface AutoVerticalStepperRef {
   handleDynamicStepChange: (stepIndex: number, isLastStep?: boolean) => void;
 }
 
@@ -174,7 +174,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
         legacy_cms: {
           currentStep: internalActiveStepIndex,
           selectedCms: selectedCmsData,
-          selectedFileFormat: selectedFileFormatData || newMigrationData?.legacy_cms?.selectedFileFormat ,
+          selectedFileFormat: selectedFileFormatData,
           uploadedFile: {
             file_details:{
               localPath: legacyCMSData?.file_path,
@@ -261,14 +261,11 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
 
     }
   },[newMigrationData,isAllStepsCompleted])
-
   return (
     <>
-      {isLoading ? (
-        <div className="row">
-          <div className="col-12 text-center center-align">
-            <CircularLoader />
-          </div>
+      {isLoading || newMigrationData?.isprojectMapped ? (
+        <div className="loader-container">
+          <CircularLoader />
         </div>
       ) : (
         <div className="legacy-cms-container">
@@ -285,9 +282,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
                 isEdit={!isMigrationLocked}
                 isRequired={true}
                 handleOnAllStepsComplete={handleAllStepsComplete}
-                stepComponentProps={{
-                  handleDeleteFile: handleOnClickDeleteUploadedFile
-                }}
               />
             </div>
           </div>

@@ -1,9 +1,8 @@
 //redux dependencies
 import { createAsyncThunk, createSlice} from '@reduxjs/toolkit';
-import { useNavigate } from 'react-router';
 
 //initial values from app interface
-import { DEFAULT_ORGANISATION,DEFAULT_USER, IDropDown, DEFAULT_DROPDOWN  } from './../../context/app/app.interface';
+import { DEFAULT_USER, IDropDown, DEFAULT_DROPDOWN  } from './../../context/app/app.interface';
 
 //utilities
 import { clearLocalStorage, getDataFromLocalStorage, isEmptyString, validateArray } from '../../utilities/functions';
@@ -80,7 +79,10 @@ const authSlice = createSlice({
             state.isAuthenticated = action?.payload?.isAuthenticated;
         },
         setUser : (state, action) => {
-            state.user = action?.payload;
+          state.user = {
+            ...state?.user,             
+            ...action?.payload,        
+          };
         },
         reInitiliseState: (state) => {
             state.authToken = '';
@@ -100,8 +102,11 @@ const authSlice = createSlice({
 
     },
     extraReducers: (builder) => {
-        builder.addCase(getUserDetails?.fulfilled,(state, action:any)=>{          
-            state.user = action?.payload?.user;
+        builder.addCase(getUserDetails?.fulfilled,(state, action)=>{          
+          state.user = {
+            ...state?.user,          
+            ...action?.payload?.user, 
+          };
             state.organisationsList = action?.payload?.organisationsList;
             state.selectedOrganisation = action?.payload?.selectedOrganisation ;
             state.isAuthenticated = !isEmptyString(state?.authToken || '');
