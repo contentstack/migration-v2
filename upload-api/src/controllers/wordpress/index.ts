@@ -9,7 +9,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
     await extractContentTypes(affix);
     const contentTypeData = await contentTypeMaker(affix)
     if(contentTypeData){
-      const fieldMapping: any = { contentTypes: [] };
+      const fieldMapping: any = { contentTypes: [], extractPath: filePath };
       contentTypeData.forEach((contentType: any) => {
         const jsonfileContent = contentType;
         jsonfileContent.type = "content_type";

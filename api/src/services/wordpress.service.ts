@@ -20,29 +20,29 @@ const virtualConsole = new jsdom.VirtualConsole();
 const __filename = fileURLToPath(import.meta.url);
 // Get the current directory
 const __dirname = path.dirname(__filename);
-const dataFilePath = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "upload-api",
-  MIGRATION_DATA_CONFIG.DATA,
-  MIGRATION_DATA_CONFIG.DATA_FILE_NAME
-);
+// const dataFilePath = path.join(
+//   __dirname,
+//   "..",
+//   "..",
+//   "..",
+//   "upload-api",
+//   MIGRATION_DATA_CONFIG.DATA,
+//   MIGRATION_DATA_CONFIG.DATA_FILE_NAME
+// );
 
-const assetsSave = path.join(
+let assetsSave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
 );
-const referencesFolder = path.join(
+let referencesFolder = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.REFERENCES_DIR_NAME
 );
-const contentTypeFolderPath = path.join(
+let contentTypeFolderPath = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME
 );
-const entrySave = path.join(
+let entrySave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME
 );
@@ -51,7 +51,7 @@ let postFolderPath = path.join(
   MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
   MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
 );
-const chunksDir = path.join(
+let chunksDir = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.CHUNKS_DIR_NAME
 );
@@ -72,7 +72,7 @@ let categoriesFolderPath = path.join(
   entrySave,
   MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
 );
-const assetMasterFolderPath = path.join(
+let assetMasterFolderPath = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   "logs",
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
@@ -103,9 +103,21 @@ async function writeFileAsync(filePath: string, data: any, tabSpaces: number) {
 }
 
 /************  Assests module functions start *********/
-async function startingDirAssests() {
+async function startingDirAssests(destinationStackId: string) {
   try {
     // Check if assetsSave directory exists
+    assetsSave = path.join(
+      MIGRATION_DATA_CONFIG.DATA,
+      destinationStackId,
+      MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
+    );
+
+     assetMasterFolderPath = path.join(
+      MIGRATION_DATA_CONFIG.DATA,
+      destinationStackId,
+      "logs",
+      MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
+    );
     try {
       await fs.promises.access(assetsSave);
     } catch {
@@ -113,6 +125,10 @@ async function startingDirAssests() {
       await fs.promises.mkdir(assetsSave, { recursive: true });
       await fs.promises.writeFile(
         path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
+        "{}"
+      );
+      await fs.promises.writeFile(
+        path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE),
         "{}"
       );
       await fs.promises.writeFile(
@@ -128,6 +144,10 @@ async function startingDirAssests() {
       assetsSave,
       MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME
     );
+    const assetsSchemaJsonPath = path.join(
+      assetsSave,
+      MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE
+    );
     try {
       await fs.promises.access(assetsJsonPath);
       // Read assets.json data
@@ -136,6 +156,17 @@ async function startingDirAssests() {
     } catch {
       // assets.json doesn't exist, create it
       await fs.promises.writeFile(assetsJsonPath, "{}");
+      return;
+    }
+
+    try {
+      await fs.promises.access(assetsSchemaJsonPath);
+      // Read assets.json data
+      const fileContent = await fs.promises.readFile(assetsSchemaJsonPath, "utf-8");
+      assetData = JSON.parse(fileContent);
+    } catch {
+      // assets.json doesn't exist, create it
+      await fs.promises.writeFile(assetsSchemaJsonPath, "{}");
       return;
     }
 
@@ -167,7 +198,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string) {
 
   const parent_uid = affix ? "wordpressasset" : null;
   const assetPath = path.resolve(
-    assetsSave,
+    assetsSave,"files",
     `assets_${assets["wp:post_id"].toString()}`,
     name
   );
@@ -180,7 +211,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string) {
   try {
     const response = await axios.get(url, { responseType: "arraybuffer" });
     fs.mkdirSync(
-      path.resolve(assetsSave, `assets_${assets["wp:post_id"].toString()}`),
+      path.resolve(assetsSave,"files", `assets_${assets["wp:post_id"].toString()}`),
       { recursive: true }
     );
     fs.writeFileSync(assetPath, response.data);
@@ -191,7 +222,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string) {
 
     acc[key] = {
       uid: key,
-      urlPath: `/assets/assets_${assets["wp:post_id"]}`,
+      urlPath: `/assets/files/assets_${assets["wp:post_id"]}`,
       status: true,
       file_size: `${stats.size}`,
       tag: [],
@@ -213,6 +244,12 @@ async function saveAsset(assets: any, retryCount: number, affix: string) {
     assetData[key] = acc[key];
     await writeFileAsync(
       path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
+      assetData,
+      4
+    );
+
+    await writeFileAsync(
+      path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE),
       assetData,
       4
     );
@@ -266,10 +303,14 @@ async function getAsset(attachments: any[], affix: string) {
   return results;
 }
 
-async function getAllAssets(affix: string) {
+async function getAllAssets(
+  affix: string,
+  packagePath: string,
+  destinationStackId: string
+) {
   try {
-    await startingDirAssests();
-    const alldata: any = await fs.promises.readFile(dataFilePath, "utf8");
+    await startingDirAssests(destinationStackId);
+    const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const assets: Asset[] =
       alldataParsed?.rss?.channel?.item ?? alldataParsed?.channel?.item;
@@ -326,7 +367,12 @@ const createAssetFolderFile = async (affix: string) => {
 /************  End of assests module functions *********/
 
 /************  References module functions start *********/
-async function startDirReferences() {
+async function startDirReferences(destinationStackId: string) {
+  referencesFolder = path.join(
+    MIGRATION_DATA_CONFIG.DATA,
+    destinationStackId,
+    MIGRATION_DATA_CONFIG.REFERENCES_DIR_NAME
+  );
   try {
     await fs.promises.access(referencesFolder);
   } catch {
@@ -391,10 +437,10 @@ function processReferenceData(
   return referenceArray;
 }
 
-async function getAllreference(affix: string) {
+async function getAllreference(affix: string, packagePath: string, destinationStackId: string) {
   try {
-    await startDirReferences();
-    const alldata: any = await fs.promises.readFile(dataFilePath, "utf8");
+    await startDirReferences(destinationStackId);
+    const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const prefix = affix
       .replace(/^\d+/, "")
@@ -449,13 +495,26 @@ async function getAllreference(affix: string) {
 /************  End of References module functions *********/
 
 /************  Chunks module functions start *********/
-async function startingDirChunks(affix: string) {
+async function startingDirChunks(affix: string, destinationStackId: string) {
+
+  entrySave = path.join(
+    MIGRATION_DATA_CONFIG.DATA,
+    destinationStackId,
+    MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME
+  );
+
   postFolderPath = path.join(
     entrySave,
     affix
       ? affix + "_" + MIGRATION_DATA_CONFIG.POSTS_DIR_NAME
       : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
     MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
+  );
+
+  chunksDir = path.join(
+    MIGRATION_DATA_CONFIG.DATA,
+    destinationStackId,
+    MIGRATION_DATA_CONFIG.CHUNKS_DIR_NAME
   );
 
   try {
@@ -506,12 +565,12 @@ async function splitJsonIntoChunks(arrayData: any[]) {
   }
 }
 
-async function extractChunks(affix: string) {
+async function extractChunks(affix: string, packagePath: string, destinationStackId: string) {
   console.log(`Creating chunks...`);
   try {
-    await startingDirChunks(affix);
+    await startingDirChunks(affix, destinationStackId);
 
-    const alldata: any = await fs.promises.readFile(dataFilePath, "utf8");
+    const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const posts =
       alldataParsed?.rss?.channel["item"] ??
@@ -542,7 +601,10 @@ async function startingDirAuthors(affix: string) {
     : MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
 
   authorsFolderPath = path.join(entrySave, authorFolderName);
-  authorsFilePath = path.join(authorsFolderPath, MIGRATION_DATA_CONFIG.AUTHORS_FILE_NAME);
+  authorsFilePath = path.join(
+    authorsFolderPath,
+    MIGRATION_DATA_CONFIG.AUTHORS_FILE_NAME
+  );
   try {
     await fs.promises.access(authorsFolderPath);
   } catch {
@@ -585,10 +647,10 @@ async function saveAuthors(authorDetails: any[]) {
     console.error("error while saving authors", error);
   }
 }
-async function getAllAuthors(affix: string) {
+async function getAllAuthors(affix: string, packagePath: string) {
   try {
     await startingDirAuthors(affix);
-    const alldata: any = await fs.promises.readFile(dataFilePath, "utf8");
+    const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const authors: any =
       alldataParsed?.rss?.channel?.["wp:author"] ??
@@ -636,14 +698,29 @@ async function getAllAuthors(affix: string) {
 /************  end of authors module functions *********/
 
 /************  contenttypes module functions start *********/
-async function startingDirContentTypes() {
+async function startingDirContentTypes(destinationStackId: string) {
+  contentTypeFolderPath = path.join(
+    MIGRATION_DATA_CONFIG.DATA,
+    destinationStackId,
+    MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME
+  );
   try {
     await fs.promises.access(contentTypeFolderPath);
   } catch {
     // Directory doesn't exist, create it
     await fs.promises.mkdir(contentTypeFolderPath, { recursive: true });
     await fs.promises.writeFile(
-      path.join(contentTypeFolderPath, MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME),
+      path.join(
+        contentTypeFolderPath,
+        MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
+      ),
+      "{}"
+    );
+    await fs.promises.writeFile(
+      path.join(
+        contentTypeFolderPath,
+        MIGRATION_DATA_CONFIG.CONTENT_TYPES_SCHEMA_FILE
+      ),
       "{}"
     );
   }
@@ -1134,16 +1211,27 @@ const ContentTypesSchema = [
   },
 ];
 
-async function extractContentTypes(affix: string) {
+async function extractContentTypes(affix: string,destinationStackId: string) {
   try {
-    await startingDirContentTypes();
+    await startingDirContentTypes(destinationStackId);
     globalPrefix = affix;
     const schemaJson = ContentTypesSchema.map(
       ({ title, uid, schema, options }) =>
         generateSchema(title, uid, schema, options)
     );
     await writeFileAsync(
-      path.join(contentTypeFolderPath, MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME),
+      path.join(
+        contentTypeFolderPath,
+        MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
+      ),
+      schemaJson,
+      4
+    );
+    await writeFileAsync(
+      path.join(
+        contentTypeFolderPath,
+        MIGRATION_DATA_CONFIG.CONTENT_TYPES_SCHEMA_FILE
+      ),
       schemaJson,
       4
     );
@@ -1163,20 +1251,28 @@ async function extractContentTypes(affix: string) {
 async function startingDirTerms(affix: string) {
   termsFolderPath = path.join(
     entrySave,
-    affix ? affix + "_" + MIGRATION_DATA_CONFIG.TERMS_DIR_NAME: MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
+    affix
+      ? affix + "_" + MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
+      : MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
   );
   try {
     await fs.promises.access(termsFolderPath);
   } catch {
     // Directory doesn't exist, create it
     await fs.promises.mkdir(termsFolderPath, { recursive: true });
-    await fs.promises.writeFile(path.join(termsFolderPath, MIGRATION_DATA_CONFIG.TERMS_FILE_NAME), "{}");
+    await fs.promises.writeFile(
+      path.join(termsFolderPath, MIGRATION_DATA_CONFIG.TERMS_FILE_NAME),
+      "{}"
+    );
   }
 }
 
 async function saveTerms(termsDetails: any[]) {
   try {
-    const termsFilePath = path.join(termsFolderPath, MIGRATION_DATA_CONFIG.TERMS_FILE_NAME);
+    const termsFilePath = path.join(
+      termsFolderPath,
+      MIGRATION_DATA_CONFIG.TERMS_FILE_NAME
+    );
     const termsdata = termsDetails.reduce(
       (acc: { [key: string]: any }, data) => {
         const { id, term_name, term_taxonomy = "", term_slug } = data;
@@ -1205,10 +1301,10 @@ async function saveTerms(termsDetails: any[]) {
   }
 }
 
-async function getAllTerms(affix: string) {
+async function getAllTerms(affix: string, packagePath: string) {
   try {
     await startingDirTerms(affix);
-    const alldata: any = await fs.promises.readFile(dataFilePath, "utf8");
+    const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const terms =
       alldataParsed?.rss?.channel["wp:term"] ||
@@ -1245,19 +1341,30 @@ async function getAllTerms(affix: string) {
 
 /************  tags module functions start *********/
 async function startingDirTags(affix: string) {
-  tagsFolderPath = path.join(entrySave, affix ? affix + "_" + MIGRATION_DATA_CONFIG.TAG_DIR_NAME: MIGRATION_DATA_CONFIG.TAG_DIR_NAME);
-  try { 
+  tagsFolderPath = path.join(
+    entrySave,
+    affix
+      ? affix + "_" + MIGRATION_DATA_CONFIG.TAG_DIR_NAME
+      : MIGRATION_DATA_CONFIG.TAG_DIR_NAME
+  );
+  try {
     await fs.promises.access(tagsFolderPath);
   } catch {
     // Directory doesn't exist, create it
     await fs.promises.mkdir(tagsFolderPath, { recursive: true });
-    await fs.promises.writeFile(path.join(tagsFolderPath, MIGRATION_DATA_CONFIG.TAG_FILE_NAME), "{}");
+    await fs.promises.writeFile(
+      path.join(tagsFolderPath, MIGRATION_DATA_CONFIG.TAG_FILE_NAME),
+      "{}"
+    );
   }
 }
 
 async function saveTags(tagDetails: any[]) {
   try {
-    const tagsFilePath = path.join(tagsFolderPath, MIGRATION_DATA_CONFIG.TAG_FILE_NAME);
+    const tagsFilePath = path.join(
+      tagsFolderPath,
+      MIGRATION_DATA_CONFIG.TAG_FILE_NAME
+    );
     const tagdata = tagDetails.reduce((acc: { [key: string]: any }, data) => {
       const { id, tag_name, tag_slug, description = "" } = data;
       const uid = `tags_${id}`;
@@ -1282,10 +1389,10 @@ async function saveTags(tagDetails: any[]) {
     throw error;
   }
 }
-async function getAllTags(affix: string) {
+async function getAllTags(affix: string, packagePath: string) {
   try {
     await startingDirTags(affix);
-    const alldata: any = await fs.promises.readFile(dataFilePath, "utf8");
+    const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const tags =
       alldataParsed?.rss?.channel?.["wp:tag"] ||
@@ -1324,7 +1431,9 @@ async function getAllTags(affix: string) {
 async function startingDirCategories(affix: string) {
   categoriesFolderPath = path.join(
     entrySave,
-    affix ? affix + "_" + MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME : MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
+    affix
+      ? affix + "_" + MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
+      : MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
   );
 
   try {
@@ -1333,7 +1442,10 @@ async function startingDirCategories(affix: string) {
     // Directory doesn't exist, create it
     await fs.promises.mkdir(categoriesFolderPath, { recursive: true });
     await fs.promises.writeFile(
-      path.join(categoriesFolderPath, MIGRATION_DATA_CONFIG.CATEGORIES_FILE_NAME),
+      path.join(
+        categoriesFolderPath,
+        MIGRATION_DATA_CONFIG.CATEGORIES_FILE_NAME
+      ),
       "{}"
     );
   }
@@ -1393,7 +1505,10 @@ async function saveCategories(categoryDetails: any[]) {
     );
 
     await writeFileAsync(
-      path.join(categoriesFolderPath, MIGRATION_DATA_CONFIG.CATEGORIES_FILE_NAME),
+      path.join(
+        categoriesFolderPath,
+        MIGRATION_DATA_CONFIG.CATEGORIES_FILE_NAME
+      ),
       categorydata,
       4
     );
@@ -1406,10 +1521,10 @@ async function saveCategories(categoryDetails: any[]) {
     console.error("Error in saving categories:", err);
   }
 }
-async function getAllCategories(affix: string) {
+async function getAllCategories(affix: string, packagePath: string) {
   try {
     await startingDirCategories(affix);
-    const alldata: any = await fs.promises.readFile(dataFilePath, "utf8");
+    const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const categories =
       alldataParsed?.rss?.channel?.["wp:category"] ??
@@ -1451,7 +1566,9 @@ async function getAllCategories(affix: string) {
 async function startingDirPosts(affix: string) {
   postFolderPath = path.join(
     entrySave,
-    affix ? affix + "_" + MIGRATION_DATA_CONFIG.POSTS_DIR_NAME : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
+    affix
+      ? affix + "_" + MIGRATION_DATA_CONFIG.POSTS_DIR_NAME
+      : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
     MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
   );
   //path.join(entrySave, affix ? affix+"_"+"terms": "terms");
@@ -1679,11 +1796,11 @@ async function processChunkData(
   }
 }
 
-async function extractPosts(affix: string) {
+async function extractPosts(affix: string, packagePath: string) {
   console.log(`Exporting posts...`);
   try {
     await startingDirPosts(affix);
-    const alldata: any = await fs.promises.readFile(dataFilePath, "utf8");
+    const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     blog_base_url =
       alldataParsed?.rss?.channel["wp:base_blog_url"] ||
@@ -1743,7 +1860,7 @@ async function copyFolder(src: string, dest: string) {
     console.error(`Error copying folder from ${src} to ${dest}:`, err);
   }
 }
-async function extractGlobalFields() {
+async function extractGlobalFields(destinationStackId: string) {
   const sourcePath = path.join(
     __dirname,
     "..",
@@ -1752,7 +1869,7 @@ async function extractGlobalFields() {
     "upload-api",
     "migration-wordpress"
   );
-  const destinationPath = path.join(MIGRATION_DATA_CONFIG.DATA);
+  const destinationPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId);
 
   const foldersToCopy = ["locales", "global_fields", "extensions"];
 
