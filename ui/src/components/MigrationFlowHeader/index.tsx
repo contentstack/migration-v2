@@ -17,10 +17,11 @@ type MigrationFlowHeaderProps = {
   isLoading: boolean;
   isCompleted: boolean;
   legacyCMSRef: React.MutableRefObject<any>; 
-  projectData:MigrationResponse
+  projectData:MigrationResponse;
+  finalExecutionStarted?: boolean;
 };
 
-const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: MigrationFlowHeaderProps) => {
+const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecutionStarted }: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
   const [currentStep, setCurrentStep] = useState<number>(0);
 
@@ -53,7 +54,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
   } else {
     stepValue = 'Save and Continue';
   }
-
+  
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>
@@ -69,8 +70,10 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
         onClick={handleOnClick}
         version="v2"
         aria-label='Save and Continue'
-        isLoading={isLoading}
-        disabled={params?.stepId === '4' && !newMigrationData?.test_migration?.isMigrationComplete}
+        isLoading={isLoading || newMigrationData?.isprojectMapped}
+        disabled={(params?.stepId === '4' && !newMigrationData?.test_migration?.isMigrationComplete) ||
+           (params?.stepId && params?.stepId <= '2' && newMigrationData?.project_current_step?.toString() !== params?.stepId) || finalExecutionStarted
+        }
       >
         {stepValue}
       </Button>

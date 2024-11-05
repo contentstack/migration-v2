@@ -44,7 +44,7 @@ type LegacyCMSComponentProps = {
   handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
-interface AutoVerticalStepperRef {
+export interface AutoVerticalStepperRef {
   handleDynamicStepChange: (stepIndex: number, isLastStep?: boolean) => void;
 }
 
@@ -282,9 +282,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
                 isEdit={!isMigrationLocked}
                 isRequired={true}
                 handleOnAllStepsComplete={handleAllStepsComplete}
-                stepComponentProps={{
-                  handleDeleteFile: handleOnClickDeleteUploadedFile
-                }}
               />
             </div>
           </div>
