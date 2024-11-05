@@ -222,19 +222,18 @@ const startTestMigration = async (req: Request): Promise<any> => {
     // await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id, projectId });
     // await siteCoreService?.createLocale(req, project?.current_test_stack_id, projectId);
     // await siteCoreService?.createVersionFile(project?.current_test_stack_id);
-    let affix = "ogip"
-    await wordpressService?.getAllAssets(affix)
-    await wordpressService?.createAssetFolderFile(affix)
-    await wordpressService?.getAllreference(affix)
-    await wordpressService?.extractChunks(affix)
-    await wordpressService?.getAllAuthors(affix)
-    await wordpressService?.extractContentTypes(affix) 
-    await wordpressService?.getAllTerms(affix)
-    await wordpressService?.getAllTags(affix) 
-    await wordpressService?.getAllCategories(affix)
-    await wordpressService?.extractPosts(affix)
-    await wordpressService?.extractGlobalFields()
-    await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
+    await wordpressService?.getAllAssets(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
+    await wordpressService?.createAssetFolderFile(project?.legacy_cms?.affix)
+    await wordpressService?.getAllreference(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
+    await wordpressService?.extractChunks(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
+    await wordpressService?.getAllAuthors(project?.legacy_cms?.affix, packagePath)
+    await wordpressService?.extractContentTypes(project?.legacy_cms?.affix, project?.current_test_stack_id) 
+    await wordpressService?.getAllTerms(project?.legacy_cms?.affix, packagePath)
+    await wordpressService?.getAllTags(project?.legacy_cms?.affix, packagePath) 
+    await wordpressService?.getAllCategories(project?.legacy_cms?.affix, packagePath)
+    await wordpressService?.extractPosts(project?.legacy_cms?.affix, packagePath)
+    await wordpressService?.extractGlobalFields(project?.current_test_stack_id)
+    // await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
     await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
   }
 }
@@ -268,18 +267,17 @@ const startMigration = async (req: Request): Promise<any> => {
     // await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id, projectId });
     // await siteCoreService?.createLocale(req, project?.destination_stack_id, projectId);
     // await siteCoreService?.createVersionFile(project?.destination_stack_id);
-    let affix = "ogip"
-    await wordpressService?.getAllAssets(affix)
-    await wordpressService?.createAssetFolderFile(affix)
-    await wordpressService?.getAllreference(affix)
-    await wordpressService?.extractChunks(affix)
-    await wordpressService?.getAllAuthors(affix)
-    await wordpressService?.extractContentTypes(affix) 
-    await wordpressService?.getAllTerms(affix)
-    await wordpressService?.getAllTags(affix) 
-    await wordpressService?.getAllCategories(affix)
-    await wordpressService?.extractPosts(affix)
-    await wordpressService?.extractGlobalFields()
+    await wordpressService?.getAllAssets(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
+    await wordpressService?.createAssetFolderFile(project?.legacy_cms?.affix)
+    await wordpressService?.getAllreference(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
+    await wordpressService?.extractChunks(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
+    await wordpressService?.getAllAuthors(project?.legacy_cms?.affix, packagePath)
+    await wordpressService?.extractContentTypes(project?.legacy_cms?.affix, project?.current_test_stack_id) 
+    await wordpressService?.getAllTerms(project?.legacy_cms?.affix, packagePath)
+    await wordpressService?.getAllTags(project?.legacy_cms?.affix, packagePath) 
+    await wordpressService?.getAllCategories(project?.legacy_cms?.affix, packagePath)
+    await wordpressService?.extractPosts(project?.legacy_cms?.affix, packagePath)
+    await wordpressService?.extractGlobalFields(project?.current_test_stack_id)
     await utilsCli?.runCli(region, user_id, project?.destination_stack_id, projectId, false, loggerPath);
   }
 }
