@@ -26,7 +26,7 @@ import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadSelectCmsProps {
-  stepComponentProps: ()=>{};
+  stepComponentProps?: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
@@ -42,7 +42,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [cmsData, setCmsData] = useState<ICMSType[]>([]);
   const [searchText] = useState<string>('');
   //const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
-  const [cmsFilter] = useState<string[]>([]);
   const [cmsType, setCmsType] = useState<ICMSType>(
     newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );
@@ -86,6 +85,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
   // Filter CMS Data
   const filterCMSData = async (searchText: string) => {
+    try {
+
     const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
     setSelectedCard(cmsType);
     setIsLoading(true);
@@ -153,6 +154,11 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
       dispatch(updateNewMigrationData(newMigrationDataObj));
       props?.handleStepChange(props?.currentStep);
+    }
+      
+    } catch (error) {
+      return error;
+      
     }
     
   };
