@@ -10,7 +10,10 @@ const mkdirp = require("mkdirp");
  */
 const helper = require("../utils/helper");
 const config = require("../config");
-const contentTypeFolderPath = path.resolve(config.data, "content_types");
+
+const { contentTypes: contentTypesConfig } = config.modules;
+
+const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
 
 /**
  * Create folders and files
@@ -18,7 +21,7 @@ const contentTypeFolderPath = path.resolve(config.data, "content_types");
 function startingDir() {
   if (!fs.existsSync(contentTypeFolderPath)) {
     mkdirp.sync(contentTypeFolderPath);
-    helper.writeFile(path.join(contentTypeFolderPath, "schema.json"));
+    helper.writeFile(path.join(contentTypeFolderPath, contentTypesConfig.schemaFile));
   }
 }
 
@@ -512,7 +515,7 @@ async function extractContentTypes (affix) {
           generateSchema(title, uid, schema, options)
       );
       await helper.writeFileAsync(
-        path.join(process.cwd(), config.data, "content_types", "schema.json"),
+        path.join(process.cwd(), config.data, contentTypesConfig.dirName, contentTypesConfig.schemaFile),
         schemaJson,
         4
       );
