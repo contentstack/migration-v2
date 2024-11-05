@@ -2,6 +2,13 @@
 const path = require("path");
 const read = require("fs-readdir-recursive");
 const helper = require("../utils/helper");
+const { MIGRATION_DATA_CONFIG } = require("../constants/index");
+
+const {
+  DATA_MAPPER_DIR,
+  DATA_MAPPER_CONFIG,
+  DATA_MAPPER_CONFIG_TREE
+} = MIGRATION_DATA_CONFIG;
 
 
 const assignFolderName = ({ path }) => {
@@ -46,11 +53,11 @@ function ExtractConfiguration(sitecore_folder) {
   helper.writeFile(
     path.join(
       process.cwd(),
-      'sitecoreMigrationData',
-      'MapperData',
+      MIGRATION_DATA_CONFIG.DATA,
+      DATA_MAPPER_DIR,
     ),
     JSON.stringify(obj, null, 4),
-    "configuration",
+    DATA_MAPPER_CONFIG,
     (err) => {
       if (err) throw err;
     }
@@ -58,11 +65,11 @@ function ExtractConfiguration(sitecore_folder) {
   helper.writeFile(
     path.join(
       process.cwd(),
-      'sitecoreMigrationData',
-      'MapperData',
+      MIGRATION_DATA_CONFIG.DATA,
+      DATA_MAPPER_DIR,
     ),
     JSON.stringify(treeObj, null, 4),
-    "configurationTree",
+    DATA_MAPPER_CONFIG_TREE,
     (err) => {
       if (err) throw err;
     }
