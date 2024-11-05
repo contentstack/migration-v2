@@ -12,3 +12,5 @@ tsconfig.tsbuildinfo
 /merge_scripts
 /merge-summary.json
 !bin
+/sitecoreMigrationData
+/migration-data
