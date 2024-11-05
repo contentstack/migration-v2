@@ -59,9 +59,9 @@ const saveZip = async (zip: any, name: string) => {
 
 const saveJson = async (jsonContent: string, fileName: string) => {
   try {
-    const filePath = path.join(__dirname, '..', '..', MIGRATION_DATA_CONFIG.DATA, fileName);
+    const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
     
-    // Ensure the directory exists asynchronously /wordpressMigrationData
+    // Ensure the directory exists asynchronously /extracted_files
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
     const data = typeof jsonContent == "object" ? JSON.stringify(jsonContent, null, 4) : jsonContent || "{}";

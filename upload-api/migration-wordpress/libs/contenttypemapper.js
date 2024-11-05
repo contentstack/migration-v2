@@ -5,9 +5,11 @@ const mkdirp = require('mkdirp');
 const _ = require('lodash');
 const config = require('../config');
 const { writeFile, writeFileAsync } = require('../utils/helper');
-const contentTypesFile = path.join(process.cwd(), config.data, 'content_types', 'schema.json');
 
-const contentTypeFolderPath = path.resolve(config.data, "content_types");
+const { contentTypes: contentTypesConfig } = config.modules;
+const contentTypesFile = path.join(process.cwd(), config.data, contentTypesConfig.dirName, contentTypesConfig.schemaFile);
+
+const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
 
 /**
  * Create folders and files
@@ -15,7 +17,7 @@ const contentTypeFolderPath = path.resolve(config.data, "content_types");
 function startingDir() {
   if (!fs.existsSync(contentTypeFolderPath)) {
     mkdirp.sync(contentTypeFolderPath);
-    writeFile(path.join(contentTypeFolderPath, "schema2.json"));
+    writeFile(path.join(contentTypeFolderPath, "schema_mapper.json"));
   }
 }
 
@@ -183,7 +185,7 @@ const contentTypeMaker = async (affix) => {
     type: "content_type"
   }));
   await writeFileAsync(
-    path.join(process.cwd(), config.data, "content_types", "schema2.json"),
+    path.join(process.cwd(), config.data, contentTypesConfig.dirName, "schema_mapper.json"),
     mainSchema,
     4
   );  
