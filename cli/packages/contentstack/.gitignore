@@ -14,3 +14,4 @@ tsconfig.tsbuildinfo
 !bin
 /sitecoreMigrationData
 /migration-data
+/cmsMigrationData
