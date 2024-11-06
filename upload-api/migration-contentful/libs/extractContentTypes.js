@@ -26,10 +26,10 @@ const contentfulFolderPath = path.resolve(
 
 const saveContentType = (contentTypes, editorInterface, prefix) => {
   try {
+    const contentName = contentTypes.map((content) => {
+      return content.sys.id.replace(/([A-Z])/g, '_$1').toLowerCase();
+    });
     contentTypes.map((content) => {
-      const contentName = content.sys.id
-        .replace(/([A-Z])/g, "_$1")
-        .toLowerCase();
       const jsonObj = [];
 
       const editor = editorInterface.find(
