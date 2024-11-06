@@ -153,7 +153,7 @@ const Fields: MappingFields = {
       'Select':'select'
     }
   },
-  'CheckBox': {
+  'checkBox': {
     label:'Select',
     options: {'Select':'checkbox'}
   },
@@ -217,10 +217,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
   const [advancePropertise, setAdvancePropertise] = useState<Advanced>({
     validationRegex: '',
-    Mandatory: false,
-    Multiple: false,
-    Unique: false,
-    NonLocalizable: false
+    mandatory: false,
+    multiple: false,
+    unique: false,
+    nonLocalizable: false
   });
 
   const [active, setActive] = useState<number>(0);
@@ -788,7 +788,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setFieldValue(value);
     const updatedRows: FieldMapType[] = tableData?.map((row) => {
       if (row?.uid === rowIndex) {
-        return { ...row, ContentstackFieldType: value?.value };
+        return { ...row, contentstackFieldType: value?.value };
       }
       return row;
     });
@@ -834,8 +834,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     //const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
     const OptionsForRow = Fields?.[data?.backupFieldType]?.options ;
     const initialOption = {
-      label: Fields?.[data?.ContentstackFieldType]?.label,
-      value: Fields?.[data?.ContentstackFieldType]?.label,
+      label: Fields?.[data?.contentstackFieldType]?.label,
+      value: Fields?.[data?.contentstackFieldType]?.label,
     };
     let option: FieldTypes[];
     if (Array.isArray(OptionsForRow)) {
@@ -857,8 +857,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       option = [{ label: OptionsForRow, value: OptionsForRow }]
     }
 
-    const fieldLabel = data?.ContentstackFieldType === 'url' || data?.ContentstackFieldType === 'group'
-      ? data?.ContentstackFieldType : initialOption?.label
+    const fieldLabel = data?.contentstackFieldType === 'url' || data?.contentstackFieldType === 'group'
+      ? data?.contentstackFieldType : initialOption?.label
     
     return (
       <div className="table-row">
@@ -941,10 +941,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     
     setAdvancePropertise({
       validationRegex: selectedValue?.value?.format,
-      Mandatory: selectedValue?.value?.mandatory,
-      Multiple: selectedValue?.value?.multiple,
-      Unique: selectedValue?.value?.unique,
-      NonLocalizable: selectedValue?.value?.non_localizable
+      mandatory: selectedValue?.value?.mandatory,
+      multiple: selectedValue?.value?.multiple,
+      unique: selectedValue?.value?.unique,
+      nonLocalizable: selectedValue?.value?.non_localizable
     });
 
     setDisabledOptions((prevDisabledOptions) => {
@@ -974,12 +974,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           contentstackFieldUid: selectedValue?.value?.uid,
           advanced: {
             validationRegex: selectedValue?.value?.format,
-            Mandatory: selectedValue?.value?.mandatory,
-            Multiple: selectedValue?.value?.multiple,
-            Unique: selectedValue?.value?.unique,
-            NonLocalizable: selectedValue?.value?.non_localizable,
-            MinChars: selectedValue?.value?.max,
-            MaxChars: selectedValue?.value?.min
+            mandatory: selectedValue?.value?.mandatory,
+            multiple: selectedValue?.value?.multiple,
+            unique: selectedValue?.value?.unique,
+            nonLocalizable: selectedValue?.value?.non_localizable,
+            minChars: selectedValue?.value?.max,
+            maxChars: selectedValue?.value?.min
           }
         };
       }
@@ -1007,7 +1007,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     let groupId = '';
     const data: FieldMapType[] = [];
     schema?.forEach((field: FieldMapType) => {
-      if (field?.ContentstackFieldType === 'group') {
+      if (field?.contentstackFieldType === 'group') {
         groupId = field?.uid;
         data?.push({ ...field, child: [] });
       } else if (field?.uid?.startsWith(groupId + '.')) {
@@ -1161,8 +1161,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     const OptionsForEachRow = Fields?.[data?.backupFieldType]?.options;
 
     const initialOption = {
-      label: Fields?.[data?.ContentstackFieldType]?.label,
-      value: Fields?.[data?.ContentstackFieldType]?.label,
+      label: Fields?.[data?.contentstackFieldType]?.label,
+      value: Fields?.[data?.contentstackFieldType]?.label,
     };
   
     const fieldsOfContentstack: Mapping = {
@@ -1246,10 +1246,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               contentstackFieldUid: OptionsForRow[0]?.value?.uid ?? '',
               advanced: {
                 validationRegex: OptionsForRow[0]?.value?.format ?? '',
-                Mandatory: OptionsForRow[0]?.value?.mandatory,
-                Multiple: OptionsForRow[0]?.value?.multiple,
-                Unique: OptionsForRow[0]?.value?.unique,
-                NonLocalizable: OptionsForRow[0]?.value?.non_localizable,
+                mandatory: OptionsForRow[0]?.value?.mandatory,
+                multiple: OptionsForRow[0]?.value?.multiple,
+                unique: OptionsForRow[0]?.value?.unique,
+                nonLocalizable: OptionsForRow[0]?.value?.non_localizable,
               },
             };
           }
@@ -1315,11 +1315,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         : (OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) 
           && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ))
           ? {
-            label: Fields[data?.ContentstackFieldType]?.label,
-            value: Fields[data?.ContentstackFieldType]?.label,
-            isDisabled: data?.ContentstackFieldType === 'text' ||
-              data?.ContentstackFieldType === 'group' ||
-              data?.ContentstackFieldType === 'url' ||
+            label: Fields[data?.contentstackFieldType]?.label,
+            value: Fields[data?.contentstackFieldType]?.label,
+            isDisabled: data?.contentstackFieldType === 'text' ||
+              data?.contentstackFieldType === 'group' ||
+              data?.contentstackFieldType === 'url' ||
               data?.otherCmsType === "reference"
           }
           : {
@@ -1329,7 +1329,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         };
     
     const adjustedOptions = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
-      (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === Fields[data?.ContentstackFieldType]?.label) ? []
+      (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === Fields[data?.contentstackFieldType]?.label) ? []
       : OptionsForRow.map((option: OptionsType) => ({
         ...option,
         isDisabled: selectedOptions.includes(option?.label ?? '')
@@ -1507,7 +1507,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setIsDropDownChanged(false);
    
     const updatedRows: FieldMapType[] = tableData.map((row) => {
-      return { ...row, ContentstackFieldType: row.backupFieldType };
+      return { ...row, contentstackFieldType: row.backupFieldType };
     });
     setTableData(updatedRows);
 
