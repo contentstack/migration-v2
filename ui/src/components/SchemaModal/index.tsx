@@ -34,58 +34,58 @@ const getTopLevelIcons = (field: FieldMapType) => {
     experience_container: 'PersonalizationLogoGreySmall'
   };
 
-  if (field?.ContentstackFieldType === 'Single Line Textbox' || field?.ContentstackFieldType === 'single_line_text') {
+  if (field?.contentstackFieldType === 'Single Line Textbox' || field?.contentstackFieldType === 'single_line_text') {
     return icons['title'];
   }
 
-  if (field?.ContentstackFieldType === 'URL' || field?.ContentstackFieldType === 'url') {
+  if (field?.contentstackFieldType === 'URL' || field?.contentstackFieldType === 'url') {
     return icons['text'];
   }
 
-  if (field?.ContentstackFieldType === 'tags') {
+  if (field?.contentstackFieldType === 'tags') {
     return icons['tag'];
   }
 
-  if (field?.ContentstackFieldType === 'Select' || field?.ContentstackFieldType === 'dropdown') {
+  if (field?.contentstackFieldType === 'Select' || field?.contentstackFieldType === 'dropdown') {
     return icons['select'];
   }
 
-  if (field?.ContentstackFieldType === 'Date') {
+  if (field?.contentstackFieldType === 'Date') {
     return icons['isodate'];
   }
 
-  if (field?.ContentstackFieldType === 'Multi Line Textbox' || field?.ContentstackFieldType === 'multi_line_text') {
+  if (field?.contentstackFieldType === 'Multi Line Textbox' || field?.contentstackFieldType === 'multi_line_text') {
     return icons['multitext'];
   }
 
-  if (field?.ContentstackFieldType === 'HTML Rich text Editor' || field?.ContentstackFieldType === 'html') {
+  if (field?.contentstackFieldType === 'HTML Rich text Editor' || field?.contentstackFieldType === 'html') {
     return icons['rte'];
   }
 
   if (
-    field?.ContentstackFieldType === 'JSON Rich Text Editor' ||
-    field?.ContentstackFieldType === 'json'
+    field?.contentstackFieldType === 'JSON Rich Text Editor' ||
+    field?.contentstackFieldType === 'json'
   ) {
     return icons['jsonRte'];
   }
 
-  if (field?.ContentstackFieldType === 'Link') {
+  if (field?.contentstackFieldType === 'Link') {
     return icons['link'];
   }
 
-  if (field?.ContentstackFieldType === 'Boolean') {
+  if (field?.contentstackFieldType === 'Boolean') {
     return icons['boolean'];
   }
 
-  if (field?.ContentstackFieldType === 'Reference' || field?.ContentstackFieldType === 'refernce') {
+  if (field?.contentstackFieldType === 'Reference' || field?.contentstackFieldType === 'refernce') {
     return icons['reference'];
   }
 
-  if (!field?.ContentstackFieldType) {
+  if (!field?.contentstackFieldType) {
     return icons['blocks'];
   }
 
-  return icons[field?.ContentstackFieldType as keyof Icons];
+  return icons[field?.contentstackFieldType as keyof Icons];
 };
 
 const TreeView = ({ schema = [] }: schemaType) => {
@@ -95,7 +95,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
     let groupId = '';
     const data: FieldMapType[] = [];
     schema?.forEach((field) => {
-      if (field?.ContentstackFieldType === 'group') {
+      if (field?.contentstackFieldType === 'group') {
         groupId = field?.uid;
         data?.push({ ...field, child: [] });
       } else if (field?.uid?.startsWith(groupId + '.')) {
@@ -152,7 +152,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
             fieldname = field?.uid?.replace(/\.+/g, '_');
           }
           return (
-            <li key={`${field?.otherCmsField}${field?.ContentstackFieldType}`}>
+            <li key={`${field?.otherCmsField}${field?.contentstackFieldType}`}>
               <button
                 data-outlinename={fieldname}
                 onClick={(e: React.MouseEvent<HTMLElement>) => {
@@ -195,7 +195,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
 
               return (
                 <li
-                  key={`${item?.otherCmsField}${item?.ContentstackFieldType}`}
+                  key={`${item?.otherCmsField}${item?.contentstackFieldType}`}
                   className={`${hasNested ? 'nested-child' : ''}`}
                 >
                   <button
