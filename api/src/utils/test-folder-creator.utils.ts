@@ -1,6 +1,16 @@
 import path from 'path';
 import fs from 'fs';
 import read from 'fs-readdir-recursive';
+import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
+
+const { 
+  ENTRIES_DIR_NAME,
+  ASSETS_DIR_NAME,
+  ASSETS_SCHEMA_FILE,
+  CONTENT_TYPES_DIR_NAME,
+  CONTENT_TYPES_SCHEMA_FILE,
+  ENTRIES_MASTER_FILE
+} = MIGRATION_DATA_CONFIG;
 
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
@@ -13,7 +23,7 @@ async function writeOneFile(indexPath: string, fileMeta: any) {
 
 async function writeFiles(entryPath: string, fileMeta: any, entryLocale: any, locale: string) {
   try {
-    const indexPath = path.join(entryPath, 'index.json');
+    const indexPath = path.join(entryPath, ENTRIES_MASTER_FILE);
     const localePath = path.join(entryPath, `${locale}.json`);
     fs.access(entryPath, async (err) => {
       if (err) {
@@ -46,7 +56,7 @@ const saveContent = async (ct: any, contentSave: string) => {
     const filePath = path.join(process.cwd(), contentSave, `${ct?.uid}.json`);
     await fs.promises.writeFile(filePath, JSON.stringify(ct));
     // Append the content to schema.json
-    const schemaFilePath = path.join(process.cwd(), contentSave, 'schema.json');
+    const schemaFilePath = path.join(process.cwd(), contentSave, CONTENT_TYPES_SCHEMA_FILE);
     let schemaData = [];
     try {
       // Read existing schema.json file if it exists
@@ -107,22 +117,22 @@ async function deleteFolderAsync(folderPath: string): Promise<void> {
 
 
 const sortAssets = async (baseDir: string) => {
-  const assetsPath = path.join(process.cwd(), baseDir, 'assets');
+  const assetsPath = path.join(process.cwd(), baseDir, ASSETS_DIR_NAME);
   const assetsFilesPath = path.join(assetsPath, 'files');
-  const assetsJson = JSON.parse(await fs.promises.readFile(path.join(assetsPath, 'index.json'), 'utf8'));
+  const assetsJson = JSON.parse(await fs.promises.readFile(path.join(assetsPath, ASSETS_SCHEMA_FILE), 'utf8'));
   const sortAsset = Object?.values?.(assetsJson)?.slice(0, 10);
   const assetsMeta: any = {};
   sortAsset?.forEach((item: any) => {
     assetsMeta[item?.uid] = item;
   })
   await cleanDirectory(assetsFilesPath, sortAsset);
-  await fs.promises.writeFile(path.join(assetsPath, 'index.json'), JSON?.stringify?.(assetsMeta));
+  await fs.promises.writeFile(path.join(assetsPath, ASSETS_SCHEMA_FILE), JSON?.stringify?.(assetsMeta));
 }
 
 const sortContentType = async (baseDir: string, finalData: any) => {
-  const contentTypePath: string = path.join(process.cwd(), baseDir, 'content_types');
-  const contentSave = path.join(baseDir, 'content_types');
-  const ctData = await JSON.parse(await fs.promises.readFile(path.join(contentTypePath, 'schema.json'), 'utf8'));
+  const contentTypePath: string = path.join(process.cwd(), baseDir, CONTENT_TYPES_DIR_NAME);
+  const contentSave = path.join(baseDir, CONTENT_TYPES_DIR_NAME);
+  const ctData = await JSON.parse(await fs.promises.readFile(path.join(contentTypePath, CONTENT_TYPES_SCHEMA_FILE), 'utf8'));
   const contentTypes: any = [];
   finalData?.forEach((ct: any) => {
     const findCtData = ctData?.find((ele: any) => ele?.uid === ct?.contentType)
@@ -135,10 +145,10 @@ const sortContentType = async (baseDir: string, finalData: any) => {
 }
 
 export const testFolderCreator = async ({ destinationStackId }: any) => {
-  const baseDir = path.join('sitecoreMigrationData', destinationStackId);
-  const entryDelete = path.join(process.cwd(), baseDir, 'entries');
-  const entrySave = path.join(baseDir, 'entries');
-  const entriesPath = path.join(process.cwd(), baseDir, 'entries');
+  const baseDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
+  const entryDelete = path.join(process.cwd(), baseDir, ENTRIES_DIR_NAME);
+  const entrySave = path.join(baseDir, ENTRIES_DIR_NAME);
+  const entriesPath = path.join(process.cwd(), baseDir, ENTRIES_DIR_NAME);
   const allData = [];
   for await (const filePath of read(entriesPath)) {
     if (!filePath?.endsWith('index.json')) {
