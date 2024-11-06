@@ -23,16 +23,21 @@ const extractAdvancedFields = (
   if (['Link', 'Array'].includes(item.type)) {
     singleRef = !['assetLinkEditor', 'entryLinkEditor', 'entryCardEditor'].includes(item.widgetId);
   }
+  let description = item?.settings?.helpText || item?.contentDescription || '';
+  if (description.length > 255) {
+    description = description.slice(0, 255);
+  }
 
   return {
-    Default_value: defaultText,
+    default_value: defaultText,
     validationRegex: regrexValue,
-    Mandatory: item?.required,
-    Multiple: singleRef,
-    Unique: uniqueValue,
-    NonLocalizable: !(item?.localized === true),
+    mandatory: ["title", "url"].includes(item.id)? true : item?.required,
+    multiple: singleRef,
+    unique: uniqueValue,
+    nonLocalizable: !(item?.localized === true),
     validationErrorMessage: validationErrorMessage,
-    referenceFields: referenceFields.length ? referenceFields : undefined
+    referenceFields: referenceFields.length ? referenceFields : undefined,
+    description:description,
   };
 };
 
@@ -42,7 +47,7 @@ const createFieldObject = (item, contentstackFieldType, backupFieldType, referen
   otherCmsType: item.type,
   contentstackField: item.name,
   contentstackFieldUid: uidCorrector(item.id),
-  ContentstackFieldType: contentstackFieldType,
+  contentstackFieldType: contentstackFieldType,
   backupFieldType: backupFieldType,
   advanced: extractAdvancedFields(item, referenceFields, contentstackFieldType, backupFieldType)
 });
@@ -53,7 +58,7 @@ const createDropdownOrRadioFieldObject = (item, fieldType) => {
     choices.push({ value: 'value', key: 'key' });
   } else {
     item.validations.forEach((valid) => {
-      valid.in?.forEach((value) => choices.push({ value: `${value}`, key: `${value}` }));
+      valid.in?.forEach((value) => choices.push({ value: ["Symbol","Text","Array" ].includes(item.type) ? `${value}`: value, key: `${value}` }));
     });
   }
   return {
@@ -192,12 +197,12 @@ const contentTypeMapper = (data) => {
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lat`,
           contentstackFieldUid: `${uidCorrector(item?.id)}.lat`,
-          ContentstackFieldType: 'number',
+          contentstackFieldType: 'number',
           backupFieldType: 'number',
           advanced: {
-            Mandatory: item?.required,
-            Unique: false,
-            NonLocalizable: !(item?.localized === true) || false
+            mandatory: item?.required,
+            unique: false,
+            nonLocalizable: !(item?.localized === true) || false
           }
         });
         acc.push({
@@ -206,12 +211,12 @@ const contentTypeMapper = (data) => {
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lon`,
           contentstackFieldUid: `${uidCorrector(item?.id)}.lon`,
-          ContentstackFieldType: 'number',
+          contentstackFieldType: 'number',
           backupFieldType: 'number',
           advanced: {
-            Mandatory: item?.required,
-            Unique: false,
-            NonLocalizable: !(item?.localized === true) || false
+            mandatory: item?.required,
+            unique: false,
+            nonLocalizable: !(item?.localized === true) || false
           }
         });
         break;
