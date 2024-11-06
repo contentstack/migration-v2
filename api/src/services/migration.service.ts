@@ -7,7 +7,7 @@ import https from "../utils/https.utils.js";
 import { LoginServiceType } from "../models/types.js"
 import getAuthtoken from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
-import { HTTP_TEXTS, HTTP_CODES, LOCALE_MAPPER, STEPPER_STEPS } from "../constants/index.js";
+import { HTTP_TEXTS, HTTP_CODES, LOCALE_MAPPER, STEPPER_STEPS, CMS } from "../constants/index.js";
 import { BadRequestError, ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { fieldAttacher } from "../utils/field-attacher.utils.js";
 import { siteCoreService } from "./sitecore.service.js";
@@ -16,6 +16,7 @@ import { utilsCli } from './runCli.service.js';
 import customLogger from "../utils/custom-logger.utils.js";
 import { setLogFilePath } from "../server.js";
 import fs from 'fs';
+import { contentfulService } from "./contentful.service.js";
 
 
 
@@ -212,15 +213,37 @@ const startTestMigration = async (req: Request): Promise<any> => {
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const packagePath = project?.extract_path;
-  if (packagePath && project?.current_test_stack_id) {
+  if (project?.current_test_stack_id) {
+    const { legacy_cms: { cms, file_path, affix } } = project;
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.current_test_stack_id}.log`);
     const message = getLogMessage('startTestMigration', 'Starting Test Migration...', {});
     await customLogger(projectId, project?.current_test_stack_id, 'info', message);
     await setLogFilePath(loggerPath);
     const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
-    await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id, projectId });
-    await siteCoreService?.createLocale(req, project?.current_test_stack_id, projectId);
-    await siteCoreService?.createVersionFile(project?.current_test_stack_id);
+
+    switch (cms) {
+      case CMS.SITECORE: {
+        if (packagePath) {
+          await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id, projectId });
+          await siteCoreService?.createLocale(req, project?.current_test_stack_id, projectId);
+          await siteCoreService?.createVersionFile(project?.current_test_stack_id);
+
+        } break;
+
+      }
+      case CMS.CONTENTFUL: {
+        await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId);
+        await contentfulService?.createRefrence(file_path, project?.current_test_stack_id, projectId);
+        await contentfulService?.createWebhooks(file_path, project?.current_test_stack_id, projectId);
+        await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
+        await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId);
+        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, affix);
+        break;
+      }
+      default:
+        break;
+    }
+
     await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
     await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
   }
@@ -246,15 +269,35 @@ const startMigration = async (req: Request): Promise<any> => {
   }
 
   const packagePath = project?.extract_path;
-  if (packagePath && project?.destination_stack_id) {
+  if (project?.destination_stack_id) {
+    const { legacy_cms: { cms, file_path, affix } } = project;
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.destination_stack_id}.log`);
     const message = getLogMessage('startTestMigration', 'Starting Migration...', {});
     await customLogger(projectId, project?.destination_stack_id, 'info', message);
     await setLogFilePath(loggerPath);
     const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.destination_stack_id });
-    await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id, projectId });
-    await siteCoreService?.createLocale(req, project?.destination_stack_id, projectId);
-    await siteCoreService?.createVersionFile(project?.destination_stack_id);
+
+    switch (cms) {
+      case CMS.SITECORE: {
+        if (packagePath) {
+        await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id, projectId });
+        await siteCoreService?.createLocale(req, project?.destination_stack_id, projectId);
+        await siteCoreService?.createVersionFile(project?.destination_stack_id);
+        }
+        break;
+      }
+      case CMS.CONTENTFUL: {
+        await contentfulService?.createLocale(file_path, project?.destination_stack_id, projectId);
+        await contentfulService?.createRefrence(file_path, project?.destination_stack_id, projectId);
+        await contentfulService?.createWebhooks(file_path, project?.destination_stack_id, projectId);
+        await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
+        await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
+        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, affix);
+        break;
+      }
+      default:
+        break;
+    }
     await utilsCli?.runCli(region, user_id, project?.destination_stack_id, projectId, false, loggerPath);
   }
 }
@@ -270,15 +313,15 @@ const getLogs = async (req: Request): Promise<any> => {
     if(fs.existsSync(loggerPath)){
       const logs = fs.readFileSync(loggerPath,'utf-8');
       const logEntries = logs
-            .split('\n')
-            .map(line => {
-                try {
-                    return JSON.parse(line); 
-                } catch (error) {
-                    return null; 
-                }
-            })
-            .filter(entry => entry !== null);
+        .split('\n')
+        .map(line => {
+          try {
+            return JSON.parse(line);
+          } catch (error) {
+            return null;
+          }
+        })
+        .filter(entry => entry !== null);
       return logEntries
 
     }
@@ -287,13 +330,13 @@ const getLogs = async (req: Request): Promise<any> => {
         getLogMessage(
           srcFunc,
           HTTP_TEXTS.LOGS_NOT_FOUND,
-          
+
         )
       );
       throw new BadRequestError(HTTP_TEXTS.LOGS_NOT_FOUND);
-      
+
     }
-    
+
   } catch (error:any) {
     logger.error(
       getLogMessage(
@@ -306,7 +349,7 @@ const getLogs = async (req: Request): Promise<any> => {
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
-    
+
   }
 
 }
