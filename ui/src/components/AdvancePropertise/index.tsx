@@ -37,35 +37,35 @@ interface ContentTypeOption {
 const AdvancePropertise = (props: SchemaProps) => {
   // State for toggle states
   const [toggleStates, setToggleStates] = useState({
-    minChars: props?.value?.MinChars,
-    maxChars: props?.value?.MaxChars,
-    minRange: props?.value?.MinRange,
-    maxRange: props?.value?.MaxRange,
+    minChars: props?.value?.minChars,
+    maxChars: props?.value?.maxChars,
+    minRange: props?.value?.minRange,
+    maxRange: props?.value?.maxRange,
     minSize: props?.value?.minSize,
     maxSize: props?.value?.maxSize,
-    defaultValue: props?.value?.DefaultValue,
-    validationRegex: props?.value?.ValidationRegex,
+    defaultValue: props?.value?.defaultValue,
+    validationRegex: props?.value?.validationRegex,
     title: props?.value?.title,
     url: props?.value?.url,
-    mandatory: props?.value?.Mandatory,
-    allowImagesOnly: props?.value?.AllowImagesOnly,
-    nonLocalizable: props?.value?.NonLocalizable,
+    mandatory: props?.value?.mandatory,
+    allowImagesOnly: props?.value?.allowImagesOnly,
+    nonLocalizable: props?.value?.nonLocalizable,
     embedObject: true,
     embedAssests: true,
-    multiple: props?.value?.Multiple,
-    embedObjects: props?.value?.EmbedObjects,
-    Default_value: props?.value?.Default_value,
+    multiple: props?.value?.multiple,
+    embedObjects: props?.value?.embedObjects,
+    default_value: props?.value?.default_value,
     option: props?.value?.options
   });
 
-  const embedObjects = props?.value?.EmbedObjects?.map((item: string) => ({
+  const embedObjects = props?.value?.embedObjects?.map((item: string) => ({
     label: item,
     value: item,
   }));
   // State for content types
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   const [ctValue, setCTValue] = useState<ContentTypeOption[] | null>(embedObjects);
-  const [embedObjectslabels, setEmbedObjectsLabels] = useState<string[]>(props?.value?.EmbedObjects);
+  const [embedObjectslabels, setEmbedObjectsLabels] = useState<string[]>(props?.value?.embedObjects);
   const [showOptions, setShowOptions] = useState<Record<number, boolean>>({});
   const [showIcon, setShowIcon] = useState<number>();
   const filterRef = useRef<HTMLDivElement | null>(null);
@@ -74,7 +74,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   
   useEffect(()=>{
     const defaultIndex = toggleStates?.option?.findIndex(
-      (item: optionsType) => toggleStates?.Default_value === item?.key
+      (item: optionsType) => toggleStates?.default_value === item?.key
     );
   
     if (defaultIndex !== -1) {
@@ -124,16 +124,16 @@ const AdvancePropertise = (props: SchemaProps) => {
         ...props?.value,
         [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: (event.target as HTMLInputElement)?.value,
         validationRegex: '',
-        MinChars: currentToggleStates?.minChars,
-        MaxChars:currentToggleStates?.maxChars,
-        Mandatory: currentToggleStates?.mandatory,
-        Multiple: currentToggleStates?.multiple,
-        Unique: false,
-        NonLocalizable: currentToggleStates?.nonLocalizable,
-        EmbedObject: currentToggleStates?.embedObject,
-        EmbedObjects: embedObjectslabels,
-        MinRange: currentToggleStates?.minRange,
-        MaxRange: currentToggleStates?.maxRange,
+        minChars: currentToggleStates?.minChars,
+        maxChars:currentToggleStates?.maxChars,
+        mandatory: currentToggleStates?.mandatory,
+        multiple: currentToggleStates?.multiple,
+        unique: false,
+        nonLocalizable: currentToggleStates?.nonLocalizable,
+        embedObject: currentToggleStates?.embedObject,
+        embedObjects: embedObjectslabels,
+        minRange: currentToggleStates?.minRange,
+        maxRange: currentToggleStates?.maxRange,
       },
       checkBoxChanged
     );
@@ -160,12 +160,12 @@ const AdvancePropertise = (props: SchemaProps) => {
       {
         [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
         validationRegex: '',
-        Mandatory: currentToggleStates?.mandatory,
-        Multiple: currentToggleStates?.multiple,
-        Unique: false,
-        NonLocalizable: currentToggleStates?.nonLocalizable,
-        EmbedObject: currentToggleStates?.embedObject,
-        EmbedObjects : embedObjectslabels
+        mandatory: currentToggleStates?.mandatory,
+        multiple: currentToggleStates?.multiple,
+        unique: false,
+        nonLocalizable: currentToggleStates?.nonLocalizable,
+        embedObject: currentToggleStates?.embedObject,
+        embedObjects : embedObjectslabels
       },
       checkBoxChanged
     );
@@ -187,12 +187,12 @@ const AdvancePropertise = (props: SchemaProps) => {
       {
         [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
         validationRegex: '',
-        Mandatory: currentToggleStates?.mandatory,
-        Multiple: currentToggleStates?.multiple,
-        Unique: false,
-        NonLocalizable: currentToggleStates?.nonLocalizable,
-        EmbedObject: currentToggleStates?.embedObject,
-        EmbedObjects : embedObjectslabels
+        mandatory: currentToggleStates?.mandatory,
+        multiple: currentToggleStates?.multiple,
+        unique: false,
+        nonLocalizable: currentToggleStates?.nonLocalizable,
+        embedObject: currentToggleStates?.embedObject,
+        embedObjects : embedObjectslabels
       },
       true
     );
@@ -227,23 +227,23 @@ const AdvancePropertise = (props: SchemaProps) => {
     }));
     setToggleStates((prevStates) => ({
       ...prevStates,
-      ['Default_value']: option?.key
+      ['default_value']: option?.key
     }));
     const currentToggleStates = {
       ...toggleStates,
-      ['Default_value']: option?.key
+      ['default_value']: option?.key
     };
     props?.updateFieldSettings(
       props?.rowId,
       {
-        ['Default_value']: option?.key,
+        ['default_value']: option?.key,
         validationRegex: '',
-        Mandatory: currentToggleStates?.mandatory,
-        Multiple: currentToggleStates?.multiple,
-        Unique: false,
-        NonLocalizable: currentToggleStates?.nonLocalizable,
-        EmbedObject: currentToggleStates?.embedObject,
-        EmbedObjects : embedObjectslabels,
+        mandatory: currentToggleStates?.mandatory,
+        multiple: currentToggleStates?.multiple,
+        unique: false,
+        nonLocalizable: currentToggleStates?.nonLocalizable,
+        embedObject: currentToggleStates?.embedObject,
+        embedObjects : embedObjectslabels,
         options:options
       },
       true
@@ -258,23 +258,23 @@ const AdvancePropertise = (props: SchemaProps) => {
     }));
     setToggleStates((prevStates) => ({
       ...prevStates,
-      ['Default_value']: ''
+      ['default_value']: ''
     }));
     const currentToggleStates = {
       ...toggleStates,
-      ['Default_value']: ''
+      ['default_value']: ''
     };
     props?.updateFieldSettings(
       props?.rowId,
       {
-        ['Default_value']: '',
+        ['default_value']: '',
         validationRegex: '',
-        Mandatory: currentToggleStates?.mandatory,
-        Multiple: currentToggleStates?.multiple,
-        Unique: false,
-        NonLocalizable: currentToggleStates?.nonLocalizable,
-        EmbedObject: currentToggleStates?.embedObject,
-        EmbedObjects : embedObjectslabels,
+        mandatory: currentToggleStates?.mandatory,
+        multiple: currentToggleStates?.multiple,
+        unique: false,
+        nonLocalizable: currentToggleStates?.nonLocalizable,
+        embedObject: currentToggleStates?.embedObject,
+        embedObjects : embedObjectslabels,
         options: options
       },
       true
@@ -441,10 +441,10 @@ const AdvancePropertise = (props: SchemaProps) => {
                 </Tooltip>
                 <TextInput
                   type="text"
-                  value={toggleStates?.Default_value}
+                  value={toggleStates?.default_value}
                   placeholder="Enter value"
                   version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('Default_value', e, true))}
+                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('default_value', e, true))}
                 />
               </Field>
           
@@ -581,13 +581,13 @@ const AdvancePropertise = (props: SchemaProps) => {
             <div className="Radio-class">
               <Radio
                 label={'True'}
-                checked={stringToBoolean(toggleStates?.Default_value || '') === true}
-                onChange={() => handleRadioChange('Default_value',true)}>
+                checked={stringToBoolean(toggleStates?.default_value || '') === true}
+                onChange={() => handleRadioChange('default_value',true)}>
               </Radio>
               <Radio
                 label={'False'}
-                checked={stringToBoolean(toggleStates?.Default_value || '') === false}
-                onChange={() => handleRadioChange('Default_value',false)}>
+                checked={stringToBoolean(toggleStates?.default_value || '') === false}
+                onChange={() => handleRadioChange('default_value',false)}>
               </Radio>
 
             </div>
@@ -624,7 +624,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                           props?.rowId,
                         {
                           validationRegex : toggleStates?.validationRegex || '',
-                          EmbedObjects: embedObject
+                          embedObjects: embedObject
                         },
                         true,
                          ); 
