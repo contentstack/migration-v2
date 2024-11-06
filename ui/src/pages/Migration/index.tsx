@@ -45,14 +45,6 @@ type LegacyCmsRef = {
 };
 
 const Migration = () => {
-  const [projectData, setProjectData] = useState<MigrationResponse>();
-  const [isLoading, setIsLoading] = useState(false);
-  const [curreentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isCompleted, setIsCompleted] = useState<boolean>(false);
-  const [isProjectMapper, setIsProjectMapper] = useState<boolean>(false);
-
-  const [migrationStarted, setMigrationStarted] = useState(false);
-
   const params: Params<string> = useParams();
   const { projectId = '' } = useParams();
   const navigate = useNavigate();
@@ -63,6 +55,11 @@ const Migration = () => {
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
   const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
   const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
+  const [projectData, setProjectData] = useState<MigrationResponse>();
+  const [isLoading, setIsLoading] = useState(false);
+  const [curreentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [isProjectMapper, setIsProjectMapper] = useState<boolean>(false);
 
   const saveRef = useRef<ContentTypeSaveHandles>(null);
 
@@ -73,7 +70,7 @@ const Migration = () => {
   useEffect(()=> {
     dispatch(updateNewMigrationData({
       ...newMigrationData,
-      isprojectMapped : isProjectMapper
+      isprojectMapped: isProjectMapper
       
     }));
     
@@ -86,12 +83,10 @@ const Migration = () => {
       if (status === 201) {
         return data?.contentTypes;
       }
-      
     } catch (error) {
-      return error;
-      
+      // return error;
+      console.log(error);
     }
-    
   };
 
   // Function to get exisiting global fields list
@@ -102,12 +97,11 @@ const Migration = () => {
       if (status === 201) {
         return data?.globalFields;
       }
-      
     } catch (error) {
-      return error;
-      
+      // return error;
+      console.log(error);
+
     }
-   
   }
 
   const fetchData = async () => {
@@ -182,7 +176,6 @@ const Migration = () => {
     isNewStack: false
   };
   
-  
   selectedStackData = {
     label: projectData?.stackDetails?.label,
     value: projectData?.stackDetails?.value,
@@ -240,7 +233,7 @@ const Migration = () => {
         isMigrationComplete: false
       },
       migration_execution: {
-        migrationStarted: migrationStarted
+        migrationStarted: projectData?.isMigrationStarted
       },
       stackDetails: projectData?.stackDetails,
       testStacks: projectData?.test_stacks,
@@ -250,7 +243,6 @@ const Migration = () => {
     dispatch(updateNewMigrationData(projectMapper));
     setIsProjectMapper(false);
   };
-
 
   const createStepper = (projectData: MigrationResponse,handleStepChange: (currentStep: number) => void) => {
     const steps = [
@@ -414,6 +406,7 @@ const Migration = () => {
     }
   };
 
+  // handle on proceed to Test Migration
   const handleOnClickContentMapper = async (event: MouseEvent) => {
     // setIsModalOpen(true);
 
@@ -453,6 +446,7 @@ const Migration = () => {
 
   }
 
+  // handle on proceed to Final Migration
   const handleOnClickTestMigration = async () => {
     setIsLoading(false);
 
@@ -463,17 +457,15 @@ const Migration = () => {
     handleStepChange(4);
   }
 
+  // handle to start Final Migration process
   const handleOnClickMigrationExecution = async () => {
     setIsLoading(true);
 
     try {
       const migrationRes = await startMigration(newMigrationData?.destination_stack?.selectedOrg?.value, projectId);
 
-      console.log("migrationRes", migrationRes);
-
       if (migrationRes?.status === 200) {
         setIsLoading(false);
-        setMigrationStarted(true)
         Notification({
           notificationContent: { text: 'Migration Execution process started' },
           notificationProps: {
@@ -482,16 +474,18 @@ const Migration = () => {
           },
           type: 'message'
         });
+
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          migration_execution: { ...newMigrationData?.migration_execution, migrationStarted: true }
+        };
+    
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
     } catch (error) {
-      return error;
+      // return error;
+      console.log(error);
     }
-
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      migration_execution: {migrationStarted: true}
-    };
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
   }
 
   const changeDropdownState = () =>{
@@ -514,7 +508,7 @@ const Migration = () => {
   return (
     <div className='migration-steps-wrapper'>
       {projectData && 
-        <MigrationFlowHeader projectData={projectData} handleOnClick={handleOnClickFunctions[curreentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef}   />
+        <MigrationFlowHeader projectData={projectData} handleOnClick={handleOnClickFunctions[curreentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef} finalExecutionStarted={newMigrationData?.migration_execution?.migrationStarted}   />
       }
       <div className='steps-wrapper'>
         <HorizontalStepper ref={stepperRef} steps={createStepper(projectData ?? defaultMigrationResponse, handleClick)} handleSaveCT={saveRef?.current?.handleSaveContentType} changeDropdownState={changeDropdownState} />
