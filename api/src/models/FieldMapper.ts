@@ -7,15 +7,15 @@ import path from "path";
  */
 interface Advanced {
   validationRegex: string;
-  Mandatory: boolean;
-  Multiple: boolean;
-  Unique: boolean;
-  NonLocalizable: boolean;
-  EmbedObject: boolean;
-  EmbedObjects: any;
-  MinChars: string;
-  MaxChars: number;
-  Default_value: string;
+  mandatory: boolean;
+  multiple: boolean;
+  unique: boolean;
+  nonLocalizable: boolean;
+  embedObject: boolean;
+  embedObjects: any;
+  minChars: string;
+  maxChars: number;
+  default_value: string;
   options: any[];
 }
 
@@ -31,7 +31,7 @@ interface FieldMapper {
     otherCmsType: string;
     contentstackField: string;
     contentstackFieldUid: string;
-    ContentstackFieldType: string;
+    contentstackFieldType: string;
     isDeleted: boolean;
     backupFieldType: string;
     refrenceTo: { uid: string; title: string };
