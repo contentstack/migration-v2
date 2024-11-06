@@ -402,9 +402,9 @@ const updateContentType = async (req: Request) => {
     if (fieldMapping) {
       for (const field of fieldMapping) {
         if (
-          !field.ContentstackFieldType ||
-          field.ContentstackFieldType === "" ||
-          field.ContentstackFieldType === "No matches found" ||
+          !field.contentstackFieldType ||
+          field.contentstackFieldType === "" ||
+          field.contentstackFieldType === "No matches found" ||
           field.contentstackFieldUid === ""
         ) {
           logger.error(
@@ -412,7 +412,7 @@ const updateContentType = async (req: Request) => {
               srcFun,
               `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
                 "$",
-                "ContentstackFieldType or contentstackFieldUid"
+                "contentstackFieldType or contentstackFieldUid"
               )}`
             )
           );
@@ -424,7 +424,7 @@ const updateContentType = async (req: Request) => {
             status: 400,
             message: `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
               "$",
-              "ContentstackFieldType or contentstackFieldUid"
+              "contentstackFieldType or contentstackFieldUid"
             )}`,
           };
         }
@@ -471,7 +471,7 @@ const updateContentType = async (req: Request) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) => f?.id === field?.id
         );
-        if (fieldIndex > -1 && field?.ContentstackFieldType !== "") {
+        if (fieldIndex > -1 && field?.contentstackFieldType !== "") {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = field;
             //data.field_mapper[fieldIndex].isDeleted = false;
@@ -594,7 +594,7 @@ const resetToInitialMapping = async (req: Request) => {
               ...field,
               contentstackField: "",
               contentstackFieldUid: "",
-              ContentstackFieldType: field.backupFieldType,
+              contentstackFieldType: field.backupFieldType,
             };
           });
         }
@@ -692,7 +692,7 @@ const resetAllContentTypesMapping = async (projectId: string) => {
                 ...fieldData,
                 contentstackField: "",
                 contentstackFieldUid: "",
-                ContentstackFieldType: fieldData.backupFieldType,
+                contentstackFieldType: fieldData.backupFieldType,
               };
             });
           }
