@@ -51,7 +51,7 @@ export interface ContentType {
 }
 
 export interface FieldMapType {
-  ContentstackFieldType: string;
+  contentstackFieldType: string;
   child?: FieldMapType[] | undefined;
   backupFieldType: string;
   contentstackField: string;
@@ -68,17 +68,17 @@ export interface FieldMapType {
 
 export interface Advanced {
   validationRegex: string;
-  Mandatory?: boolean;
-  Multiple?: boolean;
-  Unique?: boolean;
-  NonLocalizable?: boolean;
-  EmbedObject?: boolean;
-  EmbedObjects?:any;
-  MinChars?: string;
-  MaxChars?: number;
-  MinRange?: number,
-  MaxRange?: number,
-  Default_value?:string,
+  mandatory?: boolean;
+  multiple?: boolean;
+  unique?: boolean;
+  nonLocalizable?: boolean;
+  embedObject?: boolean;
+  embedObjects?:any;
+  minChars?: string;
+  maxChars?: number;
+  minRange?: number,
+  maxRange?: number,
+  default_value?:string,
   options?: any[]
 }
 
