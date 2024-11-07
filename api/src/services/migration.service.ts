@@ -238,6 +238,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, affix);
+        await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
       default:
@@ -278,7 +279,9 @@ const startMigration = async (req: Request): Promise<any> => {
     const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.destination_stack_id });
 
     switch (cms) {
-      case CMS.SITECORE: {
+      case CMS.SITECORE_V8:
+      case CMS.SITECORE_V9:
+      case CMS.SITECORE_V10: {
         if (packagePath) {
         await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id, projectId });
         await siteCoreService?.createLocale(req, project?.destination_stack_id, projectId);
@@ -293,6 +296,7 @@ const startMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, affix);
+        await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
       default:
