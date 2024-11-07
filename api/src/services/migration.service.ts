@@ -221,14 +221,15 @@ const startTestMigration = async (req: Request): Promise<any> => {
     const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
 
     switch (cms) {
-      case CMS.SITECORE: {
-        if (packagePath) {
+      case CMS.SITECORE_V8:
+      case CMS.SITECORE_V9:
+      case CMS.SITECORE_V10: {
+    if (packagePath) {
           await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id, projectId });
           await siteCoreService?.createLocale(req, project?.current_test_stack_id, projectId);
           await siteCoreService?.createVersionFile(project?.current_test_stack_id);
-
-        } break;
-
+        } 
+        break;
       }
       case CMS.CONTENTFUL: {
         await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId);
