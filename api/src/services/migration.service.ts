@@ -32,10 +32,9 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "createTestStack";
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
-  const { token_payload } = req.body;
+  const { name, token_payload } = req.body;
   const description = 'This is a system-generated test stack.'
-  const name = 'Test';
-
+  const testStackName = `${name}-Test`;
 
   try {
     const authtoken = await getAuthtoken(
@@ -47,7 +46,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     const projectData: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
     const master_locale = projectData?.stackDetails?.master_locale ?? Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
     const testStackCount = projectData?.test_stacks?.length + 1;
-    const newName = name + "-" + testStackCount;
+    const newName = testStackName + "-" + testStackCount;
 
     const [err, res] = await safePromise(
       https({
