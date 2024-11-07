@@ -189,10 +189,12 @@ const saveAsset = async (
   failedJSON: any,
   assetData: any,
   metadata: AssetMetaData[],
+  projectId:string,
   destination_stack_id:string,
   retryCount = 0
 ): Promise<void> => {
   try {
+    const srcFunc = 'saveAsset';
     const publishDetails: { environment: any; version: number; locale: any }[] =
       [];
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
@@ -264,7 +266,12 @@ const saveAsset = async (
           description,
           publish_details: publishDetails || [],
         };
-
+        const message = getLogMessage(
+          srcFunc,
+          `Asset "${fileName}" has been successfully transformed.`,
+          {}
+        )
+        await customLogger(projectId, destination_stack_id, 'info', message);
         await writeFile(assetPath, fileName, response.data);
         await writeFile(assetPath, `_contentstack_${assets.sys.id}.json`, assetData[assets.sys.id]);
         metadata.push({ uid: assets.sys.id, url: fileUrl, filename: fileName });
@@ -284,7 +291,7 @@ const saveAsset = async (
             reason_for_error: err?.message,
           };
         } else {
-          return saveAsset(assets, 1, failedJSON, assetData, assetsSave);
+          return saveAsset(assets, failedJSON, assetData,metadata, projectId, destination_stack_id, 1);
         }
       }
     }
@@ -307,7 +314,7 @@ const createAssets = async (packagePath: any, destination_stack_id:string, proje
     if (assets && assets.length > 0) {
       const tasks = assets.map(
         async (asset: any) =>
-          await saveAsset(asset, failedJSON, assetData, metadata, destination_stack_id, 0)
+          await saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, 0)
       );
       await Promise.all(tasks);
       const assetMasterFolderPath = path.join(assetsSave, ASSETS_FAILED_FILE);
@@ -481,7 +488,6 @@ const createEntry = async (packagePath: any, destination_stack_id:string, projec
                 publish_details: publishDetails,
                 ...entryData[name][locale][id],
               };
-
               // Format object keys to snake_case
               Object.entries(entryData[name][locale][id]).forEach(
                 ([innerKey, value]) => {
@@ -493,6 +499,12 @@ const createEntry = async (packagePath: any, destination_stack_id:string, projec
                   entryData[name][locale][id][formattedKey] = value;
                 }
               );
+                const message = getLogMessage(
+                  srcFunc,
+                  `Entry title "${entryData[name][locale][id]?.title}"(${name}) in the ${locale} locale has been successfully transformed.`,
+                  {}
+                )
+                 customLogger(projectId, destination_stack_id, 'info', message)
             });
           });
 
@@ -553,7 +565,7 @@ const createLocale = async (packagePath: string, destination_stack_id:string, pr
 
     const locales = JSON.parse(data)?.locales;
 
-    locales.map((localeData: any) => {
+    await Promise.all(locales.map(async (localeData: any) => {
       const title = localeData.sys.id;
       const newLocale: Locale = {
         code: `${localeData.code.toLowerCase()}`,
@@ -565,12 +577,24 @@ const createLocale = async (packagePath: string, destination_stack_id:string, pr
 
       if (localeData.default === true) {
         msLocale[title] = newLocale;
+        const message = getLogMessage(
+          srcFunc,
+          `Master Locale ${newLocale.code} has been successfully transformed.`,
+          {}
+        )
+        await customLogger(projectId, destination_stack_id, 'info', message);
       } else {
         newLocale.name = `${localeData.name}`;
         allLocales[title] = newLocale;
+        const message = getLogMessage(
+          srcFunc,
+          `Locale ${newLocale.code} has been successfully transformed.`,
+          {}
+        )
+        await customLogger(projectId, destination_stack_id, 'info', message);
       }
       localeList[title] = newLocale;
-    });
+    }));
 
     // const masterPath = path.join(localeSave, "master-locale.json");
     // const allLocalePath = path.join(localeSave, "locales.json");
@@ -796,6 +820,12 @@ const createWebhooks = async (packagePath: string, destination_stack_id:string, 
           name: webhooksData.name,
           unhealthy: { state: false },
         };
+        const message = getLogMessage(
+          srcFunc,
+          `Webhook ${webhooksData.name} has been successfully transformed.`,
+          {},
+        );
+        await customLogger(projectId, destination_stack_id, 'info', message);
       }
       await writeFile(webhooksSave, WEBHOOKS_FILE_NAME, webhookJSON)
     } else {
@@ -875,25 +905,22 @@ const createRefrence = async (packagePath: string, destination_stack_id:string, 
   }
 
 };
-const createVersionFile = async (destination_stack_id:string, projectId:string) => {
-  fs.writeFile(
-    path?.join?.(DATA, destination_stack_id, EXPORT_INFO_FILE),
-    JSON.stringify({
-      contentVersion: 2,
-      logsPath: "",
-    }),
-    async (err) => {
-      if (err) {
-        const message = getLogMessage(
-          "createVersionFile",
-          `Error writing file: ${err}`,
-          {},
-          err
-        )
-        await customLogger(projectId, destination_stack_id, 'error', message);
-      }
-    }
-  );
+const createVersionFile = async (destination_stack_id: string, projectId: string) => {
+  try {
+    await writeFile(path?.join?.(DATA, destination_stack_id), EXPORT_INFO_FILE,
+      {
+        contentVersion: 2,
+        logsPath: "",
+      })
+  } catch (err) {
+    const message = getLogMessage(
+      "createVersionFile",
+      `Error writing file: ${err}`,
+      {},
+      err
+    )
+    await customLogger(projectId, destination_stack_id, 'error', message);
+  }
 };
 
 export const contentfulService = {
