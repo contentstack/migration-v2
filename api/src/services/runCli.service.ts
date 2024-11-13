@@ -41,10 +41,10 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
       await createDirectoryAndFile(loggerPath, transformePath);
       await setLogFilePath(loggerPath);
       await watchLogs(loggerPath, transformePath);
-      shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));
-      shell.exec(`node bin/run config:set:region ${regionPresent}`);
-      shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
-      const importData = shell.exec(`node bin/run cm:stacks:import  -k ${stack_uid} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
+      shell.cd(path.join(process.cwd(), '..', 'cli', 'dist'));
+      shell.exec(`node cli.bundle.js config:set:region ${regionPresent}`);
+      shell.exec(`node cli.bundle.js login -a ${userData?.authtoken}  -e ${userData?.email}`);
+      const importData = shell.exec(`node cli.bundle.js cm:stacks:import  -k ${stack_uid} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
       importData.on('exit', async (code) => {
         console.info(`Process exited with code: ${code}`);
         if (code === 1 || code === 0) {

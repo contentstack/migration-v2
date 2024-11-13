@@ -239,20 +239,26 @@ const Login: FC<IProps> = () => {
     };
   };
   
-  useEffect(()=>{ 
+  useEffect(() => { 
     const handlePopState = (event: PopStateEvent) => {
-      event.preventDefault();
-      window.history.pushState(null, '', window.location.href);
+      if (isBlock) {
+        event.preventDefault();
+        window.history.pushState(null, '', window.location.href);
+      }
     };
-    if(isBlock){
+    
+    if (isBlock) {
       window.history.pushState(null, '', window.location.href);
     }
     window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate',handlePopState);
+  
+    window.addEventListener('popstate', handlePopState);
+  
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  },[isBlock]);
+
+  }, [isBlock]);
   
   
   return (

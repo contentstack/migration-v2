@@ -65,7 +65,8 @@
     "additionalVersionFlags": [
       "-v"
     ],
-    "repositoryPrefix": "<%- repo %>/blob/main/packages/contentstack-audit/<%- commandPath %>"
+    "repositoryPrefix": "<%- repo %>/blob/main/packages/contentstack-audit/<%- commandPath %>",
+    "platform": "darwin|linux|win32"
   },
   "scripts": {
     "build": "npm run clean && shx rm -rf lib && tsc -b",

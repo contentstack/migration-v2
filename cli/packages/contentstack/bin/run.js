@@ -14,9 +14,11 @@
       // Call the original emitWarning function for other warnings
       originalEmitWarning.call(process, warning, type, code, ...args);
     };
-
+    console.log('Loading OCLIF...');
     const oclif = await import('@oclif/core');
     await oclif.execute({ development: false, dir: __dirname });
+    const s = await oclif.execute({ development: false, dir: __dirname });
+    console.log('OCLIF executed.', s);
   } catch (error) {
     console.error('An error occurred while executing oclif:', error);
   }
