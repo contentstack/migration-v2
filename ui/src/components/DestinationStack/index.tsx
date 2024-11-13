@@ -214,7 +214,7 @@ const DestinationStackComponent = ({
   }, [internalActiveStepIndex]); 
   return (
     <>
-      {isLoading || newMigrationData?.isprojectMapped ? (
+      {(isLoading || newMigrationData?.isprojectMapped) ? (
         <div className="loader-container">
           <CircularLoader />
         </div>

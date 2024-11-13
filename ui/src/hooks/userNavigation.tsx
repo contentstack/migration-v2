@@ -10,6 +10,8 @@ const useBlockNavigation = (isModalOpen: boolean) => {
     const handlePopState = (event: PopStateEvent) => {
       // If the modal is open, prevent navigation
       if (isModalOpen) {
+        // event.preventDefault();
+        // event.stopImmediatePropagation();
 
         window.history.pushState(null, '', window.location.pathname);
         navigate(location.pathname);
@@ -21,7 +23,10 @@ const useBlockNavigation = (isModalOpen: boolean) => {
       initialPathnameRef.current = location.pathname;
       window.history.pushState(null, '', window.location.pathname); 
       window.addEventListener('popstate', handlePopState);
-    }
+    } 
+    // else {
+    //   window.removeEventListener('popstate', handlePopState);
+    // }
 
     return () => {
       window.removeEventListener('popstate', handlePopState);

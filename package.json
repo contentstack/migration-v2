@@ -9,7 +9,8 @@
     "api": "cd ./api && npm run dev",
     "upload": "cd ./upload-api && npm start",
     "ui": "cd ./ui && npm start",
-    "start": "node index.js"
+    "start": "node index.js",
+    "build": "esbuild cli/packages/contentstack/ --bundle --platform=node --outfile=dist/cli.bundle.js"
   },
   "repository": {
     "type": "git",
@@ -22,10 +23,15 @@
   },
   "homepage": "https://github.com/contentstack-expert-services/migration-v2-ui#readme",
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "husky": "^4.3.8",
     "prettier": "^2.4.1",
     "rimraf": "^3.0.2",
-    "validate-branch-name": "^1.3.0"
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.6.3",
+    "validate-branch-name": "^1.3.0",
+    "webpack": "^5.96.1",
+    "webpack-cli": "^5.1.4"
   },
   "husky": {
     "hooks": {}
@@ -33,5 +39,11 @@
   "validate-branch-name": {
     "pattern": "^(feature|bugfix|hotfix)/[a-z0-9-]{5,30}$",
     "errorMsg": "Please add valid branch name!"
+  },
+  "bin": {
+    "migration-v2": "./dist/cli.bundle.js"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
   }
 }
