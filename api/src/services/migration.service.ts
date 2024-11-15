@@ -7,7 +7,7 @@ import https from "../utils/https.utils.js";
 import { LoginServiceType } from "../models/types.js"
 import getAuthtoken from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
-import { HTTP_TEXTS, HTTP_CODES, LOCALE_MAPPER, STEPPER_STEPS } from "../constants/index.js";
+import { HTTP_TEXTS, HTTP_CODES, LOCALE_MAPPER, STEPPER_STEPS, CMS } from "../constants/index.js";
 import { BadRequestError, ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { fieldAttacher } from "../utils/field-attacher.utils.js";
 import { siteCoreService } from "./sitecore.service.js";
@@ -213,26 +213,44 @@ const startTestMigration = async (req: Request): Promise<any> => {
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const packagePath = project?.extract_path;
-  if (packagePath && project?.current_test_stack_id) {
+  if (project?.current_test_stack_id) {
+    const { legacy_cms: { cms, affix } } = project;
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.current_test_stack_id}.log`);
     const message = getLogMessage('startTestMigration', 'Starting Test Migration...', {});
     await customLogger(projectId, project?.current_test_stack_id, 'info', message);
     await setLogFilePath(loggerPath);
-    // const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
-    // await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id, projectId });
-    // await siteCoreService?.createLocale(req, project?.current_test_stack_id, projectId);
-    // await siteCoreService?.createVersionFile(project?.current_test_stack_id);
-    await wordpressService?.getAllAssets(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
-    await wordpressService?.createAssetFolderFile(project?.legacy_cms?.affix)
-    await wordpressService?.getAllreference(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
-    await wordpressService?.extractChunks(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
-    await wordpressService?.getAllAuthors(project?.legacy_cms?.affix, packagePath)
-    await wordpressService?.extractContentTypes(project?.legacy_cms?.affix, project?.current_test_stack_id) 
-    await wordpressService?.getAllTerms(project?.legacy_cms?.affix, packagePath)
-    await wordpressService?.getAllTags(project?.legacy_cms?.affix, packagePath) 
-    await wordpressService?.getAllCategories(project?.legacy_cms?.affix, packagePath)
-    await wordpressService?.extractPosts(project?.legacy_cms?.affix, packagePath)
-    await wordpressService?.extractGlobalFields(project?.current_test_stack_id)
+    const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
+    
+    switch (cms) {
+      case CMS.SITECORE_V8:
+      case CMS.SITECORE_V9:
+      case CMS.SITECORE_V10: {
+    if (packagePath) {
+          await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id, projectId });
+          await siteCoreService?.createLocale(req, project?.current_test_stack_id, projectId);
+          await siteCoreService?.createVersionFile(project?.current_test_stack_id);
+        } 
+        break;
+      }
+      case CMS.WORDPRESS: {
+        if (packagePath) {
+          await wordpressService?.getAllAssets(affix, packagePath, project?.current_test_stack_id)
+          await wordpressService?.createAssetFolderFile(affix)
+          await wordpressService?.getAllreference(affix, packagePath, project?.current_test_stack_id)
+          await wordpressService?.extractChunks(affix, packagePath, project?.current_test_stack_id)
+          await wordpressService?.getAllAuthors(affix, packagePath)
+          await wordpressService?.extractContentTypes(affix, project?.current_test_stack_id)
+          await wordpressService?.getAllTerms(affix, packagePath)
+          await wordpressService?.getAllTags(affix, packagePath)
+          await wordpressService?.getAllCategories(affix, packagePath)
+          await wordpressService?.extractPosts(affix, packagePath)
+          await wordpressService?.extractGlobalFields(project?.current_test_stack_id)
+        }
+        break;
+      }
+      default:
+        break;
+    }
     // await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
     await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
   }
@@ -258,26 +276,44 @@ const startMigration = async (req: Request): Promise<any> => {
   }
 
   const packagePath = project?.extract_path;
-  if (packagePath && project?.destination_stack_id) {
+  if (project?.destination_stack_id) {
+    const { legacy_cms: { cms, affix } } = project;
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.destination_stack_id}.log`);
     const message = getLogMessage('startTestMigration', 'Starting Migration...', {});
     await customLogger(projectId, project?.destination_stack_id, 'info', message);
     await setLogFilePath(loggerPath);
-    // const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.destination_stack_id });
-    // await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id, projectId });
-    // await siteCoreService?.createLocale(req, project?.destination_stack_id, projectId);
-    // await siteCoreService?.createVersionFile(project?.destination_stack_id);
-    await wordpressService?.getAllAssets(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
-    await wordpressService?.createAssetFolderFile(project?.legacy_cms?.affix)
-    await wordpressService?.getAllreference(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
-    await wordpressService?.extractChunks(project?.legacy_cms?.affix, packagePath, project?.current_test_stack_id)
-    await wordpressService?.getAllAuthors(project?.legacy_cms?.affix, packagePath)
-    await wordpressService?.extractContentTypes(project?.legacy_cms?.affix, project?.current_test_stack_id) 
-    await wordpressService?.getAllTerms(project?.legacy_cms?.affix, packagePath)
-    await wordpressService?.getAllTags(project?.legacy_cms?.affix, packagePath) 
-    await wordpressService?.getAllCategories(project?.legacy_cms?.affix, packagePath)
-    await wordpressService?.extractPosts(project?.legacy_cms?.affix, packagePath)
-    await wordpressService?.extractGlobalFields(project?.current_test_stack_id)
+    const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.destination_stack_id });
+
+    switch (cms) {
+      case CMS.SITECORE_V8:
+      case CMS.SITECORE_V9:
+      case CMS.SITECORE_V10: {
+        if (packagePath) {
+          await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id, projectId });
+          await siteCoreService?.createLocale(req, project?.destination_stack_id, projectId);
+          await siteCoreService?.createVersionFile(project?.destination_stack_id);
+        }
+        break;
+      }
+      case CMS.WORDPRESS: {
+        if (packagePath) {
+          await wordpressService?.getAllAssets(affix, packagePath, project?.current_test_stack_id)
+          await wordpressService?.createAssetFolderFile(affix)
+          await wordpressService?.getAllreference(affix, packagePath, project?.current_test_stack_id)
+          await wordpressService?.extractChunks(affix, packagePath, project?.current_test_stack_id)
+          await wordpressService?.getAllAuthors(affix, packagePath)
+          await wordpressService?.extractContentTypes(affix, project?.current_test_stack_id)
+          await wordpressService?.getAllTerms(affix, packagePath)
+          await wordpressService?.getAllTags(affix, packagePath)
+          await wordpressService?.getAllCategories(affix, packagePath)
+          await wordpressService?.extractPosts(affix, packagePath)
+          await wordpressService?.extractGlobalFields(project?.current_test_stack_id)
+        }
+        break;
+      }
+      default:
+        break;
+    }
     await utilsCli?.runCli(region, user_id, project?.destination_stack_id, projectId, false, loggerPath);
   }
 }

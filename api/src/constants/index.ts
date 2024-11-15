@@ -1,4 +1,12 @@
 export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA"];
+export const CMS = {
+  CONTENTFUL:"contentful",
+  SITECORE_V8:"sitecore v8",
+  SITECORE_V9:"sitecore v9",
+  SITECORE_V10:"sitecore v10",
+  WORDPRESS:"wordpress",
+  AEM:"aem",
+}
 export const MODULES = [
   "Project",
   "Migration",
