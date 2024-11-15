@@ -53,6 +53,29 @@ const ContentTypeSchema = ({
   if (type === 'text') {
     type = multiline ? 'Multi-Line Text' : 'Single-Line Text';
   }
+  if(sitecoreKey === 'title'){
+    return {
+      uid: sitecoreKey,
+      otherCmsField: name.toLowerCase(),
+      otherCmsType: 'text',
+      contentstackField: name.toLowerCase(),
+      contentstackFieldUid: uid,
+      contentstackFieldType: 'text',
+      backupFieldType: 'text',
+    };
+  }
+  if(sitecoreKey === 'url'){
+    name = name.toLowerCase();
+    return {
+      uid: sitecoreKey,
+      otherCmsField: name.toLowerCase(),
+      otherCmsType: 'text',
+      contentstackField: name.toLowerCase(),
+      contentstackFieldUid: uid,
+      contentstackFieldType: 'url',
+      backupFieldType: 'url'
+    };
+  }
   switch (type) {
     case 'Single-Line Text': {
       return {
