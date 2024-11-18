@@ -234,17 +234,17 @@ const startTestMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.getAllAssets(affix, packagePath, project?.current_test_stack_id)
-          await wordpressService?.createAssetFolderFile(affix)
-          await wordpressService?.getAllreference(affix, packagePath, project?.current_test_stack_id)
-          await wordpressService?.extractChunks(affix, packagePath, project?.current_test_stack_id)
-          await wordpressService?.getAllAuthors(affix, packagePath)
-          await wordpressService?.extractContentTypes(affix, project?.current_test_stack_id)
-          await wordpressService?.getAllTerms(affix, packagePath)
-          await wordpressService?.getAllTags(affix, packagePath)
-          await wordpressService?.getAllCategories(affix, packagePath)
-          await wordpressService?.extractPosts(affix, packagePath)
-          await wordpressService?.extractGlobalFields(project?.current_test_stack_id)
+          await wordpressService?.getAllAssets(affix, packagePath, project?.current_test_stack_id, projectId)
+          await wordpressService?.createAssetFolderFile(affix, project?.current_test_stack_id, projectId)
+          await wordpressService?.getAllreference(affix, packagePath, project?.current_test_stack_id, projectId)
+          await wordpressService?.extractChunks(affix, packagePath, project?.current_test_stack_id, projectId)
+          await wordpressService?.getAllAuthors(affix, packagePath,project?.current_test_stack_id, projectId)
+          // await wordpressService?.extractContentTypes(affix, project?.current_test_stack_id)
+          await wordpressService?.getAllTerms(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.getAllTags(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.getAllCategories(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.extractPosts(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
         }
         break;
       }
@@ -297,17 +297,17 @@ const startMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.getAllAssets(affix, packagePath, project?.current_test_stack_id)
-          await wordpressService?.createAssetFolderFile(affix)
-          await wordpressService?.getAllreference(affix, packagePath, project?.current_test_stack_id)
-          await wordpressService?.extractChunks(affix, packagePath, project?.current_test_stack_id)
-          await wordpressService?.getAllAuthors(affix, packagePath)
-          await wordpressService?.extractContentTypes(affix, project?.current_test_stack_id)
-          await wordpressService?.getAllTerms(affix, packagePath)
-          await wordpressService?.getAllTags(affix, packagePath)
-          await wordpressService?.getAllCategories(affix, packagePath)
-          await wordpressService?.extractPosts(affix, packagePath)
-          await wordpressService?.extractGlobalFields(project?.current_test_stack_id)
+          await wordpressService?.getAllAssets(affix, packagePath, project?.current_test_stack_id, projectId)
+          await wordpressService?.createAssetFolderFile(affix, project?.current_test_stack_id, projectId)
+          await wordpressService?.getAllreference(affix, packagePath, project?.current_test_stack_id, projectId)
+          await wordpressService?.extractChunks(affix, packagePath, project?.current_test_stack_id, projectId)
+          await wordpressService?.getAllAuthors(affix, packagePath,project?.current_test_stack_id, projectId)
+          // await wordpressService?.extractContentTypes(affix, project?.current_test_stack_id)
+          await wordpressService?.getAllTerms(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.getAllTags(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.getAllCategories(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.extractPosts(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
         }
         break;
       }

@@ -27,7 +27,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
         data: JSON.stringify(fieldMapping),
       };
       const response = await axios.request(config)
-      console.log(response); 
+      // console.log(response); 
     }
   } catch (err: any) {
     console.error("🚀 ~ createWordpressMapper ~ err:", err?.response?.data ?? err)
