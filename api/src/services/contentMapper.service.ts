@@ -420,7 +420,14 @@ const updateContentType = async (req: Request) => {
             data.ContentTypesMappers[updateIndex].status =
               CONTENT_TYPE_STATUS[3];
           });
+
+          await ContentTypesMapperModelLowdb.read();
+          const updatedContentType = ContentTypesMapperModelLowdb.chain
+            .get("ContentTypesMappers")
+            .find({ id: contentTypeId, projectId: projectId })
+            .value();
           return {
+            data: updatedContentType,
             status: 400,
             message: `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
               "$",
@@ -592,25 +599,32 @@ const resetToInitialMapping = async (req: Request) => {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = {
               ...field,
-              contentstackField: "",
-              contentstackFieldUid: "",
-              contentstackFieldType: field.backupFieldType,
+              contentstackField: field?.otherCmsField,
+              contentstackFieldUid: field?.uid,
+              contentstackFieldType: field?.backupFieldType,
             };
           });
         }
       });
     }
+
     const contentIndex = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
-      .findIndex({ id: contentTypeId })
+      .findIndex({ id: contentTypeId, projectId: projectId })
       .value();
-    if (contentIndex > -1) {
-      ContentTypesMapperModelLowdb.update((data: any) => {
-        data.ContentTypesMappers[contentIndex].contentstackTitle = "";
-        data.ContentTypesMappers[contentIndex].contentstackUid = "";
-      });
-    }
-    return { message: HTTP_TEXTS.RESET_CONTENT_MAPPING };
+    // if (contentIndex > -1) {
+    //   console.info("inside if", contentIndex)
+    //   ContentTypesMapperModelLowdb.update((data: any) => {
+    //     data.ContentTypesMappers[contentIndex].contentstackTitle = "";
+    //     data.ContentTypesMappers[contentIndex].contentstackUid = "";
+    //   });
+    // }
+
+    await ContentTypesMapperModelLowdb.update((data: any) => {
+      data.ContentTypesMappers[contentIndex].status = CONTENT_TYPE_STATUS[1];
+    });
+    return { message: HTTP_TEXTS.RESET_CONTENT_MAPPING, data: contentTypeData };
+
   } catch (error: any) {
     logger.error(
       getLogMessage(
