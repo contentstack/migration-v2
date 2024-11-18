@@ -140,18 +140,18 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
             notificationContent: { text: 'Test Migration completed successfully' },
             notificationProps: {
               position: 'bottom-center',
-              hideProgressBar: true
+              hideProgressBar: false
             },
             type: 'success'
           });
           sendDataToParent?.(false);
   
-          const newMigrationDataObj: INewMigration = {
+          const newMigrationObj: INewMigration = {
             ...newMigrationData,
-            test_migration: { ...newMigrationData?.test_migration, isMigrationComplete: true }
+            test_migration: { ...newMigrationData?.test_migration, isMigrationComplete: true, isMigrationStarted: false }
           };
   
-          dispatch(updateNewMigrationData((newMigrationDataObj)));
+          dispatch(updateNewMigrationData((newMigrationObj)));
         }
       } catch (error) {
         console.error('Invalid JSON string', error);
