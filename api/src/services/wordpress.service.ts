@@ -2,17 +2,12 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios";
-import read from "fs-readdir-recursive";
-import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import { MIGRATION_DATA_CONFIG } from "../constants/index.js";
-import {
-  entriesFieldCreator,
-  unflatten,
-} from "../utils/entries-field-creator.utils.js";
-import { orgService } from "./org.service.js";
 import jsdom from "jsdom";
 import { htmlToJson } from "@contentstack/json-rte-serializer";
+import customLogger from "../utils/custom-logger.utils.js";
+import { getLogMessage } from "../utils/index.js";
 
 const { JSDOM } = jsdom;
 const virtualConsole = new jsdom.VirtualConsole();
@@ -20,15 +15,6 @@ const virtualConsole = new jsdom.VirtualConsole();
 const __filename = fileURLToPath(import.meta.url);
 // Get the current directory
 const __dirname = path.dirname(__filename);
-// const dataFilePath = path.join(
-//   __dirname,
-//   "..",
-//   "..",
-//   "..",
-//   "upload-api",
-//   MIGRATION_DATA_CONFIG.DATA,
-//   MIGRATION_DATA_CONFIG.DATA_FILE_NAME
-// );
 
 let assetsSave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
@@ -37,10 +23,6 @@ let assetsSave = path.join(
 let referencesFolder = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.REFERENCES_DIR_NAME
-);
-let contentTypeFolderPath = path.join(
-  MIGRATION_DATA_CONFIG.DATA,
-  MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME
 );
 let entrySave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
@@ -77,7 +59,7 @@ let assetMasterFolderPath = path.join(
   "logs",
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
 );
-let globalPrefix = "";
+// let globalPrefix = "";
 
 interface Asset {
   "wp:post_type": string;
@@ -96,8 +78,7 @@ let blog_base_url = "";
 async function writeFileAsync(filePath: string, data: any, tabSpaces: number) {
   filePath = path.resolve(filePath);
   data =
-    typeof data == "object"
-      ? JSON.stringify(data, null, tabSpaces)
+    typeof data == "object" ? JSON.stringify(data, null, tabSpaces)
       : data || "{}";
   await fs.promises.writeFile(filePath, data, "utf-8");
 }
@@ -112,7 +93,7 @@ async function startingDirAssests(destinationStackId: string) {
       MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
     );
 
-     assetMasterFolderPath = path.join(
+    assetMasterFolderPath = path.join(
       MIGRATION_DATA_CONFIG.DATA,
       destinationStackId,
       "logs",
@@ -184,7 +165,8 @@ async function startingDirAssests(destinationStackId: string) {
   }
 }
 
-async function saveAsset(assets: any, retryCount: number, affix: string) {
+async function saveAsset(assets: any, retryCount: number, affix: string, destinationStackId: string, projectId: string) {
+  const srcFunc = 'saveAsset';
   const url = encodeURI(assets["wp:attachment_url"]);
   const name = url.split("/").pop() || "";
 
@@ -198,20 +180,20 @@ async function saveAsset(assets: any, retryCount: number, affix: string) {
 
   const parent_uid = affix ? "wordpressasset" : null;
   const assetPath = path.resolve(
-    assetsSave,"files",
+    assetsSave, "files",
     `assets_${assets["wp:post_id"].toString()}`,
     name
   );
 
   if (fs.existsSync(assetPath)) {
-    console.log(`Asset already present: ${assets["wp:post_id"]}`);
+    console.error(`Asset already present: ${assets["wp:post_id"]}`);
     return assets["wp:post_id"];
   }
 
   try {
     const response = await axios.get(url, { responseType: "arraybuffer" });
     fs.mkdirSync(
-      path.resolve(assetsSave,"files", `assets_${assets["wp:post_id"].toString()}`),
+      path.resolve(assetsSave, "files", `assets_${assets["wp:post_id"].toString()}`),
       { recursive: true }
     );
     fs.writeFileSync(assetPath, response.data);
@@ -253,14 +235,20 @@ async function saveAsset(assets: any, retryCount: number, affix: string) {
       assetData,
       4
     );
+    const message = getLogMessage(
+      "createAssetFolderFile",
+      `An asset with idassets_${assets["wp:post_id"]} and name ${name} downloaded successfully.`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
 
-    console.log(
-      "An asset with id",
-      `assets_${assets["wp:post_id"]}`,
-      "and name",
-      `${name}`,
-      "downloaded successfully."
-    );
+    // console.log(
+    //   "An asset with id",
+    //   `assets_${assets["wp:post_id"]}`,
+    //   "and name",
+    //   `${name}`,
+    //   "downloaded successfully."
+    // );
 
     return assets["wp:post_id"];
   } catch (err: any) {
@@ -275,20 +263,27 @@ async function saveAsset(assets: any, retryCount: number, affix: string) {
     await writeFileAsync(failedJSONFilePath, failedJSON, 4);
 
     if (retryCount === 0) {
-      return saveAsset(assets, 1, affix);
+      return saveAsset(assets, 1, affix, destinationStackId, projectId);
     } else {
-      console.log(
-        `Failed to download asset with id `,
-        assets["wp:post_id"],
-        "with error message",
-        err?.message
-      );
+      const message = getLogMessage(
+        srcFunc,
+        `Failed to download asset with id ${assets["wp:post_id"]}`,
+        {},
+        err
+      )
+      await customLogger(projectId, destinationStackId, 'error', message);
+      // console.log(
+      //   `Failed to download asset with id `,
+      //   assets["wp:post_id"],
+      //   "with error message",
+      //   err?.message
+      // );
       return assets["wp:post_id"];
     }
   }
 }
 
-async function getAsset(attachments: any[], affix: string) {
+async function getAsset(attachments: any[], affix: string, destinationStackId: string, projectId: string) {
   const BATCH_SIZE = 5; // 5 promises at a time
   const results = [];
 
@@ -296,7 +291,7 @@ async function getAsset(attachments: any[], affix: string) {
     const batch = attachments.slice(i, i + BATCH_SIZE);
 
     const batchResults = await Promise.allSettled(
-      batch.map((data) => saveAsset(data, 0, affix))
+      batch.map((data) => saveAsset(data, 0, affix, destinationStackId, projectId))
     );
     results.push(...batchResults);
   }
@@ -306,7 +301,8 @@ async function getAsset(attachments: any[], affix: string) {
 async function getAllAssets(
   affix: string,
   packagePath: string,
-  destinationStackId: string
+  destinationStackId: string,
+  projectId: string
 ) {
   try {
     await startingDirAssests(destinationStackId);
@@ -316,7 +312,13 @@ async function getAllAssets(
       alldataParsed?.rss?.channel?.item ?? alldataParsed?.channel?.item;
     // await writeFileAsync(path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME), assets, 4);
     if (!assets || assets.length === 0) {
-      console.log("No assets found");
+      const message = getLogMessage(
+        "createAssetFolderFile",
+        `No assets found.`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+      // console.log("No assets found", projectId);
       return;
     }
 
@@ -324,7 +326,7 @@ async function getAllAssets(
       ({ "wp:post_type": postType }) => postType === "attachment"
     );
     if (attachments.length > 0) {
-      await getAsset(attachments, affix);
+      await getAsset(attachments, affix, destinationStackId, projectId);
     }
     return;
   } catch (error) {
@@ -335,7 +337,7 @@ async function getAllAssets(
   }
 }
 
-const createAssetFolderFile = async (affix: string) => {
+const createAssetFolderFile = async (affix: string, destinationStackId:string, projectId: string) => {
   try {
     const folderJSON = [
       {
@@ -355,7 +357,13 @@ const createAssetFolderFile = async (affix: string) => {
       MIGRATION_DATA_CONFIG.ASSETS_FOLDER_FILE_NAME
     );
     await writeFileAsync(folderPath, folderJSON, 4);
-    console.log("Folder JSON created successfully.");
+    const message = getLogMessage(
+      "createAssetFolderFile",
+      `${failedJSON.uid} Folder JSON created successfully.`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+    // console.log("Folder JSON created successfully.");
     return;
   } catch (error) {
     return {
@@ -386,7 +394,7 @@ async function startDirReferences(destinationStackId: string) {
   }
 }
 
-async function saveReference(referenceDetails: any[]) {
+async function saveReference(referenceDetails: any[], destinationStackId:string, projectId: string) {
   try {
     const result = referenceDetails.reduce((acc: any, item: any) => {
       acc[item.id] = {
@@ -402,7 +410,13 @@ async function saveReference(referenceDetails: any[]) {
       result,
       4
     );
-    console.log("Reference data saved successfully.");
+    const message = getLogMessage(
+      "saveReference",
+      `${result.uid} Reference data saved successfully.`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+    // console.log("Reference data saved successfully.");
   } catch (error) {
     return {
       err: "error in saving references",
@@ -437,7 +451,8 @@ function processReferenceData(
   return referenceArray;
 }
 
-async function getAllreference(affix: string, packagePath: string, destinationStackId: string) {
+async function getAllreference(affix: string, packagePath: string, destinationStackId: string, projectId: string) {
+  const srcFunc = 'getAllreference';
   try {
     await startDirReferences(destinationStackId);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
@@ -482,9 +497,16 @@ async function getAllreference(affix: string, packagePath: string, destinationSt
     );
 
     if (referenceArray.length > 0) {
-      await saveReference(referenceArray);
+      await saveReference(referenceArray, destinationStackId, projectId);
     }
-    console.log("All references processed successfully.");
+    const message = getLogMessage(
+      srcFunc,
+      `All references processed successfully.`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+
+    // console.log("All references processed successfully.");
   } catch (error) {
     return {
       err: "error in processing references",
@@ -505,8 +527,7 @@ async function startingDirChunks(affix: string, destinationStackId: string) {
 
   postFolderPath = path.join(
     entrySave,
-    affix
-      ? affix + "_" + MIGRATION_DATA_CONFIG.POSTS_DIR_NAME
+    affix ? affix + "_" + MIGRATION_DATA_CONFIG.POSTS_DIR_NAME
       : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
     MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
   );
@@ -535,7 +556,7 @@ async function splitJsonIntoChunks(arrayData: any[]) {
   try {
     let chunkData = [];
     let chunkIndex = 1;
-    let postIndex: any = {};
+    const postIndex: any = {};
 
     for (let i = 0; i < arrayData.length; i++) {
       chunkData.push(arrayData[i]);
@@ -565,8 +586,8 @@ async function splitJsonIntoChunks(arrayData: any[]) {
   }
 }
 
-async function extractChunks(affix: string, packagePath: string, destinationStackId: string) {
-  console.log(`Creating chunks...`);
+async function extractChunks(affix: string, packagePath: string, destinationStackId: string, projectId: string) {
+  const srcFunc = "extractChunks";
   try {
     await startingDirChunks(affix, destinationStackId);
 
@@ -579,12 +600,31 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
 
     if (posts && posts.length > 0) {
       await splitJsonIntoChunks(posts);
-      console.log("Post chunks creation completed.");
+      const message = getLogMessage(
+        srcFunc,
+        `Post chunks creation completed`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+      // console.log("Post chunks creation completed.");
     } else {
-      console.error("No posts found.");
+      const message = getLogMessage(
+        srcFunc,
+        `No posts found.`,
+        {},
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+      // console.error("No posts found.");
     }
   } catch (error) {
-    console.error(error);
+    const message = getLogMessage(
+      srcFunc,
+      `Error while creating post chunks.`,
+      {},
+      error
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+    // console.error(error);
     return;
   }
 }
@@ -592,12 +632,11 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
 
 /************  authors module functions start *********/
 async function startingDirAuthors(affix: string) {
-  const authorFolderName = affix
-    ? `${affix
-        .replace(/^\d+/, "")
-        .replace(/[^a-zA-Z0-9]+/g, "_")
-        .replace(/(^_+)|(_+$)/g, "")
-        .toLowerCase()}_${MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME}`
+  const authorFolderName = affix ? `${affix
+      .replace(/^\d+/, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/(^_+)|(_+$)/g, "")
+      .toLowerCase()}_${MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME}`
     : MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
 
   authorsFolderPath = path.join(entrySave, authorFolderName);
@@ -615,15 +654,15 @@ async function startingDirAuthors(affix: string) {
 }
 
 const filePath = false;
-async function saveAuthors(authorDetails: any[]) {
+async function saveAuthors(authorDetails: any[], destinationStackId: string, projectId: string) {
+  const srcFunc = "saveAuthors";
   try {
     const slugRegExp = /[^a-z0-9_-]+/g;
 
     const authordata = authorDetails.reduce(
       (acc: { [key: string]: any }, data) => {
-        const uid = `authors_${
-          data["wp:author_id"] || data["wp:author_login"]
-        }`;
+        const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]
+          }`;
 
         const url = `/author/${uid.toLowerCase().replace(slugRegExp, "-")}`;
 
@@ -641,13 +680,27 @@ async function saveAuthors(authorDetails: any[]) {
       {}
     );
     await writeFileAsync(authorsFilePath, authordata, 4);
-    console.log(authorDetails.length, " Authors exported successfully");
-    console.log(`${authorDetails.length} Authors exported successfully`);
+    const message = getLogMessage(
+      srcFunc,
+      `${authorDetails.length} Authors exported successfully`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+    // console.log(authorDetails.length, " Authors exported successfully");
+    // console.log(`${authorDetails.length} Authors exported successfully`);
   } catch (error) {
-    console.error("error while saving authors", error);
+    const message = getLogMessage(
+      srcFunc,
+      `Error while saving authors`,
+      {},
+      error
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+    // console.error("error while saving authors", error);
   }
 }
-async function getAllAuthors(affix: string, packagePath: string) {
+async function getAllAuthors(affix: string, packagePath: string,destinationStackId: string, projectId: string) {
+  const srcFunc = "getAllAuthors";
   try {
     await startingDirAuthors(affix);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
@@ -659,10 +712,9 @@ async function getAllAuthors(affix: string, packagePath: string) {
 
     if (authors && authors.length > 0) {
       if (!filePath) {
-        await saveAuthors(authors);
+        await saveAuthors(authors, destinationStackId, projectId);
       } else {
-        const authorIds = fs.existsSync(filePath)
-          ? fs.readFileSync(filePath, "utf-8").split(",")
+        const authorIds = fs.existsSync(filePath)? fs.readFileSync(filePath, "utf-8").split(",")
           : [];
 
         if (authorIds.length > 0) {
@@ -671,7 +723,7 @@ async function getAllAuthors(affix: string, packagePath: string) {
           );
 
           if (authorDetails.length > 0) {
-            await saveAuthors(authorDetails);
+            await saveAuthors(authorDetails, destinationStackId, projectId);
           }
         }
       }
@@ -684,575 +736,44 @@ async function getAllAuthors(affix: string, packagePath: string) {
             .split(",")
             .includes(authors["wp:author_id"]))
       ) {
-        await saveAuthors([authors]);
+        await saveAuthors([authors], destinationStackId, projectId);
       } else {
-        console.log("\nNo authors UID found");
+        const message = getLogMessage(
+          srcFunc,
+          `No authors UID found`,
+          {}
+        )
+        await customLogger(projectId, destinationStackId, 'info', message);
+        // console.log("\nNo authors UID found");
       }
     } else {
-      console.log("\nNo authors found");
+      const message = getLogMessage(
+        srcFunc,
+        `No authors found`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+      // console.log("\nNo authors found");
     }
   } catch (error) {
-    console.log("error while getting authors", error);
+    const message = getLogMessage(
+      srcFunc,
+      `Error while getting authors`,
+      {},
+      error
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+    // console.log("error while getting authors", error);
   }
 }
 /************  end of authors module functions *********/
 
-/************  contenttypes module functions start *********/
-async function startingDirContentTypes(destinationStackId: string) {
-  contentTypeFolderPath = path.join(
-    MIGRATION_DATA_CONFIG.DATA,
-    destinationStackId,
-    MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME
-  );
-  try {
-    await fs.promises.access(contentTypeFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(contentTypeFolderPath, { recursive: true });
-    await fs.promises.writeFile(
-      path.join(
-        contentTypeFolderPath,
-        MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
-      ),
-      "{}"
-    );
-    await fs.promises.writeFile(
-      path.join(
-        contentTypeFolderPath,
-        MIGRATION_DATA_CONFIG.CONTENT_TYPES_SCHEMA_FILE
-      ),
-      "{}"
-    );
-  }
-}
-
-const generateUid = (suffix: string) =>
-  globalPrefix
-    ? `${globalPrefix
-        .replace(/^\d+/, "")
-        .replace(/[^a-zA-Z0-9]+/g, "_")
-        .replace(/(^_+)|(_+$)/g, "")
-        .toLowerCase()}_${suffix}`
-    : suffix;
-
-const generateTitle = (title: string) =>
-  globalPrefix ? `${globalPrefix} - ${title}` : title;
-
-const generateSchema = (
-  title: string,
-  uid: string,
-  fields: any[],
-  options: any
-) => ({
-  title: generateTitle(title),
-  uid: generateUid(uid),
-  schema: fields,
-  description: `Schema for ${generateTitle(title)}`,
-  options,
-});
-
-const ContentTypesSchema = [
-  {
-    title: "Authors",
-    uid: "authors",
-    schema: [
-      {
-        display_name: "Title",
-        uid: "title",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: false,
-        mandatory: true,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        display_name: "URL",
-        uid: "url",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: true,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "text",
-        display_name: "Email",
-        uid: "email",
-        field_metadata: {
-          description: "",
-          default_value: "",
-          version: 1,
-        },
-        format: "",
-        multiple: false,
-        mandatory: false,
-        unique: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "text",
-        display_name: "First Name",
-        uid: "first_name",
-        field_metadata: {
-          description: "",
-          default_value: "",
-          version: 1,
-        },
-        format: "",
-        multiple: false,
-        mandatory: false,
-        unique: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "text",
-        display_name: "Last Name",
-        uid: "last_name",
-        field_metadata: {
-          description: "",
-          default_value: "",
-          version: 1,
-        },
-        format: "",
-        multiple: false,
-        mandatory: false,
-        unique: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "json",
-        display_name: "Biographical Info",
-        uid: "biographical_info",
-        field_metadata: {
-          allow_json_rte: true,
-          embed_entry: true,
-          description: "",
-          default_value: "",
-          multiline: false,
-          rich_text_type: "advanced",
-          options: [],
-          ref_multiple_content_types: true,
-        },
-        format: "",
-        error_messages: { format: "" },
-        reference_to: ["sys_assets"],
-        multiple: false,
-        non_localizable: false,
-        unique: false,
-        mandatory: false,
-      },
-    ],
-    options: {
-      is_page: true,
-      title: "title",
-      sub_title: [],
-      description: "list of authors",
-      _version: 1,
-      url_prefix: "/author/",
-      url_pattern: "/:title",
-      singleton: false,
-    },
-  },
-  {
-    title: "Categories",
-    uid: "categories",
-    schema: [
-      {
-        display_name: "Title",
-        uid: "title",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        display_name: "URL",
-        uid: "url",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: true,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        display_name: "Nicename",
-        uid: "nicename",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "json",
-        display_name: "Description",
-        uid: "description",
-        field_metadata: {
-          allow_json_rte: true,
-          embed_entry: true,
-          description: "",
-          default_value: "",
-          multiline: false,
-          rich_text_type: "advanced",
-          options: [],
-          ref_multiple_content_types: true,
-        },
-        format: "",
-        error_messages: { format: "" },
-        reference_to: ["sys_assets"],
-        multiple: false,
-        non_localizable: false,
-        unique: false,
-        mandatory: false,
-      },
-      {
-        data_type: "reference",
-        display_name: "Parent",
-        reference_to: [generateUid("categories")],
-        field_metadata: {
-          ref_multiple: false,
-          ref_multiple_content_types: true,
-        },
-        uid: "parent",
-        multiple: false,
-        mandatory: false,
-        unique: false,
-        non_localizable: false,
-      },
-    ],
-    options: {
-      is_page: true,
-      title: "title",
-      sub_title: [],
-      url_pattern: "/:title",
-      _version: 1,
-      url_prefix: "/category/",
-      description: "List of categories",
-      singleton: false,
-    },
-  },
-  {
-    title: "Tags",
-    uid: "tag",
-    schema: [
-      {
-        display_name: "Title",
-        uid: "title",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        display_name: "URL",
-        uid: "url",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: true,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        display_name: "Slug",
-        uid: "slug",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "text",
-        display_name: "Description",
-        uid: "description",
-        field_metadata: {
-          description: "",
-          default_value: "",
-          multiline: true,
-          version: 1,
-        },
-        format: "",
-        error_messages: { format: "" },
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-        unique: false,
-      },
-    ],
-    options: {
-      is_page: true,
-      title: "title",
-      sub_title: [],
-      url_pattern: "/:title",
-      _version: 1,
-      url_prefix: "/tags/",
-      description: "List of tags",
-      singleton: false,
-    },
-  },
-  {
-    title: "Terms",
-    uid: "terms",
-    schema: [
-      {
-        display_name: "Title",
-        uid: "title",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        display_name: "URL",
-        uid: "url",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: true,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        display_name: "Taxonomy",
-        uid: "taxonomy",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        display_name: "Slug",
-        uid: "slug",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-    ],
-    options: {
-      is_page: true,
-      title: "title",
-      sub_title: [],
-      url_pattern: "/:title",
-      _version: 1,
-      url_prefix: "/terms/",
-      description: "Schema for Terms",
-      singleton: false,
-    },
-  },
-  {
-    title: "Posts",
-    uid: "posts",
-    schema: [
-      {
-        display_name: "Title",
-        uid: "title",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        display_name: "URL",
-        uid: "url",
-        data_type: "text",
-        field_metadata: { _default: true, version: 1 },
-        unique: true,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "json",
-        display_name: "Body",
-        uid: "full_description",
-        field_metadata: {
-          allow_json_rte: true,
-          embed_entry: true,
-          description: "",
-          default_value: "",
-          multiline: false,
-          rich_text_type: "advanced",
-          options: [],
-          ref_multiple_content_types: true,
-        },
-        format: "",
-        error_messages: { format: "" },
-        reference_to: ["sys_assets"],
-        multiple: false,
-        non_localizable: false,
-        unique: false,
-        mandatory: false,
-      },
-      {
-        data_type: "text",
-        display_name: "Excerpt",
-        uid: "excerpt",
-        field_metadata: {
-          description: "",
-          default_value: "",
-          multiline: true,
-          version: 1,
-        },
-        format: "",
-        error_messages: { format: "" },
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-        unique: false,
-      },
-      {
-        data_type: "file",
-        display_name: "Featured Image",
-        uid: "featured_image",
-        field_metadata: { description: "", rich_text_type: "standard" },
-        unique: false,
-        mandatory: false,
-        multiple: true,
-        non_localizable: false,
-      },
-      {
-        data_type: "isodate",
-        display_name: "Date",
-        uid: "date",
-        startDate: null,
-        endDate: null,
-        field_metadata: { description: "", default_value: {} },
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-        unique: false,
-      },
-      {
-        data_type: "reference",
-        display_name: "Author",
-        reference_to: [generateUid("authors")],
-        field_metadata: {
-          ref_multiple: true,
-          ref_multiple_content_types: true,
-        },
-        uid: "author",
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "reference",
-        display_name: "Categories",
-        reference_to: [generateUid("categories")],
-        field_metadata: {
-          ref_multiple: true,
-          ref_multiple_content_types: true,
-        },
-        uid: "category",
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "reference",
-        display_name: "Terms",
-        reference_to: [generateUid("terms")],
-        field_metadata: {
-          ref_multiple: true,
-          ref_multiple_content_types: true,
-        },
-        uid: "terms",
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-      {
-        data_type: "reference",
-        display_name: "Tags",
-        reference_to: [generateUid("tag")],
-        field_metadata: {
-          ref_multiple: true,
-          ref_multiple_content_types: true,
-        },
-        uid: "tag",
-        unique: false,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-      },
-    ],
-    options: {
-      is_page: true,
-      title: "title",
-      sub_title: [],
-      url_pattern: "/:year/:month/:title",
-      _version: 1,
-      url_prefix: "/blog/",
-      description: "Schema for Posts",
-      singleton: false,
-    },
-  },
-];
-
-async function extractContentTypes(affix: string,destinationStackId: string) {
-  try {
-    await startingDirContentTypes(destinationStackId);
-    globalPrefix = affix;
-    const schemaJson = ContentTypesSchema.map(
-      ({ title, uid, schema, options }) =>
-        generateSchema(title, uid, schema, options)
-    );
-    await writeFileAsync(
-      path.join(
-        contentTypeFolderPath,
-        MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
-      ),
-      schemaJson,
-      4
-    );
-    await writeFileAsync(
-      path.join(
-        contentTypeFolderPath,
-        MIGRATION_DATA_CONFIG.CONTENT_TYPES_SCHEMA_FILE
-      ),
-      schemaJson,
-      4
-    );
-    console.log(`Succesfully created content_types/schema.json`);
-    return;
-  } catch (error) {
-    return console.log(
-      "Error while creating content_types/schema.json:",
-      error
-    );
-  }
-}
-
-/************  end of contenttypes module functions *********/
 
 /************  terms module functions start *********/
 async function startingDirTerms(affix: string) {
   termsFolderPath = path.join(
     entrySave,
-    affix
-      ? affix + "_" + MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
+    affix ? affix + "_" + MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
       : MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
   );
   try {
@@ -1267,7 +788,8 @@ async function startingDirTerms(affix: string) {
   }
 }
 
-async function saveTerms(termsDetails: any[]) {
+async function saveTerms(termsDetails: any[], destinationStackId: string, projectId: string) {
+  const srcFunc = "saveTerms";
   try {
     const termsFilePath = path.join(
       termsFolderPath,
@@ -1294,14 +816,28 @@ async function saveTerms(termsDetails: any[]) {
     );
 
     await writeFileAsync(termsFilePath, termsdata, 4);
-    console.log(`${termsDetails.length} Terms exported successfully`);
+    const message = getLogMessage(
+      srcFunc,
+      `${termsDetails.length} Terms exported successfully`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+    // console.log(`${termsDetails.length} Terms exported successfully`);
   } catch (error) {
-    console.error("Error saving terms:", error);
+    const message = getLogMessage(
+      srcFunc,
+      `Error saving terms`,
+      {},
+      error
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+    // console.error("Error saving terms:", error);
     throw error;
   }
 }
 
-async function getAllTerms(affix: string, packagePath: string) {
+async function getAllTerms(affix: string, packagePath: string, destinationStackId:string, projectId: string) {
+  const srcFunc = "getAllTerms";
   try {
     await startingDirTerms(affix);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
@@ -1312,28 +848,40 @@ async function getAllTerms(affix: string, packagePath: string) {
       "";
 
     if (!terms || terms.length === 0) {
-      console.log("\nNo terms found");
+      const message = getLogMessage(
+        srcFunc,
+        `No terms found`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+      // console.log("\nNo terms found");
       return;
     }
-    const termsArray = Array.isArray(terms)
-      ? terms.map((term) => ({
-          id: term["wp:term_id"],
-          term_name: term["wp:term_name"],
-          term_slug: term["wp:term_slug"],
-          term_taxonomy: term["wp:term_taxonomy"],
-        }))
+    const termsArray = Array.isArray(terms) ? terms.map((term) => ({
+        id: term["wp:term_id"],
+        term_name: term["wp:term_name"],
+        term_slug: term["wp:term_slug"],
+        term_taxonomy: term["wp:term_taxonomy"],
+      }))
       : [
-          {
-            id: terms["wp:term_id"],
-            term_name: terms["wp:term_name"],
-            term_slug: terms["wp:term_slug"],
-            term_taxonomy: terms["wp:term_taxonomy"],
-          },
-        ];
+        {
+          id: terms["wp:term_id"],
+          term_name: terms["wp:term_name"],
+          term_slug: terms["wp:term_slug"],
+          term_taxonomy: terms["wp:term_taxonomy"],
+        },
+      ];
 
-    await saveTerms(termsArray);
+    await saveTerms(termsArray, destinationStackId, projectId);
   } catch (error) {
-    console.error("Error retrieving terms:", error);
+    const message = getLogMessage(
+      srcFunc,
+      `Error retrieving terms`,
+      {},
+      error
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+    // console.error("Error retrieving terms:", error);
   }
 }
 
@@ -1343,8 +891,7 @@ async function getAllTerms(affix: string, packagePath: string) {
 async function startingDirTags(affix: string) {
   tagsFolderPath = path.join(
     entrySave,
-    affix
-      ? affix + "_" + MIGRATION_DATA_CONFIG.TAG_DIR_NAME
+    affix ? affix + "_" + MIGRATION_DATA_CONFIG.TAG_DIR_NAME
       : MIGRATION_DATA_CONFIG.TAG_DIR_NAME
   );
   try {
@@ -1359,7 +906,8 @@ async function startingDirTags(affix: string) {
   }
 }
 
-async function saveTags(tagDetails: any[]) {
+async function saveTags(tagDetails: any[], destinationStackId: string, projectId: string) {
+  const srcFunc = 'saveTags';
   try {
     const tagsFilePath = path.join(
       tagsFolderPath,
@@ -1382,14 +930,27 @@ async function saveTags(tagDetails: any[]) {
       return acc;
     }, {});
     await writeFileAsync(tagsFilePath, tagdata, 4);
+    const message = getLogMessage(
+      srcFunc,
+      `${tagDetails.length}, Tags exported successfully`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
 
-    console.log(`${tagDetails.length}`, " Tags exported successfully");
+    // console.log(`${tagDetails.length}`, " Tags exported successfully");
   } catch (error) {
-    console.error("Error saving tags:", error);
+    const message = getLogMessage(
+      srcFunc,
+      `Error saving tags`,
+      {},
+      error
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
     throw error;
   }
 }
-async function getAllTags(affix: string, packagePath: string) {
+async function getAllTags(affix: string, packagePath: string, destinationStackId:string, projectId: string) {
+  const srcFunc = "getAllTags";
   try {
     await startingDirTags(affix);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
@@ -1400,28 +961,40 @@ async function getAllTags(affix: string, packagePath: string) {
       "";
 
     if (!tags || tags.length === 0) {
-      console.log("\nNo tags found");
+      const message = getLogMessage(
+        srcFunc,
+        `No tags found`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+      // console.log("\nNo tags found");
       return;
     }
-    const tagsArray = Array.isArray(tags)
-      ? tags.map((taginfo) => ({
-          id: taginfo["wp:term_id"],
-          tag_name: taginfo["wp:tag_name"],
-          tag_slug: taginfo["wp:tag_slug"],
-          description: taginfo["wp:tag_description"],
-        }))
+    const tagsArray = Array.isArray(tags) ? tags.map((taginfo) => ({
+        id: taginfo["wp:term_id"],
+        tag_name: taginfo["wp:tag_name"],
+        tag_slug: taginfo["wp:tag_slug"],
+        description: taginfo["wp:tag_description"],
+      }))
       : [
-          {
-            id: tags["wp:term_id"],
-            tag_name: tags["wp:tag_name"],
-            tag_slug: tags["wp:tag_slug"],
-            description: tags["wp:tag_description"],
-          },
-        ];
+        {
+          id: tags["wp:term_id"],
+          tag_name: tags["wp:tag_name"],
+          tag_slug: tags["wp:tag_slug"],
+          description: tags["wp:tag_description"],
+        },
+      ];
 
-    await saveTags(tagsArray);
+    await saveTags(tagsArray, destinationStackId, projectId);
   } catch (error) {
-    console.error("Error retrieving tags:", error);
+    const message = getLogMessage(
+      srcFunc,
+      `Error retrieving tags`,
+      {},
+      error
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+    // console.error("Error retrieving tags:", error);
     throw error;
   }
 }
@@ -1431,8 +1004,7 @@ async function getAllTags(affix: string, packagePath: string) {
 async function startingDirCategories(affix: string) {
   categoriesFolderPath = path.join(
     entrySave,
-    affix
-      ? affix + "_" + MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
+    affix ? affix + "_" + MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
       : MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
   );
 
@@ -1478,13 +1050,13 @@ function parentCategories(data: any) {
 
   return catParent;
 }
-async function saveCategories(categoryDetails: any[]) {
+async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string) {
+  const srcFunc = 'saveCategories';
   try {
     const categorydata = categoryDetails.reduce(
       (acc: { [key: string]: any }, data) => {
         const uid = `category_${data["id"]}`;
-        const title = data["title"]
-          ? data["title"].replace(/&amp;/g, "&")
+        const title = data["title"] ? data["title"].replace(/&amp;/g, "&")
           : `Category - ${uid}`;
         const description = convertHtmlToJson(data["description"] || "");
         const nicename = data["nicename"] || "";
@@ -1512,16 +1084,29 @@ async function saveCategories(categoryDetails: any[]) {
       categorydata,
       4
     );
-
-    console.log(
-      `${categoryDetails.length}`,
-      " Categories exported successfully"
-    );
+    const message = getLogMessage(
+      srcFunc,
+      `${categoryDetails.length} Categories exported successfully`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+    // console.log(
+    //   `${categoryDetails.length}`,
+    //   " Categories exported successfully"
+    // );
   } catch (err) {
-    console.error("Error in saving categories:", err);
+    const message = getLogMessage(
+      srcFunc,
+      "Error in saving categories.",
+      {},
+      err
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+    // console.error("Error in saving categories:", err);
   }
 }
-async function getAllCategories(affix: string, packagePath: string) {
+async function getAllCategories(affix: string, packagePath: string, destinationStackId:string, projectId: string) {
+  const srcFunc = 'getAllCategories';
   try {
     await startingDirCategories(affix);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
@@ -1532,31 +1117,43 @@ async function getAllCategories(affix: string, packagePath: string) {
       "";
 
     if (!categories || categories.length === 0) {
-      console.log("\nNo categories found");
+      const message = getLogMessage(
+        srcFunc,
+        `No categories found`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+      // console.log("\nNo categories found");
       return;
     }
 
-    const categoriesArrray = Array.isArray(categories)
-      ? categories.map((categoryinfo) => ({
-          id: categoryinfo["wp:term_id"],
-          title: categoryinfo["wp:cat_name"],
-          nicename: categoryinfo["wp:category_nicename"],
-          description: categoryinfo["wp:category_description"],
-          parent: categoryinfo["wp:category_parent"],
-        }))
+    const categoriesArrray = Array.isArray(categories) ? 
+    categories.map((categoryinfo) => ({
+        id: categoryinfo["wp:term_id"],
+        title: categoryinfo["wp:cat_name"],
+        nicename: categoryinfo["wp:category_nicename"],
+        description: categoryinfo["wp:category_description"],
+        parent: categoryinfo["wp:category_parent"],
+      }))
       : [
-          {
-            id: categories["wp:term_id"],
-            title: categories["wp:cat_name"],
-            nicename: categories["wp:category_nicename"],
-            description: categories["wp:category_description"],
-            parent: categories["wp:category_parent"],
-          },
-        ];
+        {
+          id: categories["wp:term_id"],
+          title: categories["wp:cat_name"],
+          nicename: categories["wp:category_nicename"],
+          description: categories["wp:category_description"],
+          parent: categories["wp:category_parent"],
+        },
+      ];
 
-    await saveCategories(categoriesArrray);
+    await saveCategories(categoriesArrray, destinationStackId, projectId);
   } catch (err) {
-    console.error("Error fetching categories:", err);
+    const message = getLogMessage(
+      srcFunc,
+      `"Error fetching categories:"`,
+      {},
+      err
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
   }
 }
 /************  end of categories module functions *********/
@@ -1566,8 +1163,7 @@ async function getAllCategories(affix: string, packagePath: string) {
 async function startingDirPosts(affix: string) {
   postFolderPath = path.join(
     entrySave,
-    affix
-      ? affix + "_" + MIGRATION_DATA_CONFIG.POSTS_DIR_NAME
+    affix ? affix + "_" + MIGRATION_DATA_CONFIG.POSTS_DIR_NAME
       : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
     MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
   );
@@ -1614,14 +1210,13 @@ const limit = limitConcurrency(5);
 
 async function featuredImageMapping(postid: string, post: any, postdata: any) {
   try {
-    var assetsId = fs.readFileSync(
+    const assetsId = fs.readFileSync(
       path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME)
     );
 
     if (!post["wp:postmeta"] || !assetsId) return;
 
-    const postmetaArray = Array.isArray(post["wp:postmeta"])
-      ? post["wp:postmeta"]
+    const postmetaArray = Array.isArray(post["wp:postmeta"]) ? post["wp:postmeta"]
       : [post["wp:postmeta"]];
 
     const assetsDetails = postmetaArray
@@ -1639,7 +1234,7 @@ async function featuredImageMapping(postid: string, post: any, postdata: any) {
     }
     return postdata;
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 }
 
@@ -1671,7 +1266,7 @@ const extractPostCategories = (categories: any) => {
   if (Array.isArray(categories)) {
     categories.forEach(processCategory);
   } else if (categories && categories["$"]?.["domain"] !== "category") {
-    console.log(categories, "------===");
+    // console.info(categories, "------===");
     processCategory(categories);
   }
 
@@ -1681,12 +1276,11 @@ const extractPostCategories = (categories: any) => {
 const extractPostAuthor = (authorTitle: any, affix: string) => {
   const postAuthor: any = [];
 
-  const processedAffix = affix
-    ? `${affix
-        .replace(/^\d+/, "")
-        .replace(/[^a-zA-Z0-9]+/g, "_")
-        .replace(/(^_+)|(_+$)/g, "")
-        .toLowerCase()}_authors`
+  const processedAffix = affix  ? `${affix
+      .replace(/^\d+/, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/(^_+)|(_+$)/g, "")
+      .toLowerCase()}_authors`
     : "authors";
   const authorId: any = fs.readFileSync(authorsFilePath);
   const authorDataParsed = JSON.parse(authorId);
@@ -1743,7 +1337,7 @@ async function processChunkData(
               .replace(/&lt;!--?\s+\/?wp:.*?--&gt;/g, ""),
             { virtualConsole }
           );
-          let htmlDoc = dom.window.document.querySelector("body");
+          const htmlDoc = dom.window.document.querySelector("body");
           const jsonValue = htmlToJson(htmlDoc);
           const postDate = new Date(data["wp:post_date_gmt"]).toISOString();
 
@@ -1787,17 +1381,17 @@ async function processChunkData(
     );
 
     if (isLastChunk && allSuccess) {
-      console.log("last data");
+      console.info("last data");
     }
   } catch (error) {
-    console.log(error);
-    console.log("Error saving posts", error);
+    console.error(error);
+    console.error("Error saving posts", error);
     return { success: false, message: error };
   }
 }
 
-async function extractPosts(affix: string, packagePath: string) {
-  console.log(`Exporting posts...`);
+async function extractPosts(affix: string, packagePath: string, destinationStackId: string, projectId: string) {
+  const srcFunc = "extractPosts";
   try {
     await startingDirPosts(affix);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
@@ -1821,14 +1415,23 @@ async function extractPosts(affix: string, packagePath: string) {
 
       // Process the current chunk
       await processChunkData(chunkData, filename, isLastChunk, affix);
-      console.log(
-        `${filename.split(".").slice(0, -1).join(".")}`,
-        "getting migrated please wait"
-      );
+      const message = getLogMessage(
+        srcFunc,
+        `${filename.split(".").slice(0, -1).join(".")} has been successfully transformed.`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+
     }
     return;
   } catch (error) {
-    console.log(error);
+    const message = getLogMessage(
+      srcFunc,
+      `error while transforming the posts.`,
+      {},
+      error
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
     return;
   }
 }
@@ -1857,10 +1460,18 @@ async function copyFolder(src: string, dest: string) {
       }
     }
   } catch (err) {
-    console.error(`Error copying folder from ${src} to ${dest}:`, err);
+    const message = getLogMessage(
+      "copyFolder",
+      `Error copying folder from ${src} to ${dest}.`,
+      {},
+      err
+    )
+    await customLogger("projectId", dest, 'error', message);
+    // console.error(`Error copying folder from ${src} to ${dest}:`, err);
   }
 }
-async function extractGlobalFields(destinationStackId: string) {
+async function extractGlobalFields(destinationStackId: string, projectId: string) {
+  const srcFunc = "extractGlobalFields";
   const sourcePath = path.join(
     __dirname,
     "..",
@@ -1869,7 +1480,7 @@ async function extractGlobalFields(destinationStackId: string) {
     "upload-api",
     "migration-wordpress"
   );
-  const destinationPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId);
+  const destinationPath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
 
   const foldersToCopy = ["locales", "global_fields", "extensions"];
 
@@ -1879,9 +1490,21 @@ async function extractGlobalFields(destinationStackId: string) {
 
     try {
       await copyFolder(sourceFolderPath, destinationFolderPath);
-      console.log(`Successfully copied ${folder}`);
+      const message = getLogMessage(
+        srcFunc,
+        `Successfully copied ${folder}`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
     } catch (err) {
-      console.error(`Error copying ${folder}:`, err);
+      const message = getLogMessage(
+        srcFunc,
+        `Error copying ${folder}.`,
+        {},
+        err
+      )
+      await customLogger(projectId, destinationStackId, 'error', message);
+      // console.error(`Error copying ${folder}:`, err);
     }
   }
 }
@@ -1893,7 +1516,7 @@ export const wordpressService = {
   getAllreference,
   extractChunks,
   getAllAuthors,
-  extractContentTypes,
+  // extractContentTypes,
   getAllTerms,
   getAllTags,
   getAllCategories,
