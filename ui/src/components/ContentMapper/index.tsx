@@ -416,7 +416,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     if(isContentType) {      
       setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes)) ?? []);
     } else {
-      setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields)) ?? []);
+      if (reduxGlobalFields?.length > 0) {
+        setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields)) ?? []);
+      }
     }
   }, [isContentType, reduxContentTypes, reduxGlobalFields]);
 
@@ -1562,8 +1564,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         });
    
         if (status === 200) {
-          console.log("data =============", data);
-          
           const resetCT = filteredContentTypes?.map(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );
