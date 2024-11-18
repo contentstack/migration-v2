@@ -17,6 +17,7 @@ import { config } from "../config/index.js";
 import https from "../utils/https.utils.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
+import fetchAllPaginatedData from "../utils/pagination.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import FieldMapperModel from "../models/FieldMapper.js";
 import { v4 as uuidv4 } from "uuid";
@@ -252,34 +253,31 @@ const getExistingContentTypes = async (req: Request) => {
     .find({ id: projectId })
     .value();
   const stackId = project?.destination_stack_id;
-  const [err, res] = await safePromise(
-    https({
-      method: "GET",
-      url: `${config.CS_API[
-        token_payload?.region as keyof typeof config.CS_API
-      ]!}/content_types`,
-      headers: {
-        api_key: stackId,
-        authtoken: authtoken,
-      },
-    })
-  );
 
-  if (err)
-    return {
-      data: err.response.data,
-      status: err.response.status,
-    };
-  const contentTypes = res.data.content_types.map((singleCT: any) => {
-    return {
+  const baseUrl = `${config.CS_API[
+    token_payload?.region as keyof typeof config.CS_API
+  ]!}/content_types`;
+  const headers = {
+    api_key: stackId,
+    authtoken: authtoken,
+  };
+
+  try {
+    const contentTypes = await fetchAllPaginatedData(baseUrl, headers, 100, "getExistingContentTypes", "content_types");
+
+    const processedContentTypes = contentTypes.map((singleCT: any) => ({
       title: singleCT.title,
       uid: singleCT.uid,
       schema: singleCT.schema,
-    };
-  });
+    }));
 
-  //Add logic to get Project from DB
-  return { contentTypes };
+    return { contentTypes: processedContentTypes };
+  } catch (error:any) {
+    return {
+      data: error.message,
+      status: 500,
+    };
+  }
 };
 
 /**
@@ -290,46 +288,68 @@ const getExistingContentTypes = async (req: Request) => {
 const getExistingGlobalFields = async (req: Request) => {
   const projectId = req?.params?.projectId;
 
-  const { token_payload } = req.body;
-
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id
-  );
-  await ProjectModelLowdb.read();
-  const project = ProjectModelLowdb.chain
-    .get("projects")
-    .find({ id: projectId })
-    .value();
-  const stackId = project?.destination_stack_id;
-  const [err, res] = await safePromise(
-    https({
-      method: "GET",
-      url: `${config.CS_API[
-        token_payload?.region as keyof typeof config.CS_API
-      ]!}/global_fields`,
-      headers: {
-        api_key: stackId,
-        authtoken: authtoken,
-      },
-    })
-  );
-
-  if (err)
+  if (!projectId) {
     return {
-      data: err.response.data,
-      status: err.response.status,
+      data: 'Project ID is missing in the request',
+      status: 400,
     };
-  const globalFields = res.data.global_fields.map((global: any) => {
+  }
+
+  const { token_payload: tokenPayload } = req.body;
+
+  if (!tokenPayload?.region || !tokenPayload?.user_id) {
     return {
+      data: 'Token payload is missing or incomplete',
+      status: 400,
+    };
+  }
+
+  try {
+    const authtoken = await getAuthtoken(tokenPayload.region, tokenPayload.user_id);
+
+    await ProjectModelLowdb.read();
+    const project = ProjectModelLowdb.chain
+      .get('projects')
+      .find({ id: projectId })
+      .value();
+
+    if (!project) {
+      return {
+        data: 'Project not found',
+        status: 404,
+      };
+    }
+
+    const stackId = project.destination_stack_id;
+
+    if (!stackId) {
+      return {
+        data: 'Destination stack ID is missing in the project',
+        status: 400,
+      };
+    }
+
+    const baseUrl = `${config.CS_API[tokenPayload.region as keyof typeof config.CS_API]}/global_fields`;
+    const headers = {
+      api_key: stackId,
+      authtoken,
+    };
+
+    const globalFields = await fetchAllPaginatedData(baseUrl, headers, 100, 'getExistingGlobalFields', 'global_fields');
+
+    const processedGlobalFields = globalFields.map((global: any) => ({
       title: global.title,
       uid: global.uid,
       schema: global.schema,
-    };
-  });
+    }));
 
-  //Add logic to get Project from DB
-  return { globalFields };
+    return { globalFields: processedGlobalFields };
+  } catch (error:any) {
+    return {
+      data: error.message || 'An unknown error occurred',
+      status: 500,
+    };
+  }
 };
 
 /**
