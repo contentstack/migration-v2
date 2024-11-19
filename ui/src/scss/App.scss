@@ -433,6 +433,10 @@ h2 {
   border: 0 none;
   width: 100%;
 }
+.Select__v2 .Select__menu {
+  margin-left: 0;
+  min-width: 100%;
+}
 ::-webkit-input-placeholder {
   color: $color-stepper-title !important;
 }
