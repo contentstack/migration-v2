@@ -421,7 +421,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // To fetch existing content types or global fields as per the type
   useEffect(() => {
     if(isContentType) {      
-      setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes)) ?? []);
+      setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes ?? [])) );
     } else {
       if (reduxGlobalFields?.length > 0) {
         setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields)) ?? []);
