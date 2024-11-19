@@ -93,7 +93,7 @@ const TestMigration = () => {
         return;
       }
     } catch (error) {
-      return error;
+      console.log(error);
     }
 
     const data = {
@@ -117,7 +117,7 @@ const TestMigration = () => {
           notificationContent: { text: 'Test Stack created successfully' },
           notificationProps: {
             position: 'bottom-center',
-            hideProgressBar: true
+            hideProgressBar: false
           },
           type: 'success'
         });
@@ -130,7 +130,7 @@ const TestMigration = () => {
         dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
     } catch (err) {
-      return err;
+      console.log(err);
     }
   }
 
@@ -152,28 +152,23 @@ const TestMigration = () => {
           },
           type: 'message'
         });
+
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, isMigrated: true} ],
+          test_migration: { ...newMigrationData?.test_migration, isMigrationStarted: true, isMigrationComplete: false }
+        };
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
     } catch (error) {
-      return error;
+      console.log(error);
     }
-
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      testStacks: [...newMigrationData?.testStacks ?? [], {isMigrated: true, stackUid: newMigrationData?.test_migration?.stack_api_key} ]
-    };
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
   }
 
   // Function to update the parent state
   const handleMigrationState = (newState: boolean) => {
     setDisableCreateStack(newState);
-    setdisableTestMigration(!newState)
-
-    const newMigrationDataObj: INewMigration = {
-      ...newMigrationData,
-      test_migration: { ...newMigrationData?.test_migration, isMigrationStarted: newState }
-    };
-    dispatch(updateNewMigrationData((newMigrationDataObj)));
+    setdisableTestMigration(!newState);
   } ;
 
   return (
