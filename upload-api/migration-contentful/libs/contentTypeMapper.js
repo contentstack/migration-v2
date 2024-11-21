@@ -1,6 +1,24 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 const restrictedUid = require('../utils/restrictedKeyWords');
+
+/**
+ * Corrects the UID by applying a custom affix and sanitizing the string.
+ *
+ * @param {string} uid - The original UID that needs to be corrected.
+ * @param {string} affix - The affix to be prepended to the UID if it's restricted.
+ * @returns {string} The corrected UID with the affix (if applicable) and sanitized characters.
+ *
+ * @description
+ * This function checks if the provided `uid` is included in the `restrictedUid` list. If it is, the function will:
+ * 1. Prepend the provided `affix` to the `uid`.
+ * 2. Replace any non-alphanumeric characters in the `uid` with underscores.
+ * 
+ * It then converts any uppercase letters to lowercase and prefixes them with an underscore (to match a typical snake_case format).
+ *
+ * If the `uid` is not restricted, the function simply returns it after converting uppercase letters to lowercase and adding an underscore before each uppercase letter.
+ * // Outputs: 'prefix_my_restricted_uid'
+ */
 const uidCorrector = (uid, affix) => {
   let newId = uid;
   if (restrictedUid.includes(uid)) {
@@ -10,6 +28,25 @@ const uidCorrector = (uid, affix) => {
   return newId.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`);
 };
 
+/**
+ * Extracts advanced field configurations from a content type item.
+ *
+ * @param {Object} item - The content type field item containing properties like `defaultValue`, `validations`, `settings`, etc.
+ * @param {Array} [referenceFields=[]] - Optional array of reference field names to associate with the field.
+ * @returns {Object} An object containing advanced field configurations, such as default value, validation rules, mandatory status, and more.
+ *
+ * @description
+ * This function extracts advanced configuration details for a content type field from the provided `item`. It gathers
+ * various settings like default values, validation patterns, uniqueness, mandatory status, localization settings, and
+ * description (with a maximum length of 255 characters).
+ *
+ * Special handling is included for certain field types (`Link`, `Array`) to determine whether the field is "multiple"
+ * based on the widget ID. It also considers whether the field is localized and whether reference fields are provided.
+ *
+ * The result is an object that includes all these advanced properties, which can be used to configure fields in a CMS or other systems.
+ *
+ * // Outputs an object with the advanced field configurations, including default value, validation, mandatory, and more.
+ */
 const extractAdvancedFields = (
   item,
   referenceFields = [],
@@ -41,6 +78,25 @@ const extractAdvancedFields = (
   };
 };
 
+/**
+ * Creates a field object for a content type, including both the main and backup field configurations.
+ *
+ * @param {Object} item - The content type field item that contains properties like `id`, `name`, and `type`.
+ * @param {string} contentstackFieldType - The type of field for Contentstack (e.g., 'text', 'json').
+ * @param {string} backupFieldType - The type of backup field (e.g., 'text', 'json').
+ * @param {Array} [referenceFields=[]] - Optional array of reference field names to associate with the field.
+ * @returns {Object} A field object that includes the UID, CMS field names, field types, and advanced configurations.
+ *
+ * @description
+ * This function generates a field object to be used in the context of a content management system (CMS),
+ * specifically for fields that have both a primary and backup configuration. It extracts the necessary field
+ * details from the provided `item` and augments it with additional information such as UID, field names, and field types.
+ * 
+ * The advanced field properties are extracted using the `extractAdvancedFields` function, including any reference fields,
+ * field types, and other metadata related to the field configuration.
+ *
+ * // Outputs an object containing the field configuration for Contentstack and backup fields
+ */
 const createFieldObject = (item, contentstackFieldType, backupFieldType, referenceFields = []) => ({
   uid: item.id,
   otherCmsField: item.name,
@@ -52,6 +108,23 @@ const createFieldObject = (item, contentstackFieldType, backupFieldType, referen
   advanced: extractAdvancedFields(item, referenceFields, contentstackFieldType, backupFieldType)
 });
 
+/**
+ * Creates a field object for dropdown or radio field types with appropriate options and validations.
+ *
+ * @param {Object} item - The content type item that includes field details like `validations`, `type`, etc.
+ * @param {string} fieldType - The type of field being created (e.g., 'dropdown', 'radio').
+ * @returns {Object} A field object that includes the field configuration and validation options.
+ *
+ * @description
+ * This function generates a field object for dropdown or radio field types based on the provided item.
+ * It checks if the item has validations, and if so, it extracts possible values for the field's choices.
+ * If there are no validations, it defaults to adding a 'value' and 'key' field.
+ *
+ * The function ensures that:
+ * - The choices for the dropdown or radio field are populated with values from `validations.in` or default values if no validations are present.
+ * - The field's advanced properties are extracted from the item, including validation options.
+ * 
+ */
 const createDropdownOrRadioFieldObject = (item, fieldType) => {
   let choices = [];
   if (!item?.validations?.length) {
@@ -70,6 +143,25 @@ const createDropdownOrRadioFieldObject = (item, fieldType) => {
   };
 };
 
+/**
+ * Maps a collection of content type items to a schema array with specific field types and properties.
+ *
+ * @param {Array} data - An array of content type items, each containing metadata like type, widgetId, contentNames, etc.
+ * @returns {Array} A schema array with field objects and corresponding properties based on the content type item.
+ *
+ * @description
+ * This function processes each content type item from the input data and maps them to a specific schema structure.
+ * It handles various field types (e.g., RichText, Symbol, Integer, Array, Boolean) and associates them with the 
+ * appropriate field configuration based on the content type's attributes such as `type`, `widgetId`, `validations`, 
+ * and `contentNames`.
+ * 
+ * The function supports processing of:
+ * - RichText fields with associated reference fields
+ * - Text fields with widget-specific mappings
+ * - Integer/Number fields with widget-specific mappings
+ * - Date, Link, Array, Boolean, Object, and Location fields
+ * - Special handling for complex types like Asset links, Entry links, and Geo-location fields.
+ */
 const contentTypeMapper = (data) => {
   const schemaArray = data.reduce((acc, item) => {
     switch (item.type) {
