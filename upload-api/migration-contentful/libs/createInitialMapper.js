@@ -16,10 +16,23 @@ const { readFile, writeFile, deleteFolderSync } = require('../utils/helper');
 const config = require('../config');
 const idArray = require('../utils/restrictedKeyWords');
 
-// const contentstackFolderPath = path.resolve(process.cwd(), config.data);
-
-// Function to add or update schema based on UID uniqueness
-
+/**
+ * Corrects the UID by adding a prefix and sanitizing the string if it is found in a specified list.
+ *
+ * @param {string} uid - The original UID that may need correction.
+ * @param {string} prefix - The prefix to be added to the UID if it's in the specified list.
+ * @returns {string} The corrected UID, potentially with a prefix and sanitized characters.
+ *
+ * @description
+ * This function checks if the provided `uid` is included in the `idArray` list. If it is:
+ * 1. The function will prepend the provided `prefix` to the `uid`.
+ * 2. Replace any non-alphanumeric characters in the `uid` with underscores.
+ *
+ * It then converts any uppercase letters in the `uid` to lowercase and prefixes them with an underscore (to convert to snake_case format).
+ *
+ * If the `uid` is not found in the `idArray` list, it will simply return the `uid` after applying the lowercase transformation and underscores for uppercase letters.
+ * // Outputs: 'prefix_my_special_id'
+ */
 const uidCorrector = (uid, prefix) => {
   let newId = uid;
   if (idArray.includes(uid)) {
@@ -29,7 +42,25 @@ const uidCorrector = (uid, prefix) => {
   return newId.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`);
 };
 
-// Save content type schema by reading files and processing them
+/**
+ * Creates an initial mapping for content types by processing files in a specified directory.
+ * 
+ * @returns {Promise<{ contentTypes: object[] }>} A promise that resolves to an object containing an array of content type objects.
+ * 
+ * @description
+ * This function performs the following steps:
+ * 1. Reads all files in a specified directory containing data about content types.
+ * 2. For each file, it processes the data to construct an object representing the content type.
+ * 3. The content type object includes metadata such as the title, UID, status, field mappings, etc.
+ * 4. It checks if the `title` and `url` fields are present and includes them if not.
+ * 5. The content type fields are further enriched by mapping the fields from the data using a helper function `contentTypeMapper`.
+ * 6. After processing all the files, the content type objects are returned as an array.
+ * 7. The function handles errors and logs them to the console if any occur during the process.
+ * 
+ * The function also deletes a folder at the end of the process (using `deleteFolderSync`), which may be used for cleanup purposes.
+ * 
+ * // Outputs: an array of content type objects, each containing metadata and field mappings.
+ */
 const createInitialMapper = async () => {
   try {
     const initialMapper = [];
