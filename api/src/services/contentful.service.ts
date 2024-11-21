@@ -48,6 +48,14 @@ interface AssetMetaData {
 }
 
 
+/**
+ * Splits the given asset data into chunks that are under the specified size
+ * in bytes. The size of each chunk is determined by the {@link CHUNK_SIZE}
+ * constant. 
+ * @param {object} assetData - The asset data to split into chunks.
+ * @returns {object} - An object where each key is a unique chunk ID and the
+ * value is an object containing the assets for that chunk.
+ */
 function makeChunks(assetData: any) {
   let currentChunkSize = 0;
   const chunkSize = CHUNK_SIZE; // 1 MB in bytes
@@ -73,10 +81,23 @@ function makeChunks(assetData: any) {
   return chunks;
 }
 
+/**
+ * Reads a file from the given file path and returns its JSON content.
+ * @param {string} filePath - The path to the file to read.
+ * @param {string} fileName - The name of the file to read.
+ * @returns {Promise<object>} - The JSON content of the file.
+ * @throws {Error} - If there is an error reading the file.
+ */
 async function readFile(filePath: string, fileName: string) {
   return JSON.parse(await fs.promises.readFile(path.join(filePath, fileName), "utf8"));
 }
 
+/**
+ * Writes a file to the given directory path
+ * @param {string} indexPath - The path to write the file to.
+ * @param {object} fileMeta - The JSON content to write to the file.
+ * @throws {Error} - If there is an error writing the file.
+ */
 async function writeOneFile(indexPath: string, fileMeta: any) {
   fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
     if (err) {
@@ -85,18 +106,30 @@ async function writeOneFile(indexPath: string, fileMeta: any) {
   });
 }
 
+/**
+ * Writes data to a specified file, ensuring the target directory exists.
+ *
+ * @param {string} dirPath - The directory path where the file should be saved.
+ * @param {string} filename - The name of the file to be created or overwritten.
+ * @param {any} data - The data to write to the file. Can be a string or an object.
+ * @returns {Promise<void>} Resolves when the file is successfully written.
+ *
+ * @description
+ * This function ensures that the specified directory exists, creating it recursively if necessary. 
+ * Then, it writes the provided data to a file at the given directory and filename.
+ * If an error occurs during directory creation or file writing, it logs an error message to the console.
+ *
+*/
 async function writeFile(dirPath: string, filename: string, data: any) {
-  fs.access(dirPath, async (err) => {
-    if (err) {
-      fs.mkdir(dirPath, { recursive: true }, async (err) => {
-        if (!err) {
-          await writeOneFile(path.join(dirPath, filename), data);
-        }
-      });
-    } else {
-      await writeOneFile(path.join(dirPath, filename), data);
-    }
-  });
+  try {
+    // Ensure directory exists or create it recursively
+    await fs.promises.mkdir(dirPath, { recursive: true });
+    // Write the file
+    const filePath = path.join(dirPath, filename);
+    await writeOneFile(filePath, data);
+  } catch (err) {
+    console.error('Error writing ${dirPath}/${filename}::', err);
+  }
 }
 
 const processField = (
@@ -171,7 +204,18 @@ const processRTEOrNestedObject = (lang_value: any, lang: any, destination_stack_
   }
 };
 
-// Helper function to get display name for the given key from the display field object.
+/**
+ * Retrieves the display field name for a given content type key.
+ *
+ * @param {string} key - The key representing the content type.
+ * @param {any} displayField - An object containing mappings of content type keys to their display fields.
+ * @returns {string} The display field name corresponding to the given key. Returns an empty string if no match is found.
+ *
+ * @description
+ * This function searches the `displayField` object for an entry that matches the provided key.
+ * The match is determined by normalizing the key and content type names (removing non-alphanumeric characters 
+ * and ignoring case). If a match is found, the associated `displayField` value is returned.
+ */
 function getDisplayName(key: string, displayField: any) {
   let path = "";
   Object.entries(displayField).forEach(([item, value]) => {
@@ -184,6 +228,30 @@ function getDisplayName(key: string, displayField: any) {
   return path;
 }
 
+/**
+ * Saves an asset to the destination stack directory, transforming and writing metadata.
+ *
+ * @param {any} assets - The asset object containing metadata and file details.
+ * @param {any} failedJSON - A JSON object tracking failed assets for retry or logging purposes.
+ * @param {any} assetData - An object used to store transformed asset data.
+ * @param {AssetMetaData[]} metadata - An array to store metadata about successfully saved assets.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @param {string} destination_stack_id - The ID of the destination stack where assets will be stored.
+ * @param {number} [retryCount=0] - The current retry attempt count, defaulting to 0.
+ * @returns {Promise<void>} Resolves when the asset is successfully saved or after handling errors.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads environment and locale details from the destination stack directory.
+ * 2. Processes asset details, including file URL, title, and description.
+ * 3. Checks if the asset file already exists in the destination.
+ * 4. Downloads the asset file from the source URL and saves it locally.
+ * 5. Generates metadata about the asset, including environment, locale, and publishing details.
+ * 6. Writes the metadata to a JSON file and logs the successful transformation.
+ * 7. Handles errors during the asset save operation, retrying once if an error occurs.
+ *
+ * @throws Will log errors during file download, writing, or processing.
+ */
 const saveAsset = async (
   assets: any,
   failedJSON: any,
@@ -271,8 +339,10 @@ const saveAsset = async (
           `Asset "${fileName}" has been successfully transformed.`,
           {}
         )
+        await fs.promises.mkdir(assetPath, { recursive: true });
+        // Write file as binary
+        await fs.promises.writeFile(path.join(assetPath, fileName), Buffer.from(response.data), "binary");
         await customLogger(projectId, destination_stack_id, 'info', message);
-        await writeFile(assetPath, fileName, response.data);
         await writeFile(assetPath, `_contentstack_${assets.sys.id}.json`, assetData[assets.sys.id]);
         metadata.push({ uid: assets.sys.id, url: fileUrl, filename: fileName });
         delete failedJSON[assets.sys.id];
@@ -291,7 +361,7 @@ const saveAsset = async (
             reason_for_error: err?.message,
           };
         } else {
-          return saveAsset(assets, failedJSON, assetData,metadata, projectId, destination_stack_id, 1);
+          return await saveAsset(assets, failedJSON, assetData,metadata, projectId, destination_stack_id, 1);
         }
       }
     }
@@ -300,6 +370,29 @@ const saveAsset = async (
     console.error(error);
   }
 };
+
+ /**
+ * Creates and processes assets from a given package file, saving them to the destination stack directory.
+ *
+ * @param {any} packagePath - The path to the package file containing asset data.
+ * @param {string} destination_stack_id - The ID of the destination stack where assets will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when all assets have been successfully created or errors have been logged.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file containing asset data.
+ * 2. Creates and processes each asset using the `saveAsset` function, handling failures in `failedJSON`.
+ * 3. Saves the processed asset data, metadata, and chunked references to the destination directory.
+ * 4. Generates and writes the following files:
+ *    - Schema file with complete asset data.
+ *    - Chunked files for asset references.
+ *    - Metadata file containing additional information about the assets.
+ *    - A file to track failed assets, if any.
+ * 5. Logs appropriate messages if no assets are found or if an error occurs during processing.
+ *
+ * @throws Will log errors encountered during file reading, writing, or asset processing.
+ */
 const createAssets = async (packagePath: any, destination_stack_id:string, projectId:string,) => {
   const srcFunc = 'createAssets';  
   try {
@@ -353,6 +446,28 @@ const createAssets = async (packagePath: any, destination_stack_id:string, proje
   }
 };
 
+ /**
+ * Creates environment configurations from a given package file and saves them to the destination stack directory.
+ *
+ * @param {any} packagePath - The path to the package file containing environment data.
+ * @param {string} destination_stack_id - The ID of the destination stack where environments will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when the environments are successfully created or errors have been logged.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file to extract environment data (`editorInterfaces`).
+ * 2. Retrieves the master locale for the destination stack from the saved locale data.
+ * 3. Processes and creates unique environment configurations by:
+ *    - Extracting titles and names from the parsed data.
+ *    - Ensuring each environment has a unique name.
+ *    - Associating each environment with the master locale.
+ * 4. Writes the consolidated environment configurations to a JSON file in the destination stack directory.
+ * 5. Logs a message if no environments are found in the package file.
+ * 6. Handles errors gracefully by logging them with relevant details.
+ *
+ * @throws Will log errors encountered during file reading, writing, or processing of environments.
+ */
 const createEnvironment = async (packagePath: any, destination_stack_id:string, projectId:string,) => {
   const srcFunc = 'createEnvironment';  
   try {
@@ -385,7 +500,7 @@ const createEnvironment = async (packagePath: any, destination_stack_id:string, 
       }
       );
 
-      writeFile(environmentSave, ENVIRONMENTS_FILE_NAME, environmentsJSON);
+      await writeFile(environmentSave, ENVIRONMENTS_FILE_NAME, environmentsJSON);
     } else {
       const message = getLogMessage(
         srcFunc,
@@ -405,7 +520,33 @@ const createEnvironment = async (packagePath: any, destination_stack_id:string, 
   }
 };
 
-const createEntry = async (packagePath: any, destination_stack_id:string, projectId:string, affix: string) => {
+/**
+ * Creates and processes entries from a given package file and saves them to the destination stack directory.
+ *
+ * @param {any} packagePath - The path to the package file containing entry data.
+ * @param {string} destination_stack_id - The ID of the destination stack where entries will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when all entries have been successfully created or errors have been logged.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file to extract entries and content types.
+ * 2. Retrieves supporting data such as assets, references, and environments from the destination stack directory.
+ * 3. Processes entries by:
+ *    - Mapping content types to their display fields.
+ *    - Normalizing field names and handling multilingual fields.
+ *    - Generating entry metadata including title, locale, URLs, and publishing details.
+ *    - Logging transformation details for each entry.
+ * 4. Organizes and chunks processed entries into JSON files for efficient storage.
+ * 5. Writes:
+ *    - Chunked entry files categorized by content type and locale.
+ *    - Master entry files that reference chunked files.
+ * 6. Logs a message if no entries are found in the package file.
+ * 7. Handles errors gracefully by logging them with relevant details.
+ *
+ * @throws Will log errors encountered during file reading, processing, or writing of entries.
+ */
+const createEntry = async (packagePath: any, destination_stack_id:string, projectId:string) => {
     const srcFunc = 'createEntry';
   try {
     const entriesSave = path.join(DATA, destination_stack_id, ENTRIES_DIR_NAME);
@@ -552,6 +693,30 @@ const createEntry = async (packagePath: any, destination_stack_id:string, projec
   }
 };
 
+/**
+ * Processes and creates locale configurations from a given package file and saves them to the destination stack directory.
+ *
+ * @param {string} packagePath - The path to the package file containing locale data.
+ * @param {string} destination_stack_id - The ID of the destination stack where locales will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when all locales have been successfully processed and saved, or errors have been logged.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file to extract locale data.
+ * 2. Iterates over the locales and creates new locale configurations:
+ *    - Identifies the master locale and stores it separately.
+ *    - Sets locale attributes such as `code`, `name`, and `fallback_locale`.
+ *    - Logs success messages for each locale transformation.
+ * 3. Saves the processed locales to JSON files:
+ *    - `locales.json`: Contains all locales.
+ *    - `master_locale.json`: Contains only the master locale.
+ *    - `cf_language.json`: Contains the complete list of locales.
+ * 4. Logs a message confirming the successful transformation of locales.
+ * 5. Handles errors gracefully by logging them with relevant details.
+ *
+ * @throws Will log errors encountered during file reading, processing, or writing of locale configurations.
+ */
 const createLocale = async (packagePath: string, destination_stack_id:string, projectId:string) => {
   const srcFunc = 'createLocale';
   const localeSave = path.join(DATA, destination_stack_id, LOCALE_DIR_NAME);
@@ -595,10 +760,6 @@ const createLocale = async (packagePath: string, destination_stack_id:string, pr
       }
       localeList[title] = newLocale;
     }));
-
-    // const masterPath = path.join(localeSave, "master-locale.json");
-    // const allLocalePath = path.join(localeSave, "locales.json");
-    // const localeListPath = path.join(localeSave, "language.json");
     await writeFile(localeSave, LOCALE_FILE_NAME, allLocales)
     await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale)
     await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList)
@@ -608,26 +769,7 @@ const createLocale = async (packagePath: string, destination_stack_id:string, pr
       {}
     )
     await customLogger(projectId, destination_stack_id, 'info', message);
-    // await fs.access(localeSave, async (err) => {
-    //   if (err) {
-    //     await fs.mkdir(localeSave, { recursive: true }, async (err) => {
-    //       if (!err) {
-    //         await writeOneFile(masterPath, msLocale);
-    //         await writeOneFile(allLocalePath, allLocales);
-    //         await writeOneFile(localeListPath, localeList);
-
-    //       }
-    //     });
-    //   } else {
-    //     await writeOneFile(masterPath, msLocale);
-    //     await writeOneFile(allLocalePath, allLocales);
-    //     await writeOneFile(localeListPath, localeList);
-
-    //   }
-    // });
-
   } catch (err) {
-    // console.error("🚀 ~ createLocale ~ err:", err);
     const message = getLogMessage(
       srcFunc,
       `error while Createing the locales.`,
@@ -638,6 +780,32 @@ const createLocale = async (packagePath: string, destination_stack_id:string, pr
   }
 };
 
+ /**
+ * Processes and transforms webhook configurations from a given package file and saves them to the destination stack directory.
+ *
+ * @param {string} packagePath - The path to the package file containing webhook data.
+ * @param {string} destination_stack_id - The ID of the destination stack where webhooks will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when all webhooks have been successfully processed and saved, or errors have been logged.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file to extract webhook data.
+ * 2. Iterates through the webhooks, transforming their configurations:
+ *    - Processes `topics` for webhook events and constructs appropriate channel topics.
+ *    - Handles data transformation based on the type of webhook event (`contentType`, `entries`, `assets`, `releases`).
+ *    - Filters out ignored events and applies custom transformations to topics.
+ * 3. Builds webhook objects with necessary attributes like `urlPath`, `channels`, `destinations`, etc.
+ * 4. Logs success messages for each webhook transformation.
+ * 5. Saves the processed webhooks to a JSON file in the destination stack directory.
+ * 6. Logs a message confirming the successful transformation of webhooks or logs errors encountered during processing.
+ *
+ * @throws Will log errors encountered during file reading, processing, or writing of webhook configurations.
+ *
+ * @example
+ * // Example usage
+ * await createWebhooks('/path/to/package.json', 'stack123', 'project456');
+ */
 const createWebhooks = async (packagePath: string, destination_stack_id:string, projectId:string,) => {
   const srcFunc = 'createWebhooks';
   const webhooksSave = path.join(DATA, destination_stack_id, WEBHOOKS_DIR_NAME);
@@ -835,10 +1003,8 @@ const createWebhooks = async (packagePath: string, destination_stack_id:string, 
         {},
       );
       await customLogger(projectId, destination_stack_id, 'info', message);
-      // console.log("No webhooks found");
     }
   } catch (err) {
-    // console.error("🚀 ~ createWebhooks ~ err:", err);
     const message = getLogMessage(
       srcFunc,
       `error while Creating the Webhooks.`,
@@ -849,6 +1015,27 @@ const createWebhooks = async (packagePath: string, destination_stack_id:string, 
   }
 };
 
+ /**
+ * Processes and generates reference and rich-text editor (RTE) reference mappings from entries in a given package file.
+ *
+ * @param {string} packagePath - The path to the package file containing entry data.
+ * @param {string} destination_stack_id - The ID of the destination stack where references will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when reference and RTE reference files are successfully generated and saved.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file to extract entries.
+ * 2. Iterates through the entries to:
+ *    - Construct a mapping of `references`, associating entry IDs with their content type and UID.
+ *    - Construct a mapping of `rteReferences`, associating language-specific references for each entry ID and content type.
+ * 3. Saves the generated mappings to separate JSON files:
+ *    - `references.json` for general references.
+ *    - `rte_references.json` for rich-text editor-specific references.
+ * 4. Logs an error message if any issue occurs during file processing or saving.
+ *
+ * @throws Will log errors encountered during file reading, data transformation, or file writing.
+ */
 const createRefrence = async (packagePath: string, destination_stack_id:string, projectId:string,) => {
   const srcFunc = 'createRefrence';
   const refrencesSave = path.join(DATA, destination_stack_id,REFERENCES_DIR_NAME);
@@ -905,6 +1092,25 @@ const createRefrence = async (packagePath: string, destination_stack_id:string, 
   }
 
 };
+
+/**
+ * Creates a version file for the given destination stack.
+ *
+ * @param {string} destination_stack_id - The ID of the destination stack where the version file will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when the version file is successfully created.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Creates a `version.json` file in the destination stack directory.
+ * 2. The version file includes the following details:
+ *    - `contentVersion`: The version of the content schema (set to `2`).
+ *    - `logsPath`: An empty string reserved for future log path information.
+ * 3. Handles errors that occur during the file creation process:
+ *    - Logs a detailed error message using the `customLogger` function.
+ *
+ * @throws Will log an error if the file writing operation fails.
+ */
 const createVersionFile = async (destination_stack_id: string, projectId: string) => {
   try {
     await writeFile(path?.join?.(DATA, destination_stack_id), EXPORT_INFO_FILE,
@@ -924,10 +1130,10 @@ const createVersionFile = async (destination_stack_id: string, projectId: string
 };
 
 export const contentfulService = {
-  createEnvironment,
-  createEntry,
-  createAssets,
   createLocale,
+  createEnvironment,
+  createAssets,
+  createEntry,
   createRefrence,
   createWebhooks,
   createVersionFile,
