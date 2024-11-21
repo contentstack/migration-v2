@@ -20,10 +20,25 @@ const contentfulFolderPath = path.resolve(
   config.data,
   config.contentful.contentful
 );
-/**
- * Functional Approach for ExtractContent
- */
 
+/**
+ * Processes and saves content types by combining data from content types and their respective editor interfaces.
+ * 
+ * @param {Array} contentTypes - An array of content type objects containing content type details.
+ * @param {Array} editorInterface - An array of editor interface objects that map content types to their corresponding editor controls.
+ * @param {string} prefix - A prefix to be used when saving content types, typically used to namespace the saved files.
+ * 
+ * @returns {void} This function doesn't return a value but writes content type data to files.
+ * 
+ * @description
+ * This function processes the provided `contentTypes` and `editorInterface` data to map fields and their editors,
+ * and then generates a JSON object for each field in the content type. It writes each content type's data to a separate
+ * JSON file in the specified `contentfulFolderPath`. The files are named using the content type's name, formatted and 
+ * cleaned for use as a valid filename.
+ * 
+ * @throws {Error} If an error occurs while processing or saving the content types, the error is thrown.
+ * 
+ */
 const saveContentType = (contentTypes, editorInterface, prefix) => {
   try {
     const contentName = contentTypes.map((content) => {
@@ -68,6 +83,23 @@ const saveContentType = (contentTypes, editorInterface, prefix) => {
   }
 };
 
+/**
+ * Extracts and processes content types from a given file and saves them.
+ * 
+ * @param {string} filePath - The path to the file containing content type data.
+ * @param {string} prefix - A prefix to be used when saving content types.
+ * 
+ * @returns {Promise<void>} A promise that resolves once the content types are saved.
+ * 
+ * @description
+ * This function reads a file containing content type data, checks if the `contentTypes` array exists
+ * and contains any content types. If valid content types are found, it calls a function (`saveContentType`)
+ * to process and save them. If no content types are found, a message is logged to the console.
+ * The function also ensures that a folder (defined by `contentfulFolderPath`) exists, creating it if necessary.
+ * 
+ * @throws {Error} If an error occurs during the extraction or saving of content types, the error is thrown.
+ * 
+ */
 const extractContentTypes = async (filePath, prefix) => {
   try {
     if (!fs.existsSync(contentfulFolderPath)) {
