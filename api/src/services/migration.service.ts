@@ -213,7 +213,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const packagePath = project?.extract_path;
   if (project?.current_test_stack_id) {
-    const { legacy_cms: { cms, file_path, affix } } = project;
+    const { legacy_cms: { cms, file_path} } = project;
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.current_test_stack_id}.log`);
     const message = getLogMessage('startTestMigration', 'Starting Test Migration...', {});
     await customLogger(projectId, project?.current_test_stack_id, 'info', message);
@@ -237,7 +237,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createWebhooks(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, affix);
+        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
@@ -271,7 +271,7 @@ const startMigration = async (req: Request): Promise<any> => {
 
   const packagePath = project?.extract_path;
   if (project?.destination_stack_id) {
-    const { legacy_cms: { cms, file_path, affix } } = project;
+    const { legacy_cms: { cms, file_path} } = project;
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.destination_stack_id}.log`);
     const message = getLogMessage('startTestMigration', 'Starting Migration...', {});
     await customLogger(projectId, project?.destination_stack_id, 'info', message);
@@ -295,7 +295,7 @@ const startMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createWebhooks(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, affix);
+        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
