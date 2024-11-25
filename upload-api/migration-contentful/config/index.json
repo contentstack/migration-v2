@@ -1,0 +1,7 @@
+{
+  "data": "./contentfulMigrationData",
+  "contentful": {
+    "contentful": "contentfulSchema"
+  },
+  "fileName": "en-us.json"
+}
