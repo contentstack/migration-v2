@@ -5,6 +5,7 @@ const mkdirp = require('mkdirp');
 const _ = require('lodash');
 const config = require('../config');
 const { writeFile, writeFileAsync } = require('../utils/helper');
+const restrictedUid = require("../utils");
 
 const { contentTypes: contentTypesConfig } = config.modules;
 const contentTypesFile = path.join(process.cwd(), config.data, contentTypesConfig.dirName, contentTypesConfig.schemaFile);
@@ -46,8 +47,8 @@ const ContentTypeSchema = ({
   sitecoreKey,
   affix
 }) => {
-  //const isPresent = restrictedUid?.find((item) => item === uid);
-  if (true) {
+  const isPresent = restrictedUid?.find((item) => item === uid);
+  if (isPresent) {
     uid = `${affix}_${uid}`;
   }
   if (type === 'text') {
