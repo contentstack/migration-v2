@@ -61,7 +61,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       } else if (!isValidPrefix(value)) {
         setIsRestrictedKey(false);
         setIsError(true);
-        setErrorMessage('Affix should be 2 to 5 alphabetic characters');
+        setErrorMessage('Prefix must be 2 to 5 letters, with no numbers or special characters.');
       } else {
         setPrefix(value);
         setIsError(false);
@@ -115,7 +115,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           value={prefix}
           autoFocus={true}
           width="large"
-          placeholder={'Enter Affix'}
+          placeholder={'Add Prefix'}
           version="v2"
           error={isError}
           aria-label='affix'
