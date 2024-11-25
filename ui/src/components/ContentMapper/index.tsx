@@ -1973,7 +1973,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 component: (
                   <div className='d-flex align-items-center'>
                     {!isNewStack && (
-                      <Tooltip content={'fetch the content type'} position="left">
+                      <Tooltip content={'Fetch content type'} position="left">
                         <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
                          version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                          size='small' onClick={handleFetchContentType}>
@@ -1982,7 +1982,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                       </Tooltip>
                     )}
 
-                    <Tooltip content={'Reset to intial mapping'} position="left">
+                    <Tooltip content={'Reset to default mapping'} position="left">
                        <Button buttonType="light" icon={onlyIcon ? "v2-Restore" : ''} 
                        version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                        size='small' onClick={handleResetContentType}></Button>
@@ -1997,6 +1997,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           width="440px"
                           maxWidth="440px"
                           placeholder={otherContentType && `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`}
+                          isSearchable
                           version="v2"
                         />
                       </div>
