@@ -295,7 +295,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   version='v2'
                   addOptionText={
                   <div className='createStack' onClick={handleCreateNewStack}>
-                    + Create a new Stack
+                    + Create a new stack
                   </div>} 
                 />
                 {(isError && !isLoading) && <div className='errorMessage'>{errorMessage}</div>}

@@ -12,6 +12,14 @@
   position: relative;
 }
 
+.empty-log-state {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: $size-font-xl;
+  font-weight: $font-weight-medium;
+  padding: 40px 20px;
+  text-align: center;
+}
+
 .logs-wrapper {
   position: relative;
   
@@ -35,21 +43,25 @@
   color: $color-base-black-base;
   display: flex;
   font-family: "IBM Plex Mono", monospace;
-  font-size: $size-font-medium;
+  font-size: $size-font-large;
   font-weight: $font-weight-medium;
-  padding: 5px 0;
+  padding: 30px 20px;
   position: relative;
-  
-  &::before {
-    background-color: $color-base-white-5;
-    border-right: 1px solid $color-brand-secondary-lightest;
-    bottom: 0;
-    content: "";
-    left: 0;
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 50px;
+
+  &.logs-bg {
+    font-size: $size-font-medium;
+    padding: 5px 0;
+    &::before {
+      background-color: $color-base-white-5;
+      border-right: 1px solid $color-brand-secondary-lightest;
+      bottom: 0;
+      content: "";
+      left: 0;
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 50px;
+    }
   }
   
   /**
