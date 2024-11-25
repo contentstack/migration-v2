@@ -144,7 +144,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   
       if(status === 200){ 
         setIsValidated(true);
-        setValidationMessage('Validation is successful');
+        setValidationMessage('File validated successfully.');
      
         setIsDisabled(true); 
         
@@ -169,7 +169,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       }
       else{
         setIsValidated(false);
-        setValidationMessage('Validation is failed');
+        setValidationMessage('Validation failed.');
         setIsValidationAttempted(true);
         setProgressPercentage(100);
   
@@ -468,7 +468,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             version="v2"
             disabled={isDisabled}
           > 
-            Validate
+            Validate File
           </Button>
            
         </div>
