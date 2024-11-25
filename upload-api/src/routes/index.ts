@@ -14,6 +14,7 @@ import { fileOperationLimiter } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import createSitecoreMapper from '../controllers/sitecore';
 import config from '../config/index';
+import createMapper from '../services/createMapper';
 
 const router: Router = express.Router();
 // Use memory storage to avoid saving the file locally
@@ -137,7 +138,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
           res.status(data?.status || 200).json(data);
           if (data?.status === 200) {
             const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
-            createSitecoreMapper(filePath, projectId, app_token, affix, config)
+            createMapper(filePath, projectId, app_token, affix, config)
           }
         });
         return;

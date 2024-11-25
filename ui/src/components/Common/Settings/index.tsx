@@ -200,6 +200,7 @@ const Settings = () => {
                         version="v2"
                         aria-label="description"
                         value={projectDescription}
+                        placeholder={cmsData?.project?.description_placeholder}
                         onChange={handleProjectDescriptionChange}
                       />
                     </div>
