@@ -243,8 +243,9 @@ const startTestMigration = async (req: Request): Promise<any> => {
           await wordpressService?.getAllTerms(affix, packagePath,project?.current_test_stack_id, projectId)
           await wordpressService?.getAllTags(affix, packagePath,project?.current_test_stack_id, projectId)
           await wordpressService?.getAllCategories(affix, packagePath,project?.current_test_stack_id, projectId)
-          await wordpressService?.extractPosts(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.extractPosts( packagePath,project?.current_test_stack_id, projectId)
           await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
+          await siteCoreService?.createVersionFile(project?.current_test_stack_id);
         }
         break;
       }
@@ -306,8 +307,10 @@ const startMigration = async (req: Request): Promise<any> => {
           await wordpressService?.getAllTerms(affix, packagePath,project?.current_test_stack_id, projectId)
           await wordpressService?.getAllTags(affix, packagePath,project?.current_test_stack_id, projectId)
           await wordpressService?.getAllCategories(affix, packagePath,project?.current_test_stack_id, projectId)
-          await wordpressService?.extractPosts(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.extractPosts( packagePath,project?.current_test_stack_id, projectId)
           await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
+          await siteCoreService?.createVersionFile(project?.current_test_stack_id);
+
         }
         break;
       }
