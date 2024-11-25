@@ -33,7 +33,7 @@ type LogsType = {
  * @param {string} serverPath - The path of the server to connect to.
  */
 const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
-  const [logs, setLogs] = useState(["Loading logs..."]);
+  const [logs, setLogs] = useState<string[]>([JSON.stringify({ message: "Migration logs will appear here once the process begins.", level: ''})]);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
@@ -47,9 +47,7 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
      * @param {string} newLogs - The new logs received from the server.
      */
     socket.on('logUpdate', (newLogs: string) => {
-      // console.log("new logs", newLogs);
       const logArray = newLogs.split('\n');
-      // console.log(logArray);
       setLogs(logArray);
     });
 
@@ -135,9 +133,9 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
         const logObject = JSON.parse(log);
         const message = logObject.message;
 
-        if (message === "Test Migration Process Completed") {
+        if (message === "Test Migration Process Completed" || message === "Migration Execution Process Completed") {
           Notification({
-            notificationContent: { text: 'Test Migration completed successfully' },
+            notificationContent: { text: message },
             notificationProps: {
               position: 'bottom-center',
               hideProgressBar: false
@@ -164,14 +162,17 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
       <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
         <div className="logs-magnify">
           {logs?.map((log, index) => {
-            // console.log(log);
             try {
               const logObject = JSON.parse(log);
               const level = logObject.level;
               const timestamp = logObject.timestamp;
               const message = logObject.message;
               return (
-                <div key={index} style={logStyles[level] || logStyles.info} className="log-entry">
+                message === "Migration logs will appear here once the process begins."
+                ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
+                  <div className="log-message">{message}</div>
+                </div>
+                : <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
                   <div className="log-number">{index}</div>
                   <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
                   <div className="log-message">{message}</div>
@@ -183,14 +184,16 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
           })}
         </div>
       </div>
-      <div className='action-items'>
-        <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
-        <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
-        <span onClick={handleZoomIn}>{MAGNIFY}</span>
-        <span onClick={handleZoomOut}>{DEMAGNIFY}</span>
-        <Icon icon="ZoomOut" version='v2' onClick={handleZoomOut} />
-        <Icon icon="File" version='v2' onClick={handleCopyLogs} />
-      </div>
+      {(newMigrationData?.test_migration?.isMigrationStarted || newMigrationData?.migration_execution?.migrationStarted) && ( 
+        <div className='action-items'>
+          <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
+          <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
+          <span onClick={handleZoomIn}>{MAGNIFY}</span>
+          <span onClick={handleZoomOut}>{DEMAGNIFY}</span>
+          <Icon icon="ZoomOut" version='v2' onClick={handleZoomOut} />
+          <Icon icon="File" version='v2' onClick={handleCopyLogs} />
+        </div>
+      )}
     </div>
   );
 };
