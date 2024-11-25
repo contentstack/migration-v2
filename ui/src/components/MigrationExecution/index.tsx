@@ -81,7 +81,7 @@ const MigrationExecution = () => {
       : <div className='migration-step-container'>
         <div className='content-block'>
           <div className='content-body'>
-            <p>We have Uploaded CMS, Organization, Selected stack and locale. The actual migration process can be started here.</p>
+            <p>Your legacy CMS, organization, stack, and locale are configured. You can now begin the migration process.</p>
             <div className='select-wrapper mt-3'>
               {MigrationInformation &&
                 validateArray(MigrationInformation) &&
