@@ -50,7 +50,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
   if (params?.stepId === '3' || params?.stepId === '4') {
     stepValue = 'Continue';
   } else if (params?.stepId === '5') {
-    stepValue = 'Start';
+    stepValue = 'Start Migration';
   } else {
     stepValue = 'Save and Continue';
   }
