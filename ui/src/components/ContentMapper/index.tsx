@@ -98,6 +98,13 @@ const Fields: MappingFields = {
       'JSON Rich Text Editor':'json'}
 
   },
+  'markdown':{
+    label : 'Markdown',
+    options : {
+      'Markdown':'markdown',
+      'HTML Rich text Editor':'html',
+      'JSON Rich Text Editor':'json'}
+  },
   'text':{
     label : 'Single Line Textbox',
     options: {'Single Line Textbox':'single_line_text'}
@@ -153,7 +160,7 @@ const Fields: MappingFields = {
       'Select':'select'
     }
   },
-  'checkBox': {
+  'checkbox': {
     label:'Select',
     options: {'Select':'checkbox'}
   },
@@ -414,7 +421,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // To fetch existing content types or global fields as per the type
   useEffect(() => {
     if(isContentType) {      
-      setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes)) ?? []);
+      setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes ?? [])) );
     } else {
       if (reduxGlobalFields?.length > 0) {
         setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields)) ?? []);
@@ -1888,11 +1895,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                   const icon = STATUS_ICON_Mapping[content?.status] || '';
 
                   const format = (str: string) => {
-                    const frags = str.split('_');
+                    const frags = str?.split('_');
                     for (let i = 0; i < frags?.length; i++) {
-                      frags[i] = frags[i].charAt(0).toUpperCase() + frags[i].slice(1);
+                      frags[i] = frags[i]?.charAt(0).toUpperCase() + frags[i]?.slice(1);
                     }
-                    return frags.join(' ');
+                    return frags?.join(' ');
                   }
                   return (
                     <li key={`${index.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
@@ -1939,7 +1946,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             : <div className='no-content'>No Content Types Found.</div>
           }
         </div>
-
+        
         {/* Content Type Fields */}
         <div className="content-types-fields-wrapper">
           <div className="table-wrapper">
@@ -1966,7 +1973,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 component: (
                   <div className='d-flex align-items-center'>
                     {!isNewStack && (
-                      <Tooltip content={'fetch the content type'} position="left">
+                      <Tooltip content={'Fetch content type'} position="left">
                         <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
                          version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                          size='small' onClick={handleFetchContentType}>
@@ -1975,7 +1982,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                       </Tooltip>
                     )}
 
-                    <Tooltip content={'Reset to intial mapping'} position="left">
+                    <Tooltip content={'Reset to default mapping'} position="left">
                        <Button buttonType="light" icon={onlyIcon ? "v2-Restore" : ''} 
                        version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                        size='small' onClick={handleResetContentType}></Button>
@@ -1990,6 +1997,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           width="440px"
                           maxWidth="440px"
                           placeholder={otherContentType && `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`}
+                          isSearchable
                           version="v2"
                         />
                       </div>
