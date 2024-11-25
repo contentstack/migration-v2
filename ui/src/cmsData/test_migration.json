@@ -15,5 +15,5 @@
     "url": "",
     "with_icon": false
   },
-  "subtitle": "Test Migration is a step where some content types are migrated in a test stack for review. A user can verify the stack and data. If the data is migrated properly then it can proceed with the final Migration Execution process."
+  "subtitle": "Test Migration allows you to migrate selected content to a test stack for review. Verify the content and ensure everything is correct before proceeding to the final migration."
 }
