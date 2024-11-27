@@ -1,6 +1,10 @@
 import fs from 'fs-extra';
 import path from "path";
 import { mkdirp } from 'mkdirp';
+
+import { config } from "../config/index.js";
+import https from "../utils/https.utils.js";
+
 /**
  * Throws an error with a custom message and status code.
  * @param message - The error message.
@@ -94,4 +98,14 @@ export async function createDirectoryAndFile(filePath: string, sourceFile: strin
   } catch (error: any) {
     console.error(`Error creating directory or file: ${error.message}`);
   }
+}
+
+export async function getAllLocales (){
+  const [err, data] =  await safePromise(
+    https({
+      method: "GET",
+      url: `${config.CS_API.NA}/locales?include_all=true`,
+    })
+  );
+  return [err, data?.data?.locales];
 }
