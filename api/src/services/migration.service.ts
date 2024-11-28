@@ -11,6 +11,7 @@ import { HTTP_TEXTS, HTTP_CODES, LOCALE_MAPPER, STEPPER_STEPS, CMS } from "../co
 import { BadRequestError, ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { fieldAttacher } from "../utils/field-attacher.utils.js";
 import { siteCoreService } from "./sitecore.service.js";
+import { wordpressService } from "./wordpress.service.js";
 import { testFolderCreator } from "../utils/test-folder-creator.utils.js";
 import { utilsCli } from './runCli.service.js';
 import customLogger from "../utils/custom-logger.utils.js";
@@ -213,7 +214,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
   const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const packagePath = project?.extract_path;
   if (project?.current_test_stack_id) {
-    const { legacy_cms: { cms, file_path} } = project;
+    const { legacy_cms: { cms, file_path, affix} } = project;
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.current_test_stack_id}.log`);
     const message = getLogMessage('startTestMigration', 'Starting Test Migration...', {});
     await customLogger(projectId, project?.current_test_stack_id, 'info', message);
@@ -239,6 +240,22 @@ const startTestMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
+        break;
+      }
+
+      case CMS.WORDPRESS: {
+        await wordpressService?.getAllAssets(affix, packagePath, project?.current_test_stack_id, projectId)
+        await wordpressService?.createAssetFolderFile(affix, project?.current_test_stack_id, projectId)
+        await wordpressService?.getAllreference(affix, packagePath, project?.current_test_stack_id, projectId)
+        await wordpressService?.extractChunks(affix, packagePath, project?.current_test_stack_id, projectId)
+        await wordpressService?.getAllAuthors(affix, packagePath,project?.current_test_stack_id, projectId)
+        await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id)
+        await wordpressService?.getAllTerms(affix, packagePath,project?.current_test_stack_id, projectId)
+        await wordpressService?.getAllTags(affix, packagePath,project?.current_test_stack_id, projectId)
+        await wordpressService?.getAllCategories(affix, packagePath,project?.current_test_stack_id, projectId)
+        await wordpressService?.extractPosts( packagePath,project?.current_test_stack_id, projectId)
+        await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
+        await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
       default:
@@ -271,7 +288,7 @@ const startMigration = async (req: Request): Promise<any> => {
 
   const packagePath = project?.extract_path;
   if (project?.destination_stack_id) {
-    const { legacy_cms: { cms, file_path} } = project;
+    const { legacy_cms: { cms, file_path, affix} } = project;
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.destination_stack_id}.log`);
     const message = getLogMessage('startTestMigration', 'Starting Migration...', {});
     await customLogger(projectId, project?.destination_stack_id, 'info', message);
@@ -298,6 +315,21 @@ const startMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
+      }
+
+      case CMS.WORDPRESS: {
+        await wordpressService?.getAllAssets(affix, packagePath, project?.destination_stack_id, projectId)
+        await wordpressService?.createAssetFolderFile(affix, project?.destination_stack_id, projectId)
+        await wordpressService?.getAllreference(affix, packagePath, project?.destination_stack_id, projectId)
+        await wordpressService?.extractChunks(affix, packagePath, project?.destination_stack_id, projectId)
+        await wordpressService?.getAllAuthors(affix, packagePath,project?.destination_stack_id, projectId)
+        await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
+        await wordpressService?.getAllTerms(affix, packagePath,project?.destination_stack_id, projectId)
+        await wordpressService?.getAllTags(affix, packagePath,project?.destination_stack_id, projectId)
+        await wordpressService?.getAllCategories(affix, packagePath,project?.destination_stack_id, projectId)
+        await wordpressService?.extractPosts( packagePath,project?.destination_stack_id, projectId)
+        await wordpressService?.extractGlobalFields(project?.destination_stack_id, projectId)
+        await wordpressService?.createVersionFile(project?.destination_stack_id, projectId);
       }
       default:
         break;
