@@ -5,6 +5,7 @@ import axios from "axios";
 import _ from "lodash";
 import { MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import jsdom from "jsdom";
+import { v4 as uuidv4 } from "uuid";
 import { htmlToJson } from "@contentstack/json-rte-serializer";
 import customLogger from "../utils/custom-logger.utils.js";
 import { getLogMessage } from "../utils/index.js";
@@ -16,6 +17,9 @@ const __filename = fileURLToPath(import.meta.url);
 // Get the current directory
 const __dirname = path.dirname(__filename);
 
+const { DATA, EXPORT_INFO_FILE } = MIGRATION_DATA_CONFIG
+
+const slugRegExp = /[^a-z0-9_-]+/g;
 let assetsSave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
@@ -23,6 +27,10 @@ let assetsSave = path.join(
 let referencesFolder = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.REFERENCES_DIR_NAME
+);
+let contentTypeFolderPath = path.join(
+  MIGRATION_DATA_CONFIG.DATA,
+  MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME
 );
 let entrySave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
@@ -66,7 +74,16 @@ interface Asset {
   [key: string]: any;
 }
 
-const failedJSONFilePath = path.join(
+const idCorrector = (id: any) => {
+  const newId = id?.replace(/[-{}]/g, (match: any) => match === '-' ? '' : '')
+  if (newId) {
+    return newId?.toLowerCase()
+  } else {
+    return id
+  }
+}
+
+let failedJSONFilePath = path.join(
   assetMasterFolderPath,
   MIGRATION_DATA_CONFIG.ASSETS_FAILED_FILE
 );
@@ -93,12 +110,21 @@ async function startingDirAssests(destinationStackId: string) {
       MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
     );
 
+     
+
     assetMasterFolderPath = path.join(
       MIGRATION_DATA_CONFIG.DATA,
       destinationStackId,
       "logs",
       MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
     );
+
+    failedJSONFilePath = path.join(
+      assetMasterFolderPath,
+      MIGRATION_DATA_CONFIG.ASSETS_FAILED_FILE
+    );
+    await fs.promises.mkdir(assetMasterFolderPath, { recursive: true });
+      await fs.promises.writeFile(failedJSONFilePath,  "{}" );
     try {
       await fs.promises.access(assetsSave);
     } catch {
@@ -117,6 +143,8 @@ async function startingDirAssests(destinationStackId: string) {
         "{}"
       );
       await fs.promises.mkdir(assetMasterFolderPath, { recursive: true });
+      await fs.promises.writeFile(failedJSONFilePath,  "{}" );
+
       return;
     }
 
@@ -157,6 +185,10 @@ async function startingDirAssests(destinationStackId: string) {
     } catch {
       // Directory doesn't exist, create it
       await fs.promises.mkdir(assetMasterFolderPath, { recursive: true });
+      await fs.promises.writeFile(
+        path.join(assetMasterFolderPath,MIGRATION_DATA_CONFIG.ASSETS_FAILED_FILE),
+        "{}"
+      );
       return;
     }
   } catch (error) {
@@ -179,32 +211,35 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     description.length > 255 ? description.slice(0, 255) : description;
 
   const parent_uid = affix ? "wordpressasset" : null;
+
+  let customId = idCorrector(uuidv4())
+  
   const assetPath = path.resolve(
     assetsSave, "files",
-    `assets_${assets["wp:post_id"].toString()}`,
+    customId,
     name
   );
 
   if (fs.existsSync(assetPath)) {
-    console.error(`Asset already present: ${assets["wp:post_id"]}`);
+    console.error(`Asset already present: ${customId}`);
     return assets["wp:post_id"];
   }
 
   try {
     const response = await axios.get(url, { responseType: "arraybuffer" });
     fs.mkdirSync(
-      path.resolve(assetsSave, "files", `assets_${assets["wp:post_id"].toString()}`),
+      path.resolve(assetsSave, "files", customId),
       { recursive: true }
     );
     fs.writeFileSync(assetPath, response.data);
 
     const stats = fs.lstatSync(assetPath);
     const acc: any = {};
-    const key = `assets_${assets["wp:post_id"]}`;
+    const key = customId;
 
     acc[key] = {
       uid: key,
-      urlPath: `/assets/files/assets_${assets["wp:post_id"]}`,
+      urlPath: `/assets/files/${key}`,
       status: true,
       file_size: `${stats.size}`,
       tag: [],
@@ -218,17 +253,17 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
       description,
     };
 
-    if (failedJSON[assets["wp:post_id"]]) {
+    if (failedJSON[customId]) {
       // delete the assest entry from wp_failed log
-      delete failedJSON[assets["wp:post_id"]];
+      delete failedJSON[customId];
       await writeFileAsync(failedJSONFilePath, failedJSON, 4);
     }
     assetData[key] = acc[key];
-    await writeFileAsync(
-      path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
-      assetData,
-      4
-    );
+    // await writeFileAsync(
+    //   path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
+    //   assetData,
+    //   4
+    // );
 
     await writeFileAsync(
       path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE),
@@ -237,7 +272,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     );
     const message = getLogMessage(
       "createAssetFolderFile",
-      `An asset with idassets_${assets["wp:post_id"]} and name ${name} downloaded successfully.`,
+      `An asset with id ${customId} and name ${name} downloaded successfully.`,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
@@ -260,7 +295,16 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
       reason_for_error: err?.message || "error",
     };
 
-    await writeFileAsync(failedJSONFilePath, failedJSON, 4);
+    try {
+      await fs.promises.access(assetMasterFolderPath);
+    } catch {
+      await fs.promises.mkdir(assetMasterFolderPath, { recursive: true });
+    }
+    await fs.promises.writeFile(
+      path.join(assetMasterFolderPath,MIGRATION_DATA_CONFIG.ASSETS_FAILED_FILE),
+      "{}"
+    );
+   await writeFileAsync(failedJSONFilePath, failedJSON, 4);
 
     if (retryCount === 0) {
       return saveAsset(assets, 1, affix, destinationStackId, projectId);
@@ -272,12 +316,6 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
         err
       )
       await customLogger(projectId, destinationStackId, 'error', message);
-      // console.log(
-      //   `Failed to download asset with id `,
-      //   assets["wp:post_id"],
-      //   "with error message",
-      //   err?.message
-      // );
       return assets["wp:post_id"];
     }
   }
@@ -286,15 +324,23 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
 async function getAsset(attachments: any[], affix: string, destinationStackId: string, projectId: string) {
   const BATCH_SIZE = 5; // 5 promises at a time
   const results = [];
-
+  let refs: any = {};
   for (let i = 0; i < attachments.length; i += BATCH_SIZE) {
     const batch = attachments.slice(i, i + BATCH_SIZE);
-
+    
     const batchResults = await Promise.allSettled(
-      batch.map((data) => saveAsset(data, 0, affix, destinationStackId, projectId))
+      batch.map((data) => {
+        saveAsset(data, 0, affix, destinationStackId, projectId)
+      })
     );
     results.push(...batchResults);
   }
+  await writeFileAsync(
+    path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
+    { "1": MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE},
+    4
+  );
+  
   return results;
 }
 
@@ -359,7 +405,7 @@ const createAssetFolderFile = async (affix: string, destinationStackId:string, p
     await writeFileAsync(folderPath, folderJSON, 4);
     const message = getLogMessage(
       "createAssetFolderFile",
-      `${failedJSON.uid} Folder JSON created successfully.`,
+      `Folder JSON created successfully.`,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
@@ -412,7 +458,7 @@ async function saveReference(referenceDetails: any[], destinationStackId:string,
     );
     const message = getLogMessage(
       "saveReference",
-      `${result.uid} Reference data saved successfully.`,
+      `Reference data saved successfully.`,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
@@ -527,8 +573,7 @@ async function startingDirChunks(affix: string, destinationStackId: string) {
 
   postFolderPath = path.join(
     entrySave,
-    affix ? affix + "_" + MIGRATION_DATA_CONFIG.POSTS_DIR_NAME
-      : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
+    MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
     MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
   );
 
@@ -559,6 +604,7 @@ async function splitJsonIntoChunks(arrayData: any[]) {
     const postIndex: any = {};
 
     for (let i = 0; i < arrayData.length; i++) {
+      arrayData[i].title = arrayData[i].title === "" ? "NA" : arrayData[i].title
       chunkData.push(arrayData[i]);
 
       if (
@@ -577,7 +623,7 @@ async function splitJsonIntoChunks(arrayData: any[]) {
       }
     }
 
-    await writeFileAsync(path.join(postFolderPath, "index.json"), postIndex, 4);
+    await writeFileAsync(path.join(postFolderPath, "index.json"), {"1": "en-us.json"}, 4);
   } catch (error) {
     return {
       err: "Error while splitting JSON into chunks:",
@@ -632,14 +678,9 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
 
 /************  authors module functions start *********/
 async function startingDirAuthors(affix: string) {
-  const authorFolderName = affix ? `${affix
-      .replace(/^\d+/, "")
-      .replace(/[^a-zA-Z0-9]+/g, "_")
-      .replace(/(^_+)|(_+$)/g, "")
-      .toLowerCase()}_${MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME}`
-    : MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
+  const authorFolderName = MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
 
-  authorsFolderPath = path.join(entrySave, authorFolderName);
+  authorsFolderPath = path.join(entrySave, authorFolderName, "en-us");
   authorsFilePath = path.join(
     authorsFolderPath,
     MIGRATION_DATA_CONFIG.AUTHORS_FILE_NAME
@@ -657,18 +698,19 @@ const filePath = false;
 async function saveAuthors(authorDetails: any[], destinationStackId: string, projectId: string) {
   const srcFunc = "saveAuthors";
   try {
-    const slugRegExp = /[^a-z0-9_-]+/g;
+    
 
     const authordata = authorDetails.reduce(
       (acc: { [key: string]: any }, data) => {
         const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]
           }`;
 
-        const url = `/author/${uid.toLowerCase().replace(slugRegExp, "-")}`;
-
-        acc[uid] = {
-          uid: uid,
-          title: data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`,
+        const title = data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`;
+        const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
+          let customId = idCorrector(uuidv4())
+        acc[customId] = {
+          uid: customId,
+          title: title,
           url: url,
           email: data["wp:author_email"],
           first_name: data["wp:author_first_name"],
@@ -680,6 +722,7 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
       {}
     );
     await writeFileAsync(authorsFilePath, authordata, 4);
+    await writeFileAsync(path.join(authorsFolderPath, "index.json"), {"1": "en-us.json"}, 4);
     const message = getLogMessage(
       srcFunc,
       `${authorDetails.length} Authors exported successfully`,
@@ -768,13 +811,573 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
 }
 /************  end of authors module functions *********/
 
+/************  contenttypes module functions start *********/
+async function startingDirContentTypes(destinationStackId: string) {
+  contentTypeFolderPath = path.join(
+    MIGRATION_DATA_CONFIG.DATA,
+    destinationStackId,
+    MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME
+  );
+  try {
+    await fs.promises.access(contentTypeFolderPath);
+  } catch {
+    // Directory doesn't exist, create it
+    await fs.promises.mkdir(contentTypeFolderPath, { recursive: true });
+    // await fs.promises.writeFile(
+    //   path.join(
+    //     contentTypeFolderPath,
+    //     MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
+    //   ),
+    //   "{}"
+    // );
+    await fs.promises.writeFile(
+      path.join(
+        contentTypeFolderPath,
+        MIGRATION_DATA_CONFIG.CONTENT_TYPES_SCHEMA_FILE
+      ),
+      "{}"
+    );
+  }
+}
+
+// const generateUid = (suffix: string) =>
+//   globalPrefix
+//     ? `${globalPrefix
+//         .replace(/^\d+/, "")
+//         .replace(/[^a-zA-Z0-9]+/g, "_")
+//         .replace(/(^_+)|(_+$)/g, "")
+//         .toLowerCase()}_${suffix}`
+//     : suffix;
+
+// const generateTitle = (title: string) =>
+//   globalPrefix ? `${globalPrefix} - ${title}` : title;
+
+const generateSchema = (
+  title: string,
+  uid: string,
+  fields: any[],
+  options: any
+) => ({
+  title: title,
+  uid: uid,
+  schema: fields,
+  description: `Schema for ${title}`,
+  options,
+});
+
+const ContentTypesSchema = [
+  {
+    title: "Authors",
+    uid: "authors",
+    schema: [
+      {
+        display_name: "Title",
+        uid: "title",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: false,
+        mandatory: true,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        display_name: "URL",
+        uid: "url",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: true,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "text",
+        display_name: "Email",
+        uid: "email",
+        field_metadata: {
+          description: "",
+          default_value: "",
+          version: 1,
+        },
+        format: "",
+        multiple: false,
+        mandatory: false,
+        unique: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "text",
+        display_name: "First Name",
+        uid: "first_name",
+        field_metadata: {
+          description: "",
+          default_value: "",
+          version: 1,
+        },
+        format: "",
+        multiple: false,
+        mandatory: false,
+        unique: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "text",
+        display_name: "Last Name",
+        uid: "last_name",
+        field_metadata: {
+          description: "",
+          default_value: "",
+          version: 1,
+        },
+        format: "",
+        multiple: false,
+        mandatory: false,
+        unique: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "json",
+        display_name: "Biographical Info",
+        uid: "biographical_info",
+        field_metadata: {
+          allow_json_rte: true,
+          embed_entry: true,
+          description: "",
+          default_value: "",
+          multiline: false,
+          rich_text_type: "advanced",
+          options: [],
+          ref_multiple_content_types: true,
+        },
+        format: "",
+        error_messages: { format: "" },
+        reference_to: ["sys_assets"],
+        multiple: false,
+        non_localizable: false,
+        unique: false,
+        mandatory: false,
+      },
+    ],
+    options: {
+      is_page: true,
+      title: "title",
+      sub_title: [],
+      description: "list of authors",
+      _version: 1,
+      url_prefix: "/author/",
+      url_pattern: "/:title",
+      singleton: false,
+    },
+  },
+  {
+    title: "Categories",
+    uid: "categories",
+    schema: [
+      {
+        display_name: "Title",
+        uid: "title",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        display_name: "URL",
+        uid: "url",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: true,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        display_name: "Nicename",
+        uid: "nicename",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "json",
+        display_name: "Description",
+        uid: "description",
+        field_metadata: {
+          allow_json_rte: true,
+          embed_entry: true,
+          description: "",
+          default_value: "",
+          multiline: false,
+          rich_text_type: "advanced",
+          options: [],
+          ref_multiple_content_types: true,
+        },
+        format: "",
+        error_messages: { format: "" },
+        reference_to: ["sys_assets"],
+        multiple: false,
+        non_localizable: false,
+        unique: false,
+        mandatory: false,
+      },
+      {
+        data_type: "reference",
+        display_name: "Parent",
+        reference_to: ["categories"],
+        field_metadata: {
+          ref_multiple: false,
+          ref_multiple_content_types: true,
+        },
+        uid: "parent",
+        multiple: false,
+        mandatory: false,
+        unique: false,
+        non_localizable: false,
+      },
+    ],
+    options: {
+      is_page: true,
+      title: "title",
+      sub_title: [],
+      url_pattern: "/:title",
+      _version: 1,
+      url_prefix: "/category/",
+      description: "List of categories",
+      singleton: false,
+    },
+  },
+  {
+    title: "Tags",
+    uid: "tags",
+    schema: [
+      {
+        display_name: "Title",
+        uid: "title",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        display_name: "URL",
+        uid: "url",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: true,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        display_name: "Slug",
+        uid: "slug",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "text",
+        display_name: "Description",
+        uid: "description",
+        field_metadata: {
+          description: "",
+          default_value: "",
+          multiline: true,
+          version: 1,
+        },
+        format: "",
+        error_messages: { format: "" },
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+        unique: false,
+      },
+    ],
+    options: {
+      is_page: true,
+      title: "title",
+      sub_title: [],
+      url_pattern: "/:title",
+      _version: 1,
+      url_prefix: "/tags/",
+      description: "List of tags",
+      singleton: false,
+    },
+  },
+  {
+    title: "Terms",
+    uid: "terms",
+    schema: [
+      {
+        display_name: "Title",
+        uid: "title",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        display_name: "URL",
+        uid: "url",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: true,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        display_name: "Taxonomy",
+        uid: "taxonomy",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        display_name: "Slug",
+        uid: "slug",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+    ],
+    options: {
+      is_page: true,
+      title: "title",
+      sub_title: [],
+      url_pattern: "/:title",
+      _version: 1,
+      url_prefix: "/terms/",
+      description: "Schema for Terms",
+      singleton: false,
+    },
+  },
+  {
+    title: "Posts",
+    uid: "posts",
+    schema: [
+      {
+        display_name: "Title",
+        uid: "title",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        display_name: "URL",
+        uid: "url",
+        data_type: "text",
+        field_metadata: { _default: true, version: 1 },
+        unique: true,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "json",
+        display_name: "Body",
+        uid: "full_description",
+        field_metadata: {
+          allow_json_rte: true,
+          embed_entry: true,
+          description: "",
+          default_value: "",
+          multiline: false,
+          rich_text_type: "advanced",
+          options: [],
+          ref_multiple_content_types: true,
+        },
+        format: "",
+        error_messages: { format: "" },
+        reference_to: ["sys_assets"],
+        multiple: false,
+        non_localizable: false,
+        unique: false,
+        mandatory: false,
+      },
+      {
+        data_type: "text",
+        display_name: "Excerpt",
+        uid: "excerpt",
+        field_metadata: {
+          description: "",
+          default_value: "",
+          multiline: true,
+          version: 1,
+        },
+        format: "",
+        error_messages: { format: "" },
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+        unique: false,
+      },
+      {
+        data_type: "file",
+        display_name: "Featured Image",
+        uid: "featured_image",
+        field_metadata: { description: "", rich_text_type: "standard" },
+        unique: false,
+        mandatory: false,
+        multiple: true,
+        non_localizable: false,
+      },
+      {
+        data_type: "isodate",
+        display_name: "Date",
+        uid: "date",
+        startDate: null,
+        endDate: null,
+        field_metadata: { description: "", default_value: {} },
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+        unique: false,
+      },
+      {
+        data_type: "reference",
+        display_name: "Author",
+        reference_to: ["authors"],
+        field_metadata: {
+          ref_multiple: true,
+          ref_multiple_content_types: true,
+        },
+        uid: "author",
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "reference",
+        display_name: "Categories",
+        reference_to: ["categories"],
+        field_metadata: {
+          ref_multiple: true,
+          ref_multiple_content_types: true,
+        },
+        uid: "category",
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "reference",
+        display_name: "Terms",
+        reference_to: ["terms"],
+        field_metadata: {
+          ref_multiple: true,
+          ref_multiple_content_types: true,
+        },
+        uid: "terms",
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+      {
+        data_type: "reference",
+        display_name: "Tags",
+        reference_to: ["tag"],
+        field_metadata: {
+          ref_multiple: true,
+          ref_multiple_content_types: true,
+        },
+        uid: "tag",
+        unique: false,
+        mandatory: false,
+        multiple: false,
+        non_localizable: false,
+      },
+    ],
+    options: {
+      is_page: true,
+      title: "title",
+      sub_title: [],
+      url_pattern: "/:year/:month/:title",
+      _version: 1,
+      url_prefix: "/blog/",
+      description: "Schema for Posts",
+      singleton: false,
+    },
+  },
+];
+
+async function extractContentTypes(projectId: string,destinationStackId: string) {
+  try {
+    await startingDirContentTypes(destinationStackId);
+    const schemaJson = ContentTypesSchema.map(
+      ({ title, uid, schema, options }) =>{
+        const generated = generateSchema(title, uid, schema, options)
+        return generated;
+      }
+        
+    );
+    // await writeFileAsync(
+    //   path.join(
+    //     contentTypeFolderPath,
+    //     MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
+    //   ),
+    //   schemaJson,
+    //   4
+    // );
+    await writeFileAsync(
+      path.join(
+        contentTypeFolderPath,
+        MIGRATION_DATA_CONFIG.CONTENT_TYPES_SCHEMA_FILE
+      ),
+      schemaJson,
+      4
+    );
+    const message = getLogMessage(
+      "extractContentTypes",
+      `Succesfully created content_types`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+    
+    return;
+  } catch (error) {
+    const message = getLogMessage(
+      "extractContentTypes",
+      `Error while creating content_types`,
+      {},
+      error
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+    return ;
+  }
+}
+
+/************  end of contenttypes module functions *********/
 
 /************  terms module functions start *********/
 async function startingDirTerms(affix: string) {
   termsFolderPath = path.join(
     entrySave,
-    affix ? affix + "_" + MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
-      : MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
+    MIGRATION_DATA_CONFIG.TERMS_DIR_NAME, "en-us"
   );
   try {
     await fs.promises.access(termsFolderPath);
@@ -800,10 +1403,11 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
         const { id, term_name, term_taxonomy = "", term_slug } = data;
         const uid = `terms_${id}`;
         const title = term_name ?? `Terms - ${id}`;
-        const url = `/terms/${uid}`;
+        const url = `/${title.toLowerCase().replace(/ /g, "_")}`; 
 
-        acc[uid] = {
-          uid,
+        let customId = idCorrector(uuidv4())
+        acc[customId] = {
+          uid:customId,
           title,
           url,
           taxonomy: term_taxonomy,
@@ -816,6 +1420,8 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
     );
 
     await writeFileAsync(termsFilePath, termsdata, 4);
+    await writeFileAsync(path.join(termsFolderPath, "index.json"), {"1": "en-us.json"}, 4);
+
     const message = getLogMessage(
       srcFunc,
       `${termsDetails.length} Terms exported successfully`,
@@ -891,8 +1497,7 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
 async function startingDirTags(affix: string) {
   tagsFolderPath = path.join(
     entrySave,
-    affix ? affix + "_" + MIGRATION_DATA_CONFIG.TAG_DIR_NAME
-      : MIGRATION_DATA_CONFIG.TAG_DIR_NAME
+    MIGRATION_DATA_CONFIG.TAG_DIR_NAME, "en-us"
   );
   try {
     await fs.promises.access(tagsFolderPath);
@@ -917,10 +1522,11 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
       const { id, tag_name, tag_slug, description = "" } = data;
       const uid = `tags_${id}`;
       const title = tag_name ?? `Tags - ${id}`;
-      const url = `/tags/${uid}`;
-
-      acc[uid] = {
-        uid,
+     // const url = `/tags/${uid}`;
+      const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
+      let customId = idCorrector(uuidv4())
+      acc[customId] = {
+        uid: customId,
         title,
         url,
         slug: tag_slug,
@@ -930,6 +1536,7 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
       return acc;
     }, {});
     await writeFileAsync(tagsFilePath, tagdata, 4);
+    await writeFileAsync(path.join(tagsFolderPath, "index.json"), {"1": "en-us.json"}, 4);
     const message = getLogMessage(
       srcFunc,
       `${tagDetails.length}, Tags exported successfully`,
@@ -1004,8 +1611,7 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
 async function startingDirCategories(affix: string) {
   categoriesFolderPath = path.join(
     entrySave,
-    affix ? affix + "_" + MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
-      : MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
+    MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME, "en-us"
   );
 
   try {
@@ -1061,11 +1667,13 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
         const description = convertHtmlToJson(data["description"] || "");
         const nicename = data["nicename"] || "";
 
+        let customId = idCorrector(uuidv4())
+
         // Accumulate category data
-        acc[uid] = {
-          uid,
-          title,
-          url: "/" + uid.replace("_", "/"),
+        acc[customId] = {
+          uid: customId,
+          title: title.toLowerCase(),
+          url: "/" + title.toLowerCase().replace(/ /g, "_"),//+ uid.replace("_", "/"),
           nicename,
           description,
           parent: parentCategories(data), // Call parentCategories to populate the parent field
@@ -1084,6 +1692,8 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
       categorydata,
       4
     );
+    await writeFileAsync(path.join(categoriesFolderPath, "index.json"), {"1": "en-us.json"}, 4);
+
     const message = getLogMessage(
       srcFunc,
       `${categoryDetails.length} Categories exported successfully`,
@@ -1160,11 +1770,9 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
 
 /************  Start of Posts module functions *********/
 
-async function startingDirPosts(affix: string) {
+async function startingDirPosts() {
   postFolderPath = path.join(
-    entrySave,
-    affix ? affix + "_" + MIGRATION_DATA_CONFIG.POSTS_DIR_NAME
-      : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
+    entrySave, MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
     MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
   );
   //path.join(entrySave, affix ? affix+"_"+"terms": "terms");
@@ -1211,7 +1819,7 @@ const limit = limitConcurrency(5);
 async function featuredImageMapping(postid: string, post: any, postdata: any) {
   try {
     const assetsId = fs.readFileSync(
-      path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME)
+      path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE)
     );
 
     if (!post["wp:postmeta"] || !assetsId) return;
@@ -1273,15 +1881,10 @@ const extractPostCategories = (categories: any) => {
   return { postCategories, postTags, postTerms };
 };
 
-const extractPostAuthor = (authorTitle: any, affix: string) => {
+const extractPostAuthor = (authorTitle: any) => {
   const postAuthor: any = [];
 
-  const processedAffix = affix  ? `${affix
-      .replace(/^\d+/, "")
-      .replace(/[^a-zA-Z0-9]+/g, "_")
-      .replace(/(^_+)|(_+$)/g, "")
-      .toLowerCase()}_authors`
-    : "authors";
+  const processedAffix =  "authors";
   const authorId: any = fs.readFileSync(authorsFilePath);
   const authorDataParsed = JSON.parse(authorId);
 
@@ -1297,8 +1900,7 @@ const extractPostAuthor = (authorTitle: any, affix: string) => {
 async function processChunkData(
   chunkData: any,
   filename: string,
-  isLastChunk: boolean,
-  affix: string
+  isLastChunk: boolean
 ) {
   const postdata: any = {};
   try {
@@ -1329,7 +1931,7 @@ async function processChunkData(
           );
 
           // get author array
-          const postAuthor = extractPostAuthor(data["dc:creator"], affix);
+          const postAuthor = extractPostAuthor(data["dc:creator"]);
 
           const dom = new JSDOM(
             data["content:encoded"]
@@ -1344,10 +1946,12 @@ async function processChunkData(
           const base = blog_base_url.split("/").filter(Boolean);
           const blogname = base[base.length - 1];
           const url = data["link"].split(blogname)[1];
-          postdata[`posts_${data["wp:post_id"]}`] = {
+          const title = data["title"] ?? `Posts - ${data["wp:post_id"]}`
+          let customId = idCorrector(uuidv4())
+          postdata[customId] = {
             title: data["title"] ?? `Posts - ${data["wp:post_id"]}`,
-            uid: `posts_${data["wp:post_id"]}`,
-            url: url,
+            uid: customId,
+            url: "/"+title.toLowerCase().replace(/ /g, "_"),
             date: postDate,
             full_description: jsonValue,
             excerpt: data["excerpt:encoded"]
@@ -1364,15 +1968,15 @@ async function processChunkData(
             postdata
           );
 
-          await writeFileAsync(
-            path.join(postFolderPath, filename),
-            postdata,
-            4
-          );
+          // await writeFileAsync(
+          //   path.join(postFolderPath, filename),
+          //   postdata,
+          //   4
+          // );
         })
       );
     }
-
+    
     // Wait for all write promises to complete and store the results
     const results: any = await Promise.all(writePromises);
     // check if all promises resolved successfully
@@ -1383,6 +1987,7 @@ async function processChunkData(
     if (isLastChunk && allSuccess) {
       console.info("last data");
     }
+    return postdata
   } catch (error) {
     console.error(error);
     console.error("Error saving posts", error);
@@ -1390,10 +1995,10 @@ async function processChunkData(
   }
 }
 
-async function extractPosts(affix: string, packagePath: string, destinationStackId: string, projectId: string) {
+async function extractPosts( packagePath: string, destinationStackId: string, projectId: string) {
   const srcFunc = "extractPosts";
   try {
-    await startingDirPosts(affix);
+    await startingDirPosts();
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     blog_base_url =
@@ -1403,7 +2008,7 @@ async function extractPosts(affix: string, packagePath: string, destinationStack
 
     const chunkFiles = fs.readdirSync(chunksDir);
     const lastChunk = chunkFiles[chunkFiles.length - 1];
-
+    let postdataCombined: any = {};
     // Read and process all files in the directory except the first one
     for (const filename of chunkFiles) {
       const filePath = path.join(chunksDir, filename);
@@ -1414,7 +2019,8 @@ async function extractPosts(affix: string, packagePath: string, destinationStack
       const isLastChunk = filename === lastChunk;
 
       // Process the current chunk
-      await processChunkData(chunkData, filename, isLastChunk, affix);
+      const chunkPostData = await processChunkData(chunkData, filename, isLastChunk);
+      postdataCombined = { ...postdataCombined, ...chunkPostData };
       const message = getLogMessage(
         srcFunc,
         `${filename.split(".").slice(0, -1).join(".")} has been successfully transformed.`,
@@ -1423,6 +2029,11 @@ async function extractPosts(affix: string, packagePath: string, destinationStack
       await customLogger(projectId, destinationStackId, 'info', message);
 
     }
+    await writeFileAsync(
+      path.join(postFolderPath, "en-us.json"),
+      postdataCombined,
+      4
+    );
     return;
   } catch (error) {
     const message = getLogMessage(
@@ -1482,7 +2093,7 @@ async function extractGlobalFields(destinationStackId: string, projectId: string
   );
   const destinationPath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
 
-  const foldersToCopy = ["locales", "global_fields", "extensions"];
+  const foldersToCopy = ["locales"]; //, "global_fields", "extensions"
 
   for (const folder of foldersToCopy) {
     const sourceFolderPath = path.join(sourcePath, folder);
@@ -1510,16 +2121,41 @@ async function extractGlobalFields(destinationStackId: string, projectId: string
 }
 /************  end of Global fields module functions *********/
 
+const createVersionFile = async (destinationStackId: string, projectId: string) => {
+  try {
+    await writeFileAsync(path?.join?.(DATA, destinationStackId, EXPORT_INFO_FILE),
+      {
+        contentVersion: 2,
+        logsPath: "",
+      }, 4)
+      const message = getLogMessage(
+        "createVersionFile",
+        `Version File created`,
+        {}
+      );
+      await customLogger(projectId, destinationStackId, "info", message);
+  } catch (err) {
+    const message = getLogMessage(
+      "createVersionFile",
+      `Error writing file: ${err}`,
+      {},
+      err
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+  }
+};
+
 export const wordpressService = {
   getAllAssets,
   createAssetFolderFile,
   getAllreference,
   extractChunks,
   getAllAuthors,
-  // extractContentTypes,
+  extractContentTypes,
   getAllTerms,
   getAllTags,
   getAllCategories,
   extractPosts,
   extractGlobalFields,
+  createVersionFile
 };

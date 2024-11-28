@@ -219,13 +219,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
     const message = getLogMessage('startTestMigration', 'Starting Test Migration...', {});
     await customLogger(projectId, project?.current_test_stack_id, 'info', message);
     await setLogFilePath(loggerPath);
-    const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
     
     switch (cms) {
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
       case CMS.SITECORE_V10: {
     if (packagePath) {
+      const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
+
           await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.current_test_stack_id, projectId });
           await siteCoreService?.createLocale(req, project?.current_test_stack_id, projectId);
           await siteCoreService?.createVersionFile(project?.current_test_stack_id);
@@ -239,20 +240,21 @@ const startTestMigration = async (req: Request): Promise<any> => {
           await wordpressService?.getAllreference(affix, packagePath, project?.current_test_stack_id, projectId)
           await wordpressService?.extractChunks(affix, packagePath, project?.current_test_stack_id, projectId)
           await wordpressService?.getAllAuthors(affix, packagePath,project?.current_test_stack_id, projectId)
-          // await wordpressService?.extractContentTypes(affix, project?.current_test_stack_id)
+          await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id)
           await wordpressService?.getAllTerms(affix, packagePath,project?.current_test_stack_id, projectId)
           await wordpressService?.getAllTags(affix, packagePath,project?.current_test_stack_id, projectId)
           await wordpressService?.getAllCategories(affix, packagePath,project?.current_test_stack_id, projectId)
-          await wordpressService?.extractPosts(affix, packagePath,project?.current_test_stack_id, projectId)
+          await wordpressService?.extractPosts( packagePath,project?.current_test_stack_id, projectId)
           await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
+          await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
         }
         break;
       }
       default:
         break;
     }
-    // await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
-    await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
+     await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
+     await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
   }
 }
 
@@ -297,17 +299,20 @@ const startMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.getAllAssets(affix, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.createAssetFolderFile(affix, project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllreference(affix, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.extractChunks(affix, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllAuthors(affix, packagePath,project?.current_test_stack_id, projectId)
-          // await wordpressService?.extractContentTypes(affix, project?.current_test_stack_id)
-          await wordpressService?.getAllTerms(affix, packagePath,project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllTags(affix, packagePath,project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllCategories(affix, packagePath,project?.current_test_stack_id, projectId)
-          await wordpressService?.extractPosts(affix, packagePath,project?.current_test_stack_id, projectId)
-          await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
+          await wordpressService?.getAllAssets(affix, packagePath, project?.destination_stack_id, projectId)
+          await wordpressService?.createAssetFolderFile(affix, project?.destination_stack_id, projectId)
+          await wordpressService?.getAllreference(affix, packagePath, project?.destination_stack_id, projectId)
+          await wordpressService?.extractChunks(affix, packagePath, project?.destination_stack_id, projectId)
+          await wordpressService?.getAllAuthors(affix, packagePath,project?.destination_stack_id, projectId)
+          await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
+          await wordpressService?.getAllTerms(affix, packagePath,project?.destination_stack_id, projectId)
+          await wordpressService?.getAllTags(affix, packagePath,project?.destination_stack_id, projectId)
+          await wordpressService?.getAllCategories(affix, packagePath,project?.destination_stack_id, projectId)
+          await wordpressService?.extractPosts( packagePath,project?.destination_stack_id, projectId)
+          await wordpressService?.extractGlobalFields(project?.destination_stack_id, projectId)
+          await wordpressService?.createVersionFile(project?.destination_stack_id, projectId);
+
+
         }
         break;
       }

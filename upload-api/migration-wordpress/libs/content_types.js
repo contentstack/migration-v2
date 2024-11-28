@@ -10,6 +10,7 @@ const mkdirp = require("mkdirp");
  */
 const helper = require("../utils/helper");
 const config = require("../config");
+const restrictedUid = require("../utils");
 
 const { contentTypes: contentTypesConfig } = config.modules;
 
@@ -26,14 +27,17 @@ function startingDir() {
 }
 
 var globalPrefix = "";
-const generateUid = (suffix) =>
-  globalPrefix
+
+
+const generateUid = (suffix) =>{
+  const isPresent = restrictedUid?.find((item) => item === globalPrefix);
+  isPresent
     ? `${globalPrefix
-        .replace(/^\d+/, "")
-        .replace(/[^a-zA-Z0-9]+/g, "_")
-        .replace(/(^_+)|(_+$)/g, "")
-        .toLowerCase()}_${suffix}`
-    : suffix;
+      .replace(/^\d+/, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/(^_+)|(_+$)/g, "")
+      .toLowerCase()}_${suffix}`
+    : suffix;}
 
 const generateTitle = (title) =>
   globalPrefix ? `${globalPrefix} - ${title}` : title;
@@ -506,23 +510,26 @@ const ContentTypesSchema = [
   },
 ];
 
-async function extractContentTypes (affix) {
-    try {
-      startingDir()
-      globalPrefix = affix
-      const schemaJson = ContentTypesSchema.map(
-        ({ title, uid, schema, options }) =>
-          generateSchema(title, uid, schema, options)
-      );
-      await helper.writeFileAsync(
-        path.join(process.cwd(), config.data, contentTypesConfig.dirName, contentTypesConfig.schemaFile),
-        schemaJson,
-        4
-      );
-      console.log(`Succesfully created content_types/schema.json`);
-      return;
-    } catch (error) {
-      console.error("Error while creating content_types/schema.json:", error?.message);    }
+async function extractContentTypes(affix) {
+  try {
+    startingDir()
+
+    const isPresent = restrictedUid?.find((item) => item === affix);
+    globalPrefix = isPresent ? affix : ""
+    const schemaJson = ContentTypesSchema.map(
+      ({ title, uid, schema, options }) =>
+        generateSchema(title, uid, schema, options)
+    );
+    await helper.writeFileAsync(
+      path.join(process.cwd(), config.data, contentTypesConfig.dirName, contentTypesConfig.schemaFile),
+      schemaJson,
+      4
+    );
+    console.log(`Succesfully created content_types/schema.json`);
+    return;
+  } catch (error) {
+    console.error("Error while creating content_types/schema.json:", error?.message);
   }
+}
 
 module.exports = extractContentTypes;

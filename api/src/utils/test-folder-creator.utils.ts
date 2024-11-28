@@ -160,7 +160,7 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
       }
     }
   }
-  const sortData = allData.sort((a, b) => b?.count - a?.count).slice?.(1, 4);
+  const sortData = allData.sort((a, b) => b?.count - a?.count)//.slice?.(1, 4);
   const finalData: any = [];
   sortData.forEach((et: any) => {
     const entryObj: any = {};
