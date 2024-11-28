@@ -103,22 +103,26 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
    * Zooms in the logs container.
    */
   const handleZoomIn = () => {
-    const logsContainer = document.querySelector('.logs-magnify') as HTMLElement;
-    if (logsContainer) {
+    // const logsContainer = document.querySelector('.logs-magnify') as HTMLElement;
+    // if (logsContainer) {
       setZoomLevel(prevZoomLevel => prevZoomLevel + 0.1);
-      logsContainer.style.transform = `scale(${zoomLevel})`;
-    }
+     // logsContainer.style.transform = `scale(${zoomLevel})`;
+   // }
   };
 
   /**
    * Zooms out the logs container.
    */
   const handleZoomOut = () => {
-    const logsContainer = document.querySelector('.logs-magnify') as HTMLElement;
-    if (logsContainer) {
-      setZoomLevel(prevZoomLevel => prevZoomLevel - 0.1);
-      logsContainer.style.transform = `scale(${zoomLevel})`;
-    }
+    // const logsContainer = document.querySelector('.logs-magnify') as HTMLElement;
+    // if (logsContainer) {
+      // setZoomLevel(prevZoomLevel => prevZoomLevel - 0.1);
+      // logsContainer.style.transform = `scale(${zoomLevel})`;
+    // }
+    setZoomLevel((prevZoomLevel) => {
+      const newZoomLevel = Math.max(prevZoomLevel - 0.1, 0.6); // added minimum level for zoom out
+      return newZoomLevel;
+    });    
   };
 
   const logsContainerRef = useRef<HTMLDivElement>(null);
@@ -160,8 +164,14 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
   return (
     <div className='logs-wrapper'>
       <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
-        <div className="logs-magnify">
+        <div className="logs-magnify"
+          style={{
+            transform: `scale(${zoomLevel})`,
+            transformOrigin: "top left", 
+            transition: "transform 0.1s ease"
+          }}>
           {logs?.map((log, index) => {
+            const key = `${index}-${new Date().getMilliseconds()}`
             try {
               const logObject = JSON.parse(log);
               const level = logObject.level;
@@ -172,10 +182,10 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
                 ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
                   <div className="log-message">{message}</div>
                 </div>
-                : <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
-                  <div className="log-number">{index}</div>
-                  <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
-                  <div className="log-message">{message}</div>
+                : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
+                    <div className="log-number">{index}</div>
+                    <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
+                    <div className="log-message">{message}</div>
                 </div>
               );
             } catch (error) {
