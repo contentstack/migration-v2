@@ -84,7 +84,7 @@ const TestMigration = () => {
         
       const stack_count = stackData?.data?.stacks?.length;
 
-      if (stack_count >= max_stack_limit) {
+      if (stack_count >= max_stack_limit + 120) {
         // setIsLoading(false);
         Notification({
           notificationContent: { text: 'You have reached the maximum limit of stacks for your organization' },
