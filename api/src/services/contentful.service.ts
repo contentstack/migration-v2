@@ -7,10 +7,10 @@ import axios from "axios";
 import jsonpath from "jsonpath";
 
 
-import { LOCALE_LIST, CHUNK_SIZE, MIGRATION_DATA_CONFIG } from "../constants/index.js";
+import {CHUNK_SIZE, MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import { Locale } from "../models/types.js";
 import jsonRTE from "./contentful/jsonRTE.js";
-import { getLogMessage } from "../utils/index.js";
+import { getAllLocales, getLogMessage } from "../utils/index.js";
 import customLogger from "../utils/custom-logger.utils.js";
 
 const { 
@@ -729,13 +729,23 @@ const createLocale = async (packagePath: string, destination_stack_id:string, pr
     const data = await fs.promises.readFile(packagePath, "utf8");
 
     const locales = JSON.parse(data)?.locales;
+    const [err, localeCodes] = await getAllLocales();
+
+    if(err){
+      const message = getLogMessage(
+        srcFunc,
+        `Error encountered while fetching locales list.`,
+        {},
+        err
+      )
+      await customLogger(projectId, destination_stack_id, 'error', message);
+    }
 
     await Promise.all(locales.map(async (localeData: any) => {
       const title = localeData.sys.id;
       const newLocale: Locale = {
         code: `${localeData.code.toLowerCase()}`,
-        name:
-          LOCALE_LIST[localeData.code.toLowerCase()] || "English - United States",
+        name: localeCodes?.[localeData.code.toLowerCase()] || "English - United States",
         fallback_locale: "",
         uid: `${title}`,
       };
