@@ -28,7 +28,7 @@ const LoadOrganisation = () => {
   /****  ALL USEEffects  HERE  ****/
 
   useEffect(() => {
-    const org :IDropDown = !isEmptyString(newMigrationData.destination_stack.selectedOrg.label)
+    const org :IDropDown = !isEmptyString(newMigrationData?.destination_stack?.selectedOrg?.label)
       ? newMigrationData?.destination_stack?.selectedOrg
       : selectedOrganisation;
 
@@ -37,7 +37,7 @@ const LoadOrganisation = () => {
     setNewMigrationData({
       ...newMigrationData,
       destination_stack: {
-        ...newMigrationData.destination_stack,
+        ...newMigrationData?.destination_stack,
         selectedOrg: { ...org }
       }
     });
@@ -47,7 +47,7 @@ const LoadOrganisation = () => {
     <div className="action-content-wrapper p-3">
       <TextInput
         version={'v2'}
-        value={selectedOrg?.label || 'Organisation'}
+        value={selectedOrg?.label ?? 'Organisation'}
         width="600px"
         className="orgInput"
         isReadOnly
