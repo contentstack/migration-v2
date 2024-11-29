@@ -123,7 +123,7 @@ const AdvancePropertise = (props: SchemaProps) => {
       {
         ...props?.value,
         [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: (event.target as HTMLInputElement)?.value,
-        validationRegex: '',
+        validationRegex: currentToggleStates?.validationRegex || '',
         minChars: currentToggleStates?.minChars,
         maxChars:currentToggleStates?.maxChars,
         mandatory: currentToggleStates?.mandatory,
@@ -134,6 +134,7 @@ const AdvancePropertise = (props: SchemaProps) => {
         embedObjects: embedObjectslabels,
         minRange: currentToggleStates?.minRange,
         maxRange: currentToggleStates?.maxRange,
+        default_value: currentToggleStates?.default_value,
       },
       checkBoxChanged
     );
@@ -159,7 +160,7 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
-        validationRegex: '',
+        validationRegex: currentToggleStates?.validationRegex || '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
@@ -186,7 +187,7 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
-        validationRegex: '',
+        validationRegex: currentToggleStates?.validationRegex || '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
@@ -237,7 +238,7 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         ['default_value']: option?.key,
-        validationRegex: '',
+        validationRegex: currentToggleStates?.validationRegex || '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
@@ -268,7 +269,7 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         ['default_value']: '',
-        validationRegex: '',
+        validationRegex: currentToggleStates?.validationRegex || '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
