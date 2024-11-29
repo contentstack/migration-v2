@@ -207,6 +207,7 @@ const TestMigration = () => {
                       value={`${newMigrationData?.test_migration?.stack_api_key}`}
                       version="v2"
                       width="medium"
+                      disabled
                     />
                   )}
 
