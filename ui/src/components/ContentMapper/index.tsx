@@ -23,9 +23,9 @@ import {
   getFieldMapping,
   updateContentType,
   resetToInitialMapping,
-  fetchExistingContentType,
-  updateContentMapper,
-  fetchGlobalField
+  getExistingContentTypes,
+  getExistingGlobalFields,
+  updateContentMapper
 } from '../../services/api/migration.service';
 
 // Redux
@@ -81,6 +81,7 @@ const Fields: MappingFields = {
   'multi_line_text':{
     label : 'Multi Line Textbox',
     options : {
+      'Multi Line Textbox': 'multi_line_text',
       'HTML Rich text Editor': 'html',
       'JSON Rich Text Editor':'json'}
   },
@@ -207,10 +208,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   const [searchText, setSearchText] = useState('');
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
-  const [otherCmsTitle, setOtherCmsTitle] = useState(contentTypes[0]?.otherCmsTitle);
+  const [otherCmsTitle, setOtherCmsTitle] = useState('');
   const [contentTypeUid, setContentTypeUid] = useState<string>('');
 
-  const [isContentType, setIsContentType] = useState<boolean>(contentTypes?.[0]?.type === "content_type");
+  const [isContentType, setIsContentType] = useState<boolean>(true);
   const [contentModels, setContentModels] = useState<ContentTypeList[]>([]);
 
   const [selectedContentType, setSelectedContentType] = useState<ContentType>();
@@ -220,9 +221,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const [contentTypeMapped, setContentTypeMapped] = useState<ContentTypeMap>(
     newMigrationData?.content_mapping?.content_type_mapping || {}
   );
+
   const [otherContentType, setOtherContentType] = useState<FieldTypes>({
-    label: contentTypeMapped?.[otherCmsTitle] || `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
-    value: contentTypeMapped?.[otherCmsTitle] || `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+    label: contentTypeMapped?.[otherCmsTitle] ?? `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+    value: contentTypeMapped?.[otherCmsTitle] ?? `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
   });
   const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
   
@@ -298,7 +300,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   useEffect(() => {
     const mappedContentType = contentModels && contentModels?.find((item)=> item?.title === newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle]);
 
-    if (contentTypeMapped && otherCmsTitle  ) {
+    // if (contentTypeMapped && otherCmsTitle  ) {
       
       if (mappedContentType?.uid) {
         setOtherContentType({
@@ -307,13 +309,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           value: mappedContentType?.title
         });
         setIsContentDeleted(false);
-      } else {
-        setOtherContentType({
-          label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
-          value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
-        });
-      }
-    }
+      } 
+      // else {
+      //   setOtherContentType({
+      //     label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+      //     value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
+      //   });
+      // }
+    // }
   }, [contentTypeMapped, otherCmsTitle, contentModels]);
 
   useEffect(()=>{
@@ -421,11 +424,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // To fetch existing content types or global fields as per the type
   useEffect(() => {
     if(isContentType) {      
-      setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes ?? [])) );
+      setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes ?? [])));
     } else {
-      if (reduxGlobalFields?.length > 0) {
-        setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields)) ?? []);
-      }
+      // if (reduxGlobalFields?.length > 0) {
+        setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields ?? [])));
+      // }
     }
   }, [isContentType, reduxContentTypes, reduxGlobalFields]);
 
@@ -612,17 +615,15 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setActive(i);
     const otherTitle = contentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
-      
-    // setOtherContentType({ 
-    //   label: contentTypeMapped?.[otherTitle] || 'Select content type from existing stack', 
-    //   value: contentTypeMapped?.[otherTitle] || 'Select content type from existing stack'
-    // });
-
     setContentTypeUid(contentTypes?.[i]?.id ?? '');
     fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
     setOtherCmsUid(contentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(contentTypes?.[i]);
     setIsContentType(contentTypes?.[i]?.type === "content_type");
+    setOtherContentType({ 
+      label: contentTypeMapped?.[otherTitle] ?? `Select ${contentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
+      value: contentTypeMapped?.[otherTitle] ?? `Select ${contentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`
+    });
   }
 
   const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean) => {
@@ -1599,54 +1600,38 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     }
   };
-  
 
-  // Function to fetch single content type
+  /**
+   * Retrieves existing content types for a given project.
+   * @returns An array containing the retrieved content types or global fields based on condition if itContentType true and if existing content type or global field id is passed then returns an object containing title, uid and schema of that particular content type or global field.
+   */
   const handleFetchContentType = async () => {
     if (isContentType) {
       try {
-        const { data , status} = await fetchExistingContentType(projectId, otherContentType?.id ?? '');
+        const { data , status} = await getExistingContentTypes(projectId, otherContentType?.id ?? '');
 
-        if (status == 201) {
-          if (data?.contentTypes?.length > 0) {
-            setContentModels(data?.contentTypes);
-            Notification({
-              notificationContent: { text: 'Content Types fetched successfully' },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'success'
-            });
-          } else if (data?.schema?.length > 0) {
-          
-            const contentTypesArr: ContentTypeList[] = contentModels;
-            const index = contentModels?.findIndex(ct => ct?.uid === data?.uid);
-          
-            if(index != -1) {      
-              contentTypesArr[index] = data;
-            }
-      
-            setContentModels(contentTypesArr);
-            setContentTypeSchema(data?.schema);
-            Notification({
-              notificationContent: { text: 'Content type data fetched successfully' },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'success'
-            });
-          } else {
-            Notification({
-              notificationContent: { text: "No content found in the stack" },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'error'
-            });
-          }
+        if (status == 201 && data?.contentTypes?.length > 0) {
+          setContentModels(data?.contentTypes);
+          Notification({
+            notificationContent: { text: 'Content Types fetched successfully' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'success'
+          });
+          if (data?.selectedContentType?.schema?.length > 0) {
+            setContentTypeSchema(data?.selectedContentType?.schema);
+          } 
+        } else {
+          Notification({
+            notificationContent: { text: "No content found in the stack" },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'error'
+          });
         }
       } catch (error) {
         console.log(error);
@@ -1654,42 +1639,19 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     } else {
       try {
-        const { data, status } = await fetchGlobalField(projectId, otherContentType?.id ?? '');
+        const { data, status } = await getExistingGlobalFields(projectId, otherContentType?.id ?? '');
 
-        if (status == 201) {
-
-          if (data?.globalFields?.length > 0) {
-            setContentModels(data?.globalFields);
-            Notification({
-              notificationContent: { text: 'Global Fields fetched successfully' },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'success'
-            });
-
-          } else if (data?.schema?.length > 0) {
-            const index = contentModels?.findIndex(ct => ct?.uid === data?.uid);
-
-            const globalFieldsArr: ContentTypeList[] = contentModels;
-            
-            if(index != -1) {      
-              globalFieldsArr[index] = data;
-            }
-            setContentModels(globalFieldsArr);
-            setContentTypeSchema(data?.schema);
-
-            Notification({
-              notificationContent: { text: 'Global Field data fetched successfully' },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'success'
-            });
-          }
-          } else {
+        if (status == 201 && data?.globalFields?.length > 0) {
+          setContentModels(data?.globalFields);
+          Notification({
+            notificationContent: { text: 'Global Fields fetched successfully' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'success'
+          });
+        } else {
           Notification({
             notificationContent: { text: "No Global Fields found in the stack" },
             notificationProps: {
@@ -1996,7 +1958,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           options={adjustedOption}
                           width="440px"
                           maxWidth="440px"
-                          placeholder={otherContentType && `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`}
+                          placeholder={otherContentType?.label}
                           isSearchable
                           version="v2"
                         />
