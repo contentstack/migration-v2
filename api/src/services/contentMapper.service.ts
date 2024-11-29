@@ -240,6 +240,7 @@ const getFieldMapping = async (req: Request) => {
  */
 const getExistingContentTypes = async (req: Request) => {
   const projectId = req?.params?.projectId;
+  const contentTypeUID = req?.params?.contentTypeUid ?? ''; // UID of the selected content type, if any
 
   const { token_payload } = req.body;
 
@@ -247,6 +248,7 @@ const getExistingContentTypes = async (req: Request) => {
     token_payload?.region,
     token_payload?.user_id
   );
+
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain
     .get("projects")
@@ -257,13 +259,21 @@ const getExistingContentTypes = async (req: Request) => {
   const baseUrl = `${config.CS_API[
     token_payload?.region as keyof typeof config.CS_API
   ]!}/content_types`;
+
   const headers = {
     api_key: stackId,
-    authtoken: authtoken,
+    authtoken,
   };
 
   try {
-    const contentTypes = await fetchAllPaginatedData(baseUrl, headers, 100, "getExistingContentTypes", "content_types");
+    // Step 1: Fetch the updated list of all content types
+    const contentTypes = await fetchAllPaginatedData(
+      baseUrl,
+      headers,
+      100,
+      'getExistingContentTypes',
+      'content_types'
+    );
 
     const processedContentTypes = contentTypes.map((singleCT: any) => ({
       title: singleCT.title,
@@ -271,8 +281,37 @@ const getExistingContentTypes = async (req: Request) => {
       schema: singleCT.schema,
     }));
 
-    return { contentTypes: processedContentTypes };
-  } catch (error:any) {
+    // Step 2: Fetch data for the selected content type (if `contentTypeUID` is provided)
+    let selectedContentType = null;
+
+    if (contentTypeUID) {
+      const [err, res] = await safePromise(
+        https({
+          method: 'GET',
+          url: `${baseUrl}/${contentTypeUID}`,
+          headers,
+        })
+      );
+
+      if (err) {
+        throw new Error(
+          `Error fetching selected content type: ${
+            err.response?.data || err.message
+          }`
+        );
+      }
+
+      selectedContentType = {
+        title: res.data.content_type?.title,
+        uid: res.data.content_type?.uid,
+        schema: res.data.content_type?.schema,
+      };
+    }
+    return {
+      contentTypes: processedContentTypes,
+      selectedContentType,
+    };
+  } catch (error: any) {
     return {
       data: error.message,
       status: 500,
@@ -287,6 +326,7 @@ const getExistingContentTypes = async (req: Request) => {
  */
 const getExistingGlobalFields = async (req: Request) => {
   const projectId = req?.params?.projectId;
+  const globalFieldUID = req?.params?.globalFieldUid ?? ''; // UID of the selected global field, if any
 
   if (!projectId) {
     return {
@@ -335,6 +375,8 @@ const getExistingGlobalFields = async (req: Request) => {
       authtoken,
     };
 
+    // Step 1: Fetch the updated list of all global fields
+
     const globalFields = await fetchAllPaginatedData(baseUrl, headers, 100, 'getExistingGlobalFields', 'global_fields');
 
     const processedGlobalFields = globalFields.map((global: any) => ({
@@ -343,7 +385,34 @@ const getExistingGlobalFields = async (req: Request) => {
       schema: global.schema,
     }));
 
-    return { globalFields: processedGlobalFields };
+    // Step 2: Fetch data for the selected global field (if `globalFieldUID` is provided)
+    let selectedGlobalField = null;
+
+    if (globalFieldUID) {
+      const [err, res] = await safePromise(
+        https({
+          method: 'GET',
+          url: `${baseUrl}/${globalFieldUID}`,
+          headers,
+        })
+      );
+
+      if (err) {
+        throw new Error(
+          `Error fetching selected global field: ${
+            err.response?.data || err.message
+          }`
+        );
+      }
+
+      selectedGlobalField = {
+        title: res.data.global_field?.title,
+        uid: res.data.global_field?.uid,
+        schema: res.data.global_field?.schema,
+      };
+    }
+
+    return { globalFields: processedGlobalFields, selectedGlobalField };
   } catch (error:any) {
     return {
       data: error.message || 'An unknown error occurred',
@@ -382,7 +451,7 @@ const updateContentType = async (req: Request) => {
 
   // Check project status
   if (
-    [NEW_PROJECT_STATUS[5], NEW_PROJECT_STATUS[4]].includes(project.status) ||
+    [NEW_PROJECT_STATUS[5]].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
   ) {
     logger.error(
