@@ -1,5 +1,17 @@
 import fs from 'fs';
 import path from 'path';
+import logger from './logger.js';
+import { getLogMessage } from './index.js';
+import customLogger from './custom-logger.utils.js';
+import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
+
+const {
+  GLOBAL_FIELDS_FILE_NAME,
+  GLOBAL_FIELDS_DIR_NAME,
+  CONTENT_TYPES_DIR_NAME,
+  CONTENT_TYPES_SCHEMA_FILE
+} = MIGRATION_DATA_CONFIG;
+
 interface Group {
   data_type: string;
   display_name?: string; // Assuming item?.contentstackField might be undefined
@@ -29,7 +41,7 @@ function extractValue(input: string, prefix: string, anoter: string): any {
 const arrangGroups = ({ schema }: any) => {
   const dtSchema: any = [];
   schema?.forEach((item: any) => {
-    if (item?.ContentstackFieldType === 'group') {
+    if (item?.contentstackFieldType === 'group') {
       const groupSchema: any = { ...item, schema: [] }
       schema?.forEach((et: any) => {
         if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`)) {
@@ -47,8 +59,8 @@ const arrangGroups = ({ schema }: any) => {
 }
 
 const convertToSchemaFormate = ({ field, advanced = true }: any) => {
-  // console.info("🚀 ~ convertToSchemaFormate ~ field:", field)
-  switch (field?.ContentstackFieldType) {
+
+  switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
         "data_type": "text",
@@ -56,15 +68,16 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         uid: field?.uid,
         "field_metadata": {
           description: "",
-          default_value: field?.advanced?.Default_value ?? ''
+          default_value: field?.advanced?.default_value ?? ''
         },
-        "format": "",
+        "format": field?.advanced?.validationRegex ?? '',
         "error_messages": {
-          "format": ""
+          "format": field?.advanced?.validationErrorMessage ?? '',
         },
-        "multiple": false,
-        "mandatory": false,
-        "unique": false
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
       }
     }
 
@@ -75,40 +88,74 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         uid: field?.uid,
         "field_metadata": {
           description: "",
-          default_value: field?.advanced?.Default_value ?? false,
+          default_value: field?.advanced?.default_value ?? false,
         },
-        "multiple": false,
-        "mandatory": false,
-        "unique": false
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
       }
     }
 
     case 'json': {
-      return {
-        "data_type": "json",
-        "display_name": field?.title ?? field?.uid,
-        "uid": field?.uid,
-        "field_metadata": {
-          "allow_json_rte": true,
-          "embed_entry": false,
-          "description": "",
-          "default_value": "",
-          "multiline": false,
-          "rich_text_type": "advanced",
-          "options": []
-        },
-        "format": "",
-        "error_messages": {
-          "format": ""
-        },
-        "reference_to": [
-          "sys_assets"
-        ],
-        "multiple": false,
-        "non_localizable": false,
-        "unique": false,
-        "mandatory": false
+      if (["Object", "Array"].includes(field?.otherCmsType)) {
+        return {
+          data_type: "json",
+          display_name: field?.title ?? field?.uid,
+          uid: field?.uid,
+          "extension_uid": field?.otherCmsTyp === "Array" ? 'listview_extension' : 'jsonobject_extension',
+          "field_metadata": {
+            extension: true,
+            description: field.advanced?.description ?? '',
+          },
+          "format": field?.advanced?.validationRegex ?? '',
+          "error_messages": {
+            "format": field?.advanced?.validationErrorMessage ?? '',
+          },
+          "reference_to": [
+            "sys_assets"
+          ],
+          "multiple": field?.advanced?.multiple ?? false,
+          "non_localizable": false,
+          "unique": field?.advanced?.unique ?? false,
+          "config": {},
+          "mandatory": field?.advanced?.mandatory ?? false,
+        }
+      } else {
+        return {
+          "data_type": "json",
+          "display_name": field?.title ?? field?.uid,
+          "uid": field?.uid,
+          "field_metadata": {
+            "allow_json_rte": true,
+            "embed_entry": field?.advanced?.embedObjects?.length ? true : false,
+            "description": "",
+            "default_value": "",
+            "multiline": false,
+            "rich_text_type": "advanced",
+            "options": []
+          },
+          "format": field?.advanced?.validationRegex ?? '',
+          "error_messages": {
+            "format": field?.advanced?.validationErrorMessage ?? '',
+          },
+          "reference_to": field?.advanced?.embedObjects?.length ? [
+            "sys_assets",
+            ...field?.advanced?.embedObjects ?? [],
+          ] : [
+            "sys_assets"
+          ],
+          "multiple": field?.advanced?.multiple ?? false,
+          "non_localizable": field.advanced?.nonLocalizable ?? false,
+          "unique": field?.advanced?.unique ?? false,
+          "mandatory": field?.advanced?.mandatory ?? false
+        }
       }
+
       // return {
       //   "display_name": name,
       //   "extension_uid": "blta7be8bced92ddabe",
@@ -117,12 +164,12 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
       //     "version": 3
       //   },
       //   uid,
-      //   "mandatory": false,
+      //   "mandatory": field?.advanced?.mandatory ?? false,
       //   "non_localizable": false,
-      //   "unique": false,
+      //   "unique": field?.advanced?.unique ?? false,
       //   "config": {},
       //   "data_type": "text",
-      //   "multiple": false,
+      //   "multiple": field?.advanced?.multiple ?? false,
       //   "indexed": false,
       //   "inbuilt_model": false
       // }
@@ -130,23 +177,80 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
 
     case 'dropdown': {
       const data = {
-        "data_type": "text",
+        "data_type": ['Integer', 'Number'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
         "display_type": "dropdown",
         "enum": {
           "advanced": advanced,
           choices: field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }],
         },
-        "multiple": false,
+        "multiple": field?.advanced?.multiple ?? false,
         uid: field?.uid,
         "field_metadata": {
           description: "",
-          default_value: null,
+          default_value: field?.advanced?.default_value ?? null,
         },
-        "mandatory": false,
-        "unique": false
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
       };
-      data.field_metadata.default_value = field?.advanced?.Default_value ?? null;
+      data.field_metadata.default_value = field?.advanced?.default_value ?? null;
+      return data;
+    }
+    case 'radio': {
+      const data = {
+        "data_type": ['Integer', 'Number'].includes(field.otherCmsType) ? 'number' : "text",
+        "display_name": field?.title,
+        "display_type": "radio",
+        "enum": {
+          "advanced": advanced,
+          choices: field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }],
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        uid: field?.uid,
+        "field_metadata": {
+          description: field?.advanced?.description || '',
+          default_value: field?.advanced?.default_value ?? null,
+          default_key: field?.advanced?.defaultKey ?? ''
+        },
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
+      }
+      return data;
+    }
+    case 'checkbox': {
+      const data = {
+        "data_type": "text",
+        "display_name": field?.title,
+        "display_type": "checkbox",
+        "enum": {
+          "advanced": advanced,
+          choices: field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }],
+        },
+        "multiple": true,
+        uid: field?.uid,
+        "field_metadata": {
+          description: field?.advanced?.description || '',
+          default_value: field?.advanced?.default_value ?? null,
+          default_key: field?.advanced?.defaultKey ?? ''
+        },
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
+      }
       return data;
     }
 
@@ -160,9 +264,14 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
           description: "",
           "rich_text_type": "standard"
         },
-        "multiple": false,
-        "mandatory": false,
-        "unique": false
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
       }
     }
 
@@ -178,9 +287,14 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
             "url": '',
           }
         },
-        "multiple": false,
-        "mandatory": false,
-        "unique": false
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
       }
     }
 
@@ -191,16 +305,37 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         uid: field?.uid,
         "field_metadata": {
           description: "",
-          default_value: field?.advanced?.Default_value ?? '',
+          default_value: field?.advanced?.default_value ?? '',
           "multiline": true
         },
-        "format": "",
+        "format": field?.advanced?.validationRegex ?? '',
         "error_messages": {
-          "format": ""
+          "format": field?.advanced?.validationErrorMessage ?? '',
         },
-        "multiple": false,
-        "mandatory": false,
-        "unique": false
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
+      }
+    }
+    case 'markdown': {
+      return {
+        "data_type": "text",
+        "display_name": field?.title,
+        "uid": field?.uid,
+        "field_metadata": {
+          "description": "",
+          "markdown": true,
+          "placeholder": field?.advanced?.default_value ?? ''
+        },
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
       }
     }
 
@@ -209,13 +344,13 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     //       "display_name": name,
     //       uid,
     //       "data_type": "text",
-    //       "mandatory": false,
+    //       "mandatory": field?.advanced?.mandatory ?? false,
     //       "field_metadata": {
     //         "_default": true,
     //         default_value
     //       },
-    //       "multiple": false,
-    //       "unique": false
+    //       "multiple": field?.advanced?.multiple ?? false,
+    //       "unique": field?.advanced?.unique ?? false
     //     }
     //   }
 
@@ -226,11 +361,16 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         uid: field?.uid,
         "field_metadata": {
           description: "",
-          default_value: field?.advanced?.Default_value ?? ''
+          default_value: field?.advanced?.default_value ?? ''
         },
-        "multiple": false,
-        "mandatory": false,
-        "unique": false
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
       }
     }
 
@@ -246,10 +386,14 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
           "default_value": {},
           "hide_time": true
         },
-        "mandatory": false,
-        "multiple": false,
-        "non_localizable": false,
-        "unique": false
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "multiple": field?.advanced?.multiple ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false,
+        "unique": field?.advanced?.unique ?? false
       }
     }
 
@@ -264,10 +408,10 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     //         description,
     //         "default_value": {},
     //       },
-    //       "mandatory": false,
-    //       "multiple": false,
+    //       "mandatory": field?.advanced?.mandatory ?? false,
+    //       "multiple": field?.advanced?.multiple ?? false,
     //       "non_localizable": false,
-    //       "unique": false
+    //       "unique": field?.advanced?.unique ?? false
     //     }
     //   }
 
@@ -277,9 +421,9 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "display_name": field?.title,
         "reference_to": field?.refrenceTo,
         "uid": field?.uid,
-        "mandatory": false,
-        "multiple": false,
-        "unique": false
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "multiple": field?.advanced?.multiple ?? false,
+        "unique": field?.advanced?.unique ?? false
       }
     }
 
@@ -294,13 +438,13 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     //           "advanced": advanced,
     //           choices
     //         },
-    //         "multiple": false,
+    //         "multiple": field?.advanced?.multiple ?? false,
     //         uid,
     //         "field_metadata": {
     //           description,
     //         },
-    //         "mandatory": false,
-    //         "unique": false
+    //         "mandatory": field?.advanced?.mandatory ?? false,
+    //         "unique": field?.advanced?.unique ?? false
     //       };
     //     }
     //   }
@@ -313,32 +457,64 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
           ref_multiple: true,
           ref_multiple_content_types: true
         },
+        format: field?.advanced?.validationRegex ?? '',
+        error_messages: {
+          format: field?.advanced?.validationErrorMessage ?? '',
+        },
         uid: field?.uid,
-        mandatory: false,
-        multiple: false,
-        non_localizable: false,
-        unique: false
+        mandatory: field?.advanced?.mandatory ?? false,
+        multiple: field?.advanced?.multiple ?? false,
+        non_localizable: field.advanced?.nonLocalizable ?? false,
+        unique: field?.advanced?.unique ?? false
       };
     }
 
+    case 'html': {
+      return {
+        "data_type": "text",
+        "display_name": field?.title,
+        "uid": field?.uid,
+        "field_metadata": {
+          "allow_rich_text": true,
+          "description": "",
+          "multiline": false,
+          "rich_text_type": "advanced",
+          "version": 3,
+          "options": [],
+          "ref_multiple_content_types": true,
+          "embed_entry": field?.advanced?.embedObjects?.length ? true : false,
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "reference_to": field?.advanced?.embedObjects?.length ? field?.advanced?.embedObjects : []
+      }
+    }
+
     default: {
-      if (field?.ContentstackFieldType) {
+      if (field?.contentstackFieldType) {
         return {
           "display_name": field?.title,
           "uid": field?.uid,
           "data_type": "text",
-          "mandatory": false,
-          "unique": true,
+          "mandatory": field?.advanced?.mandatory ?? false,
+          "unique": field?.advanced?.unique ?? false,
           "field_metadata": {
             "_default": true
           },
-          "multiple": false
+          "format": field?.advanced?.validationRegex ?? '',
+          "error_messages": {
+            "format": field?.advanced?.validationErrorMessage ?? '',
+          },
+          "multiple": field?.advanced?.multiple ?? false,
+          "non_localizable": field.advanced?.nonLocalizable ?? false,
         }
       } else {
         console.info('Contnet Type Filed', field?.contentstackField)
       }
     }
   }
+
 }
 
 const saveContent = async (ct: any, contentSave: string) => {
@@ -352,7 +528,7 @@ const saveContent = async (ct: any, contentSave: string) => {
     const filePath = path.join(process.cwd(), contentSave, `${ct?.uid}.json`);
     await fs.promises.writeFile(filePath, JSON.stringify(ct));
     // Append the content to schema.json
-    const schemaFilePath = path.join(process.cwd(), contentSave, 'schema.json');
+    const schemaFilePath = path.join(process.cwd(), contentSave, CONTENT_TYPES_SCHEMA_FILE);
     let schemaData = [];
     try {
       // Read existing schema.json file if it exists
@@ -376,7 +552,7 @@ const saveContent = async (ct: any, contentSave: string) => {
 
 
 const writeGlobalField = async (schema: any, globalSave: string) => {
-  const filePath = path.join(process.cwd(), globalSave, 'globalfields.json');
+  const filePath = path.join(process.cwd(), globalSave, GLOBAL_FIELDS_FILE_NAME);
   try {
     await fs.promises.access(globalSave);
   } catch (err) {
@@ -405,7 +581,8 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
 };
 
-export const contenTypeMaker = async ({ contentType, destinationStackId }: any) => {
+export const contenTypeMaker = async ({ contentType, destinationStackId, projectId }: any) => {
+  const srcFunc = 'contenTypeMaker';
   const ct: ContentType = {
     title: contentType?.contentstackTitle,
     uid: contentType?.contentstackUid,
@@ -413,7 +590,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId }: any) 
   }
   const ctData: any = arrangGroups({ schema: contentType?.fieldMapping })
   ctData?.forEach((item: any) => {
-    if (item?.ContentstackFieldType === 'group') {
+    if (item?.contentstackFieldType === 'group') {
       const group: Group = {
         "data_type": "group",
         "display_name": item?.contentstackField,
@@ -450,10 +627,14 @@ export const contenTypeMaker = async ({ contentType, destinationStackId }: any) 
   })
   if (ct?.uid) {
     if (contentType?.type === 'global_field') {
-      const globalSave = path.join('sitecoreMigrationData', destinationStackId, 'global_fields');
+      const globalSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, GLOBAL_FIELDS_DIR_NAME);
+      const message = getLogMessage(srcFunc, `Global Field ${ct?.uid} has been successfully Transformed.`, {});
+      await customLogger(projectId, destinationStackId, 'info', message);
       await writeGlobalField(ct, globalSave);
     } else {
-      const contentSave = path.join('sitecoreMigrationData', destinationStackId, 'content_types');
+      const contentSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, CONTENT_TYPES_DIR_NAME);
+      const message = getLogMessage(srcFunc, `ContentType ${ct?.uid} has been successfully Transformed.`, {});
+      await customLogger(projectId, destinationStackId, 'info', message);
       await saveContent(ct, contentSave);
     }
   } else {

@@ -1,6 +1,6 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { Button } from '@contentstack/venus-components';
+import { Button, Tooltip } from '@contentstack/venus-components';
 import { useSelector } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
 
@@ -17,10 +17,11 @@ type MigrationFlowHeaderProps = {
   isLoading: boolean;
   isCompleted: boolean;
   legacyCMSRef: React.MutableRefObject<any>; 
-  projectData:MigrationResponse
+  projectData:MigrationResponse;
+  finalExecutionStarted?: boolean;
 };
 
-const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: MigrationFlowHeaderProps) => {
+const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecutionStarted }: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
   const [currentStep, setCurrentStep] = useState<number>(0);
 
@@ -49,15 +50,18 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
   if (params?.stepId === '3' || params?.stepId === '4') {
     stepValue = 'Continue';
   } else if (params?.stepId === '5') {
-    stepValue = 'Start';
+    stepValue = 'Start Migration';
   } else {
     stepValue = 'Save and Continue';
   }
-
+  
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>
-        { projectName && <h1>{projectName}</h1> }
+        { projectName && 
+        <Tooltip content={projectName} position='top' version={'v2'}>
+          <h1 className='project-name-ellipsis'>{projectName}</h1> 
+        </Tooltip>}
       </div>
 
       <Button
@@ -66,8 +70,10 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading }: Migration
         onClick={handleOnClick}
         version="v2"
         aria-label='Save and Continue'
-        isLoading={isLoading}
-        disabled={newMigrationData?.testStacks?.some((stack) => stack?.isMigrated === false)}
+        isLoading={isLoading || newMigrationData?.isprojectMapped}
+        disabled={(params?.stepId === '4' && !newMigrationData?.test_migration?.isMigrationComplete) ||
+           (params?.stepId && params?.stepId <= '2' && newMigrationData?.project_current_step?.toString() !== params?.stepId) || finalExecutionStarted
+        }
       >
         {stepValue}
       </Button>

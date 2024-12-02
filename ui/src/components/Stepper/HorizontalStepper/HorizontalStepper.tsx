@@ -99,7 +99,7 @@ const HorizontalStepper = forwardRef(
             const stepIndex = parseInt(stepId || '', 10) - 1;
             
             if (!Number.isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
-                setShowStep(stepIndex);
+                !newMigrationData?.isprojectMapped && setShowStep(stepIndex);
                 setStepsCompleted(prev => {
                     const updatedStepsCompleted = [...prev];
                     for (let i = 0; i < stepIndex; i++) {
@@ -171,7 +171,7 @@ const HorizontalStepper = forwardRef(
         };
 
         const setTabStep = (idx: number) => {
-            if (stepsCompleted?.includes(idx) || stepsCompleted?.length === idx) {
+            if ((stepsCompleted?.includes(idx) || stepsCompleted?.length === idx) && !newMigrationData?.isprojectMapped) {
                 setShowStep(idx);
                 const url = `/projects/${projectId}/migration/steps/${idx + 1}`;
                 navigate(url, { replace: true });
@@ -190,14 +190,18 @@ const HorizontalStepper = forwardRef(
                         !stepsCompleted.includes(idx) && idx !== showStep && !stepsCompleted?.includes(idx - 1)
                             ? 'disableEvents'
                             : '';
+                    const disableStep = newMigrationData?.isprojectMapped && stepsCompleted.includes(idx) &&  idx !== showStep ? 'disableEvents'
+                    : '';
+                    
+                    const completeDisable = stepsCompleted?.includes(idx) && newMigrationData?.test_migration?.isMigrationStarted ? 'disableEvents' : '';
 
-                    const currentTestStack = newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key);
-                    const completeDisable = stepsCompleted?.includes(idx) && currentTestStack?.isMigrated === true && newMigrationData?.test_migration?.isMigrationComplete === false ? 'disableEvents' : '';
+                    const disableMapper = stepsCompleted?.includes(idx) && idx === 2 && newMigrationData?.test_migration?.isMigrationStarted && !newMigrationData?.test_migration?.isMigrationComplete ? 'disableEvents' : '';
+                    
                     return (
                         <React.Fragment key={id}>
                             <div className="stepWrapperContainer">
                                 <div
-                                    className={`stepWrapper ${completedClass} ${activeClass} ${disableClass} ${completeDisable}`}
+                                    className={`stepWrapper ${completedClass} ${activeClass} ${disableClass} ${completeDisable} ${disableMapper} ${disableStep}`}
                                     onClick={() => handleTabStep(idx)}
                                 >
                                     <div className="circle-title-wrapper">

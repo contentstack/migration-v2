@@ -1,6 +1,10 @@
 import fs from 'fs-extra';
 import path from "path";
 import { mkdirp } from 'mkdirp';
+
+import { config } from "../config/index.js";
+import https from "../utils/https.utils.js";
+
 /**
  * Throws an error with a custom message and status code.
  * @param message - The error message.
@@ -77,16 +81,31 @@ export async function copyDirectory(srcDir: string, destDir: string): Promise<vo
   }
 }
 
-export function createDirectoryAndFile(filePath: string) {
-  // Get the directory from the file path
-  const dirPath = path.dirname(filePath);
-  // Create the directory if it doesn't exist
-  mkdirp.sync(dirPath);
-  // Check if the file exists; if not, create it
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, '', { mode: 0o666 }); // Create file with read/write for everyone
-    console.info(`File created at: ${filePath}`);
-  } else {
-    console.info(`File already exists at: ${filePath}`);
+export async function createDirectoryAndFile(filePath: string, sourceFile: string) {
+  try {
+    // Get the directory from the file path
+    const dirPath = path.dirname(filePath);
+    // Create the directory if it doesn't exist
+    await mkdirp(dirPath);
+    // Check if the file exists; if not, create it
+    if (!fs.existsSync(filePath)) {
+      const transformeLogs = await fs.promises.readFile(sourceFile, 'utf8');
+      await fs.promises.writeFile(filePath, transformeLogs, { mode: 0o666 }); // Create file with read/write for everyone
+      console.info(`File created at: ${filePath}`);
+    } else {
+      console.info(`File already exists at: ${filePath}`);
+    }
+  } catch (error: any) {
+    console.error(`Error creating directory or file: ${error.message}`);
   }
+}
+
+export async function getAllLocales (){
+  const [err, data] =  await safePromise(
+    https({
+      method: "GET",
+      url: `${config.CS_API.NA}/locales?include_all=true`,
+    })
+  );
+  return [err, data?.data?.locales];
 }

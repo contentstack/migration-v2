@@ -26,7 +26,7 @@ import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 interface LoadSelectCmsProps {
-  stepComponentProps: ()=>{};
+  stepComponentProps?: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
@@ -42,7 +42,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [cmsData, setCmsData] = useState<ICMSType[]>([]);
   const [searchText] = useState<string>('');
   //const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
-  const [cmsFilter] = useState<string[]>([]);
   const [cmsType, setCmsType] = useState<ICMSType>(
     newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );
@@ -58,34 +57,28 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
   //Handle Legacy cms selection
   const handleCardClick = async(data: ICMSType) => {
- 
-    const isSingleMatch = cmsData.length === 1; 
+    setSelectedCard({ ...data });
+
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData.legacy_cms,
+        selectedCms: { ...data }
+      }
+    };
+    dispatch(updateNewMigrationData(newMigrationDataObj));
+
+    //API call for saving selected CMS
+    //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
     
-    if (isSingleMatch || selectedCard?.cms_id !== data?.cms_id) {
-      setSelectedCard({ ...data });
-
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData.legacy_cms,
-          selectedCms: { ...data }
-        }
-      };
-
-      dispatch(updateNewMigrationData(newMigrationDataObj));
-
-      //API call for saving selected CMS
-      //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: data?.cms_id });
-      
-      // Call for Step Change 
-      props?.handleStepChange(props?.currentStep);
-    }
+    // Call for Step Change 
+    props?.handleStepChange(props?.currentStep);
   };
-
-
 
   // Filter CMS Data
   const filterCMSData = async (searchText: string) => {
+    try {
+
     const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
     setSelectedCard(cmsType);
     setIsLoading(true);
@@ -154,6 +147,11 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       dispatch(updateNewMigrationData(newMigrationDataObj));
       props?.handleStepChange(props?.currentStep);
     }
+      
+    } catch (error) {
+      return error;
+      
+    }
     
   };
 
@@ -162,10 +160,25 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     filterCMSData(searchText);
   }, []);
 
-  // useEffect(() => {
-  //   filterCMSData(searchText);
-  // }, [cmsFilter]);
-    
+  // Handle Legacy cms selection for single match
+  useEffect(() => {
+    const isSingleMatch = cmsData?.length === 1; 
+    if (isSingleMatch) {
+      setSelectedCard({ ...selectedCard });
+
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData.legacy_cms,
+          selectedCms: { ...selectedCard }
+        }
+      };
+      dispatch(updateNewMigrationData(newMigrationDataObj));
+
+      // Call for Step Change 
+      props?.handleStepChange(props?.currentStep);
+    }
+  }, [cmsData])
 
   return (
     <div>
@@ -189,7 +202,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
                 <Card
                   key={data?.title}
                   data={data}
-                  onCardClick={handleCardClick}
+                  onCardClick={data?.cms_id !== selectedCard?.cms_id ? handleCardClick : undefined}
                   selectedCard={selectedCard}
                   idField="cms_id"
                 />
