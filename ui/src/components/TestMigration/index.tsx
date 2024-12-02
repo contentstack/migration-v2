@@ -34,11 +34,14 @@ const TestMigration = () => {
   const [data, setData] = useState<MigrationType>({});
   const [isLoading, setIsLoading] = useState(newMigrationData?.isprojectMapped);
   const [isStackLoading, setIsStackLoading] = useState<boolean>(false);
-  const [isMigrationStarted, setIsMigrationStarted] = useState<boolean>(false);
+  const [disableTestMigration, setdisableTestMigration] = useState<boolean>(false);
 
+  const [disableCreateStack, setDisableCreateStack] = useState<boolean>(false);
   
   const { projectId = '' } = useParams();
   const dispatch = useDispatch();
+
+  const { create_stack_cta: createStackCta, subtitle, start_migration_cta: startMigrationCta } = data
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -54,27 +57,43 @@ const TestMigration = () => {
       });
   }, []);
 
+  // to disable buttons as per isMigrated state
+  useEffect(() => {
+    if (newMigrationData?.testStacks.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === false) {
+      setDisableCreateStack(true);
+    }
+
+    if (newMigrationData?.testStacks.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
+      setdisableTestMigration(true);
+    }
+  }, [newMigrationData]);
+
+
   // Method to create test stack
   const handleCreateTestStack = async () => {
     setIsStackLoading(true);
 
     //get org plan details
-    const orgDetails = await getOrgDetails(selectedOrganisation?.value);
-    const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features).find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
+    try {
+      const orgDetails = await getOrgDetails(selectedOrganisation?.value);
+      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features).find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
 
-    const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
+      const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
 
-    const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
+      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
         
-    const stack_count = stackData?.data?.stacks?.length;
+      const stack_count = stackData?.data?.stacks?.length;
 
-    if (stack_count >= max_stack_limit) {
-      // setIsLoading(false);
-      Notification({
-        notificationContent: { text: 'You have reached the maximum limit of stacks for your organization' },
-        type: 'warning'
-      });
-      return;
+      if (stack_count >= max_stack_limit) {
+        // setIsLoading(false);
+        Notification({
+          notificationContent: { text: 'You have reached the maximum limit of stacks for your organization' },
+          type: 'warning'
+        });
+        return;
+      }
+    } catch (error) {
+      console.log(error);
     }
 
     const data = {
@@ -82,134 +101,148 @@ const TestMigration = () => {
       description: 'test migration stack',
       master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
     };
+    
+    try {
+      const res = await createTestStack(
+        newMigrationData?.destination_stack?.selectedOrg?.value,
+        projectId,
+        data
+      );
 
-    const res = await createTestStack(
-      newMigrationData?.destination_stack?.selectedOrg?.value,
-      projectId,
-      data
-    );
-
-    if (res?.status === 200) {
-      setIsStackLoading(false);
-      Notification({
-        notificationContent: { text: 'Test Stack created successfully' },
-        notificationProps: {
-          position: 'bottom-center',
-          hideProgressBar: true
-        },
-        type: 'success'
-      });
+      if (res?.status === 200) {
+        setIsStackLoading(false);
+        setDisableCreateStack(true);
+        setdisableTestMigration(false)
+        Notification({
+          notificationContent: { text: 'Test Stack created successfully' },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: false
+          },
+          type: 'success'
+        });
 
 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
-      };
-
-      dispatch(updateNewMigrationData((newMigrationDataObj)));
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
+        };
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
+      }
+    } catch (err) {
+      console.log(err);
     }
   }
 
+  // Method to start test migration
   const handleTestMigration = async () => {
-    const testRes = await createTestMigration(
-      newMigrationData?.destination_stack?.selectedOrg?.value,
-      projectId
-    );
+    try {
+      const testRes = await createTestMigration(
+        newMigrationData?.destination_stack?.selectedOrg?.value,
+        projectId
+      );
 
-    console.log("testRes", testRes);
-    
+      if (testRes?.status === 200) {
+        handleMigrationState(true);
+        Notification({
+          notificationContent: { text: 'Test Migration started' },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: false
+          },
+          type: 'message'
+        });
 
-    if (testRes?.status === 200) {
-      handleMigrationState(true);
-      Notification({
-        notificationContent: { text: 'Test Migration started' },
-        notificationProps: {
-          position: 'bottom-center',
-          hideProgressBar: false
-        },
-        type: 'message'
-      });
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, isMigrated: true} ],
+          test_migration: { ...newMigrationData?.test_migration, isMigrationStarted: true, isMigrationComplete: false }
+        };
+        dispatch(updateNewMigrationData((newMigrationDataObj)));
+      }
+    } catch (error) {
+      console.log(error);
     }
   }
 
   // Function to update the parent state
   const handleMigrationState = (newState: boolean) => {
-    setIsMigrationStarted(newState);
-} ;
+    setDisableCreateStack(newState);
+    setdisableTestMigration(!newState);
+  } ;
 
   return (
     isLoading || newMigrationData?.isprojectMapped
-      ? <div className="row">
-      <div className="col-12 text-center center-align">
+      ? <div className="loader-container">
         <CircularLoader />
       </div>
-    </div>
-    : <div className='migration-step-container'>
-      <div className='content-block'>
-        <div className='content-body'>
-          <p>Test Migration is a step where some content types are migrated in a test stack for review. A user can verify the stack and data. If the data is migrated properly then it can proceed with the final Migration Execution process.</p>
-          <Button
-            className="mt-3"
-            onClick={handleCreateTestStack}
-            version="v2"
-            disabled={newMigrationData?.test_migration?.stack_api_key}
-            isLoading={isStackLoading}
-          >
-            Create Test Stack
-          </Button>
-          {newMigrationData?.test_migration?.stack_api_key &&
-            <Field
-              id="stack"
-              name="stack"
-              className='pt-4'
+      : <div className='migration-step-container'>
+        <div className='content-block'>
+          <div className='content-body'>
+            {subtitle && <p>{subtitle}</p> }
+            <Button
+              className="mt-3"
+              onClick={handleCreateTestStack}
+              version="v2"
+              disabled={disableCreateStack}
+              isLoading={isStackLoading}
             >
-              <FieldLabel htmlFor="stackKey" version="v2" requiredText="(read only)">
-                Test Stack
-              </FieldLabel>
-              <div className='d-flex align-items-center'>
-                {newMigrationData?.test_migration?.stack_api_key && (
-                  <TextInput
-                    type="text"
-                    isReadOnly
-                    name="stackKey"
-                    value={`${newMigrationData?.test_migration?.stack_api_key}`}
+              {createStackCta?.title}
+            </Button>
+            {newMigrationData?.test_migration?.stack_api_key && 
+              <Field
+                id="stack"
+                name="stack"
+                className='pt-4'
+              >
+                <FieldLabel htmlFor="stackKey" version="v2" requiredText="(read only)">
+                  Test Stack
+                </FieldLabel>
+                <div className='d-flex align-items-center'>
+                  {newMigrationData?.test_migration?.stack_api_key && (
+                    <TextInput
+                      type="text"
+                      isReadOnly
+                      name="stackKey"
+                      value={`${newMigrationData?.test_migration?.stack_api_key}`}
+                      version="v2"
+                      width="medium"
+                      disabled
+                    />
+                  )}
+
+                  {newMigrationData?.test_migration?.stack_api_key && (
+                    <Link href={`${newMigrationData?.test_migration?.stack_link}`} target='_blank' className='ml-8'>
+                      <Tooltip content='Stack Link' position="bottom">
+                        <Icon
+                          icon="Link"
+                          size="small"
+                          version="v2"
+                        />
+                      </Tooltip>
+                    </Link>
+                  )}
+
+                  <Button
+                    className="ml-8"
+                    onClick={handleTestMigration}
                     version="v2"
-                    width="medium"
-                  />
-                )}
-
-                {newMigrationData?.test_migration?.stack_api_key && (
-                  <Link href={`${newMigrationData?.test_migration?.stack_link}`} target='_blank' className='ml-8'>
-                    <Tooltip content='Stack Link' position="bottom">
-                      <Icon
-                        icon="Link"
-                        size="small"
-                        version="v2"
-                      />
-                    </Tooltip>
-                  </Link>
-                )}
-
-                <Button
-                  className="ml-8"
-                  onClick={handleTestMigration}
-                  version="v2"
-                  disabled={isMigrationStarted}
-                >
-                  Start Test Migration
-                </Button>
-              </div>
-            </Field>
-          }
+                    disabled={disableTestMigration}
+                  >
+                    {startMigrationCta?.title}
+                  </Button>
+                </div>
+              </Field>
+            }
+          </div>
+        </div>
+        <div className='content-block'>
+          <div className='content-header'>Execution Logs</div>
+          <div>
+            <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
+          </div>
         </div>
       </div>
-      <div className='content-block'>
-        <div className='content-header'>Execution Logs</div>
-        <div>
-          <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
-        </div>
-      </div>
-    </div>
   );
 };
 

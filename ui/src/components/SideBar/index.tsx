@@ -20,7 +20,7 @@ const SideBar = ({projectId}: SettingIconProp) => {
     <div className="side-nav side-nav--full recycle-wrapper" style={{ width: '56px', textAlign: 'center'}}>
       {location.pathname.includes('/projects/') && 
       <Tooltip content={'Project Settings'} position="right">
-        <Link aria-label='Project Settings' cbOnClick={settingsNavigate}>
+        <Link aria-label='Project Settings' cbOnClick={settingsNavigate} className='mt-1'>
           <Icon size='original' icon='Setting' />
         </Link>
       </Tooltip>

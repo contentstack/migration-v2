@@ -8,20 +8,19 @@ const useBlockNavigation = (isModalOpen: boolean) => {
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
+      // If the modal is open, prevent navigation
       if (isModalOpen) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        window.history.replaceState(null, '', window.location.pathname);
+
+        window.history.pushState(null, '', window.location.pathname);
         navigate(location.pathname);
       }
     };
 
+
     if (isModalOpen) {
       initialPathnameRef.current = location.pathname;
-      window.history.pushState(null, '', window.location.pathname);
+      window.history.pushState(null, '', window.location.pathname); 
       window.addEventListener('popstate', handlePopState);
-    } else {
-      window.removeEventListener('popstate', handlePopState);
     }
 
     return () => {

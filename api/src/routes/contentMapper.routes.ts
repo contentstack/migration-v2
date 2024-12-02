@@ -36,7 +36,7 @@ router.get(
  * @route GET /:projectId
  */
 router.get(
-  "/:projectId",
+  "/:projectId/contentTypes/:contentTypeUid?",
   asyncRouter(contentMapperController.getExistingContentTypes)
 );
 
@@ -45,7 +45,7 @@ router.get(
  * @route GET /:projectId
  */
 router.get(
-  "/:projectId/globalFields",
+  "/:projectId/globalFields/:globalFieldUid?",
   asyncRouter(contentMapperController.getExistingGlobalFields)
 );
 
@@ -71,10 +71,10 @@ router.put(
  * Get Single contenttype data
  * @route GET /:projectId/:contentTypeUid
  */
-router.get(
-  "/:projectId/:contentTypeUid",
-  asyncRouter(contentMapperController.getSingleContentTypes)
-);
+// router.get(
+//   "/:projectId/:contentTypeUid",
+//   asyncRouter(contentMapperController.getSingleContentTypes)
+// );
 
 /**
  * Remove content mapper
@@ -95,8 +95,8 @@ router.patch("/:orgId/:projectId/mapper_keys", asyncRouter(contentMapperControll
  * Get Single Global Field data
  * @route GET /:projectId/:globalFieldUid
  */
-router.get("/:projectId/globalFields/:globalFieldUid",
-  asyncRouter(contentMapperController.getSingleGlobalField)
-);
+// router.get("/:projectId/globalFields/:globalFieldUid",
+//   asyncRouter(contentMapperController.getSingleGlobalField)
+// );
 
 export default router;

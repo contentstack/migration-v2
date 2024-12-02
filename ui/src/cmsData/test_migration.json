@@ -1,12 +1,19 @@
 {
   "title": "Test Migration",
-  "subtitle": "Link to the Demo Stack",
   "locale": "en-us",
-  "cta": {
+  "create_stack_cta": {
     "open_in_new_tab": false,
     "theme": "primary",
-    "title": "Start Migration",
-    "url": "/projects/${projectId}/migration/steps/5",
+    "title": "Create Test Stack",
+    "url": "",
     "with_icon": false
-  }
+  },
+  "start_migration_cta": {
+    "open_in_new_tab": false,
+    "theme": "primary",
+    "title": "Start Test Migration",
+    "url": "",
+    "with_icon": false
+  },
+  "subtitle": "Test Migration allows you to migrate selected content to a test stack for review. Verify the content and ensure everything is correct before proceeding to the final migration."
 }

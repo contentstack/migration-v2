@@ -1,6 +1,4 @@
 // Libraries
-import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { Tooltip, Icon } from '@contentstack/venus-components';
 import { useNavigate } from 'react-router-dom';
 // Utilities
@@ -8,9 +6,7 @@ import { NEW_PROJECT_STATUS } from '../../utilities/constants';
 import { getDays, isEmptyString } from '../../utilities/functions';
 // Interface
 import { ProjectType } from './card.interface';
-import { getProject } from '../../services/api/project.service';
 import './card.scss';
-import { RootState } from '../../store';
 
 /**
  * Renders a card component for a project in a list.
@@ -18,9 +14,6 @@ import { RootState } from '../../store';
  */
 const CardList = ({ project }: ProjectType) => {
   const navigate = useNavigate();
-
-  const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
-  const [projectDetails, setprojectDetails] = useState('');
 
   /**
    * Handles the click event when a project card is clicked.
@@ -89,7 +82,7 @@ const CardList = ({ project }: ProjectType) => {
                   <span className="ProjectCard__stats-Title">Project Status</span>
                   <div className={`ProjectCard__stats-category ${statusClass}`}>
                     {icon && <Icon size="mini" icon={icon} version="v2" />}
-                    {statusText}
+                    {statusText && <span className='ml-5'>{statusText}</span>}
                   </div>
                 </div>
               </div>

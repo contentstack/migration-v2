@@ -4,10 +4,19 @@ const _ = require("lodash");
 const read = require("fs-readdir-recursive");
 const helper = require("../utils/helper");
 const restrictedUid = require("../utils");
+const { MIGRATION_DATA_CONFIG } = require("../constants/index");
+
 const extraField = "title";
 const configChecker = path?.join('content', 'Common', 'Configuration');
 const append = "a";
 let config = {};
+
+const {
+  DATA_MAPPER_DIR,
+  DATA_MAPPER_CONFIG_FILE,
+  DATA_MAPPER_CONFIG_TREE_FILE,
+  CONTENT_TYPES_DIR_NAME
+} = MIGRATION_DATA_CONFIG;
 
 
 function isKeyPresent(keyToFind, timeZones) {
@@ -81,7 +90,7 @@ const templateStandardValues = ({ components }) => {
 const contentTypeKeyMapper = ({ template, contentType, contentTypeKey = "contentTypeKey" }) => {
   let keyMapper = {};
   const keys = helper.readFile(
-    path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', `${contentTypeKey}.json`)
+    path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, `${contentTypeKey}.json`)
   );
   if (keys) {
     keyMapper = keys;
@@ -90,8 +99,8 @@ const contentTypeKeyMapper = ({ template, contentType, contentTypeKey = "content
   helper.writeFile(
     path.join(
       process.cwd(),
-      'sitecoreMigrationData',
-      'MapperData'
+      MIGRATION_DATA_CONFIG.DATA,
+      DATA_MAPPER_DIR
     ),
     JSON.stringify(keyMapper, null, 4),
     contentTypeKey,
@@ -115,9 +124,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "single_line_text",
+        "contentstackFieldType": "single_line_text",
         "backupFieldType": "single_line_text",
-        "advanced": { Default_value: default_value !== "" ? default_value : null }
+        "advanced": { default_value: default_value !== "" ? default_value : null }
       }
     }
     case 'Checkbox': {
@@ -129,9 +138,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "boolean",
+        "contentstackFieldType": "boolean",
         "backupFieldType": "boolean",
-        "advanced": { Default_value: default_value !== "" ? default_value : null }
+        "advanced": { default_value: default_value !== "" ? default_value : null }
       }
     }
     case 'Rich Text': {
@@ -142,9 +151,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "json",
+        "contentstackFieldType": "json",
         "backupFieldType": "json",
-        "advanced": { Default_value: default_value !== "" ? default_value : null }
+        "advanced": { default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -156,9 +165,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "dropdown",
+        "contentstackFieldType": "dropdown",
         "backupFieldType": "dropdown",
-        "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null, Multiple: false }
+        "advanced": { options: choices, default_value: default_value !== "" ? default_value : null, Multiple: false }
       }
     }
     case "Image": {
@@ -169,9 +178,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "file",
+        "contentstackFieldType": "file",
         "backupFieldType": "file",
-        "advanced": { Default_value: default_value !== "" ? default_value : null }
+        "advanced": { default_value: default_value !== "" ? default_value : null }
       }
     }
     case "General Link":
@@ -183,9 +192,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "link",
+        "contentstackFieldType": "link",
         "backupFieldType": "link",
-        "advanced": { Default_value: default_value !== "" ? default_value : null }
+        "advanced": { default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -197,9 +206,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "multi_line_text",
+        "contentstackFieldType": "multi_line_text",
         "backupFieldType": "multi_line_text",
-        "advanced": { Default_value: default_value !== "" ? default_value : null }
+        "advanced": { default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -213,9 +222,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "number",
+        "contentstackFieldType": "number",
         "backupFieldType": "number",
-        "advanced": { Default_value: default_value !== "" ? default_value : null }
+        "advanced": { default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -229,9 +238,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "isodate",
+        "contentstackFieldType": "isodate",
         "backupFieldType": "isodate",
-        "advanced": { Default_value: default_value !== "" ? default_value : null }
+        "advanced": { default_value: default_value !== "" ? default_value : null }
       }
     }
 
@@ -244,9 +253,9 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
           "otherCmsType": type,
           "contentstackField": name,
           "contentstackFieldUid": uid,
-          "ContentstackFieldType": "dropdown",
+          "contentstackFieldType": "dropdown",
           "backupFieldType": "dropdown",
-          "advanced": { options: choices, Default_value: default_value !== "" ? default_value : null, Multiple: false }
+          "advanced": { options: choices, default_value: default_value !== "" ? default_value : null, Multiple: false }
         }
       }
       break;
@@ -260,7 +269,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
           "otherCmsType": type,
           "contentstackField": name,
           "contentstackFieldUid": uid,
-          "ContentstackFieldType": "reference",
+          "contentstackFieldType": "reference",
           "backupFieldType": "reference"
         }
       }
@@ -274,7 +283,7 @@ const ContentTypeSchema = ({ type, name, uid, default_value = "", id, choices = 
         "otherCmsType": type,
         "contentstackField": name,
         "contentstackFieldUid": uid,
-        "ContentstackFieldType": "reference",
+        "contentstackFieldType": "reference",
         "backupFieldType": "reference"
       }
     }
@@ -339,7 +348,7 @@ const groupFlat = (data, item) => {
       otherCmsType: 'Group',
       contentstackField: item?.meta?.name,
       contentstackFieldUid: uidCorrector({ uid: item?.meta?.key }),
-      ContentstackFieldType: 'group',
+      contentstackFieldType: 'group',
       backupFieldType: 'group'
     }
     flat?.push(group);
@@ -360,10 +369,10 @@ const groupFlat = (data, item) => {
 
 const contentTypeMapper = ({ components, standardValues, content_type, basePath, sitecore_folder, affix }) => {
   const source = helper.readFile(
-    path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'configuration.json')
+    path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, DATA_MAPPER_CONFIG_FILE)
   );
   const sourceTree = helper.readFile(
-    path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'configurationTree.json')
+    path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, DATA_MAPPER_CONFIG_TREE_FILE)
   );
   let mainSchema = [];
   components?.forEach((item) => {
@@ -481,7 +490,7 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
           "otherCmsType": "text",
           "contentstackField": "Url",
           "contentstackFieldUid": "url",
-          "ContentstackFieldType": "url",
+          "contentstackFieldType": "url",
           "backupFieldType": "url"
         })
     }
@@ -495,7 +504,7 @@ const contentTypeMapper = ({ components, standardValues, content_type, basePath,
         "otherCmsType": "text",
         "contentstackField": "Title",
         "contentstackFieldUid": "title",
-        "ContentstackFieldType": "text",
+        "contentstackFieldType": "text",
         "backupFieldType": "text"
       })
     }
@@ -558,7 +567,7 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder, a
     helper?.writeFile(
       path.join(
         process.cwd(),
-        'sitecoreMigrationData', 'content_types',
+        MIGRATION_DATA_CONFIG.DATA, CONTENT_TYPES_DIR_NAME,
       ),
       JSON.stringify(contentType, null, 4),
       contentType?.contentstackUid,

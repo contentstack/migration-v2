@@ -39,3 +39,10 @@ export interface MigrationQueryType {
   region: string;
   owner: string;
 }
+
+export interface Locale {
+  code: string;
+  name: string;
+  fallback_locale: string;
+  uid: string;
+}

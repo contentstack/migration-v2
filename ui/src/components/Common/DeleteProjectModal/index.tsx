@@ -1,6 +1,6 @@
 // Libraries
+import { useState } from 'react';
 import {
-  Icon,
   Button,
   Notification,
   ModalBody,
@@ -30,6 +30,9 @@ const DeleteProjectModal = (props: SettingsModalProps) => {
     selectedOrg
   } = props;
 
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+
+
   /**
    * Handles the deletion of the project.
    *
@@ -37,9 +40,11 @@ const DeleteProjectModal = (props: SettingsModalProps) => {
    * @returns {Promise<void>} A promise that resolves when the project is deleted.
    */
   const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
+    setIsLoading(true);
     const response = await deleteProject(selectedOrg?.value || '', projectId ?? '',);
 
     if (response?.status === 200) {
+      setIsLoading(false);
       closeModal();
       setTimeout(() => {
         navigate('/projects')
@@ -78,12 +83,14 @@ const DeleteProjectModal = (props: SettingsModalProps) => {
           <Button buttonType="light" onClick={() => closeModal()}>
             Cancel
           </Button>
-          <Button className="Button Button--destructive Button--icon-alignment-left Button--size-large Button--v2" onClick={() => handleDeleteProject(closeModal)} buttonType="submit">
-            <div className="flex-center">
-              <div className="flex-v-center Button__mt-regular Button__visible">
-                <Icon icon="Delete" version="v2" size="tiny" />
-              </div>
-            </div>
+          <Button 
+            version="v2"
+            buttonType="destructive"
+            type="submit"
+            icon="v2-Delete"
+            tabindex={0}
+            isLoading={isLoading}
+            onClick={() => handleDeleteProject(closeModal)}>
             Delete
           </Button>
         </ButtonGroup>

@@ -325,8 +325,8 @@
       "_metadata": {
         "uid": "cs752bfd62296e4791"
       },
-      "title": "CMS",
-      "description": "Select your current Content Management System from available options.",
+      "title": "Select CMS",
+      "description": "Select the CMS you are migrating content from.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": true,
@@ -337,8 +337,8 @@
       "_metadata": {
         "uid": "cs6c761d71844ac800"
       },
-      "title": "Enter Affix",
-      "description": "Please enter the keyword to be affixed to the source. Minimum 2 characters, maximum 5 characters and should not start with numbers and not include special characters.",
+      "title": "Add Source Prefix",
+      "description": "Add a 2–5 character prefix for the source name. Use only letters, no numbers or special characters.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": false,
@@ -349,8 +349,8 @@
       "_metadata": {
         "uid": "cs7c935e15de9ea7c8"
       },
-      "title": "File Format",
-      "description": "The file format compatible with the above cms is as follows.",
+      "title": "Select File Format",
+      "description": "Select the file format compatible with the selected CMS.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": true,
@@ -361,8 +361,8 @@
       "_metadata": {
         "uid": "cs0279f1f0ce13e83e"
       },
-      "title": "Imported File",
-      "description": "The uploaded file is as follows.",
+      "title": "Uploaded File",
+      "description": "This is the file you have uploaded.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": true,

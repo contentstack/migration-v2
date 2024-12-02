@@ -67,3 +67,15 @@ export const getConfig = async() => {
     }
   }
 };
+
+export const getRestrictedKeywords = async () => {
+  try {
+    return await getCall(`https://dev18-api.csnonprod.com/v3/restricted_uids`);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+}

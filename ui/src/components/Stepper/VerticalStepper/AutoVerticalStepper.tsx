@@ -1,6 +1,7 @@
-import React, { useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import React, { useImperativeHandle, useMemo, useState } from 'react';
 import './AutoVerticalStepper.scss';
-import { Heading, Paragraph } from '@contentstack/venus-components';
+import { Heading } from '@contentstack/venus-components';
+import { IStep } from '../../../context/app/app.interface';
 
 
 export enum StepStatus {
@@ -10,10 +11,10 @@ export enum StepStatus {
 }
 
 type AutoVerticalStepperProps = {
-  steps: any[];
+  steps: IStep[];
   className?: string;
   description?: string;
-  stepComponentProps?: any;
+  stepComponentProps?: ()=>{};
   isEdit: boolean;
   isRequired:boolean;
   handleOnAllStepsComplete: (flag: boolean) => void;
@@ -34,7 +35,6 @@ const AutoVerticalStepper = React.forwardRef<
     const {
       steps,
       className = '',
-      description='',
       stepComponentProps,
       isEdit = false,
       handleOnAllStepsComplete = () => {
@@ -42,18 +42,13 @@ const AutoVerticalStepper = React.forwardRef<
       }
     } = props;
 
-    const [stepStatus, setStepStatus] = useState(steps?.map((s: any) => s.status));
-
-    useEffect(() => {
-      if (!stepComponentProps?.step?.step_id && !stepComponentProps?.connector?.group_name) {
-        setStepStatus(steps?.map((s: any) => s.status));
-      }
-    }, [stepComponentProps?.step?.step_id, stepComponentProps?.connector?.group_name]);
+    const [stepStatus, setStepStatus] = useState(steps?.map((s: IStep) => s.status));
+    
 
     const handleStepChange = (stepIndex: number, closeStep = false) => {
 
       if (closeStep) {
-        const data = stepStatus.map((s: any, i: number) => {
+        const data = stepStatus.map((s: string | undefined, i: number) => {
           if (i === stepIndex) {
             return StepStatus.COMPLETED;
           }
@@ -63,7 +58,7 @@ const AutoVerticalStepper = React.forwardRef<
         
         handleOnAllStepsComplete(true);
       } else {
-        const data: string[] = stepStatus.map((s: any, i: number) => {
+        const data: string[] = stepStatus.map((s: string | undefined, i: number) => {
           if (i <= stepIndex) {
             return StepStatus.COMPLETED;
           } else if (i === stepIndex + 1) {
@@ -76,8 +71,8 @@ const AutoVerticalStepper = React.forwardRef<
       }
     };
 
-    const StepperStepTitleCreator: (data: any,isRequired:boolean) => JSX.Element = (data: any, isRequired:boolean) => {
-      const showSpan = data?.title == 'Orgnization' ? <span>(read only)</span> : ''
+    const StepperStepTitleCreator: (data: IStep,isRequired:boolean) => JSX.Element = (data: IStep, isRequired:boolean) => {
+      
       return (
         <>
           <div className="migration-vertical-stepper-container">
@@ -103,7 +98,7 @@ const AutoVerticalStepper = React.forwardRef<
     };
     
     const goToStep = (stepIndex: number) => {
-      const data: string[] = stepStatus.map((s: any, i: number) => {
+      const data: string[] = stepStatus.map((s: string | undefined, i: number) => {
         if (s === StepStatus.ACTIVE && i !== stepIndex) {
           return StepStatus.DISABLED;
         }
@@ -113,19 +108,22 @@ const AutoVerticalStepper = React.forwardRef<
         if (i === stepIndex) {
           return StepStatus.ACTIVE;
         }
-        return s;
+        return s !== undefined ? s : '' ;
       });
       setStepStatus(data);
     };
 
-    const summaryActivateStep = (e: any) => {
-      const index = e.currentTarget.getAttribute('data-step-index');
+    const summaryActivateStep = (e: React.MouseEvent<HTMLDivElement>) => {
+      const index = e?.currentTarget?.getAttribute('data-step-index');
+      if(! index) return;
       handleOnAllStepsComplete(false);
+      if (!index) return;
 
+      const stepIndex = parseInt(index, 10);
       if (isEdit) {
-        goToStep(+index);
+        goToStep(stepIndex);
       } else {
-        handleStepChange(index - 1);
+        handleStepChange(stepIndex - 1);
       }
     };
 
@@ -136,35 +134,13 @@ const AutoVerticalStepper = React.forwardRef<
     }));
     
     return useMemo(() => {
-      const stepClassNameObject: any = {
-        [StepStatus.ACTIVE]: 'active',
-        [StepStatus.COMPLETED]: 'completed',
-        [StepStatus.DISABLED]: 'disabled',
-        [`${StepStatus.ACTIVE}__${StepStatus.COMPLETED}`]: 'active__to__completed',
-        [`${StepStatus.ACTIVE}__${StepStatus.ACTIVE}`]: 'active__to__active',
-        [`${StepStatus.ACTIVE}__${StepStatus.DISABLED}`]: 'active__to__disabled',
-        [`${StepStatus.DISABLED}__${StepStatus.COMPLETED}`]: 'disabled__to__completed',
-        [`${StepStatus.DISABLED}__${StepStatus.ACTIVE}`]: 'disabled__to__active',
-        [`${StepStatus.DISABLED}__${StepStatus.DISABLED}`]: 'disabled__to__disabled',
-        [`${StepStatus.COMPLETED}__${StepStatus.COMPLETED}`]: 'completed__to__completed',
-        [`${StepStatus.COMPLETED}__${StepStatus.ACTIVE}`]: 'completed__to__active',
-        [`${StepStatus.COMPLETED}__${StepStatus.DISABLED}`]: 'completed__to__disabled'
-      };
 
-      const getStepStatus = (idx: number) => {
-        return stepStatus[idx];
-      };
       return (
         <div className={`migration-vertical-stepper  ${className}`}>
           {props?.description && <div className='description'>{props?.description}</div>}
           <ol className="Vertical">
-            {steps?.map((step: any, index: number) => {
-              
-              let stepClassName = stepClassNameObject[getStepStatus(index)];
-              if (step?.lock) stepClassName = 'completed';
-              const getGridientClass =
-                stepClassNameObject[`${getStepStatus(index)}__${getStepStatus(index + 1)}`];
-              
+            {steps?.map((step: IStep, index: number) => {
+                          
               return (
                 <li
                   id={step?.step_id}

@@ -5,8 +5,15 @@ const _ = require("lodash");
 const read = require("fs-readdir-recursive");
 const helper = require("../utils/helper");
 const restrictedUid = require("../utils");
-const append = "a"
-const contentFolderPath = path.resolve("sitecoreMigrationData", "content_types") || {};
+const { MIGRATION_DATA_CONFIG } = require("../constants/index.js");
+const append = "a";
+const {
+  DATA_MAPPER_DIR,
+  CONTENT_TYPES_DIR_NAME,
+  GLOBAL_FIELDS_FILE,
+  GLOBAL_FIELDS_DIR_NAME
+} = MIGRATION_DATA_CONFIG;
+const contentFolderPath = path.resolve(MIGRATION_DATA_CONFIG.DATA, CONTENT_TYPES_DIR_NAME) || {};
 
 function startsWithNumber(str) {
   return /^\d/.test(str);
@@ -23,11 +30,11 @@ const emptyGlobalFiled = () => {
   helper.writeFile(
     path.join(
       process.cwd(),
-      'sitecoreMigrationData',
-      'global_fields',
+      MIGRATION_DATA_CONFIG.DATA,
+      GLOBAL_FIELDS_DIR_NAME,
     ),
     JSON.stringify([], null, 4),
-    "globalfields",
+    GLOBAL_FIELDS_FILE,
     (err) => {
       if (err) throw err;
     }
@@ -37,9 +44,9 @@ const emptyGlobalFiled = () => {
 
 function ExtractRef() {
   emptyGlobalFiled()
-  const basePages = helper.readFile(path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'base.json'));
-  const contentTypeKeys = helper.readFile(path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'contentTypeKey.json'));
-  const treeListRef = helper.readFile(path.join(process.cwd(), 'sitecoreMigrationData', 'MapperData', 'treeListRef.json'));
+  const basePages = helper.readFile(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, 'base.json'));
+  const contentTypeKeys = helper.readFile(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, 'contentTypeKey.json'));
+  const treeListRef = helper.readFile(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, DATA_MAPPER_DIR, 'treeListRef.json'));
   const globalFieldUids = [];
   const contentTypesPaths = read(contentFolderPath);
   if (contentTypesPaths?.length && basePages && contentTypeKeys && treeListRef) {
@@ -63,7 +70,7 @@ function ExtractRef() {
               otherCmsType: "reference",
               contentstackField: refTree?.name,
               contentstackFieldUid: newUid,
-              ContentstackFieldType: "reference",
+              contentstackFieldType: "reference",
               isDeleted: false,
               backupFieldType: "reference",
               refrenceTo: uids,
@@ -97,7 +104,7 @@ function ExtractRef() {
                   otherCmsType: "base template",
                   contentstackField: newKey,
                   contentstackFieldUid: uidCorrector({ uid: newKey }),
-                  ContentstackFieldType: "global_field",
+                  contentstackFieldType: "global_field",
                   isDeleted: false,
                   backupFieldType: "global_field",
                   refrenceTo: key,
@@ -111,8 +118,8 @@ function ExtractRef() {
       helper.writeFile(
         path.join(
           process.cwd(),
-          'sitecoreMigrationData',
-          'content_types'
+          MIGRATION_DATA_CONFIG.DATA,
+          CONTENT_TYPES_DIR_NAME
         ),
         JSON.stringify(contentType, null, 4),
         contentType?.contentstackUid,
@@ -127,9 +134,9 @@ function ExtractRef() {
     const allGlobalFiels = [];
     const data = helper.readFile(path.join(
       process.cwd(),
-      'sitecoreMigrationData',
-      'global_fields',
-      "globalfields"
+      MIGRATION_DATA_CONFIG.DATA,
+      GLOBAL_FIELDS_DIR_NAME,
+      GLOBAL_FIELDS_FILE
     ))
     if (data?.length) {
       allGlobalFiels.push(...data)
@@ -151,11 +158,11 @@ function ExtractRef() {
       helper.writeFile(
         path.join(
           process.cwd(),
-          'sitecoreMigrationData',
-          'global_fields'
+          MIGRATION_DATA_CONFIG.DATA,
+          GLOBAL_FIELDS_DIR_NAME
         ),
         JSON.stringify(allGlobalFiels, null, 4),
-        "globalfields",
+        GLOBAL_FIELDS_FILE,
         (err) => {
           if (err) throw err;
         }
@@ -168,17 +175,17 @@ function ExtractRef() {
   return {
     path: path.join(
       process.cwd(),
-      "sitecoreMigrationData"
+      MIGRATION_DATA_CONFIG.DATA
     ),
     contentTypeUids: read(path.join(
       process.cwd(),
-      'sitecoreMigrationData',
-      'content_types'
+      MIGRATION_DATA_CONFIG.DATA,
+      CONTENT_TYPES_DIR_NAME
     )),
     globalFieldUids: read(path.join(
       process.cwd(),
-      'sitecoreMigrationData',
-      'global_fields'
+      MIGRATION_DATA_CONFIG.DATA,
+      GLOBAL_FIELDS_DIR_NAME
     ))
   };
 }

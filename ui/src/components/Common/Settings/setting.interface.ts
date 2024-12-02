@@ -9,6 +9,7 @@ interface IProject {
   delete_project: CTA;
   save_project: CTA;
   email: string;
+  description_placeholder: string;
 }
 /**
  * Represents a Call to Action (CTA) object.

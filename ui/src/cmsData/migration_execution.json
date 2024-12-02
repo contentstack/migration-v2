@@ -2,7 +2,7 @@
   "title": "Migration Execution",
   "migration_information": [
     {
-      "title": "Uploaded CMS",
+      "title": "Legacy CMS",
       "disabled": true,
       "width": "small",
       "_metadata": { "uid": "cs16c565a53c4b8a86" }
@@ -14,13 +14,13 @@
       "_metadata": { "uid": "csc38f4dcfb3bef818" }
     },
     {
-      "title": "Selected stack",
+      "title": "Selected Stack",
       "disabled": true,
       "width": "small",
       "_metadata": { "uid": "cs6a1bb7cbef06c88a" }
     },
     {
-      "title": "Selected locale",
+      "title": "Selected Locale",
       "disabled": true,
       "width": "small",
       "_metadata": { "uid": "cs8adacd2a8a057f62" }

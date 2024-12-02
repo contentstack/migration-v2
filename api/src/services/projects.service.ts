@@ -125,7 +125,8 @@ const createProject = async (req: Request) => {
       created_at: '',
       isNewStack: false
     },
-    mapperKeys: {}
+    mapperKeys: {},
+    isMigrationStarted: false
   };
 
   try {
@@ -754,6 +755,62 @@ const updateCurrentStep = async (req: Request) => {
             STEPPER_STEPS.CONTENT_MAPPING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
           // data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
+          data.projects[projectIndex].updated_at = new Date().toISOString();
+        });
+        break;
+      }
+      case STEPPER_STEPS.CONTENT_MAPPING: {
+
+        if (
+          project.status === NEW_PROJECT_STATUS[0] ||
+          !isStepCompleted ||
+          !project?.destination_stack_id ||
+          project?.content_mapper?.length === 0
+        ) {
+          logger.error(
+            getLogMessage(
+              srcFunc,
+              HTTP_TEXTS.CANNOT_PROCEED_CONTENT_MAPPING,
+              token_payload
+            )
+          );
+          throw new BadRequestError(
+            HTTP_TEXTS.CANNOT_PROCEED_CONTENT_MAPPING
+          );
+        }
+
+        ProjectModelLowdb.update((data: any) => {
+          data.projects[projectIndex].current_step =
+            STEPPER_STEPS.TESTING;
+          data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
+          data.projects[projectIndex].updated_at = new Date().toISOString();
+        });
+        break;
+      }
+      case STEPPER_STEPS.TESTING: {
+        if (
+          project.status === NEW_PROJECT_STATUS[0] ||
+          !isStepCompleted ||
+          !project?.destination_stack_id ||
+          project?.content_mapper?.length === 0 ||
+          !project?.current_test_stack_id
+        ) {
+          logger.error(
+            getLogMessage(
+              srcFunc,
+              HTTP_TEXTS.CANNOT_PROCEED_TEST_MIGRATION,
+              token_payload
+            )
+          );
+          throw new BadRequestError(
+            HTTP_TEXTS.CANNOT_PROCEED_TEST_MIGRATION
+          );
+        }
+
+        ProjectModelLowdb.update((data: any) => {
+          data.projects[projectIndex].current_step =
+            STEPPER_STEPS.MIGRATION;
+          data.projects[projectIndex].status = NEW_PROJECT_STATUS[5];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;

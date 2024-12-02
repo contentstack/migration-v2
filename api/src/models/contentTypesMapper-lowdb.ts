@@ -1,4 +1,5 @@
 import { JSONFile } from "lowdb/node";
+import path from 'path';
 import LowWithLodash from "../utils/lowdb-lodash.utils.js";
 
 /**
@@ -80,7 +81,7 @@ const defaultData: ContentTypeMapperDocument = { ContentTypesMappers: [] };
  * Represents the database instance for the content types mapper.
  */
 const db = new LowWithLodash(
-  new JSONFile<ContentTypeMapperDocument>("database/contentTypesMapper.json"),
+  new JSONFile<ContentTypeMapperDocument>(path.join(process.cwd(), "database", 'contentTypesMapper.json')),
   defaultData
 );
 

@@ -44,7 +44,7 @@ type LegacyCMSComponentProps = {
   handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
-interface AutoVerticalStepperRef {
+export interface AutoVerticalStepperRef {
   handleDynamicStepChange: (stepIndex: number, isLastStep?: boolean) => void;
 }
 
@@ -261,14 +261,11 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
 
     }
   },[newMigrationData,isAllStepsCompleted])
-
   return (
     <>
       {isLoading || newMigrationData?.isprojectMapped ? (
-        <div className="row">
-          <div className="col-12 text-center center-align">
-            <CircularLoader />
-          </div>
+        <div className="loader-container">
+          <CircularLoader />
         </div>
       ) : (
         <div className="legacy-cms-container">
@@ -285,9 +282,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
                 isEdit={!isMigrationLocked}
                 isRequired={true}
                 handleOnAllStepsComplete={handleAllStepsComplete}
-                stepComponentProps={{
-                  handleDeleteFile: handleOnClickDeleteUploadedFile
-                }}
               />
             </div>
           </div>

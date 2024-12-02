@@ -3,10 +3,16 @@ import { readFileSync } from "fs";
 import path from 'path';
 import { deleteFolderSync } from "../../helper";
 import logger from "../../utils/logger";
-import { HTTP_CODES, HTTP_TEXTS } from "../../constants";
+import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { contentTypes, ExtractConfiguration, reference, ExtractFiles } = require('migration-sitecore');
+
+const {
+  CONTENT_TYPES_DIR_NAME,
+  GLOBAL_FIELDS_DIR_NAME,
+  GLOBAL_FIELDS_FILE_NAME
+} = MIGRATION_DATA_CONFIG;
 
 const createSitecoreMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: object) => {
   try {
@@ -18,12 +24,12 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
     if (infoMap?.contentTypeUids?.length) {
       const fieldMapping: any = { contentTypes: [], extractPath: filePath };
       for await (const contentType of infoMap?.contentTypeUids ?? []) {
-        const fileContent = readFileSync(path?.join?.(infoMap?.path, 'content_types', contentType), 'utf8');
+        const fileContent = readFileSync(path?.join?.(infoMap?.path, CONTENT_TYPES_DIR_NAME, contentType), 'utf8');
         const jsonfileContent = JSON.parse(fileContent);
         jsonfileContent.type = "content_type";
         fieldMapping?.contentTypes?.push(jsonfileContent);
       }
-      const fileContent = readFileSync(path?.join(infoMap?.path, 'global_fields', 'globalfields.json'), 'utf8');
+      const fileContent = readFileSync(path?.join(infoMap?.path, GLOBAL_FIELDS_DIR_NAME, GLOBAL_FIELDS_FILE_NAME), 'utf8');
       const jsonfileContent = JSON.parse(fileContent);
       for (const key in jsonfileContent) {
         if (jsonfileContent.hasOwnProperty(key)) {
@@ -32,6 +38,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           fieldMapping.contentTypes.push(element);
         }
       }
+      // console.log("🚀 ~ createSitecoreMapper ~ fieldMapping:", fieldMapping)
       const config = {
         method: 'post',
         maxBodyLength: Infinity,

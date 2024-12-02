@@ -152,29 +152,30 @@ export const getFieldMapping = async (
   }
 };
 
-export const getExistingContentTypes = async (projectId: string) => {
-  try {
-    return await getCall(`${API_VERSION}/mapper/${projectId}`, options);
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`${error.message}`);
-    } else {
-      throw new Error('Unknown error');
-    }
-  }
-};
+// export const getExistingContentTypes = async (projectId: string) => {
+//   try {
+//     return await getCall(`${API_VERSION}/mapper/${projectId}`, options);
+//     return await getCall(`${API_VERSION}/mapper/${projectId}/${contentTypeUid}`, options);
+//   } catch (error) {
+//     if (error instanceof Error) {
+//       throw new Error(`${error.message}`);
+//     } else {
+//       throw new Error('Unknown error');
+//     }
+//   }
+// };
 
-export const getExistingGlobalFields = async (projectId: string) => {
-  try {
-    return await getCall(`${API_VERSION}/mapper/${projectId}/globalFields`, options);
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`${error.message}`);
-    } else {
-      throw new Error('Unknown error');
-    }
-  }
-};
+// export const getSingleGlobalField = async (projectId: string, globalFieldUid: string) => {
+//   try {
+//     return await getCall(`${API_VERSION}/mapper/${projectId}/globalFields/${globalFieldUid}`, options);
+//   } catch (error) {
+//     if (error instanceof Error) {
+//       throw new Error(`${error.message}`);
+//     } else {
+//       throw new Error('Unknown error');
+//     }
+//   }
+// };
 
 export const updateContentType = async (
   orgId: string,
@@ -218,9 +219,9 @@ export const resetToInitialMapping = async (
   }
 };
 
-export const fetchExistingContentType = async (projectId: string, contentTypeUid: string) => {
+export const getExistingContentTypes = async (projectId: string, contentTypeUid?: string) => {
   try {
-    return await getCall(`${API_VERSION}/mapper/${projectId}/${contentTypeUid}`, options);
+    return await getCall(`${API_VERSION}/mapper/${projectId}/contentTypes/${contentTypeUid ?? ''}`, options);
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`${error.message}`);
@@ -230,9 +231,9 @@ export const fetchExistingContentType = async (projectId: string, contentTypeUid
   }
 }
 
-export const fetchGlobalField = async (projectId: string, globalFieldUid: string) => {
+export const getExistingGlobalFields = async (projectId: string, globalFieldUid?: string) => {
   try {
-    return await getCall(`${API_VERSION}/mapper/${projectId}/globalFields/${globalFieldUid}`, options);
+    return await getCall(`${API_VERSION}/mapper/${projectId}/globalFields/${globalFieldUid ?? ''}`, options);
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`${error.message}`);
