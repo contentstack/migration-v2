@@ -1,10 +1,12 @@
 // Libraries
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 
 // Utilities
 import { isEmptyString, isValidPrefix } from '../../../utilities/functions';
+
+import { getRestrictedKeywords } from '../../../services/api/upload.service';
 
 
 // Interface
@@ -17,11 +19,7 @@ import { useDebouncer } from '../../../hooks';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
-//import restricted keywords
-import restrictedKeywords from '../restrictedKeywords.json';
-
 interface LoadSelectCmsProps {
-  stepComponentProps: ()=>{};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
@@ -40,12 +38,22 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
   const [isCheckedBoxChecked] = useState<boolean>(
     newMigrationData?.legacy_cms?.isRestictedKeywordCheckboxChecked || false
   );
-  const [isRestrictedkey, setIsRestrictedKey] = useState<boolean>(false);
+  const [isRestrictedKey, setIsRestrictedKey] = useState<boolean>(false);
 
+  const [restrictedKeywords,  setRestrictedKeywords] = useState<string[]>([])
 
-  const idArray = restrictedKeywords.idArray;
+  useEffect(() => {
+    fetchRestrictedKeywords();
+  }, []);
 
+  const fetchRestrictedKeywords = async () => {
+    const restrictedIds = await getRestrictedKeywords();
 
+    if (restrictedIds?.status === 200) {
+      setRestrictedKeywords(restrictedIds?.data?.restricted)
+    }
+  }
+  
   /****  ALL METHODS HERE  ****/
 
   const handleOnChange = useDebouncer(async(e: ChangeEvent<HTMLInputElement>) => {
@@ -53,7 +61,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
 
     const value  = e.target.value;
     if (!isEmptyString(value)) {   
-      if (idArray?.includes(value)) {
+      if (restrictedKeywords?.includes(value)) {
         setIsError(true);
         setErrorMessage('Affix should be valid and not a restricted keyword');
         setIsRestrictedKey(true);
@@ -61,7 +69,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       } else if (!isValidPrefix(value)) {
         setIsRestrictedKey(false);
         setIsError(true);
-        setErrorMessage('Affix should be 2 to 5 alphabetic characters');
+        setErrorMessage('Prefix must be 2 to 5 letters, with no numbers or special characters.');
       } else {
         setPrefix(value);
         setIsError(false);
@@ -115,19 +123,21 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           value={prefix}
           autoFocus={true}
           width="large"
-          placeholder={'Enter Affix'}
+          placeholder={'Add Prefix'}
           version="v2"
           error={isError}
           aria-label='affix'
+          disabled={newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
+          isReadOnly={newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
         />
         {isError && <p className="errorMessage">{errorMessage}</p>}       
         
       </div>
-      { isRestrictedkey && 
+      { isRestrictedKey && 
       <div className="col-12">
         
-        <p className='link-discription'>Please refer the list of Contentstack 
-          <a href={restricted_keyword_link?.href} target="_blank" rel="noreferrer" className=" link"> restricted keywords</a>
+        <p className='link-discription'>
+          Please refer the list of Contentstack <a href={restricted_keyword_link?.href} target="_blank" rel="noreferrer" className="link">restricted keywords</a>
         </p>
 
       </div>}

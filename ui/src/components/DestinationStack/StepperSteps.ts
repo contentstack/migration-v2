@@ -2,8 +2,6 @@ import { validateArray } from '../../utilities/functions';
 import { StepStatus } from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import LoadOrganisation from './Actions/LoadOrganisation';
 import LoadStacks from './Actions/LoadStacks';
-import OrganisationSummary from './Summary/OrganisationSummary';
-import StacksSummary from './Summary/StacksSummary';
 import { IStep } from '../../context/app/app.interface';
 
 const getComponentObject = (
@@ -19,7 +17,6 @@ const getComponentObject = (
       updatedStep = {
         ...updatedStep,
       data: LoadOrganisation,
-      summery: OrganisationSummary,
       status:
         isCompleted || isPrevStepLocked || isMigrationLocked ? StepStatus.COMPLETED : StepStatus.ACTIVE,
       }
@@ -31,7 +28,6 @@ const getComponentObject = (
       updatedStep = {
         ...updatedStep,
       data:  LoadStacks,
-      summery: StacksSummary,
       status:
         isCompleted || isPrevStepLocked || isMigrationLocked ? StepStatus.COMPLETED : StepStatus.ACTIVE,
       }
@@ -59,7 +55,7 @@ export const getDestinationStackSteps = (
           step,
           isCompleted,
           isMigrationLocked,
-          index > 0 ?? allSteps[index - 1].lock
+          index > 0 && allSteps[index - 1].lock
         )
       )
     : [];

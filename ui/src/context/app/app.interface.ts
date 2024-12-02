@@ -12,7 +12,7 @@ export interface ICTA {
 }
 
 export type DataProps = {
-  stepComponentProps:  ()=>{}; 
+  stepComponentProps?:  ()=>{}; 
   currentStep: number;
   handleStepChange: (step: number) => void;
 };
@@ -66,6 +66,7 @@ export interface IFile {
   validation?: string;
   file_details?: FileDetails;
   isValidated: boolean;
+  reValidate: boolean
 }
 
 export interface ICMSType extends ICardType {
@@ -85,6 +86,9 @@ export interface IStep {
   data?: (props:DataProps) => JSX.Element;
   summery?: (props: SummaryProps) => JSX.Element;
   empty_step_placeholder?: string;
+  ifReadonly?:boolean;
+  isRequired?: boolean;
+  titleNote?: string;
 }
 
 export interface IURLType {
@@ -132,7 +136,7 @@ export interface MigrationExecution {
   width: string;
 }
 export interface IMigrationExecution {
-  migration_information: MigrationExecution[];
+  migration_information?: MigrationExecution[];
 }
 
 interface ActionCta {
@@ -185,6 +189,8 @@ export interface INewMigration {
   test_migration: ITestMigration;
   isprojectMapped: boolean;
   stackDetails: IDropDown;
+  migration_execution: IMigrationExecutionStep;
+  project_current_step: number;
 }
 
 export interface TestStacks {
@@ -217,7 +223,12 @@ export interface IDropDown {
 export interface ITestMigration {
   stack_link: string;
   stack_api_key: string;
+  isMigrationStarted: boolean;
   isMigrationComplete: boolean;
+}
+
+export interface IMigrationExecutionStep {
+  migrationStarted: boolean;
 }
 export interface IAppContext {
   authToken: string;
@@ -285,7 +296,8 @@ export const DEFAULT_FILE: IFile = {
       buketKey: ''
     }
   },
-  isValidated: false
+  isValidated: false,
+  reValidate: false,
 };
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
@@ -329,8 +341,13 @@ export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   stack_link: '',
   stack_api_key: '',
+  isMigrationStarted: false,
   isMigrationComplete: false
 };
+
+export const DEFAULT_MIGRATION_EXECUTION_STEP: IMigrationExecutionStep = {
+  migrationStarted: false
+}
 
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
   mapperKeys: {},
@@ -340,7 +357,9 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   test_migration: DEFAULT_TEST_MIGRATION,
   isprojectMapped: false,
   stackDetails: DEFAULT_DROPDOWN,
-  testStacks: []
+  testStacks: [],
+  migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP,
+  project_current_step: 0,
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {

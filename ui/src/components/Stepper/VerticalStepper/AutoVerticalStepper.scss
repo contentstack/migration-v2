@@ -12,7 +12,7 @@
 
 .migration-vertical-stepper .stepper-title {
   margin-bottom: $space-10;
-  margin: 10px 20px;
+  margin: 10px 8px 10px 20px;
   color: $color-font-base;
   line-height: 21px;
 
@@ -83,11 +83,11 @@
 }
 
 .action-summary-wrapper {
-  padding: $space-4 $space-24;
-  align-items: center;
-  border: 1px solid $color-base-gray-40;
-  border-radius: var(--TermCount, 5px);
-  background: $color-brand-white-base;
+   padding: $space-4 $space-24;
+   align-items: center;
+  //border: 1px solid $color-base-gray-40;
+  //border-radius: var(--TermCount, 5px);
+  //background: $color-brand-white-base;
 }
 
 .action-content-wrapper {
