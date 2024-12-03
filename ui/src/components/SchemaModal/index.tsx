@@ -46,7 +46,7 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['tag'];
   }
 
-  if (field?.contentstackFieldType === 'Select' || field?.contentstackFieldType === 'dropdown') {
+  if (field?.contentstackFieldType === 'Select' || field?.contentstackFieldType === 'dropdown' || field?.contentstackFieldType === 'checkbox' || field?.contentstackFieldType === 'radio') {
     return icons['select'];
   }
 
@@ -180,7 +180,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
       </ul>
     );
   };
-
+  
   return (
     <div className="schema">
       <div className="entries-outline">
@@ -192,7 +192,6 @@ const TreeView = ({ schema = [] }: schemaType) => {
                 outlineName = item?.uid?.replace(/\.+/g, '_');
               }
               const hasNested = hasNestedValue(item);
-
               return (
                 <li
                   key={`${item?.otherCmsField}${item?.contentstackFieldType}`}

@@ -192,7 +192,7 @@ const Projects = () => {
                 <Button
                   key={`${index.toString()}`}
                   buttonType={cta?.theme}
-                  className="mt-10 no-project-add-btn create-project-cta"
+                  className="mt-20 no-project-add-btn create-project-cta"
                   onClick={() => openModal()}
                   size="large"
                 >
@@ -202,9 +202,6 @@ const Projects = () => {
                   {cta?.title}
                 </Button>
               ))}
-              <div className='helpText'>
-                {HTMLReactParser(jsonToHtml(emptystate?.help_text ?? {}))}
-              </div>
           </EmptyState>
         )}
 
