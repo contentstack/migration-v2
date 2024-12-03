@@ -236,7 +236,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     nonLocalizable: false
   });
 
-  const [active, setActive] = useState<number>(0);
+  const [active, setActive] = useState<number | null>(0);
 
   const [searchContentType, setSearchContentType] = useState('');
 
@@ -613,16 +613,16 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const openContentType = (i: number) => {
     setIsFieldDeleted(false);
     setActive(i);
-    const otherTitle = contentTypes?.[i]?.otherCmsTitle;
+    const otherTitle = filteredContentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
-    setContentTypeUid(contentTypes?.[i]?.id ?? '');
-    fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
-    setOtherCmsUid(contentTypes?.[i]?.otherCmsUid);
-    setSelectedContentType(contentTypes?.[i]);
-    setIsContentType(contentTypes?.[i]?.type === "content_type");
+    setContentTypeUid(filteredContentTypes?.[i]?.id ?? '');
+    fetchFields(filteredContentTypes?.[i]?.id ?? '', searchText || '');
+    setOtherCmsUid(filteredContentTypes?.[i]?.otherCmsUid);
+    setSelectedContentType(filteredContentTypes?.[i]);
+    setIsContentType(filteredContentTypes?.[i]?.type === "content_type");
     setOtherContentType({ 
-      label: contentTypeMapped?.[otherTitle] ?? `Select ${contentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
-      value: contentTypeMapped?.[otherTitle] ?? `Select ${contentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`
+      label: contentTypeMapped?.[otherTitle] ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
+      value: contentTypeMapped?.[otherTitle] ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`
     });
   }
 
@@ -641,19 +641,25 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setSelectedEntries(newTableData);
   };
 
-  const handleSchemaPreview = (title: string) => {
-    return cbModal({
-      component: (props: ModalObj) => (
-        <SchemaModal
-          schemaData={tableData}
-          contentType={title}
-          {...props}
-        />
-      ),
-      modalProps: {
-        shouldCloseOnOverlayClick: true
-      }
-    });
+  const handleSchemaPreview = async (title: string, contentTypeId: string) => {
+    try {
+      const { data } = await getFieldMapping(contentTypeId ?? '', 0, 30, searchText ?? '', projectId);
+      return cbModal({
+        component: (props: ModalObj) => (
+          <SchemaModal
+            schemaData={data?.fieldMapping}
+            contentType={title}
+            {...props}
+          />
+        ),
+        modalProps: {
+          shouldCloseOnOverlayClick: true
+        }
+      });
+    } catch (err) {
+      console.log(err);
+      return err;
+    }
   };
 
   const accessorCall = (data: FieldMapType) => {
@@ -1760,9 +1766,20 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
+      
+      if (filteredCT?.some((ct) => ct?.otherCmsUid === otherCmsUid)) {
+        const selectedIndex = filteredCT.findIndex(ct => ct?.otherCmsUid === otherCmsUid);
+        setActive(selectedIndex);
+      } else {
+        setActive(null)
+      }
+      
     } else {
       setFilteredContentTypes(contentTypes);
       setCount(contentTypes?.length);
+      
+      const selectedIndex = contentTypes.findIndex(ct => ct?.otherCmsUid === otherCmsUid);
+      setActive(selectedIndex);
     }   
     setShowFilter(false);
   }
@@ -1895,7 +1912,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           </span>
                           <span className='ml-10'>
                             <Tooltip content="Schema Preview" position="bottom">
-                              <button className='list-button schema-preview' onClick={() => handleSchemaPreview(content?.otherCmsTitle)}>{SCHEMA_PREVIEW}</button>
+                              <button className='list-button schema-preview' onClick={() => handleSchemaPreview(content?.otherCmsTitle, content?.id ?? '')}>{SCHEMA_PREVIEW}</button>
                             </Tooltip>
                           </span>
                         </div>
