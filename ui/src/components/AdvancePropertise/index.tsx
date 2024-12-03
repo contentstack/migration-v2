@@ -91,7 +91,7 @@ const AdvancePropertise = (props: SchemaProps) => {
    */
   const fetchContentTypes = async (searchText: string) => {
     try {
-      const { data } = await getContentTypes(props?.projectId ?? '', 0, 10, searchText || ''); //org id will always present
+      const { data } = await getContentTypes(props?.projectId ?? '', 0,5000, searchText || ''); //org id will always present
 
       setContentTypes(data?.contentTypes);
     } catch (error) {
@@ -122,8 +122,9 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         ...props?.value,
-        [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: (event.target as HTMLInputElement)?.value,
-        validationRegex: '',
+        [field]: (event.target as HTMLInputElement)?.value,
+        default_value: currentToggleStates?.default_value,
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         minChars: currentToggleStates?.minChars,
         maxChars:currentToggleStates?.maxChars,
         mandatory: currentToggleStates?.mandatory,
@@ -134,6 +135,10 @@ const AdvancePropertise = (props: SchemaProps) => {
         embedObjects: embedObjectslabels,
         minRange: currentToggleStates?.minRange,
         maxRange: currentToggleStates?.maxRange,
+        minSize: currentToggleStates?.minSize,
+        maxSize: currentToggleStates?.maxSize,
+        title: currentToggleStates?.title,
+        url:currentToggleStates?.url
       },
       checkBoxChanged
     );
@@ -185,7 +190,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     props?.updateFieldSettings(
       props?.rowId,
       {
-        [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
+        [field]: value,
         validationRegex: '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
@@ -200,13 +205,9 @@ const AdvancePropertise = (props: SchemaProps) => {
   };
 
   const stringToBoolean = (value:string) =>{
-   
-      if(value?.toLowerCase() === 'true'){
-        return true
-      }
-      else{
-        return false;
-      }
+
+     
+     return value === 'true';
   
 
   }
@@ -336,30 +337,7 @@ const AdvancePropertise = (props: SchemaProps) => {
       <ModalHeader title={`${props?.fieldtype} properties`} closeModal={props?.closeModal} className="text-capitalize" />
       <ModalBody>
         <div className='modal-data'>
-          {(props?.fieldtype === 'Single Line Textbox' || props?.fieldtype === 'Multi Line Textbox') && (
-            <Field>
-              <FieldLabel htmlFor="noOfCharacters" version="v2">
-                Number of Characters
-              </FieldLabel>
-              <div className='d-flex align-items-center'>
-                <TextInput
-                  type="number"
-                  value={toggleStates?.minChars}
-                  placeholder="Min"
-                  version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('minChars', e, true))}
-                />
-                <span className='fields-group-separator'>to</span>
-                <TextInput
-                  type="number"
-                  value={toggleStates?.maxChars}
-                  placeholder="Max"
-                  version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('maxChars', e, true))}
-                />
-              </div>
-            </Field>
-          )}
+          
 
           {(props?.fieldtype === 'Dropdown') && 
           <>
@@ -469,65 +447,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                 />
               </Field>
             </>
-          )}
-
-          {props?.fieldtype === 'Number' && (
-            <Field>
-            <FieldLabel htmlFor="range" version="v2">
-              Range
-            </FieldLabel>
-            <div className='d-flex align-items-center'>
-              <TextInput
-                type="number"
-                value={toggleStates?.minRange}
-                placeholder="Min"
-                version="v2"
-                onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('minRange', e, true))}
-              />
-              <span className='fields-group-separator'>to</span>
-              <TextInput
-                type="number"
-                value={toggleStates?.maxRange}
-                placeholder="Max"
-                version="v2"
-                onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('maxRange', e, true))}
-              />
-            </div>
-          </Field>
-          )}
-
-          {props?.fieldtype === 'File' && (
-            <Field>
-              <FieldLabel htmlFor="fileSize" version="v2">
-                File Size Limit (MB)
-              </FieldLabel>
-              <Tooltip content={'min and max size (in MB) of file that the user will be allowed o upload.'} position="right">
-                <Icon
-                  icon="Question"
-                  size="small"
-                  version="v2"
-                  className='Help'
-                />
-              </Tooltip>
-              <div className='d-flex align-items-center'>
-                <TextInput
-                  type="number"
-                  value={toggleStates?.minSize}
-                  placeholder="Min"
-                  version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('minSize', e, true))}
-                />
-                <span className='fields-group-separator'>to</span>
-                <TextInput
-                  type="number"
-                  value={toggleStates?.maxSize}
-                  placeholder="Max"
-                  version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('maxSize', e, true))}
-                />
-              </div>
-            </Field>
-          )}
+          )}  
 
           {props?.fieldtype === 'Link' && (
             <>
@@ -581,12 +501,12 @@ const AdvancePropertise = (props: SchemaProps) => {
             <div className="Radio-class">
               <Radio
                 label={'True'}
-                checked={stringToBoolean(toggleStates?.default_value || '') === true}
+                checked={toggleStates?.default_value === true}
                 onChange={() => handleRadioChange('default_value',true)}>
               </Radio>
               <Radio
                 label={'False'}
-                checked={stringToBoolean(toggleStates?.default_value || '') === false}
+                checked={toggleStates?.default_value === false}
                 onChange={() => handleRadioChange('default_value',false)}>
               </Radio>
 
@@ -641,7 +561,7 @@ const AdvancePropertise = (props: SchemaProps) => {
 
                 </>
               )}
-              {props?.fieldtype !== 'Global' && (
+              {(props?.fieldtype !== 'Global' && props?.fieldtype !== 'Boolean') && (
                 <div className='ToggleWrap'>
                   <ToggleSwitch
                     label="Mandatory"
