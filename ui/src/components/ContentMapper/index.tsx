@@ -887,19 +887,22 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.otherCmsType === "Group" ||
               data?.otherCmsField === 'title' ||
               data?.otherCmsField === 'url' ||
-              data?.otherCmsType === "reference"
+              data?.contentstackFieldType === "global_field"
             }
           />
         </div>
-        {data?.otherCmsType !== 'Group' &&
-          data?.otherCmsField !== 'title' &&
-          data?.otherCmsField !== 'url' &&
-          data?.otherCmsType !== 'reference' &&
+          {!(
+          data?.otherCmsType === 'Group' ||
+          data?.otherCmsField === 'title' ||
+          data?.otherCmsField === 'url' ||
+          data?.otherCmsType === 'reference' ||
+          data?.otherCmsType === 'global_field'
+           ) && (
           <Tooltip 
             content="Advanced properties" 
             position="top"
             disabled={
-              data?.otherCmsField === 'title' ||
+              data?.otherCmsField === 'title' || 
               data?.otherCmsField === 'url'
             }
           >
@@ -912,7 +915,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               }
             />
           </Tooltip>
-        }
+    )}
       </div>
     );
   };
@@ -1331,7 +1334,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             isDisabled: data?.contentstackFieldType === 'text' ||
               data?.contentstackFieldType === 'group' ||
               data?.contentstackFieldType === 'url' ||
-              data?.otherCmsType === "reference"
+              data?.otherCmsType === "reference" || 
+              data?.contentstackFieldType === "global_field"
           }
           : {
           label: `${selectedOption} matches`,
