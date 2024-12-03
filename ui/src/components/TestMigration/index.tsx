@@ -59,11 +59,11 @@ const TestMigration = () => {
 
   // to disable buttons as per isMigrated state
   useEffect(() => {
-    if (newMigrationData?.testStacks.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === false) {
+    if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === false) {
       setDisableCreateStack(true);
     }
 
-    if (newMigrationData?.testStacks.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
+    if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
       setdisableTestMigration(true);
     }
   }, [newMigrationData]);
@@ -76,7 +76,7 @@ const TestMigration = () => {
     //get org plan details
     try {
       const orgDetails = await getOrgDetails(selectedOrganisation?.value);
-      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features).find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
+      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features)?.find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
 
       const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
 
