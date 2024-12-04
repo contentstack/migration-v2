@@ -1,11 +1,12 @@
 {
   "title": "Settings",
   "project": {
-    "title": "Project",
-    "name": "Project Name",
-    "description": "Project Description",
+    "title": "General",
+    "name": "Name",
+    "description": "Description",
+    "description_placeholder": "Enter a description",
     "email": "Project Owner Email",
-    "general": "General",
+    "general": "Project Information",
     "delete_project": {
       "open_in_new_tab": false,
       "theme": "secondary",

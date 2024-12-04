@@ -254,7 +254,7 @@ const Migration = () => {
               isCompleted={isCompleted}
               handleOnAllStepsComplete={handleOnAllStepsComplete}/>,
         id:'1',
-        title:'Legacy CMS'
+        title:'Select Legacy CMS'
       },
       {
         data: <DestinationStackComponent
@@ -265,22 +265,22 @@ const Migration = () => {
               isCompleted={isCompleted}
               handleOnAllStepsComplete={handleOnAllStepsComplete} />,
         id:'2',
-        title:'Destination Stack'
+        title:'Select Destination Stack'
       },
       {
         data: <ContentMapper ref={saveRef} handleStepChange={handleStepChange}/>,
         id:'3',
-        title:'Content Mapping'
+        title:'Map Content Fields'
       },
       {
         data: <TestMigration />,
         id:'4',
-        title:'Test Migration'
+        title:'Run Test Migration'
       },
       {
         data: <MigrationExecution />,
         id:'5',
-        title:'Migration Execution'
+        title:'Execute Migration'
       }
      ]
      return steps;

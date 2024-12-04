@@ -23,9 +23,9 @@ import {
   getFieldMapping,
   updateContentType,
   resetToInitialMapping,
-  fetchExistingContentType,
-  updateContentMapper,
-  fetchGlobalField
+  getExistingContentTypes,
+  getExistingGlobalFields,
+  updateContentMapper
 } from '../../services/api/migration.service';
 
 // Redux
@@ -81,6 +81,7 @@ const Fields: MappingFields = {
   'multi_line_text':{
     label : 'Multi Line Textbox',
     options : {
+      'Multi Line Textbox': 'multi_line_text',
       'HTML Rich text Editor': 'html',
       'JSON Rich Text Editor':'json'}
   },
@@ -97,6 +98,13 @@ const Fields: MappingFields = {
       'HTML Rich text Editor': 'html',
       'JSON Rich Text Editor':'json'}
 
+  },
+  'markdown':{
+    label : 'Markdown',
+    options : {
+      'Markdown':'markdown',
+      'HTML Rich text Editor':'html',
+      'JSON Rich Text Editor':'json'}
   },
   'text':{
     label : 'Single Line Textbox',
@@ -153,7 +161,7 @@ const Fields: MappingFields = {
       'Select':'select'
     }
   },
-  'checkBox': {
+  'checkbox': {
     label:'Select',
     options: {'Select':'checkbox'}
   },
@@ -200,10 +208,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   const [searchText, setSearchText] = useState('');
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
-  const [otherCmsTitle, setOtherCmsTitle] = useState(contentTypes[0]?.otherCmsTitle);
+  const [otherCmsTitle, setOtherCmsTitle] = useState('');
   const [contentTypeUid, setContentTypeUid] = useState<string>('');
 
-  const [isContentType, setIsContentType] = useState<boolean>(contentTypes?.[0]?.type === "content_type");
+  const [isContentType, setIsContentType] = useState<boolean>(true);
   const [contentModels, setContentModels] = useState<ContentTypeList[]>([]);
 
   const [selectedContentType, setSelectedContentType] = useState<ContentType>();
@@ -213,9 +221,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const [contentTypeMapped, setContentTypeMapped] = useState<ContentTypeMap>(
     newMigrationData?.content_mapping?.content_type_mapping || {}
   );
+
   const [otherContentType, setOtherContentType] = useState<FieldTypes>({
-    label: contentTypeMapped?.[otherCmsTitle] || `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
-    value: contentTypeMapped?.[otherCmsTitle] || `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+    label: contentTypeMapped?.[otherCmsTitle] ?? `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+    value: contentTypeMapped?.[otherCmsTitle] ?? `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
   });
   const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
   
@@ -227,7 +236,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     nonLocalizable: false
   });
 
-  const [active, setActive] = useState<number>(0);
+  const [active, setActive] = useState<number | null>(0);
 
   const [searchContentType, setSearchContentType] = useState('');
 
@@ -291,7 +300,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   useEffect(() => {
     const mappedContentType = contentModels && contentModels?.find((item)=> item?.title === newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle]);
 
-    if (contentTypeMapped && otherCmsTitle  ) {
+    // if (contentTypeMapped && otherCmsTitle  ) {
       
       if (mappedContentType?.uid) {
         setOtherContentType({
@@ -300,13 +309,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           value: mappedContentType?.title
         });
         setIsContentDeleted(false);
-      } else {
-        setOtherContentType({
-          label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
-          value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
-        });
-      }
-    }
+      } 
+      // else {
+      //   setOtherContentType({
+      //     label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+      //     value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
+      //   });
+      // }
+    // }
   }, [contentTypeMapped, otherCmsTitle, contentModels]);
 
   useEffect(()=>{
@@ -414,11 +424,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // To fetch existing content types or global fields as per the type
   useEffect(() => {
     if(isContentType) {      
-      setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes)) ?? []);
+      setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes ?? [])));
     } else {
-      if (reduxGlobalFields?.length > 0) {
-        setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields)) ?? []);
-      }
+      // if (reduxGlobalFields?.length > 0) {
+        setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields ?? [])));
+      // }
     }
   }, [isContentType, reduxContentTypes, reduxGlobalFields]);
 
@@ -603,19 +613,17 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const openContentType = (i: number) => {
     setIsFieldDeleted(false);
     setActive(i);
-    const otherTitle = contentTypes?.[i]?.otherCmsTitle;
+    const otherTitle = filteredContentTypes?.[i]?.otherCmsTitle;
     setOtherCmsTitle(otherTitle);
-      
-    // setOtherContentType({ 
-    //   label: contentTypeMapped?.[otherTitle] || 'Select content type from existing stack', 
-    //   value: contentTypeMapped?.[otherTitle] || 'Select content type from existing stack'
-    // });
-
-    setContentTypeUid(contentTypes?.[i]?.id ?? '');
-    fetchFields(contentTypes?.[i]?.id ?? '', searchText || '');
-    setOtherCmsUid(contentTypes?.[i]?.otherCmsUid);
-    setSelectedContentType(contentTypes?.[i]);
-    setIsContentType(contentTypes?.[i]?.type === "content_type");
+    setContentTypeUid(filteredContentTypes?.[i]?.id ?? '');
+    fetchFields(filteredContentTypes?.[i]?.id ?? '', searchText || '');
+    setOtherCmsUid(filteredContentTypes?.[i]?.otherCmsUid);
+    setSelectedContentType(filteredContentTypes?.[i]);
+    setIsContentType(filteredContentTypes?.[i]?.type === "content_type");
+    setOtherContentType({ 
+      label: contentTypeMapped?.[otherTitle] ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
+      value: contentTypeMapped?.[otherTitle] ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`
+    });
   }
 
   const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean) => {
@@ -633,19 +641,25 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setSelectedEntries(newTableData);
   };
 
-  const handleSchemaPreview = (title: string) => {
-    return cbModal({
-      component: (props: ModalObj) => (
-        <SchemaModal
-          schemaData={tableData}
-          contentType={title}
-          {...props}
-        />
-      ),
-      modalProps: {
-        shouldCloseOnOverlayClick: true
-      }
-    });
+  const handleSchemaPreview = async (title: string, contentTypeId: string) => {
+    try {
+      const { data } = await getFieldMapping(contentTypeId ?? '', 0, 30, searchText ?? '', projectId);
+      return cbModal({
+        component: (props: ModalObj) => (
+          <SchemaModal
+            schemaData={data?.fieldMapping}
+            contentType={title}
+            {...props}
+          />
+        ),
+        modalProps: {
+          shouldCloseOnOverlayClick: true
+        }
+      });
+    } catch (err) {
+      console.log(err);
+      return err;
+    }
   };
 
   const accessorCall = (data: FieldMapType) => {
@@ -879,14 +893,18 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.otherCmsType === "Group" ||
               data?.otherCmsField === 'title' ||
               data?.otherCmsField === 'url' ||
-              data?.otherCmsType === "reference"
+              data?.otherCmsField === 'reference'||
+              data?.contentstackFieldType === "global_field"
             }
           />
         </div>
-        {data?.otherCmsType !== 'Group' &&
-          data?.otherCmsField !== 'title' &&
-          data?.otherCmsField !== 'url' &&
-          data?.otherCmsType !== 'reference' &&
+          {!(
+          data?.otherCmsType === 'Group' ||
+          data?.otherCmsField === 'title' ||
+          data?.otherCmsField === 'url' ||
+          data?.otherCmsType === 'reference' ||
+          data?.otherCmsType === 'global_field'
+           ) && (
           <Tooltip 
             content="Advanced properties" 
             position="top"
@@ -904,7 +922,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               }
             />
           </Tooltip>
-        }
+    )}
       </div>
     );
   };
@@ -1323,7 +1341,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             isDisabled: data?.contentstackFieldType === 'text' ||
               data?.contentstackFieldType === 'group' ||
               data?.contentstackFieldType === 'url' ||
-              data?.otherCmsType === "reference"
+              data?.otherCmsType === "reference" || 
+              data?.contentstackFieldType === "global_field"
           }
           : {
           label: `${selectedOption} matches`,
@@ -1592,54 +1611,38 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     }
   };
-  
 
-  // Function to fetch single content type
+  /**
+   * Retrieves existing content types for a given project.
+   * @returns An array containing the retrieved content types or global fields based on condition if itContentType true and if existing content type or global field id is passed then returns an object containing title, uid and schema of that particular content type or global field.
+   */
   const handleFetchContentType = async () => {
     if (isContentType) {
       try {
-        const { data , status} = await fetchExistingContentType(projectId, otherContentType?.id ?? '');
+        const { data , status} = await getExistingContentTypes(projectId, otherContentType?.id ?? '');
 
-        if (status == 201) {
-          if (data?.contentTypes?.length > 0) {
-            setContentModels(data?.contentTypes);
-            Notification({
-              notificationContent: { text: 'Content Types fetched successfully' },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'success'
-            });
-          } else if (data?.schema?.length > 0) {
-          
-            const contentTypesArr: ContentTypeList[] = contentModels;
-            const index = contentModels?.findIndex(ct => ct?.uid === data?.uid);
-          
-            if(index != -1) {      
-              contentTypesArr[index] = data;
-            }
-      
-            setContentModels(contentTypesArr);
-            setContentTypeSchema(data?.schema);
-            Notification({
-              notificationContent: { text: 'Content type data fetched successfully' },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'success'
-            });
-          } else {
-            Notification({
-              notificationContent: { text: "No content found in the stack" },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'error'
-            });
-          }
+        if (status == 201 && data?.contentTypes?.length > 0) {
+          setContentModels(data?.contentTypes);
+          Notification({
+            notificationContent: { text: 'Content Types fetched successfully' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'success'
+          });
+          if (data?.selectedContentType?.schema?.length > 0) {
+            setContentTypeSchema(data?.selectedContentType?.schema);
+          } 
+        } else {
+          Notification({
+            notificationContent: { text: "No content found in the stack" },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'error'
+          });
         }
       } catch (error) {
         console.log(error);
@@ -1647,42 +1650,19 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     } else {
       try {
-        const { data, status } = await fetchGlobalField(projectId, otherContentType?.id ?? '');
+        const { data, status } = await getExistingGlobalFields(projectId, otherContentType?.id ?? '');
 
-        if (status == 201) {
-
-          if (data?.globalFields?.length > 0) {
-            setContentModels(data?.globalFields);
-            Notification({
-              notificationContent: { text: 'Global Fields fetched successfully' },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'success'
-            });
-
-          } else if (data?.schema?.length > 0) {
-            const index = contentModels?.findIndex(ct => ct?.uid === data?.uid);
-
-            const globalFieldsArr: ContentTypeList[] = contentModels;
-            
-            if(index != -1) {      
-              globalFieldsArr[index] = data;
-            }
-            setContentModels(globalFieldsArr);
-            setContentTypeSchema(data?.schema);
-
-            Notification({
-              notificationContent: { text: 'Global Field data fetched successfully' },
-              notificationProps: {
-                position: 'bottom-center',
-                hideProgressBar: false
-              },
-              type: 'success'
-            });
-          }
-          } else {
+        if (status == 201 && data?.globalFields?.length > 0) {
+          setContentModels(data?.globalFields);
+          Notification({
+            notificationContent: { text: 'Global Fields fetched successfully' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'success'
+          });
+        } else {
           Notification({
             notificationContent: { text: "No Global Fields found in the stack" },
             notificationProps: {
@@ -1791,9 +1771,20 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
+      
+      if (filteredCT?.some((ct) => ct?.otherCmsUid === otherCmsUid)) {
+        const selectedIndex = filteredCT.findIndex(ct => ct?.otherCmsUid === otherCmsUid);
+        setActive(selectedIndex);
+      } else {
+        setActive(null)
+      }
+      
     } else {
       setFilteredContentTypes(contentTypes);
       setCount(contentTypes?.length);
+      
+      const selectedIndex = contentTypes.findIndex(ct => ct?.otherCmsUid === otherCmsUid);
+      setActive(selectedIndex);
     }   
     setShowFilter(false);
   }
@@ -1888,11 +1879,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                   const icon = STATUS_ICON_Mapping[content?.status] || '';
 
                   const format = (str: string) => {
-                    const frags = str.split('_');
+                    const frags = str?.split('_');
                     for (let i = 0; i < frags?.length; i++) {
-                      frags[i] = frags[i].charAt(0).toUpperCase() + frags[i].slice(1);
+                      frags[i] = frags[i]?.charAt(0).toUpperCase() + frags[i]?.slice(1);
                     }
-                    return frags.join(' ');
+                    return frags?.join(' ');
                   }
                   return (
                     <li key={`${index.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
@@ -1926,7 +1917,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           </span>
                           <span className='ml-10'>
                             <Tooltip content="Schema Preview" position="bottom">
-                              <button className='list-button schema-preview' onClick={() => handleSchemaPreview(content?.otherCmsTitle)}>{SCHEMA_PREVIEW}</button>
+                              <button className='list-button schema-preview' onClick={() => handleSchemaPreview(content?.otherCmsTitle, content?.id ?? '')}>{SCHEMA_PREVIEW}</button>
                             </Tooltip>
                           </span>
                         </div>
@@ -1939,7 +1930,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             : <div className='no-content'>No Content Types Found.</div>
           }
         </div>
-
+        
         {/* Content Type Fields */}
         <div className="content-types-fields-wrapper">
           <div className="table-wrapper">
@@ -1966,7 +1957,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 component: (
                   <div className='d-flex align-items-center'>
                     {!isNewStack && (
-                      <Tooltip content={'fetch the content type'} position="left">
+                      <Tooltip content={'Fetch content type'} position="left">
                         <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
                          version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                          size='small' onClick={handleFetchContentType}>
@@ -1975,7 +1966,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                       </Tooltip>
                     )}
 
-                    <Tooltip content={'Reset to intial mapping'} position="left">
+                    <Tooltip content={'Reset to default mapping'} position="left">
                        <Button buttonType="light" icon={onlyIcon ? "v2-Restore" : ''} 
                        version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                        size='small' onClick={handleResetContentType}></Button>
@@ -1989,7 +1980,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           options={adjustedOption}
                           width="440px"
                           maxWidth="440px"
-                          placeholder={otherContentType && `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`}
+                          placeholder={otherContentType?.label}
+                          isSearchable
                           version="v2"
                         />
                       </div>
