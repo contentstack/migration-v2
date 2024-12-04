@@ -254,8 +254,19 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
                       entryObj[fsc?.contentstackFieldUid] = `/${entry?.meta?.key}`;
                     }
                     if (getLastKey(fsc?.uid) === field?.$?.key) {
-                      const content: any = await entriesFieldCreator({ field: fsc, content: field?.content, idCorrector, allAssetJSON, contentTypes, entriesData, locale })
-                      entryObj[fsc?.contentstackFieldUid] = content;
+                      const content: any = await entriesFieldCreator({ field: fsc, content: field?.content, idCorrector, allAssetJSON, contentTypes, entriesData, locale });
+                      const gpData: any = ctType?.fieldMapping?.find((elemant: any) => elemant?.uid === fsc?.uid?.split('.')?.[0]);
+                      if (gpData?.uid) {
+                        const ctUid = uidCorrector({ uid: gpData?.uid });
+                        if (ctUid !== gpData?.contentstackFieldUid && fsc?.contentstackFieldUid?.includes(ctUid)) {
+                          const newUid: any = fsc?.contentstackFieldUid?.replace(ctUid, gpData?.contentstackFieldUid);
+                          entryObj[newUid] = content;
+                        } else {
+                          entryObj[fsc?.contentstackFieldUid] = content;
+                        }
+                      } else {
+                        entryObj[fsc?.contentstackFieldUid] = content;
+                      }
                     }
                   }
                 }
