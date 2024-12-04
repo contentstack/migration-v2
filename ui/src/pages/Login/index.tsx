@@ -30,6 +30,7 @@ import { userSession, requestSMSToken } from '../../services/api/login.service';
 
 // Interface
 import { IProps, IStates, defaultStates, User, UserRes, LoginType } from './login.interface';
+import usePreventBackNavigation from '../../hooks/usePreventBackNavigation';
 
 //Components
 import AccountPage from '../../components/AccountPage';
@@ -40,6 +41,8 @@ import { RootState } from '../../store';
 
 const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
+
+  usePreventBackNavigation();
 
   // ************* Fetch Login Data ************
   const fetchData = async () => {
