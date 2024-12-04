@@ -191,7 +191,7 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         [field]: value,
-        validationRegex: '',
+        validationRegex: currentToggleStates?.validationRegex || '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
@@ -203,14 +203,6 @@ const AdvancePropertise = (props: SchemaProps) => {
     );
     
   };
-
-  const stringToBoolean = (value:string) =>{
-
-     
-     return value === 'true';
-  
-
-  }
 
   const handleOnClick = ( index:number) =>{
     
