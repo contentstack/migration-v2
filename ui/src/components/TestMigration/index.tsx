@@ -22,7 +22,7 @@ import { INewMigration } from '../../context/app/app.interface';
 
 
 // Component
-import LogViewer from '../LogScreen';
+import TestMigrationLogViewer from '../LogScreen';
 
 // CSS
 import './index.scss';
@@ -146,6 +146,7 @@ const TestMigration = () => {
       );
 
       if (testRes?.status === 200) {
+        setdisableTestMigration(true);
         handleMigrationState(true);
         Notification({
           notificationContent: { text: 'Test Migration started' },
@@ -156,12 +157,12 @@ const TestMigration = () => {
           type: 'message'
         });
 
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key}],
-          test_migration: { ...newMigrationData?.test_migration}
-        };
-        dispatch(updateNewMigrationData((newMigrationDataObj)));
+        // const newMigrationDataObj: INewMigration = {
+        //   ...newMigrationData,
+        //   testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, isMigrated: false}],
+        //   // test_migration: { ...newMigrationData?.test_migration}
+        // };
+        // dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
     } catch (error) {
       console.log(error);
@@ -173,9 +174,7 @@ const TestMigration = () => {
     setDisableCreateStack(newState);
     if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
       setdisableTestMigration(!newState);
-    } else {
-      setdisableTestMigration(newState);
-    }
+    } 
   } ;
 
   return (
@@ -251,7 +250,7 @@ const TestMigration = () => {
         <div className='content-block'>
           <div className='content-header'>Execution Logs</div>
           <div>
-            <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
+            <TestMigrationLogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
           </div>
         </div>
       </div>
