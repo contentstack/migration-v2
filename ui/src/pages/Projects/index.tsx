@@ -22,6 +22,7 @@ import { validateObject } from '../../utilities/functions';
 import { ProjectsType, ProjectsObj } from './projects.interface';
 import { ModalObj } from '../../components/Modal/modal.interface';
 import { CTA } from '../Home/home.interface';
+import usePreventBackNavigation from '../../hooks/usePreventBackNavigation';
 
 
 // Components
@@ -58,6 +59,8 @@ const Projects = () => {
   const [loadStatus, setLoadStatus] = useState(true);
   const [searchText, setSearchText] = useState(search);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  usePreventBackNavigation();
 
   const fetchProjects = async () => {
        setLoadStatus(true); 
