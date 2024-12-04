@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import logger from './logger.js';
 import { getLogMessage } from './index.js';
 import customLogger from './custom-logger.utils.js';
 import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
+import { contentMapperService } from "../services/contentMapper.service.js";
 
 const {
   GLOBAL_FIELDS_FILE_NAME,
@@ -38,13 +38,14 @@ function extractValue(input: string, prefix: string, anoter: string): any {
   }
 }
 
-const arrangGroups = ({ schema }: any) => {
+const arrangGroups = ({ schema, newStack }: any) => {
   const dtSchema: any = [];
   schema?.forEach((item: any) => {
     if (item?.contentstackFieldType === 'group') {
       const groupSchema: any = { ...item, schema: [] }
       schema?.forEach((et: any) => {
-        if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`)) {
+        if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`) ||
+          (newStack === false && et?.uid?.includes(`${item?.uid}.`))) {
           groupSchema?.schema?.push(et);
         }
       })
@@ -581,14 +582,46 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
 };
 
-export const contenTypeMaker = async ({ contentType, destinationStackId, projectId }: any) => {
+const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id }: any) => {
+  try {
+    const ctUid = keyMapper?.[contentTypeUid];
+    const req: any = {
+      params: {
+        projectId,
+        contentTypeUid: ctUid
+      },
+      body: {
+        token_payload: {
+          region,
+          user_id
+        }
+      }
+    }
+    const contentTypeSchema = await contentMapperService.getExistingContentTypes(req);
+    return contentTypeSchema?.selectedContentType;
+  } catch (err) {
+    console.error("Error while getting the existing contentType from contenstack", err)
+    return {};
+  }
+}
+
+export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
   const srcFunc = 'contenTypeMaker';
   const ct: ContentType = {
     title: contentType?.contentstackTitle,
     uid: contentType?.contentstackUid,
     schema: []
   }
-  const ctData: any = arrangGroups({ schema: contentType?.fieldMapping })
+  let currentCt: any = {};
+  if (Object?.keys?.(keyMapper)?.length && keyMapper?.[contentType?.contentstackUid]) {
+    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id });
+    if (currentCt?.uid) {
+      ct.title = currentCt?.title;
+      ct.uid = currentCt?.uid;
+    }
+  }
+  console.info("🚀 ~ contenTypeMaker ~ currentCt:", currentCt)
+  const ctData: any = arrangGroups({ schema: contentType?.fieldMapping, newStack })
   ctData?.forEach((item: any) => {
     if (item?.contentstackFieldType === 'group') {
       const group: Group = {
