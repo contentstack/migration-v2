@@ -75,7 +75,7 @@ export interface UpdatedSettings {
   /**
    * The minimum size allowed.
    */
-  minSize?: string;
+  minSize?: number;
 
   /**
    * The maximum size allowed.
@@ -121,7 +121,7 @@ export interface UpdatedSettings {
 
   embedObjects?: any;
 
-  default_value?: string;
+  default_value?: string |boolean;
   options?: any[]
 }
 
@@ -183,7 +183,7 @@ export interface StateType {
   /**
    * The minimum size allowed.
    */
-  minSize?: string;
+  minSize?: number;
 
   /**
    * The maximum size allowed.
