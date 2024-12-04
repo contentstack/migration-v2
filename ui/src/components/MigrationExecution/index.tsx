@@ -97,6 +97,7 @@ const MigrationExecution = () => {
                       name="stackKey"
                       value={getPlaceHolder(item?.title)}
                       version="v2"
+                      disabled
                       // width="regular"
                     />
                   </Field>
