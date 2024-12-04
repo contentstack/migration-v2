@@ -68,6 +68,8 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       })
     );
 
+    console.info("res test", res)
+
     if (err) {
       logger.error(
         getLogMessage(
@@ -92,7 +94,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_step = STEPPER_STEPS['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
-        data.projects[index].test_stacks.push({ stackUid: res?.data?.stack?.api_key, isMigrated: false });
+        data.projects[index].test_stacks.push({ stackUid: res?.data?.stack?.api_key, stackName: res?.data?.stack?.name, isMigrated: false });
       });
     }
     return {
