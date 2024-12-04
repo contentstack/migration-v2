@@ -67,7 +67,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   /****  ALL HOOKS HERE  ****/
   
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation); 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
 
   const newMigrationDataRef = useRef(newMigrationData);
@@ -77,7 +76,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [showMessage, setShowMessage] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
   const [validationMessgae, setValidationMessage] = useState<string>('');
   const [isValidationAttempted, setIsValidationAttempted] = useState<boolean>(false);
-  const [isDisabled, setIsDisabled] = useState<boolean>( newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
+  const [isDisabled, setIsDisabled] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
   const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
   const [cmsType, setCmsType]= useState('');
   const [fileDetails, setFileDetails] = useState(newMigrationData?.legacy_cms?.uploadedFile?.file_details);
@@ -86,7 +85,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [showProgress, setShowProgress]= useState<boolean>(false);
   const [fileFormat, setFileFormat] = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);
   const [processing, setProcessing] = useState('');
-  const [reValidate, setReValidate] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
   //const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
   //const [setIsFormatValid] = useState<boolean>(false);
 
@@ -144,7 +142,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   
       if(status === 200){ 
         setIsValidated(true);
-        setValidationMessage('Validation is successful');
+        setValidationMessage('File validated successfully.');
      
         setIsDisabled(true); 
         
@@ -169,7 +167,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       }
       else{
         setIsValidated(false);
-        setValidationMessage('Validation is failed');
+        setValidationMessage('Validation failed.');
         setIsValidationAttempted(true);
         setProgressPercentage(100);
   
@@ -224,7 +222,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setIsConfigLoading(true);
     const {data, status} = await getConfig();
   
-    if (!isEmptyString(fileDetails?.localPath) && data?.localPath !== fileDetails?.localPath) {
+    if (!isEmptyString(fileDetails?.localPath) && data?.localPath !== fileDetails?.localPath && !isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)) {
       setIsDisabled(false); 
       setShowMessage(true);
       setValidationMessage('');
@@ -277,8 +275,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       });
 
       //setIsFormatValid(isFormatValid);    
-      
-      setIsDisabled(!isFormatValid);
+
+      setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
       if(!isFormatValid){
         setValidationMessage('');
         dispatch(updateNewMigrationData({
@@ -391,11 +389,14 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     if(newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
       setValidationMessage('');
     }
+    if(!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated ){
+      setIsDisabled(false);
+    }
    
     // else{
     //   setIsValidated(false);
     // }
-    setReValidate(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
+   
   },[isValidated,newMigrationData]);
 
 
@@ -468,7 +469,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             version="v2"
             disabled={isDisabled}
           > 
-            Validate
+            Validate File
           </Button>
            
         </div>

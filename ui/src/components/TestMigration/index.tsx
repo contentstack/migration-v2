@@ -37,6 +37,7 @@ const TestMigration = () => {
   const [disableTestMigration, setdisableTestMigration] = useState<boolean>(false);
 
   const [disableCreateStack, setDisableCreateStack] = useState<boolean>(false);
+  const [stackLimitReached, setStackLimitReached] = useState<boolean>(false);
   
   const { projectId = '' } = useParams();
   const dispatch = useDispatch();
@@ -59,11 +60,11 @@ const TestMigration = () => {
 
   // to disable buttons as per isMigrated state
   useEffect(() => {
-    if (newMigrationData?.testStacks.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === false) {
+    if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === false) {
       setDisableCreateStack(true);
     }
 
-    if (newMigrationData?.testStacks.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
+    if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
       setdisableTestMigration(true);
     }
   }, [newMigrationData]);
@@ -76,7 +77,7 @@ const TestMigration = () => {
     //get org plan details
     try {
       const orgDetails = await getOrgDetails(selectedOrganisation?.value);
-      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features).find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
+      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features)?.find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
 
       const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
 
@@ -85,7 +86,9 @@ const TestMigration = () => {
       const stack_count = stackData?.data?.stacks?.length;
 
       if (stack_count >= max_stack_limit) {
-        // setIsLoading(false);
+        setIsLoading(false);
+        setDisableCreateStack(true);
+        setStackLimitReached(true)
         Notification({
           notificationContent: { text: 'You have reached the maximum limit of stacks for your organization' },
           type: 'warning'
@@ -180,15 +183,20 @@ const TestMigration = () => {
         <div className='content-block'>
           <div className='content-body'>
             {subtitle && <p>{subtitle}</p> }
-            <Button
-              className="mt-3"
-              onClick={handleCreateTestStack}
-              version="v2"
-              disabled={disableCreateStack}
-              isLoading={isStackLoading}
-            >
-              {createStackCta?.title}
-            </Button>
+            <Tooltip content={stackLimitReached ? 'Please contact support team' : null}  
+              position='top' disabled={!stackLimitReached}>
+              <Button
+                className="mt-3"
+                onClick={handleCreateTestStack}
+                version="v2"
+                disabled={disableCreateStack}
+                isLoading={isStackLoading}
+              >
+                {createStackCta?.title}
+              </Button>
+
+            </Tooltip>
+           
             {newMigrationData?.test_migration?.stack_api_key && 
               <Field
                 id="stack"
@@ -207,6 +215,7 @@ const TestMigration = () => {
                       value={`${newMigrationData?.test_migration?.stack_api_key}`}
                       version="v2"
                       width="medium"
+                      disabled
                     />
                   )}
 
