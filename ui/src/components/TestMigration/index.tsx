@@ -60,7 +60,7 @@ const TestMigration = () => {
   // to disable buttons as per isMigrated state
   useEffect(() => {
     if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === false) {
-      setDisableCreateStack(true);
+      setDisableCreateStack(false);
     }
 
     if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
@@ -76,7 +76,7 @@ const TestMigration = () => {
     //get org plan details
     try {
       const orgDetails = await getOrgDetails(selectedOrganisation?.value);
-      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features)?.find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
+      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features)?.find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') ?? '';
 
       const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
 
@@ -125,7 +125,7 @@ const TestMigration = () => {
 
         const newMigrationDataObj: INewMigration = {
           ...newMigrationData,
-          test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
+          test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key, stack_name: res?.data?.data?.data?.stack?.name }
         };
         dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
@@ -155,8 +155,8 @@ const TestMigration = () => {
 
         const newMigrationDataObj: INewMigration = {
           ...newMigrationData,
-          testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, isMigrated: true} ],
-          test_migration: { ...newMigrationData?.test_migration, isMigrationStarted: true, isMigrationComplete: false }
+          testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key}],
+          test_migration: { ...newMigrationData?.test_migration}
         };
         dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
@@ -168,7 +168,11 @@ const TestMigration = () => {
   // Function to update the parent state
   const handleMigrationState = (newState: boolean) => {
     setDisableCreateStack(newState);
-    setdisableTestMigration(!newState);
+    if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
+      setdisableTestMigration(!newState);
+    } else {
+      setdisableTestMigration(newState);
+    }
   } ;
 
   return (
