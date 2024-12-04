@@ -61,6 +61,8 @@ const Migration = () => {
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isProjectMapper, setIsProjectMapper] = useState<boolean>(false);
 
+  const [disableMigration, setDisableMigration] = useState(false);
+
   const saveRef = useRef<ContentTypeSaveHandles>(null);
 
   useEffect(() => {
@@ -466,6 +468,7 @@ const Migration = () => {
 
       if (migrationRes?.status === 200) {
         setIsLoading(false);
+        setDisableMigration(true);
         Notification({
           notificationContent: { text: 'Migration Execution process started' },
           notificationProps: {
@@ -474,13 +477,6 @@ const Migration = () => {
           },
           type: 'message'
         });
-
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          migration_execution: { ...newMigrationData?.migration_execution, migrationStarted: true }
-        };
-    
-        dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
     } catch (error) {
       // return error;
@@ -508,7 +504,7 @@ const Migration = () => {
   return (
     <div className='migration-steps-wrapper'>
       {projectData && 
-        <MigrationFlowHeader projectData={projectData} handleOnClick={handleOnClickFunctions[curreentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef} finalExecutionStarted={newMigrationData?.migration_execution?.migrationStarted}   />
+        <MigrationFlowHeader projectData={projectData} handleOnClick={handleOnClickFunctions[curreentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef} finalExecutionStarted={disableMigration}   />
       }
       <div className='steps-wrapper'>
         <HorizontalStepper ref={stepperRef} steps={createStepper(projectData ?? defaultMigrationResponse, handleClick)} handleSaveCT={saveRef?.current?.handleSaveContentType} changeDropdownState={changeDropdownState} />
