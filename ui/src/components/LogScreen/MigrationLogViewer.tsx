@@ -1,6 +1,6 @@
 // Libraries
 import React, { useEffect, useState, useRef } from 'react';
-import { Icon, Notification } from '@contentstack/venus-components';
+import { Icon, Notification, cbModal, Link } from '@contentstack/venus-components';
 import io from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
 
@@ -10,6 +10,10 @@ import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Interface
 import { INewMigration } from '../../context/app/app.interface';
+import { ModalObj } from '../Modal/modal.interface';
+
+// Components
+import MigrationCompletionModal from '../Common/MigrationCompletionModal';
 
 // CSS
 import './index.scss';
@@ -25,14 +29,13 @@ const logStyles: { [key: string]: React.CSSProperties } = {
 
 type LogsType = {
   serverPath: string;
-  sendDataToParent?: (isMigrationStarted: boolean) => void | undefined;
 }
 
 /**
- * TestMigrationLogViewer component displays logs received from the server.
+ * MigrationLogViewer component displays logs received from the server.
  * @param {string} serverPath - The path of the server to connect to.
  */
-const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
+const MigrationLogViewer = ({ serverPath }: LogsType) => {
   const [logs, setLogs] = useState<string[]>([JSON.stringify({ message: "Migration logs will appear here once the process begins.", level: ''})]);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
@@ -137,7 +140,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
         const logObject = JSON.parse(log);
         const message = logObject.message;
 
-        if (message === "Test Migration Process Completed" || message === "Migration Execution Process Completed") {
+        if (message === "Migration Process Completed") {
           Notification({
             notificationContent: { text: message },
             notificationProps: {
@@ -146,15 +149,26 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
             },
             type: 'success'
           });
-          sendDataToParent?.(false);
-  
-          const newMigrationObj: INewMigration = {
+
+          const newMigrationDataObj: INewMigration = {
             ...newMigrationData,
-            testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, isMigrated: true}]
-            // test_migration: { ...newMigrationData?.test_migration, isMigrationComplete: true, isMigrationStarted: false }
+            migration_execution: { ...newMigrationData?.migration_execution, migrationStarted: true }
           };
-  
-          dispatch(updateNewMigrationData((newMigrationObj)));
+      
+          dispatch(updateNewMigrationData((newMigrationDataObj)));
+
+          return cbModal({
+            component: (props: ModalObj) => (
+              <MigrationCompletionModal
+                {...props}
+                data={newMigrationData?.stackDetails}
+              />
+            ),
+            modalProps: {
+              size: 'xsmall',
+              shouldCloseOnOverlayClick: false
+            }
+          });
         }
       } catch (error) {
         console.error('Invalid JSON string', error);
@@ -179,25 +193,25 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
               const timestamp = logObject.timestamp;
               const message = logObject.message;
 
-              const migratedTestStack = newMigrationData?.testStacks?.find((test) => test?.stackUid === newMigrationData?.test_migration?.stack_api_key)
-
               return (
-                <>
-                  {migratedTestStack?.isMigrated
-                    ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                      <div className="log-message">{`Test Migration is completed for stack ${migratedTestStack?.stackName}`}</div>
+                newMigrationData?.migration_execution?.migrationStarted  
+                  ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
+                    <div className="log-message">
+                      Migration Execution process is completed. You can view in the selected stack 
+                      <Link href={`https://app.contentstack.com/#!/stack/${newMigrationData?.stackDetails?.value}/dashboard`} target='_blank' className='ml-4'>
+                        <strong>{newMigrationData?.stackDetails?.label}</strong>
+                      </Link>
                     </div>
-                    : !migratedTestStack?.isMigrated && message === "Migration logs will appear here once the process begins." 
-                      ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                        <div className="log-message">{message}</div>
-                      </div>
-                      : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
-                        <div className="log-number">{index}</div>
-                        <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
-                        <div className="log-message">{message}</div>
-                      </div>
-                  }
-                </>
+                  </div>
+                  : message === "Migration logs will appear here once the process begins."
+                    ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
+                      <div className="log-message">{message}</div>
+                    </div>
+                    : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
+                      <div className="log-number">{index}</div>
+                      <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
+                      <div className="log-message">{message}</div>
+                    </div>
               );
             } catch (error) {
               console.error('Invalid JSON string', error);
@@ -206,7 +220,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
         </div>
         
       </div>
-      {(newMigrationData?.test_migration?.isMigrationStarted || newMigrationData?.migration_execution?.migrationStarted) && ( 
+      {logs?.some((log) => log === "Migration logs will appear here once the process begins.")  && ( 
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
           <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
@@ -219,4 +233,4 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
   );
 };
 
-export default TestMigrationLogViewer;
+export default MigrationLogViewer;
