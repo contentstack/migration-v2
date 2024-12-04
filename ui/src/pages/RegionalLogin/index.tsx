@@ -12,6 +12,7 @@ import { CS_ENTRIES } from '../../utilities/constants';
 
 // Interface
 import { RegionType } from './regionalLogin.interface';
+import usePreventBackNavigation from '../../hooks/usePreventBackNavigation';
 
 // Style
 import './index.scss';
@@ -36,6 +37,8 @@ const RegionalLogin = () => {
   }, []);
 
   const { description, heading, regions } = data;
+
+  usePreventBackNavigation();
 
   return (
     <div className="d-flex vh-100 justify-content-center flex-column">
@@ -76,7 +79,7 @@ const RegionalLogin = () => {
                           className="body-4 fw-bold stretched-link"
                           onClick={(e) =>{
                             e.preventDefault();
-                            navigate(`/login?region=${region?.region}`)}
+                            navigate(`/login?region=${region?.region}`, { replace: true })}
                           }
                         >
                           <span className="link-basic-icon link-arrow">{region?.cta?.title}</span>
