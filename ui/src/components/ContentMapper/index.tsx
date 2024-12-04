@@ -893,6 +893,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.otherCmsType === "Group" ||
               data?.otherCmsField === 'title' ||
               data?.otherCmsField === 'url' ||
+              data?.otherCmsField === 'reference'||
               data?.contentstackFieldType === "global_field"
             }
           />
@@ -908,7 +909,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             content="Advanced properties" 
             position="top"
             disabled={
-              data?.otherCmsField === 'title' || 
+              data?.otherCmsField === 'title' ||
               data?.otherCmsField === 'url'
             }
           >

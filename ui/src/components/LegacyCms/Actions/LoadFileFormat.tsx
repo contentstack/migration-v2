@@ -128,6 +128,10 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     handleBtnClick();
   },[]);
 
+  useEffect(() => {
+    newMigrationDataRef.current = newMigrationData;
+  }, [newMigrationData]);
+
   
   return (
     <div className="p-3">
