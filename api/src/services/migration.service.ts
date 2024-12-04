@@ -218,8 +218,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
     const message = getLogMessage('startTestMigration', 'Starting Test Migration...', {});
     await customLogger(projectId, project?.current_test_stack_id, 'info', message);
     await setLogFilePath(loggerPath);
-    const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id });
-
+    const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.current_test_stack_id, region, user_id });
     switch (cms) {
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
@@ -244,9 +243,8 @@ const startTestMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
-
     await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
-    await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
+    // await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
   }
 }
 
@@ -260,8 +258,7 @@ const startMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id } = req?.body?.token_payload ?? {};
   await ProjectModelLowdb.read();
-  const project = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
-
+  const project: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const index = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
   if (index > -1) {
     ProjectModelLowdb.update((data: any) => {
@@ -283,7 +280,7 @@ const startMigration = async (req: Request): Promise<any> => {
       case CMS.SITECORE_V9:
       case CMS.SITECORE_V10: {
         if (packagePath) {
-          await siteCoreService?.createEntry({ packagePath, contentTypes, destinationStackId: project?.destination_stack_id, projectId });
+          await siteCoreService?.createEntry({ packagePath, contentTypes, master_locale: project?.stackDetails?.master_locale, destinationStackId: project?.destination_stack_id, projectId });
           await siteCoreService?.createLocale(req, project?.destination_stack_id, projectId);
           await siteCoreService?.createVersionFile(project?.destination_stack_id);
         }
