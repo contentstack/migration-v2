@@ -150,7 +150,8 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
   
           const newMigrationObj: INewMigration = {
             ...newMigrationData,
-            test_migration: { ...newMigrationData?.test_migration, isMigrationComplete: true, isMigrationStarted: false }
+            testStacks: [...newMigrationData?.testStacks ?? [], {isMigrated: true}]
+            // test_migration: { ...newMigrationData?.test_migration, isMigrationComplete: true, isMigrationStarted: false }
           };
   
           dispatch(updateNewMigrationData((newMigrationObj)));
@@ -177,12 +178,19 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
               const level = logObject.level;
               const timestamp = logObject.timestamp;
               const message = logObject.message;
+
+              const migratedTestStack = newMigrationData?.testStacks?.find((test) => test?.stackUid === newMigrationData?.test_migration?.stack_api_key)
+
               return (
-                message === "Migration logs will appear here once the process begins."
+                !migratedTestStack?.isMigrated && message === "Migration logs will appear here once the process begins."
                 ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
                   <div className="log-message">{message}</div>
                 </div>
-                : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
+                : migratedTestStack?.isMigrated
+                  ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
+                    <div className="log-message">{`Test Migration is completed for stack ${migratedTestStack?.stackName}`}</div>
+                  </div>
+                  : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
                     <div className="log-number">{index}</div>
                     <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
                     <div className="log-message">{message}</div>
@@ -193,6 +201,7 @@ const LogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
             }
           })}
         </div>
+        
       </div>
       {(newMigrationData?.test_migration?.isMigrationStarted || newMigrationData?.migration_execution?.migrationStarted) && ( 
         <div className='action-items'>
