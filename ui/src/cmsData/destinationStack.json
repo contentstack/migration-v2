@@ -1,7 +1,7 @@
 {
-  "title": "Destination Stack Details",
+  "title": "Select Destination Stack",
   "cta": "Continue To Content Mapping",
-  "description":"To proceed with your data migration, please select the appropriate stack from the designated organization.",
+  "description":"Select the stack you want to migrate content to from the assigned organization.",
   "new_stack": {
     "save_stack_cta": "Save",
     "new_stack_input": "Enter Stack Details Below",
