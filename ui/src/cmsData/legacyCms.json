@@ -337,12 +337,12 @@
       "_metadata": {
         "uid": "cs6c761d71844ac800"
       },
-      "title": "Add Source Prefix",
-      "description": "Add a 2–5 character prefix for the source name. Use only letters, no numbers or special characters.",
+      "title": "Add Source Affix",
+      "description": "Add a 2–5 character affix for the source name. Use only letters, no numbers or special characters.",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": false,
-      "empty_step_placeholder": "No Prefix Entered..."
+      "empty_step_placeholder": "No affix Entered..."
     },
     {
       "step_id": "Step3",
