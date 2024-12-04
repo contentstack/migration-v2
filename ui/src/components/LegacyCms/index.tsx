@@ -62,9 +62,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
   const [stepperKey] = useState<string>('legacy-Vertical-stepper');
 
-  const [isValidated, setisValidated] = useState<boolean>(
-    newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false
-  );
   const [isAllStepsCompleted, setIsAllStepsCompleted] = useState(false);
   const autoVerticalStepper = useRef<AutoVerticalStepperRef>(null);
 
@@ -77,15 +74,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
   useImperativeHandle(ref, () => ({
     getInternalActiveStepIndex: () => internalActiveStepIndex
   }));
-  
-
-
-  //handle on delete click
-  const handleOnClickDeleteUploadedFile = (e: MouseEvent) => {
-    e.preventDefault();
-    console.warn(' handleOnClickDeleteUploadedFile CLICKED');
-    // setIsCompleted(false)
-  };
 
   /********** ALL USEEFFECT HERE *************/
 
@@ -199,10 +187,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
     fetchCMSData();
   }, []);
 
-  useEffect(() => {
-
-    setisValidated(newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false);
-  }, [isLoading]);
 
   useEffect(() => { 
     if (autoVerticalStepper?.current) {  

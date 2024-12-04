@@ -16,7 +16,11 @@ interface Advanced {
   minChars: string;
   maxChars: number;
   default_value: string;
+  description: string;
+  validationErrorMessage: string;
   options: any[];
+  title ?: string;
+  url?: string;
 }
 
 /**

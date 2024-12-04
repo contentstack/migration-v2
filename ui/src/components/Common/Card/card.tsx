@@ -11,7 +11,7 @@ import './card.scss';
 type CardProps = {
   data: any;
   idField?: string;
-  onCardClick: (T: any) => unknown;
+  onCardClick?: (T: any) => unknown;
   selectedCard: any;
   cardType?: string;
 };
@@ -33,7 +33,9 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id' }: Car
   const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseEnter = () => {
-    setIsHovered(true);
+    if (selectedCard[idField] === data?.[idField]) {
+      setIsHovered(true);
+    }
   };
 
   const handleMouseLeave = () => {
@@ -42,7 +44,7 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id' }: Car
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
     event.preventDefault(); // Prevent the default action
-    onCardClick(data);
+    onCardClick?.(data);
   };
 
   return (

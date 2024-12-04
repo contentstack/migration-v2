@@ -1,4 +1,12 @@
 export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA"];
+export const CMS = {
+  CONTENTFUL:"contentful",
+  SITECORE_V8:"sitecore v8",
+  SITECORE_V9:"sitecore v9",
+  SITECORE_V10:"sitecore v10",
+  WORDPRESS:"wordpress",
+  AEM:"aem",
+}
 export const MODULES = [
   "Project",
   "Migration",
@@ -162,16 +170,17 @@ export const LOCALE_MAPPER: any = {
   },
   'fr': 'fr-fr'
 }
+export const CHUNK_SIZE = 1048576;
 
 export const MIGRATION_DATA_CONFIG = {
-  DATA :"cmsMigrationData",
+  DATA :"./cmsMigrationData",
 
   BACKUP_DATA: "migration-data",
   BACKUP_LOG_DIR: "logs",
   BACKUP_FOLDER_NAME: "import",
   BACKUP_FILE_NAME: "success.log",
 
-  LOCALE_DIR_NAME : "locale",
+  LOCALE_DIR_NAME : "locales",
   LOCALE_FILE_NAME : "locales.json",
   LOCALE_MASTER_LOCALE : "master-locale.json",
   LOCALE_CF_LANGUAGE : "language.json",
@@ -195,7 +204,8 @@ export const MIGRATION_DATA_CONFIG = {
 
   ASSETS_DIR_NAME : "assets",
   ASSETS_FILE_NAME : "assets.json",
-  ASSETS_SCHEMA_FILE : "index.json",
+  // ASSETS_SCHEMA_FILE : "index.json",
+  ASSETS_SCHEMA_FILE : "assetsSchema.json",
   ASSETS_FAILED_FILE : "cs_failed.json",
   ASSETS_METADATA_FILE :"metadata.json",
 
