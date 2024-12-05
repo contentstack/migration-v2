@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { getLogMessage } from './index.js';
+import _ from 'lodash';
 import customLogger from './custom-logger.utils.js';
+import { getLogMessage } from './index.js';
 import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import { contentMapperService } from "../services/contentMapper.service.js";
 
@@ -605,9 +606,18 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
   }
 }
 
+const mergeTwoCts = async (ct: any, mergeCts: any) => {
+  const ctData: any = {
+    ...ct,
+    title: mergeCts?.title,
+    uid: mergeCts?.uid,
+  }
+  return _.defaultsDeep(ctData, mergeCts);
+}
+
 export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
   const srcFunc = 'contenTypeMaker';
-  const ct: ContentType = {
+  let ct: ContentType = {
     title: contentType?.contentstackTitle,
     uid: contentType?.contentstackUid,
     schema: []
@@ -615,12 +625,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   let currentCt: any = {};
   if (Object?.keys?.(keyMapper)?.length && keyMapper?.[contentType?.contentstackUid]) {
     currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id });
-    if (currentCt?.uid) {
-      ct.title = currentCt?.title;
-      ct.uid = currentCt?.uid;
-    }
   }
-  console.info("🚀 ~ contenTypeMaker ~ currentCt:", currentCt)
   const ctData: any = arrangGroups({ schema: contentType?.fieldMapping, newStack })
   ctData?.forEach((item: any) => {
     if (item?.contentstackFieldType === 'group') {
@@ -658,6 +663,9 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
       }
     }
   })
+  if (currentCt?.uid) {
+    ct = await mergeTwoCts(ct, currentCt);
+  }
   if (ct?.uid) {
     if (contentType?.type === 'global_field') {
       const globalSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, GLOBAL_FIELDS_DIR_NAME);
