@@ -1,24 +1,22 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 const usePreventBackNavigation = (): void => {
-    const navigate = useNavigate();
-    const location = useLocation();
-  
-    useEffect(() => {
-      // push a dummy state to the history stack
-      window.history.pushState(null, "", window.location.href);
-  
-      const handlePopState = () => {
-        navigate(location.pathname, { replace: true });
-      };
-  
-      window.addEventListener("popstate", handlePopState);
-  
-      return () => {
-        window.removeEventListener("popstate", handlePopState);
-      };
-    }, [navigate, location]);
-  };
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    const handleBackNavigation = (event: PopStateEvent) => {
+      event.preventDefault();
+      navigate(window.location.pathname, { replace: true });
+    };
+
+    window.history.pushState(null, "", window.location.href);
+
+    window.addEventListener("popstate", handleBackNavigation);
+
+    return () => {
+      window.removeEventListener("popstate", handleBackNavigation);
+    };
+  }, [navigate]);
+};
 export default usePreventBackNavigation;
