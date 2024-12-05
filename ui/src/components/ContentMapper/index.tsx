@@ -992,7 +992,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         return {
           ...row,
           contentstackField: selectedValue?.label,
-          contentstackFieldUid: selectedValue?.value?.uid,
+          contentstackFieldUid: selectedValue?.uid,
           advanced: {
             validationRegex: selectedValue?.value?.format,
             mandatory: selectedValue?.value?.mandatory,
@@ -1046,8 +1046,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }
 
   //utility function to create option object
-  function getMatchingOption(value: ContentTypesSchema, matchFound: boolean, label: string) {
-    return matchFound ? { label, value, isDisabled: selectedOptions.includes(label) } : {}
+  function getMatchingOption(value: ContentTypesSchema, matchFound: boolean, label: string, uid : string) {
+    return matchFound ? { label, value, isDisabled: selectedOptions.includes(label), uid: uid } : {}
   }
   
   //utility function to map the source cms field type to content type field type
@@ -1104,16 +1104,17 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     groupArray: FieldMapType[],
     OptionsForRow: OptionsType[],
     fieldsOfContentstack: Mapping,
-    currentDisplayName = ''
+    currentDisplayName = '',
+    parentUid = '',
   ) => {
     // Update the current display name with the current value's display name
     const updatedDisplayName = currentDisplayName ? `${currentDisplayName} > ${value?.display_name}` : value?.display_name;
-  
+  const uid = parentUid ?  `${parentUid}.${value?.uid}` : value?.uid
     if (value?.data_type === 'group') {
 
       // Check and process the group itself
       if (data?.otherCmsType === 'Group' && checkConditions('Group', value, data)) {
-        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName));
+        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
       }
 
       const existingLabel = existingField[groupArray[0]?.uid]?.label ?? '';
@@ -1130,12 +1131,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               for (const key of existingField[groupArray[0]?.uid]?.value?.schema || []) {
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
-                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
+                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || '', `${uid}.${key?.uid}`));
                 }
       
                 // Recursively process nested groups
                 if (key?.data_type === 'group') {                  
-                  processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+                  processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
                 }
               }
             }
@@ -1145,7 +1146,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       else{
         for (const key of value.schema || []) {
           if (key?.data_type === 'group') {
-            processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+            processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
           }
         } 
       }
@@ -1154,7 +1155,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
  
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
       if (!array.some((item : FieldMapType) => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
-        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName || ''));
+        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName || '',uid ?? ''));
       }
   
       // Process nested schemas if value is not a group
@@ -1162,12 +1163,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         if (item.id === data?.id) {
           for (const key of value.schema || []) {
             if (checkConditions(fieldTypeToMatch, key, item)) {
-              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
+              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || '',`${uid}.${key?.uid}`));
             }
   
             // Recursively process nested groups
             if (key?.data_type === 'group') {
-              processSchema(key, data, array,groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+              processSchema(key, data, array,groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
             }
           }
         }
@@ -1246,7 +1247,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           }
           else if (!array.some(item => item.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
             
-            OptionsForRow.push(getMatchingOption(value, true, value?.display_name || ''));
+            OptionsForRow.push(getMatchingOption(value, true, value?.display_name || '', value?.uid ?? ''));
             
           }
         }
@@ -1488,7 +1489,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           setContentTypes(savedCT);
 
           try {
-            await updateContentMapper(orgId, projectID, {...contentTypeMapped, [otherCmsTitle]: otherContentType?.label});
+            await updateContentMapper(orgId, projectID, {...contentTypeMapped, [selectedContentType?.contentstackUid]: otherContentType?.id});
           } catch (err) {
             console.log(err);
             return err;
@@ -1623,8 +1624,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     if (isContentType) {
       try {
         const { data , status} = await getExistingContentTypes(projectId, otherContentType?.id ?? '');
-
         if (status == 201 && data?.contentTypes?.length > 0) {
+          setOtherContentType({
+            label: data?.selectedContentType?.title, 
+            value: data?.selectedContentType?.title,
+            id:data?.selectedContentType?.uid
+          })
           setContentModels(data?.contentTypes);
           Notification({
             notificationContent: { text: 'Content Types fetched successfully' },
@@ -1656,6 +1661,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         const { data, status } = await getExistingGlobalFields(projectId, otherContentType?.id ?? '');
 
         if (status == 201 && data?.globalFields?.length > 0) {
+          setOtherContentType({
+            label: data?.selectedGlobalField?.title,
+            value:data?.selectedGlobalField?.title,
+            id:data?.selectedGlobalField?.uid
+          })
           setContentModels(data?.globalFields);
           Notification({
             notificationContent: { text: 'Global Fields fetched successfully' },
