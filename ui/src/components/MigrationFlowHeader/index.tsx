@@ -71,8 +71,8 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
         version="v2"
         aria-label='Save and Continue'
         isLoading={isLoading || newMigrationData?.isprojectMapped}
-        disabled={(params?.stepId === '4' && !newMigrationData?.test_migration?.isMigrationComplete) ||
-           (params?.stepId && params?.stepId <= '2' && newMigrationData?.project_current_step?.toString() !== params?.stepId) || finalExecutionStarted
+        disabled={(params?.stepId === '4' && !(newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated)) ||
+           (params?.stepId && params?.stepId <= '2' && newMigrationData?.project_current_step?.toString() !== params?.stepId) || (finalExecutionStarted || newMigrationData?.migration_execution?.migrationStarted)
         }
       >
         {stepValue}
