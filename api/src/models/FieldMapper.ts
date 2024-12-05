@@ -19,8 +19,6 @@ interface Advanced {
   description: string;
   validationErrorMessage: string;
   options: any[];
-  title ?: string;
-  url?: string;
 }
 
 /**
