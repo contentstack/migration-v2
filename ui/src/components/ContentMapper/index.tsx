@@ -261,7 +261,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
 
   /** ALL HOOKS Here */
-  const { projectId = '' } = useParams();
+  const { projectId = '', stepId = '' } = useParams();
   const navigate = useNavigate();
 
   const filterRef = useRef<HTMLDivElement | null>(null);
@@ -894,11 +894,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.otherCmsField === 'title' ||
               data?.otherCmsField === 'url' ||
               data?.otherCmsField === 'reference'||
-              data?.contentstackFieldType === "global_field"
+              data?.contentstackFieldType === "global_field" ||
+              newMigrationData?.project_current_step?.toString() !== stepId
             }
           />
         </div>
-          {!(
+        {!(
           data?.otherCmsType === 'Group' ||
           data?.otherCmsField === 'title' ||
           data?.otherCmsField === 'url' ||
@@ -920,9 +921,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               onClick={() =>
                 handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
               }
+              disabled={newMigrationData?.project_current_step?.toString() !== stepId}
             />
           </Tooltip>
-    )}
+        )}
       </div>
     );
   };
@@ -953,7 +955,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     else {
       setIsFieldDeleted(false);
     }
-
     
     setExistingField((prevOptions: ExistingFieldType) => ({
       ...prevOptions,
@@ -992,7 +993,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         return {
           ...row,
           contentstackField: selectedValue?.label,
-          contentstackFieldUid: selectedValue?.value?.uid,
+          contentstackFieldUid: selectedValue?.uid,
           advanced: {
             validationRegex: selectedValue?.value?.format,
             mandatory: selectedValue?.value?.mandatory,
@@ -1046,8 +1047,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }
 
   //utility function to create option object
-  function getMatchingOption(value: ContentTypesSchema, matchFound: boolean, label: string) {
-    return matchFound ? { label, value, isDisabled: selectedOptions.includes(label) } : {}
+  function getMatchingOption(value: ContentTypesSchema, matchFound: boolean, label: string, uid : string) {
+    return matchFound ? { label, value, isDisabled: selectedOptions.includes(label), uid: uid } : {}
   }
   
   //utility function to map the source cms field type to content type field type
@@ -1104,16 +1105,17 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     groupArray: FieldMapType[],
     OptionsForRow: OptionsType[],
     fieldsOfContentstack: Mapping,
-    currentDisplayName = ''
+    currentDisplayName = '',
+    parentUid = '',
   ) => {
     // Update the current display name with the current value's display name
     const updatedDisplayName = currentDisplayName ? `${currentDisplayName} > ${value?.display_name}` : value?.display_name;
-  
+  const uid = parentUid ?  `${parentUid}.${value?.uid}` : value?.uid
     if (value?.data_type === 'group') {
 
       // Check and process the group itself
       if (data?.otherCmsType === 'Group' && checkConditions('Group', value, data)) {
-        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName));
+        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
       }
 
       const existingLabel = existingField[groupArray[0]?.uid]?.label ?? '';
@@ -1130,12 +1132,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               for (const key of existingField[groupArray[0]?.uid]?.value?.schema || []) {
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
-                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
+                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || '', `${uid}.${key?.uid}`));
                 }
       
                 // Recursively process nested groups
                 if (key?.data_type === 'group') {                  
-                  processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+                  processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
                 }
               }
             }
@@ -1145,7 +1147,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       else{
         for (const key of value.schema || []) {
           if (key?.data_type === 'group') {
-            processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+            processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
           }
         } 
       }
@@ -1154,7 +1156,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
  
       const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
       if (!array.some((item : FieldMapType) => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
-        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName || ''));
+        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName || '',uid ?? ''));
       }
   
       // Process nested schemas if value is not a group
@@ -1162,12 +1164,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         if (item.id === data?.id) {
           for (const key of value.schema || []) {
             if (checkConditions(fieldTypeToMatch, key, item)) {
-              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || ''));
+              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || '',`${uid}.${key?.uid}`));
             }
   
             // Recursively process nested groups
             if (key?.data_type === 'group') {
-              processSchema(key, data, array,groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName);
+              processSchema(key, data, array,groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
             }
           }
         }
@@ -1246,7 +1248,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           }
           else if (!array.some(item => item.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
             
-            OptionsForRow.push(getMatchingOption(value, true, value?.display_name || ''));
+            OptionsForRow.push(getMatchingOption(value, true, value?.display_name || '', value?.uid ?? ''));
             
           }
         }
@@ -1374,32 +1376,34 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             maxWidth="290px"
             isClearable={selectedOptions?.includes(existingField?.[data?.uid]?.label ?? '')}
             options={adjustedOptions}
-            isDisabled={OptionValue?.isDisabled}
+            isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step?.toString() !== stepId}
           />
         </div>
         {!OptionValue?.isDisabled && (
-          <Tooltip
-            content="Advanced properties" 
-            position="top"
-            disabled={
-              data?.otherCmsField === 'title' ||
-              data?.otherCmsField === 'url'
-            }
-          >
-            <Button
-              buttonType="light"
-              disabled={contentTypeSchema && existingField[data?.uid] ? true : false}
+          <div className='advanced-setting-button'>
+            <Tooltip
+              content="Advanced properties" 
+              position="top"
+              disabled={
+                data?.otherCmsField === 'title' ||
+                data?.otherCmsField === 'url'
+              }
             >
-              <Icon
-                version={'v2'}
-                icon="Sliders"
-                size="small"
-                onClick={() => {
-                  handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
-                }}
-              />
-            </Button>
-          </Tooltip>
+              <Button
+                buttonType="light"
+                disabled={(contentTypeSchema && existingField[data?.uid] || newMigrationData?.project_current_step?.toString() !== stepId) ? true : false}
+              >
+                <Icon
+                  version={'v2'}
+                  icon="Sliders"
+                  size="small"
+                  onClick={() => {
+                    handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
+                  }}
+                />
+              </Button>
+            </Tooltip>
+          </div>
         )}
       </div>
     );
@@ -1408,7 +1412,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
-
     if (
       selectedContentType &&
       otherContentType &&
@@ -1485,7 +1488,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           setContentTypes(savedCT);
 
           try {
-            await updateContentMapper(orgId, projectID, {...contentTypeMapped, [otherCmsTitle]: otherContentType?.label});
+            await updateContentMapper(orgId, projectID, {...contentTypeMapped, [selectedContentType?.contentstackUid]: otherContentType?.id});
           } catch (err) {
             console.log(err);
             return err;
@@ -1620,8 +1623,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     if (isContentType) {
       try {
         const { data , status} = await getExistingContentTypes(projectId, otherContentType?.id ?? '');
-
         if (status == 201 && data?.contentTypes?.length > 0) {
+          setOtherContentType({
+            label: data?.selectedContentType?.title, 
+            value: data?.selectedContentType?.title,
+            id:data?.selectedContentType?.uid
+          })
           setContentModels(data?.contentTypes);
           Notification({
             notificationContent: { text: 'Content Types fetched successfully' },
@@ -1653,6 +1660,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         const { data, status } = await getExistingGlobalFields(projectId, otherContentType?.id ?? '');
 
         if (status == 201 && data?.globalFields?.length > 0) {
+          setOtherContentType({
+            label: data?.selectedGlobalField?.title,
+            value:data?.selectedGlobalField?.title,
+            id:data?.selectedGlobalField?.uid
+          })
           setContentModels(data?.globalFields);
           Notification({
             notificationContent: { text: 'Global Fields fetched successfully' },
@@ -1983,6 +1995,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           placeholder={otherContentType?.label}
                           isSearchable
                           version="v2"
+                          isDisabled={newMigrationData?.project_current_step?.toString() !== stepId}
                         />
                       </div>
                     )}
@@ -1999,9 +2012,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             />
             <div className='text-end my-2 mx-3 px-1 py-1'>
               <Button
-                  className="saveButton"
-                  onClick={handleSaveContentType}
-                  version="v2"
+                className="saveButton"
+                onClick={handleSaveContentType}
+                version="v2"
+                disabled={newMigrationData?.project_current_step?.toString() !== stepId}
                 >
                 Save
               </Button>
