@@ -1,3 +1,4 @@
+// Libraries
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { Field, FieldLabel, TextInput, Link, Icon, Tooltip, Button, Notification, CircularLoader } from '@contentstack/venus-components';
@@ -58,19 +59,23 @@ const TestMigration = () => {
       });
   }, []);
 
-  // to disable buttons as per isMigrated state
+  /**
+    * to disable Create Test Stack and Start Test Migration buttons as per isMigrated state
+  */
   useEffect(() => {
-    if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === false) {
+    if (!newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated) {
       setDisableCreateStack(false);
     }
 
     if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
       setdisableTestMigration(true);
     }
-  }, [newMigrationData]);
+  }, [newMigrationData?.testStacks]);
 
 
-  // Method to create test stack
+  /**
+    * Handles create test stack function
+  */
   const handleCreateTestStack = async () => {
     setIsStackLoading(true);
 
@@ -137,7 +142,9 @@ const TestMigration = () => {
     }
   }
 
-  // Method to start test migration
+  /**
+    * Start the test migration
+  */
   const handleTestMigration = async () => {
     try {
       const testRes = await createTestMigration(
@@ -156,13 +163,6 @@ const TestMigration = () => {
           },
           type: 'message'
         });
-
-        // const newMigrationDataObj: INewMigration = {
-        //   ...newMigrationData,
-        //   testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, isMigrated: false}],
-        //   // test_migration: { ...newMigrationData?.test_migration}
-        // };
-        // dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
     } catch (error) {
       console.log(error);

@@ -14,6 +14,7 @@ import { ModalObj } from '../Modal/modal.interface';
 
 // Components
 import MigrationCompletionModal from '../Common/MigrationCompletionModal';
+import useBlockNavigation from '../../hooks/userNavigation';
 
 // CSS
 import './index.scss';
@@ -37,6 +38,7 @@ type LogsType = {
  */
 const MigrationLogViewer = ({ serverPath }: LogsType) => {
   const [logs, setLogs] = useState<string[]>([JSON.stringify({ message: "Migration logs will appear here once the process begins.", level: ''})]);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
@@ -58,6 +60,8 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       socket.disconnect(); // Cleanup on component unmount
     };
   }, []);
+
+  useBlockNavigation(isModalOpen);
 
   /**
    * Scrolls to the top of the logs container.
@@ -82,21 +86,6 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
         top: logsContainer.scrollHeight,
         behavior: 'smooth',
       });
-    }
-  }
-
-  /**
-   * Copies the logs to the clipboard.
-   */
-  const handleCopyLogs = () => {
-    const logsContainer = document.querySelector('.logs-container');
-    if (logsContainer) {
-      const range = document.createRange();
-      range.selectNode(logsContainer);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(range);
-      navigator.clipboard.writeText(logsContainer.textContent || '');
-      window.getSelection()?.removeAllRanges();
     }
   }
 
@@ -141,14 +130,8 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
         const message = logObject.message;
 
         if (message === "Migration Process Completed") {
-          Notification({
-            notificationContent: { text: message },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: false
-            },
-            type: 'success'
-          });
+
+          setIsModalOpen(true);
 
           const newMigrationDataObj: INewMigration = {
             ...newMigrationData,
@@ -161,6 +144,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
             component: (props: ModalObj) => (
               <MigrationCompletionModal
                 {...props}
+                isopen={setIsModalOpen}
                 data={newMigrationData?.stackDetails}
               />
             ),
@@ -179,48 +163,48 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   return (
     <div className='logs-wrapper'>
       <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
-        <div className="logs-magnify"
-          style={{
-            transform: `scale(${zoomLevel})`,
-            transformOrigin: "top left", 
-            transition: "transform 0.1s ease"
-          }}>
-          {logs?.map((log, index) => {
-            const key = `${index}-${new Date().getMilliseconds()}`
-            try {
-              const logObject = JSON.parse(log);
-              const level = logObject.level;
-              const timestamp = logObject.timestamp;
-              const message = logObject.message;
+        {newMigrationData?.migration_execution?.migrationStarted  
+          ? <div className="log-entry text-center">
+            <div className="log-message">
+              Migration Execution process is completed. You can view in the selected stack 
+              <Link href={`https://app.contentstack.com/#!/stack/${newMigrationData?.stackDetails?.value}/dashboard`} target='_blank' className='ml-5'>
+                <strong>{newMigrationData?.stackDetails?.label}</strong>
+              </Link>
+            </div>
+          </div>
+          : <div className="logs-magnify"
+            style={{
+              transform: `scale(${zoomLevel})`,
+              transformOrigin: "top left", 
+              transition: "transform 0.1s ease"
+            }}>
+            {logs?.map((log, index) => {
+              const key = `${index}-${new Date().getMilliseconds()}`
+              try {
+                const logObject = JSON.parse(log);
+                const level = logObject.level;
+                const timestamp = logObject.timestamp;
+                const message = logObject.message;
 
-              return (
-                newMigrationData?.migration_execution?.migrationStarted  
-                  ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                    <div className="log-message">
-                      Migration Execution process is completed. You can view in the selected stack 
-                      <Link href={`https://app.contentstack.com/#!/stack/${newMigrationData?.stackDetails?.value}/dashboard`} target='_blank' className='ml-4'>
-                        <strong>{newMigrationData?.stackDetails?.label}</strong>
-                      </Link>
-                    </div>
-                  </div>
-                  : message === "Migration logs will appear here once the process begins."
-                    ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                      <div className="log-message">{message}</div>
-                    </div>
-                    : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
-                      <div className="log-number">{index}</div>
-                      <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
-                      <div className="log-message">{message}</div>
-                    </div>
-              );
-            } catch (error) {
-              console.error('Invalid JSON string', error);
-            }
-          })}
-        </div>
-        
+                return (
+                  message === "Migration logs will appear here once the process begins."
+                      ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
+                        <div className="log-message">{message}</div>
+                      </div>
+                      : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
+                        <div className="log-number">{index}</div>
+                        <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
+                        <div className="log-message">{message}</div>
+                      </div>
+                );
+              } catch (error) {
+                console.error('Invalid JSON string', error);
+              }
+            })}
+          </div>
+        }
       </div>
-      {logs?.some((log) => log === "Migration logs will appear here once the process begins.")  && ( 
+      {(!newMigrationData?.migration_execution?.migrationStarted) && ( 
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
           <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
