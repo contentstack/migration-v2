@@ -1,3 +1,4 @@
+// Libraries
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { Field, FieldLabel, TextInput, Link, Icon, Tooltip, Button, Notification, CircularLoader } from '@contentstack/venus-components';
@@ -22,7 +23,7 @@ import { INewMigration } from '../../context/app/app.interface';
 
 
 // Component
-import LogViewer from '../LogScreen';
+import TestMigrationLogViewer from '../LogScreen';
 
 // CSS
 import './index.scss';
@@ -58,26 +59,30 @@ const TestMigration = () => {
       });
   }, []);
 
-  // to disable buttons as per isMigrated state
+  /**
+    * to disable Create Test Stack and Start Test Migration buttons as per isMigrated state
+  */
   useEffect(() => {
-    if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === false) {
-      setDisableCreateStack(true);
+    if (!newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated) {
+      setDisableCreateStack(false);
     }
 
     if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
       setdisableTestMigration(true);
     }
-  }, [newMigrationData]);
+  }, [newMigrationData?.testStacks]);
 
 
-  // Method to create test stack
+  /**
+    * Handles create test stack function
+  */
   const handleCreateTestStack = async () => {
     setIsStackLoading(true);
 
     //get org plan details
     try {
       const orgDetails = await getOrgDetails(selectedOrganisation?.value);
-      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features)?.find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') || '';
+      const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features)?.find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') ?? '';
 
       const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
 
@@ -128,7 +133,7 @@ const TestMigration = () => {
 
         const newMigrationDataObj: INewMigration = {
           ...newMigrationData,
-          test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key }
+          test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key, stack_name: res?.data?.data?.data?.stack?.name }
         };
         dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
@@ -137,7 +142,9 @@ const TestMigration = () => {
     }
   }
 
-  // Method to start test migration
+  /**
+    * Start the test migration
+  */
   const handleTestMigration = async () => {
     try {
       const testRes = await createTestMigration(
@@ -146,6 +153,7 @@ const TestMigration = () => {
       );
 
       if (testRes?.status === 200) {
+        setdisableTestMigration(true);
         handleMigrationState(true);
         Notification({
           notificationContent: { text: 'Test Migration started' },
@@ -155,13 +163,6 @@ const TestMigration = () => {
           },
           type: 'message'
         });
-
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, isMigrated: true} ],
-          test_migration: { ...newMigrationData?.test_migration, isMigrationStarted: true, isMigrationComplete: false }
-        };
-        dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
     } catch (error) {
       console.log(error);
@@ -171,7 +172,9 @@ const TestMigration = () => {
   // Function to update the parent state
   const handleMigrationState = (newState: boolean) => {
     setDisableCreateStack(newState);
-    setdisableTestMigration(!newState);
+    if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
+      setdisableTestMigration(!newState);
+    } 
   } ;
 
   return (
@@ -247,7 +250,7 @@ const TestMigration = () => {
         <div className='content-block'>
           <div className='content-header'>Execution Logs</div>
           <div>
-            <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
+            <TestMigrationLogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
           </div>
         </div>
       </div>
