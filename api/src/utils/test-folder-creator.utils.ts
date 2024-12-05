@@ -1,9 +1,10 @@
 import path from 'path';
 import fs from 'fs';
 import read from 'fs-readdir-recursive';
+import _ from 'lodash';
 import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
 
-const { 
+const {
   ENTRIES_DIR_NAME,
   ASSETS_DIR_NAME,
   ASSETS_SCHEMA_FILE,
@@ -43,6 +44,17 @@ async function writeFiles(entryPath: string, fileMeta: any, entryLocale: any, lo
   } catch (error) {
     console.error('Error writing files:', error);
   }
+}
+
+function startsWithNumber(str: string) {
+  return /^\d/.test(str);
+}
+
+const uidCorrector = ({ uid }: any) => {
+  if (startsWithNumber(uid)) {
+    return `a_${_.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()}`
+  }
+  return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
 }
 
 const saveContent = async (ct: any, contentSave: string) => {
@@ -114,6 +126,64 @@ async function deleteFolderAsync(folderPath: string): Promise<void> {
   }
 }
 
+const lookForReference = async (
+  field: any,
+  finalData: any,
+) => {
+  for (const child of field?.schema ?? []) {
+    switch (child?.data_type) {
+      case 'reference': {
+        break;
+      }
+      case 'global_field': {
+        break;
+      }
+      case 'json': {
+        if (child?.field_metadata?.allow_json_rte) {
+          const ctSelected = finalData?.map((item: any) => item?.contentType);
+          const refs: any = ["sys_assets"];
+          child?.reference_to?.forEach((item: any) => {
+            const correctUid = uidCorrector({ uid: item });
+            if (ctSelected?.includes(correctUid)) {
+              refs?.push(item);
+            }
+          })
+          if (refs?.length === 0) {
+            child.field_metadata.embed_entry = false;
+          }
+          child.reference_to = refs;
+        }
+        break;
+      }
+      case 'blocks': {
+        break;
+      }
+      case 'group': {
+        lookForReference(child, finalData);
+        break;
+      }
+      case 'text': {
+        if (child?.field_metadata?.allow_rich_text) {
+          const ctSelected = finalData?.map((item: any) => item?.contentType);
+          const refs: any = [];
+          child?.reference_to?.forEach((item: any) => {
+            const correctUid = uidCorrector({ uid: item });
+            if (ctSelected?.includes(correctUid)) {
+              refs?.push(item);
+            }
+          })
+          if (refs?.length === 0) {
+            delete child.field_metadata.embed_entry;
+            delete child.field_metadata.ref_multiple_content_types;
+            delete child.reference_to;
+          }
+          break;
+        }
+      }
+    }
+  }
+}
+
 
 
 const sortAssets = async (baseDir: string) => {
@@ -134,10 +204,11 @@ const sortContentType = async (baseDir: string, finalData: any) => {
   const contentSave = path.join(baseDir, CONTENT_TYPES_DIR_NAME);
   const ctData = await JSON.parse(await fs.promises.readFile(path.join(contentTypePath, CONTENT_TYPES_SCHEMA_FILE), 'utf8'));
   const contentTypes: any = [];
-  finalData?.forEach((ct: any) => {
-    const findCtData = ctData?.find((ele: any) => ele?.uid === ct?.contentType)
+  for await (const ct of finalData) {
+    const findCtData = ctData?.find((ele: any) => ele?.uid === ct?.contentType);
+    await lookForReference(findCtData, finalData);
     contentTypes?.push(findCtData);
-  })
+  }
   await deleteFolderAsync(contentTypePath);
   for await (const ctItem of contentTypes) {
     await saveContent(ctItem, contentSave);
