@@ -191,7 +191,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         validationMessgae,
         isDisabled,
         cmsType,
-        fileDetails,
+        //fileDetails,
         fileExtension,
         progressPercentage,
         showProgress,
@@ -331,7 +331,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setValidationMessage(savedState?.validationMessage);
       setIsDisabled(savedState?.isDisabled);
       setCmsType(savedState.cmsType);
-      setFileDetails(savedState.fileDetails);
+      //setFileDetails(savedState.fileDetails);
       setFileExtension(savedState.fileExtension);
       setProgressPercentage(savedState.progressPercentage);
       setShowProgress(savedState.showProgress);
@@ -352,7 +352,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       validationMessgae,
       //isDisabled,
       cmsType,
-      fileDetails,
+      //fileDetails,
       fileExtension,
       progressPercentage,
       showProgress,
@@ -366,7 +366,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     validationMessgae,
     //isDisabled,
     cmsType,
-    fileDetails,
+    //fileDetails,
     fileExtension,
     progressPercentage,
     showProgress,
