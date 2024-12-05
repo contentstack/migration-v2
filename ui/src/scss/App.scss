@@ -417,7 +417,8 @@ h2 {
 }
 .layout-container {
   .PageLayout__content {
-    border-top: 1px solid $color-brand-secondary-lightest;
+    height: calc(100vh - 137px) !important;
+    margin-top: 137px;
   }
 }
 .loader-container {
