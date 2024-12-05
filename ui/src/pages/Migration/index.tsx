@@ -188,7 +188,7 @@ const Migration = () => {
     ? selectedCmsData.allowed_file_formats?.find(
         (cms: ICardType) => cms?.fileformat_id === projectData?.legacy_cms?.file_format
       )
-    : newMigrationData?.legacy_cms?.selectedFileFormat || defaultCardType;
+    : newMigrationData?.legacy_cms?.selectedFileFormat ?? defaultCardType;
   
 
   const selectedOrganisationData = validateArray(organisationsList)
@@ -235,7 +235,7 @@ const Migration = () => {
             },
             isLocalPath: projectData?.legacy_cms?.is_localPath
           },
-          isValidated: newMigrationData?.legacy_cms?.uploadedFile?.isValidated ||projectData?.legacy_cms?.is_fileValid,
+          isValidated: newMigrationData?.legacy_cms?.uploadedFile?.isValidated || projectData?.legacy_cms?.is_fileValid,
           reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
         },
         isFileFormatCheckboxChecked: true, 
