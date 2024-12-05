@@ -1,11 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import logger from './logger.js';
-import { getLogMessage } from './index.js';
+import _ from 'lodash';
 import customLogger from './custom-logger.utils.js';
+import { getLogMessage } from './index.js';
 import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
+import { contentMapperService } from "../services/contentMapper.service.js";
 
-const { 
+const {
   GLOBAL_FIELDS_FILE_NAME,
   GLOBAL_FIELDS_DIR_NAME,
   CONTENT_TYPES_DIR_NAME,
@@ -38,13 +39,25 @@ function extractValue(input: string, prefix: string, anoter: string): any {
   }
 }
 
-const arrangGroups = ({ schema }: any) => {
+function startsWithNumber(str: string) {
+  return /^\d/.test(str);
+}
+
+const uidCorrector = ({ uid }: any) => {
+  if (startsWithNumber(uid)) {
+    return `a_${_.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()}`
+  }
+  return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
+}
+
+const arrangGroups = ({ schema, newStack }: any) => {
   const dtSchema: any = [];
   schema?.forEach((item: any) => {
     if (item?.contentstackFieldType === 'group') {
       const groupSchema: any = { ...item, schema: [] }
       schema?.forEach((et: any) => {
-        if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`)) {
+        if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`) ||
+          (newStack === false && et?.uid?.includes(`${item?.uid}.`))) {
           groupSchema?.schema?.push(et);
         }
       })
@@ -102,12 +115,12 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     }
 
     case 'json': {
-      if(["Object", "Array"].includes(field?.otherCmsType)){
+      if (["Object", "Array"].includes(field?.otherCmsType)) {
         return {
           data_type: "json",
           display_name: field?.title ?? field?.uid,
           uid: field?.uid,
-          "extension_uid": field?.otherCmsTyp === "Array"? 'listview_extension': 'jsonobject_extension',
+          "extension_uid": field?.otherCmsTyp === "Array" ? 'listview_extension' : 'jsonobject_extension',
           "field_metadata": {
             extension: true,
             description: field.advanced?.description ?? '',
@@ -125,34 +138,37 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
           "config": {},
           "mandatory": field?.advanced?.mandatory ?? false,
         }
-      }else{
+      } else {
         return {
-        "data_type": "json",
-        "display_name": field?.title ?? field?.uid,
-        "uid": field?.uid,
-        "field_metadata": {
-          "allow_json_rte": true,
-          "embed_entry": false,
-          "description": "",
-          "default_value": "",
-          "multiline": false,
-          "rich_text_type": "advanced",
-          "options": []
-        },
-        "format": field?.advanced?.validationRegex ?? '',
-        "error_messages": {
-          "format": field?.advanced?.validationErrorMessage ?? '',
-        },
-        "reference_to": [
-          "sys_assets"
-        ],
-        "multiple": field?.advanced?.multiple ?? false,
-        "non_localizable": field.advanced?.nonLocalizable ?? false,
-        "unique": field?.advanced?.unique ?? false,
-        "mandatory": field?.advanced?.mandatory ?? false
+          "data_type": "json",
+          "display_name": field?.title ?? field?.uid,
+          "uid": field?.uid,
+          "field_metadata": {
+            "allow_json_rte": true,
+            "embed_entry": field?.advanced?.embedObjects?.length ? true : false,
+            "description": "",
+            "default_value": "",
+            "multiline": false,
+            "rich_text_type": "advanced",
+            "options": []
+          },
+          "format": field?.advanced?.validationRegex ?? '',
+          "error_messages": {
+            "format": field?.advanced?.validationErrorMessage ?? '',
+          },
+          "reference_to": field?.advanced?.embedObjects?.length ? [
+            "sys_assets",
+            ...field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) ?? [],
+          ] : [
+            "sys_assets"
+          ],
+          "multiple": field?.advanced?.multiple ?? false,
+          "non_localizable": field.advanced?.nonLocalizable ?? false,
+          "unique": field?.advanced?.unique ?? false,
+          "mandatory": field?.advanced?.mandatory ?? false
+        }
       }
-      }
-      
+
       // return {
       //   "display_name": name,
       //   "extension_uid": "blta7be8bced92ddabe",
@@ -174,7 +190,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
 
     case 'dropdown': {
       const data = {
-        "data_type": ['Integer','Number'].includes(field.otherCmsType) ? 'number' : "text",
+        "data_type": ['Integer', 'Number'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
         "display_type": "dropdown",
         "enum": {
@@ -200,7 +216,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     }
     case 'radio': {
       const data = {
-        "data_type": ['Integer','Number'].includes(field.otherCmsType) ? 'number' : "text",
+        "data_type": ['Integer', 'Number'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
         "display_type": "radio",
         "enum": {
@@ -226,7 +242,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     }
     case 'checkbox': {
       const data = {
-        "data_type":  "text",
+        "data_type": "text",
         "display_name": field?.title,
         "display_type": "checkbox",
         "enum": {
@@ -319,11 +335,11 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
       return {
         "data_type": "text",
         "display_name": field?.title,
-         "uid": field?.uid,
+        "uid": field?.uid,
         "field_metadata": {
-        "description": "",
-        "markdown": true,
-        "placeholder": field?.advanced?.default_value ?? ''
+          "description": "",
+          "markdown": true,
+          "placeholder": field?.advanced?.default_value ?? ''
         },
         "format": field?.advanced?.validationRegex ?? '',
         "error_messages": {
@@ -461,9 +477,31 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         uid: field?.uid,
         mandatory: field?.advanced?.mandatory ?? false,
         multiple: field?.advanced?.multiple ?? false,
-        non_localizable:  field.advanced?.nonLocalizable ?? false,
+        non_localizable: field.advanced?.nonLocalizable ?? false,
         unique: field?.advanced?.unique ?? false
       };
+    }
+
+    case 'html': {
+      return {
+        "data_type": "text",
+        "display_name": field?.title,
+        "uid": field?.uid,
+        "field_metadata": {
+          "allow_rich_text": true,
+          "description": "",
+          "multiline": false,
+          "rich_text_type": "advanced",
+          "version": 3,
+          "options": [],
+          "ref_multiple_content_types": true,
+          "embed_entry": field?.advanced?.embedObjects?.length ? true : false,
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "reference_to": field?.advanced?.embedObjects?.length ? field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) : []
+      }
     }
 
     default: {
@@ -478,18 +516,18 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
             "_default": true
           },
           "format": field?.advanced?.validationRegex ?? '',
-        "error_messages": {
-          "format": field?.advanced?.validationErrorMessage ?? '',
-        },
+          "error_messages": {
+            "format": field?.advanced?.validationErrorMessage ?? '',
+          },
           "multiple": field?.advanced?.multiple ?? false,
-          "non_localizable":  field.advanced?.nonLocalizable ?? false,
-
+          "non_localizable": field.advanced?.nonLocalizable ?? false,
         }
       } else {
         console.info('Contnet Type Filed', field?.contentstackField)
       }
     }
   }
+
 }
 
 const saveContent = async (ct: any, contentSave: string) => {
@@ -556,14 +594,50 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
 };
 
-export const contenTypeMaker = async ({ contentType, destinationStackId, projectId }: any) => {
+const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id }: any) => {
+  try {
+    const ctUid = keyMapper?.[contentTypeUid];
+    const req: any = {
+      params: {
+        projectId,
+        contentTypeUid: ctUid
+      },
+      body: {
+        token_payload: {
+          region,
+          user_id
+        }
+      }
+    }
+    const contentTypeSchema = await contentMapperService.getExistingContentTypes(req);
+    return contentTypeSchema?.selectedContentType;
+  } catch (err) {
+    console.error("Error while getting the existing contentType from contenstack", err)
+    return {};
+  }
+}
+
+const mergeTwoCts = async (ct: any, mergeCts: any) => {
+  const ctData: any = {
+    ...ct,
+    title: mergeCts?.title,
+    uid: mergeCts?.uid,
+  }
+  return _.defaultsDeep(ctData, mergeCts);
+}
+
+export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
   const srcFunc = 'contenTypeMaker';
-  const ct: ContentType = {
+  let ct: ContentType = {
     title: contentType?.contentstackTitle,
     uid: contentType?.contentstackUid,
     schema: []
   }
-  const ctData: any = arrangGroups({ schema: contentType?.fieldMapping })
+  let currentCt: any = {};
+  if (Object?.keys?.(keyMapper)?.length && keyMapper?.[contentType?.contentstackUid]) {
+    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id });
+  }
+  const ctData: any = arrangGroups({ schema: contentType?.fieldMapping, newStack })
   ctData?.forEach((item: any) => {
     if (item?.contentstackFieldType === 'group') {
       const group: Group = {
@@ -600,6 +674,9 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
       }
     }
   })
+  if (currentCt?.uid) {
+    ct = await mergeTwoCts(ct, currentCt);
+  }
   if (ct?.uid) {
     if (contentType?.type === 'global_field') {
       const globalSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, GLOBAL_FIELDS_DIR_NAME);
