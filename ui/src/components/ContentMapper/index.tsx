@@ -1378,7 +1378,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           />
         </div>
         {!OptionValue?.isDisabled && (
-          <div style={{ padding: '5px' }}>
+          <div className='advanced-setting-button'>
              <Tooltip
             content="Advanced properties" 
             position="top"
