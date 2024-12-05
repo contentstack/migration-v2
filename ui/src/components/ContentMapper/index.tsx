@@ -1412,9 +1412,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
-    console.log(selectedEntries);
-    
-
     if (
       selectedContentType &&
       otherContentType &&
