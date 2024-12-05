@@ -163,14 +163,24 @@ const AdvancePropertise = (props: SchemaProps) => {
     props?.updateFieldSettings(
       props?.rowId,
       {
-        [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
+        ...props?.value,
+        [field]: value,
         validationRegex: currentToggleStates?.validationRegex || '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects : embedObjectslabels
+        embedObjects : embedObjectslabels,
+        default_value: currentToggleStates?.default_value,
+        minChars: currentToggleStates?.minChars,
+        maxChars:currentToggleStates?.maxChars,
+        minRange: currentToggleStates?.minRange,
+        maxRange: currentToggleStates?.maxRange,
+        minSize: currentToggleStates?.minSize,
+        maxSize: currentToggleStates?.maxSize,
+        title: currentToggleStates?.title,
+        url:currentToggleStates?.url
       },
       checkBoxChanged
     );
@@ -547,6 +557,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                       isSearchable={true}
                       isClearable={true}
                       width="350px"
+                      maxMenuHeight={200}
                       // isSelectAll={true}
                     />
                   )}
