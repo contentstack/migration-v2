@@ -196,7 +196,7 @@ const cretaeAssets = async ({ packagePath, baseDir, destinationStackId, projectI
   return allAssetJSON;
 }
 
-const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us', destinationStackId, projectId }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string, projectId: string }) => {
+const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us', destinationStackId, projectId, keyMapper }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string, projectId: string, keyMapper: any }) => {
   try {
     const srcFunc = 'createEntry';
     const baseDir = path.join(baseDirName, destinationStackId);
@@ -229,7 +229,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
     for await (const ctType of contentTypes) {
       const message = getLogMessage(
         srcFunc,
-        `Transforming entries of Content Type ${ctType?.contentstackUid} has begun.`,
+        `Transforming entries of Content Type ${keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid} has begun.`,
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
@@ -275,7 +275,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
                 entryLocale[uid] = unflatten(entryObj) ?? {};
                 const message = getLogMessage(
                   srcFunc,
-                  `Entry title "${entryObj?.title}"(${ctType?.contentstackUid}) in the ${newLocale} locale has been successfully transformed.`,
+                  `Entry title "${entryObj?.title}"(${keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid}) in the ${newLocale} locale has been successfully transformed.`,
                   {}
                 )
                 await customLogger(projectId, destinationStackId, 'info', message)
@@ -286,7 +286,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
           const entryPath = path.join(
             process.cwd(),
             entrySave,
-            ctType?.contentstackUid,
+            keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid,
             newLocale
           );
           await writeFiles(entryPath, fileMeta, entryLocale, newLocale)
@@ -294,11 +294,11 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
       } else {
         const message = getLogMessage(
           srcFunc,
-          `No entries found for the content type ${ctType?.contentstackUid}.`,
+          `No entries found for the content type ${keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid}.`,
           {}
         )
         await customLogger(projectId, destinationStackId, 'error', message)
-        console.info('Entries missing for', ctType?.contentstackUid)
+        console.info('Entries missing for', keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid)
       }
     }
     return true;
