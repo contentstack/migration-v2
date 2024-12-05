@@ -810,7 +810,7 @@ const updateCurrentStep = async (req: Request) => {
         ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.MIGRATION;
-          data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
+          data.projects[projectIndex].status = NEW_PROJECT_STATUS[5];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
@@ -1079,8 +1079,6 @@ const updateStackDetails = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs during the update.
  */
 const updateContentMapper = async (req: Request) => {
-  console.info("updateContentMapper", req.params, req.body);
-
   const { orgId, projectId } = req.params;
   const { token_payload, content_mapper } = req.body;
   const srcFunc = "updateContentMapper";

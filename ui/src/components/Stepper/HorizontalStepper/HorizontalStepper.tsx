@@ -102,7 +102,7 @@ const HorizontalStepper = forwardRef(
                 !newMigrationData?.isprojectMapped && setShowStep(stepIndex);
                 setStepsCompleted(prev => {
                     const updatedStepsCompleted = [...prev];
-                    for (let i = 0; i <= stepIndex; i++) {
+                    for (let i = 0; i < stepIndex; i++) {
                         if (!updatedStepsCompleted?.includes(i)) {
                             updatedStepsCompleted?.push(i);
                         }
