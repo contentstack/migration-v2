@@ -23,6 +23,7 @@ export interface ContentstackFields {
 }
 
 export interface FieldTypes {
+  uid?: any | string;
   label: string;
   value: any;
   id?: string;
@@ -122,7 +123,7 @@ interface ErrorMessages {
 // }
 
 export type ExistingFieldType = {
-  [key: string]: FieldTypes | undefined;
+  [key: string]: FieldTypes | undefined | { label: string | undefined; value: ContentTypesSchema };
 };
 
 export interface Mapping {
