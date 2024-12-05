@@ -195,6 +195,7 @@ export interface INewMigration {
 
 export interface TestStacks {
   stackUid?: string;
+  stackName?: string;
   isMigrated?: boolean;
 }
 
@@ -223,6 +224,7 @@ export interface IDropDown {
 export interface ITestMigration {
   stack_link: string;
   stack_api_key: string;
+  stack_name: string;
   isMigrationStarted: boolean;
   isMigrationComplete: boolean;
 }
@@ -341,6 +343,7 @@ export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   stack_link: '',
   stack_api_key: '',
+  stack_name: '',
   isMigrationStarted: false,
   isMigrationComplete: false
 };
