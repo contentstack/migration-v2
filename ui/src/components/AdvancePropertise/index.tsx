@@ -331,7 +331,7 @@ const AdvancePropertise = (props: SchemaProps) => {
 
   // Option for content types
   const option = Array.isArray(contentTypes)
-    ? contentTypes.map((option) => ({ label: option?.otherCmsTitle, value: option?.otherCmsTitle }))
+    ? contentTypes.map((option) => ({ label: option?.contentstackTitle, value: option?.contentstackUid }))
     : [{ label: contentTypes, value: contentTypes }];
 
   return (
@@ -539,7 +539,6 @@ const AdvancePropertise = (props: SchemaProps) => {
                       value={ctValue}
                       isMulti={true}
                       onChange={(selectedOptions:ContentTypeOption[]) => {
-                        console.log(selectedOptions)
                         setCTValue(selectedOptions); 
                         const embedObject = selectedOptions.map((item: optionsType) => item.label);// Update the state with the selected options
                         props?.updateFieldSettings(
