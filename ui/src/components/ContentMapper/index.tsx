@@ -1378,7 +1378,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           />
         </div>
         {!OptionValue?.isDisabled && (
-          <Tooltip
+          <div className='advanced-setting-button'>
+             <Tooltip
             content="Advanced properties" 
             position="top"
             disabled={
@@ -1400,6 +1401,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               />
             </Button>
           </Tooltip>
+
+          </div>
+         
         )}
       </div>
     );
@@ -1408,7 +1412,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleSaveContentType = async () => {
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
-
     if (
       selectedContentType &&
       otherContentType &&
