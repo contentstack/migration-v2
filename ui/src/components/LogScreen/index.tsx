@@ -82,21 +82,6 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
     }
   }
 
-  /**
-   * Copies the logs to the clipboard.
-   */
-  const handleCopyLogs = () => {
-    const logsContainer = document.querySelector('.logs-container');
-    if (logsContainer) {
-      const range = document.createRange();
-      range.selectNode(logsContainer);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(range);
-      navigator.clipboard.writeText(logsContainer.textContent || '');
-      window.getSelection()?.removeAllRanges();
-    }
-  }
-
   const [zoomLevel, setZoomLevel] = useState(1);
 
   /**
@@ -127,6 +112,8 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
 
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
+  const migratedTestStack = newMigrationData?.testStacks?.find((test) => test?.stackUid === newMigrationData?.test_migration?.stack_api_key)
+
   useEffect(() => {
     if (logsContainerRef.current) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
@@ -137,7 +124,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
         const logObject = JSON.parse(log);
         const message = logObject.message;
 
-        if (message === "Test Migration Process Completed" || message === "Migration Execution Process Completed") {
+        if (message === "Test Migration Process Completed") {
           Notification({
             notificationContent: { text: message },
             notificationProps: {
@@ -150,8 +137,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
   
           const newMigrationObj: INewMigration = {
             ...newMigrationData,
-            testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, isMigrated: true}]
-            // test_migration: { ...newMigrationData?.test_migration, isMigrationComplete: true, isMigrationStarted: false }
+            testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, stackName: newMigrationData?.test_migration?.stack_name, isMigrated: true}]
           };
   
           dispatch(updateNewMigrationData((newMigrationObj)));
@@ -165,48 +151,46 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
   return (
     <div className='logs-wrapper'>
       <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
-        <div className="logs-magnify"
-          style={{
-            transform: `scale(${zoomLevel})`,
-            transformOrigin: "top left", 
-            transition: "transform 0.1s ease"
-          }}>
-          {logs?.map((log, index) => {
-            const key = `${index}-${new Date().getMilliseconds()}`
-            try {
-              const logObject = JSON.parse(log);
-              const level = logObject.level;
-              const timestamp = logObject.timestamp;
-              const message = logObject.message;
-
-              const migratedTestStack = newMigrationData?.testStacks?.find((test) => test?.stackUid === newMigrationData?.test_migration?.stack_api_key)
-
-              return (
-                <>
-                  {migratedTestStack?.isMigrated
-                    ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                      <div className="log-message">{`Test Migration is completed for stack ${migratedTestStack?.stackName}`}</div>
-                    </div>
-                    : !migratedTestStack?.isMigrated && message === "Migration logs will appear here once the process begins." 
-                      ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                        <div className="log-message">{message}</div>
-                      </div>
-                      : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
-                        <div className="log-number">{index}</div>
-                        <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
-                        <div className="log-message">{message}</div>
-                      </div>
-                  }
-                </>
-              );
-            } catch (error) {
-              console.error('Invalid JSON string', error);
-            }
-          })}
-        </div>
-        
+        {migratedTestStack?.isMigrated
+          ? <div className="log-entry text-center">
+            <div className="log-message">Test Migration is completed for stack <strong>{migratedTestStack?.stackName}</strong></div>
+          </div>
+          : <div className="logs-magnify"
+            style={{
+              transform: `scale(${zoomLevel})`,
+              transformOrigin: "top left", 
+              transition: "transform 0.1s ease"
+            }}>
+            {logs?.map((log, index) => {
+              const key = `${index}-${new Date().getMilliseconds()}`
+              try {
+                const logObject = JSON.parse(log);
+                const level = logObject.level;
+                const timestamp = logObject.timestamp;
+                const message = logObject.message;
+                return (
+                  <>
+                    {message === "Migration logs will appear here once the process begins." 
+                        ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
+                          <div className="log-message">{message}</div>
+                        </div>
+                        : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
+                          <div className="log-number">{index}</div>
+                          <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
+                          <div className="log-message">{message}</div>
+                        </div>
+                    }
+                  </>
+                );
+              } catch (error) {
+                console.error('Invalid JSON string', error);
+              }
+            })}
+          </div>
+        }
       </div>
-      {(newMigrationData?.test_migration?.isMigrationStarted || newMigrationData?.migration_execution?.migrationStarted) && ( 
+                    
+      {!migratedTestStack?.isMigrated && !logs?.some((log) => log === "Migration logs will appear here once the process begins.") && ( 
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
           <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
