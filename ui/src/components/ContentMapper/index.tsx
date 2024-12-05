@@ -261,7 +261,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
 
   /** ALL HOOKS Here */
-  const { projectId = '' } = useParams();
+  const { projectId = '', stepId = '' } = useParams();
   const navigate = useNavigate();
 
   const filterRef = useRef<HTMLDivElement | null>(null);
@@ -894,11 +894,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.otherCmsField === 'title' ||
               data?.otherCmsField === 'url' ||
               data?.otherCmsField === 'reference'||
-              data?.contentstackFieldType === "global_field"
+              data?.contentstackFieldType === "global_field" ||
+              newMigrationData?.project_current_step?.toString() !== stepId
             }
           />
         </div>
-          {!(
+        {!(
           data?.otherCmsType === 'Group' ||
           data?.otherCmsField === 'title' ||
           data?.otherCmsField === 'url' ||
@@ -920,9 +921,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               onClick={() =>
                 handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
               }
+              disabled={newMigrationData?.project_current_step?.toString() !== stepId}
             />
           </Tooltip>
-    )}
+        )}
       </div>
     );
   };
@@ -953,7 +955,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     else {
       setIsFieldDeleted(false);
     }
-
     
     setExistingField((prevOptions: ExistingFieldType) => ({
       ...prevOptions,
@@ -1375,36 +1376,34 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             maxWidth="290px"
             isClearable={selectedOptions?.includes(existingField?.[data?.uid]?.label ?? '')}
             options={adjustedOptions}
-            isDisabled={OptionValue?.isDisabled}
+            isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step?.toString() !== stepId}
           />
         </div>
         {!OptionValue?.isDisabled && (
           <div className='advanced-setting-button'>
-             <Tooltip
-            content="Advanced properties" 
-            position="top"
-            disabled={
-              data?.otherCmsField === 'title' ||
-              data?.otherCmsField === 'url'
-            }
-          >
-            <Button
-              buttonType="light"
-              disabled={contentTypeSchema && existingField[data?.uid] ? true : false}
+            <Tooltip
+              content="Advanced properties" 
+              position="top"
+              disabled={
+                data?.otherCmsField === 'title' ||
+                data?.otherCmsField === 'url'
+              }
             >
-              <Icon
-                version={'v2'}
-                icon="Sliders"
-                size="small"
-                onClick={() => {
-                  handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
-                }}
-              />
-            </Button>
-          </Tooltip>
-
+              <Button
+                buttonType="light"
+                disabled={(contentTypeSchema && existingField[data?.uid] || newMigrationData?.project_current_step?.toString() !== stepId) ? true : false}
+              >
+                <Icon
+                  version={'v2'}
+                  icon="Sliders"
+                  size="small"
+                  onClick={() => {
+                    handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
+                  }}
+                />
+              </Button>
+            </Tooltip>
           </div>
-         
         )}
       </div>
     );
@@ -1996,6 +1995,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           placeholder={otherContentType?.label}
                           isSearchable
                           version="v2"
+                          isDisabled={newMigrationData?.project_current_step?.toString() !== stepId}
                         />
                       </div>
                     )}
@@ -2012,9 +2012,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             />
             <div className='text-end my-2 mx-3 px-1 py-1'>
               <Button
-                  className="saveButton"
-                  onClick={handleSaveContentType}
-                  version="v2"
+                className="saveButton"
+                onClick={handleSaveContentType}
+                version="v2"
+                disabled={newMigrationData?.project_current_step?.toString() !== stepId}
                 >
                 Save
               </Button>

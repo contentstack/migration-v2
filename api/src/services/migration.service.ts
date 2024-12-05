@@ -92,7 +92,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_step = STEPPER_STEPS['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
-        data.projects[index].test_stacks.push({ stackUid: res?.data?.stack?.api_key, isMigrated: false });
+        data.projects[index].test_stacks.push({ stackUid: res?.data?.stack?.api_key, stackName: res?.data?.stack?.name, isMigrated: false });
       });
     }
     return {
@@ -169,7 +169,7 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
       .get("projects")
       .findIndex({ id: projectId })
       .value();
-    console.info(index);
+      
     if (index > -1) {
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_test_stack_id = "";
