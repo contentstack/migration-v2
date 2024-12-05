@@ -1485,7 +1485,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           setContentTypes(savedCT);
 
           try {
-            await updateContentMapper(orgId, projectID, {...contentTypeMapped, [otherCmsTitle]: otherContentType?.label});
+            await updateContentMapper(orgId, projectID, {...contentTypeMapped, [otherCmsUid]: otherContentType?.value});
           } catch (err) {
             console.log(err);
             return err;
