@@ -93,7 +93,9 @@ export const HTTP_TEXTS = {
   PROJECT_REVERT:
     "Project Reverted Successfully",
   LOGS_NOT_FOUND: 
-    "Sorry, no logs found for requested stack migration."
+    "Sorry, no logs found for requested stack migration.",
+  MIGRATION_EXECUTION_KEY_UPDATED:
+    "Project's migration execution key updated successfully"
 };
 
 export const HTTP_RESPONSE_HEADERS = {
@@ -207,7 +209,7 @@ export const MIGRATION_DATA_CONFIG = {
   ASSETS_DIR_NAME : "assets",
   ASSETS_FILE_NAME : "assets.json",
   // ASSETS_SCHEMA_FILE : "index.json",
-  ASSETS_SCHEMA_FILE : "assetsSchema.json",
+  ASSETS_SCHEMA_FILE : "index.json",
   ASSETS_FAILED_FILE : "cs_failed.json",
   ASSETS_METADATA_FILE :"metadata.json",
 
