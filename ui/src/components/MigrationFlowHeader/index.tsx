@@ -21,6 +21,13 @@ type MigrationFlowHeaderProps = {
   finalExecutionStarted?: boolean;
 };
 
+/**
+ * Renders a MigrationFlowHeader component to show the project name and CTA to proceed to next step
+ * @param projectData - The projectData object containing project details.
+ * @param handleOnClick - Callback function to proceed to next step.
+ * @param isLoading - isLoading flag to load redux data
+ * @param finalExecutionStarted - The finalExecutionStarted boolean to check if migration execution is started to disable Start Migration button.
+ */
 const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecutionStarted }: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
   const [currentStep, setCurrentStep] = useState<number>(0);
@@ -37,6 +44,9 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
   }, [selectedOrganisation?.value, params?.projectId]);
 
   /******** Function to get project  ********/
+  /**
+   * Fetch the project details project name and current step.
+   */
   const fetchProject = async () => {
     setProjectName(projectData?.name);
     setCurrentStep(projectData?.current_step);
@@ -59,7 +69,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>
         { projectName && 
-        <Tooltip content={projectName} position='top' version={'v2'}>
+        <Tooltip content={projectName} position='right' version={'v2'}>
           <h1 className='project-name-ellipsis'>{projectName}</h1> 
         </Tooltip>}
       </div>
