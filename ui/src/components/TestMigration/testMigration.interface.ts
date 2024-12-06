@@ -8,3 +8,8 @@ export interface CTA {
   title?: string;
   url?: string;
 }
+
+export interface TestMigrationValues {
+  isTestMigrationStarted: boolean,
+  isTestMigrationCompleted: boolean,
+}
