@@ -18,7 +18,7 @@ import { getAllStacksInOrg } from '../../services/api/stacks.service';
 import { CS_ENTRIES } from '../../utilities/constants';
 
 // Interface
-import { MigrationType } from './testMigration.interface';
+import { MigrationType, TestMigrationValues } from './testMigration.interface';
 import { INewMigration } from '../../context/app/app.interface';
 
 
@@ -28,21 +28,36 @@ import TestMigrationLogViewer from '../LogScreen';
 // CSS
 import './index.scss';
 
+// utility function to save state to sessionStorage
+export const saveStateToLocalStorage = (state:TestMigrationValues, projectId : string) => {
+  sessionStorage.setItem(`testmigration_${projectId}`, JSON.stringify(state));
+};
+
+// utitlity function to retrieve state from sessionStorage
+const getStateFromLocalStorage = (projectId : string) => {
+  const state = sessionStorage.getItem(`testmigration_${projectId}`);
+  return state ? JSON.parse(state) : null;
+};
+
 const TestMigration = () => {
+
+  // Access Redux state for migration data and selected organization
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
 
   const [data, setData] = useState<MigrationType>({});
   const [isLoading, setIsLoading] = useState(newMigrationData?.isprojectMapped);
   const [isStackLoading, setIsStackLoading] = useState<boolean>(false);
-  const [disableTestMigration, setdisableTestMigration] = useState<boolean>(false);
+  const [disableTestMigration, setdisableTestMigration] = useState<boolean>(newMigrationData?.test_migration?.isMigrationStarted);
 
-  const [disableCreateStack, setDisableCreateStack] = useState<boolean>(false);
+  const [disableCreateStack, setDisableCreateStack] = useState<boolean>(newMigrationData?.test_migration?.isMigrationStarted);
   const [stackLimitReached, setStackLimitReached] = useState<boolean>(false);
   
+   // Extract project ID from URL parameters
   const { projectId = '' } = useParams();
   const dispatch = useDispatch();
 
+  // Destructure CMS data for button labels and subtitles
   const { create_stack_cta: createStackCta, subtitle, start_migration_cta: startMigrationCta } = data
 
   /********** ALL USEEFFECT HERE *************/
@@ -63,7 +78,8 @@ const TestMigration = () => {
     * to disable Create Test Stack and Start Test Migration buttons as per isMigrated state
   */
   useEffect(() => {
-    if (!newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated) {
+    if (!newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated && !disableTestMigration) {
+      
       setDisableCreateStack(false);
     }
 
@@ -71,6 +87,18 @@ const TestMigration = () => {
       setdisableTestMigration(true);
     }
   }, [newMigrationData?.testStacks]);
+
+  useEffect(() => {
+
+      // Retrieve and apply saved state from sessionStorage
+    const savedState = getStateFromLocalStorage(projectId);
+    if (savedState) {
+      setdisableTestMigration(savedState?.isTestMigrationStarted);
+      setDisableCreateStack(savedState?.isTestMigrationStarted);  
+    }
+    
+  },[]);
+
 
 
   /**
@@ -81,15 +109,19 @@ const TestMigration = () => {
 
     //get org plan details
     try {
+
+      // Fetch organization details to determine stack limit
       const orgDetails = await getOrgDetails(selectedOrganisation?.value);
       const stacks_details_key = Object.keys(orgDetails?.data?.organization?.plan?.features)?.find(key => orgDetails?.data?.organization?.plan?.features[key].uid === 'stacks') ?? '';
 
       const max_stack_limit = orgDetails?.data?.organization?.plan?.features[stacks_details_key]?.max_limit;
 
+      // Check the current stack count
       const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
         
       const stack_count = stackData?.data?.stacks?.length;
 
+      // Handle stack limit reached
       if (stack_count >= max_stack_limit) {
         setIsLoading(false);
         setDisableCreateStack(true);
@@ -104,6 +136,7 @@ const TestMigration = () => {
       console.log(error);
     }
 
+    // Prepare data for stack creation
     const data = {
       name: newMigrationData?.destination_stack?.selectedStack?.label,
       description: 'test migration stack',
@@ -130,7 +163,7 @@ const TestMigration = () => {
           type: 'success'
         });
 
-
+        // Update migration data in Redux
         const newMigrationDataObj: INewMigration = {
           ...newMigrationData,
           test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key, stack_name: res?.data?.data?.data?.stack?.name }
@@ -154,7 +187,26 @@ const TestMigration = () => {
 
       if (testRes?.status === 200) {
         setdisableTestMigration(true);
+        
+        //dispatch test migration started flag in redux
+        const newMigrationDataObj : INewMigration = {
+          ...newMigrationData,
+          test_migration:{
+            ...newMigrationData?.test_migration,
+            isMigrationStarted:true,
+          }
+        }
+        dispatch(updateNewMigrationData(newMigrationDataObj));
+
+        //update test migration started flag in localstorage
+        saveStateToLocalStorage({
+          isTestMigrationCompleted : false,
+          isTestMigrationStarted : true,
+        }, projectId);
+
         handleMigrationState(true);
+
+        
         Notification({
           notificationContent: { text: 'Test Migration started' },
           notificationProps: {
@@ -250,7 +302,7 @@ const TestMigration = () => {
         <div className='content-block'>
           <div className='content-header'>Execution Logs</div>
           <div>
-            <TestMigrationLogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} />
+            <TestMigrationLogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} sendDataToParent={handleMigrationState} projectId={projectId} />
           </div>
         </div>
       </div>
