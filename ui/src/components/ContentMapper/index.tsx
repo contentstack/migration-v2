@@ -1370,7 +1370,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           isDisabled: true
         }
         : (OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) 
-          && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ))
+          && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ) || (OptionsForRow.length > 0 && data?.contentstackFieldType === "dropdown"))
           ? {
             label: Fields[data?.contentstackFieldType]?.label,
             value: Fields[data?.contentstackFieldType]?.label,
@@ -1378,7 +1378,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.contentstackFieldType === 'group' ||
               data?.contentstackFieldType === 'url' ||
               data?.otherCmsType === "reference" || 
-              data?.contentstackFieldType === "global_field"
+              data?.contentstackFieldType === "global_field" ||
+              data?.contentstackFieldType === "dropdown"
+
           }
           : {
           label: `${selectedOption} matches`,
