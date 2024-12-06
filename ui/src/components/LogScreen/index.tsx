@@ -134,18 +134,6 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
 
         if (message === "Test Migration Process Completed") {
 
-
-          // push test migration completion in redux
-          const newMigrationDataObj : INewMigration = {
-            ...newMigrationData,
-            test_migration:{
-              ...newMigrationData?.test_migration,
-              isMigrationComplete:true,
-              isMigrationStarted: false,
-            }
-          }
-          dispatch(updateNewMigrationData(newMigrationDataObj));
-
           // Save test migration state to local storage
           saveStateToLocalStorage({
             isTestMigrationCompleted : true,
@@ -165,7 +153,12 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
           // Update testStacks data in Redux
           const newMigrationObj: INewMigration = {
             ...newMigrationData,
-            testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, stackName: newMigrationData?.test_migration?.stack_name, isMigrated: true}]
+            testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, stackName: newMigrationData?.test_migration?.stack_name, isMigrated: true}],
+            test_migration:{
+              ...newMigrationData?.test_migration,
+              isMigrationComplete:true,
+              isMigrationStarted: false,
+            }
           };
   
           dispatch(updateNewMigrationData((newMigrationObj)));
