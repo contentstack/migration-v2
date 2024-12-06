@@ -445,18 +445,52 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // maaped fields
   useEffect(() => {
     if (existingField) {
+      const matchedKeys = new Set<string>();
+
       contentTypeSchema?.forEach((item) => {
         for (const [key, value] of Object.entries(existingField)) {
-          if (value?.label === item?.display_name) {
+          if (value?.value?.uid === item?.uid) {
+            matchedKeys.add(key);
 
             setExistingField((prevOptions: ExistingFieldType) => ({
               ...prevOptions,
-              [key]: { label: value?.label, value: item },
+              [key]: { label: item?.display_name, value: item },
             }));
-
+          }
+          if (item?.data_type === "group" && Array.isArray(item?.schema)) {
+            item.schema.forEach((schemaItem) => {
+              if (value?.value?.uid === schemaItem?.uid) {
+                matchedKeys.add(key);
+                setExistingField((prevOptions: ExistingFieldType) => ({
+                  ...prevOptions,
+                  [key]: { label: schemaItem?.display_name, value: schemaItem },
+                }));
+              }
+            });
           }
         }
-      })
+      });
+
+      if(newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle] !== otherContentType?.label){
+        setSelectedOptions([]);
+      }
+      // Remove unmatched keys from existingField
+      setExistingField((prevOptions: ExistingFieldType) => {
+        const updatedOptions:any = { ...prevOptions };
+        Object.keys(prevOptions).forEach((key) => {
+          if (matchedKeys.has(key)) {
+            
+            const index = selectedOptions?.indexOf(updatedOptions?.[key]?.label);
+               
+            if ( index > -1) {
+              selectedOptions.splice(index, 1);
+            }
+            delete updatedOptions[key];
+          }
+        });
+        return updatedOptions;
+      });
+
     }
   },[contentTypeSchema]);
 
@@ -1336,7 +1370,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           isDisabled: true
         }
         : (OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) 
-          && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ))
+          && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ) || (OptionsForRow.length > 0 && data?.contentstackFieldType === "dropdown"))
           ? {
             label: Fields[data?.contentstackFieldType]?.label,
             value: Fields[data?.contentstackFieldType]?.label,
@@ -1344,7 +1378,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.contentstackFieldType === 'group' ||
               data?.contentstackFieldType === 'url' ||
               data?.otherCmsType === "reference" || 
-              data?.contentstackFieldType === "global_field"
+              data?.contentstackFieldType === "global_field" ||
+              data?.contentstackFieldType === "dropdown"
+
           }
           : {
           label: `${selectedOption} matches`,
@@ -1624,12 +1660,21 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       try {
         const { data , status} = await getExistingContentTypes(projectId, otherContentType?.id ?? '');
         if (status == 201 && data?.contentTypes?.length > 0) {
-          setOtherContentType({
+          otherContentType?.id && setOtherContentType({
             label: data?.selectedContentType?.title, 
             value: data?.selectedContentType?.title,
             id:data?.selectedContentType?.uid
           })
           setContentModels(data?.contentTypes);
+          const newMigrationDataObj : INewMigration = {
+            ...newMigrationData,
+            content_mapping:{
+              ...newMigrationData?.content_mapping,
+             existingCT : data?.contentTypes
+            }
+
+          }
+          dispatch(updateNewMigrationData(newMigrationDataObj));
           Notification({
             notificationContent: { text: 'Content Types fetched successfully' },
             notificationProps: {
@@ -1660,12 +1705,23 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         const { data, status } = await getExistingGlobalFields(projectId, otherContentType?.id ?? '');
 
         if (status == 201 && data?.globalFields?.length > 0) {
-          setOtherContentType({
+          otherContentType?.id && setOtherContentType({
             label: data?.selectedGlobalField?.title,
             value:data?.selectedGlobalField?.title,
             id:data?.selectedGlobalField?.uid
           })
           setContentModels(data?.globalFields);
+
+          const newMigrationDataObj : INewMigration = {
+            ...newMigrationData,
+            content_mapping:{
+              ...newMigrationData?.content_mapping,
+             existingGlobal : data?.globalFields
+            }
+
+          }
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+
           Notification({
             notificationContent: { text: 'Global Fields fetched successfully' },
             notificationProps: {
