@@ -17,7 +17,7 @@ import { validateArray } from '../../utilities/functions';
 import { DEFAULT_MIGRATION_EXECUTION } from '../../context/app/app.interface';
 
 // Component
-import LogViewer from '../LogScreen';
+import MigrationLogViewer from '../LogScreen/MigrationLogViewer';
 
 //stylesheet
 import './index.scss';
@@ -59,16 +59,16 @@ const MigrationExecution = () => {
 
   const getPlaceHolder = (title: string) => {
     switch (title) {
-      case 'Uploaded CMS':
+      case 'Legacy CMS':
         return newMigrationData?.legacy_cms?.selectedCms?.title;
 
       case 'Organization':
         return newMigrationData?.destination_stack?.selectedOrg?.label;
 
-      case 'Selected stack':
+      case 'Selected Stack':
         return newMigrationData?.destination_stack?.selectedStack?.label;
 
-      case 'Selected locale':
+      case 'Selected Locale':
         return newMigrationData?.destination_stack?.selectedStack?.master_locale;
     }
   };
@@ -113,7 +113,7 @@ const MigrationExecution = () => {
         <div className='content-block'>
           <div className='content-header'>Execution Logs</div>
           <div>
-            <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} />
+            <MigrationLogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} />
           </div>
         </div>
       </div>
