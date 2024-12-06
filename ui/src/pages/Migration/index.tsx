@@ -9,7 +9,7 @@ import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails, getExistingContentTypes, getExistingGlobalFields, startMigration } from '../../services/api/migration.service';
+import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails, getExistingContentTypes, getExistingGlobalFields, startMigration, updateMigrationKey } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -188,7 +188,7 @@ const Migration = () => {
     ? selectedCmsData.allowed_file_formats?.find(
         (cms: ICardType) => cms?.fileformat_id === projectData?.legacy_cms?.file_format
       )
-    : newMigrationData?.legacy_cms?.selectedFileFormat ?? defaultCardType;
+    : newMigrationData?.legacy_cms?.selectedFileFormat ;
   
 
   const selectedOrganisationData = validateArray(organisationsList)
@@ -224,7 +224,7 @@ const Migration = () => {
         ...newMigrationData?.legacy_cms,
         selectedCms: selectedCmsData,
         selectedFileFormat: selectedFileFormatData,
-        affix: newMigrationData?.legacy_cms?.affix ?? projectData?.legacy_cms?.affix,
+        affix:  projectData?.legacy_cms?.affix ?? newMigrationData?.legacy_cms?.affix,
         uploadedFile: {
           file_details: {
             localPath: projectData?.legacy_cms?.file_path,
@@ -235,7 +235,7 @@ const Migration = () => {
             },
             isLocalPath: projectData?.legacy_cms?.is_localPath
           },
-          isValidated: newMigrationData?.legacy_cms?.uploadedFile?.isValidated || projectData?.legacy_cms?.is_fileValid,
+          isValidated:  projectData?.legacy_cms?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
           reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
         },
         isFileFormatCheckboxChecked: true, 
@@ -498,6 +498,8 @@ const Migration = () => {
 
     const url = `/projects/${projectId}/migration/steps/5`;
     navigate(url, { replace: true });
+
+    await updateMigrationKey(selectedOrganisation.value, projectId);
 
     await updateCurrentStepData(selectedOrganisation.value, projectId);
     handleStepChange(4);
