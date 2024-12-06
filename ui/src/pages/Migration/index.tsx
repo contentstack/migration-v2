@@ -257,8 +257,8 @@ const Migration = () => {
       test_migration: {
         stack_link: stackLink,
         stack_api_key: projectData?.current_test_stack_id,
-        isMigrationStarted: false,
-        isMigrationComplete: false
+        isMigrationStarted: newMigrationData?.test_migration?.isMigrationStarted || false,
+        isMigrationComplete: newMigrationData?.test_migration?.isMigrationStarted || false
       },
       migration_execution: {
         migrationStarted: projectData?.isMigrationStarted
