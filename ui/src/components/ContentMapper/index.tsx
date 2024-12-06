@@ -1815,7 +1815,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   const adjustedOption = options?.map((option) => ({
     ...option,
-    isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
+    isDisabled: filteredContentTypes?.some((ct) => ct?.contentstackUid === option?.id) || (contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label))
   }));
 
   // Function to toggle filter panel
