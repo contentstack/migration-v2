@@ -929,7 +929,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.otherCmsField === 'url' ||
               data?.otherCmsField === 'reference'||
               data?.contentstackFieldType === "global_field" ||
-              newMigrationData?.project_current_step?.toString() !== stepId
+              newMigrationData?.project_current_step > 4
             }
           />
         </div>
@@ -955,7 +955,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               onClick={() =>
                 handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
               }
-              disabled={newMigrationData?.project_current_step?.toString() !== stepId}
+              disabled={newMigrationData?.project_current_step > 4}
             />
           </Tooltip>
         )}
@@ -1412,7 +1412,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             maxWidth="290px"
             isClearable={selectedOptions?.includes(existingField?.[data?.uid]?.label ?? '')}
             options={adjustedOptions}
-            isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step?.toString() !== stepId}
+            isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
           />
         </div>
         {!OptionValue?.isDisabled && (
@@ -1427,7 +1427,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             >
               <Button
                 buttonType="light"
-                disabled={(contentTypeSchema && existingField[data?.uid] || newMigrationData?.project_current_step?.toString() !== stepId) ? true : false}
+                disabled={(contentTypeSchema && existingField[data?.uid] || newMigrationData?.project_current_step > 4) ? true : false}
               >
                 <Icon
                   version={'v2'}
@@ -2051,7 +2051,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           placeholder={otherContentType?.label}
                           isSearchable
                           version="v2"
-                          isDisabled={newMigrationData?.project_current_step?.toString() !== stepId}
+                          isDisabled={newMigrationData?.project_current_step > 4}
                         />
                       </div>
                     )}
@@ -2071,7 +2071,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 className="saveButton"
                 onClick={handleSaveContentType}
                 version="v2"
-                disabled={newMigrationData?.project_current_step?.toString() !== stepId}
+                disabled={newMigrationData?.project_current_step > 4}
                 >
                 Save
               </Button>
