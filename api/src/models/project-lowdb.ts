@@ -74,6 +74,7 @@ interface Project {
   mapperKeys: {};
   extract_path: string;
   isMigrationStarted: boolean;
+  migration_execution: boolean;
 }
 
 interface ProjectDocument {
