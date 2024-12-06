@@ -50,7 +50,7 @@ const TestMigration = () => {
   const [isStackLoading, setIsStackLoading] = useState<boolean>(false);
   const [disableTestMigration, setdisableTestMigration] = useState<boolean>(newMigrationData?.test_migration?.isMigrationStarted);
 
-  const [disableCreateStack, setDisableCreateStack] = useState<boolean>(newMigrationData?.test_migration?.isMigrationStarted);
+  const [disableCreateStack, setDisableCreateStack] = useState<boolean>( ! newMigrationData?.testStacks?.find((stack)=>stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated || newMigrationData?.test_migration?.isMigrationStarted  );
   const [stackLimitReached, setStackLimitReached] = useState<boolean>(false);
   
    // Extract project ID from URL parameters
@@ -78,9 +78,8 @@ const TestMigration = () => {
     * to disable Create Test Stack and Start Test Migration buttons as per isMigrated state
   */
   useEffect(() => {
-    if (!newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated && !disableTestMigration) {
-      
-      setDisableCreateStack(false);
+    if (!newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated && !disableTestMigration) {    
+      //setDisableCreateStack(false);
     }
 
     if (newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated === true) {
@@ -194,6 +193,7 @@ const TestMigration = () => {
           test_migration:{
             ...newMigrationData?.test_migration,
             isMigrationStarted:true,
+            isMigrationComplete: false,
           }
         }
         dispatch(updateNewMigrationData(newMigrationDataObj));
