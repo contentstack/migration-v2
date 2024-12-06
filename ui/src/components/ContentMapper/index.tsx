@@ -1428,7 +1428,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             >
               <Button
                 buttonType="light"
-                disabled={(contentTypeSchema && existingField[data?.uid] || newMigrationData?.project_current_step > 4) ? true : false}
+                disabled={(contentTypeSchema && existingField[data?.uid]) || newMigrationData?.project_current_step > 4}
               >
                 <Icon
                   version={'v2'}
@@ -1471,8 +1471,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           } 
         }
       };
-
-
       dispatch(updateNewMigrationData(newMigrationDataObj));
     }
 
@@ -1514,8 +1512,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
           };
         
-        
-          dispatch(updateNewMigrationData((newMigrationDataObj)));
+          dispatch(updateNewMigrationData((newMigrationDataObj)));          
 
           const savedCT = filteredContentTypes?.map(ct => 
             ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
@@ -1533,7 +1530,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
         } else {
           const FailedCT = filteredContentTypes?.map(ct => 
-            ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
+            ct?.id === selectedContentType?.id ? { ...ct, status: selectedContentType?.status } : ct
           );
 
           setFilteredContentTypes(FailedCT);
@@ -1816,7 +1813,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   const adjustedOption = options?.map((option) => ({
     ...option,
-    isDisabled: contentTypeMapped && Object.values(contentTypeMapped).includes(option?.label)
+    isDisabled: filteredContentTypes?.some((ct) => ct?.contentstackUid === option?.id) || (contentTypeMapped && Object.values(contentTypeMapped).includes(option?.id))
   }));
 
   // Function to toggle filter panel
@@ -2101,11 +2098,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                   uploadedFile:{
                     ...newMigrationData?.legacy_cms?.uploadedFile,
                     reValidate: true
-          
                   }
                 }
-                
-          
               }
               
               dispatch(updateNewMigrationData(newMigrationDataObj));
