@@ -64,7 +64,22 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
   } else {
     stepValue = 'Save and Continue';
   }
-  
+
+  const isStep4AndNotMigrated = 
+  params?.stepId === '4' && 
+  !newMigrationData?.testStacks?.some(
+    (stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key && stack?.isMigrated
+  );
+
+  const isStepInvalid = 
+    params?.stepId && 
+    params?.stepId <= '2' && 
+    newMigrationData?.project_current_step?.toString() !== params?.stepId;
+
+  const isExecutionStarted = 
+    finalExecutionStarted || 
+    newMigrationData?.migration_execution?.migrationStarted;
+    
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>
@@ -81,9 +96,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
         version="v2"
         aria-label='Save and Continue'
         isLoading={isLoading || newMigrationData?.isprojectMapped}
-        disabled={(params?.stepId === '4' && !(newMigrationData?.testStacks?.find((stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated)) ||
-           (params?.stepId && params?.stepId <= '2' && newMigrationData?.project_current_step?.toString() !== params?.stepId) || (finalExecutionStarted || newMigrationData?.migration_execution?.migrationStarted)
-        }
+        disabled={isStep4AndNotMigrated || isStepInvalid || isExecutionStarted}
       >
         {stepValue}
       </Button>
