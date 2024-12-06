@@ -15,7 +15,9 @@ import { INewMigration } from '../../context/app/app.interface';
 import './index.scss';
 
 import { MAGNIFY,DEMAGNIFY } from '../../common/assets';
+import { saveStateToLocalStorage } from '../TestMigration';
 
+// Define log styles for different levels
 const logStyles: { [key: string]: React.CSSProperties } = {
   info: { backgroundColor: '#f1f1f1' },
   warn: { backgroundColor: '#ffeeba', color: '#856404' },
@@ -23,22 +25,28 @@ const logStyles: { [key: string]: React.CSSProperties } = {
   success: { backgroundColor: '#d4edda', color: '#155724' },
 };
 
+// Define the props for the component
 type LogsType = {
   serverPath: string;
   sendDataToParent?: (isMigrationStarted: boolean) => void | undefined;
+  projectId: string
 }
 
 /**
  * TestMigrationLogViewer component displays logs received from the server.
  * @param {string} serverPath - The path of the server to connect to.
+ * @param {function} sendDataToParent - Callback to inform the parent about migration status.
+ * @param {string} projectId - The project ID for saving state to local storage.
  */
-const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
+const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: LogsType) => {
   const [logs, setLogs] = useState<string[]>([JSON.stringify({ message: "Migration logs will appear here once the process begins.", level: ''})]);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
+  // Redux dispatcher
   const dispatch = useDispatch();
 
+  // Set up WebSocket connection
   useEffect(() => {
     const socket = io(serverPath || ''); // Connect to the server
 
@@ -125,6 +133,25 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
         const message = logObject.message;
 
         if (message === "Test Migration Process Completed") {
+
+
+          // push test migration completion in redux
+          const newMigrationDataObj : INewMigration = {
+            ...newMigrationData,
+            test_migration:{
+              ...newMigrationData?.test_migration,
+              isMigrationComplete:true,
+              isMigrationStarted: false,
+            }
+          }
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+
+          // Save test migration state to local storage
+          saveStateToLocalStorage({
+            isTestMigrationCompleted : true,
+            isTestMigrationStarted : false,
+          }, projectId);
+
           Notification({
             notificationContent: { text: message },
             notificationProps: {
@@ -135,6 +162,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
           });
           sendDataToParent?.(false);
   
+          // Update testStacks data in Redux
           const newMigrationObj: INewMigration = {
             ...newMigrationData,
             testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, stackName: newMigrationData?.test_migration?.stack_name, isMigrated: true}]
@@ -150,6 +178,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
 
   return (
     <div className='logs-wrapper'>
+       {/* Logs container */}
       <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
         {migratedTestStack?.isMigrated
           ? <div className="log-entry text-center">
@@ -190,6 +219,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent }: LogsType) => {
         }
       </div>
                     
+      {/* Action buttons for scrolling and zooming */}           
       {!migratedTestStack?.isMigrated && !logs?.some((log) => log === "Migration logs will appear here once the process begins.") && ( 
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
