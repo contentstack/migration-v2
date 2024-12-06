@@ -553,7 +553,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // Method to get fieldmapping
   const fetchFields = async (contentTypeId: string, searchText: string) => {
     try {
-      const { data } = await getFieldMapping(contentTypeId || '', 0, 30, searchText || '', projectId);
+      const { data } = await getFieldMapping(contentTypeId || '', 0, 1000, searchText || '', projectId);
 
       const itemStatusMap: ItemStatusMapProp = {};
 
