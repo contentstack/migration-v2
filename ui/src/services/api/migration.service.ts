@@ -322,3 +322,12 @@ export const startMigration = async (orgId: string, projectId: string) => {
     return error;
   }
 };
+
+export const updateMigrationKey = async (orgId: string, projectId: string) => {
+  try {
+    return await putCall(
+      `${API_VERSION}/org/${orgId}/project/${projectId}/migration-excution`, {}, options);
+  } catch (error) {
+    return error;
+  }
+};
