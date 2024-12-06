@@ -298,8 +298,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   },[tableData]);
 
   useEffect(() => {
-    const mappedContentType = contentModels && contentModels?.find((item)=> item?.title === newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle]);
-
+    const mappedContentType = contentModels && contentModels?.find((item)=> item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || '']);
     // if (contentTypeMapped && otherCmsTitle  ) {
       
       if (mappedContentType?.uid) {
@@ -334,7 +333,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // useEffect for rendering mapped fields with existing stack
   useEffect(() => {
-    if (newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle] === otherContentType?.label) {
+    console.log(otherContentType);
+    
+    if (newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || ''] === otherContentType?.id) {
       tableData?.forEach((row) => {
         contentTypeSchema?.forEach((schema) => {
           
@@ -1415,7 +1416,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
           />
         </div>
-        {!OptionValue?.isDisabled && (
+        {!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown' && (
           <div className='advanced-setting-button'>
             <Tooltip
               content="Advanced properties" 
@@ -1466,7 +1467,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           content_type_mapping: {
             
             ...newMigrationData?.content_mapping?.content_type_mapping ?? {},
-            [otherCmsTitle]: otherContentType?.label
+            [selectedContentType?.contentstackUid]: otherContentType?.id || ''
           } 
         }
       };
