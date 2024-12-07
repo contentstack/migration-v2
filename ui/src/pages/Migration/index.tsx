@@ -517,6 +517,16 @@ const Migration = () => {
       if (migrationRes?.status === 200) {
         setIsLoading(false);
         setDisableMigration(true);
+        const newMigrationDataObj : INewMigration = {
+          ...newMigrationData,
+          migration_execution:{
+            ...newMigrationData?.migration_execution,
+            migrationStarted: true,
+          }
+          
+        }
+        dispatch(updateNewMigrationData(newMigrationDataObj));
+
         Notification({
           notificationContent: { text: 'Migration Execution process started' },
           notificationProps: {
