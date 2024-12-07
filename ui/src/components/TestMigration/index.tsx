@@ -49,8 +49,8 @@ const TestMigration = () => {
   const [isLoading, setIsLoading] = useState(newMigrationData?.isprojectMapped);
   const [isStackLoading, setIsStackLoading] = useState<boolean>(false);
   const [disableTestMigration, setdisableTestMigration] = useState<boolean>(newMigrationData?.test_migration?.isMigrationStarted);
-
-  const [disableCreateStack, setDisableCreateStack] = useState<boolean>( ! newMigrationData?.testStacks?.find((stack)=>stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated || newMigrationData?.test_migration?.isMigrationStarted  );
+ 
+  const [disableCreateStack, setDisableCreateStack] = useState<boolean>(newMigrationData?.test_migration?.stack_api_key && ! newMigrationData?.testStacks?.find((stack)=>stack?.stackUid === newMigrationData?.test_migration?.stack_api_key)?.isMigrated || newMigrationData?.test_migration?.isMigrationStarted  );
   const [stackLimitReached, setStackLimitReached] = useState<boolean>(false);
   
    // Extract project ID from URL parameters
