@@ -333,7 +333,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // useEffect for rendering mapped fields with existing stack
   useEffect(() => {
-    console.log(otherContentType);
     
     if (newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || ''] === otherContentType?.id) {
       tableData?.forEach((row) => {
@@ -464,7 +463,43 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 matchedKeys.add(key);
                 setExistingField((prevOptions: ExistingFieldType) => ({
                   ...prevOptions,
-                  [key]: { label: schemaItem?.display_name, value: schemaItem },
+                  [key]: { label: `${item?.display_name} > ${schemaItem?.display_name}`, value: schemaItem },
+                }));
+              }
+            });
+          }
+        }
+      });
+
+      if(newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle] !== otherContentType?.label){
+        setSelectedOptions([]);
+      }
+
+    }
+
+  },[contentTypeSchema]);
+  useEffect(() => {
+    if (existingField) {
+      const matchedKeys = new Set<string>();
+
+      contentTypeSchema?.forEach((item) => {
+        for (const [key, value] of Object.entries(existingField)) {
+          if (value?.value?.uid === item?.uid) {
+            matchedKeys.add(key);
+
+            setExistingField((prevOptions: ExistingFieldType) => ({
+              ...prevOptions,
+              [key]: { label: item?.display_name, value: item },
+            }));
+          }
+          if (item?.data_type === "group" && Array.isArray(item?.schema)) {
+            item.schema.forEach((schemaItem) => {
+              if (value?.value?.uid === schemaItem?.uid) {
+                
+                matchedKeys.add(key);
+                setExistingField((prevOptions: ExistingFieldType) => ({
+                  ...prevOptions,
+                  [key]: { label: `${item?.display_name} > ${schemaItem?.display_name}`, value: schemaItem },
                 }));
               }
             });
@@ -493,7 +528,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       });
 
     }
-  },[contentTypeSchema]);
+    
+  },[otherContentType]);
 
   // To dispatch the changed dropdown state
   // useEffect(() => {
@@ -1029,6 +1065,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           ...row,
           contentstackField: selectedValue?.label,
           contentstackFieldUid: selectedValue?.uid,
+          contentstackFieldType: selectedValue?.value?.field_metadata?.allow_rich_text ? 'html' : row?.contentstackFieldType,
           advanced: {
             validationRegex: selectedValue?.value?.format,
             mandatory: selectedValue?.value?.mandatory,
@@ -1127,6 +1164,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         return value?.data_type === 'reference';
       case 'boolean':
         return value?.data_type === 'boolean';
+      case 'link':
+        return value?.data_type === 'link';
       default:
         return false;
     }
@@ -1457,21 +1496,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     ) {
       setContentTypeMapped((prevState: ContentTypeMap) => ({
         ...prevState,
-        [otherCmsTitle]: otherContentType?.label
+        [selectedContentType?.contentstackUid]: otherContentType?.id ?? ''
       }));
 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        content_mapping: {
-          ...newMigrationData?.content_mapping,
-          content_type_mapping: {
-            
-            ...newMigrationData?.content_mapping?.content_type_mapping ?? {},
-            [selectedContentType?.contentstackUid]: otherContentType?.id || ''
-          } 
-        }
-      };
-      dispatch(updateNewMigrationData(newMigrationDataObj));
     }
 
     if (orgId && contentTypeUid && selectedContentType) {
@@ -1506,13 +1533,21 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             type: 'success'
           });
           setIsDropDownChanged(false);
-
           const newMigrationDataObj: INewMigration = {
             ...newMigrationData,
-            content_mapping: { ...newMigrationData?.content_mapping, isDropDownChanged: false }
+            content_mapping: {
+              ...newMigrationData?.content_mapping,
+              content_type_mapping: {
+                
+                ...newMigrationData?.content_mapping?.content_type_mapping,
+                [selectedContentType?.contentstackUid]: otherContentType?.id ?? ''
+              } ,
+              isDropDownChanged: false
+            }
           };
-        
-          dispatch(updateNewMigrationData((newMigrationDataObj)));          
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+
+                 
 
           const savedCT = filteredContentTypes?.map(ct => 
             ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
@@ -1597,7 +1632,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setContentTypeMapped((prevState: ContentTypeMap) => {
       const newState = { ...prevState };
       
-      delete newState[otherCmsTitle];
+      delete newState[selectedContentType?.contentstackUid ?? ''];
       newstate = newState;   
       
       return newstate;
@@ -1804,12 +1839,16 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     });
   }
 
-  const options = contentModels?.map((item) => ({
-    label: item?.title,
-    value: item?.title,
-    id: item?.uid,
-    isDisabled: false
-  }));
+  const options = contentModels?.map((item) => {
+    return {
+      label: item?.title,
+      value: item?.title,
+      id: item?.uid,
+      isDisabled: (contentTypeMapped && Object.values(contentTypeMapped).includes(item?.uid))
+    };
+  });
+
+  
 
   const adjustedOption = options?.map((option) => ({
     ...option,
