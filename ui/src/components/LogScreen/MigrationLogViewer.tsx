@@ -135,7 +135,11 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
 
           const newMigrationDataObj: INewMigration = {
             ...newMigrationData,
-            migration_execution: { ...newMigrationData?.migration_execution, migrationStarted: true }
+            migration_execution: { 
+              ...newMigrationData?.migration_execution, 
+              migrationStarted: false,
+              migrationCompleted:true 
+            }
           };
       
           dispatch(updateNewMigrationData((newMigrationDataObj)));
@@ -163,7 +167,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   return (
     <div className='logs-wrapper'>
       <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
-        {newMigrationData?.migration_execution?.migrationStarted  
+        {newMigrationData?.migration_execution?.migrationCompleted 
           ? <div className="log-entry text-center">
             <div className="log-message">
               Migration Execution process is completed. You can view in the selected stack 
