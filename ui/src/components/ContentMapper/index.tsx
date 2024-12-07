@@ -1284,7 +1284,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       'reference': 'reference',
       'dropdown': 'enum',
       'Droplist': 'display_type',
-      'radio': 'enum'
+      'radio': 'enum',
+      'General Link':'link'
     };
   
     const OptionsForRow: OptionsType[] = [];
