@@ -72,7 +72,6 @@ const arrangGroups = ({ schema, newStack }: any) => {
 }
 
 const convertToSchemaFormate = ({ field, advanced = true }: any) => {
-
   switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
@@ -168,24 +167,6 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
           "mandatory": field?.advanced?.mandatory ?? false
         }
       }
-
-      // return {
-      //   "display_name": name,
-      //   "extension_uid": "blta7be8bced92ddabe",
-      //   "field_metadata": {
-      //     "extension": true,
-      //     "version": 3
-      //   },
-      //   uid,
-      //   "mandatory": field?.advanced?.mandatory ?? false,
-      //   "non_localizable": false,
-      //   "unique": field?.advanced?.unique ?? false,
-      //   "config": {},
-      //   "data_type": "text",
-      //   "multiple": field?.advanced?.multiple ?? false,
-      //   "indexed": false,
-      //   "inbuilt_model": false
-      // }
     }
 
     case 'dropdown': {
@@ -352,21 +333,6 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
       }
     }
 
-    //   case "General Link": {
-    //     return {
-    //       "display_name": name,
-    //       uid,
-    //       "data_type": "text",
-    //       "mandatory": field?.advanced?.mandatory ?? false,
-    //       "field_metadata": {
-    //         "_default": true,
-    //         default_value
-    //       },
-    //       "multiple": field?.advanced?.multiple ?? false,
-    //       "unique": field?.advanced?.unique ?? false
-    //     }
-    //   }
-
     case "number": {
       return {
         "data_type": "number",
@@ -410,23 +376,6 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
       }
     }
 
-    //   case "Time": {
-    //     return {
-    //       "data_type": "isodate",
-    //       "display_name": name,
-    //       uid,
-    //       "startDate": null,
-    //       "endDate": null,
-    //       "field_metadata": {
-    //         description,
-    //         "default_value": {},
-    //       },
-    //       "mandatory": field?.advanced?.mandatory ?? false,
-    //       "multiple": field?.advanced?.multiple ?? false,
-    //       "non_localizable": false,
-    //       "unique": field?.advanced?.unique ?? false
-    //     }
-    //   }
 
     case 'global_field': {
       return {
@@ -440,27 +389,6 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
       }
     }
 
-    //   case 'Grouped Droplist': {
-    //     if (choices?.length) {
-    //       return {
-    //         id,
-    //         "data_type": "text",
-    //         "display_name": name,
-    //         "display_type": "dropdown",
-    //         "enum": {
-    //           "advanced": advanced,
-    //           choices
-    //         },
-    //         "multiple": field?.advanced?.multiple ?? false,
-    //         uid,
-    //         "field_metadata": {
-    //           description,
-    //         },
-    //         "mandatory": field?.advanced?.mandatory ?? false,
-    //         "unique": field?.advanced?.unique ?? false
-    //       };
-    //     }
-    //   }
     case "reference": {
       return {
         data_type: "reference",
@@ -483,7 +411,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     }
 
     case 'html': {
-      return {
+      const htmlField: any = {
         "data_type": "text",
         "display_name": field?.title,
         "uid": field?.uid,
@@ -502,6 +430,14 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "unique": field?.advanced?.unique ?? false,
         "reference_to": field?.advanced?.embedObjects?.length ? field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) : []
       }
+      if ((field?.advanced?.embedObjects?.length === undefined) ||
+        (field?.advanced?.embedObjects?.length === 0) ||
+        (field?.advanced?.embedObjects?.length === 1 && field?.advanced?.embedObjects?.[0] === 'sys_assets')) {
+        delete htmlField?.reference_to;
+        delete htmlField?.field_metadata?.embed_entry;
+        delete htmlField?.field_metadata?.ref_multiple_content_types;
+      }
+      return htmlField;
     }
 
     default: {
@@ -617,13 +553,42 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
   }
 }
 
+const mergeArrays = async (a: any[], b: any[]) => {
+  for await (const fieldGp of b) {
+    const exists = a.some(fld =>
+      fld?.uid === fieldGp?.uid &&
+      fld?.data_type === fieldGp?.data_type
+    );
+    if (!exists) {
+      a.push(fieldGp);
+    }
+  }
+  return a;
+}
+
 const mergeTwoCts = async (ct: any, mergeCts: any) => {
   const ctData: any = {
     ...ct,
     title: mergeCts?.title,
     uid: mergeCts?.uid,
   }
-  return _.defaultsDeep(ctData, mergeCts);
+  for await (const field of ctData?.schema ?? []) {
+    if (field?.data_type === 'group') {
+      const currentGroup = mergeCts?.schema?.find((grp: any) => grp?.uid === field?.uid &&
+        grp?.data_type === 'group');
+      const group = [];
+      for await (const fieldGp of currentGroup?.schema ?? []) {
+        const fieldNst = field?.schema?.find((fld: any) => fld?.uid === fieldGp?.uid &&
+          fld?.data_type === fieldGp?.data_type);
+        if (fieldNst === undefined) {
+          group?.push(fieldGp);
+        }
+      }
+      field.schema = [...field?.schema ?? [], ...group];
+    }
+  }
+  ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
+  return ctData;
 }
 
 export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
