@@ -169,7 +169,7 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
       .get("projects")
       .findIndex({ id: projectId })
       .value();
-      
+
     if (index > -1) {
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_test_stack_id = "";
