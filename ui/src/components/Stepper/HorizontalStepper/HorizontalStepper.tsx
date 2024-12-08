@@ -193,7 +193,7 @@ const HorizontalStepper = forwardRef(
                     const disableStep = newMigrationData?.isprojectMapped && stepsCompleted.includes(idx) &&  idx !== showStep ? 'disableEvents'
                     : '';
                     
-                    const completeDisable = stepsCompleted?.includes(idx) && newMigrationData?.test_migration?.isMigrationStarted ? 'disableEvents' : '';
+                    const completeDisable = stepsCompleted?.includes(idx) && (newMigrationData?.test_migration?.isMigrationStarted || newMigrationData?.migration_execution?.migrationStarted) ? 'disableEvents' : '';
 
                     const disableMapper = stepsCompleted?.includes(idx) && idx === 2 && newMigrationData?.test_migration?.isMigrationStarted && !newMigrationData?.test_migration?.isMigrationComplete ? 'disableEvents' : '';
                     
