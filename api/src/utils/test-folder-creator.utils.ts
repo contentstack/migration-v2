@@ -173,9 +173,9 @@ const lookForReference = async (
             }
           })
           if (refs?.length === 0) {
-            delete child.field_metadata.embed_entry;
-            delete child.field_metadata.ref_multiple_content_types;
-            delete child.reference_to;
+            delete child?.field_metadata?.embed_entry;
+            delete child?.field_metadata?.ref_multiple_content_types;
+            delete child?.reference_to;
           }
           break;
         }
