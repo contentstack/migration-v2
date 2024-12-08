@@ -231,6 +231,7 @@ export interface ITestMigration {
 
 export interface IMigrationExecutionStep {
   migrationStarted: boolean;
+  migrationCompleted: boolean;
 }
 export interface IAppContext {
   authToken: string;
@@ -349,7 +350,8 @@ export const DEFAULT_TEST_MIGRATION: ITestMigration = {
 };
 
 export const DEFAULT_MIGRATION_EXECUTION_STEP: IMigrationExecutionStep = {
-  migrationStarted: false
+  migrationStarted: false,
+  migrationCompleted:false
 }
 
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
