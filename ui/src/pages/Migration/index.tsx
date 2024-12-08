@@ -224,7 +224,7 @@ const Migration = () => {
         ...newMigrationData?.legacy_cms,
         selectedCms: selectedCmsData,
         selectedFileFormat: selectedFileFormatData,
-        affix:  projectData?.legacy_cms?.affix ?? newMigrationData?.legacy_cms?.affix,
+        affix:  projectData?.legacy_cms?.affix ,
         uploadedFile: {
           file_details: {
             localPath: projectData?.legacy_cms?.file_path,
@@ -235,7 +235,7 @@ const Migration = () => {
             },
             isLocalPath: projectData?.legacy_cms?.is_localPath
           },
-          isValidated:  projectData?.legacy_cms?.is_fileValid || newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+          isValidated:  projectData?.legacy_cms?.is_fileValid ,
           reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
         },
         isFileFormatCheckboxChecked: true, 
