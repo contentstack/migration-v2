@@ -227,14 +227,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     value: contentTypeMapped?.[otherCmsTitle] ?? `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
   });
   const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
-  
-  const [advancePropertise, setAdvancePropertise] = useState<Advanced>({
-    validationRegex: '',
-    mandatory: false,
-    multiple: false,
-    unique: false,
-    nonLocalizable: false
-  });
 
   const [active, setActive] = useState<number | null>(0);
 
@@ -248,7 +240,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const [count, setCount] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nestedList, setNestedList] = useState<FieldMapType[]>([]);
-  const [disabledOptions, setDisabledOptions] = useState<Set<string>>(new Set());
   const [isUpdated, setIsUpdated] = useState(false);
   let updatedRows: FieldMapType[] = tableData;
   let updatedExstingField: ExistingFieldType = existingField;
@@ -261,7 +252,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
 
   /** ALL HOOKS Here */
-  const { projectId = '', stepId = '' } = useParams();
+  const { projectId = '' } = useParams();
   const navigate = useNavigate();
 
   const filterRef = useRef<HTMLDivElement | null>(null);
@@ -445,12 +436,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // maaped fields
   useEffect(() => {
     if (existingField) {
-      const matchedKeys = new Set<string>();
 
       contentTypeSchema?.forEach((item) => {
         for (const [key, value] of Object.entries(existingField)) {
           if (value?.value?.uid === item?.uid) {
-            matchedKeys.add(key);
 
             setExistingField((prevOptions: ExistingFieldType) => ({
               ...prevOptions,
@@ -460,7 +449,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           if (item?.data_type === "group" && Array.isArray(item?.schema)) {
             item.schema.forEach((schemaItem) => {
               if (value?.value?.uid === schemaItem?.uid) {
-                matchedKeys.add(key);
                 setExistingField((prevOptions: ExistingFieldType) => ({
                   ...prevOptions,
                   [key]: { label: `${item?.display_name} > ${schemaItem?.display_name}`, value: schemaItem },
@@ -512,11 +500,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
       // Remove unmatched keys from existingField
       setExistingField((prevOptions: ExistingFieldType) => {
-        const updatedOptions:any = { ...prevOptions };
+        const updatedOptions:ExistingFieldType = { ...prevOptions };
         Object.keys(prevOptions).forEach((key) => {
           if (matchedKeys.has(key)) {
             
-            const index = selectedOptions?.indexOf(updatedOptions?.[key]?.label);
+            const index = selectedOptions?.indexOf(updatedOptions?.[key]?.label ?? '');
                
             if ( index > -1) {
               selectedOptions.splice(index, 1);
@@ -702,7 +690,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     
     const newTableData = tableData?.map((row) => {
       if (row?.uid === rowId) {
-        setAdvancePropertise({ ...row?.advanced, ...updatedSettings });
 
         return { ...row, advanced: { ...row?.advanced, ...updatedSettings } };
       }
@@ -1031,20 +1018,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       ...prevOptions,
       [rowIndex]: { label: selectedValue?.label, value: selectedValue?.value }
     }));
-    
-    setAdvancePropertise({
-      validationRegex: selectedValue?.value?.format,
-      mandatory: selectedValue?.value?.mandatory,
-      multiple: selectedValue?.value?.multiple,
-      unique: selectedValue?.value?.unique,
-      nonLocalizable: selectedValue?.value?.non_localizable
-    });
-
-    setDisabledOptions((prevDisabledOptions) => {
-      const newDisabledOptions = new Set(prevDisabledOptions);
-      newDisabledOptions.add(selectedValue?.label);
-      return newDisabledOptions;
-    });
 
     //add selected option to array if it is not mapped to any other field
     setSelectedOptions((prevSelected) => {
@@ -1284,7 +1257,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       'reference': 'reference',
       'dropdown': 'enum',
       'Droplist': 'display_type',
-      'radio': 'enum'
+      'radio': 'enum',
+      'General Link':'link'
     };
   
     const OptionsForRow: OptionsType[] = [];
