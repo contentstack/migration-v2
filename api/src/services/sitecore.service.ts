@@ -196,7 +196,7 @@ const cretaeAssets = async ({ packagePath, baseDir, destinationStackId, projectI
   return allAssetJSON;
 }
 
-const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us', destinationStackId, projectId, keyMapper }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string, projectId: string, keyMapper: any }) => {
+const createEntry = async ({ packagePath, contentTypes, master_locale, destinationStackId, projectId, keyMapper }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string, projectId: string, keyMapper: any }) => {
   try {
     const srcFunc = 'createEntry';
     const baseDir = path.join(baseDirName, destinationStackId);
@@ -239,7 +239,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
         for await (const locale of locales) {
           let newLocale = locale;
           const entryLocale: any = {};
-          if (typeof LOCALE_MAPPER?.masterLocale === 'object' && LOCALE_MAPPER?.masterLocale !== null && LOCALE_MAPPER?.masterLocale?.[master_locale] === locale) {
+          if (typeof LOCALE_MAPPER?.masterLocale === 'object' && LOCALE_MAPPER?.masterLocale !== null && LOCALE_MAPPER?.masterLocale?.[master_locale ?? ''] === locale) {
             newLocale = Object?.keys(LOCALE_MAPPER?.masterLocale)?.[0];
             Object.entries(entryPresent?.locale?.[locale] || {}).map(async ([uid, entry]: any) => {
               const entryObj: any = {};
