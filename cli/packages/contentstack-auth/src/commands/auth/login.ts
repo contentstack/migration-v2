@@ -90,7 +90,7 @@ export default class LoginCommand extends BaseCommand<typeof LoginCommand> {
     } catch (error) {
       let errorMessage = formatError(error) || 'Something went wrong while logging. Please try again.';
       this.logger.error('login failed', errorMessage);
-      cliux.error('CLI_AUTH_LOGIN_FAILED Umesh');
+      cliux.error('CLI_AUTH_LOGIN_FAILED');
       cliux.error(errorMessage);
       process.exit();
     }
