@@ -84,14 +84,6 @@ const Migration = () => {
     
   },[isProjectMapper]);
 
-  /**
-    * Updates the Migration excution step as completed if migration completes.
-  */
-  useEffect(() => {
-    if (newMigrationData?.migration_execution?.migrationStarted) {
-      updateCurrentStepData(selectedOrganisation.value, projectId);
-    }
-  }, [newMigrationData?.migration_execution?.migrationStarted])
 
   useBlockNavigation(isModalOpen);
 
@@ -261,7 +253,9 @@ const Migration = () => {
         isMigrationComplete: newMigrationData?.test_migration?.isMigrationStarted || false
       },
       migration_execution: {
-        migrationStarted: projectData?.isMigrationStarted
+        migrationStarted: projectData?.isMigrationStarted,
+        migrationCompleted: projectData?.isMigrationCompleted,
+        
       },
       stackDetails: projectData?.stackDetails,
       testStacks: projectData?.test_stacks,
@@ -309,7 +303,7 @@ const Migration = () => {
         title:'Run Test Migration'
       },
       {
-        data: <MigrationExecution />,
+        data: <MigrationExecution handleStepChange={handleStepChange}/>,
         id:'5',
         title:'Execute Migration'
       }
@@ -568,7 +562,7 @@ const Migration = () => {
         <MigrationFlowHeader projectData={projectData} handleOnClick={handleOnClickFunctions[curreentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef} finalExecutionStarted={disableMigration}   />
       }
       <div className='steps-wrapper'>
-        <HorizontalStepper ref={stepperRef} steps={createStepper(projectData ?? defaultMigrationResponse, handleClick)} handleSaveCT={saveRef?.current?.handleSaveContentType} changeDropdownState={changeDropdownState} />
+        <HorizontalStepper ref={stepperRef} steps={createStepper(projectData ?? defaultMigrationResponse, handleClick)} handleSaveCT={saveRef?.current?.handleSaveContentType} changeDropdownState={changeDropdownState}   projectData={projectData || defaultMigrationResponse} />
       </div>
     </div>
   )
