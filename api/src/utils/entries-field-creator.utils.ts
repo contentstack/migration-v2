@@ -222,14 +222,14 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
 
     case 'file': {
       const fileData = attachJsonRte({ content });
-      fileData?.children?.forEach((item: any) => {
+      for (const item of fileData?.children ?? []) {
         if (item?.attrs?.['redactor-attributes']?.mediaid) {
           const assetUid = idCorrector({ id: item?.attrs?.['redactor-attributes']?.mediaid });
           return allAssetJSON?.[assetUid] ?? null;
         } else {
           console.info('more', item?.attrs)
         }
-      })
+      }
       return null;
     }
 

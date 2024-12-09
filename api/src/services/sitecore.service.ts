@@ -271,6 +271,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
                   }
                 }
               }
+              entryObj.publish_details = [];
               if (Object.keys?.(entryObj)?.length > 1) {
                 entryLocale[uid] = unflatten(entryObj) ?? {};
                 const message = getLogMessage(
@@ -282,11 +283,13 @@ const createEntry = async ({ packagePath, contentTypes, master_locale = 'en-us',
               }
             });
           }
+          const mapperCt: string = (keyMapper[ctType?.contentstackUid] !== "" && keyMapper[ctType?.contentstackUid] !== undefined) ? keyMapper[ctType?.contentstackUid]
+            : ctType?.contentstackUid;
           const fileMeta = { "1": `${newLocale}.json` };
           const entryPath = path.join(
             process.cwd(),
             entrySave,
-            keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid,
+            mapperCt,
             newLocale
           );
           await writeFiles(entryPath, fileMeta, entryLocale, newLocale)
