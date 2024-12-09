@@ -24,13 +24,13 @@ npm install
 
 ## Repository
 - Type: git
-- URL: https://github.com/contentstack-expert-services/migration-v2-ui.git
+- URL: https://github.com/contentstack/migration-v2.git
 
 ## Bugs and Issues
-- URL: https://github.com/contentstack-expert-services/migration-v2-ui/issues
+- URL: https://github.com/contentstack/migration-v2/issues
 
 ## Homepage
-- URL: https://github.com/contentstack-expert-services/migration-v2-ui#readme
+- URL: https://github.com/contentstack/migration-v2#readme
 
 ## DevDependencies
 - husky: ^4.3.8
