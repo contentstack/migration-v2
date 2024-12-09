@@ -78,7 +78,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
 
   const isExecutionStarted = 
     finalExecutionStarted || 
-    newMigrationData?.migration_execution?.migrationStarted;
+    newMigrationData?.migration_execution?.migrationStarted || newMigrationData?.migration_execution?.migrationCompleted;
     
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>

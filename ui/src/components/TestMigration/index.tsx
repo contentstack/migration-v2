@@ -81,13 +81,14 @@ const TestMigration = () => {
   */
   useEffect(() => {
     // Check if the stack_api_key exists and evaluate the logic
-    const shouldDisable = newMigrationData?.test_migration?.stack_api_key
+    const shouldDisable = newMigrationData?.test_migration?.stack_api_key && !newMigrationData?.migration_execution?.migrationCompleted
       ? !newMigrationData?.testStacks?.some(
           (stack) =>
             stack?.stackUid === newMigrationData?.test_migration?.stack_api_key &&
             stack.isMigrated
         ) || newMigrationData?.test_migration?.isMigrationStarted
-      : false;
+      : newMigrationData?.migration_execution?.migrationCompleted ||
+        newMigrationData?.migration_execution?.migrationStarted || false;
 
     setDisableCreateStack(shouldDisable);
 

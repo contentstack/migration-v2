@@ -22,8 +22,11 @@ import MigrationLogViewer from '../LogScreen/MigrationLogViewer';
 //stylesheet
 import './index.scss';
 
+export type migrationWxecutionProps  = {
+  handleStepChange: (currentStep: number) => void;
+}
 
-const MigrationExecution = () => {
+const MigrationExecution = ({handleStepChange}: migrationWxecutionProps) => {
   const dispatch = useDispatch();
 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -113,7 +116,7 @@ const MigrationExecution = () => {
         <div className='content-block'>
           <div className='content-header'>Execution Logs</div>
           <div>
-            <MigrationLogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} />
+            <MigrationLogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} handleStepChange={handleStepChange}/>
           </div>
         </div>
       </div>
