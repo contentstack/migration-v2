@@ -1,11 +1,11 @@
 # Migration v2
 ## Overview
-The migration-v2 project is designed to facilitate the migration of assets and related functionalities from version 1 to version 2. This project includes multiple components such as API, UI, and upload API.
+The migration-v2 project is designed to facilitate the migration of assets and related functionalities. This project includes multiple components such as API, UI, and upload API.
 
 ## Installation
 Clone the repository:
 ```
-git clone https://github.com/contentstack-expert-services/migration-v2-ui.git
+git clone https://github.com/contentstack/migration-v2.git
 cd migration-v2
 ```
 Install dependencies:
