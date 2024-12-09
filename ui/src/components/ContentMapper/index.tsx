@@ -69,6 +69,8 @@ import SaveChangesModal from '../Common/SaveChangesModal';
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
 
+const rowHistoryObj: any = {}
+
 const Fields: MappingFields = {
   'single_line_text':{
     label : 'Single Line Textbox',
@@ -733,9 +735,60 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     );
   };
 
+  // add row ids with their data to rowHistoryObj
+  useEffect(() => {
+    Object.keys(rowHistoryObj).forEach(key => delete rowHistoryObj[key]);
+    tableData.forEach(i => rowHistoryObj[i.id] = [{checked: true, at: Date.now(), ...modifiedObj(i)}])
+  }, [tableData]);
+
+  function getParentId(uid: string){
+    return tableData.find(i => i.uid === uid)?.id ?? null
+  }
+
+  function modifiedObj (obj: FieldMapType) {
+    const {otherCmsType, uid, id} = obj
+    const excludeArr = ["group"]
+    return {
+      id,
+      otherCmsType,
+      uid,
+      parentId : excludeArr.includes(otherCmsType.toLowerCase()) ? null : getParentId(uid?.split('.')[0])
+    }
+  }
+  
+  // Get the last action of each row 
+  function getLastElements(obj: any) {
+    const result: any = {};
+    for (const key in obj) {
+        if (Array.isArray(obj[key]) && obj[key].length > 0) {
+            // Get the last element of the array
+            result[key] = obj[key][obj[key].length - 1];
+        }
+    }
+    return result;
+  }
+
+  // Get the latest action performed on table 
+  function findLatest(obj: any) {
+    let latestItem = null;
+
+    for (const key in obj) {
+        if (Array.isArray(obj[key]) && obj[key].length > 0) {
+            // Get the last element of the array
+            const lastElement = obj[key][obj[key].length - 1];
+
+            // Compare the 'at' property
+            if (!latestItem || lastElement.at > latestItem.at) {
+                latestItem = lastElement;
+            }
+        }
+    }
+
+    return latestItem;
+  }
+  
   const handleSelectedEntries = (singleSelectedRowIds: string[], selectedData: FieldMapType[]) => {
     const selectedObj: UidMap = {};
-    let Ischild = false;
   
     singleSelectedRowIds.forEach((uid: string) => {
       const isId = selectedData?.some((item) => item?.id === uid);
@@ -743,119 +796,236 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         selectedObj[uid] = true;
       }
     });
-  
-    // Iterate over each item in selectedData to handle group and child selection logic
-    selectedData?.forEach((item) => {
 
+    const updateRowHistoryObj = (key: string, checked: boolean) => {
+      const obj = tableData.find(i => i.id === key);
+      if (obj) {
+        rowHistoryObj[key].push({
+          checked,
+          at: Date.now(),
+          ...modifiedObj(obj),
+        });
+      }
+    };
+
+    // updates rowHistoryObj based on selectedObj
+    for (const key in rowHistoryObj) {
+      if (Object.prototype.hasOwnProperty.call(selectedObj, key)) {
+        if(!rowHistoryObj[key][rowHistoryObj[key].length - 1].checked){
+          updateRowHistoryObj(key, true);
+        }
+      }else{
+        if(rowHistoryObj[key][rowHistoryObj[key].length - 1].checked){
+          updateRowHistoryObj(key, false);        
+        }
+      }
+    }
+
+    // Get the latest action performed row 
+    const latestRow = findLatest(rowHistoryObj)
+
+    if(latestRow.otherCmsType.toLowerCase() === "group" && latestRow.parentId === null){
+      // get all child rows of group
+      const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(latestRow?.uid + '.'));
+      if (childItems && validateArray(childItems)) {
+        if(latestRow.checked){
+          const lastEle = getLastElements(rowHistoryObj)
+          let isChildChecked = false
+          childItems.forEach((child) => {
+            if(lastEle[child.id].checked){
+              isChildChecked = true
+            }
+          })
+
+          if(isChildChecked) {
+            if(!selectedObj[latestRow?.id]){
+              selectedObj[latestRow?.id] = true
+            }
+          } else{
+            childItems.forEach((child) => {
+              if(!selectedObj[child?.id]){
+                selectedObj[child?.id] = true
+              }
+            })
+          }
+
+        }else{
+          childItems.forEach((child) => {
+            delete selectedObj[child?.id || ''];          
+          })
+        }
+      }
+    } else if(latestRow.parentId && !["title", "url"].includes(latestRow.uid.toLowerCase())){
       // Extract the group UID if item is child of any group
-      const uidBeforeDot = item?.uid?.split('.')[0];
+      const uidBeforeDot = latestRow?.uid?.split('.')[0];
       const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);
-  
-      if (groupItem) {
-        // Mark the group item as selected if any child of group is selected
-        selectedObj[groupItem?.id] = true;
-      }
-  
-      // If the item is a group, handle its child items
-      if (item?.otherCmsType === 'Group') {
+      const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
 
-        // Get all child items of the group
-        const newEle = tableData?.filter((entry) => entry?.uid?.startsWith(item?.uid + '.'));
-  
-        if (newEle && validateArray(newEle)) {
-          
-          const allChildrenNotSelected = newEle.every(child => !selectedObj[child?.id || '']);
-          if (allChildrenNotSelected) {
-            
-            //if none of the child of group is selected then mark the child items as selected
-            newEle.forEach((child) => {
-              Ischild = true;
-              selectedObj[child?.id || ''] = true;
-            });
+      if(latestRow.checked){
+        if(!selectedObj[latestRow.parentId]){
+          selectedObj[latestRow.parentId] = true
+        }
+        if(!selectedObj[latestRow.id]){
+          selectedObj[latestRow.id] = true
+        }
+      }else{
+        const lastEle = getLastElements(rowHistoryObj)
+
+        let allChildFalse = 0
+        childItems.forEach((child) => {
+          if(!lastEle[child.id].checked){
+            allChildFalse ++
+          }
+        })
+        if(childItems.length === allChildFalse){
+          if(selectedObj[latestRow.parentId]){
+            delete selectedObj[latestRow.parentId]
+          }
+        }else{
+          if(selectedObj[latestRow.id]){
+            delete selectedObj[latestRow.id]
           }
         }
-      } 
-      else {
-        // If the item is not a group, mark it as selected in selectedObj
-        selectedObj[item?.id] = true;
       }
-    });
-  
-    const uncheckedElements = findUncheckedElement(selectedData, tableData);
- 
-    uncheckedElements && validateArray(uncheckedElements) && uncheckedElements?.forEach((field) => {
-      if (field?.otherCmsType === "Group") {
-
-        // Get all child items of the unchecked group
-        const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(field?.uid + '.'));
-  
-        if (childItems && validateArray(childItems)) {
-
-          // Check if all children are selected
-          const allChildrenSelected = childItems.every(child => selectedObj[child?.id || '']);
-          
-          if (allChildrenSelected) {
-            childItems.forEach((child) => {
-
-              // Remove each child item from selected
-              delete selectedObj[child?.id || ''];
-              
-            });
-            delete selectedObj[field?.id || ''];
-          }
-        }
-      } 
-      else {
-
-        // Extract the group UID if item is child of any group
-        const uidBeforeDot = field?.uid?.split('.')[0];
-        const groupItem = selectedData?.find((entry) => entry?.uid === uidBeforeDot);
-        const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
-
-        if (childItems && validateArray(childItems)) {
-
-          // Check if all children are not selected of group
-          const allChildrenSelected = childItems.every(child => !selectedObj[child?.id || '']);
-          
-          if (allChildrenSelected) {
-            
-            childItems.forEach((child) => {
-              delete selectedObj[child?.id || ''];
-              
-            });
-            delete selectedObj[groupItem?.id || ''];
-          }
-        }
-  
-        if (!Ischild) {
-
-          delete selectedObj[field?.id || ''];
-        }
-      }
-    });
+    }
+   
     const updatedTableData = tableData.map((tableItem) => {
-      const found = selectedData.some((selectedItem) => selectedItem.uid === tableItem.uid);
+      // const found = selectedData.some((selectedItem) => selectedItem.uid === tableItem.uid);
       
       // Mark the item as deleted if not found in selectedData
       return {
         ...tableItem,
-        isDeleted: !found ? true : false,
+        isDeleted: selectedObj[tableItem.id] ?? false//!found ? true : false,
       };
-    });
-  
+    });  
 
     setRowIds(selectedObj);
     setSelectedEntries(updatedTableData);
   };
+
+  // const handleSelectedEntries2 = (singleSelectedRowIds: string[], selectedData: FieldMapType[]) => {
+  //   const selectedObj: UidMap = {};
+  //   let Ischild = false;
+  
+  //   singleSelectedRowIds.forEach((uid: string) => {
+  //     const isId = selectedData?.some((item) => item?.id === uid);
+  //     if (isId) {
+  //       selectedObj[uid] = true;
+  //     }
+  //   });
+  
+  //   // Iterate over each item in selectedData to handle group and child selection logic
+  //   selectedData?.forEach((item) => {
+
+  //     // Extract the group UID if item is child of any group
+  //     const uidBeforeDot = item?.uid?.split('.')[0];
+  //     const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);
+  
+  //     if (groupItem) {
+  //       // Mark the group item as selected if any child of group is selected
+  //       selectedObj[groupItem?.id] = true;
+  //     }
+  
+  //     // If the item is a group, handle its child items
+  //     if (item?.otherCmsType === 'Group') {
+
+  //       // Get all child items of the group
+  //       const newEle = tableData?.filter((entry) => entry?.uid?.startsWith(item?.uid + '.'));
+  
+  //       if (newEle && validateArray(newEle)) {
+          
+  //         const allChildrenNotSelected = newEle.every(child => !selectedObj[child?.id || '']);
+  //         if (allChildrenNotSelected) {
+            
+  //           //if none of the child of group is selected then mark the child items as selected
+  //           newEle.forEach((child) => {
+  //             Ischild = true;
+  //             selectedObj[child?.id || ''] = true;
+  //           });
+  //         }
+  //       }
+  //     } 
+  //     else {
+  //       // If the item is not a group, mark it as selected in selectedObj
+  //       selectedObj[item?.id] = true;
+  //     }
+  //   });
+  
+  //   const uncheckedElements = findUncheckedElement(selectedData, tableData);
+ 
+  //   uncheckedElements && validateArray(uncheckedElements) && uncheckedElements?.forEach((field) => {
+  //     if (field?.otherCmsType === "Group") {
+
+  //       // Get all child items of the unchecked group
+  //       const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(field?.uid + '.'));
+  
+  //       if (childItems && validateArray(childItems)) {
+
+  //         // Check if all children are selected
+  //         const allChildrenSelected = childItems.every(child => selectedObj[child?.id || '']);
+          
+  //         if (allChildrenSelected) {
+  //           childItems.forEach((child) => {
+
+  //             // Remove each child item from selected
+  //             delete selectedObj[child?.id || ''];
+              
+  //           });
+  //           delete selectedObj[field?.id || ''];
+  //         }
+  //       }
+  //     } 
+  //     else {
+
+  //       // Extract the group UID if item is child of any group
+  //       const uidBeforeDot = field?.uid?.split('.')[0];
+  //       const groupItem = selectedData?.find((entry) => entry?.uid === uidBeforeDot);
+  //       const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
+
+  //       if (childItems && validateArray(childItems)) {
+
+  //         // Check if all children are not selected of group
+  //         const allChildrenSelected = childItems.every(child => !selectedObj[child?.id || '']);
+          
+  //         if (allChildrenSelected) {
+            
+  //           childItems.forEach((child) => {
+  //             delete selectedObj[child?.id || ''];
+              
+  //           });
+  //           delete selectedObj[groupItem?.id || ''];
+  //         }
+  //       }
+  
+  //       if (!Ischild) {
+
+  //         delete selectedObj[field?.id || ''];
+  //       }
+  //     }
+  //   });
+  //   const updatedTableData = tableData.map((tableItem) => {
+  //     const found = selectedData.some((selectedItem) => selectedItem.uid === tableItem.uid);
+      
+  //     // Mark the item as deleted if not found in selectedData
+  //     return {
+  //       ...tableItem,
+  //       isDeleted: !found ? true : false,
+  //     };
+  //   });
+  
+
+  //   setRowIds(selectedObj);
+  //   setSelectedEntries(updatedTableData);
+  // };
   
   
  
   // Function to find unchecked field
-  const findUncheckedElement = (selectedData: FieldMapType[], tableData: FieldMapType[]) => {
-    return tableData.filter((mainField: FieldMapType) => 
-      !selectedData.some((selectedField:FieldMapType) => selectedField?.otherCmsField === mainField?.otherCmsField)
-    );
-  }
+  // const findUncheckedElement = (selectedData: FieldMapType[], tableData: FieldMapType[]) => {
+  //   return tableData.filter((mainField: FieldMapType) => 
+  //     !selectedData.some((selectedField:FieldMapType) => selectedField?.otherCmsField === mainField?.otherCmsField)
+  //   );
+  // }
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
