@@ -13,6 +13,26 @@ Install dependencies:
 npm install
 ```
 
+Check for readme.md files and install dependencies for folders
+
+1. go to api folder
+  ```
+  cd api
+  npm install
+  ```
+
+2. go to ui folder
+  ```
+  cd ui
+  npm install
+  ```
+
+3. go to upload-api folder
+  ```
+  cd upload-api
+  npm install
+  ```
+
 ## Scripts
 - `npm start`: Starts the main server by running index.js.
 - `npm run api`: Navigates to the api directory and runs the development server.
