@@ -170,7 +170,7 @@ const Projects = () => {
         {loadStatus ? (
           <div className="flex-wrap">
             {[...Array(20)].map((e, i) => (
-               <StackCardSkeleton key={i} />
+               <StackCardSkeleton key={`${i?.toString()}`} />
             ))}
           </div>
         ) : (
