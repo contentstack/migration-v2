@@ -132,10 +132,9 @@ const lookForReference = async (
 ) => {
   for (const child of field?.schema ?? []) {
     switch (child?.data_type) {
-      case 'reference': {
-        break;
-      }
-      case 'global_field': {
+      case 'reference':
+      case 'global_field':
+      case 'blocks': {
         break;
       }
       case 'json': {
@@ -155,9 +154,6 @@ const lookForReference = async (
         }
         break;
       }
-      case 'blocks': {
-        break;
-      }
       case 'group': {
         lookForReference(child, finalData);
         break;
@@ -173,9 +169,15 @@ const lookForReference = async (
             }
           })
           if (refs?.length === 0) {
-            delete child?.field_metadata?.embed_entry;
-            delete child?.field_metadata?.ref_multiple_content_types;
-            delete child?.reference_to;
+            if (child?.field_metadata) {
+              delete child.field_metadata.embed_entry;
+              delete child.field_metadata.ref_multiple_content_types;
+            }
+            if (child?.reference_to) {
+              delete child.reference_to;
+            }
+          } else {
+            child.reference_to = refs
           }
           break;
         }
@@ -215,8 +217,10 @@ const sortContentType = async (baseDir: string, finalData: any) => {
   }
 }
 
+
 export const testFolderCreator = async ({ destinationStackId }: any) => {
-  const baseDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
+  const sanitizedStackId = path.basename(destinationStackId);
+  const baseDir = path.join(MIGRATION_DATA_CONFIG.DATA, sanitizedStackId);
   const entryDelete = path.join(process.cwd(), baseDir, ENTRIES_DIR_NAME);
   const entrySave = path.join(baseDir, ENTRIES_DIR_NAME);
   const entriesPath = path.join(process.cwd(), baseDir, ENTRIES_DIR_NAME);
