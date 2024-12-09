@@ -25,6 +25,19 @@ Migration UI is a web application designed to facilitate the migration of conten
     npm install
     ```
 
+## Environment Variables
+
+The following environment variables are used in this project:
+
+- `REACT_APP_WEBSITE_BASE_URL`: The base URL for the website. Default is `http://localhost:3000/`.
+- `REACT_APP_BASE_API_URL`: The base URL for the API. Default is `http://localhost:5001/`.
+- `REACT_APP_API_VERSION`: The version of the API. Default is `v2`.
+- `REACT_APP_HOST`: The host URL for the application. Default is `http://localhost:3000`.
+- `REACT_APP_UPLOAD_SERVER`: The URL for the upload server. Default is `http://localhost:4002/`.
+- `REACT_APP_OFFLINE_CMS`: A flag to indicate if the CMS is offline. Default is `true`.
+
+Make sure to set these variables in a `.env` file at the root of your ui project.
+
 ## Usage
 Start the development server:
 ```sh
