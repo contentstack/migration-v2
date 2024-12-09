@@ -2,7 +2,7 @@ import { Request } from "express";
 import path from "path";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import { config } from "../config/index.js";
-import { safePromise, getLogMessage } from "../utils/index.js";
+import { safePromise, getLogMessage, sanitize } from "../utils/index.js";
 import https from "../utils/https.utils.js";
 import { LoginServiceType } from "../models/types.js"
 import getAuthtoken from "../utils/auth.utils.js";
@@ -207,14 +207,22 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
  * @param req - The request object containing the necessary parameters.
  */
 const startTestMigration = async (req: Request): Promise<any> => {
-  const { orgId, projectId } = req?.params ?? {};
+  const orgId = sanitize(req?.params?.orgId || '');
+  const projectId = sanitize(req?.params?.projectId || '');
   const { region, user_id } = req?.body?.token_payload ?? {};
+
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
   const packagePath = project?.extract_path;
   if (project?.current_test_stack_id) {
     const { legacy_cms: { cms, file_path } } = project;
     const loggerPath = path.join(process.cwd(), 'logs', projectId, `${project?.current_test_stack_id}.log`);
+
+    // Ensure loggerPath is within allowed directory
+    if (!loggerPath.startsWith(path.join(process.cwd(), 'logs'))) {
+      throw new Error('Invalid file path');
+    }
+
     const message = getLogMessage('startTestMigration', 'Starting Test Migration...', {});
     await customLogger(projectId, project?.current_test_stack_id, 'info', message);
     await setLogFilePath(loggerPath);
