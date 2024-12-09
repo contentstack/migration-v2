@@ -22,6 +22,25 @@ The following environment variables are used in this project:
 
 Make sure to set these variables in a `.env` file at the root of your project.
 
+## Configuration
+Please refer sample.config.json and provide this config in index.ts of config folder of upload-api/src
+The following configuration is used in this project:
+
+- `plan.dropdown.optionLimit`: The limit for dropdown options. Default is `100`.
+- `cmsType`: The type of CMS used. Default is `sitecore`.
+- `isLocalPath`: A flag to indicate if the path is local. Default is `true`.
+
+### AWS Data
+- `awsRegion`: The AWS region. Default is `us-east-2`.
+- `awsAccessKeyId`: The AWS access key ID.
+- `awsSecretAccessKey`: The AWS secret access key.
+- `awsSessionToken`: The AWS session token.
+- `bucketName`: The name of the AWS S3 bucket. Default is `migartion-test`.
+- `buketKey`: The key for the AWS S3 bucket. Default is `project/package 45.zip`.
+
+### Local Path
+- `localPath`: The local path to the extracted files. for example is `/upload-api/extracted_files/package 45.zip`.
+
 ## Repository
 - Type: git
 - URL: https://github.com/contentstack/migration-v2.git
