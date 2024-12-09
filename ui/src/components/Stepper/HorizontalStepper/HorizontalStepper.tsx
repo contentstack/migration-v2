@@ -20,6 +20,7 @@ import useBlockNavigation from '../../../hooks/userNavigation';
 
 // CSS
 import './HorizontalStepper.scss';
+import { MigrationResponse } from '../../../services/api/service.interface';
 
 
 export enum StepStatus {
@@ -45,6 +46,7 @@ export type stepperProps = {
     testId?: string;
     handleSaveCT?: () => void;
     changeDropdownState: () => void;
+    projectData: MigrationResponse;
 };
 
 export type HorizontalStepperHandles = {
@@ -80,6 +82,8 @@ const HorizontalStepper = forwardRef(
         
         const { stepId } = useParams<{ stepId: string }>();
         const stepIndex = parseInt(stepId || '', 10) - 1;
+
+        const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
         
         const { steps, className, emptyStateMsg, hideTabView, testId } = props;
         const [showStep, setShowStep] = useState(stepIndex);
@@ -89,7 +93,7 @@ const HorizontalStepper = forwardRef(
         const navigate = useNavigate();
         const { projectId = '' } = useParams();
 
-        const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
+        
 
         const handleSaveCT = props?.handleSaveCT
         const handleDropdownChange = props?.changeDropdownState;
@@ -102,6 +106,12 @@ const HorizontalStepper = forwardRef(
                 !newMigrationData?.isprojectMapped && setShowStep(stepIndex);
                 setStepsCompleted(prev => {
                     const updatedStepsCompleted = [...prev];
+                    if (stepIndex === 4 && (props?.projectData?.isMigrationCompleted || newMigrationData?.migration_execution?.migrationCompleted)) {
+                                     
+                        if (!updatedStepsCompleted?.includes(4)) {
+                            updatedStepsCompleted.push(4);
+                        }
+                    }
                     for (let i = 0; i < stepIndex; i++) {
                         if (!updatedStepsCompleted?.includes(i)) {
                             updatedStepsCompleted?.push(i);
@@ -111,7 +121,7 @@ const HorizontalStepper = forwardRef(
                 });
                 
             }
-        }, [stepId]);
+        }, [stepId, newMigrationData?.migration_execution?.migrationCompleted]);
 
         useImperativeHandle(ref, () => ({
             handleStepChange: (currentStep: number) => {
