@@ -306,15 +306,25 @@ const startMigration = async (req: Request): Promise<any> => {
 }
 
 const getLogs = async (req: Request): Promise<any> => {
-  const orgId = req?.params?.orgId;
-  const projectId = req?.params?.projectId;
-  const stackId = req?.params?.stackId;
+  const projectId = path.basename(req?.params?.projectId);
+  const stackId = path.basename(req?.params?.stackId);
   const srcFunc = "getLogs";
-  const { region, user_id } = req?.body?.token_payload ?? {};
+
+  if (projectId.includes('..') || stackId.includes('..')) {
+    throw new BadRequestError("Invalid projectId or stackId");
+  }
+
   try {
-    const loggerPath = path.join(process.cwd(), 'logs', projectId, `${stackId}.log`);
-    if (fs.existsSync(loggerPath)) {
-      const logs = fs.readFileSync(loggerPath, 'utf-8');
+    const logsDir = path.join(process.cwd(), 'logs');
+    const loggerPath = path.join(logsDir, projectId, `${stackId}.log`);
+    const absolutePath = path.resolve(loggerPath); // Resolve the absolute path
+
+    if (!absolutePath.startsWith(logsDir)) {
+      throw new BadRequestError("Access to this file is not allowed.");
+    }
+
+    if (fs.existsSync(absolutePath)) {
+      const logs = await fs.promises.readFile(absolutePath, 'utf8');
       const logEntries = logs
         .split('\n')
         .map(line => {
