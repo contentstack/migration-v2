@@ -34,6 +34,9 @@ export interface MigrationResponse {
   updated_at: string;
   destination_stack_id: string;
   current_step: number;
+  isMigrationStarted: boolean;
+  isMigrationCompleted:boolean;
+  migration_execution: boolean;
 }
 
 export interface LegacyCms {
@@ -59,7 +62,10 @@ export const defaultMigrationResponse: MigrationResponse = {
   updated_at: '',
   destination_stack_id: '',
   prefix: '',
-  current_step: 1
+  current_step: 1,
+  isMigrationStarted: false,
+  isMigrationCompleted:false,
+  migration_execution: false,
 };
 interface data {
   file_details : FileDetails;
