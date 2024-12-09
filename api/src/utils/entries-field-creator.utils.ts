@@ -178,7 +178,8 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
 
   switch (field?.contentstackFieldType) {
     case 'multi_line_text':
-    case 'single_line_text': {
+    case 'single_line_text':
+    case 'text': {
       return content;
     }
 
@@ -222,14 +223,14 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
 
     case 'file': {
       const fileData = attachJsonRte({ content });
-      fileData?.children?.forEach((item: any) => {
+      for (const item of fileData?.children ?? []) {
         if (item?.attrs?.['redactor-attributes']?.mediaid) {
           const assetUid = idCorrector({ id: item?.attrs?.['redactor-attributes']?.mediaid });
           return allAssetJSON?.[assetUid] ?? null;
         } else {
           console.info('more', item?.attrs)
         }
-      })
+      }
       return null;
     }
 
@@ -276,9 +277,6 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
       return refs;
     }
 
-    case 'text': {
-      return content;
-    }
 
     case 'global_field': {
       const globalFieldsSchema = contentTypes?.find?.((gfd: any) =>
