@@ -3,6 +3,15 @@ import path from "path";
 import { createLogger, format, transports } from "winston";
 import logger from './logger.js';
 
+// Utility function to safely join and resolve paths
+const safeJoin = (basePath: string, ...paths: string[]) => {
+  const resolvedPath = path.resolve(basePath, ...paths);  // Resolve absolute path
+  if (!resolvedPath.startsWith(basePath)) {
+    throw new Error('Invalid file path');
+  }
+  return resolvedPath;
+};
+
 
 const fileExists = async (path: string): Promise<boolean> => {
   try {
@@ -19,8 +28,11 @@ const fileExists = async (path: string): Promise<boolean> => {
  */
 const customLogger = async (projectId: string, apiKey: string, level: string, message: string) => {
   try {
-    const logDir = path.join(process.cwd(), 'logs', projectId);
-    const logFilePath = path.join(logDir, `${apiKey}.log`);
+    // Sanitize inputs to prevent path traversal
+    const sanitizedProjectId = path.basename(projectId); // Strip any path traversal attempts
+    const sanitizedApiKey = path.basename(apiKey); // Strip any path traversal attempts
+    const logDir = path.join(process.cwd(), 'logs', sanitizedProjectId);
+    const logFilePath = safeJoin(logDir, `${sanitizedApiKey}.log`);
     // Ensure log directory exists, using async/await with fs.promises
     if (!fs.existsSync(logDir)) {
       await fs.promises.mkdir(logDir, { recursive: true });
