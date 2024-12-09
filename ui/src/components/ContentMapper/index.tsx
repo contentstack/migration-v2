@@ -460,7 +460,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       });
 
       if(newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle] !== otherContentType?.label){
-        setSelectedOptions([]);
+        //setSelectedOptions([]);
       }
 
     }
@@ -672,7 +672,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const openContentType = (i: number) => {
     setIsFieldDeleted(false);
     setActive(i);
-    const otherTitle = filteredContentTypes?.[i]?.otherCmsTitle;
+    const otherTitle = filteredContentTypes?.[i]?.contentstackUid;
+    const mappedContentType = contentModels && contentModels?.find((item)=> item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[otherTitle]);
     setOtherCmsTitle(otherTitle);
     setContentTypeUid(filteredContentTypes?.[i]?.id ?? '');
     fetchFields(filteredContentTypes?.[i]?.id ?? '', searchText || '');
@@ -680,8 +681,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setSelectedContentType(filteredContentTypes?.[i]);
     setIsContentType(filteredContentTypes?.[i]?.type === "content_type");
     setOtherContentType({ 
-      label: contentTypeMapped?.[otherTitle] ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
-      value: contentTypeMapped?.[otherTitle] ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`
+      label: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
+      value: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`,
+      
     });
   }
 
@@ -1429,7 +1431,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
           />
         </div>
-        {!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown' && (
+        {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown') && (
           <div className='advanced-setting-button'>
             <Tooltip
               content="Advanced properties" 
@@ -1507,19 +1509,22 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             type: 'success'
           });
           setIsDropDownChanged(false);
-          const newMigrationDataObj: INewMigration = {
-            ...newMigrationData,
-            content_mapping: {
-              ...newMigrationData?.content_mapping,
-              content_type_mapping: {
-                
-                ...newMigrationData?.content_mapping?.content_type_mapping,
-                [selectedContentType?.contentstackUid]: otherContentType?.id ?? ''
-              } ,
-              isDropDownChanged: false
-            }
-          };
-          dispatch(updateNewMigrationData(newMigrationDataObj));
+          if(otherContentType?.id){
+            const newMigrationDataObj: INewMigration = {
+              ...newMigrationData,
+              content_mapping: {
+                ...newMigrationData?.content_mapping,
+                content_type_mapping: {
+                  
+                  ...newMigrationData?.content_mapping?.content_type_mapping,
+                  [selectedContentType?.contentstackUid]: otherContentType?.id ?? ''
+                } ,
+                isDropDownChanged: false
+              }
+            };
+            dispatch(updateNewMigrationData(newMigrationDataObj));
+
+          }
 
                  
 
@@ -1531,7 +1536,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           setContentTypes(savedCT);
 
           try {
-            await updateContentMapper(orgId, projectID, {...contentTypeMapped, [selectedContentType?.contentstackUid]: otherContentType?.id});
+            otherContentType?.id && await updateContentMapper(orgId, projectID, {...contentTypeMapped, [selectedContentType?.contentstackUid]: otherContentType?.id});
           } catch (err) {
             console.log(err);
             return err;
