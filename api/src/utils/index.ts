@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from "path";
+import validator from 'validator';
 import { mkdirp } from 'mkdirp';
-
 import { config } from "../config/index.js";
 import https from "../utils/https.utils.js";
 
@@ -100,8 +100,8 @@ export async function createDirectoryAndFile(filePath: string, sourceFile: strin
   }
 }
 
-export async function getAllLocales (){
-  const [err, data] =  await safePromise(
+export async function getAllLocales() {
+  const [err, data] = await safePromise(
     https({
       method: "GET",
       url: `${config.CS_API.NA}/locales?include_all=true`,
@@ -109,3 +109,7 @@ export async function getAllLocales (){
   );
   return [err, data?.data?.locales];
 }
+
+
+
+export const sanitize = (value: string) => validator.escape(value); 
