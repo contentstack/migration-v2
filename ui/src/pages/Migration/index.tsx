@@ -403,7 +403,7 @@ const Migration = () => {
         }
         if (currentIndex !== 3) {
           Notification({
-            notificationContent: { text: `Please complete ${result} step` },
+            notificationContent: { text: result === undefined ? `Something went wrong. Please refresh the page.` : `Please complete ${result} step` },
             type: 'warning'
           });
         }
