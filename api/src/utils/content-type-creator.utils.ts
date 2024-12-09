@@ -433,9 +433,13 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
       if ((field?.advanced?.embedObjects?.length === undefined) ||
         (field?.advanced?.embedObjects?.length === 0) ||
         (field?.advanced?.embedObjects?.length === 1 && field?.advanced?.embedObjects?.[0] === 'sys_assets')) {
-        delete htmlField?.reference_to;
-        delete htmlField?.field_metadata?.embed_entry;
-        delete htmlField?.field_metadata?.ref_multiple_content_types;
+        if (htmlField) {
+          delete htmlField.reference_to;
+          if (htmlField.field_metadata) {
+            delete htmlField.field_metadata.embed_entry;
+            delete htmlField.field_metadata.ref_multiple_content_types;
+          }
+        }
       }
       return htmlField;
     }
