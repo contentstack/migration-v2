@@ -599,7 +599,9 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
     schema: []
   }
   let currentCt: any = {};
-  if (Object?.keys?.(keyMapper)?.length && keyMapper?.[contentType?.contentstackUid]) {
+  if (Object?.keys?.(keyMapper)?.length &&
+    keyMapper?.[contentType?.contentstackUid] !== "" &&
+    keyMapper?.[contentType?.contentstackUid] !== undefined) {
     currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id });
   }
   const ctData: any = arrangGroups({ schema: contentType?.fieldMapping, newStack })
