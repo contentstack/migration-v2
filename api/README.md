@@ -1,4 +1,4 @@
-# migration-v2
+# migration-v2 API
 
 This is the migration V2's node server.
 
