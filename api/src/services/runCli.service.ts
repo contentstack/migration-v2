@@ -25,7 +25,7 @@ const addCustomMessageInCliLogs = async (loggerPath: string, level: string = 'in
 
 export const runCli = async (rg: string, user_id: string, stack_uid: any, projectId: string, isTest = false, transformePath: string) => {
   try {
-    const message: string =  isTest ? 'Test Migration Process Completed' : 'Migration Process Completed'
+    const message: string = isTest ? 'Test Migration Process Completed' : 'Migration Process Completed'
     const regionPresent = CS_REGIONS?.find((item: string) => item === rg) ?? 'NA';
     await AuthenticationModel.read();
     const userData = AuthenticationModel.chain
@@ -33,7 +33,7 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
       .find({ region: regionPresent, user_id })
       .value();
     if (userData?.authtoken && stack_uid) {
-      const { BACKUP_DATA, BACKUP_LOG_DIR, BACKUP_FOLDER_NAME, BACKUP_FILE_NAME}  = MIGRATION_DATA_CONFIG;
+      const { BACKUP_DATA, BACKUP_LOG_DIR, BACKUP_FOLDER_NAME, BACKUP_FILE_NAME } = MIGRATION_DATA_CONFIG;
       const sourcePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, stack_uid);
       const backupPath = path.join(process.cwd(), BACKUP_DATA, `${stack_uid}_${v4().slice(0, 4)}`);
       await copyDirectory(sourcePath, backupPath);
@@ -59,10 +59,9 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
             ProjectModelLowdb.write();
           }
           await addCustomMessageInCliLogs(loggerPath, 'info', message);
-          !isTest && ProjectModelLowdb.update((data:any)=>{
+          !isTest && ProjectModelLowdb.update((data: any) => {
             data.projects[projectIndex].isMigrationCompleted = true;
-           data.projects[projectIndex].isMigrationStarted = false;
-
+            data.projects[projectIndex].isMigrationStarted = false;
           })
         }
       });
