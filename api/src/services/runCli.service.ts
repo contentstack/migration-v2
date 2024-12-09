@@ -59,6 +59,11 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
             ProjectModelLowdb.write();
           }
           await addCustomMessageInCliLogs(loggerPath, 'info', message);
+          !isTest && ProjectModelLowdb.update((data:any)=>{
+            data.projects[projectIndex].isMigrationCompleted = true;
+           data.projects[projectIndex].isMigrationStarted = false;
+
+          })
         }
       });
 
