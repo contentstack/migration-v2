@@ -460,7 +460,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       });
 
       if(newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle] !== otherContentType?.label){
-        setSelectedOptions([]);
+        //setSelectedOptions([]);
       }
 
     }
@@ -672,7 +672,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const openContentType = (i: number) => {
     setIsFieldDeleted(false);
     setActive(i);
-    const otherTitle = filteredContentTypes?.[i]?.otherCmsTitle;
+    const otherTitle = filteredContentTypes?.[i]?.contentstackUid;
+    const mappedContentType = contentModels && contentModels?.find((item)=> item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[otherTitle]);
     setOtherCmsTitle(otherTitle);
     setContentTypeUid(filteredContentTypes?.[i]?.id ?? '');
     fetchFields(filteredContentTypes?.[i]?.id ?? '', searchText || '');
@@ -680,8 +681,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setSelectedContentType(filteredContentTypes?.[i]);
     setIsContentType(filteredContentTypes?.[i]?.type === "content_type");
     setOtherContentType({ 
-      label: contentTypeMapped?.[otherTitle] ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
-      value: contentTypeMapped?.[otherTitle] ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`
+      label: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
+      value: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`,
+      
     });
   }
 
