@@ -1,6 +1,6 @@
 // Libraries
 import React, { useEffect, useState, useRef } from 'react';
-import { Icon, Notification, cbModal, Link } from '@contentstack/venus-components';
+import { Icon, cbModal, Link } from '@contentstack/venus-components';
 import io from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
 
@@ -20,6 +20,8 @@ import useBlockNavigation from '../../hooks/userNavigation';
 import './index.scss';
 
 import { MAGNIFY,DEMAGNIFY } from '../../common/assets';
+import { updateCurrentStepData } from '../../services/api/migration.service';
+import { useParams } from 'react-router';
 
 const logStyles: { [key: string]: React.CSSProperties } = {
   info: { backgroundColor: '#f1f1f1' },
@@ -30,6 +32,7 @@ const logStyles: { [key: string]: React.CSSProperties } = {
 
 type LogsType = {
   serverPath: string;
+  handleStepChange: (currentStep: number) => void;
 }
 
 /**
@@ -41,11 +44,21 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
 
   const dispatch = useDispatch();
 
+  const { projectId = '' } = useParams();
+
   useEffect(() => {
-    const socket = io(serverPath || ''); // Connect to the server
+    const socket = io(serverPath || '',{
+      reconnection:true,
+    }); // Connect to the server
+
+    socket.on('disconnect', () => {
+      console.warn('Disconnected from server. Retrying...');
+      setTimeout(() => socket.connect(), 3000); // Retry connection after 3 seconds
+    });
 
     /**
      * Event listener for 'logUpdate' event.
@@ -144,6 +157,13 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       
           dispatch(updateNewMigrationData((newMigrationDataObj)));
 
+        /**
+         * Updates the Migration excution step as completed in backend if migration completes.
+         */ 
+        updateCurrentStepData(selectedOrganisation.value, projectId);
+
+  
+
           return cbModal({
             component: (props: ModalObj) => (
               <MigrationCompletionModal
@@ -208,7 +228,6 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           </div>
         }
       </div>
-      {(!newMigrationData?.migration_execution?.migrationStarted) && ( 
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
           <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
@@ -216,7 +235,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           <span onClick={handleZoomOut}>{DEMAGNIFY}</span>
           <Icon icon="ZoomOut" version='v2' onClick={handleZoomOut} />
         </div>
-      )}
+     
     </div>
   );
 };
