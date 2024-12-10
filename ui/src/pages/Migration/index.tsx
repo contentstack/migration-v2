@@ -25,7 +25,7 @@ import {
 } from '../../components/Stepper/FlowStepper/flowStep.interface';
 import { IDropDown, INewMigration, ICMSType, ILegacyCMSComponent, DEFAULT_CMS_TYPE } from '../../context/app/app.interface';
 import { ContentTypeSaveHandles } from '../../components/ContentMapper/contentMapper.interface';
-import { ICardType, defaultCardType } from "../../components/Common/Card/card.interface";
+import { ICardType } from "../../components/Common/Card/card.interface";
 import { ModalObj } from '../../components/Modal/modal.interface';
 
 // Components
@@ -58,7 +58,7 @@ const Migration = () => {
   const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
   const [projectData, setProjectData] = useState<MigrationResponse>();
   const [isLoading, setIsLoading] = useState(false);
-  const [curreentStepIndex, setCurrentStepIndex] = useState(0);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isProjectMapper, setIsProjectMapper] = useState<boolean>(false);
 
@@ -160,7 +160,7 @@ const Migration = () => {
   const fetchProjectData = async () => {
   if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
 
-  const data = await getMigrationData(selectedOrganisation?.value, params?.projectId || '');
+  const data = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
   if (data) {
     setIsLoading(false);
     setProjectData(data?.data);
@@ -186,17 +186,8 @@ const Migration = () => {
   const selectedOrganisationData = validateArray(organisationsList)
   ? organisationsList?.find((org: IDropDown) => org?.value === projectData?.org_id)
   : selectedOrganisation;
-
-  let selectedStackData: IDropDown = {
-    value: projectData?.destination_stack_id,
-    label: '',
-    master_locale: '',
-    locales: [],
-    created_at: '',
-    isNewStack: false
-  };
   
-  selectedStackData = {
+  const selectedStackData: IDropDown = {
     label: projectData?.stackDetails?.label,
     value: projectData?.stackDetails?.value,
     master_locale: projectData?.stackDetails?. master_locale,
@@ -275,7 +266,6 @@ const Migration = () => {
         data: <LegacyCms
               ref={legacyCMSRef}
               legacyCMSData={projectData?.legacy_cms}
-              handleStepChange={handleStepChange}
               isCompleted={isCompleted}
               handleOnAllStepsComplete={handleOnAllStepsComplete}/>,
         id:'1',
@@ -283,10 +273,7 @@ const Migration = () => {
       },
       {
         data: <DestinationStackComponent
-              destination_stack={projectData?.destination_stack_id}
-              org_id={projectData?.org_id}
               projectData={projectData}
-              handleStepChange={handleStepChange}
               isCompleted={isCompleted}
               handleOnAllStepsComplete={handleOnAllStepsComplete} />,
         id:'2',
@@ -317,7 +304,7 @@ const Migration = () => {
   const handleClick = () => {
     // Call handleStepChange function
     const x : string | undefined= params.stepId 
-    const currentStep : number = parseInt(x || '');  
+    const currentStep : number = parseInt(x ?? '');  
     stepperRef?.current?.handleStepChange(currentStep-1);
   };
 
@@ -559,7 +546,7 @@ const Migration = () => {
   return (
     <div className='migration-steps-wrapper'>
       {projectData && 
-        <MigrationFlowHeader projectData={projectData} handleOnClick={handleOnClickFunctions[curreentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef} finalExecutionStarted={disableMigration}   />
+        <MigrationFlowHeader projectData={projectData} handleOnClick={handleOnClickFunctions[currentStepIndex]} isLoading={isLoading} isCompleted={isCompleted} legacyCMSRef={legacyCMSRef} finalExecutionStarted={disableMigration}   />
       }
       <div className='steps-wrapper'>
         <HorizontalStepper ref={stepperRef} steps={createStepper(projectData ?? defaultMigrationResponse, handleClick)} handleSaveCT={saveRef?.current?.handleSaveContentType} changeDropdownState={changeDropdownState}   projectData={projectData || defaultMigrationResponse} />
