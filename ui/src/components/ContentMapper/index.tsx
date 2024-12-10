@@ -249,6 +249,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const isNewStack = newMigrationData?.stackDetails?.isNewStack;
   const [isFieldDeleted, setIsFieldDeleted] = useState<boolean>(false);
   const [isContentDeleted, setIsContentDeleted] = useState<boolean>(false);
+  const [isCsCTypeUpdated, setsCsCTypeUpdated] = useState<boolean>(false);
 
 
   /** ALL HOOKS Here */
@@ -435,7 +436,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // if exsting content type is changed in contentstack, reflect those changes for 
   // maaped fields
   useEffect(() => {
-    if (existingField) {
+    if (existingField && !isCsCTypeUpdated) {
 
       contentTypeSchema?.forEach((item) => {
         for (const [key, value] of Object.entries(existingField)) {
@@ -467,7 +468,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   },[contentTypeSchema]);
   useEffect(() => {
-    if (existingField) {
+    if (existingField && isCsCTypeUpdated) {
       const matchedKeys = new Set<string>();
 
       contentTypeSchema?.forEach((item) => {
@@ -674,7 +675,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setActive(i);
     const otherTitle = filteredContentTypes?.[i]?.contentstackUid;
     const mappedContentType = contentModels && contentModels?.find((item)=> item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[otherTitle]);
-    setOtherCmsTitle(otherTitle);
+    setOtherCmsTitle(filteredContentTypes?.[i]?.otherCmsTitle);
     setContentTypeUid(filteredContentTypes?.[i]?.id ?? '');
     fetchFields(filteredContentTypes?.[i]?.id ?? '', searchText || '');
     setOtherCmsUid(filteredContentTypes?.[i]?.otherCmsUid);
@@ -884,6 +885,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
 
   const handleDropDownChange = (value: FieldTypes) => {
+    (value?.id !== otherContentType?.id) && setsCsCTypeUpdated(true);
+    
     setOtherContentType(value);
   };
 
@@ -964,17 +967,22 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           data?.otherCmsField === 'title' ||
           data?.otherCmsField === 'url' ||
           data?.otherCmsType === 'reference' ||
-          data?.otherCmsType === 'global_field'
+          data?.contentstackFieldType === 'global_field'
            ) && (
           <Tooltip 
             content="Advanced properties" 
             position="top"
             disabled={
               data?.otherCmsField === 'title' ||
-              data?.otherCmsField === 'url'
+              data?.otherCmsField === 'url' ||
+              newMigrationData?.project_current_step > 4
             }
           >
-            <Icon
+            <Button
+              buttonType="light"
+              disabled={newMigrationData?.project_current_step > 4}
+              >
+                <Icon
               version="v2"
               icon="Sliders"
               size="small"
@@ -983,6 +991,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               }
               disabled={newMigrationData?.project_current_step > 4}
             />
+
+              </Button>
+            
           </Tooltip>
         )}
       </div>
@@ -1470,7 +1481,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       selectedContentType?.otherCmsUid &&
       otherContentType?.label
     ) {
-      setContentTypeMapped((prevState: ContentTypeMap) => ({
+      otherContentType?.id && setContentTypeMapped((prevState: ContentTypeMap) => ({
         ...prevState,
         [selectedContentType?.contentstackUid]: otherContentType?.id ?? ''
       }));
@@ -1519,6 +1530,17 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                   ...newMigrationData?.content_mapping?.content_type_mapping,
                   [selectedContentType?.contentstackUid]: otherContentType?.id ?? ''
                 } ,
+                isDropDownChanged: false
+              }
+            };
+            dispatch(updateNewMigrationData(newMigrationDataObj));
+
+          }
+          else{
+            const newMigrationDataObj: INewMigration = {
+              ...newMigrationData,
+              content_mapping: {
+                ...newMigrationData?.content_mapping,
                 isDropDownChanged: false
               }
             };
@@ -1672,10 +1694,13 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       try {
         const { data , status} = await getExistingContentTypes(projectId, otherContentType?.id ?? '');
         if (status == 201 && data?.contentTypes?.length > 0) {
-          otherContentType?.id && setOtherContentType({
+          (otherContentType?.id === data?.selectedContentType?.uid) && setsCsCTypeUpdated(false);
+
+          (otherContentType?.id && otherContentType?.label !== data?.selectedContentType?.title)
+           && setOtherContentType({
             label: data?.selectedContentType?.title, 
             value: data?.selectedContentType?.title,
-            id:data?.selectedContentType?.uid
+            id: data?.selectedContentType?.uid
           })
           setContentModels(data?.contentTypes);
           const newMigrationDataObj : INewMigration = {
@@ -1717,10 +1742,13 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         const { data, status } = await getExistingGlobalFields(projectId, otherContentType?.id ?? '');
 
         if (status == 201 && data?.globalFields?.length > 0) {
-          otherContentType?.id && setOtherContentType({
+          (otherContentType?.id === data?.selectedGlobalField?.uid) && setsCsCTypeUpdated(false);
+          
+          (otherContentType?.id && otherContentType?.label !== data?.selectedGlobalField?.title)
+            && setOtherContentType({
             label: data?.selectedGlobalField?.title,
             value:data?.selectedGlobalField?.title,
-            id:data?.selectedGlobalField?.uid
+            id: data?.selectedGlobalField?.uid
           })
           setContentModels(data?.globalFields);
 
@@ -1907,7 +1935,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       </div>
     : 
       <div className="step-container">
-        {contentTypes.length > 0 ?
+        {(contentTypes.length > 0  || tableData?.length > 0) ?
          <div className="d-flex flex-wrap table-container">
         {/* Content Types List */}
         <div className="content-types-list-wrapper">
