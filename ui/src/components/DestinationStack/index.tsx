@@ -6,31 +6,22 @@ import { CircularLoader } from '@contentstack/venus-components';
 import { CS_ENTRIES } from '../../utilities/constants';
 import {
   DEFAULT_DESTINATION_STACK_DATA,
-  IDestinationStack,
   IDestinationStackComponent,
-  IDropDown
 } from '../../context/app/app.interface';
 import './DestinationStack.scss';
-import { isEmptyString, validateArray } from '../../utilities/functions';
-import { getAllStacksInOrg } from '../../services/api/stacks.service';
-import { MigrationResponse, StackResponse } from '../../services/api/service.interface';
+import { MigrationResponse } from '../../services/api/service.interface';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
 import { updateMigrationData } from '../../store/slice/migrationDataSlice';
 import { AutoVerticalStepperRef } from '../LegacyCms';
 
 type DestinationStackComponentProps = {
-  destination_stack: string;
-  org_id: string;
   isCompleted: boolean;
   projectData: MigrationResponse;
-  handleStepChange: (currentStep: number) => void;
   handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
 const DestinationStackComponent = ({
-  destination_stack,
-  org_id,
   projectData,
   isCompleted,
   // handleStepChange,
@@ -38,122 +29,20 @@ const DestinationStackComponent = ({
 }: DestinationStackComponentProps) => {
   /** ALL HOOKS HERE */
   
-  // const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
   const [stepperKey] = useState<string>('destination-Vertical-stepper');
-  const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
+  const [internalActiveStepIndex] = useState<number>(-1);
 
   const autoVerticalStepperComponent = useRef<AutoVerticalStepperRef>(null);
 
   /** ALL CONTEXT HERE */
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
-  const organisationsList = useSelector((state:RootState)=>state?.authentication?.organisationsList);
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
 
-  // const { projectId = '' } = useParams();
-
-  // const navigate = useNavigate();
-
   const handleAllStepsComplete = (flag = false) => {
     handleOnAllStepsComplete(flag);
-  };
-
-  // const handleOnClick = async (event: MouseEvent) => {
-  //   event?.preventDefault();
-  //   //Update Data in backend
-  //   await updateDestinationStack(selectedOrganisation?.value, projectId, {
-  //     stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
-  //   });
-  //   handleStepChange(2);
-  //   const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
-  //   if (res) {
-  //     const url = `/projects/${projectId}/migration/steps/3`;
-  //     navigate(url, { replace: true });
-  //   }
-  // };
-
-  const updateDestinationStackData = async () => {
-    const selectedOrganisationData = validateArray(organisationsList)
-      ? organisationsList?.find((org: IDropDown) => org?.value === org_id)
-      : selectedOrganisation;
-
-    let selectedStackData: IDropDown = {
-      value: destination_stack,
-      label: '',
-      master_locale: '',
-      locales: [],
-      created_at: ''
-    };
-
-    //If stack is already selected and exist in backend, then fetch all stack list and filter selected stack.
-    if (!isEmptyString(destination_stack)) {
-      try {
-        const stackData: any = await getAllStacksInOrg(
-          selectedOrganisationData?.value || selectedOrganisation?.value,''
-        );
-        const stackArray = validateArray(stackData?.data?.stacks)
-          ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
-              label: stack?.name,
-              value: stack?.api_key,
-              uid: stack?.api_key,
-              master_locale: stack?.master_locale,
-              locales: stack?.locales,
-              created_at: stack?.created_at
-            }))
-          : [];
-    
-        stackArray.sort(
-          (a: IDropDown, b: IDropDown) =>
-            new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
-        );
-        const stack =
-          validateArray(stackData?.data?.stacks) &&
-          stackData?.data?.stacks?.find(
-            (stack: StackResponse) => stack?.api_key === destination_stack
-          );
-  
-        if (stack) {
-          selectedStackData = {
-            label: stack?.name,
-            value: stack?.api_key,
-            master_locale: stack?.master_locale,
-            locales: stack?.locales,
-            created_at: stack?.created_at
-          };
-        }
-        const newMigData: IDestinationStack = {
-          ...newMigrationData?.destination_stack,
-          selectedOrg: selectedOrganisationData || selectedOrganisation,
-          selectedStack: selectedStackData,
-          stackArray: stackArray
-        };
-        
-      } catch (error) {
-        return error;
-        
-      }
-      
-     
-    }
-    
-      
-    
-    //Make First Step Complete
-    if (!isEmptyString(selectedOrganisationData?.value)) {
-      setInternalActiveStepIndex(0);
-    }
-
-    //Complete step if all step are selected.
-    if (
-      !isEmptyString(selectedOrganisationData?.value) &&
-      !isEmptyString(selectedStackData?.value)
-    ) {
-      setInternalActiveStepIndex(1);
-      // setIsCompleted(true);
-    }
   };
 
   /********** ALL USEEFFECT HERE *************/
@@ -177,8 +66,6 @@ const DestinationStackComponent = ({
         all_steps: getDestinationStackSteps(isCompleted, isMigrationLocked, data?.all_steps)
       };
 
-      //updateDestinationStackData();
-
       dispatch(updateMigrationData({ destinationStackData: destinationStackDataMapped }));
 
       setIsLoading(false);
@@ -189,11 +76,6 @@ const DestinationStackComponent = ({
     };
     fetchCMSData();
   }, []);
-
-
-  // useEffect(() => {
-  //   updateDestinationStackData();
-  // }, [selectedOrganisation]);
 
   useEffect(() => {
     if (autoVerticalStepperComponent?.current) {
