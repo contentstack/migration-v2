@@ -65,7 +65,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   // State for content types
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   const [ctValue, setCTValue] = useState<ContentTypeOption[] | null>(embedObjects);
-  const [embedObjectslabels, setEmbedObjectsLabels] = useState<string[]>(props?.value?.embedObjects);
+  const [embedObjectsLabels, setEmbedObjectsLabels] = useState<string[]>(props?.value?.embedObjects);
   const [showOptions, setShowOptions] = useState<Record<number, boolean>>({});
   const [showIcon, setShowIcon] = useState<number>();
   const filterRef = useRef<HTMLDivElement | null>(null);
@@ -132,7 +132,7 @@ const AdvancePropertise = (props: SchemaProps) => {
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects: embedObjectslabels,
+        embedObjects: embedObjectsLabels,
         minRange: currentToggleStates?.minRange,
         maxRange: currentToggleStates?.maxRange,
         minSize: currentToggleStates?.minSize,
@@ -165,13 +165,13 @@ const AdvancePropertise = (props: SchemaProps) => {
       {
         ...props?.value,
         [field]: value,
-        validationRegex: currentToggleStates?.validationRegex || '',
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects : embedObjectslabels,
+        embedObjects : embedObjectsLabels,
         default_value: currentToggleStates?.default_value,
         minChars: currentToggleStates?.minChars,
         maxChars:currentToggleStates?.maxChars,
@@ -201,13 +201,13 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         [field]: value,
-        validationRegex: currentToggleStates?.validationRegex || '',
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects : embedObjectslabels
+        embedObjects : embedObjectsLabels
       },
       true
     );
@@ -240,13 +240,13 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         ['default_value']: option?.key,
-        validationRegex: currentToggleStates?.validationRegex || '',
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects : embedObjectslabels,
+        embedObjects : embedObjectsLabels,
         options:options
       },
       true
@@ -271,13 +271,13 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         ['default_value']: '',
-        validationRegex: currentToggleStates?.validationRegex || '',
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects : embedObjectslabels,
+        embedObjects : embedObjectsLabels,
         options: options
       },
       true
@@ -294,11 +294,11 @@ const AdvancePropertise = (props: SchemaProps) => {
   };
 
   const handleDragOver = (e:React.DragEvent<HTMLDivElement>, index:number) => {
+    console.log("inside function");
+    
     e.preventDefault(); 
     document.querySelectorAll('.element-wrapper').forEach((el, i) => {
       if (i === index) {
-        el.classList.remove('dragging'); 
-      } else {
         el.classList.remove('dragging'); 
       }
     });
@@ -350,25 +350,28 @@ const AdvancePropertise = (props: SchemaProps) => {
             <span className='read-only-text'>(read only)</span>
             <div className='dropdown-choices-wrapper'>
               {options?.map((option: optionsType,index)=>(
-              <>
-                      <div className='element-wrapper' key={index} draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e)=> handleDragOver(e,index)}
-                    onDrop={() => handleDrop(index)}>
-                    <div 
-                    
-                    className='term-drag-icon'>
-                        <Icon  icon="ActionBar" size='medium' version='v2' />
-                    </div>
-                    <TextInput version={"v2"} placeholder='Enter value here'
-                    suffixVisible={true}
-                    disabled={true}
-                    value={option?.key}
-                    suffix={
-                    <>
-                    {index === showIcon && <Icon icon={'CheckSquareOffset'}  version='v2' size='medium'/>}
-                    
-                    </>}></TextInput>
+            
+                <div 
+                  className='element-wrapper' 
+                  key={`${index?.toString()}`} 
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e)=> handleDragOver(e,index)}
+                  onDrop={() => handleDrop(index)}
+                >
+                  <div className='term-drag-icon'>
+                    <Icon  icon="ActionBar" size='medium' version='v2' />
+                  </div>
+                    <TextInput 
+                      version={"v2"} 
+                      placeholder='Enter value here'
+                      suffixVisible={true}
+                      disabled={true}
+                      value={option?.key}
+                      suffix={index === showIcon && <Icon icon={'CheckSquareOffset'}  version='v2' size='medium'/>}
+                    >
+                      
+                    </TextInput>
           
                     <Button buttonType="light" version={"v2"} onlyIcon={true} canCloseOnClickOutside={true}
                     size={'small'} icon={'v2-DotsThreeLargeVertical'}
@@ -395,7 +398,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                     
                   </div>
                  
-              </>))}
+              ))}
               
 
             </div>
@@ -544,7 +547,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                         props?.updateFieldSettings(
                           props?.rowId,
                         {
-                          validationRegex : toggleStates?.validationRegex || '',
+                          validationRegex : toggleStates?.validationRegex ?? '',
                           embedObjects: embedObject
                         },
                         true,
