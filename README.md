@@ -33,6 +33,18 @@ Check for readme.md files and install dependencies for folders
   npm install
   ```
 
+4. go to cli folder
+  1. Install pnpm
+  Since pnpm is required, you need to install it globally if it's not already installed:
+  ```
+  npm install -g pnpm
+  ```
+  2. Run the Setup Script
+  Now, run the main setup script specified in the package.json:
+  ```
+  npm run setup-repo
+  ```
+
 ## Scripts
 - `npm start`: Starts the main server by running index.js.
 - `npm run api`: Navigates to the api directory and runs the development server.
