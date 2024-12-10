@@ -18,7 +18,7 @@ npm install
 The following environment variables are used in this project:
 
 - `PORT`: The port number on which the application runs. Default is `4002`.
-- `NODE_BACKEND_API`: The backend API endpoint. Default is `http://localhost:5000`.
+- `NODE_BACKEND_API`: The backend API endpoint. Default is `http://localhost:5001`.
 
 Make sure to set these variables in a `.env` file at the root of your project.
 
@@ -39,7 +39,7 @@ The following configuration is used in this project:
 - `buketKey`: The key for the AWS S3 bucket. Default is `project/package 45.zip`.
 
 ### Local Path
-- `localPath`: The local path to the extracted files. for example is `/upload-api/extracted_files/package 45.zip`.
+- `localPath`: The local path to the extracted files. for example `/upload-api/extracted_files/package 45.zip`.
 
 ## Repository
 - Type: git
