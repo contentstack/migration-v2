@@ -9,8 +9,7 @@ data
 
 # Environment variables
 
-# Package lock file
-package-lock.json
+
 
 #Log files 
 error.log
