@@ -11,7 +11,7 @@ cd migration-v2
 
 Check for readme.md files and install dependencies for folders
 
-## migration-v2 API
+## Migration-v2 API
 
 This is the migration V2's node server.
 
