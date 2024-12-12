@@ -1,0 +1,299 @@
+@import '../../scss/App.scss';
+@import '../../scss/variables';
+
+.content-types-list-wrapper {
+  border-right: 1px solid $color-brand-secondary-lightest;
+  display: flex;
+  flex-direction: column;
+  max-width: 25%;
+  overflow: hidden;
+  width: 100%;
+}
+.content-types-list-header {
+  background-color: $color-base-white-10;
+  border-bottom: 1px solid $color-brand-secondary-lightest;
+  padding: $px-20 $space-12;
+  h2 {
+    color: $color-font-base;
+    font-size: $size-font-20;
+    font-weight: $font-weight-semi-bold;
+  }
+  .Search {
+    margin: $space-20 0 $space-12;
+    width: 100%;
+    .Search-input-show {
+      width: auto;
+    }
+  }
+}
+.ct-search-wrapper {
+  border-bottom: 1px solid $color-brand-secondary-lightest;
+  padding: $px-8 $px-12;
+  position: relative;
+  .Search__v2 {
+    background-color: $color-brand-white-base;
+    height: 2.5rem;
+    width: 100%!important;
+    .Search-input-show {
+      width: 100%!important;
+    }
+  }
+  // svg {
+  //   margin-left: $px-12;
+  // }
+  .Button {
+    padding: 0;
+    &:hover {
+      background-color: transparent;
+    }
+    &:focus {
+      border: 0 none;
+      box-shadow: none;
+      outline: 0;
+    }
+  }
+}
+.ct-list-wrapper {
+  height: calc(100vh - 375px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.ct-list {
+  border-right: 1px solid $color-brand-secondary-lightest;
+  list-style-type: none;
+  padding: 15px 0 15px 0;
+  li {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    min-height: 42px;
+    padding: $px-8 $px-10 $px-8 $px-12;
+    .ct-names {
+      font-size: $size-font-xl;
+      line-height: normal;
+      width: calc(100% - 50px);
+      .cms-title {
+        align-items: center;
+        display: flex;
+        max-height: 24px;
+        white-space: nowrap;
+        .tippy-wrapper {
+          display: flex;
+        }
+        span {
+          color: $color-font-base;
+          margin-left: $px-10;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+      .ct-options {
+        justify-content: flex-end;
+      }
+    }
+    .schema-preview {
+      padding: 0;
+      svg {
+        height: 20px;
+        width: 20px;
+      }
+    }
+    &:hover, &.active-ct {
+      background-color: $color-brand-white-base;
+      .cms-title {
+        span {
+          color: $color-brand-primary-base;
+        }
+      }
+    }
+  } 
+}
+.mapped-icon {
+  circle {
+    fill: $color-brand-draft-base;
+  }
+}
+.dropdown-align {
+  .Dropdown__menu--primary {
+    right: 0;
+    top: 1.5rem;
+  }       
+}
+.content-type-list {
+  padding-left: $px-12;
+}
+.content-types-fields-wrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+  width: 100%;
+  padding: 0;
+}
+.cta-wrapper {
+  border-top: 1px solid $color-base-gray-40;
+  padding: $space-12 $space-24 $space-12 $space-12;
+  text-align: right;
+  width: 100%;
+  z-index: 1;
+  position: relative;
+}
+.table-container {
+  flex: 1 0 auto;
+}
+.table-wrapper {
+  flex: 1;
+  .TablePanel {
+    border-left: 0 none;
+  }
+  .Table {
+    border-left: 0 none;
+    min-height: inherit;
+    .Table__body__column {
+      padding: 0 1.25rem;
+    }
+    .cms-field {
+      text-transform: capitalize;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 445px;
+    }
+    .InstructionText {
+      font-size: $size-font-small;
+      margin: 0;
+    }
+    .EmptyStateWrapper {
+      margin-top: $px-20;
+    }
+  }
+  .import-cta {
+    margin: 0;
+  }
+}
+.disabled-field {
+  color: $color-font-disabled;
+}
+.action-btn-wrapper {
+  background-color: $color-brand-white-base;
+  display: flex;
+  justify-content: space-between;
+  padding: $px-12;
+}
+.action-component-body {
+  display: flex;
+}
+.step-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin-top: 0;
+  margin-left: 0px;
+  width: 100%;
+}
+.saveButton {
+  padding: 5px 30px;
+}
+.btnWrapper {
+  margin-left: 20px;
+}
+div .select {
+  width: calc(100% - 30px);
+  .Select {
+    width: 100%;
+    max-width: 100% !important;
+  }
+} 
+div .table-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+}
+.status-wrapper {
+  align-items: center;
+  border: 1px solid $color-stepper-title;
+  border-radius: $px-8;
+  cursor: pointer;
+  display: flex;
+  font-size: $size-font-medium;
+  margin-right: $px-12;
+  padding: $px-3 7px;
+  &.mapped {
+    border: 1px solid $color-brand-draft-base;
+    color: $color-brand-draft-base;
+    &.active-filter {
+      background-color: $color-brand-draft-base;
+      color: $color-brand-white-base;
+    }
+  }
+  &.verified {
+    border: 1px solid $color-brand-success-base;
+    color: $color-brand-success-base;
+    &.active-filter {
+      background-color: $color-brand-success-base;
+      color: $color-brand-white-base;
+    }
+  }
+  &.failed {
+    border: 1px solid $color-brand-fail-base;
+    color: $color-brand-fail-base;
+    &.active-filter {
+      background-color: $color-brand-fail-base;
+      color: $color-brand-white-base;
+    }
+  }
+  svg {
+    margin-right: $px-4;
+  }
+}
+.filter-wrapper {
+  background-color: $color-brand-white-base;
+  border-radius: $px-4;
+  box-shadow: 0 $px-4 $px-30 rgba(0,0,0,.25);
+  position: absolute;
+  right: $px-12;
+  top: $px-50;
+  z-index: 1;
+  li {
+    button {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      font-size: $size-font-medium;
+      padding: $px-8 $px-12;
+    }
+    
+    &:hover {
+      background-color: $color-base-white-10;
+      color: $color-brand-primary-base;
+    }
+    .filter-status {
+      margin-right: 20px;
+    }
+    &.active-filter {
+      .filter-status {
+        color: $color-brand-primary-base;
+        cursor: text;
+        font-weight: $font-weight-bold;
+      }
+    }
+  }
+}
+.no-content {
+  line-height: $line-height-default;
+  padding: $px-12;
+  text-align: center;
+}
+.table-icons:hover {
+  background-color: $color-brand-fail-light;
+  cursor: pointer;
+}
+.mapper-emptystate{
+  padding: 10px 10px;
+}
+.Checkbox .Checkbox__tick svg {
+  display: block;
+}
+.advanced-setting-button {
+  padding: 5px;
+}
