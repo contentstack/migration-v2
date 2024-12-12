@@ -1,0 +1,41 @@
+{
+  "title": "Select Destination Stack",
+  "cta": "Continue To Content Mapping",
+  "description":"Select the stack you want to migrate content to from the assigned organization.",
+  "new_stack": {
+    "save_stack_cta": "Save",
+    "new_stack_input": "Enter Stack Details Below",
+    "add_stack_cta": "Create New Stack"
+  },
+  "all_steps": [
+    {
+      "step_id": "Step1",
+      "_metadata": { "uid": "cs45d60445c89ed302" },
+      "title": "Organization",
+      "ifReadonly": true,
+      "description": "",
+      "lock": false,
+      "active": true,
+      "empty_step_placeholder": "No Organisation selected..."
+    },
+    {
+      "step_id": "Step2",
+      "_metadata": { "uid": "cs1979790a8619e118" },
+      "title": "Stack",
+      "isRequired": true,
+      "description": "",
+      "lock": false,
+      "active": true,
+      "empty_step_placeholder": "No Stack selected..."
+    }
+  ],
+  "tags": [],
+  "locale": "en-us",
+  "uid": "blte832651a25d5378b",
+  "created_by": "blt7710245564fbf52b",
+  "updated_by": "blt7710245564fbf52b",
+  "created_at": "2024-01-25T08:49:38.103Z",
+  "updated_at": "2024-02-14T12:57:32.027Z",
+  "_version": 6,
+  "_in_progress": false
+}
