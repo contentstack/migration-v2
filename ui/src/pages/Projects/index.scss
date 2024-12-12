@@ -1,0 +1,67 @@
+@import '../../scss/variables';
+
+.project-search-wrapper {
+  margin-left: $px-12;
+  .Search {
+    background-color: $color-brand-white-base;
+    height: 2.5rem;
+  }
+  ::placeholder {
+    font-size: $px-16;
+    color: $color-stepper-title !important;
+  }
+}
+
+.projects-landing {
+  &.layout-container {
+    .PageLayout--primary {
+      .PageLayout__head,
+      .PageLayout__body {
+        border-left: 0 none;
+        margin-left: 0;
+        padding-left: 0;
+        padding-right: 0;
+        width: 100% !important;
+      }
+      .PageLayout__head {
+        height: auto;
+        border-bottom: 1px solid $color-brand-secondary-lightest;
+        border-top: 1px solid $color-brand-secondary-lightest;
+        left: 56px;
+        padding:20px 10px 20px 13px;
+        position: fixed;
+        width: calc(100% - 56px) !important;
+        z-index: 1;
+      }
+    }
+  }
+}
+.EmptyState__description {
+  p {
+    color: $color-font-base;
+    margin: $px-5 0;
+  }
+}
+
+.helpText {
+  font-size: 14px;
+  padding-top: 30px;
+  p {
+    color: $color-font-base;
+    a {
+      color: $color-brand-primary-base;
+      text-decoration: underline;
+    }
+  }
+}
+.EmptyStateWrapper {
+  .EmptyState {
+    max-width: 35rem !important;
+  }
+  .EmptyState__title {
+    padding-top: 15px;
+  }
+}
+.create-project-cta {
+  line-height: $line-height-default;
+}
