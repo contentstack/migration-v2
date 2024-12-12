@@ -1,6 +1,6 @@
 // Libraries
 import React, { useEffect, useState, useRef } from 'react';
-import { Icon, Notification } from '@contentstack/venus-components';
+import { Icon, Link, Notification } from '@contentstack/venus-components';
 import io from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
 
@@ -175,7 +175,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
       <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
         {migratedTestStack?.isMigrated
           ? <div className="log-entry text-center">
-            <div className="log-message">Test Migration is completed for stack <strong>{migratedTestStack?.stackName}</strong></div>
+            <div className="log-message">Test Migration is completed for stack <Link href={newMigrationData?.test_migration?.stack_link} target='_blank'><strong>{migratedTestStack?.stackName}</strong></Link></div>
           </div>
           : <div className="logs-magnify"
             style={{
