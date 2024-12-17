@@ -1,0 +1,64 @@
+{
+  "title": "Authors",
+  "uid": "authors",
+  "schema": [
+    {
+      "display_name": "Title",
+      "uid": "title",
+      "data_type": "text",
+      "field_metadata": {
+        "_default": true
+      },
+      "unique": false,
+      "mandatory": true,
+      "multiple": false
+    },
+    {
+      "display_name": "URL",
+      "uid": "url",
+      "data_type": "text",
+      "field_metadata": {
+        "_default": true
+      },
+      "unique": false,
+      "mandatory": false,
+      "multiple": false
+    },
+    {
+      "data_type": "text",
+      "display_name": "Email",
+      "uid": "email",
+      "field_metadata": {
+        "description": "",
+        "default_value": ""
+      },
+      "format": "",
+      "multiple": false,
+      "mandatory": false,
+      "unique": false
+    },
+    {
+      "data_type": "file",
+      "display_name": "Admin Picture",
+      "uid": "admin_picture",
+      "field_metadata": {
+        "description": "",
+        "rich_text_type": "standard"
+      },
+      "multiple": false,
+      "mandatory": false,
+      "unique": false
+    }
+  ],
+  "options": {
+    "is_page": true,
+    "title": "title",
+    "sub_title": [],
+    "description": "list of authors",
+    "_version": 1,
+    "url_prefix": "/author/",
+    "url_pattern": "/:title",
+    "singleton": false
+  },
+  "description": "Schema for authors"
+}

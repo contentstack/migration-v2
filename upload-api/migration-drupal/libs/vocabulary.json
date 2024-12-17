@@ -1,0 +1,61 @@
+{
+  "title": "Vocabulary",
+  "uid": "vocabulary",
+  "schema": [
+    {
+      "display_name": "Title",
+      "uid": "title",
+      "data_type": "text",
+      "field_metadata": {
+        "_default": true
+      },
+      "unique": false,
+      "mandatory": false,
+      "multiple": false
+    },
+    {
+      "display_name": "URL",
+      "uid": "url",
+      "data_type": "text",
+      "field_metadata": {
+        "_default": true
+      },
+      "unique": false,
+      "mandatory": false,
+      "multiple": false
+    },
+    {
+      "data_type": "json",
+      "display_name": "Description",
+      "uid": "description",
+      "field_metadata": {
+        "allow_json_rte": true,
+        "embed_entry": true,
+        "description": "",
+        "default_value": "",
+        "multiline": false,
+        "rich_text_type": "advanced",
+        "options": [],
+        "ref_multiple_content_types": true
+      },
+      "format": "",
+      "error_messages": { "format": "" },
+      "reference_to": ["sys_assets"],
+      "multiple": false,
+      "non_localizable": false,
+      "unique": false,
+      "mandatory": false
+    }
+  ],
+  "options": {
+    "is_page": true,
+    "title": "title",
+    "sub_title": [],
+    "url_pattern": "/:title",
+    "_version": 1,
+    "url_prefix": "/vocabulary/",
+    "description": "List of vocabulary",
+    "singleton": false
+  },
+  "description": "Schema for vocabulary"
+}
