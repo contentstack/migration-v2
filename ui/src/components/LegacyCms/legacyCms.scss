@@ -168,3 +168,10 @@
   -webkit-box-orient: vertical;
   width: 540px;
 }
+.message-container{
+  display: inline-flex; 
+  align-items: center; 
+}
+.doc-link{
+  margin-left: 5px;
+}
