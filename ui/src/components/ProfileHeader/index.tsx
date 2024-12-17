@@ -30,7 +30,7 @@ const ProfileCard = () => {
         <div className="profile-card__email">{user?.email}</div>
       </div>
 
-      <div className="profile-card__email">Region : {user?.region}</div>
+      <div className="profile-card__email">Region: {user?.region?.replaceAll('_', '-')?.toLowerCase()}</div>
       <div>
 
       </div>
