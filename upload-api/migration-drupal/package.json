@@ -1,0 +1,26 @@
+{
+  "name": "migration-drupal",
+  "version": "1.0.0",
+  "dependencies": {
+    "@contentstack/json-rte-serializer": "^2.0.6",
+    "ansi-colors": "^4.1.3",
+    "async": "^2.1.5",
+    "axios": "^1.3.4",
+    "chalk": "^4.1.0",
+    "fs": "0.0.1-security",
+    "jsdom": "^20.0.2",
+    "lodash": "^4.17.2",
+    "mariadb": "^2.1.1",
+    "mkdirp": "^0.5.1",
+    "mysql2": "^3.6.0",
+    "node-async-loop": "^1.2.2",
+    "phpunserialize": "^1.0.1",
+    "request": "^2.88.0",
+    "url": "^0.11.0",
+    "when": "^3.7.7",
+    "winston": "^2.2.0"
+  },
+  "scripts": {
+    "export": "node index.js"
+  }
+}

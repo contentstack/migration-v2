@@ -17,6 +17,7 @@ import customLogger from "../utils/custom-logger.utils.js";
 import { setLogFilePath } from "../server.js";
 import fs from 'fs';
 import { contentfulService } from "./contentful.service.js";
+import { drupalService } from "./drupal.service.js";
 
 
 
@@ -240,6 +241,25 @@ const startTestMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
+
+      case CMS.DRUPAL:
+      case CMS.DRUPAL_V7:
+      case CMS.DRUPAL_V8: {
+        await drupalService?.extractQuery(project?.current_test_stack_id, projectId);
+        await drupalService?.saveLocale(project?.current_test_stack_id, projectId);
+        await drupalService?.extractAssets(project?.current_test_stack_id, projectId);
+        await drupalService?.extractVocabulary(project?.current_test_stack_id, projectId);
+        await drupalService?.extractReferences(project?.current_test_stack_id, projectId);
+        await drupalService?.extractAuthors(project?.current_test_stack_id, projectId);
+        await drupalService?.extractTaxonomy(project?.current_test_stack_id, projectId);
+        await drupalService?.extractPosts(project?.current_test_stack_id, projectId);
+        await drupalService?.handleAssets(project?.current_test_stack_id, projectId);
+        await drupalService?.handleEntries(project?.current_test_stack_id, projectId);
+        await drupalService?.createVersionFile(project?.current_test_stack_id, projectId);
+
+        break;
+      }
+
       default:
         break;
     }
@@ -298,6 +318,24 @@ const startMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
+
+      case CMS.DRUPAL:
+      case CMS.DRUPAL_V7:
+      case CMS.DRUPAL_V8: {
+        await drupalService?.extractQuery(project?.destination_stack_id, projectId);
+        await drupalService?.saveLocale(project?.destination_stack_id, projectId);
+        await drupalService?.extractAssets(project?.destination_stack_id, projectId);
+        await drupalService?.extractVocabulary(project?.destination_stack_id, projectId);
+        await drupalService?.extractReferences(project?.destination_stack_id, projectId);
+        await drupalService?.extractAuthors(project?.destination_stack_id, projectId);
+        await drupalService?.extractTaxonomy(project?.destination_stack_id, projectId);
+        await drupalService?.extractPosts(project?.destination_stack_id, projectId);
+        await drupalService?.handleAssets(project?.destination_stack_id, projectId);
+        await drupalService?.handleEntries(project?.destination_stack_id, projectId);
+        await drupalService?.createVersionFile(project?.destination_stack_id, projectId);
+        break;
+      }
+
       default:
         break;
     }

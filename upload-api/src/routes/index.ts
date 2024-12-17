@@ -10,7 +10,7 @@ import {
   UploadPartCommand
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
-import { fileOperationLimiter } from '../helper';
+import { dbConnect, fileOperationLimiter } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import createSitecoreMapper from '../controllers/sitecore';
 import config from '../config/index';
@@ -106,41 +106,67 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
       if (fileName) {
         const name = fileName?.split?.('.')?.[0];
         const fileExt = fileName?.split('.')?.pop() ?? '';
-        const bodyStream = createReadStream(config?.localPath);
 
-        bodyStream.on('error', (error: any) => {
-          console.error(error);
-          return res.status(500).json({
-            status: "error",
-            message: "Error reading file.",
-            file_details: config
+        if(fileExt.includes("sql")){
+          try {
+            if(await dbConnect(config?.mysql)){
+              console.log("🚀 ~ drupal")
+              const filePath = path.join(__dirname, '..', '..', 'extracted_files', "mysqlConfig.json");          
+              createMapper(filePath, projectId, app_token, affix, config)
+              res.status(200).send('drupal db validated sucessfully.');
+            }else{
+              console.log("🚀 ~ could not connect with db")
+              return res.status(500).json({
+                status: "error",
+                message: "Error could not connect with db",
+                file_details: config
+              });
+            }
+          } catch (error: any) {
+            console.log("🚀 ~ could not connect with db",error)
+            return res.status(500).json({
+              status: "error",
+              message: "Error could not connect with db",
+              file_details: config
+            });
+          }
+        }else{
+          const bodyStream = createReadStream(config?.localPath);
+
+          bodyStream.on('error', (error: any) => {
+            console.error(error);
+            return res.status(500).json({
+              status: "error",
+              message: "Error reading file.",
+              file_details: config
+            });
           });
-        });
 
-        // Create a writable stream to save the downloaded zip file
-        let zipBuffer = Buffer.alloc(0);
+          // Create a writable stream to save the downloaded zip file
+          let zipBuffer = Buffer.alloc(0);
 
-        // Collect the data from the stream into a buffer
-        bodyStream.on('data', (chunk) => {
-          if (!Buffer.isBuffer(chunk)) {
-            throw new Error('Expected chunk to be a Buffer');
-          } else {
-            zipBuffer = Buffer.concat([zipBuffer, chunk]);
-          }
-        });
+          // Collect the data from the stream into a buffer
+          bodyStream.on('data', (chunk) => {
+            if (!Buffer.isBuffer(chunk)) {
+              throw new Error('Expected chunk to be a Buffer');
+            } else {
+              zipBuffer = Buffer.concat([zipBuffer, chunk]);
+            }
+          });
 
-        //buffer fully stremd
-        bodyStream.on('end', async () => {
-          if (!zipBuffer) {
-            throw new Error('No data collected from the stream.');
-          }
-          const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,name);
-          res.status(data?.status || 200).json(data);
-          if (data?.status === 200) {
-            const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
-            createMapper(filePath, projectId, app_token, affix, config)
-          }
-        });
+          //buffer fully stremd
+          bodyStream.on('end', async () => {
+            if (!zipBuffer) {
+              throw new Error('No data collected from the stream.');
+            }
+            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,name);
+            res.status(data?.status || 200).json(data);
+            if (data?.status === 200) {
+              const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+              createMapper(filePath, projectId, app_token, affix, config)
+            }
+          });
+        }
         return;
       }
     } else {

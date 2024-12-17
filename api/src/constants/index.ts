@@ -6,6 +6,9 @@ export const CMS = {
   SITECORE_V10: "sitecore v10",
   WORDPRESS: "wordpress",
   AEM: "aem",
+  DRUPAL_V7:"drupal v7",
+  DRUPAL_V8:"drupal v8+",
+  DRUPAL:"drupal"
 }
 export const MODULES = [
   "Project",
@@ -212,12 +215,80 @@ export const MIGRATION_DATA_CONFIG = {
   ASSETS_SCHEMA_FILE: "index.json",
   ASSETS_FAILED_FILE: "cs_failed.json",
   ASSETS_METADATA_FILE: "metadata.json",
+  ASSETS_FOLDER_FILE_NAME: "folders.json",
 
-  ENTRIES_DIR_NAME: "entries",
-  ENTRIES_MASTER_FILE: "index.json",
+  ENTRIES_DIR_NAME : "entries",
+  ENTRIES_MASTER_FILE : "index.json",
 
-  GLOBAL_FIELDS_DIR_NAME: "global_fields",
+  AUTHORS_DIR_NAME : "authors",
+  AUTHORS_FILE_NAME : "en-us.json",
+  AUTHORS_MASTER_FILE : "authors.json",
+
+  CATEGORIES_DIR_NAME: "categories",
+  CATEGORIES_FILE_NAME: "en-us.json",
+  CATEGORIES_MASTER_FILE: "categories.json",
+
+  TAG_DIR_NAME: "tags",
+  TAG_FILE_NAME: "en-us.json",
+  TAG_MASTER_FILE: "tag.json",
+
+  TERMS_DIR_NAME: "terms",
+  TERMS_FILE_NAME: "en-us.json",
+  TERMS_MASTER_FILE: "terms.json",
+
+  VOCABULARY_DIR_NAME: "vocabulary",
+  VOCABULARY_FILE_NAME: "en-us.json",
+  VOCABULARY_MASTER_FILE: "vocabulary.json",
+
+  TAXONOMY_DIR_NAME: "taxonomy",
+  TAXONOMY_FILE_NAME: "en-us.json",
+  TAXONOMY_MASTER_FILE: "taxonomy.json",
+
+  POSTS_DIR_NAME: "posts",
+  POSTS_FOLDER_NAME: "en-us",
+  POSTS_FILE_NAME: "en-us.json",
+  POSTS_MASTER_FILE: "posts.json",
+
+  CHUNKS_DIR_NAME: "chunks",
+  
+  GLOBAL_FIELDS_DIR_NAME : "global_fields",
   GLOBAL_FIELDS_FILE_NAME: "globalfields.json",
 
-  EXPORT_INFO_FILE: "export-info.json"
+  QUERY_DIR_NAME : "query",
+  QUERY_FILE_NAME : "index.json",
+
+  EXPORT_INFO_FILE: "export-info.json",
+  BASE_LOCALE: { name: "English US", code: "en-us" },
+  MYSQL: {
+    HOST: "127.0.0.1",
+    USER: "drupaluser",
+    PASSWORD: "root",
+    DATABASE: "drupaldb",
+  },
+  BASE_URL: "http://127.0.0.1/web",
+  PUBLIC_PATH: "/sites/default/files/",
+  PRIVATE_PATH: "",
+  DRUPAL_BASE_URL: "",
+  "mysql-query": {
+    locale: "SELECT languages.language,languages.name FROM `languages`",
+    taxonomy_term_data:
+      "SELECT a.name, max(a.description__value) as description__value ,max(b.tid) as tid,max(b.vid) as vid FROM taxonomy_term_field_data a, taxonomy_term_data b WHERE a.vid=b.vid group by a.name",
+    taxonomyCount:
+      "SELECT count(b.tid) as taxonomycount FROM taxonomy_term_field_data a, taxonomy_term_data b WHERE a.tid = b.tid AND a.vid=b.vid",
+    ct_mapped:
+      "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'",
+    fileID: "SELECT * FROM `file_usage`",
+    assetCount: "SELECT count(a.fid) as assetcount FROM file_managed a",
+    assets: "SELECT a.fid, a.filename, a.uri, a.filesize FROM file_managed a",
+    assetsFID:
+      "SELECT a.fid, a.filename, a.uri, b.id,b.count FROM file_managed a, file_usage b WHERE a.fid IN",
+    authorCount:
+      "SELECT count(users_field_data.uid) as usercount FROM users_field_data LEFT JOIN file_managed ON file_managed.fid = users_field_data.uid",
+    authors:
+      "SELECT a.uid, a.name, a.mail, a.timezone, a.langcode, b.user_picture_target_id as picture FROM users_field_data a LEFT JOIN user__user_picture b ON a.uid = b.entity_id",
+    vocabulary:
+      "SELECT taxonomy_term_field_data.vid, taxonomy_term_field_data.name AS title, taxonomy_term_field_data.description__value FROM taxonomy_term_field_data",
+    vocabularyCount:
+      "SELECT count(taxonomy_term_field_data.vid) as vocabularycount FROM taxonomy_term_field_data",
+  },
 }
