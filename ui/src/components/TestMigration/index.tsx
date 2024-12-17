@@ -127,7 +127,7 @@ const TestMigration = () => {
       const stack_count = stackData?.data?.stacks?.length;
 
       // Handle stack limit reached
-      if (stack_count >= max_stack_limit + 199) {
+      if (stack_count >= max_stack_limit) {
         setIsLoading(false);
         setDisableCreateStack(true);
         setStackLimitReached(true)
