@@ -10,6 +10,7 @@ interface Props {
   closeModal: () => void;
   data?: StackDetail;
   isopen?: (flag: boolean) => void;
+  stackLink?: string;
 }
 interface StackDetail {
   value?: string;
@@ -17,13 +18,11 @@ interface StackDetail {
 }
 
 const MigrationCompletionModal = (props: Props) => {
-  const stackLink = `https://app.contentstack.com/#!/stack/${props?.data?.value}/dashboard`;
-  
   return(
     <>
       <ModalBody>
         Migration Execution process is completed. You can view in the selected stack 
-        <Link href={stackLink} target='_blank' className='ml-4'>
+        <Link href={props?.stackLink} target='_blank' className='ml-4'>
           <strong>{props?.data?.label}</strong>
         </Link>
       </ModalBody>
