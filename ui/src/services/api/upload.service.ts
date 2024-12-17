@@ -40,12 +40,13 @@ export const uploadFilePath = () => {
   return `${UPLOAD_FILE_RELATIVE_URL}upload`;
 };
 
-export const fileValidation = async(projectId: string) => {
+export const fileValidation = async(projectId: string, affix:string) => {
   try {
     const options = {
       headers: {
         'app_token': getDataFromLocalStorage('app_token'),
-        'projectId': projectId 
+        'projectId': projectId ,
+        'affix': affix,
       },
       
     };
