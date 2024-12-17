@@ -3,10 +3,17 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Icon, cbModal, Link } from '@contentstack/venus-components';
 import io from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
+import { useParams } from 'react-router';
 
 // Redux files
 import { RootState } from '../../store';
 import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+
+// Utilities
+import { CS_URL } from '../../utilities/constants';
+
+// Service
+import { updateCurrentStepData } from '../../services/api/migration.service';
 
 // Interface
 import { INewMigration } from '../../context/app/app.interface';
@@ -19,9 +26,8 @@ import useBlockNavigation from '../../hooks/userNavigation';
 // CSS
 import './index.scss';
 
-import { MAGNIFY,DEMAGNIFY } from '../../common/assets';
-import { updateCurrentStepData } from '../../services/api/migration.service';
-import { useParams } from 'react-router';
+// Assets
+import { MAGNIFY, DEMAGNIFY } from '../../common/assets';
 
 const logStyles: { [key: string]: React.CSSProperties } = {
   info: { backgroundColor: '#f1f1f1' },
@@ -40,19 +46,23 @@ type LogsType = {
  * @param {string} serverPath - The path of the server to connect to.
  */
 const MigrationLogViewer = ({ serverPath }: LogsType) => {
-  const [logs, setLogs] = useState<string[]>([JSON.stringify({ message: "Migration logs will appear here once the process begins.", level: ''})]);
+  const [logs, setLogs] = useState<string[]>([JSON.stringify({ message: "Migration logs will appear here once the process begins.", level: '' })]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
+  const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
+  const user = useSelector((state: RootState) => state?.authentication?.user);
 
   const dispatch = useDispatch();
 
   const { projectId = '' } = useParams();
 
+  const stackLink = `${CS_URL[user?.region]}/stack/${newMigrationData?.stackDetails?.value}/dashboard`;
+
   useEffect(() => {
-    const socket = io(serverPath || '',{
-      reconnection:true,
+    const socket = io(serverPath || '', {
+      reconnection: true,
     }); // Connect to the server
 
     socket.on('disconnect', () => {
@@ -102,17 +112,15 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     }
   }
 
-  const [zoomLevel, setZoomLevel] = useState(1);
-
   /**
    * Zooms in the logs container.
    */
   const handleZoomIn = () => {
     // const logsContainer = document.querySelector('.logs-magnify') as HTMLElement;
     // if (logsContainer) {
-      setZoomLevel(prevZoomLevel => prevZoomLevel + 0.1);
-     // logsContainer.style.transform = `scale(${zoomLevel})`;
-   // }
+    setZoomLevel(prevZoomLevel => prevZoomLevel + 0.1);
+    // logsContainer.style.transform = `scale(${zoomLevel})`;
+    // }
   };
 
   /**
@@ -121,13 +129,13 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   const handleZoomOut = () => {
     // const logsContainer = document.querySelector('.logs-magnify') as HTMLElement;
     // if (logsContainer) {
-      // setZoomLevel(prevZoomLevel => prevZoomLevel - 0.1);
-      // logsContainer.style.transform = `scale(${zoomLevel})`;
+    // setZoomLevel(prevZoomLevel => prevZoomLevel - 0.1);
+    // logsContainer.style.transform = `scale(${zoomLevel})`;
     // }
     setZoomLevel((prevZoomLevel) => {
       const newZoomLevel = Math.max(prevZoomLevel - 0.1, 0.6); // added minimum level for zoom out
       return newZoomLevel;
-    });    
+    });
   };
 
   const logsContainerRef = useRef<HTMLDivElement>(null);
@@ -148,21 +156,19 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
 
           const newMigrationDataObj: INewMigration = {
             ...newMigrationData,
-            migration_execution: { 
-              ...newMigrationData?.migration_execution, 
+            migration_execution: {
+              ...newMigrationData?.migration_execution,
               migrationStarted: false,
-              migrationCompleted:true 
+              migrationCompleted: true
             }
           };
-      
+
           dispatch(updateNewMigrationData((newMigrationDataObj)));
 
-        /**
-         * Updates the Migration excution step as completed in backend if migration completes.
-         */ 
-        updateCurrentStepData(selectedOrganisation.value, projectId);
-
-  
+          /**
+           * Updates the Migration excution step as completed in backend if migration completes.
+           */
+          updateCurrentStepData(selectedOrganisation.value, projectId);
 
           return cbModal({
             component: (props: ModalObj) => (
@@ -170,6 +176,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                 {...props}
                 isopen={setIsModalOpen}
                 data={newMigrationData?.stackDetails}
+                stackLink={stackLink}
               />
             ),
             modalProps: {
@@ -187,11 +194,11 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   return (
     <div className='logs-wrapper'>
       <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
-        {newMigrationData?.migration_execution?.migrationCompleted 
+        {newMigrationData?.migration_execution?.migrationCompleted
           ? <div className="log-entry text-center">
             <div className="log-message">
-              Migration Execution process is completed. You can view in the selected stack 
-              <Link href={`https://app.contentstack.com/#!/stack/${newMigrationData?.stackDetails?.value}/dashboard`} target='_blank' className='ml-5'>
+              Migration Execution process is completed in the selected stack
+              <Link href={stackLink} target='_blank' className='ml-5'>
                 <strong>{newMigrationData?.stackDetails?.label}</strong>
               </Link>
             </div>
@@ -199,7 +206,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           : <div className="logs-magnify"
             style={{
               transform: `scale(${zoomLevel})`,
-              transformOrigin: "top left", 
+              transformOrigin: "top left",
               transition: "transform 0.1s ease"
             }}>
             {logs?.map((log, index) => {
@@ -212,14 +219,14 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
 
                 return (
                   message === "Migration logs will appear here once the process begins."
-                      ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                        <div className="log-message">{message}</div>
-                      </div>
-                      : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
-                        <div className="log-number">{index}</div>
-                        <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
-                        <div className="log-message">{message}</div>
-                      </div>
+                    ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
+                      <div className="log-message">{message}</div>
+                    </div>
+                    : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
+                      <div className="log-number">{index}</div>
+                      <div className="log-time">{timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
+                      <div className="log-message">{message}</div>
+                    </div>
                 );
               } catch (error) {
                 console.error('Invalid JSON string', error);
@@ -228,6 +235,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           </div>
         }
       </div>
+      {!newMigrationData?.migration_execution?.migrationCompleted && (
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
           <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
@@ -235,7 +243,8 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           <span onClick={handleZoomOut}>{DEMAGNIFY}</span>
           <Icon icon="ZoomOut" version='v2' onClick={handleZoomOut} />
         </div>
-     
+      )}
+
     </div>
   );
 };
