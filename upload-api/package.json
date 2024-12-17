@@ -47,9 +47,11 @@
     "inquirer": "^9.2.15",
     "jszip": "^3.10.1",
     "lodash.isempty": "^4.4.0",
+    "migration-drupal": "file:migration-drupal",
     "migration-sitecore": "file:migration-sitecore",
     "migration-contentful": "file:migration-contentful",
     "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.11.4",
     "node-fetch": "^2.7.0",
     "prettier": "^3.3.3"
   }

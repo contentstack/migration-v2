@@ -1,6 +1,7 @@
 import rateLimit from "express-rate-limit";
 import fs from "fs";
 import path from "path";
+import mysql from "mysql2";
 import { HTTP_TEXTS, HTTP_CODES } from '../constants';
 import logger from "../utils/logger";
 
@@ -83,5 +84,80 @@ function deleteFolderSync(folderPath: string): void {
   }
 }
 
+function dbConnect2({host, user, password, database}: {host: string, user: string, password: string, database: string}) {
+  var connection = mysql.createConnection({
+    host: host,
+    user:user,
+    password: password,
+    database: database,
+  });
+  return connection;
+}
 
-export { getFileName, saveZip, fileOperationLimiter, deleteFolderSync };
+
+
+function dbConnect({
+  host,
+  user,
+  password,
+  database,
+}: {
+  host: string;
+  user: string;
+  password: string;
+  database: string;
+}): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    try {
+      const mysqlConfig ={
+        host: host,
+        user: user,
+        password: password,
+        database: database,
+      }
+      const connection = mysql.createConnection(mysqlConfig);
+   
+      connection.connect((err) => {
+        if (err) {
+          console.error('Connection failed:', err.message);
+          reject(false); 
+          return;
+        }
+
+        console.log('Connection successful. Running query...');
+        
+        // Execute the query
+        const query = 'SELECT * FROM node LIMIT 1;'; // Query to test
+        connection.query(query, (queryErr, results) => {
+          if (queryErr) {
+            console.error('Query failed:', queryErr.message);
+            connection.end();
+            reject(false); 
+            return;
+          }
+          const filePath = path.join(__dirname, '../../extracted_files', "mysqlConfig.json");
+          fs.writeFile(filePath, JSON.stringify(mysqlConfig, null, 2), (writeErr) => {
+            connection.end(); 
+            if (writeErr) {
+              console.error('Failed to write JSON file:', writeErr.message);
+              reject(writeErr);
+              return;
+            }
+            console.log(`Results written to ${filePath}`);
+            resolve(true);            
+          });
+          console.log('Query executed successfully:', results);
+          connection.end();
+          resolve(true); 
+        });
+      });
+    } catch (error) {
+      console.error('Unexpected error during database connection:', error);
+      reject(false);
+    }
+  });
+}
+
+
+
+export { getFileName, saveZip, fileOperationLimiter, deleteFolderSync, dbConnect };
