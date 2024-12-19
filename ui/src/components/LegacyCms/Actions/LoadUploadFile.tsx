@@ -11,6 +11,7 @@ import { ICardType } from '../../../components/Common/Card/card.interface';
 
 //import progressbar
 import ProgressBar from '../../../components/Common/ProgressBar';
+import { VALIDATION_DOCUMENTATION_URL } from '../../../utilities/constants';
 interface LoadUploadFileProps {
   stepComponentProps?: ()=>{};
   currentStep: number;
@@ -103,7 +104,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const {data, status} =  await fileValidation(projectId);
+      const {data, status} =  await fileValidation(projectId, newMigrationData?.legacy_cms?.affix);
       
   
       setProgressPercentage(70);
@@ -380,7 +381,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       
       setIsValidated(true);
       setShowMessage(true)
-      setValidationMessage('Validation is successful');
+      setValidationMessage('File validated successfully.');
       setIsDisabled(true);
       ! isEmptyString(newMigrationData?.legacy_cms?.affix) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) && props.handleStepChange(props?.currentStep, true);
       
@@ -409,6 +410,12 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
   }, [newMigrationData]);
+
+  const sanitizedCmsType = cmsType?.toLowerCase().replace(/[^\w\s-]/g, '');
+
+  const documentationUrl = VALIDATION_DOCUMENTATION_URL?.[sanitizedCmsType];
+
+
   
   const validationClassName = isValidated ? 'success' : 'error';
 
@@ -444,9 +451,12 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
              }
             {showMessage  && ! showProgress &&
               (
-              <>
+              <div className='message-container'>
                 <Paragraph className={`${validationClassName}` } tagName='p' variant="p2" text={validationMessgae}/>
-              </>
+                {(! isValidated && validationMessgae === "Validation failed.")  && <p className={`${validationClassName} p2 doc-link`}>
+                     Please check the requirements <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">here</a>
+                  </p>}
+              </div>
               )
             }
             {showProgress && isLoading && 
