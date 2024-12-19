@@ -453,7 +453,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               (
               <div className='message-container'>
                 <Paragraph className={`${validationClassName}` } tagName='p' variant="p2" text={validationMessgae}/>
-                {! isValidated && <p className={`${validationClassName} p2 doc-link`}>
+                {(! isValidated && validationMessgae === "Validation failed.")  && <p className={`${validationClassName} p2 doc-link`}>
                      Please check the requirements <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">here</a>
                   </p>}
               </div>
