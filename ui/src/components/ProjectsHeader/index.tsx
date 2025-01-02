@@ -1,8 +1,10 @@
 // Libraries
+import { useEffect, useState } from 'react';
 import { Button, Icon, PageHeader, Search } from '@contentstack/venus-components';
 
 // Interface
 import { ProjectsHeaderType } from './projectsHeader.interface';
+import { ProjectsObj } from '../../pages/Projects/projects.interface';
 
 const ProjectsHeader = ({
   headingText,
@@ -13,6 +15,15 @@ const ProjectsHeader = ({
   allProject,
   handleModal
 }: ProjectsHeaderType) => {
+
+  const [disableCreateProject, setDisableCreateProject] = useState<boolean>(false);
+
+  useEffect(() => {
+    allProject?.forEach((project: ProjectsObj) => {
+      setDisableCreateProject(project?.isMigrationStarted && !project?.isMigrationCompleted);
+    });
+  },[allProject]);
+
   let interval: ReturnType<typeof setTimeout>;
   function setFocus() {
     clearTimeout(interval);
@@ -22,64 +33,28 @@ const ProjectsHeader = ({
   }
 
   const SearchProject = (
-    <>
-      <div className="project-search-wrapper">
-        <Search
-          placeholder={searchPlaceholder}
-          type="secondary"
-          onChange={(search: string) =>{
-            setSearchText(search)}
-          }
-          width="large"
-          onClear={true}
-          onClick={setFocus}
-          value={searchText}
-          debounceSearch={true}
-          id="search-project-input"
-          version="v2"
-          //disabled={allProject && allProject?.length <= 0 }
-        />
-      </div>
-      {/* {allProject && allProject?.length > 0 ? (
-        <div className="project-search-wrapper">
-          <Search
-            placeholder={searchPlaceholder}
-            type="secondary"
-            onChange={(search: string) =>
-              search.replace(/\s/g, '').length
-                ? setSearchText(search?.trim())
-                : setSearchText(search)
-            }
-            width="large"
-            onClear={true}
-            onClick={setFocus}
-            value={searchText}
-            debounceSearch={true}
-            id="search-project-input"
-          />
-        </div>
-      ) : (
-        searchText?.length > 0 && (
-          <div className="project-search-wrapper">
-            <Search
-              placeholder={searchPlaceholder}
-              onChange={(search: string) => setSearchText(search)}
-              onClear={true}
-              onClick={setFocus}
-              value={searchText}
-              debounceSearch={true}
-              id="search-project-input"
-            />
-          </div>
-        )
-      )} */}
-    </>
+    <div className="project-search-wrapper">
+      <Search
+        placeholder={searchPlaceholder}
+        type="secondary"
+        onChange={(search: string) =>{
+          setSearchText(search)}
+        }
+        width="large"
+        onClear={true}
+        onClick={setFocus}
+        value={searchText}
+        debounceSearch={true}
+        id="search-project-input"
+        version="v2"
+        //disabled={allProject && allProject?.length <= 0 }
+      />
+    </div>
   );
-
 
   const pageActions: any = [
     {
-      label: cta && cta?.title && (
+      label: cta?.title && (
         <Button
           buttonType={cta?.theme}
           className="ml-10 create-project-cta"
@@ -87,6 +62,7 @@ const ProjectsHeader = ({
           version="v2"
           size="medium"
           aria-label={cta?.title}
+          disabled={disableCreateProject}
         >
           {cta?.with_icon && (
             <Icon icon="Plus" version="v2" size="tiny" fill="white" stroke="white" />
@@ -99,12 +75,10 @@ const ProjectsHeader = ({
   ];
   
   return (
-    <>
-      <PageHeader
-        title={{ label: headingText, component: SearchProject }}
-        actions={allProject && allProject?.length > 0 && pageActions}
-      />
-    </>
+    <PageHeader
+      title={{ label: headingText, component: SearchProject }}
+      actions={allProject && allProject?.length > 0 && pageActions}
+    />
   );
 };
 
