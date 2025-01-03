@@ -28,7 +28,7 @@ const ProjectsHeader = ({
           placeholder={searchPlaceholder}
           type="secondary"
           onChange={(search: string) =>{
-            setSearchText(search)}
+            search.trim()?.length > 0 ? setSearchText(search?.trim()) : setSearchText(search)}
           }
           width="large"
           onClear={true}
