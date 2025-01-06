@@ -171,6 +171,8 @@ export interface IDestinationStack {
   selectedOrg: IDropDown;
   selectedStack: IDropDown;
   stackArray: IDropDown[];
+  migratedStacks: string[];
+
 }
 export interface IContentMapper {
   existingGlobal: ContentTypeList[] | (() => ContentTypeList[]);
@@ -220,6 +222,7 @@ export interface IDropDown {
   locales: locales[];
   created_at: string;
   isNewStack?: boolean;
+  isDisabled?:boolean;
 }
 export interface ITestMigration {
   stack_link: string;
@@ -258,7 +261,8 @@ export const DEFAULT_DROPDOWN: IDropDown = {
   master_locale: '',
   locales: [],
   created_at: '',
-  isNewStack: false
+  isNewStack: false,
+  isDisabled: false,
 };
 
 export const DEFAULT_ORGANISATION: Organization = {
@@ -330,6 +334,7 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
   selectedOrg: DEFAULT_DROPDOWN,
   selectedStack: DEFAULT_DROPDOWN,
   stackArray: [],
+  migratedStacks: [],
 };
 
 export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
