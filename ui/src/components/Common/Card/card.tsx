@@ -14,6 +14,7 @@ type CardProps = {
   onCardClick?: (T: any) => unknown;
   selectedCard: any;
   cardType?: string;
+  disabled: boolean;
 };
 
 /**
@@ -25,7 +26,7 @@ type CardProps = {
  * @param cardType - The type of the card.
  * @param idField - The field name for the card's ID. Defaults to 'id'.
  */
-const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id' }: CardProps) => {
+const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id',disabled }: CardProps) => {
   const imgStyle = {
     width: cardType === 'legacyCMS' ? '60px' : '46px',
     height: cardType === 'legacyCMS' ? '60px' : '46px'
@@ -51,9 +52,9 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id' }: Car
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`connector_list ${cardType === 'legacyCMS' ? 'trigger_list' : ''}`}
+      className={`connector_list ${cardType === 'legacyCMS' ? 'trigger_list' : ''} ${disabled ? 'Card__disabled' : ''} `}
       style={{ position: 'relative' }}
-      onClick={handleClick}
+      onClick={!disabled ? handleClick : undefined}
     >
       {data.description && (
         <div style={{ position: 'absolute' }}>
