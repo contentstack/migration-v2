@@ -1212,6 +1212,51 @@ const updateMigrationExecution = async (req: Request) => {
 };
 
 
+/**
+ * get the destination_stack_id of completed projects.
+ *
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the update operation.
+ * @throws ExceptionFunction if an error occurs during the process.
+ */
+const getMigratedStacks =  async(req: Request) => {
+
+ const { token_payload } = req.body; 
+  const srcFunc = "getMigratedStacks"; 
+
+  try {
+    await ProjectModelLowdb.read();
+    const projects = ProjectModelLowdb.data?.projects || [];
+
+    // Map through projects to extract `destinationstack` key
+    const destinationStacks = projects.filter((project: any) => project?.status === 5 && project.current_step === 5)
+    .map((project: any) => project.destination_stack_id);
+
+    return {
+      status: HTTP_CODES.OK, 
+      destinationStacks
+    };
+    
+  } catch (error:any) {
+    // Log error message
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while while getting all destinationstack id's of projects",
+        token_payload,
+        error
+      )
+    );
+
+    // Throw a custom exception with the error details
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR, 
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR 
+    );
+    
+  }
+
+}
 
 export const projectService = {
   getAllProjects,
@@ -1229,5 +1274,6 @@ export const projectService = {
   revertProject,
   updateStackDetails,
   updateContentMapper,
-  updateMigrationExecution
+  updateMigrationExecution,
+  getMigratedStacks
 };
