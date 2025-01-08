@@ -184,25 +184,25 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
               transition: "transform 0.1s ease"
             }}>
             {logs?.map((log, index) => {
-              const key = `${index}-${new Date().getMilliseconds()}`
+              // const key = `${index}-${new Date().getMilliseconds()}`
               try {
                 const logObject = JSON.parse(log);
                 const level = logObject.level;
                 const timestamp = logObject.timestamp;
                 const message = logObject.message;
                 return (
-                  <>
+                  <div key={`${index?.toString()}`}>
                     {message === "Migration logs will appear here once the process begins." 
-                        ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
+                        ? <div style={logStyles[level] || logStyles.info} className="log-entry text-center">
                           <div className="log-message">{message}</div>
                         </div>
-                        : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
+                        : <div style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
                           <div className="log-number">{index}</div>
                           <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
                           <div className="log-message">{message}</div>
                         </div>
                     }
-                  </>
+                  </div>
                 );
               } catch (error) {
                 console.error('Invalid JSON string', error);
