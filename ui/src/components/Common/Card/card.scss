@@ -156,3 +156,7 @@
     color: $color-stepper-title;
   }
 }
+.Card__disabled{
+  cursor: not-allowed;
+  opacity: .5;
+}

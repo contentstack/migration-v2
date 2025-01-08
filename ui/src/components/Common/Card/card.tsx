@@ -20,6 +20,8 @@ type CardProps = {
   idField?: string;
   onCardClick?: (T: any) => unknown;
   selectedCard: ICardType;
+  cardType?: string;
+  disabled: boolean;
 };
 
 /**
@@ -31,7 +33,7 @@ type CardProps = {
  * @param cardType - The type of the card.
  * @param idField - The field name for the card's ID. Defaults to 'id'.
  */
-const Card = ({ data, selectedCard, onCardClick, idField = 'id' }: CardProps) => {
+const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id',disabled }: CardProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
@@ -59,9 +61,9 @@ const Card = ({ data, selectedCard, onCardClick, idField = 'id' }: CardProps) =>
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`connector_list ${newMigrationData?.legacy_cms?.uploadedFile?.isValidated ? 'disabled-card' : ''}`}
+      className={`connector_list ${cardType === 'legacyCMS' ? 'trigger_list' : ''} ${disabled ? 'Card__disabled' : ''} `}
       style={{ position: 'relative' }}
-      onClick={handleClick}
+      onClick={!disabled ? handleClick : undefined}
     >
       {data.description && (
         <div style={{ position: 'absolute' }}>
