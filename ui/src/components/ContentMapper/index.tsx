@@ -1006,6 +1006,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     const groupArray = nestedList.filter(item => 
       item?.child?.some(e => e?.id)
     )
+
     if(groupArray[0].child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
        for(const item of groupArray[0].child){
         deletedExstingField[item?.uid] = {
@@ -1316,7 +1317,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     }
   
-    const selectedOption = OptionsForRow.length;
+    const selectedOption = OptionsForRow?.filter((option) => !option?.isDisabled)?.length
 
     // Handle case where there is exactly one match and it is auto-mapped
     if(OptionsForRow.length === 1 &&
@@ -1415,7 +1416,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           isDisabled: false
         };
     
-    const adjustedOptions = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
+    const adjustedOptions: OptionsType[] | OptionsType = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
       (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === Fields[data?.contentstackFieldType]?.label) ? []
       : OptionsForRow.map((option: OptionsType) => ({
         ...option,
