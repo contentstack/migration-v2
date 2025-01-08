@@ -1,18 +1,25 @@
+// Libraries
 import { Icon, Paragraph, Radio, Tooltip } from '@contentstack/venus-components';
 import { MouseEvent, useState } from 'react';
-import WordWrapper from '../WordWrapper/WordWrapper';
-import { addDomainInPath } from '../../../utilities/functions';
+import { useSelector } from 'react-redux';
 
+// Redux Store
+import { RootState } from '../../../store';
+
+// Interface
+import { ICardType } from './card.interface';
+
+// CSS
 import './card.scss';
 
 /**
  * Props for the Card component.
  */
 type CardProps = {
-  data: any;
+  data: ICardType;
   idField?: string;
   onCardClick?: (T: any) => unknown;
-  selectedCard: any;
+  selectedCard: ICardType;
   cardType?: string;
   disabled: boolean;
 };
@@ -27,16 +34,16 @@ type CardProps = {
  * @param idField - The field name for the card's ID. Defaults to 'id'.
  */
 const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id',disabled }: CardProps) => {
-  const imgStyle = {
-    width: cardType === 'legacyCMS' ? '60px' : '46px',
-    height: cardType === 'legacyCMS' ? '60px' : '46px'
-  };
   const [isHovered, setIsHovered] = useState(false);
 
+  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+
   const handleMouseEnter = () => {
-    if (selectedCard[idField] === data?.[idField]) {
-      setIsHovered(true);
-    }
+    if (!newMigrationData?.legacy_cms?.uploadedFile?.isValidated) {
+      if (selectedCard[idField] === data?.[idField]) {
+        setIsHovered(true);
+      }
+    } 
   };
 
   const handleMouseLeave = () => {
@@ -44,8 +51,10 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id',disabl
   };
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
-    event.preventDefault(); // Prevent the default action
-    onCardClick?.(data);
+    if (!newMigrationData?.legacy_cms?.uploadedFile?.isValidated) {
+      event.preventDefault(); // Prevent the default action
+      onCardClick?.(data);
+    }
   };
 
   return (

@@ -15,7 +15,7 @@ import { INewMigration } from '../../context/app/app.interface';
 import './index.scss';
 
 import { MAGNIFY,DEMAGNIFY } from '../../common/assets';
-import { saveStateToLocalStorage } from '../TestMigration';
+import { saveStateToLocalStorage } from '../../utilities/functions';
 
 // Define log styles for different levels
 const logStyles: { [key: string]: React.CSSProperties } = {
@@ -135,10 +135,10 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
         if (message === "Test Migration Process Completed") {
 
           // Save test migration state to local storage
-          saveStateToLocalStorage({
+          saveStateToLocalStorage(`testmigration_${projectId}`, {
             isTestMigrationCompleted : true,
             isTestMigrationStarted : false,
-          }, projectId);
+          });
 
           Notification({
             notificationContent: { text: message },
