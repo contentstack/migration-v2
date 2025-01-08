@@ -17,6 +17,9 @@ import {
 // Service
 import { getContentTypes } from '../../services/api/migration.service';
 
+// Utilities
+import { validateArray } from '../../utilities/functions';
+
 // Interfaces
 import { optionsType, SchemaProps } from './advanceProperties.interface'; 
 import { ContentType } from '../ContentMapper/contentMapper.interface';
@@ -330,9 +333,11 @@ const AdvancePropertise = (props: SchemaProps) => {
   }, [ctValue]);
 
   // Option for content types
-  const option = Array.isArray(contentTypes)
-    ? contentTypes.map((option) => ({ label: option?.contentstackTitle, value: option?.contentstackUid }))
-    : [{ label: contentTypes, value: contentTypes }];
+  const contentTypesList = contentTypes?.filter((ct: ContentType) => ct?.type === "content_type");
+  
+  const option = validateArray(contentTypesList)
+    ? contentTypesList?.map((option: ContentType) => ({ label: option?.contentstackTitle, value: option?.contentstackUid }))
+    : [{ label: contentTypesList, value: contentTypesList }];
 
   return (
     <>
