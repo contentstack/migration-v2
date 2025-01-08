@@ -37,6 +37,7 @@ import ContentMapper from '../../components/ContentMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
+import { getMigratedStacks } from '../../services/api/project.service';
 
 type StepperComponentRef = {
   handleStepChange: (step: number) => void;
@@ -161,6 +162,8 @@ const Migration = () => {
   if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
 
   const data = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
+  const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
+
   if (data) {
     setIsLoading(false);
     setProjectData(data?.data);
@@ -229,7 +232,8 @@ const Migration = () => {
       destination_stack: {
         selectedOrg: selectedOrganisationData,
         selectedStack: selectedStackData,
-        stackArray:[]
+        stackArray:[],
+        migratedStacks: migratedstacks?.data?.destinationStacks,
       },
       content_mapping: {
         isDropDownChanged: false,

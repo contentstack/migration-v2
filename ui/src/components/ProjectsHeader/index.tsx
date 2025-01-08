@@ -38,7 +38,7 @@ const ProjectsHeader = ({
         placeholder={searchPlaceholder}
         type="secondary"
         onChange={(search: string) =>{
-          setSearchText(search)}
+          search.trim()?.length > 0 ? setSearchText(search?.trim()) : setSearchText(search)}
         }
         width="large"
         onClear={true}
@@ -47,7 +47,6 @@ const ProjectsHeader = ({
         debounceSearch={true}
         id="search-project-input"
         version="v2"
-        //disabled={allProject && allProject?.length <= 0 }
       />
     </div>
   );
