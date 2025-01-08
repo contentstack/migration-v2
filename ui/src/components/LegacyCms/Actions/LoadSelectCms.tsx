@@ -106,7 +106,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       }
     };
 
-    dispatch(updateNewMigrationData(newMigrationDataObj));
+    //dispatch(updateNewMigrationData(newMigrationDataObj));
 
     setCmsData(filteredCmsData)
 
@@ -205,6 +205,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
                   onCardClick={data?.cms_id !== selectedCard?.cms_id ? handleCardClick : undefined}
                   selectedCard={selectedCard}
                   idField="cms_id"
+                  disabled={newMigrationData?.project_current_step > 1}
                 />
               ))}
             </div>))
