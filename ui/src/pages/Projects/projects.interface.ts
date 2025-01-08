@@ -46,5 +46,7 @@ export interface ProjectsObj {
   updated_at: string;
   destination_stack_id: string;
   current_step: number;
+  isMigrationStarted: boolean;
+  isMigrationCompleted: boolean;
   // tags?: TagPill[];
 }
