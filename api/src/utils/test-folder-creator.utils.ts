@@ -10,7 +10,9 @@ const {
   ASSETS_SCHEMA_FILE,
   CONTENT_TYPES_DIR_NAME,
   CONTENT_TYPES_SCHEMA_FILE,
-  ENTRIES_MASTER_FILE
+  ENTRIES_MASTER_FILE,
+  GLOBAL_FIELDS_DIR_NAME,
+  GLOBAL_FIELDS_FILE_NAME
 } = MIGRATION_DATA_CONFIG;
 
 
@@ -201,10 +203,41 @@ const sortAssets = async (baseDir: string) => {
   await fs.promises.writeFile(path.join(assetsPath, ASSETS_SCHEMA_FILE), JSON?.stringify?.(assetsMeta));
 }
 
+const writeGlobalField = async (schema: any, globalSave: string, filePath: string) => {
+  try {
+    await fs.promises.access(globalSave);
+  } catch (err) {
+    try {
+      await fs.promises.mkdir(globalSave, { recursive: true });
+    } catch (mkdirErr) {
+      console.error("🚀 ~ fs.mkdir ~ err:", mkdirErr);
+      return;
+    }
+  }
+  try {
+    await fs.promises.writeFile(filePath, JSON.stringify(schema, null, 2));
+  } catch (writeErr) {
+    console.error("🚀 ~ fs.writeFile ~ err:", writeErr);
+  }
+};
+
+const sortGlobalField = async (baseDir: string, finalData: any) => {
+  const globalSave = path.join(process.cwd(), baseDir, GLOBAL_FIELDS_DIR_NAME);
+  const globalPath = path.join(globalSave, GLOBAL_FIELDS_FILE_NAME);
+  const globalData = await JSON.parse(await fs.promises.readFile(globalPath, 'utf8'));
+  const globalResult = [];
+  for await (const ct of globalData) {
+    await lookForReference(ct, finalData);
+    globalResult?.push(ct);
+  }
+  await writeGlobalField(globalResult, globalPath, globalPath);
+}
+
 const sortContentType = async (baseDir: string, finalData: any) => {
   const contentTypePath: string = path.join(process.cwd(), baseDir, CONTENT_TYPES_DIR_NAME);
   const contentSave = path.join(baseDir, CONTENT_TYPES_DIR_NAME);
   const ctData = await JSON.parse(await fs.promises.readFile(path.join(contentTypePath, CONTENT_TYPES_SCHEMA_FILE), 'utf8'));
+  await sortGlobalField(baseDir, finalData);
   const contentTypes: any = [];
   for await (const ct of finalData) {
     const findCtData = ctData?.find((ele: any) => ele?.uid === ct?.contentType);
@@ -216,6 +249,7 @@ const sortContentType = async (baseDir: string, finalData: any) => {
     await saveContent(ctItem, contentSave);
   }
 }
+
 
 
 export const testFolderCreator = async ({ destinationStackId }: any) => {
