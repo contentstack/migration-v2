@@ -218,6 +218,11 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                 const message = logObject.message;
 
                 return (
+                  newMigrationData?.destination_stack?.migratedStacks?.includes(newMigrationData?.destination_stack?.selectedStack?.value) ?
+                  <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
+                     <div className="log-message">Migration has already done in selected stack. Please create a new project.</div>
+                  </div>
+                  :
                   message === "Migration logs will appear here once the process begins."
                     ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
                       <div className="log-message">{message}</div>
