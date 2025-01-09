@@ -192,7 +192,8 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "unique": field?.advanced?.unique ?? false,
         "non_localizable": field.advanced?.nonLocalizable ?? false
       };
-      data.field_metadata.default_value = field?.advanced?.default_value ?? null;
+      const default_value = field?.advanced?.options?.length ? (field?.advanced?.options?.find((item: any) => (item?.key === field?.advanced?.default_value) || (item?.key === field?.advanced?.default_value))) : { value: field?.advanced?.default_value };
+      data.field_metadata.default_value = default_value?.value ?? null;
       return data;
     }
     case 'radio': {

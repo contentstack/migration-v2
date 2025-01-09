@@ -292,19 +292,12 @@ const getExistingContentTypes = async (req: Request) => {
           headers,
         })
       );
-
-      if (err) {
-        throw new Error(
-          `Error fetching selected content type: ${
-            err.response?.data || err.message
-          }`
-        );
-      }
+      
 
       selectedContentType = {
-        title: res.data.content_type?.title,
-        uid: res.data.content_type?.uid,
-        schema: res.data.content_type?.schema,
+        title: res?.data?.content_type?.title,
+        uid: res?.data?.content_type?.uid,
+        schema: res?.data?.content_type?.schema,
       };
     }
     return {
@@ -314,7 +307,7 @@ const getExistingContentTypes = async (req: Request) => {
   } catch (error: any) {
     return {
       data: error.message,
-      status: 500,
+      status: error.status || 500,
     };
   }
 };

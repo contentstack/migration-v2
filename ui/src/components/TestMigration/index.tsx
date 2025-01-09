@@ -16,9 +16,10 @@ import { getAllStacksInOrg } from '../../services/api/stacks.service';
 
 // Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
+import { getStateFromLocalStorage, saveStateToLocalStorage } from '../../utilities/functions';
 
 // Interface
-import { MigrationType, TestMigrationValues } from './testMigration.interface';
+import { MigrationType } from './testMigration.interface';
 import { INewMigration } from '../../context/app/app.interface';
 
 
@@ -27,17 +28,6 @@ import TestMigrationLogViewer from '../LogScreen';
 
 // CSS
 import './index.scss';
-
-// utility function to save state to sessionStorage
-export const saveStateToLocalStorage = (state:TestMigrationValues, projectId : string) => {
-  sessionStorage.setItem(`testmigration_${projectId}`, JSON.stringify(state));
-};
-
-// utitlity function to retrieve state from sessionStorage
-const getStateFromLocalStorage = (projectId : string) => {
-  const state = sessionStorage.getItem(`testmigration_${projectId}`);
-  return state ? JSON.parse(state) : null;
-};
 
 const TestMigration = () => {
 
@@ -99,7 +89,7 @@ const TestMigration = () => {
 
   useEffect(() => {
       // Retrieve and apply saved state from sessionStorage
-    const savedState = getStateFromLocalStorage(projectId);
+    const savedState = getStateFromLocalStorage(`testmigration_${projectId}`);
     if (savedState) {
       setDisableTestMigration(savedState?.isTestMigrationStarted);
       setDisableCreateStack(savedState?.isTestMigrationStarted);  
@@ -205,13 +195,12 @@ const TestMigration = () => {
         dispatch(updateNewMigrationData(newMigrationDataObj));
 
         //update test migration started flag in localstorage
-        saveStateToLocalStorage({
+        saveStateToLocalStorage(`testmigration_${projectId}`, {
           isTestMigrationCompleted : false,
           isTestMigrationStarted : true,
-        }, projectId);
+        });
 
         handleMigrationState(true);
-
         
         Notification({
           notificationContent: { text: 'Test Migration started' },
