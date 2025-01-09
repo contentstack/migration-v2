@@ -2,7 +2,7 @@
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './HorizontalStepper.scss';
-import { cbModal, Notification,Button } from '@contentstack/venus-components';
+import { cbModal, Notification,Button, CircularLoader } from '@contentstack/venus-components';
 
 import { useSelector } from 'react-redux';
 
@@ -240,10 +240,15 @@ const HorizontalStepper = forwardRef(
             <div className={className} data-testid={testId}>
                 {steps?.length ? (
                     <>
-                        {!hideTabView && <StepsTitleCreator />}
-                        <div className={`stepContent ${props.stepContentClassName}`}>
-                            {steps[showStep]?.data}
-                        </div>
+                        {!hideTabView && <StepsTitleCreator />}                      
+                            <div className={`stepContent ${props.stepContentClassName}`}>
+                                {newMigrationData?.isprojectMapped ? 
+                                    <div className={`stepper-loader `}>
+                                        <CircularLoader />
+                                    </div> :
+                                    steps[showStep]?.data
+                                }                               
+                            </div>                     
                     </>
                 ) : (
                     emptyStateMsg
