@@ -1694,7 +1694,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     }
   };
 
-  const handleCTDeleted = async(isContentType:boolean) => {
+  const handleCTDeleted = async(isContentType:boolean, contentTypes:ContentTypeList[]) => {
     const updatedContentTypeMapping = Object.fromEntries(
       Object.entries(newMigrationData?.content_mapping?.content_type_mapping || {}).filter(
         ([key]) => !selectedContentType?.contentstackUid.includes(key)
@@ -1776,6 +1776,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       ...newMigrationData,
       content_mapping:{
         ...newMigrationData?.content_mapping,
+        existingCT: contentTypes,
         content_type_mapping : updatedContentTypeMapping
        
       }
@@ -1793,10 +1794,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     if (isContentType) {
       try {
         const { data , status} = await getExistingContentTypes(projectId, otherContentType?.id ?? '');
-        if (status == 201 && data?.contentTypes?.length > 0 && data?.selectedContentType) {
+        if (status == 201 && data?.contentTypes?.length > 0) {
           (otherContentType?.id === data?.selectedContentType?.uid) && setsCsCTypeUpdated(false);
 
-          (otherContentType?.id && otherContentType?.label !== data?.selectedContentType?.title)
+          (otherContentType?.id && otherContentType?.label !== data?.selectedContentType?.title && data?.selectedContentType?.title)
            && setOtherContentType({
             label: data?.selectedContentType?.title, 
             value: data?.selectedContentType?.title,
@@ -1824,8 +1825,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             setContentTypeSchema(data?.selectedContentType?.schema);
           } 
         } else {
-
-          await handleCTDeleted(isContentType);
           Notification({
             notificationContent: { text: "No content found in the stack" },
             notificationProps: {
@@ -1835,6 +1834,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             type: 'error'
           });
         }
+        if(otherContentType?.id && data?.contentTypes?.every((item: any) => item?.uid !== otherContentType?.id)){
+          await handleCTDeleted(isContentType, data?.contentTypes);
+        }
       } catch (error) {
         console.log(error);
         return error;
@@ -1843,10 +1845,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       try {
         const { data, status } = await getExistingGlobalFields(projectId, otherContentType?.id ?? '');
 
-        if (status == 201 && data?.globalFields?.length > 0 && data?.selectedGlobalField) {
+        if (status == 201 && data?.globalFields?.length > 0) {
           (otherContentType?.id === data?.selectedGlobalField?.uid) && setsCsCTypeUpdated(false);
           
-          (otherContentType?.id && otherContentType?.label !== data?.selectedGlobalField?.title)
+          (otherContentType?.id && otherContentType?.label !== data?.selectedGlobalField?.title && data?.selectedGlobalField?.title)
             && setOtherContentType({
             label: data?.selectedGlobalField?.title,
             value:data?.selectedGlobalField?.title,
@@ -1874,8 +1876,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           });
         } else {
 
-          await handleCTDeleted(isContentType);
-
           Notification({
             notificationContent: { text: "No Global Fields found in the stack" },
             notificationProps: {
@@ -1884,6 +1884,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             },
             type: 'error'
           });
+        }
+        if(otherContentType?.id && data?.globalFields?.every((item: any) => item?.uid !== otherContentType?.id)){
+          await handleCTDeleted(isContentType, data?.globalFields);
         }
       } catch (error) {
         console.log(error);
