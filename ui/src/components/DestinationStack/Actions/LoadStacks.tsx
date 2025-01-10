@@ -146,7 +146,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
    
   };
-  
+
   /****  ALL METHODS HERE  ****/
 
   //Handle Legacy cms selection
@@ -214,11 +214,11 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                 return stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
               }
             )
-          : DEFAULT_DROPDOWN;
-        if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
-          setIsError(true);
-          setErrorMessage("Please create new stack there is no stack available");
-        } 
+          : null;
+        // if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
+        //   setIsError(true);
+        //   setErrorMessage("Please create new stack there is no stack available");
+        // } 
 
         if(selectedStackData){
           setSelectedStack(selectedStackData);
