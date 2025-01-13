@@ -171,7 +171,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
 
     case 'dropdown': {
       const data = {
-        "data_type": ['Integer', 'Number'].includes(field.otherCmsType) ? 'number' : "text",
+        "data_type": ['dropdownNumber', 'radioNumber', 'ratingNumber'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
         "display_type": "dropdown",
         "enum": {
@@ -198,7 +198,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
     }
     case 'radio': {
       const data = {
-        "data_type": ['Integer', 'Number'].includes(field.otherCmsType) ? 'number' : "text",
+        "data_type": ['dropdownNumber', 'radioNumber', 'ratingNumber'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
         "display_type": "radio",
         "enum": {
