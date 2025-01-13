@@ -85,9 +85,7 @@ const createInitialMapper = async () => {
         type: 'content_type',
         fieldMapping: []
       };
-      const titleArray = data.map((item) => item.id);
-      const uidTitle = titleArray.includes('title') ? []
-        : [
+      const uidTitle = [
             {
               uid: 'title',
               otherCmsField: 'title',
@@ -97,10 +95,7 @@ const createInitialMapper = async () => {
               contentstackFieldType: 'text',
               backupFieldType: 'text',
               advanced:{ mandatory:true}
-            }
-          ];
-      const uidUrl = titleArray.includes('url') ? []
-        : [
+            },
             {
               uid: 'url',
               otherCmsField: 'url',
@@ -112,7 +107,7 @@ const createInitialMapper = async () => {
               advanced:{ mandatory:true}
             }
           ];
-      const contentstackFields = [...uidTitle, ...uidUrl, ...contentTypeMapper(data)].filter(
+      const contentstackFields = [...uidTitle, ...contentTypeMapper(data)].filter(
         Boolean
       );
 
