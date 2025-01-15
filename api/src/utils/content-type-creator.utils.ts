@@ -63,7 +63,7 @@ const arrangGroups = ({ schema, newStack }: any) => {
       })
       dtSchema?.push(groupSchema);
     } else {
-      if (!(item?.contentstackField.includes('>') && item?.contentstackFieldUid.includes('.'))) {
+      if (!(item?.contentstackField?.includes('>') && item?.contentstackFieldUid?.includes('.'))) {
         dtSchema?.push(item);
       }
     }
