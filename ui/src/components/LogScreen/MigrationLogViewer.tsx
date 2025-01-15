@@ -41,12 +41,19 @@ type LogsType = {
   handleStepChange: (currentStep: number) => void;
 }
 
+export interface LogEntry {
+  level?: string;
+  message?: string;
+  timestamp?: string | null;
+}
+
 /**
  * MigrationLogViewer component displays logs received from the server.
  * @param {string} serverPath - The path of the server to connect to.
  */
 const MigrationLogViewer = ({ serverPath }: LogsType) => {
-  const [logs, setLogs] = useState<string[]>([JSON.stringify({ message: "Migration logs will appear here once the process begins.", level: '' })]);
+  const [logs, setLogs] = useState<LogEntry[]>([
+    { message: "Migration logs will appear here once the process begins.", level: '' }]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState(1);
 
@@ -75,10 +82,47 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
      * @param {string} newLogs - The new logs received from the server.
      */
     socket.on('logUpdate', (newLogs: string) => {
-      const logArray = newLogs.split('\n');
-      setLogs(logArray);
-    });
-
+      //const logArray = (newLogs: string) =>{
+      //try {
+        const parsedLogsArray: LogEntry[] = [];
+        const logArray = newLogs?.split('\n')
+        //const parsedLogs = JSON?.parse(logArray);
+        // const plogs =  {
+        //   level: parsedLogs.level || 'info',
+        //   message: parsedLogs.message || 'Unknown message',
+        //   timestamp: parsedLogs.timestamp || null,
+        // };
+        logArray?.forEach((logLine) => {
+          try {
+            // Attempt to parse each log entry as a JSON object
+            const parsedLog = JSON?.parse(logLine);
+        
+            // Build the log object with default values
+            const plogs = {
+              level: parsedLog.level || 'info',
+              message: parsedLog.message || 'Unknown message',
+              timestamp: parsedLog.timestamp || null,
+            };
+            parsedLogsArray.push(plogs);
+          }catch(error){
+            console.log("error in parsing logs : ", error);
+          }
+        });
+        //return plogs;
+        //const logArray = newLogs.split('\n');
+        setLogs((prevLogs) => [...prevLogs, ...parsedLogsArray]);
+      //}
+      
+      //setLogs((prevLogs) => [...prevLogs, plogs]);
+      //const logArray = newLogs.split('\n');
+      //setLogs(logArray);
+        
+      // } catch (error) {
+      //   console.error('Failed to parse logUpdate data:', newLogs, error);
+        
+      // }
+      
+    })
     return () => {
       socket.disconnect(); // Cleanup on component unmount
     };
@@ -147,8 +191,8 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
 
     logs?.forEach((log) => {
       try {
-        const logObject = JSON.parse(log);
-        const message = logObject.message;
+        //const logObject = JSON.parse(log);
+        const message = log.message;
 
         if (message === "Migration Process Completed") {
 
@@ -209,34 +253,35 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
               transformOrigin: "top left",
               transition: "transform 0.1s ease"
             }}>
-            {logs?.map((log, index) => {
-              const key = `${index}-${new Date().getMilliseconds()}`
-              try {
-                const logObject = JSON.parse(log);
-                const level = logObject.level;
-                const timestamp = logObject.timestamp;
-                const message = logObject.message;
+              {logs.map((log, index) => {
+                try {
+                  //const logObject = JSON.parse(log);
+                  const { level, timestamp, message } = log;
 
-                return (
-                  newMigrationData?.destination_stack?.migratedStacks?.includes(newMigrationData?.destination_stack?.selectedStack?.value) ?
-                  <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                     <div className="log-message">Migration has already done in selected stack. Please create a new project.</div>
-                  </div>
-                  :
-                  message === "Migration logs will appear here once the process begins."
-                    ? <div key={`${index?.toString}`} style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                      <div className="log-message">{message}</div>
+                  return (
+                    <div
+                      key={index}
+                      // style={logStyles[level || ''] || logStyles.info}
+                      // className="log-entry logs-bg"
+                    >
+                      {message === "Migration logs will appear here once the process begins." 
+                        ? <div style={logStyles[level || ''] || logStyles.info} className="log-entry text-center">
+                          <div className="log-message">{message}</div></div> :
+                          <div style={logStyles[level || ''] || logStyles.info} className="log-entry logs-bg" >
+                          <div className="log-number">{index}</div>
+                            <div className="log-time">
+                              {timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}
+                            </div>
+                            <div className="log-message">{message}</div>
+                          </div>
+                    }
                     </div>
-                    : <div key={key} style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
-                      <div className="log-number">{index}</div>
-                      <div className="log-time">{timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
-                      <div className="log-message">{message}</div>
-                    </div>
-                );
-              } catch (error) {
-                console.error('Invalid JSON string', error);
-              }
-            })}
+                  );
+                } catch (error) {
+                  console.error('Invalid log format', error);
+                  return null;
+                }
+              })}
           </div>
         }
       </div>
