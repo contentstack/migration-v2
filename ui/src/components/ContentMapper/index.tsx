@@ -679,21 +679,21 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
 
   const openContentType = (i: number) => {
-    setIsFieldDeleted(false);
-    setActive(i);
-    const otherTitle = filteredContentTypes?.[i]?.contentstackUid;
-    const mappedContentType = contentModels && contentModels?.find((item)=> item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[otherTitle]);
-    setOtherCmsTitle(filteredContentTypes?.[i]?.otherCmsTitle);
-    setContentTypeUid(filteredContentTypes?.[i]?.id ?? '');
-    fetchFields(filteredContentTypes?.[i]?.id ?? '', searchText || '');
-    setOtherCmsUid(filteredContentTypes?.[i]?.otherCmsUid);
-    setSelectedContentType(filteredContentTypes?.[i]);
-    setIsContentType(filteredContentTypes?.[i]?.type === "content_type");
-    setOtherContentType({ 
-      label: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
-      value: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`,
-      
-    });
+      setIsFieldDeleted(false);
+      setActive(i);
+      const otherTitle = filteredContentTypes?.[i]?.contentstackUid;
+      const mappedContentType = contentModels?.find((item)=> item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[otherTitle]);
+      setOtherCmsTitle(filteredContentTypes?.[i]?.otherCmsTitle);
+      setContentTypeUid(filteredContentTypes?.[i]?.id ?? '');
+      fetchFields(filteredContentTypes?.[i]?.id ?? '', searchText || '');
+      setOtherCmsUid(filteredContentTypes?.[i]?.otherCmsUid);
+      setSelectedContentType(filteredContentTypes?.[i]);
+      setIsContentType(filteredContentTypes?.[i]?.type === "content_type");
+      setOtherContentType({ 
+        label: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
+        value: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`,
+        
+      });
   }
 
   const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean) => {
@@ -2110,9 +2110,15 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                       <button
                         type='button'
                         className='list-button ct-names'
-                        onClick={() => handleOpenContentType(index)}
+                        onClick={(e) => {
+                          if (otherCmsUid === filteredContentTypes[index]?.otherCmsUid) {
+                            e.preventDefault();
+                          } else {
+                            handleOpenContentType(index)
+                          }
+                        }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+                          if (e.key === 'Enter' && otherCmsUid !== filteredContentTypes[index]?.otherCmsUid) {
                             handleOpenContentType(index);
                           }
                         }}
