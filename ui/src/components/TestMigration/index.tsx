@@ -75,7 +75,7 @@ const TestMigration = () => {
       ? !newMigrationData?.testStacks?.some(
           (stack) =>
             stack?.stackUid === newMigrationData?.test_migration?.stack_api_key &&
-            stack.isMigrated
+            stack?.isMigrated
         ) || newMigrationData?.test_migration?.isMigrationStarted
       : newMigrationData?.migration_execution?.migrationCompleted ||
         newMigrationData?.migration_execution?.migrationStarted || false;

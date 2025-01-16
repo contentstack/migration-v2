@@ -273,7 +273,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           </div>
         }
       </div>
-      {!newMigrationData?.migration_execution?.migrationCompleted && (
+      {!newMigrationData?.migration_execution?.migrationCompleted && !logs?.every((log) => log.message === "Migration logs will appear here once the process begins.") && (
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
           <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
