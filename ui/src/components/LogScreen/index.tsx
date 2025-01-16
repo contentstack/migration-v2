@@ -40,8 +40,7 @@ type LogsType = {
  * @param {string} projectId - The project ID for saving state to local storage.
  */
 const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: LogsType) => {
-  const [logs, setLogs] = useState<LogEntry[]>([
-    { message: "Migration logs will appear here once the process begins.", level: ''}]);
+  const [logs, setLogs] = useState<LogEntry[]>([{ message: "Migration logs will appear here once the process begins.", level: ''}]);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
@@ -64,23 +63,21 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
      * @param {string} newLogs - The new logs received from the server.
      */
     socket.on('logUpdate', (newLogs: string) => {
-      console.log("logs ::::: ", newLogs);
       const parsedLogsArray: LogEntry[] = [];
       const logArray = newLogs?.split('\n')
       
-      //const logArray = newLogs?.forEach(()=>{}) split('\n');
       logArray?.forEach((logLine) => {
         try {
-          // Attempt to parse each log entry as a JSON object
+          // parse each log entry as a JSON object
           const parsedLog = JSON.parse(logLine);
       
-          // Build the log object with default values
           const plogs = {
             level: parsedLog.level || 'info',
             message: parsedLog.message || 'Unknown message',
             timestamp: parsedLog.timestamp || null,
           };
           parsedLogsArray.push(plogs);
+          
         }catch(error){
           console.log("error in parsing logs : ", error);
         }
@@ -212,21 +209,13 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
               transition: "transform 0.1s ease"
             }}>
             {logs?.map((log, index) => {
-              // const key = `${index}-${new Date().getMilliseconds()}`
               try {
-              
-                  //logObject = JSON.parse(log);
                   const { level, timestamp, message } = log;
-
-                //const logObject = JSON.parse(log);
                 
                 return (
                   <div
                     key={index}
-                    //style={logStyles[level || ''] || logStyles.info}
-                    //className="log-entry logs-bg"
-                  >
-                                     
+                  >                  
                     {message === "Migration logs will appear here once the process begins." 
                         ? <div style={logStyles[level || ''] || logStyles.info} className="log-entry text-center">
                           <div className="log-message">{message}</div></div> :
