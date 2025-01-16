@@ -9,7 +9,7 @@ import { RootState } from '../../store';
 import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Interface
-import { INewMigration } from '../../context/app/app.interface';
+import { INewMigration, TestStacks } from '../../context/app/app.interface';
 
 // CSS
 import './index.scss';
@@ -44,8 +44,18 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
+  const [migratedStack, setmigratedSatck] = useState<TestStacks | undefined>(
+    (newMigrationData?.testStacks ?? [])?.find((test) => test?.stackUid === newMigrationData?.test_migration?.stack_api_key));
+  const [isLogsLoading, setisLogsLoading] = useState<boolean>(false)
   // Redux dispatcher
   const dispatch = useDispatch();
+
+
+
+  useEffect(()=>{
+    const migratedTestStack = newMigrationData?.testStacks?.find((test) => test?.stackUid === newMigrationData?.test_migration?.stack_api_key);
+    setmigratedSatck(migratedTestStack);
+  },[newMigrationData?.test_migration]);
 
   // Set up WebSocket connection
   useEffect(() => {
@@ -63,6 +73,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
      * @param {string} newLogs - The new logs received from the server.
      */
     socket.on('logUpdate', (newLogs: string) => {
+      setisLogsLoading(true);
       const parsedLogsArray: LogEntry[] = [];
       const logArray = newLogs?.split('\n')
       
@@ -145,19 +156,19 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
 
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
-  const migratedTestStack = newMigrationData?.testStacks?.find((test) => test?.stackUid === newMigrationData?.test_migration?.stack_api_key)
 
   useEffect(() => {
     if (logsContainerRef.current) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
 
-    logs?.forEach((log) => {
+    logs?.forEach((log: LogEntry) => {
       try {
         //const logObject = JSON.parse(log);
         const message = log?.message;
 
         if (message === "Test Migration Process Completed") {
+          setisLogsLoading(false);
 
           // Save test migration state to local storage
           saveStateToLocalStorage(`testmigration_${projectId}`, {
@@ -174,11 +185,21 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
             type: 'success'
           });
           sendDataToParent?.(false);
-  
+          const stacks = newMigrationData?.testStacks?.length > 0 ? 
+          newMigrationData?.testStacks?.map((stack)=>
+            stack?.stackUid === newMigrationData?.test_migration?.stack_api_key
+          ? { 
+              ...stack, 
+              stackName: newMigrationData?.test_migration?.stack_name, 
+              isMigrated: true 
+            }
+          : stack
+          ) : [{stackUid: newMigrationData?.test_migration?.stack_api_key, stackName: newMigrationData?.test_migration?.stack_name, isMigrated: true}]
+          
           // Update testStacks data in Redux
           const newMigrationObj: INewMigration = {
             ...newMigrationData,
-            testStacks: [...newMigrationData?.testStacks ?? [], {stackUid: newMigrationData?.test_migration?.stack_api_key, stackName: newMigrationData?.test_migration?.stack_name, isMigrated: true}],
+            testStacks: stacks,
             test_migration:{
               ...newMigrationData?.test_migration,
               isMigrationComplete:true,
@@ -194,14 +215,22 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
     });
   }, [logs]);
 
+  useEffect(()=>{
+    if(! isLogsLoading && !migratedStack?.isMigrated){
+      setLogs([{ message: "Migration logs will appear here once the process begins.", level: ''}]);
+    }
+    
+  },[isLogsLoading, migratedStack?.isMigrated]);
+  
+
   return (
     <div className='logs-wrapper'>
        {/* Logs container */}
       <div className="logs-container" style={{ height: '400px', overflowY: 'auto' }} ref={logsContainerRef}>
-        {migratedTestStack?.isMigrated
+        {migratedStack?.isMigrated
           ? <div className="log-entry text-center">
-            <div className="log-message">Test Migration is completed for stack <Link href={newMigrationData?.test_migration?.stack_link} target='_blank'><strong>{migratedTestStack?.stackName}</strong></Link></div>
-          </div>
+            <div className="log-message">Test Migration is completed for stack <Link href={newMigrationData?.test_migration?.stack_link} target='_blank'><strong>{migratedStack?.stackName}</strong></Link></div>
+            </div>
           : <div className="logs-magnify"
             style={{
               transform: `scale(${zoomLevel})`,
@@ -218,7 +247,8 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
                   >                  
                     {message === "Migration logs will appear here once the process begins." 
                         ? <div style={logStyles[level || ''] || logStyles.info} className="log-entry text-center">
-                          <div className="log-message">{message}</div></div> :
+                            <div className="log-message">{message}</div>
+                          </div> :
                           <div style={logStyles[level || ''] || logStyles.info} className="log-entry logs-bg" >
                           <div className="log-number">{index}</div>
                             <div className="log-time">
@@ -238,7 +268,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
       </div>
                     
       {/* Action buttons for scrolling and zooming */}           
-      {!migratedTestStack?.isMigrated && !logs?.every((log) => log.message === "Migration logs will appear here once the process begins.") && ( 
+      {!migratedStack?.isMigrated && !logs?.some((log) => log.message === "Migration logs will appear here once the process begins.") && ( 
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
           <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
