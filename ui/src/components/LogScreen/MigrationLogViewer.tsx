@@ -240,21 +240,28 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                   const { level, timestamp, message } = log;
 
                   return (
+                  newMigrationData?.destination_stack?.migratedStacks?.includes(newMigrationData?.destination_stack?.selectedStack?.value) ?
+                    <div key={`${index?.toString}`} style={logStyles[level || ''] || logStyles.info} className="log-entry text-center">
+                      <div className="log-message">Migration has already done in selected stack. Please create a new project.</div>
+                    </div>
+                  :
                     <div
                       key={index}
                       // style={logStyles[level || ''] || logStyles.info}
                       // className="log-entry logs-bg"
                     >
-                      {message === "Migration logs will appear here once the process begins." 
-                        ? <div style={logStyles[level || ''] || logStyles.info} className="log-entry text-center">
-                          <div className="log-message">{message}</div></div> :
-                          <div style={logStyles[level || ''] || logStyles.info} className="log-entry logs-bg" >
+                    {message === "Migration logs will appear here once the process begins." 
+                      ? <div style={logStyles[level || ''] || logStyles.info} className="log-entry text-center">
+                          <div className="log-message">{message}</div>
+                        </div> :
+                        <div style={logStyles[level || ''] || logStyles.info} className="log-entry logs-bg" >
                           <div className="log-number">{index}</div>
                             <div className="log-time">
-                              {timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}
+                              {timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : 
+                              new Date()?.toTimeString()?.split(' ')[0]}
                             </div>
-                            <div className="log-message">{message}</div>
-                          </div>
+                          <div className="log-message">{message}</div>
+                        </div>
                     }
                     </div>
                   );
