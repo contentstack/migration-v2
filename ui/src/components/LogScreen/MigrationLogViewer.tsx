@@ -52,8 +52,7 @@ export interface LogEntry {
  * @param {string} serverPath - The path of the server to connect to.
  */
 const MigrationLogViewer = ({ serverPath }: LogsType) => {
-  const [logs, setLogs] = useState<LogEntry[]>([
-    { message: "Migration logs will appear here once the process begins.", level: '' }]);
+  const [logs, setLogs] = useState<LogEntry[]>([{ message: "Migration logs will appear here once the process begins.", level: '' }]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState(1);
 
@@ -82,19 +81,12 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
      * @param {string} newLogs - The new logs received from the server.
      */
     socket.on('logUpdate', (newLogs: string) => {
-      //const logArray = (newLogs: string) =>{
-      //try {
         const parsedLogsArray: LogEntry[] = [];
         const logArray = newLogs?.split('\n')
-        //const parsedLogs = JSON?.parse(logArray);
-        // const plogs =  {
-        //   level: parsedLogs.level || 'info',
-        //   message: parsedLogs.message || 'Unknown message',
-        //   timestamp: parsedLogs.timestamp || null,
-        // };
+        
         logArray?.forEach((logLine) => {
           try {
-            // Attempt to parse each log entry as a JSON object
+            //parse each log entry as a JSON object
             const parsedLog = JSON?.parse(logLine);
         
             // Build the log object with default values
@@ -108,21 +100,10 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
             console.log("error in parsing logs : ", error);
           }
         });
-        //return plogs;
-        //const logArray = newLogs.split('\n');
-        setLogs((prevLogs) => [...prevLogs, ...parsedLogsArray]);
-      //}
-      
-      //setLogs((prevLogs) => [...prevLogs, plogs]);
-      //const logArray = newLogs.split('\n');
-      //setLogs(logArray);
-        
-      // } catch (error) {
-      //   console.error('Failed to parse logUpdate data:', newLogs, error);
-        
-      // }
-      
-    })
+
+        setLogs((prevLogs) => [...prevLogs, ...parsedLogsArray]);    
+    });
+
     return () => {
       socket.disconnect(); // Cleanup on component unmount
     };
