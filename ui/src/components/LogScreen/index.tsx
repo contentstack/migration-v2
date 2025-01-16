@@ -16,6 +16,7 @@ import './index.scss';
 
 import { MAGNIFY,DEMAGNIFY } from '../../common/assets';
 import { saveStateToLocalStorage } from '../../utilities/functions';
+import { LogEntry } from './MigrationLogViewer';
 
 // Define log styles for different levels
 const logStyles: { [key: string]: React.CSSProperties } = {
@@ -39,7 +40,7 @@ type LogsType = {
  * @param {string} projectId - The project ID for saving state to local storage.
  */
 const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: LogsType) => {
-  const [logs, setLogs] = useState<string[]>([JSON.stringify({ message: "Migration logs will appear here once the process begins.", level: ''})]);
+  const [logs, setLogs] = useState<LogEntry[]>([{ message: "Migration logs will appear here once the process begins.", level: ''}]);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
@@ -48,17 +49,41 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
 
   // Set up WebSocket connection
   useEffect(() => {
-    const socket = io(serverPath || ''); // Connect to the server
+    const socket = io(serverPath || '',{
+      reconnection: true,
+    }); // Connect to the server
+
+    socket.on('disconnect', () => {
+      console.warn('Disconnected from server. Retrying...');
+      setTimeout(() => socket.connect(), 3000); // Retry connection after 3 seconds
+    });
 
     /**
      * Event listener for 'logUpdate' event.
      * @param {string} newLogs - The new logs received from the server.
      */
     socket.on('logUpdate', (newLogs: string) => {
-      const logArray = newLogs.split('\n');
-      setLogs(logArray);
-    });
-
+      const parsedLogsArray: LogEntry[] = [];
+      const logArray = newLogs?.split('\n')
+      
+      logArray?.forEach((logLine) => {
+        try {
+          // parse each log entry as a JSON object
+          const parsedLog = JSON.parse(logLine);
+      
+          const plogs = {
+            level: parsedLog.level || 'info',
+            message: parsedLog.message || 'Unknown message',
+            timestamp: parsedLog.timestamp || null,
+          };
+          parsedLogsArray.push(plogs);
+          
+        }catch(error){
+          console.log("error in parsing logs : ", error);
+        }
+      });
+      setLogs((prevLogs) => [...prevLogs, ...parsedLogsArray]);
+    })
     return () => {
       socket.disconnect(); // Cleanup on component unmount
     };
@@ -129,8 +154,8 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
 
     logs?.forEach((log) => {
       try {
-        const logObject = JSON.parse(log);
-        const message = logObject.message;
+        //const logObject = JSON.parse(log);
+        const message = log?.message;
 
         if (message === "Test Migration Process Completed") {
 
@@ -184,23 +209,23 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
               transition: "transform 0.1s ease"
             }}>
             {logs?.map((log, index) => {
-              // const key = `${index}-${new Date().getMilliseconds()}`
               try {
-                const logObject = JSON.parse(log);
-                const level = logObject.level;
-                const timestamp = logObject.timestamp;
-                const message = logObject.message;
+                  const { level, timestamp, message } = log;
+                
                 return (
-                  <div key={`${index?.toString()}`}>
+                  <div
+                    key={index}
+                  >                  
                     {message === "Migration logs will appear here once the process begins." 
-                        ? <div style={logStyles[level] || logStyles.info} className="log-entry text-center">
-                          <div className="log-message">{message}</div>
-                        </div>
-                        : <div style={logStyles[level] || logStyles.info} className="log-entry logs-bg">
+                        ? <div style={logStyles[level || ''] || logStyles.info} className="log-entry text-center">
+                          <div className="log-message">{message}</div></div> :
+                          <div style={logStyles[level || ''] || logStyles.info} className="log-entry logs-bg" >
                           <div className="log-number">{index}</div>
-                          <div className="log-time">{ timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}</div>
-                          <div className="log-message">{message}</div>
-                        </div>
+                            <div className="log-time">
+                              {timestamp ? new Date(timestamp)?.toTimeString()?.split(' ')[0] : new Date()?.toTimeString()?.split(' ')[0]}
+                            </div>
+                            <div className="log-message">{message}</div>
+                          </div>
                     }
                   </div>
                 );
@@ -213,7 +238,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
       </div>
                     
       {/* Action buttons for scrolling and zooming */}           
-      {!migratedTestStack?.isMigrated && !logs?.some((log) => log === "Migration logs will appear here once the process begins.") && ( 
+      {!migratedTestStack?.isMigrated && !logs?.some((log) => log.message === "Migration logs will appear here once the process begins.") && ( 
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
           <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
