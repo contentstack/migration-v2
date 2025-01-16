@@ -238,7 +238,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
       </div>
                     
       {/* Action buttons for scrolling and zooming */}           
-      {!migratedTestStack?.isMigrated && !logs?.some((log) => log.message === "Migration logs will appear here once the process begins.") && ( 
+      {!migratedTestStack?.isMigrated && !logs?.every((log) => log.message === "Migration logs will appear here once the process begins.") && ( 
         <div className='action-items'>
           <Icon icon="ArrowUp" version='v2' onClick={handleScrollToTop} />
           <Icon icon="ArrowDown" version='v2' onClick={handleScrollToBottom} />
