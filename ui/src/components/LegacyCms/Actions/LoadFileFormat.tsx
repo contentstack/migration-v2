@@ -74,7 +74,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : data?.cmsType?.toLowerCase();
       const filePath = data?.localPath?.toLowerCase();
       const fileFormat =  getFileExtension(filePath);
-      if(! isEmptyString(selectedCard?.fileformat_id) && selectedCard?.fileformat_id === fileFormat){
+      if(! isEmptyString(selectedCard?.fileformat_id) && selectedCard?.fileformat_id !== fileFormat && newMigrationData?.project_current_step > 1){   
         setFileIcon(selectedCard?.title);
       }
       else{
