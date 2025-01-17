@@ -107,7 +107,8 @@ const createInitialMapper = async () => {
               advanced:{ mandatory:true}
             }
           ];
-      const contentstackFields = [...uidTitle, ...contentTypeMapper(data)].filter(
+      const dataArray = data.filter((item) => item.id!=='title' && item.id !== 'url');
+      const contentstackFields = [...uidTitle, ...contentTypeMapper(dataArray)].filter(
         Boolean
       );
 
