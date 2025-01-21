@@ -45,6 +45,7 @@
     "jsonwebtoken": "^9.0.2",
     "lowdb": "^7.0.1",
     "mkdirp": "^3.0.1",
+    "p-limit": "^6.2.0",
     "path-to-regexp": "^8.2.0",
     "router": "^2.0.0",
     "shelljs": "^0.8.5",
