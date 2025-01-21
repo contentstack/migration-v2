@@ -85,7 +85,7 @@ function parseDocument(obj: any, lang?: LangType, destination_stack_id?:StackId)
   };
 }
 
-function parseTable(obj: any): any {
+function parseTable(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
   const rowCount = obj.content.length;
   const colCount = Math.max(...obj.content.map((e: any) => e.content.length));
   const attrs = {
@@ -93,7 +93,7 @@ function parseTable(obj: any): any {
     cols: colCount,
     colWidths: Array(colCount).fill(250),
   };
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).concat(parsers.get('tbody')?.(obj)).filter(Boolean);
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).concat(parsers.get('tbody')?.(obj)).filter(Boolean);
 
   return {
     type: 'table',
@@ -103,19 +103,19 @@ function parseTable(obj: any): any {
   };
 }
 
-function parseTableRow(obj: any): any {
+function parseTableRow(obj: any,lang?: LangType, destination_stack_id?:StackId): any {
   const types = new Set<string>();
   const children = obj.content.map((e: any) => {
     types.add(e.nodeType);
-    return parsers.get(e.nodeType)?.(e);
+    return parsers.get(e.nodeType)?.(e, lang, destination_stack_id);
   }).filter(Boolean);
 
   const type = types.has('table-header-cell') ? 'thead' : '';
   return children.length ? { type, attrs: {}, uid: generateUID('tabletype'), children } : null;
 }
 
-function parseHeadTR(obj: any[]): any {
-  const children = obj.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseHeadTR(obj: any[],lang?: LangType, destination_stack_id?:StackId): any {
+  const children = obj.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'tr',
     attrs: {},
@@ -124,8 +124,8 @@ function parseHeadTR(obj: any[]): any {
   };
 }
 
-function parseTableHead(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseTableHead(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'th',
     attrs: {},
@@ -134,8 +134,8 @@ function parseTableHead(obj: any): any {
   };
 }
 
-function parseTBody(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get('body-tr')?.(e)).filter(Boolean);
+function parseTBody(obj: any,lang?: LangType, destination_stack_id?:StackId ): any {
+  const children = obj.content.map((e: any) => parsers.get('body-tr')?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'tbody',
     attrs: {},
@@ -144,18 +144,18 @@ function parseTBody(obj: any): any {
   };
 }
 
-function parseBodyTR(obj: any): any {
-  const children = obj.content.filter((e: any) => e.nodeType === 'table-cell').map((e: any) => parsers.get('table-cell')?.(e)).filter(Boolean);
+function parseBodyTR(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+  const children = obj.content.filter((e: any) => e.nodeType === 'table-cell').map((e: any) => parsers.get('table-cell')?.(e, lang, destination_stack_id)).filter(Boolean);
   return children.length ? { type: 'tr', attrs: {}, uid: generateUID('tr'), children } : null;
 }
 
-function parseTableBody(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseTableBody(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return children.length ? { type: 'td', attrs: {}, uid: generateUID('td'), children } : null;
 }
 
-function parseParagraph(obj: any, lang?: LangType): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang)).filter(Boolean);
+function parseParagraph(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'p',
     attrs: {},
@@ -181,8 +181,8 @@ function parseHR(): any {
   };
 }
 
-function parseUL(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseUL(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e,lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'ul',
     attrs: {},
@@ -192,8 +192,8 @@ function parseUL(obj: any): any {
   };
 }
 
-function parseOL(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
+function parseOL(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'ol',
     attrs: {},
@@ -203,8 +203,8 @@ function parseOL(obj: any): any {
   };
 }
 
-function parseLI(obj: any): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).flat().filter(Boolean);
+function parseLI(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).flat().filter(Boolean);
   return {
     type: 'li',
     attrs: {},
