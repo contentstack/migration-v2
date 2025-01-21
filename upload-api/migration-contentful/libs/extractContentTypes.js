@@ -70,7 +70,7 @@ const saveContentType = (contentTypes, editorInterface, prefix) => {
         path.join(
           contentfulFolderPath,
           `${
-            (content.name.charAt(0).toUpperCase() + content.name.slice(1)).replace(/[^\w\s]/g, "")
+            (content?.name?.charAt(0)?.toUpperCase() + content?.name?.slice(1))?.replace(/[^\w\s]/g, "")
           }.json`
         ),
         JSON.stringify(jsonObj, null, 4)
