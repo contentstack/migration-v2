@@ -100,7 +100,7 @@ const extractAdvancedFields = (
 const createFieldObject = (item, contentstackFieldType, backupFieldType, referenceFields = []) => ({
   uid: item.id,
   otherCmsField: item.name,
-  otherCmsType: item.type,
+  otherCmsType: item.widgetId,
   contentstackField: item.name,
   contentstackFieldUid: uidCorrector(item.id),
   contentstackFieldType: contentstackFieldType,
@@ -197,10 +197,15 @@ const contentTypeMapper = (data) => {
             acc.push(createFieldObject(item, 'number', 'number'));
             break;
           case 'dropdown':
+            item.widgetId = 'dropdownNumber';
+            acc.push(createDropdownOrRadioFieldObject(item, 'dropdown'));
+            break;
           case 'radio':
-            acc.push(createDropdownOrRadioFieldObject(item, item.widgetId));
+            item.widgetId = 'radioNumber';
+            acc.push(createDropdownOrRadioFieldObject(item, 'radio'));
             break;
           case 'rating':
+            item.widgetId = 'ratingNumber';
             acc.push(createDropdownOrRadioFieldObject(item, 'dropdown'));
             break;
         }
@@ -264,7 +269,7 @@ const contentTypeMapper = (data) => {
                     : item?.contentNames?.slice(0, 9);
               }
             }
-            acc.push(createFieldObject(item, 'file', 'file', referenceFields));
+            acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
             break;
           }
           case 'checkbox':
