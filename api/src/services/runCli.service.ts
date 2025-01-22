@@ -63,6 +63,8 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
           !isTest && ProjectModelLowdb.update((data: any) => {
             data.projects[projectIndex].isMigrationCompleted = true;
             data.projects[projectIndex].isMigrationStarted = false;
+            data.projects[projectIndex].current_step = 5;
+            data.projects[projectIndex].status = 5;
           })
         }
       });
