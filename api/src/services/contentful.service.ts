@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import axios from "axios";
 import jsonpath from "jsonpath";
+// import pLimit from 'p-limit';
 
 
 import {CHUNK_SIZE, MIGRATION_DATA_CONFIG } from "../constants/index.js";
@@ -24,6 +25,7 @@ const {
   RTE_REFERENCES_DIR_NAME,
   ENTRIES_DIR_NAME,
   ASSETS_DIR_NAME,
+  GLOBAL_FIELDS_DIR_NAME,
   // FILE
   LOCALE_MASTER_LOCALE,
   LOCALE_FILE_NAME,
@@ -38,6 +40,7 @@ const {
   ENTRIES_MASTER_FILE,
   WEBHOOKS_FILE_NAME,
   RTE_REFERENCES_FILE_NAME,
+  GLOBAL_FIELDS_FILE_NAME,
   
 } = MIGRATION_DATA_CONFIG;
 
@@ -152,8 +155,8 @@ const processField = (
   if (lang_value.sys) {
     const { linkType, id } = lang_value.sys;
 
-    if (linkType === "Entry" && id in entryId) return [entryId[id]];
-    if (linkType === "Asset" && id in assetId) return assetId[id];
+    if (linkType === "Entry" && id in entryId) return [entryId?.[id]];
+    if (linkType === "Asset" && id in assetId) return assetId?.[id];
   }
 
   // Handle arrays and nested objects
@@ -181,7 +184,7 @@ const processArrayFields = (array: any, entryId: any, assetId: any) => {
     if (id in entryId) {
       array.splice(i, 1, entryId[id]);
     } else if (id in assetId) {
-      array.splice(i, 1, assetId[id]);
+      array.splice(i, 1, assetId?.[id]);
     }
   });
   // Clean up empty objects
@@ -342,10 +345,10 @@ const saveAsset = async (
         await fs.promises.mkdir(assetPath, { recursive: true });
         // Write file as binary
         await fs.promises.writeFile(path.join(assetPath, fileName), Buffer.from(response.data), "binary");
-        await customLogger(projectId, destination_stack_id, 'info', message);
         await writeFile(assetPath, `_contentstack_${assets.sys.id}.json`, assetData[assets.sys.id]);
         metadata.push({ uid: assets.sys.id, url: fileUrl, filename: fileName });
         delete failedJSON[assets.sys.id];
+        await customLogger(projectId, destination_stack_id, 'info', message);
       } catch (err: any) {
         if (retryCount === 1) {
           failedJSON[assets.sys.id] = {
@@ -401,31 +404,41 @@ const createAssets = async (packagePath: any, destination_stack_id:string, proje
     const failedJSON: any = {};
     const assetData: any = {};
     const metadata: AssetMetaData[] = [];
-
+    const fileMeta = { "1": ASSETS_SCHEMA_FILE };
     const assets = JSON.parse(data)?.assets;
 
     if (assets && assets.length > 0) {
       const tasks = assets.map(
-        async (asset: any) =>
-          await saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, 0)
+        async (asset: any, index: any) =>
+           saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, 0)
       );
+
+// This code is intentionally commented out
+// for testing purposes.
+
+      // const limit = pLimit(10); // Limit concurrent operations to 10
+      // const tasks = assets.map((asset: any) =>
+      //   limit(() => saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, 0))
+      // );
+      // await Promise.all(tasks);
+
       await Promise.all(tasks);
       const assetMasterFolderPath = path.join(assetsSave, ASSETS_FAILED_FILE);
 
       await writeOneFile(path.join(assetsSave, ASSETS_SCHEMA_FILE), assetData);
-      const chunks: { [key: string]: any } = makeChunks(assetData);
-      const refs: any = {};
+      // const chunks: { [key: string]: any } = makeChunks(assetData);
+      // const refs: any = {};
 
-      for (const [index, chunkId] of Object.keys(chunks).entries()) {
-        refs[index + 1] = `${chunkId}-${ASSETS_FILE_NAME}`;
-        await writeOneFile(
-          path.join(assetsSave, `${chunkId}-${ASSETS_FILE_NAME}`),
-          chunks[chunkId]
-        );
-      }
+      // for (const [index, chunkId] of Object.keys(chunks).entries()) {
+      //   refs[index + 1] = `${chunkId}-${ASSETS_FILE_NAME}`;
+      //   await writeOneFile(
+      //     path.join(assetsSave, `${chunkId}-${ASSETS_FILE_NAME}`),
+      //     chunks[chunkId]
+      //   );
+      // }
 
-      await writeOneFile(path.join(assetsSave, ASSETS_FILE_NAME), refs);
-      await writeOneFile(path.join(assetsSave, ASSETS_METADATA_FILE), metadata);
+      await writeOneFile(path.join(assetsSave, ASSETS_FILE_NAME), fileMeta);
+      // await writeOneFile(path.join(assetsSave, ASSETS_METADATA_FILE), metadata);
       failedJSON && await writeFile(assetMasterFolderPath, ASSETS_FAILED_FILE, failedJSON);
     } else {
       const message = getLogMessage(
@@ -720,6 +733,7 @@ const createEntry = async (packagePath: any, destination_stack_id:string, projec
 const createLocale = async (packagePath: string, destination_stack_id:string, projectId:string) => {
   const srcFunc = 'createLocale';
   const localeSave = path.join(DATA, destination_stack_id, LOCALE_DIR_NAME);
+  const globalFieldSave = path.join(DATA, destination_stack_id, GLOBAL_FIELDS_DIR_NAME);
 
   try {
     const msLocale: Record<string, Locale> = {};
@@ -773,6 +787,7 @@ const createLocale = async (packagePath: string, destination_stack_id:string, pr
     await writeFile(localeSave, LOCALE_FILE_NAME, allLocales)
     await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale)
     await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList)
+    await writeFile(globalFieldSave, GLOBAL_FIELDS_FILE_NAME, [])
     const message = getLogMessage(
       srcFunc,
       `locales have been successfully transformed.`,
