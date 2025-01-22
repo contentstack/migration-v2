@@ -23,7 +23,7 @@ import {
   DEFAULT_IFLOWSTEP,
   IFlowStep
 } from '../../components/Stepper/FlowStepper/flowStep.interface';
-import { IDropDown, INewMigration, ICMSType, ILegacyCMSComponent, DEFAULT_CMS_TYPE } from '../../context/app/app.interface';
+import { IDropDown, INewMigration, ICMSType, ILegacyCMSComponent, DEFAULT_CMS_TYPE, TestStacks } from '../../context/app/app.interface';
 import { ContentTypeSaveHandles } from '../../components/ContentMapper/contentMapper.interface';
 import { ICardType } from "../../components/Common/Card/card.interface";
 import { ModalObj } from '../../components/Modal/modal.interface';
@@ -203,6 +203,7 @@ const Migration = () => {
   const existingGlobalFields = await fetchExistingGlobalFields();
   
   const stackLink = `${CS_URL[projectData?.region]}/stack/${projectData?.current_test_stack_id}/dashboard`;
+  const stackName = projectData?.test_stacks?.find((stack:TestStacks)=> stack?.stackUid === projectData?.current_test_stack_id)?.stackName;
   
   const projectMapper = {
     ...newMigrationData,
@@ -245,7 +246,8 @@ const Migration = () => {
         stack_link: stackLink,
         stack_api_key: projectData?.current_test_stack_id,
         isMigrationStarted: newMigrationData?.test_migration?.isMigrationStarted || false,
-        isMigrationComplete: newMigrationData?.test_migration?.isMigrationStarted || false
+        isMigrationComplete: newMigrationData?.test_migration?.isMigrationStarted || false,
+        stack_name: stackName,
       },
       migration_execution: {
         migrationStarted: projectData?.isMigrationStarted,
@@ -361,8 +363,9 @@ const Migration = () => {
         }
       });
       const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+      
       handleStepChange(1);
-      if (res) {
+      if (res?.status === 200) {
         setIsLoading(false);
 
         const url = `/projects/${projectId}/migration/steps/2`;
@@ -418,9 +421,9 @@ const Migration = () => {
         created_at:newMigrationData?.destination_stack?.selectedStack?.created_at,
         isNewStack: newMigrationData?.destination_stack?.selectedStack?.isNewStack
       })
-      handleStepChange(2);
       const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
-      if (res) {
+      if (res?.status === 200) {
+        handleStepChange(2);
         setIsLoading(false);
         const url = `/projects/${projectId}/migration/steps/3`;
         navigate(url, { replace: true });
@@ -486,8 +489,11 @@ const Migration = () => {
 
     await updateMigrationKey(selectedOrganisation.value, projectId);
 
-    await updateCurrentStepData(selectedOrganisation.value, projectId);
-    handleStepChange(4);
+    const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+    if(res?.status === 200){
+      handleStepChange(4);
+    }
+
   }
 
   /**
