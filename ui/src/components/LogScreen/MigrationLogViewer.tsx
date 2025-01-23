@@ -193,7 +193,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           /**
            * Updates the Migration excution step as completed in backend if migration completes.
            */
-          updateCurrentStepData(selectedOrganisation.value, projectId);
+          //await updateCurrentStepData(selectedOrganisation.value, projectId);
 
           return cbModal({
             component: (props: ModalObj) => (
