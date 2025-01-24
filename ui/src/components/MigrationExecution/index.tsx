@@ -17,13 +17,16 @@ import { validateArray } from '../../utilities/functions';
 import { DEFAULT_MIGRATION_EXECUTION } from '../../context/app/app.interface';
 
 // Component
-import LogViewer from '../LogScreen';
+import MigrationLogViewer from '../LogScreen/MigrationLogViewer';
 
 //stylesheet
 import './index.scss';
 
+export type migrationWxecutionProps  = {
+  handleStepChange: (currentStep: number) => void;
+}
 
-const MigrationExecution = () => {
+const MigrationExecution = ({handleStepChange}: migrationWxecutionProps) => {
   const dispatch = useDispatch();
 
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
@@ -59,16 +62,16 @@ const MigrationExecution = () => {
 
   const getPlaceHolder = (title: string) => {
     switch (title) {
-      case 'Uploaded CMS':
+      case 'Legacy CMS':
         return newMigrationData?.legacy_cms?.selectedCms?.title;
 
       case 'Organization':
         return newMigrationData?.destination_stack?.selectedOrg?.label;
 
-      case 'Selected stack':
+      case 'Selected Stack':
         return newMigrationData?.destination_stack?.selectedStack?.label;
 
-      case 'Selected locale':
+      case 'Selected Locale':
         return newMigrationData?.destination_stack?.selectedStack?.master_locale;
     }
   };
@@ -81,7 +84,7 @@ const MigrationExecution = () => {
       : <div className='migration-step-container'>
         <div className='content-block'>
           <div className='content-body'>
-            <p>We have Uploaded CMS, Organization, Selected stack and locale. The actual migration process can be started here.</p>
+            <p>Your legacy CMS, organization, stack, and locale are configured. You can now begin the migration process.</p>
             <div className='select-wrapper mt-3'>
               {MigrationInformation &&
                 validateArray(MigrationInformation) &&
@@ -97,6 +100,7 @@ const MigrationExecution = () => {
                       name="stackKey"
                       value={getPlaceHolder(item?.title)}
                       version="v2"
+                      disabled
                       // width="regular"
                     />
                   </Field>
@@ -112,7 +116,7 @@ const MigrationExecution = () => {
         <div className='content-block'>
           <div className='content-header'>Execution Logs</div>
           <div>
-            <LogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} />
+            <MigrationLogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} handleStepChange={handleStepChange}/>
           </div>
         </div>
       </div>

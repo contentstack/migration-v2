@@ -23,6 +23,7 @@ export interface ContentstackFields {
 }
 
 export interface FieldTypes {
+  uid?: any | string;
   label: string;
   value: any;
   id?: string;
@@ -78,8 +79,12 @@ export interface Advanced {
   maxChars?: number;
   minRange?: number,
   maxRange?: number,
-  default_value?:string,
-  options?: any[]
+  default_value?:string | boolean,
+  options?: any[],
+  minSize?: number,
+  maxSize?: number,
+  title?: string;
+  url?: string;
 }
 
 export interface ItemStatus {
@@ -118,7 +123,7 @@ interface ErrorMessages {
 // }
 
 export type ExistingFieldType = {
-  [key: string]: FieldTypes | undefined;
+  [key: string]: FieldTypes | undefined | { label: string | undefined; value: ContentTypesSchema };
 };
 
 export interface Mapping {

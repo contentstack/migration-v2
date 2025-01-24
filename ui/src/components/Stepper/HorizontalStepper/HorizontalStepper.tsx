@@ -2,7 +2,7 @@
 import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './HorizontalStepper.scss';
-import { cbModal, Notification,Button } from '@contentstack/venus-components';
+import { cbModal, Notification,Button, CircularLoader } from '@contentstack/venus-components';
 
 import { useSelector } from 'react-redux';
 
@@ -20,6 +20,7 @@ import useBlockNavigation from '../../../hooks/userNavigation';
 
 // CSS
 import './HorizontalStepper.scss';
+import { MigrationResponse } from '../../../services/api/service.interface';
 
 
 export enum StepStatus {
@@ -45,6 +46,7 @@ export type stepperProps = {
     testId?: string;
     handleSaveCT?: () => void;
     changeDropdownState: () => void;
+    projectData: MigrationResponse;
 };
 
 export type HorizontalStepperHandles = {
@@ -80,6 +82,8 @@ const HorizontalStepper = forwardRef(
         
         const { stepId } = useParams<{ stepId: string }>();
         const stepIndex = parseInt(stepId || '', 10) - 1;
+
+        const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
         
         const { steps, className, emptyStateMsg, hideTabView, testId } = props;
         const [showStep, setShowStep] = useState(stepIndex);
@@ -89,7 +93,7 @@ const HorizontalStepper = forwardRef(
         const navigate = useNavigate();
         const { projectId = '' } = useParams();
 
-        const newMigrationData = useSelector((state:RootState)=> state?.migration?.newMigrationData);
+        
 
         const handleSaveCT = props?.handleSaveCT
         const handleDropdownChange = props?.changeDropdownState;
@@ -102,6 +106,12 @@ const HorizontalStepper = forwardRef(
                 !newMigrationData?.isprojectMapped && setShowStep(stepIndex);
                 setStepsCompleted(prev => {
                     const updatedStepsCompleted = [...prev];
+                    if (stepIndex === 4 && (props?.projectData?.isMigrationCompleted || newMigrationData?.migration_execution?.migrationCompleted)) {
+                                     
+                        if (!updatedStepsCompleted?.includes(4)) {
+                            updatedStepsCompleted.push(4);
+                        }
+                    }
                     for (let i = 0; i < stepIndex; i++) {
                         if (!updatedStepsCompleted?.includes(i)) {
                             updatedStepsCompleted?.push(i);
@@ -111,7 +121,7 @@ const HorizontalStepper = forwardRef(
                 });
                 
             }
-        }, [stepId]);
+        }, [stepId, newMigrationData?.migration_execution?.migrationCompleted]);
 
         useImperativeHandle(ref, () => ({
             handleStepChange: (currentStep: number) => {
@@ -190,10 +200,10 @@ const HorizontalStepper = forwardRef(
                         !stepsCompleted.includes(idx) && idx !== showStep && !stepsCompleted?.includes(idx - 1)
                             ? 'disableEvents'
                             : '';
-                    const disableStep = newMigrationData?.isprojectMapped && stepsCompleted.includes(idx) &&  idx !== showStep  ? 'disableEvents'
+                    const disableStep = newMigrationData?.isprojectMapped && stepsCompleted.includes(idx) &&  idx !== showStep ? 'disableEvents'
                     : '';
                     
-                    const completeDisable = stepsCompleted?.includes(idx) && idx < stepIndex - 1 && newMigrationData?.test_migration?.isMigrationStarted ? 'disableEvents' : '';
+                    const completeDisable = stepsCompleted?.includes(idx) && (newMigrationData?.test_migration?.isMigrationStarted || newMigrationData?.migration_execution?.migrationStarted) ? 'disableEvents' : '';
 
                     const disableMapper = stepsCompleted?.includes(idx) && idx === 2 && newMigrationData?.test_migration?.isMigrationStarted && !newMigrationData?.test_migration?.isMigrationComplete ? 'disableEvents' : '';
                     
@@ -230,10 +240,15 @@ const HorizontalStepper = forwardRef(
             <div className={className} data-testid={testId}>
                 {steps?.length ? (
                     <>
-                        {!hideTabView && <StepsTitleCreator />}
-                        <div className={`stepContent ${props.stepContentClassName}`}>
-                            {steps[showStep]?.data}
-                        </div>
+                        {!hideTabView && <StepsTitleCreator />}                      
+                            <div className={`stepContent ${props.stepContentClassName}`}>
+                                {newMigrationData?.isprojectMapped ? 
+                                    <div className={`stepper-loader `}>
+                                        <CircularLoader />
+                                    </div> :
+                                    steps[showStep]?.data
+                                }                               
+                            </div>                     
                     </>
                 ) : (
                     emptyStateMsg
