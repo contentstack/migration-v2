@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -28,6 +28,8 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
   const dispatch = useDispatch();
+
+  const newMigrationDataRef = useRef(newMigrationData);
 
   const [selectedCard] = useState<ICardType>(
     newMigrationData?.legacy_cms?.selectedFileFormat 
@@ -72,7 +74,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : data?.cmsType?.toLowerCase();
       const filePath = data?.localPath?.toLowerCase();
       const fileFormat =  getFileExtension(filePath);
-      if(! isEmptyString(selectedCard?.fileformat_id)){
+      if(! isEmptyString(selectedCard?.fileformat_id) && selectedCard?.fileformat_id !== fileFormat && newMigrationData?.project_current_step > 1){   
         setFileIcon(selectedCard?.title);
       }
       else{
@@ -101,9 +103,9 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
         }
         
         const newMigrationDataObj = {
-          ...newMigrationData,
+          ...newMigrationDataRef?.current,     
           legacy_cms: {
-            ...newMigrationData?.legacy_cms,
+            ...newMigrationDataRef?.current?.legacy_cms,
             selectedFileFormat: selectedFileFormatObj
           }
         };
@@ -125,6 +127,10 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     handleFileFormat();
     handleBtnClick();
   },[]);
+
+  useEffect(() => {
+    newMigrationDataRef.current = newMigrationData;
+  }, [newMigrationData]);
 
   
   return (

@@ -126,7 +126,9 @@ const createProject = async (req: Request) => {
       isNewStack: false
     },
     mapperKeys: {},
-    isMigrationStarted: false
+    isMigrationStarted: false,
+    isMigrationCompleted:false,
+    migration_execution:false,
   };
 
   try {
@@ -690,6 +692,8 @@ const updateCurrentStep = async (req: Request) => {
   const token_payload = req.body.token_payload;
   const srcFunc = "updateCurrentStep";
 
+  
+
   try {
     await ProjectModelLowdb.read();
     const projectIndex = (await getProjectUtil(
@@ -708,6 +712,12 @@ const updateCurrentStep = async (req: Request) => {
 
     const isStepCompleted =
       project?.legacy_cms?.cms && project?.legacy_cms?.file_format;
+
+    console.info((project.status === NEW_PROJECT_STATUS[0] ||
+      !isStepCompleted ||
+      !project?.destination_stack_id ||
+      project?.content_mapper?.length === 0 ||
+      !project?.current_test_stack_id) || !project?.migration_execution);
 
     switch (project.current_step) {
       case STEPPER_STEPS.LEGACY_CMS: {
@@ -789,12 +799,13 @@ const updateCurrentStep = async (req: Request) => {
       }
       case STEPPER_STEPS.TESTING: {
         if (
-          project.status === NEW_PROJECT_STATUS[0] ||
+          (project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
           !project?.destination_stack_id ||
           project?.content_mapper?.length === 0 ||
-          !project?.current_test_stack_id
+          !project?.current_test_stack_id) || !project?.migration_execution
         ) {
+          
           logger.error(
             getLogMessage(
               srcFunc,
@@ -804,6 +815,35 @@ const updateCurrentStep = async (req: Request) => {
           );
           throw new BadRequestError(
             HTTP_TEXTS.CANNOT_PROCEED_TEST_MIGRATION
+          );
+        }
+        
+        ProjectModelLowdb.update((data: any) => {
+          data.projects[projectIndex].current_step =
+            STEPPER_STEPS.MIGRATION;
+          data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
+          data.projects[projectIndex].updated_at = new Date().toISOString();
+        });
+        break;
+      }
+      case STEPPER_STEPS.MIGRATION: {
+        if (
+          project.status === NEW_PROJECT_STATUS[0] ||
+          !isStepCompleted ||
+          !project?.destination_stack_id ||
+          project?.content_mapper?.length === 0 ||
+          !project?.current_test_stack_id ||
+          !project?.isMigrationCompleted
+        ) {
+          logger.error(
+            getLogMessage(
+              srcFunc,
+              HTTP_TEXTS.CANNOT_PROCEED_MIGRATION,
+              token_payload
+            )
+          );
+          throw new BadRequestError(
+            HTTP_TEXTS.CANNOT_PROCEED_MIGRATION
           );
         }
 
@@ -1050,8 +1090,6 @@ const updateStackDetails = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs during the update.
  */
 const updateContentMapper = async (req: Request) => {
-  console.info("updateContentMapper", req.params, req.body);
-
   const { orgId, projectId } = req.params;
   const { token_payload, content_mapper } = req.body;
   const srcFunc = "updateContentMapper";
@@ -1105,6 +1143,120 @@ const updateContentMapper = async (req: Request) => {
   }
 };
 
+/**
+ * Updates the `migration_execution` key for a project in the `ProjectModelLowdb`.
+ * @param req - The request object containing parameters and body.
+ */
+const updateMigrationExecution = async (req: Request) => {
+  const { orgId, projectId } = req.params; // Extract organization and project IDs from the route parameters
+    const { token_payload, stack_details } = req.body; // Extract token payload and stack details from the request body
+    const srcFunc = "updateMigrationExecutionKey"; 
+
+    // Ensure the `ProjectModelLowdb` database is ready to be read
+    await ProjectModelLowdb.read();
+
+    // Retrieve the project index using the `getProjectUtil` helper
+    const projectIndex = (await getProjectUtil(
+      projectId, 
+      {
+        id: projectId,
+        org_id: orgId,
+        region: token_payload?.region, 
+        owner: token_payload?.user_id, 
+      },
+      srcFunc, 
+      true 
+    )) as number;
+  try {
+    
+    // Update the project in the `ProjectModelLowdb` database
+    ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].migration_execution = true; // Set migration execution to true
+      data.projects[projectIndex].updated_at = new Date().toISOString(); // Update the `updated_at` timestamp
+    });
+
+    // Log success message
+    logger.info(
+      getLogMessage(
+        srcFunc,
+        `migration execution key for project [Id : ${projectId}] has been successfully updated.`,
+        token_payload
+      )
+    );
+
+    // Return success response
+    return {
+      status: HTTP_CODES.OK, 
+      data: {
+        message: HTTP_TEXTS.MIGRATION_EXECUTION_KEY_UPDATED, 
+      },
+    };
+
+  } catch (error: any) {
+    // Log error message
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while updating content mapping for project [Id : ${projectId}].`,
+        token_payload,
+        error
+      )
+    );
+
+    // Throw a custom exception with the error details
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR, 
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR 
+    );
+  }
+};
+
+
+/**
+ * get the destination_stack_id of completed projects.
+ *
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the update operation.
+ * @throws ExceptionFunction if an error occurs during the process.
+ */
+const getMigratedStacks =  async(req: Request) => {
+
+ const { token_payload } = req.body; 
+  const srcFunc = "getMigratedStacks"; 
+
+  try {
+    await ProjectModelLowdb.read();
+    const projects = ProjectModelLowdb.data?.projects || [];
+
+    // Map through projects to extract `destinationstack` key
+    const destinationStacks = projects.filter((project: any) => project?.status === 5 && project.current_step === 5)
+    .map((project: any) => project.destination_stack_id);
+
+    return {
+      status: HTTP_CODES.OK, 
+      destinationStacks
+    };
+    
+  } catch (error:any) {
+    // Log error message
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while while getting all destinationstack id's of projects",
+        token_payload,
+        error
+      )
+    );
+
+    // Throw a custom exception with the error details
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR, 
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR 
+    );
+    
+  }
+
+}
 
 export const projectService = {
   getAllProjects,
@@ -1121,5 +1273,7 @@ export const projectService = {
   deleteProject,
   revertProject,
   updateStackDetails,
-  updateContentMapper
+  updateContentMapper,
+  updateMigrationExecution,
+  getMigratedStacks
 };

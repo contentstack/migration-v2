@@ -64,10 +64,10 @@ const CardList = ({ project }: ProjectType) => {
 
   return (
     <div style={{ margin: '0 19px 20px 0' }}>
-      <div onClick={() => onClickProject(project?.id || '')}>
+      <div onClick={() => onClickProject(project?.id ?? '')}>
         <div className="ProjectCard">
           <div className='ProjectCardWrapper'>
-            <Tooltip content={project?.name} position="top" type="primary" variantType="basic">
+            <Tooltip content={project?.name} position="right" type="primary" variantType="basic">
               <div className="ProjectCard__heading">
                 {project?.name && <h4 className="ProjectCard__title flex-v-center">{project?.name}</h4>}
               </div>

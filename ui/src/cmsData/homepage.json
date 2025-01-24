@@ -1,8 +1,8 @@
 {
-  "title": "Contentstack Migration",
+  "title": "Contentstack Migration Tool",
   "url": "/contentstack-migration",
-  "heading": "Contentstack Migration",
-  "cta": { "title": "Log in with Contentstack", "url": "/region-login" },
+  "heading": "Contentstack Migration Tool",
+  "cta": { "title": "Sign in with Contentstack", "url": "/region-login" },
   "seo": {
     "meta_title": "",
     "meta_description": "",
@@ -18,5 +18,5 @@
   "updated_at": "2023-12-12T09:03:00.889Z",
   "_version": 7,
   "_in_progress": false,
-  "description": "<p>Contentstack Migration allows you to migrate content between stacks or from other CMS to Contentstack.</p>"
+  "description": "<p>Easily migrate content between stacks or from other CMS platforms to Contentstack.</p>"
 }

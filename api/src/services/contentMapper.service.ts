@@ -17,6 +17,7 @@ import { config } from "../config/index.js";
 import https from "../utils/https.utils.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
+import fetchAllPaginatedData from "../utils/pagination.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import FieldMapperModel from "../models/FieldMapper.js";
 import { v4 as uuidv4 } from "uuid";
@@ -239,6 +240,7 @@ const getFieldMapping = async (req: Request) => {
  */
 const getExistingContentTypes = async (req: Request) => {
   const projectId = req?.params?.projectId;
+  const contentTypeUID = req?.params?.contentTypeUid ?? ''; // UID of the selected content type, if any
 
   const { token_payload } = req.body;
 
@@ -246,40 +248,68 @@ const getExistingContentTypes = async (req: Request) => {
     token_payload?.region,
     token_payload?.user_id
   );
+
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain
     .get("projects")
     .find({ id: projectId })
     .value();
   const stackId = project?.destination_stack_id;
-  const [err, res] = await safePromise(
-    https({
-      method: "GET",
-      url: `${config.CS_API[
-        token_payload?.region as keyof typeof config.CS_API
-      ]!}/content_types`,
-      headers: {
-        api_key: stackId,
-        authtoken: authtoken,
-      },
-    })
-  );
 
-  if (err)
-    return {
-      data: err.response.data,
-      status: err.response.status,
-    };
-  const contentTypes = res.data.content_types.map((singleCT: any) => {
-    return {
+  const baseUrl = `${config.CS_API[
+    token_payload?.region as keyof typeof config.CS_API
+  ]!}/content_types`;
+
+  const headers = {
+    api_key: stackId,
+    authtoken,
+  };
+
+  try {
+    // Step 1: Fetch the updated list of all content types
+    const contentTypes = await fetchAllPaginatedData(
+      baseUrl,
+      headers,
+      100,
+      'getExistingContentTypes',
+      'content_types'
+    );
+
+    const processedContentTypes = contentTypes.map((singleCT: any) => ({
       title: singleCT.title,
       uid: singleCT.uid,
       schema: singleCT.schema,
-    };
-  });
+    }));
 
-  //Add logic to get Project from DB
-  return { contentTypes };
+    // Step 2: Fetch data for the selected content type (if `contentTypeUID` is provided)
+    let selectedContentType = null;
+
+    if (contentTypeUID) {
+      const [err, res] = await safePromise(
+        https({
+          method: 'GET',
+          url: `${baseUrl}/${contentTypeUID}`,
+          headers,
+        })
+      );
+      
+
+      selectedContentType = {
+        title: res?.data?.content_type?.title,
+        uid: res?.data?.content_type?.uid,
+        schema: res?.data?.content_type?.schema,
+      };
+    }
+    return {
+      contentTypes: processedContentTypes,
+      selectedContentType,
+    };
+  } catch (error: any) {
+    return {
+      data: error.message,
+      status: error.status || 500,
+    };
+  }
 };
 
 /**
@@ -289,47 +319,99 @@ const getExistingContentTypes = async (req: Request) => {
  */
 const getExistingGlobalFields = async (req: Request) => {
   const projectId = req?.params?.projectId;
+  const globalFieldUID = req?.params?.globalFieldUid ?? ''; // UID of the selected global field, if any
 
-  const { token_payload } = req.body;
-
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id
-  );
-  await ProjectModelLowdb.read();
-  const project = ProjectModelLowdb.chain
-    .get("projects")
-    .find({ id: projectId })
-    .value();
-  const stackId = project?.destination_stack_id;
-  const [err, res] = await safePromise(
-    https({
-      method: "GET",
-      url: `${config.CS_API[
-        token_payload?.region as keyof typeof config.CS_API
-      ]!}/global_fields`,
-      headers: {
-        api_key: stackId,
-        authtoken: authtoken,
-      },
-    })
-  );
-
-  if (err)
+  if (!projectId) {
     return {
-      data: err.response.data,
-      status: err.response.status,
+      data: 'Project ID is missing in the request',
+      status: 400,
     };
-  const globalFields = res.data.global_fields.map((global: any) => {
+  }
+
+  const { token_payload: tokenPayload } = req.body;
+
+  if (!tokenPayload?.region || !tokenPayload?.user_id) {
     return {
+      data: 'Token payload is missing or incomplete',
+      status: 400,
+    };
+  }
+
+  try {
+    const authtoken = await getAuthtoken(tokenPayload.region, tokenPayload.user_id);
+
+    await ProjectModelLowdb.read();
+    const project = ProjectModelLowdb.chain
+      .get('projects')
+      .find({ id: projectId })
+      .value();
+
+    if (!project) {
+      return {
+        data: 'Project not found',
+        status: 404,
+      };
+    }
+
+    const stackId = project.destination_stack_id;
+
+    if (!stackId) {
+      return {
+        data: 'Destination stack ID is missing in the project',
+        status: 400,
+      };
+    }
+
+    const baseUrl = `${config.CS_API[tokenPayload.region as keyof typeof config.CS_API]}/global_fields`;
+    const headers = {
+      api_key: stackId,
+      authtoken,
+    };
+
+    // Step 1: Fetch the updated list of all global fields
+
+    const globalFields = await fetchAllPaginatedData(baseUrl, headers, 100, 'getExistingGlobalFields', 'global_fields');
+
+    const processedGlobalFields = globalFields.map((global: any) => ({
       title: global.title,
       uid: global.uid,
       schema: global.schema,
-    };
-  });
+    }));
 
-  //Add logic to get Project from DB
-  return { globalFields };
+    // Step 2: Fetch data for the selected global field (if `globalFieldUID` is provided)
+    let selectedGlobalField = null;
+
+    if (globalFieldUID) {
+      const [err, res] = await safePromise(
+        https({
+          method: 'GET',
+          url: `${baseUrl}/${globalFieldUID}`,
+          headers,
+        })
+      );
+
+      if (err) {
+        throw new Error(
+          `Error fetching selected global field: ${
+            err.response?.data || err.message
+          }`
+        );
+      }
+
+      selectedGlobalField = {
+        title: res.data.global_field?.title,
+        uid: res.data.global_field?.uid,
+        schema: res.data.global_field?.schema,
+      };
+    }
+
+    return { globalFields: processedGlobalFields, selectedGlobalField };
+  } catch (error:any) {
+    return {
+      data: error.message || 'An unknown error occurred',
+      status: 500,
+    };
+  }
 };
 
 /**
@@ -362,7 +444,7 @@ const updateContentType = async (req: Request) => {
 
   // Check project status
   if (
-    [NEW_PROJECT_STATUS[5], NEW_PROJECT_STATUS[4]].includes(project.status) ||
+    [NEW_PROJECT_STATUS[5]].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
   ) {
     logger.error(
@@ -420,7 +502,14 @@ const updateContentType = async (req: Request) => {
             data.ContentTypesMappers[updateIndex].status =
               CONTENT_TYPE_STATUS[3];
           });
+
+          await ContentTypesMapperModelLowdb.read();
+          const updatedContentType = ContentTypesMapperModelLowdb.chain
+            .get("ContentTypesMappers")
+            .find({ id: contentTypeId, projectId: projectId })
+            .value();
           return {
+            data: updatedContentType,
             status: 400,
             message: `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
               "$",
@@ -592,25 +681,32 @@ const resetToInitialMapping = async (req: Request) => {
           FieldMapperModel.update((data: any) => {
             data.field_mapper[fieldIndex] = {
               ...field,
-              contentstackField: "",
-              contentstackFieldUid: "",
-              contentstackFieldType: field.backupFieldType,
+              contentstackField: field?.otherCmsField,
+              contentstackFieldUid: field?.uid,
+              contentstackFieldType: field?.backupFieldType,
             };
           });
         }
       });
     }
+
     const contentIndex = ContentTypesMapperModelLowdb.chain
       .get("ContentTypesMappers")
-      .findIndex({ id: contentTypeId })
+      .findIndex({ id: contentTypeId, projectId: projectId })
       .value();
-    if (contentIndex > -1) {
-      ContentTypesMapperModelLowdb.update((data: any) => {
-        data.ContentTypesMappers[contentIndex].contentstackTitle = "";
-        data.ContentTypesMappers[contentIndex].contentstackUid = "";
-      });
-    }
-    return { message: HTTP_TEXTS.RESET_CONTENT_MAPPING };
+    // if (contentIndex > -1) {
+    //   console.info("inside if", contentIndex)
+    //   ContentTypesMapperModelLowdb.update((data: any) => {
+    //     data.ContentTypesMappers[contentIndex].contentstackTitle = "";
+    //     data.ContentTypesMappers[contentIndex].contentstackUid = "";
+    //   });
+    // }
+
+    await ContentTypesMapperModelLowdb.update((data: any) => {
+      data.ContentTypesMappers[contentIndex].status = CONTENT_TYPE_STATUS[1];
+    });
+    return { message: HTTP_TEXTS.RESET_CONTENT_MAPPING, data: contentTypeData };
+
   } catch (error: any) {
     logger.error(
       getLogMessage(
