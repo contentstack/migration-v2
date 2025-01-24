@@ -31,6 +31,7 @@ import { userSession, requestSMSToken } from '../../services/api/login.service';
 // Interface
 import { IProps, IStates, defaultStates, User, UserRes, LoginType } from './login.interface';
 
+
 //Components
 import AccountPage from '../../components/AccountPage';
 
@@ -40,6 +41,7 @@ import { RootState } from '../../store';
 
 const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
+
 
   // ************* Fetch Login Data ************
   const fetchData = async () => {
@@ -67,7 +69,7 @@ const Login: FC<IProps> = () => {
   // ************* ALL States Here ************
   const [loginStates, setLoginStates] = useState<IStates>(defaultStates);
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [isBlock, setIsBlock] = useState(false);
+  // const [isBlock, setIsBlock] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -194,13 +196,13 @@ const Login: FC<IProps> = () => {
     }
   };
 
-  useEffect(()=>{
-    if(region && loginStates?.tfa){
-      setIsBlock(true);
+  // useEffect(()=>{
+  //   if(region && loginStates?.tfa){
+  //     setIsBlock(true);
   
-    }
+  //   }
 
-  },[loginStates]);
+  // },[loginStates]);
 
   // Function for TFA validation
   const TFAValidation = (value: string): string | undefined => {
@@ -239,20 +241,43 @@ const Login: FC<IProps> = () => {
     };
   };
   
-  useEffect(()=>{ 
-    const handlePopState = (event: PopStateEvent) => {
-      event.preventDefault();
-      window.history.pushState(null, '', window.location.href);
+  // useEffect(()=>{ 
+  //   const handlePopState = (event: PopStateEvent) => {
+  //     event.preventDefault();
+  //     window.history.pushState(null, '', window.location.href);
+  //   };
+  //   if(isBlock){
+  //     window.history.pushState(null, '', window.location.href);
+  //   }
+  //   window.history.pushState(null, '', window.location.href);
+  //   window.addEventListener('popstate',handlePopState);
+  //   return () => {
+  //     window.removeEventListener('popstate', handlePopState);
+  //   };
+  // },[isBlock]);
+
+  useEffect(() => {
+
+    const redirectUrl = loginStates?.tfa && region ? `/login?region=${region}` : "/region-login"
+
+    const handleBackButton = () => {
+      // Redirect to an internal route
+      navigate(redirectUrl, { replace: true });
     };
-    if(isBlock){
-      window.history.pushState(null, '', window.location.href);
-    }
+
     window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate',handlePopState);
+
+    const handlePopState = () => {
+      handleBackButton();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  },[isBlock]);
+  }, [navigate,  loginStates]);  
+      
   
   
   return (
