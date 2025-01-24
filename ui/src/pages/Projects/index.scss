@@ -24,10 +24,14 @@
         width: 100% !important;
       }
       .PageLayout__head {
-        border-top: 0 none;
         height: auto;
         border-bottom: 1px solid $color-brand-secondary-lightest;
+        border-top: 1px solid $color-brand-secondary-lightest;
+        left: 56px;
         padding:20px 10px 20px 13px;
+        position: fixed;
+        width: calc(100% - 56px) !important;
+        z-index: 1;
       }
     }
   }
@@ -35,6 +39,7 @@
 .EmptyState__description {
   p {
     color: $color-font-base;
+    margin: $px-5 0;
   }
 }
 

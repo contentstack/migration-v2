@@ -3,7 +3,6 @@ import { useDispatch,useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getLegacyCMSSteps } from './StepperSteps';
 import { CircularLoader } from '@contentstack/venus-components';
-// import { getEntries } from '../../services/contentstackSDK';
 import { CS_ENTRIES } from '../../utilities/constants';
 
 import {
@@ -40,7 +39,6 @@ interface LegacyCmsData {
 type LegacyCMSComponentProps = {
   legacyCMSData: LegacyCmsData;
   isCompleted: boolean
-  handleStepChange: (currentStep: number) => void;
   handleOnAllStepsComplete:(flag : boolean)=>void;
 };
 
@@ -62,9 +60,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
   const [stepperKey] = useState<string>('legacy-Vertical-stepper');
 
-  const [isValidated, setisValidated] = useState<boolean>(
-    newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false
-  );
   const [isAllStepsCompleted, setIsAllStepsCompleted] = useState(false);
   const autoVerticalStepper = useRef<AutoVerticalStepperRef>(null);
 
@@ -77,22 +72,11 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
   useImperativeHandle(ref, () => ({
     getInternalActiveStepIndex: () => internalActiveStepIndex
   }));
-  
-
-
-  //handle on delete click
-  const handleOnClickDeleteUploadedFile = (e: MouseEvent) => {
-    e.preventDefault();
-    console.warn(' handleOnClickDeleteUploadedFile CLICKED');
-    // setIsCompleted(false)
-  };
 
   /********** ALL USEEFFECT HERE *************/
 
   useEffect(() => {
     const fetchCMSData = async () => {
-      //setIsLoading(true);
-  
       //check if offline CMS data field is set to true, if then read data from cms data file.
       const data = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
   
@@ -183,7 +167,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
             },
             isValidated: legacyCMSData?.is_fileValid ,
           }, //need to add backend data once endpoint exposed.
-          affix: legacyCMSData?.affix || '',
+          affix: legacyCMSData?.affix ?? '',
           isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
           isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
         }
@@ -199,10 +183,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
     fetchCMSData();
   }, []);
 
-  useEffect(() => {
-
-    setisValidated(newMigrationData?.legacy_cms?.uploadedFile?.isValidated || false);
-  }, [isLoading]);
 
   useEffect(() => { 
     if (autoVerticalStepper?.current) {  
@@ -261,6 +241,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
 
     }
   },[newMigrationData,isAllStepsCompleted])
+
   return (
     <>
       {isLoading || newMigrationData?.isprojectMapped ? (
