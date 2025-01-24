@@ -77,4 +77,9 @@ router.patch("/:projectId", asyncRouter(projectController.revertProject));
 //update stack details Project Route
 router.patch("/:projectId/stack-details", asyncRouter(projectController.updateStackDetails));
 
+//update migration execution key 
+router.put("/:projectId/migration-excution",asyncRouter(projectController.updateMigrationExecution));
+
+router.get("/:projectId/get-migrated-stacks", asyncRouter(projectController.getMigratedStacks))
+
 export default router;

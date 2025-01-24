@@ -74,6 +74,8 @@ interface Project {
   mapperKeys: {};
   extract_path: string;
   isMigrationStarted: boolean;
+  isMigrationCompleted:boolean;
+  migration_execution: boolean;
 }
 
 interface ProjectDocument {
@@ -86,7 +88,7 @@ const defaultData: ProjectDocument = { projects: [] };
  * Represents the database instance for the project.
  */
 const db = new LowWithLodash(
-  new JSONFile<ProjectDocument>(path.join(process.cwd(), "database/project.json")),
+  new JSONFile<ProjectDocument>(path.join(process.cwd(), "database", "project.json")),
   defaultData
 );
 

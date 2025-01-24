@@ -13,10 +13,12 @@ import { CS_ENTRIES } from '../../utilities/constants';
 // Interface
 import { HomepageType } from './home.interface';
 import useBlockNavigation from '../../hooks/userNavigation';
+import usePreventBackNavigation from '../../hooks/usePreventBackNavigation';
 
 const Home = () => {
   const [data, setData] = useState<HomepageType>({});
   useBlockNavigation(true);
+  usePreventBackNavigation(); 
 
   const fetchData = async () => {
     //check if offline CMS data field is set to true, if then read data from cms data file.

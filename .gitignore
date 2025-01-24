@@ -9,7 +9,6 @@
 *.user
 *.userosscache
 *.sln.docstates
-package-lock*
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -353,7 +352,6 @@ MigrationBackup/
 
 upload-api/node_modules
 upload-api/build
-package-lock.json
 ui/.env
 upload-api/sitecoreMigrationData
 upload-api/cmsMigrationData

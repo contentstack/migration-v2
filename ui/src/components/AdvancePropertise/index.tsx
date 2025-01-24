@@ -17,6 +17,9 @@ import {
 // Service
 import { getContentTypes } from '../../services/api/migration.service';
 
+// Utilities
+import { validateArray } from '../../utilities/functions';
+
 // Interfaces
 import { optionsType, SchemaProps } from './advanceProperties.interface'; 
 import { ContentType } from '../ContentMapper/contentMapper.interface';
@@ -65,7 +68,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   // State for content types
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   const [ctValue, setCTValue] = useState<ContentTypeOption[] | null>(embedObjects);
-  const [embedObjectslabels, setEmbedObjectsLabels] = useState<string[]>(props?.value?.embedObjects);
+  const [embedObjectsLabels, setEmbedObjectsLabels] = useState<string[]>(props?.value?.embedObjects);
   const [showOptions, setShowOptions] = useState<Record<number, boolean>>({});
   const [showIcon, setShowIcon] = useState<number>();
   const filterRef = useRef<HTMLDivElement | null>(null);
@@ -91,7 +94,7 @@ const AdvancePropertise = (props: SchemaProps) => {
    */
   const fetchContentTypes = async (searchText: string) => {
     try {
-      const { data } = await getContentTypes(props?.projectId ?? '', 0, 10, searchText || ''); //org id will always present
+      const { data } = await getContentTypes(props?.projectId ?? '', 0,5000, searchText || ''); //org id will always present
 
       setContentTypes(data?.contentTypes);
     } catch (error) {
@@ -122,8 +125,9 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         ...props?.value,
-        [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: (event.target as HTMLInputElement)?.value,
-        validationRegex: '',
+        [field]: (event.target as HTMLInputElement)?.value,
+        default_value: currentToggleStates?.default_value,
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         minChars: currentToggleStates?.minChars,
         maxChars:currentToggleStates?.maxChars,
         mandatory: currentToggleStates?.mandatory,
@@ -131,9 +135,13 @@ const AdvancePropertise = (props: SchemaProps) => {
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects: embedObjectslabels,
+        embedObjects: embedObjectsLabels,
         minRange: currentToggleStates?.minRange,
         maxRange: currentToggleStates?.maxRange,
+        minSize: currentToggleStates?.minSize,
+        maxSize: currentToggleStates?.maxSize,
+        title: currentToggleStates?.title,
+        url:currentToggleStates?.url
       },
       checkBoxChanged
     );
@@ -158,14 +166,24 @@ const AdvancePropertise = (props: SchemaProps) => {
     props?.updateFieldSettings(
       props?.rowId,
       {
-        [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
-        validationRegex: '',
+        ...props?.value,
+        [field]: value,
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects : embedObjectslabels
+        embedObjects : embedObjectsLabels,
+        default_value: currentToggleStates?.default_value,
+        minChars: currentToggleStates?.minChars,
+        maxChars:currentToggleStates?.maxChars,
+        minRange: currentToggleStates?.minRange,
+        maxRange: currentToggleStates?.maxRange,
+        minSize: currentToggleStates?.minSize,
+        maxSize: currentToggleStates?.maxSize,
+        title: currentToggleStates?.title,
+        url:currentToggleStates?.url
       },
       checkBoxChanged
     );
@@ -185,31 +203,19 @@ const AdvancePropertise = (props: SchemaProps) => {
     props?.updateFieldSettings(
       props?.rowId,
       {
-        [field?.charAt(0)?.toUpperCase() + field?.slice(1)]: value,
-        validationRegex: '',
+        [field]: value,
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects : embedObjectslabels
+        embedObjects : embedObjectsLabels
       },
       true
     );
     
   };
-
-  const stringToBoolean = (value:string) =>{
-   
-      if(value?.toLowerCase() === 'true'){
-        return true
-      }
-      else{
-        return false;
-      }
-  
-
-  }
 
   const handleOnClick = ( index:number) =>{
     
@@ -237,13 +243,13 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         ['default_value']: option?.key,
-        validationRegex: '',
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects : embedObjectslabels,
+        embedObjects : embedObjectsLabels,
         options:options
       },
       true
@@ -268,13 +274,13 @@ const AdvancePropertise = (props: SchemaProps) => {
       props?.rowId,
       {
         ['default_value']: '',
-        validationRegex: '',
+        validationRegex: currentToggleStates?.validationRegex ?? '',
         mandatory: currentToggleStates?.mandatory,
         multiple: currentToggleStates?.multiple,
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects : embedObjectslabels,
+        embedObjects : embedObjectsLabels,
         options: options
       },
       true
@@ -291,11 +297,11 @@ const AdvancePropertise = (props: SchemaProps) => {
   };
 
   const handleDragOver = (e:React.DragEvent<HTMLDivElement>, index:number) => {
+    console.log("inside function");
+    
     e.preventDefault(); 
     document.querySelectorAll('.element-wrapper').forEach((el, i) => {
       if (i === index) {
-        el.classList.remove('dragging'); 
-      } else {
         el.classList.remove('dragging'); 
       }
     });
@@ -327,39 +333,18 @@ const AdvancePropertise = (props: SchemaProps) => {
   }, [ctValue]);
 
   // Option for content types
-  const option = Array.isArray(contentTypes)
-    ? contentTypes.map((option) => ({ label: option?.otherCmsTitle, value: option?.otherCmsTitle }))
-    : [{ label: contentTypes, value: contentTypes }];
+  const contentTypesList = contentTypes?.filter((ct: ContentType) => ct?.type === "content_type");
+  
+  const option = validateArray(contentTypesList)
+    ? contentTypesList?.map((option: ContentType) => ({ label: option?.contentstackTitle, value: option?.contentstackUid }))
+    : [{ label: contentTypesList, value: contentTypesList }];
 
   return (
     <>
       <ModalHeader title={`${props?.fieldtype} properties`} closeModal={props?.closeModal} className="text-capitalize" />
       <ModalBody>
         <div className='modal-data'>
-          {(props?.fieldtype === 'Single Line Textbox' || props?.fieldtype === 'Multi Line Textbox') && (
-            <Field>
-              <FieldLabel htmlFor="noOfCharacters" version="v2">
-                Number of Characters
-              </FieldLabel>
-              <div className='d-flex align-items-center'>
-                <TextInput
-                  type="number"
-                  value={toggleStates?.minChars}
-                  placeholder="Min"
-                  version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('minChars', e, true))}
-                />
-                <span className='fields-group-separator'>to</span>
-                <TextInput
-                  type="number"
-                  value={toggleStates?.maxChars}
-                  placeholder="Max"
-                  version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('maxChars', e, true))}
-                />
-              </div>
-            </Field>
-          )}
+          
 
           {(props?.fieldtype === 'Dropdown') && 
           <>
@@ -370,25 +355,28 @@ const AdvancePropertise = (props: SchemaProps) => {
             <span className='read-only-text'>(read only)</span>
             <div className='dropdown-choices-wrapper'>
               {options?.map((option: optionsType,index)=>(
-              <>
-                      <div className='element-wrapper' key={index} draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e)=> handleDragOver(e,index)}
-                    onDrop={() => handleDrop(index)}>
-                    <div 
-                    
-                    className='term-drag-icon'>
-                        <Icon  icon="ActionBar" size='medium' version='v2' />
-                    </div>
-                    <TextInput version={"v2"} placeholder='Enter value here'
-                    suffixVisible={true}
-                    disabled={true}
-                    value={option?.key}
-                    suffix={
-                    <>
-                    {index === showIcon && <Icon icon={'CheckSquareOffset'}  version='v2' size='medium'/>}
-                    
-                    </>}></TextInput>
+            
+                <div 
+                  className='element-wrapper' 
+                  key={`${index?.toString()}`} 
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e)=> handleDragOver(e,index)}
+                  onDrop={() => handleDrop(index)}
+                >
+                  <div className='term-drag-icon'>
+                    <Icon  icon="ActionBar" size='medium' version='v2' />
+                  </div>
+                    <TextInput 
+                      version={"v2"} 
+                      placeholder='Enter value here'
+                      suffixVisible={true}
+                      disabled={true}
+                      value={option?.key}
+                      suffix={index === showIcon && <Icon icon={'CheckSquareOffset'}  version='v2' size='medium'/>}
+                    >
+                      
+                    </TextInput>
           
                     <Button buttonType="light" version={"v2"} onlyIcon={true} canCloseOnClickOutside={true}
                     size={'small'} icon={'v2-DotsThreeLargeVertical'}
@@ -415,7 +403,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                     
                   </div>
                  
-              </>))}
+              ))}
               
 
             </div>
@@ -469,65 +457,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                 />
               </Field>
             </>
-          )}
-
-          {props?.fieldtype === 'Number' && (
-            <Field>
-            <FieldLabel htmlFor="range" version="v2">
-              Range
-            </FieldLabel>
-            <div className='d-flex align-items-center'>
-              <TextInput
-                type="number"
-                value={toggleStates?.minRange}
-                placeholder="Min"
-                version="v2"
-                onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('minRange', e, true))}
-              />
-              <span className='fields-group-separator'>to</span>
-              <TextInput
-                type="number"
-                value={toggleStates?.maxRange}
-                placeholder="Max"
-                version="v2"
-                onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('maxRange', e, true))}
-              />
-            </div>
-          </Field>
-          )}
-
-          {props?.fieldtype === 'File' && (
-            <Field>
-              <FieldLabel htmlFor="fileSize" version="v2">
-                File Size Limit (MB)
-              </FieldLabel>
-              <Tooltip content={'min and max size (in MB) of file that the user will be allowed o upload.'} position="right">
-                <Icon
-                  icon="Question"
-                  size="small"
-                  version="v2"
-                  className='Help'
-                />
-              </Tooltip>
-              <div className='d-flex align-items-center'>
-                <TextInput
-                  type="number"
-                  value={toggleStates?.minSize}
-                  placeholder="Min"
-                  version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('minSize', e, true))}
-                />
-                <span className='fields-group-separator'>to</span>
-                <TextInput
-                  type="number"
-                  value={toggleStates?.maxSize}
-                  placeholder="Max"
-                  version="v2"
-                  onChange={handleOnChange && ((e: React.ChangeEvent<HTMLInputElement>) => handleOnChange('maxSize', e, true))}
-                />
-              </div>
-            </Field>
-          )}
+          )}  
 
           {props?.fieldtype === 'Link' && (
             <>
@@ -581,12 +511,12 @@ const AdvancePropertise = (props: SchemaProps) => {
             <div className="Radio-class">
               <Radio
                 label={'True'}
-                checked={stringToBoolean(toggleStates?.default_value || '') === true}
+                checked={toggleStates?.default_value === true}
                 onChange={() => handleRadioChange('default_value',true)}>
               </Radio>
               <Radio
                 label={'False'}
-                checked={stringToBoolean(toggleStates?.default_value || '') === false}
+                checked={toggleStates?.default_value === false}
                 onChange={() => handleRadioChange('default_value',false)}>
               </Radio>
 
@@ -617,13 +547,12 @@ const AdvancePropertise = (props: SchemaProps) => {
                       value={ctValue}
                       isMulti={true}
                       onChange={(selectedOptions:ContentTypeOption[]) => {
-                        console.log(selectedOptions)
                         setCTValue(selectedOptions); 
                         const embedObject = selectedOptions.map((item: optionsType) => item.label);// Update the state with the selected options
                         props?.updateFieldSettings(
                           props?.rowId,
                         {
-                          validationRegex : toggleStates?.validationRegex || '',
+                          validationRegex : toggleStates?.validationRegex ?? '',
                           embedObjects: embedObject
                         },
                         true,
@@ -635,13 +564,14 @@ const AdvancePropertise = (props: SchemaProps) => {
                       isSearchable={true}
                       isClearable={true}
                       width="350px"
+                      maxMenuHeight={200}
                       // isSelectAll={true}
                     />
                   )}
 
                 </>
               )}
-              {props?.fieldtype !== 'Global' && (
+              {(props?.fieldtype !== 'Global' && props?.fieldtype !== 'Boolean') && (
                 <div className='ToggleWrap'>
                   <ToggleSwitch
                     label="Mandatory"
