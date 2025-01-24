@@ -38,6 +38,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
   const dispatch = useDispatch();
+
   /****  ALL UseStates HERE  ****/
   const [selectedStack, setSelectedStack] = useState<IDropDown | null>(
     null
@@ -61,7 +62,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       default: false,
       master_locale: '',
       locales: [],
-      created_at: ''
+      created_at: '',
+      disabled: false,
     }
   ];
   const [allStack, setAllStack] = useState<IDropDown[]>(newMigrationData?.destination_stack?.stackArray);
@@ -106,7 +108,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         locales: resp?.data?.stack?.locales,
         created_at: resp?.data?.stack?.created_at,
         uid: resp?.data?.stack?.api_key,
-        isNewStack: true
+        isNewStack: true,
+        isDisabled: false,
       };
   
       setSelectedStack(newCreatedStack);
@@ -143,7 +146,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
    
   };
-  
+
   /****  ALL METHODS HERE  ****/
 
   //Handle Legacy cms selection
@@ -183,7 +186,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       if (allStack?.length <= 0) {
         setAllStack(loadingOption);
         const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
-          
+
         const stackArray = validateArray(stackData?.data?.stacks)
           ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
               label: stack?.name,
@@ -192,7 +195,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
               master_locale: stack?.master_locale,
               locales: stack?.locales,
               created_at: stack?.created_at,
-              isNewStack: newStackCreated
+              isNewStack: newStackCreated,
+              isDisabled: newMigrationDataRef?.current?.destination_stack?.migratedStacks?.includes(stack?.api_key),
             }))
           : [];
     
@@ -210,11 +214,11 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                 return stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
               }
             )
-          : DEFAULT_DROPDOWN;
-        if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
-          setIsError(true);
-          setErrorMessage("Please create new stack there is no stack available");
-        } 
+          : null;
+        // if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
+        //   setIsError(true);
+        //   setErrorMessage("Please create new stack there is no stack available");
+        // } 
 
         if(selectedStackData){
           setSelectedStack(selectedStackData);
@@ -295,7 +299,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   version='v2'
                   addOptionText={
                   <div className='createStack' onClick={handleCreateNewStack}>
-                    + Create a new Stack
+                    + Create a new stack
                   </div>} 
                 />
                 {(isError && !isLoading) && <div className='errorMessage'>{errorMessage}</div>}

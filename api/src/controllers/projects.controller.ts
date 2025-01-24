@@ -166,6 +166,16 @@ const updateStackDetails = async (req: Request, res: Response): Promise<void> =>
   res.status(project.status).json(project);
 }
 
+const updateMigrationExecution = async (req: Request, res: Response): Promise<void> => {
+  const project = await projectService.updateMigrationExecution(req);
+  res.status(project.status).json(project);
+}
+
+const getMigratedStacks = async (req: Request, res: Response): Promise<void> => {
+  const project = await projectService.getMigratedStacks(req);
+  res.status(project.status).json(project);
+}
+
 export const projectController = {
   getAllProjects,
   getProject,
@@ -180,5 +190,7 @@ export const projectController = {
   updateCurrentStep,
   deleteProject,
   revertProject,
-  updateStackDetails
+  updateStackDetails,
+  updateMigrationExecution,
+  getMigratedStacks,
 };

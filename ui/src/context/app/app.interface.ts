@@ -171,6 +171,8 @@ export interface IDestinationStack {
   selectedOrg: IDropDown;
   selectedStack: IDropDown;
   stackArray: IDropDown[];
+  migratedStacks: string[];
+
 }
 export interface IContentMapper {
   existingGlobal: ContentTypeList[] | (() => ContentTypeList[]);
@@ -195,6 +197,7 @@ export interface INewMigration {
 
 export interface TestStacks {
   stackUid?: string;
+  stackName?: string;
   isMigrated?: boolean;
 }
 
@@ -219,16 +222,19 @@ export interface IDropDown {
   locales: locales[];
   created_at: string;
   isNewStack?: boolean;
+  isDisabled?:boolean;
 }
 export interface ITestMigration {
   stack_link: string;
   stack_api_key: string;
+  stack_name: string;
   isMigrationStarted: boolean;
   isMigrationComplete: boolean;
 }
 
 export interface IMigrationExecutionStep {
   migrationStarted: boolean;
+  migrationCompleted: boolean;
 }
 export interface IAppContext {
   authToken: string;
@@ -255,7 +261,8 @@ export const DEFAULT_DROPDOWN: IDropDown = {
   master_locale: '',
   locales: [],
   created_at: '',
-  isNewStack: false
+  isNewStack: false,
+  isDisabled: false,
 };
 
 export const DEFAULT_ORGANISATION: Organization = {
@@ -327,6 +334,7 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
   selectedOrg: DEFAULT_DROPDOWN,
   selectedStack: DEFAULT_DROPDOWN,
   stackArray: [],
+  migratedStacks: [],
 };
 
 export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
@@ -341,12 +349,14 @@ export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
 export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   stack_link: '',
   stack_api_key: '',
+  stack_name: '',
   isMigrationStarted: false,
   isMigrationComplete: false
 };
 
 export const DEFAULT_MIGRATION_EXECUTION_STEP: IMigrationExecutionStep = {
-  migrationStarted: false
+  migrationStarted: false,
+  migrationCompleted:false
 }
 
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
