@@ -26,7 +26,7 @@ const watcher = chokidar.watch(config.LOG_FILE_PATH, {
   usePolling: true,     // Enables polling to detect changes in all environments
   interval: 1,        // Poll every 100ms (you can adjust this if needed)
   awaitWriteFinish: {   // Wait for file to finish being written before triggering
-    stabilityThreshold: 1,  // Time to wait before considering the file stable
+    stabilityThreshold: 10,  // Time to wait before considering the file stable
     pollInterval: 1,        // Interval at which to poll for file stability
   },
   persistent: true,     // Keeps watching the file even after initial change
