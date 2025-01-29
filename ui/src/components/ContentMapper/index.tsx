@@ -54,7 +54,9 @@ import {
   Advanced,
   ContentTypeSaveHandles,
   MouseOrKeyboardEvent,
-  MappingFields
+  MappingFields,
+  FieldHistoryObj,
+  FieldObj
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -69,7 +71,7 @@ import SaveChangesModal from '../Common/SaveChangesModal';
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
 
-const rowHistoryObj: any = {}
+const rowHistoryObj: FieldHistoryObj = {}
 
 const Fields: MappingFields = {
   'single_line_text':{
@@ -286,7 +288,16 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       if (field?.otherCmsField !== 'title' && field?.otherCmsField !== 'url') {
         field._canSelect = true;
       }
+
+      if (field?.otherCmsType === undefined) {
+        field._invalid = true;
+      } else {
+        field._invalid = false;
+      }
     });
+
+    const validatedData = tableData?.filter((data) => !data?._invalid);
+    setSelectedEntries(validatedData);
   },[tableData]);
 
   useEffect(() => {
@@ -403,7 +414,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // To make all the fields checked
   useEffect(() => {
     const selectedId = tableData.reduce<UidMap>((acc, item) => {
-      if(! item?.isDeleted){
+      if(! item?.isDeleted && !item?._invalid) {
         acc[item?.id] = true;
 
       }
@@ -749,101 +760,101 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // add row ids with their data to rowHistoryObj
   useEffect(() => {
     Object.keys(rowHistoryObj).forEach(key => delete rowHistoryObj[key]);
-    tableData.forEach(i => rowHistoryObj[i.id] = [{checked: true, at: Date.now(), ...modifiedObj(i)}])
+    tableData?.forEach(item => { 
+      rowHistoryObj[item?.id] = [{checked: true, at: Date.now(), ...modifiedObj(item)}]
+    });
   }, [tableData]);
 
-  function getParentId(uid: string){
-    return tableData.find(i => i.uid === uid)?.id ?? null
+  const getParentId = (uid: string) => {
+    return tableData?.find(i => i?.uid === uid)?.id ?? ''
   }
 
-  function modifiedObj (obj: FieldMapType) {
+  const modifiedObj = (obj: FieldMapType) => {
     const {otherCmsType, uid, id} = obj
     const excludeArr = ["group"]
     return {
       id,
       otherCmsType,
       uid,
-      parentId : excludeArr.includes(otherCmsType.toLowerCase()) ? null : getParentId(uid?.split('.')[0])
+      parentId : excludeArr?.includes(otherCmsType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0])
     }
   }
   
   // Get the last action of each row 
-  function getLastElements(obj: any) {
-    const result: any = {};
+  const getLastElements = (obj: FieldHistoryObj) => {
+    const result: FieldObj = {};
     for (const key in obj) {
-        if (Array.isArray(obj[key]) && obj[key].length > 0) {
-            // Get the last element of the array
-            result[key] = obj[key][obj[key].length - 1];
-        }
+      if (Array.isArray(obj[key]) && obj[key]?.length > 0) {
+        // Get the last element of the array
+        result[key] = obj[key][obj[key]?.length - 1];
+      }
     }
     return result;
   }
 
   // Get the latest action performed on table 
-  function findLatest(obj: any) {
+  const findLatest = (obj: FieldHistoryObj) => {
     let latestItem = null;
 
     for (const key in obj) {
-        if (Array.isArray(obj[key]) && obj[key].length > 0) {
-            // Get the last element of the array
-            const lastElement = obj[key][obj[key].length - 1];
+      if (Array.isArray(obj[key]) && obj[key]?.length > 0) {
+        // Get the last element of the array
+        const lastElement = obj[key][obj[key]?.length - 1];
 
-            // Compare the 'at' property
-            if (!latestItem || lastElement.at > latestItem.at) {
-                latestItem = lastElement;
-            }
+        // Compare the 'at' property
+        if (!latestItem || lastElement?.at > latestItem?.at) {
+          latestItem = lastElement;
         }
+      }
     }
-
     return latestItem;
   }
+
+  // Update the object on selection or deselection
+  const updateRowHistoryObj = (key: string, checked: boolean) => {
+    const obj = tableData?.find(i => i?.id === key);
+    if (obj) {
+      rowHistoryObj[key].push({
+        checked,
+        at: Date.now(),
+        ...modifiedObj(obj),
+      });
+    }
+  };
   
-  const handleSelectedEntries = (singleSelectedRowIds: string[], selectedData: FieldMapType[]) => {
+  const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
     const selectedObj: UidMap = {};
   
     singleSelectedRowIds.forEach((uid: string) => {
-      const isId = selectedData?.some((item) => item?.id === uid);
+      const isId = selectedEntries?.some((item) => item?.id === uid);
       if (isId) {
         selectedObj[uid] = true;
       }
     });
 
-    const updateRowHistoryObj = (key: string, checked: boolean) => {
-      const obj = tableData.find(i => i.id === key);
-      if (obj) {
-        rowHistoryObj[key].push({
-          checked,
-          at: Date.now(),
-          ...modifiedObj(obj),
-        });
-      }
-    };
-
     // updates rowHistoryObj based on selectedObj
     for (const key in rowHistoryObj) {
-      if (Object.prototype.hasOwnProperty.call(selectedObj, key)) {
-        if(!rowHistoryObj[key][rowHistoryObj[key].length - 1].checked){
+      if (Object.hasOwn(selectedObj, key)) {
+        if(!rowHistoryObj[key][rowHistoryObj[key]?.length - 1]?.checked){
           updateRowHistoryObj(key, true);
         }
-      }else{
-        if(rowHistoryObj[key][rowHistoryObj[key].length - 1].checked){
-          updateRowHistoryObj(key, false);        
-        }
+      } else if(rowHistoryObj[key][rowHistoryObj[key]?.length - 1]?.checked){
+        updateRowHistoryObj(key, false);        
       }
     }
 
     // Get the latest action performed row 
-    const latestRow = findLatest(rowHistoryObj)
+    const latestRow = findLatest(rowHistoryObj);
 
-    if(latestRow.otherCmsType.toLowerCase() === "group" && latestRow.parentId === null){
+    if(latestRow?.otherCmsType?.toLowerCase() === "group" && latestRow?.parentId === '') {
       // get all child rows of group
-      const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(latestRow?.uid + '.'));
+      const childItems = selectedEntries?.filter((entry) => entry?.uid?.startsWith(latestRow?.uid + '.'));
       if (childItems && validateArray(childItems)) {
         if(latestRow.checked){
           const lastEle = getLastElements(rowHistoryObj)
           let isChildChecked = false
           childItems.forEach((child) => {
-            if(lastEle[child.id].checked){
+            if(lastEle[child?.id]?.checked){
               isChildChecked = true
             }
           })
@@ -852,7 +863,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             if(!selectedObj[latestRow?.id]){
               selectedObj[latestRow?.id] = true
             }
-          } else{
+          } else {
             childItems.forEach((child) => {
               if(!selectedObj[child?.id]){
                 selectedObj[child?.id] = true
@@ -860,183 +871,55 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             })
           }
 
-        }else{
-          childItems.forEach((child) => {
+        } else {
+          childItems?.forEach((child) => {
             delete selectedObj[child?.id || ''];          
           })
         }
       }
-    } else if(latestRow.parentId && !["title", "url"].includes(latestRow.uid.toLowerCase())){
+    } else if(latestRow?.parentId && !["title", "url"].includes(latestRow?.uid?.toLowerCase())){
       // Extract the group UID if item is child of any group
       const uidBeforeDot = latestRow?.uid?.split('.')[0];
-      const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);
-      const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
+      const groupItem = selectedEntries?.find((entry) => entry?.uid === uidBeforeDot);
+      const childItems = selectedEntries?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
 
       if(latestRow.checked){
-        if(!selectedObj[latestRow.parentId]){
-          selectedObj[latestRow.parentId] = true
+        if(!selectedObj[latestRow?.parentId]){
+          selectedObj[latestRow?.parentId] = true
         }
-        if(!selectedObj[latestRow.id]){
-          selectedObj[latestRow.id] = true
+        if(!selectedObj[latestRow?.id]){
+          selectedObj[latestRow?.id] = true
         }
       }else{
         const lastEle = getLastElements(rowHistoryObj)
 
         let allChildFalse = 0
-        childItems.forEach((child) => {
-          if(!lastEle[child.id].checked){
+        childItems?.forEach((child) => {
+          if(!lastEle[child?.id]?.checked){
             allChildFalse ++
           }
         })
-        if(childItems.length === allChildFalse){
-          if(selectedObj[latestRow.parentId]){
-            delete selectedObj[latestRow.parentId]
+        if(childItems?.length === allChildFalse){
+          if(selectedObj[latestRow?.parentId]){
+            delete selectedObj[latestRow?.parentId]
           }
-        }else{
-          if(selectedObj[latestRow.id]){
-            delete selectedObj[latestRow.id]
-          }
-        }
+        }else if (selectedObj[latestRow?.id]){
+            delete selectedObj[latestRow?.id]
+          } 
       }
     }
    
-    const updatedTableData = tableData.map((tableItem) => {
-      // const found = selectedData.some((selectedItem) => selectedItem.uid === tableItem.uid);
-      
+    const updatedTableData = selectedEntries.map((tableItem) => {
       // Mark the item as deleted if not found in selectedData
       return {
         ...tableItem,
-        isDeleted: selectedObj[tableItem.id] ?? false//!found ? true : false,
+        isDeleted: !selectedObj[tableItem?.id] && !tableItem?._invalid //!found ? true : false,
       };
     });  
 
     setRowIds(selectedObj);
     setSelectedEntries(updatedTableData);
   };
-
-  // const handleSelectedEntries2 = (singleSelectedRowIds: string[], selectedData: FieldMapType[]) => {
-  //   const selectedObj: UidMap = {};
-  //   let Ischild = false;
-  
-  //   singleSelectedRowIds.forEach((uid: string) => {
-  //     const isId = selectedData?.some((item) => item?.id === uid);
-  //     if (isId) {
-  //       selectedObj[uid] = true;
-  //     }
-  //   });
-  
-  //   // Iterate over each item in selectedData to handle group and child selection logic
-  //   selectedData?.forEach((item) => {
-
-  //     // Extract the group UID if item is child of any group
-  //     const uidBeforeDot = item?.uid?.split('.')[0];
-  //     const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);
-  
-  //     if (groupItem) {
-  //       // Mark the group item as selected if any child of group is selected
-  //       selectedObj[groupItem?.id] = true;
-  //     }
-  
-  //     // If the item is a group, handle its child items
-  //     if (item?.otherCmsType === 'Group') {
-
-  //       // Get all child items of the group
-  //       const newEle = tableData?.filter((entry) => entry?.uid?.startsWith(item?.uid + '.'));
-  
-  //       if (newEle && validateArray(newEle)) {
-          
-  //         const allChildrenNotSelected = newEle.every(child => !selectedObj[child?.id || '']);
-  //         if (allChildrenNotSelected) {
-            
-  //           //if none of the child of group is selected then mark the child items as selected
-  //           newEle.forEach((child) => {
-  //             Ischild = true;
-  //             selectedObj[child?.id || ''] = true;
-  //           });
-  //         }
-  //       }
-  //     } 
-  //     else {
-  //       // If the item is not a group, mark it as selected in selectedObj
-  //       selectedObj[item?.id] = true;
-  //     }
-  //   });
-  
-  //   const uncheckedElements = findUncheckedElement(selectedData, tableData);
- 
-  //   uncheckedElements && validateArray(uncheckedElements) && uncheckedElements?.forEach((field) => {
-  //     if (field?.otherCmsType === "Group") {
-
-  //       // Get all child items of the unchecked group
-  //       const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(field?.uid + '.'));
-  
-  //       if (childItems && validateArray(childItems)) {
-
-  //         // Check if all children are selected
-  //         const allChildrenSelected = childItems.every(child => selectedObj[child?.id || '']);
-          
-  //         if (allChildrenSelected) {
-  //           childItems.forEach((child) => {
-
-  //             // Remove each child item from selected
-  //             delete selectedObj[child?.id || ''];
-              
-  //           });
-  //           delete selectedObj[field?.id || ''];
-  //         }
-  //       }
-  //     } 
-  //     else {
-
-  //       // Extract the group UID if item is child of any group
-  //       const uidBeforeDot = field?.uid?.split('.')[0];
-  //       const groupItem = selectedData?.find((entry) => entry?.uid === uidBeforeDot);
-  //       const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
-
-  //       if (childItems && validateArray(childItems)) {
-
-  //         // Check if all children are not selected of group
-  //         const allChildrenSelected = childItems.every(child => !selectedObj[child?.id || '']);
-          
-  //         if (allChildrenSelected) {
-            
-  //           childItems.forEach((child) => {
-  //             delete selectedObj[child?.id || ''];
-              
-  //           });
-  //           delete selectedObj[groupItem?.id || ''];
-  //         }
-  //       }
-  
-  //       if (!Ischild) {
-
-  //         delete selectedObj[field?.id || ''];
-  //       }
-  //     }
-  //   });
-  //   const updatedTableData = tableData.map((tableItem) => {
-  //     const found = selectedData.some((selectedItem) => selectedItem.uid === tableItem.uid);
-      
-  //     // Mark the item as deleted if not found in selectedData
-  //     return {
-  //       ...tableItem,
-  //       isDeleted: !found ? true : false,
-  //     };
-  //   });
-  
-
-  //   setRowIds(selectedObj);
-  //   setSelectedEntries(updatedTableData);
-  // };
-  
-  
- 
-  // Function to find unchecked field
-  // const findUncheckedElement = (selectedData: FieldMapType[], tableData: FieldMapType[]) => {
-  //   return tableData.filter((mainField: FieldMapType) => 
-  //     !selectedData.some((selectedField:FieldMapType) => selectedField?.otherCmsField === mainField?.otherCmsField)
-  //   );
-  // }
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
@@ -1092,8 +975,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     //const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
     const OptionsForRow = Fields?.[data?.backupFieldType]?.options ;
     const initialOption = {
-      label: Fields?.[data?.contentstackFieldType]?.label,
-      value: Fields?.[data?.contentstackFieldType]?.label,
+      label: Fields?.[data?.contentstackFieldType]?.label ?? 'No Option',
+      value: Fields?.[data?.contentstackFieldType]?.label ?? 'No Option',
     };
     let option: FieldTypes[];
     if (Array.isArray(OptionsForRow)) {
@@ -1134,8 +1017,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.otherCmsType === "Group" ||
               data?.otherCmsField === 'title' ||
               data?.otherCmsField === 'url' ||
-              data?.otherCmsField === 'reference'||
+              data?.otherCmsType === 'reference'||
               data?.contentstackFieldType === "global_field" ||
+              data?.otherCmsType === undefined ||
               newMigrationData?.project_current_step > 4
             }
           />
@@ -1145,7 +1029,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           data?.otherCmsField === 'title' ||
           data?.otherCmsField === 'url' ||
           data?.otherCmsType === 'reference' ||
-          data?.contentstackFieldType === 'global_field'
+          data?.contentstackFieldType === 'global_field' ||
+          data?.otherCmsType === undefined
            ) && (
           <Tooltip 
             content="Advanced properties" 
@@ -1566,6 +1451,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     } else {
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
     }
+
+    console.log("data====", data, OptionsForRow);
+    
    
     const OptionValue: FieldTypes =
       OptionsForRow.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
@@ -1578,15 +1466,15 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         : (OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) 
           && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ) || (OptionsForRow.length > 0 && data?.contentstackFieldType === "dropdown"))
           ? {
-            label: Fields[data?.contentstackFieldType]?.label,
-            value: Fields[data?.contentstackFieldType]?.label,
+            label: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
+            value: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
             isDisabled: data?.contentstackFieldType === 'text' ||
               data?.contentstackFieldType === 'group' ||
               data?.contentstackFieldType === 'url' ||
               data?.otherCmsType === "reference" || 
               data?.contentstackFieldType === "global_field" ||
-              data?.contentstackFieldType === "dropdown"
-
+              data?.contentstackFieldType === "dropdown" ||
+              data?.otherCmsType === undefined
           }
           : {
           label: `${selectedOption} matches`,
@@ -2004,7 +1892,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             type: 'error'
           });
         }
-        if(otherContentType?.id && data?.contentTypes?.every((item: any) => item?.uid !== otherContentType?.id)){
+        if(otherContentType?.id && data?.contentTypes?.every((item: FieldMapType) => item?.uid !== otherContentType?.id)){
           await handleCTDeleted(isContentType, data?.contentTypes);
         }
       } catch (error) {
@@ -2055,7 +1943,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             type: 'error'
           });
         }
-        if(otherContentType?.id && data?.globalFields?.every((item: any) => item?.uid !== otherContentType?.id)){
+        if(otherContentType?.id && data?.globalFields?.every((item: FieldMapType) => item?.uid !== otherContentType?.id)){
           await handleCTDeleted(isContentType, data?.globalFields);
         }
       } catch (error) {
@@ -2393,6 +2281,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 singular: '',
                 plural: `${totalCounts === 0 ? 'Count' : ''}`
               }}
+              rowDisableProp={{ key: '_invalid', value: true }}
             />
             <div className='text-end my-2 mx-3 px-1 py-1'>
               <Button
