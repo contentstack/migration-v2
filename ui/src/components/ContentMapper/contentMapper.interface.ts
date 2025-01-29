@@ -65,6 +65,7 @@ export interface FieldMapType {
   _canSelect?: boolean;
   advanced?: Advanced;
   contentstackUid: string;
+  _invalid?: boolean;
 }
 
 export interface Advanced {
@@ -172,6 +173,23 @@ export interface MappingFields {
 export interface MappingObj {
   label: string;
   options: Mapping;
+}
+
+export interface FieldHistoryObj {
+  [key: string]: ModifiedField[];
+}
+
+export interface FieldObj {
+  [key: string]: ModifiedField;
+}
+
+export interface ModifiedField {
+  at: number;
+  checked: boolean;
+  id: string;
+  otherCmsType: string;
+  parentId: string;
+  uid: string;
 }
 
 
