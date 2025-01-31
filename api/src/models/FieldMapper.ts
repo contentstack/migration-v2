@@ -5,7 +5,7 @@ import path from "path";
 /**
  * Represents the advanced configuration options for a field mapper.
  */
-interface Advanced {
+export interface Advanced {
   validationRegex: string;
   mandatory: boolean;
   multiple: boolean;
