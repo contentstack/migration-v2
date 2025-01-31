@@ -224,13 +224,15 @@ const writeGlobalField = async (schema: any, globalSave: string, filePath: strin
 const sortGlobalField = async (baseDir: string, finalData: any) => {
   const globalSave = path.join(process.cwd(), baseDir, GLOBAL_FIELDS_DIR_NAME);
   const globalPath = path.join(globalSave, GLOBAL_FIELDS_FILE_NAME);
-  const globalData = await JSON.parse(await fs.promises.readFile(globalPath, 'utf8'));
+  if(fs.existsSync(globalPath)){
+    const globalData = await JSON.parse(await fs.promises.readFile(globalPath, 'utf8'));
   const globalResult = [];
   for await (const ct of globalData) {
     await lookForReference(ct, finalData);
     globalResult?.push(ct);
   }
   await writeGlobalField(globalResult, globalPath, globalPath);
+}
 }
 
 const sortContentType = async (baseDir: string, finalData: any) => {
