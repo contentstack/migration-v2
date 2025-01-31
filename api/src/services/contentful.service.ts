@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import axios from "axios";
 import jsonpath from "jsonpath";
-// import pLimit from 'p-limit';
+import pLimit from 'p-limit';
 
 
 import {CHUNK_SIZE, MIGRATION_DATA_CONFIG } from "../constants/index.js";
@@ -408,24 +408,17 @@ const createAssets = async (packagePath: any, destination_stack_id:string, proje
     const assets = JSON.parse(data)?.assets;
 
     if (assets && assets.length > 0) {
-      const tasks = assets.map(
-        async (asset: any, index: any) =>
-           saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, 0)
+      const limit = pLimit(10); // Limit concurrent operations to 10
+      const tasks = assets.map((asset: any) =>
+        limit(() => saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, 0))
       );
-
-// This code is intentionally commented out
-// for testing purposes.
-
-      // const limit = pLimit(10); // Limit concurrent operations to 10
-      // const tasks = assets.map((asset: any) =>
-      //   limit(() => saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, 0))
-      // );
-      // await Promise.all(tasks);
 
       await Promise.all(tasks);
       const assetMasterFolderPath = path.join(assetsSave, ASSETS_FAILED_FILE);
 
       await writeOneFile(path.join(assetsSave, ASSETS_SCHEMA_FILE), assetData);
+      // This code is intentionally commented out
+      
       // const chunks: { [key: string]: any } = makeChunks(assetData);
       // const refs: any = {};
 
@@ -653,12 +646,6 @@ const createEntry = async (packagePath: any, destination_stack_id:string, projec
                   entryData[name][locale][id][formattedKey] = value;
                 }
               );
-                const message = getLogMessage(
-                  srcFunc,
-                  `Entry title "${entryData[name][locale][id]?.title}"(${name}) in the ${locale} locale has been successfully transformed.`,
-                  {}
-                )
-                 customLogger(projectId, destination_stack_id, 'info', message)
             });
           });
 
@@ -673,6 +660,14 @@ const createEntry = async (packagePath: any, destination_stack_id:string, projec
           values as { [key: string]: any }
         )) {
           const chunks = await makeChunks(localeValues);
+          for (const [entryKey, entryValue] of Object.entries(localeValues)){
+            const message = getLogMessage(
+              srcFunc,
+              `Entry title "${(entryValue as { title: string })?.title}"(${key}) in the ${localeKey} locale has been successfully transformed.`,
+              {}
+            );
+            await customLogger(projectId, destination_stack_id, "info", message);
+          }
           const refs: { [key: string]: any } = {};
           let chunkIndex = 1;
           const filePath = path.join(
