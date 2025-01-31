@@ -49,8 +49,8 @@ const putTestData = async (req: Request) => {
   */
   contentTypes.map((type: any, index: any) => {
     const fieldIds: string[] = [];
-    const fields = type?.fieldMapping?.map?.((field: any) => {
-      const id = field?.id?.replace(/[{}]/g, "")?.toLowerCase() || uuidv4();
+    const fields = type?.fieldMapping?.filter((field: any) => field)?.map?.((field: any) => {
+      const id = field?.id ? field?.id?.replace(/[{}]/g, "")?.toLowerCase() : uuidv4();
       field.id = id;
       fieldIds.push(id);
       return { id, projectId, isDeleted: false, ...field };
