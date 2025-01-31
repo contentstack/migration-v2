@@ -212,6 +212,7 @@ export const MIGRATION_DATA_CONFIG = {
   ASSETS_SCHEMA_FILE: "index.json",
   ASSETS_FAILED_FILE: "cs_failed.json",
   ASSETS_METADATA_FILE: "metadata.json",
+  ASSETS_FOLDER_FILE_NAME: "folders.json",
 
   ENTRIES_DIR_NAME: "entries",
   ENTRIES_MASTER_FILE: "index.json",

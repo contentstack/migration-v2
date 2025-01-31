@@ -5,10 +5,15 @@ const mkdirp = require('mkdirp');
 const _ = require('lodash');
 const config = require('../config');
 const { writeFile, writeFileAsync } = require('../utils/helper');
-const restrictedUid = require("../utils");
+const restrictedUid = require('../utils');
 
 const { contentTypes: contentTypesConfig } = config.modules;
-const contentTypesFile = path.join(process.cwd(), config.data, contentTypesConfig.dirName, contentTypesConfig.schemaFile);
+const contentTypesFile = path.join(
+  process.cwd(),
+  config.data,
+  contentTypesConfig.dirName,
+  contentTypesConfig.schemaFile
+);
 
 const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
 
@@ -18,7 +23,7 @@ const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirNa
 function startingDir() {
   if (!fs.existsSync(contentTypeFolderPath)) {
     mkdirp.sync(contentTypeFolderPath);
-    writeFile(path.join(contentTypeFolderPath, "schema_mapper.json"));
+    writeFile(path.join(contentTypeFolderPath, 'schema_mapper.json'));
   }
 }
 
@@ -45,7 +50,8 @@ const ContentTypeSchema = ({
   id,
   multiline,
   sitecoreKey,
-  affix
+  affix,
+  reference_to
 }) => {
   const isPresent = restrictedUid?.find((item) => item === uid);
   if (isPresent) {
@@ -54,7 +60,7 @@ const ContentTypeSchema = ({
   if (type === 'text') {
     type = multiline ? 'Multi-Line Text' : 'Single-Line Text';
   }
-  if(sitecoreKey === 'title'){
+  if (sitecoreKey === 'title') {
     return {
       uid: sitecoreKey,
       otherCmsField: name.toLowerCase(),
@@ -62,10 +68,10 @@ const ContentTypeSchema = ({
       contentstackField: name.toLowerCase(),
       contentstackFieldUid: uid,
       contentstackFieldType: 'text',
-      backupFieldType: 'text',
+      backupFieldType: 'text'
     };
   }
-  if(sitecoreKey === 'url'){
+  if (sitecoreKey === 'url') {
     name = name.toLowerCase();
     return {
       uid: sitecoreKey,
@@ -176,15 +182,14 @@ const ContentTypeSchema = ({
         contentstackField: name,
         contentstackFieldUid: uid,
         contentstackFieldType: 'reference',
-        backupFieldType: 'reference'
+        backupFieldType: 'reference',
+        refrenceTo: reference_to
       };
     }
   }
 };
 
-
 const contentTypeMaker = async (affix) => {
- 
   startingDir();
   const fileContent = readFileSync(contentTypesFile);
   const contentTypes = JSON.parse(fileContent);
@@ -193,26 +198,30 @@ const contentTypeMaker = async (affix) => {
     otherCmsTitle: element.title,
     otherCmsUid: element.uid,
     isUpdated: false,
-    updateAt: "",
+    updateAt: '',
     contentstackTitle: element.title,
     contentstackUid: element.uid,
-    fieldMapping: element.schema.map(({ display_name, uid, data_type, field_metadata }) => ContentTypeSchema({
-            name: display_name,
-            uid: uidCorrector(uid),
-            type: data_type,
-            default_value: field_metadata?.default_value,
-            id: uid,
-            multiline: field_metadata?.multiline,
-            sitecoreKey: uid,
-            affix
-          })),
-    type: "content_type"
+    fieldMapping: element.schema.map(
+      ({ display_name, uid, data_type, field_metadata, reference_to }) =>
+        ContentTypeSchema({
+          name: display_name,
+          uid: uidCorrector(uid),
+          type: data_type,
+          default_value: field_metadata?.default_value,
+          id: uid,
+          multiline: field_metadata?.multiline,
+          sitecoreKey: uid,
+          affix,
+          reference_to: reference_to
+        })
+    ),
+    type: 'content_type'
   }));
   await writeFileAsync(
-    path.join(process.cwd(), config.data, contentTypesConfig.dirName, "schema_mapper.json"),
+    path.join(process.cwd(), config.data, contentTypesConfig.dirName, 'schema_mapper.json'),
     mainSchema,
     4
-  );  
+  );
   return mainSchema;
 };
 
