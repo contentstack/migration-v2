@@ -846,7 +846,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     // Get the latest action performed row 
     const latestRow = findLatest(rowHistoryObj);
 
-    if(latestRow?.otherCmsType?.toLowerCase() === "group" && latestRow?.parentId === '') {
+    if(latestRow?.otherCmsType?.toLowerCase() === "group" && latestRow?.parentId === null){
       // get all child rows of group
       const childItems = selectedEntries?.filter((entry) => entry?.uid?.startsWith(latestRow?.uid + '.'));
       if (childItems && validateArray(childItems)) {
@@ -1069,8 +1069,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     const groupArray = nestedList.filter(item => 
       item?.child?.some(e => e?.id)
     )
-
-    if(groupArray[0].child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
+    
+    if(groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
        for(const item of groupArray[0].child){
         deletedExstingField[item?.uid] = {
           label:item?.uid,
