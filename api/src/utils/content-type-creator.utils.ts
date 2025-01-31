@@ -637,7 +637,8 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
     } else {
       const dt: any = convertToSchemaFormate({
         field: {
-          ...item, title: item?.contentstackField,
+          ...item,
+          title: item?.contentstackField,
           uid: item?.contentstackFieldUid
         }
       });
