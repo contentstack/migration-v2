@@ -429,6 +429,7 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
         "multiple": field?.advanced?.multiple ?? false,
         "mandatory": field?.advanced?.mandatory ?? false,
         "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false,
         "reference_to": field?.advanced?.embedObjects?.length ? field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) : []
       }
       if ((field?.advanced?.embedObjects?.length === undefined) ||
