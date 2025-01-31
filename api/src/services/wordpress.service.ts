@@ -5,10 +5,11 @@ import axios from "axios";
 import _ from "lodash";
 import { MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import jsdom from "jsdom";
-import { v4 as uuidv4 } from "uuid";
 import { htmlToJson } from "@contentstack/json-rte-serializer";
 import customLogger from "../utils/custom-logger.utils.js";
 import { getLogMessage } from "../utils/index.js";
+import { Advanced } from "../models/FieldMapper.js";
+
 
 const { JSDOM } = jsdom;
 const virtualConsole = new jsdom.VirtualConsole();
@@ -19,7 +20,7 @@ const __dirname = path.dirname(__filename);
 
 const { DATA, EXPORT_INFO_FILE } = MIGRATION_DATA_CONFIG
 
-const slugRegExp = /[^a-z0-9_-]+/g;
+//const slugRegExp = /[^a-z0-9_-]+/g;
 let assetsSave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
@@ -74,6 +75,21 @@ interface Asset {
   [key: string]: any;
 }
 
+interface FieldMapping {
+  id: string;
+    projectId: string;
+    uid: string;
+    otherCmsField: string;
+    otherCmsType: string;
+    contentstackField: string;
+    contentstackFieldUid: string;
+    contentstackFieldType: string;
+    isDeleted: boolean;
+    backupFieldType: string;
+    refrenceTo: { uid: string; title: string };
+    advanced: Advanced;
+}
+
 const idCorrector = (id: any) => {
   const newId = id?.replace(/[-{}]/g, (match: any) => match === '-' ? '' : '')
   if (newId) {
@@ -91,6 +107,32 @@ const failedJSON: Record<string, any> = {};
 let assetData: Record<string, any> | any = {};
 let blog_base_url = "";
 
+//helper function to convert entries with content type
+function mapContentTypeToEntry(contentType: any, data: any) {
+  return contentType?.fieldMapping?.reduce((acc: { [key: string]: any }, field: FieldMapping) => {
+    const fieldValue = data[field.uid];
+    let formattedValue;
+
+    switch (field?.contentstackFieldType) {
+      case "single_line_text":
+      case "text":
+      case 'html':
+        formattedValue = fieldValue;
+        break;
+      case "json":
+        formattedValue = convertHtmlToJson(fieldValue);
+        break;
+      case "reference":
+        formattedValue = getParent(data,data[field.uid]);
+        break;
+      default:
+        formattedValue = fieldValue;
+    }
+
+    acc[field.contentstackFieldUid] = formattedValue;
+    return acc;
+  }, {});
+}
 // helper functions
 async function writeFileAsync(filePath: string, data: any, tabSpaces: number) {
   filePath = path.resolve(filePath);
@@ -109,8 +151,6 @@ async function startingDirAssests(destinationStackId: string) {
       destinationStackId,
       MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
     );
-
-     
 
     assetMasterFolderPath = path.join(
       MIGRATION_DATA_CONFIG.DATA,
@@ -160,7 +200,7 @@ async function startingDirAssests(destinationStackId: string) {
     try {
       await fs.promises.access(assetsJsonPath);
       // Read assets.json data
-      const fileContent = await fs.promises.readFile(assetsJsonPath, "utf-8");
+      const fileContent = await fs.promises.readFile(assetsJsonPath, "utf8");
       assetData = JSON.parse(fileContent);
     } catch {
       // assets.json doesn't exist, create it
@@ -171,7 +211,7 @@ async function startingDirAssests(destinationStackId: string) {
     try {
       await fs.promises.access(assetsSchemaJsonPath);
       // Read assets.json data
-      const fileContent = await fs.promises.readFile(assetsSchemaJsonPath, "utf-8");
+      const fileContent = await fs.promises.readFile(assetsSchemaJsonPath, "utf8");
       assetData = JSON.parse(fileContent);
     } catch {
       // assets.json doesn't exist, create it
@@ -212,7 +252,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
 
   const parent_uid = affix ? "wordpressasset" : null;
 
-  let customId = idCorrector(uuidv4())
+  const customId = `assets_${assets["wp:post_id"]}`
   
   const assetPath = path.resolve(
     assetsSave, "files",
@@ -224,6 +264,13 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     console.error(`Asset already present: ${customId}`);
     return assets["wp:post_id"];
   }
+  // else{
+  //   fs.mkdirSync(
+  //     path.resolve(
+  //       assetPath
+  //     )
+  //   );
+  // }
 
   try {
     const response = await axios.get(url, { responseType: "arraybuffer" });
@@ -231,7 +278,8 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
       path.resolve(assetsSave, "files", customId),
       { recursive: true }
     );
-    fs.writeFileSync(assetPath, response.data);
+
+    fs.writeFileSync(path.resolve(assetsSave, "files", customId,name), response.data);
 
     const stats = fs.lstatSync(assetPath);
     const acc: any = {};
@@ -324,7 +372,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
 async function getAsset(attachments: any[], affix: string, destinationStackId: string, projectId: string) {
   const BATCH_SIZE = 5; // 5 promises at a time
   const results = [];
-  let refs: any = {};
+  
   for (let i = 0; i < attachments.length; i += BATCH_SIZE) {
     const batch = attachments.slice(i, i + BATCH_SIZE);
     
@@ -391,7 +439,7 @@ const createAssetFolderFile = async (affix: string, destinationStackId:string, p
         uid: "wordpressasset",
         content_type: "application/vnd.contenstack.folder",
         tags: [],
-        name: affix,
+        name: 'wordpressasset',
         is_dir: true,
         parent_uid: null,
         _version: 1,
@@ -503,11 +551,6 @@ async function getAllreference(affix: string, packagePath: string, destinationSt
     await startDirReferences(destinationStackId);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
-    const prefix = affix
-      .replace(/^\d+/, "")
-      .replace(/[^a-zA-Z0-9]+/g, "_")
-      .replace(/(^_+)|(_+$)/g, "")
-      .toLowerCase();
 
     const referenceTags =
       alldataParsed?.rss?.channel["wp:tag"] ??
@@ -523,15 +566,15 @@ async function getAllreference(affix: string, packagePath: string, destinationSt
       "";
 
     const referenceArray = [];
-    const categories = prefix ? `${prefix}_categories` : "categories";
-    const terms = prefix ? `${prefix}_terms` : "terms";
-    const tag = prefix ? `${prefix}_tag` : "tag";
-
+    const categories = "categories";
+    const terms =  "terms";
+    const tag =  "tag";
+   
     referenceArray.push(
       ...processReferenceData(
         referenceCategories,
         "category",
-        "wp:category_nicename",
+        "wp:category_",
         categories
       )
     );
@@ -677,13 +720,13 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
 /************  end of chunks module functions *********/
 
 /************  authors module functions start *********/
-async function startingDirAuthors(affix: string) {
+async function startingDirAuthors(affix: string, ct: string) {
   const authorFolderName = MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
 
   authorsFolderPath = path.join(entrySave, authorFolderName, "en-us");
   authorsFilePath = path.join(
     authorsFolderPath,
-    MIGRATION_DATA_CONFIG.AUTHORS_FILE_NAME
+    ct ? ct : MIGRATION_DATA_CONFIG.AUTHORS_FILE_NAME
   );
   try {
     await fs.promises.access(authorsFolderPath);
@@ -695,10 +738,9 @@ async function startingDirAuthors(affix: string) {
 }
 
 const filePath = false;
-async function saveAuthors(authorDetails: any[], destinationStackId: string, projectId: string) {
+async function saveAuthors(authorDetails: any[], destinationStackId: string, projectId: string, contentType: any) {
   const srcFunc = "saveAuthors";
   try {
-    
 
     const authordata = authorDetails.reduce(
       (acc: { [key: string]: any }, data) => {
@@ -707,15 +749,21 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
 
         const title = data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`;
         const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
-          let customId = idCorrector(uuidv4())
-        acc[customId] = {
-          uid: customId,
-          title: title,
+        const customId = idCorrector(uid);
+        const authordata: any = {
+          uid: uid,
+          title: data["wp:author_login"],
           url: url,
           email: data["wp:author_email"],
           first_name: data["wp:author_first_name"],
           last_name: data["wp:author_last_name"],
         };
+        acc[customId] = {
+          ...acc[customId],
+          uid: customId,
+          ...mapContentTypeToEntry(contentType, authordata),
+        };
+
 
         return acc;
       },
@@ -742,10 +790,12 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
     // console.error("error while saving authors", error);
   }
 }
-async function getAllAuthors(affix: string, packagePath: string,destinationStackId: string, projectId: string) {
+async function getAllAuthors(affix: string, packagePath: string,destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any) {
   const srcFunc = "getAllAuthors";
+  const ct:any = keyMapper?.["authors"];
+  const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'authors')
   try {
-    await startingDirAuthors(affix);
+    await startingDirAuthors(affix, ct);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const authors: any =
@@ -755,7 +805,7 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
 
     if (authors && authors.length > 0) {
       if (!filePath) {
-        await saveAuthors(authors, destinationStackId, projectId);
+        await saveAuthors(authors, destinationStackId, projectId,contenttype);
       } else {
         const authorIds = fs.existsSync(filePath)? fs.readFileSync(filePath, "utf-8").split(",")
           : [];
@@ -766,7 +816,7 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
           );
 
           if (authorDetails.length > 0) {
-            await saveAuthors(authorDetails, destinationStackId, projectId);
+            await saveAuthors(authorDetails, destinationStackId, projectId,contenttype);
           }
         }
       }
@@ -775,11 +825,11 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
         !filePath ||
         (fs.existsSync(filePath) &&
           fs
-            .readFileSync(filePath, "utf-8")
+            .readFileSync(filePath, "utf8")
             .split(",")
             .includes(authors["wp:author_id"]))
       ) {
-        await saveAuthors([authors], destinationStackId, projectId);
+        await saveAuthors([authors], destinationStackId, projectId,contenttype);
       } else {
         const message = getLogMessage(
           srcFunc,
@@ -1374,10 +1424,10 @@ async function extractContentTypes(projectId: string,destinationStackId: string)
 /************  end of contenttypes module functions *********/
 
 /************  terms module functions start *********/
-async function startingDirTerms(affix: string) {
+async function startingDirTerms(affix: string, ct:string) {
   termsFolderPath = path.join(
     entrySave,
-    MIGRATION_DATA_CONFIG.TERMS_DIR_NAME, "en-us"
+   ct ? ct :  MIGRATION_DATA_CONFIG.TERMS_DIR_NAME, "en-us"
   );
   try {
     await fs.promises.access(termsFolderPath);
@@ -1391,7 +1441,7 @@ async function startingDirTerms(affix: string) {
   }
 }
 
-async function saveTerms(termsDetails: any[], destinationStackId: string, projectId: string) {
+async function saveTerms(termsDetails: any[], destinationStackId: string, projectId: string, contentType:any) {
   const srcFunc = "saveTerms";
   try {
     const termsFilePath = path.join(
@@ -1400,18 +1450,18 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
     );
     const termsdata = termsDetails.reduce(
       (acc: { [key: string]: any }, data) => {
-        const { id, term_name, term_taxonomy = "", term_slug } = data;
-        const uid = `terms_${id}`;
-        const title = term_name ?? `Terms - ${id}`;
-        const url = `/${title.toLowerCase().replace(/ /g, "_")}`; 
+    
+        const { id } = data;
+         const uid = `terms_${id}`;
+        // const title = name ?? `Terms - ${id}`;
+        //const url = `/${title.toLowerCase().replace(/ /g, "_")}`; 
+        
+        const customId = uid;
 
-        let customId = idCorrector(uuidv4())
         acc[customId] = {
-          uid:customId,
-          title,
-          url,
-          taxonomy: term_taxonomy,
-          slug: term_slug,
+          ...acc[customId],
+          uid: customId,
+          ...mapContentTypeToEntry(contentType, data), // Pass individual term object
         };
 
         return acc;
@@ -1442,10 +1492,12 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
   }
 }
 
-async function getAllTerms(affix: string, packagePath: string, destinationStackId:string, projectId: string) {
+async function getAllTerms(affix: string, packagePath: string, destinationStackId:string, projectId: string, contentTypes:any, keyMapper:any) {
   const srcFunc = "getAllTerms";
+  const ct:any = keyMapper?.["terms"];
+  const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'terms')
   try {
-    await startingDirTerms(affix);
+    await startingDirTerms(affix, ct);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const terms =
@@ -1463,22 +1515,26 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
       // console.log("\nNo terms found");
       return;
     }
-    const termsArray = Array.isArray(terms) ? terms.map((term) => ({
+    
+    const termsArray = Array.isArray(terms) ? terms.map((term) => {
+       
+      return {
         id: term["wp:term_id"],
-        term_name: term["wp:term_name"],
-        term_slug: term["wp:term_slug"],
-        term_taxonomy: term["wp:term_taxonomy"],
-      }))
+        title: term["wp:term_name"],
+        slug: term["wp:term_slug"],
+        taxonomy: term["wp:term_taxonomy"],
+      }
+    })
       : [
         {
           id: terms["wp:term_id"],
-          term_name: terms["wp:term_name"],
-          term_slug: terms["wp:term_slug"],
-          term_taxonomy: terms["wp:term_taxonomy"],
+          title: terms["wp:term_name"],
+          slug: terms["wp:term_slug"],
+          taxonomy: terms["wp:term_taxonomy"],
         },
       ];
-
-    await saveTerms(termsArray, destinationStackId, projectId);
+    
+    await saveTerms(termsArray, destinationStackId, projectId, contenttype);
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1494,10 +1550,10 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
 /************  end of terms module functions *********/
 
 /************  tags module functions start *********/
-async function startingDirTags(affix: string) {
+async function startingDirTags(affix: string, ct:string) {
   tagsFolderPath = path.join(
     entrySave,
-    MIGRATION_DATA_CONFIG.TAG_DIR_NAME, "en-us"
+    ct ? ct : MIGRATION_DATA_CONFIG.TAG_DIR_NAME, "en-us"
   );
   try {
     await fs.promises.access(tagsFolderPath);
@@ -1511,7 +1567,7 @@ async function startingDirTags(affix: string) {
   }
 }
 
-async function saveTags(tagDetails: any[], destinationStackId: string, projectId: string) {
+async function saveTags(tagDetails: any[], destinationStackId: string, projectId: string, contenttype:any) {
   const srcFunc = 'saveTags';
   try {
     const tagsFilePath = path.join(
@@ -1519,18 +1575,17 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
       MIGRATION_DATA_CONFIG.TAG_FILE_NAME
     );
     const tagdata = tagDetails.reduce((acc: { [key: string]: any }, data) => {
-      const { id, tag_name, tag_slug, description = "" } = data;
+      const { id } = data;
       const uid = `tags_${id}`;
-      const title = tag_name ?? `Tags - ${id}`;
+      //const title = name ?? `Tags - ${id}`;
      // const url = `/tags/${uid}`;
-      const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
-      let customId = idCorrector(uuidv4())
-      acc[customId] = {
-        uid: customId,
-        title,
-        url,
-        slug: tag_slug,
-        description,
+      //const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
+      const customId = idCorrector(uid);
+
+      acc[customId]={
+        ...acc[customId],
+        uid:customId,
+        ...mapContentTypeToEntry(contenttype,data),
       };
 
       return acc;
@@ -1556,10 +1611,13 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
     throw error;
   }
 }
-async function getAllTags(affix: string, packagePath: string, destinationStackId:string, projectId: string) {
+async function getAllTags(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any ) {
   const srcFunc = "getAllTags";
+  const ct:any = keyMapper?.["tag"];
+  const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'tag');
+
   try {
-    await startingDirTags(affix);
+    await startingDirTags(affix, ct);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const tags =
@@ -1579,20 +1637,20 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
     }
     const tagsArray = Array.isArray(tags) ? tags.map((taginfo) => ({
         id: taginfo["wp:term_id"],
-        tag_name: taginfo["wp:tag_name"],
-        tag_slug: taginfo["wp:tag_slug"],
+        name: taginfo["wp:tag_name"],
+        slug: taginfo["wp:tag_slug"],
         description: taginfo["wp:tag_description"],
       }))
       : [
         {
           id: tags["wp:term_id"],
-          tag_name: tags["wp:tag_name"],
-          tag_slug: tags["wp:tag_slug"],
+          name: tags["wp:tag_name"],
+          slug: tags["wp:tag_slug"],
           description: tags["wp:tag_description"],
         },
       ];
 
-    await saveTags(tagsArray, destinationStackId, projectId);
+    await saveTags(tagsArray, destinationStackId, projectId, contenttype);
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1608,10 +1666,10 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
 /************  end of tags module functions *********/
 
 /************  categories module functions start *********/
-async function startingDirCategories(affix: string) {
+async function startingDirCategories(affix: string, ct: string) {
   categoriesFolderPath = path.join(
     entrySave,
-    MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME, "en-us"
+    ct ? ct : MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME, "en-us"
   );
 
   try {
@@ -1630,12 +1688,12 @@ async function startingDirCategories(affix: string) {
 }
 
 const convertHtmlToJson = (htmlString: any) => {
-  const dom = new JSDOM(htmlString.replace(/&amp;/g, "&"));
+  const dom = new JSDOM(htmlString?.replace(/&amp;/g, "&"));
   const htmlDoc = dom.window.document.querySelector("body");
   return htmlToJson(htmlDoc);
 };
 
-function parentCategories(data: any) {
+function getParent(data: any,id: string) {
   const parentId: any = fs.readFileSync(
     path.join(referencesFolder, MIGRATION_DATA_CONFIG.REFERENCES_FILE_NAME),
     "utf8"
@@ -1643,8 +1701,8 @@ function parentCategories(data: any) {
 
   const parentIdParsed = JSON.parse(parentId);
   const catParent: any = [];
-  const getParent = data["parent"];
-
+  const getParent = id;
+  
   Object.keys(parentIdParsed).forEach((key) => {
     if (getParent === parentIdParsed[key].slug) {
       catParent.push({
@@ -1656,28 +1714,21 @@ function parentCategories(data: any) {
 
   return catParent;
 }
-async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string) {
+async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string, contenttype:any) {
   const srcFunc = 'saveCategories';
   try {
     const categorydata = categoryDetails.reduce(
       (acc: { [key: string]: any }, data) => {
         const uid = `category_${data["id"]}`;
-        const title = data["title"] ? data["title"].replace(/&amp;/g, "&")
-          : `Category - ${uid}`;
-        const description = convertHtmlToJson(data["description"] || "");
-        const nicename = data["nicename"] || "";
 
-        let customId = idCorrector(uuidv4())
+        const customId = uid
 
         // Accumulate category data
-        acc[customId] = {
-          uid: customId,
-          title: title.toLowerCase(),
-          url: "/" + title.toLowerCase().replace(/ /g, "_"),//+ uid.replace("_", "/"),
-          nicename,
-          description,
-          parent: parentCategories(data), // Call parentCategories to populate the parent field
-        };
+        acc[customId]={
+          ...acc[customId],
+          uid:customId,
+          ...mapContentTypeToEntry(contenttype,data),
+        }
 
         return acc;
       },
@@ -1696,7 +1747,7 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
 
     const message = getLogMessage(
       srcFunc,
-      `${categoryDetails.length} Categories exported successfully`,
+      `${categoryDetails?.length} Categories exported successfully`,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
@@ -1707,7 +1758,7 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
   } catch (err) {
     const message = getLogMessage(
       srcFunc,
-      "Error in saving categories.",
+      `Error in saving categories. ${err}`,
       {},
       err
     )
@@ -1715,17 +1766,20 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
     // console.error("Error in saving categories:", err);
   }
 }
-async function getAllCategories(affix: string, packagePath: string, destinationStackId:string, projectId: string) {
+async function getAllCategories(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any) {
   const srcFunc = 'getAllCategories';
+  const ct:any = keyMapper?.["categories"];
+  const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'categories');
+
   try {
-    await startingDirCategories(affix);
+    await startingDirCategories(affix, ct);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const categories =
       alldataParsed?.rss?.channel?.["wp:category"] ??
       alldataParsed?.channel?.["wp:category"] ??
       "";
-
+   
     if (!categories || categories.length === 0) {
       const message = getLogMessage(
         srcFunc,
@@ -1736,7 +1790,7 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
       // console.log("\nNo categories found");
       return;
     }
-
+   
     const categoriesArrray = Array.isArray(categories) ? 
     categories.map((categoryinfo) => ({
         id: categoryinfo["wp:term_id"],
@@ -1755,7 +1809,7 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
         },
       ];
 
-    await saveCategories(categoriesArrray, destinationStackId, projectId);
+    await saveCategories(categoriesArrray, destinationStackId, projectId, contenttype);
   } catch (err) {
     const message = getLogMessage(
       srcFunc,
@@ -1770,9 +1824,10 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
 
 /************  Start of Posts module functions *********/
 
-async function startingDirPosts() {
+async function startingDirPosts(ct:string) {
   postFolderPath = path.join(
-    entrySave, MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
+    entrySave, 
+    ct ? ct : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
     MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
   );
   //path.join(entrySave, affix ? affix+"_"+"terms": "terms");
@@ -1818,10 +1873,10 @@ const limit = limitConcurrency(5);
 
 async function featuredImageMapping(postid: string, post: any, postdata: any) {
   try {
-    const assetsId = fs.readFileSync(
-      path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE)
-    );
-
+    
+    const assetsId = JSON.parse(fs.readFileSync(
+      path.join(process.cwd(), assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE),'utf8'
+    ));
     if (!post["wp:postmeta"] || !assetsId) return;
 
     const postmetaArray = Array.isArray(post["wp:postmeta"]) ? post["wp:postmeta"]
@@ -1831,12 +1886,13 @@ async function featuredImageMapping(postid: string, post: any, postdata: any) {
       .filter((meta) => meta["wp:meta_key"] === "_thumbnail_id")
       .map((meta) => {
         const attachmentid = `assets_${meta["wp:meta_value"]}`;
+        
         return Object.values(assetsId).find(
           (asset: any) => asset.uid === attachmentid
         );
       })
       .filter(Boolean); // Filter out undefined matches
-
+    
     if (assetsDetails.length > 0) {
       postdata[postid]["featured_image"] = assetsDetails;
     }
@@ -1846,13 +1902,13 @@ async function featuredImageMapping(postid: string, post: any, postdata: any) {
   }
 }
 
-const extractPostCategories = (categories: any) => {
+const extractPostCategories = (categories: any,) => {
   const postCategories: any = [],
     postTags: any = [],
     postTerms: any = [];
 
   const referenceId: any = fs.readFileSync(
-    path.join(referencesFolder, MIGRATION_DATA_CONFIG.REFERENCES_FILE_NAME),
+    path.join(path.join(process.cwd(),referencesFolder, MIGRATION_DATA_CONFIG.REFERENCES_FILE_NAME)),
     "utf8"
   );
   const referenceDataParsed = JSON.parse(referenceId);
@@ -1874,7 +1930,6 @@ const extractPostCategories = (categories: any) => {
   if (Array.isArray(categories)) {
     categories.forEach(processCategory);
   } else if (categories && categories["$"]?.["domain"] !== "category") {
-    // console.info(categories, "------===");
     processCategory(categories);
   }
 
@@ -1885,9 +1940,9 @@ const extractPostAuthor = (authorTitle: any) => {
   const postAuthor: any = [];
 
   const processedAffix =  "authors";
-  const authorId: any = fs.readFileSync(authorsFilePath);
+  const authorId: any = fs.readFileSync(path.join(process.cwd(),authorsFilePath));
   const authorDataParsed = JSON.parse(authorId);
-
+  
   Object.keys(authorDataParsed).forEach((key) => {
     if (authorTitle.split(",").join("") === authorDataParsed[key].title) {
       postAuthor.push({ uid: key, _content_type_uid: processedAffix });
@@ -1900,7 +1955,8 @@ const extractPostAuthor = (authorTitle: any) => {
 async function processChunkData(
   chunkData: any,
   filename: string,
-  isLastChunk: boolean
+  isLastChunk: boolean,
+  contenttype: any
 ) {
   const postdata: any = {};
   try {
@@ -1946,10 +2002,11 @@ async function processChunkData(
           const base = blog_base_url.split("/").filter(Boolean);
           const blogname = base[base.length - 1];
           const url = data["link"].split(blogname)[1];
-          const title = data["title"] ?? `Posts - ${data["wp:post_id"]}`
-          let customId = idCorrector(uuidv4())
+          const title = data["title"] ?? `Posts - ${data["wp:post_id"]}`;
+          const uid = `posts_${data["wp:post_id"]}`
+          const customId = idCorrector(uid)
           postdata[customId] = {
-            title: data["title"] ?? `Posts - ${data["wp:post_id"]}`,
+            title: data["title"] || `Posts - ${data["wp:post_id"]}`,
             uid: customId,
             url: "/"+title.toLowerCase().replace(/ /g, "_"),
             date: postDate,
@@ -1961,12 +2018,30 @@ async function processChunkData(
             category: postCategories,
             terms: postTerms,
             tag: postTags,
+            featured_image: ''
           };
-          await featuredImageMapping(
+          const formatted_posts =  await featuredImageMapping(
             `posts_${data["wp:post_id"]}`,
             data,
             postdata
           );
+          const formattedPosts = Object.entries(formatted_posts).reduce(
+            (acc: { [key: string]: any }, data:any) => {
+             
+              const customId = idCorrector(data["uid"])
+      
+              // Accumulate category data
+              acc[customId]={
+                ...acc[customId],
+                uid: customId,
+                ...mapContentTypeToEntry(contenttype,data),
+              }
+      
+              return acc;
+            },
+            {}
+          );
+          Object.assign(postdata,formattedPosts);
 
           // await writeFileAsync(
           //   path.join(postFolderPath, filename),
@@ -1995,10 +2070,13 @@ async function processChunkData(
   }
 }
 
-async function extractPosts( packagePath: string, destinationStackId: string, projectId: string) {
+async function extractPosts( packagePath: string, destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any) {
   const srcFunc = "extractPosts";
+  const ct:any = keyMapper?.["categories"];
+  const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'categories');
+
   try {
-    await startingDirPosts();
+    await startingDirPosts(ct);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     blog_base_url =
@@ -2019,7 +2097,7 @@ async function extractPosts( packagePath: string, destinationStackId: string, pr
       const isLastChunk = filename === lastChunk;
 
       // Process the current chunk
-      const chunkPostData = await processChunkData(chunkData, filename, isLastChunk);
+      const chunkPostData = await processChunkData(chunkData, filename, isLastChunk, contenttype);
       postdataCombined = { ...postdataCombined, ...chunkPostData };
       const message = getLogMessage(
         srcFunc,
@@ -2091,7 +2169,7 @@ async function extractGlobalFields(destinationStackId: string, projectId: string
     "upload-api",
     "migration-wordpress"
   );
-  const destinationPath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
+  const destinationPath = path.join(MIGRATION_DATA_CONFIG.DATA, MIGRATION_DATA_CONFIG.DATA);
 
   const foldersToCopy = ["locales"]; //, "global_fields", "extensions"
 
