@@ -1074,7 +1074,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     )
     
     if(groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
-       for(const item of groupArray[0].child){
+       for(const item of groupArray[0]?.child ?? []){
         deletedExstingField[item?.uid] = {
           label:item?.uid,
           value:existingField[item?.uid]
@@ -1255,11 +1255,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           // Process nested schemas within the current group
           for (const item of array) {
             const fieldTypeToMatch = fieldsOfContentstack[item?.backupFieldType as keyof Mapping];
-            if (item.id === data?.id) {
+            if (item?.id === data?.id) {
               for (const key of existingField[groupArray[0]?.uid]?.value?.schema || []) {
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
-                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || '', `${uid}.${key?.uid}`));
+                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key?.display_name}` || '', `${uid}.${key?.uid}`));
                 }
       
                 // Recursively process nested groups
@@ -1363,7 +1363,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
        
       //check if UID of souce field is matching to exsting content type field UID
       for (const value of contentTypeSchema) {
-        if (data?.uid === value?.uid || (data?.uid === value?.uid && data?.backupFieldType === value?.data_type)) {
+        if (data?.uid === value?.uid || (data?.uid === value?.uid && data?.otherCmsType === value?.data_type)) {
           OptionsForRow.push({ label: value?.display_name, value, isDisabled: false });
           break;
         }
@@ -1461,6 +1461,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     } else {
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
     }    
+
+    console.log("OptionsForRow", OptionsForRow);
+    
    
     const OptionValue: FieldTypes =
       OptionsForRow.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
