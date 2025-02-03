@@ -336,8 +336,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // useEffect for rendering mapped fields with existing stack
   useEffect(() => {
+
     
     if (newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || ''] === otherContentType?.id) {
+      console.log("=================", tableData, contentTypeSchema);
+
       tableData?.forEach((row) => {
         contentTypeSchema?.forEach((schema) => {
           
@@ -1247,11 +1250,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         ? existingLabel?.split('>')?.pop()?.trim()
         : existingLabel;
 
-      if(value.display_name === lastLabelSegment)
+      if(value?.display_name === lastLabelSegment)
       {
           // Process nested schemas within the current group
           for (const item of array) {
-            const fieldTypeToMatch = fieldsOfContentstack[item?.otherCmsType as keyof Mapping];
+            const fieldTypeToMatch = fieldsOfContentstack[item?.backupFieldType as keyof Mapping];
             if (item.id === data?.id) {
               for (const key of existingField[groupArray[0]?.uid]?.value?.schema || []) {
                  
@@ -1278,7 +1281,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     } 
    else {
  
-      const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
+      const fieldTypeToMatch = fieldsOfContentstack[data?.backupFieldType as keyof Mapping];
       if (!array.some((item : FieldMapType) => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
         OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName || '',uid ?? ''));
       }
@@ -1311,11 +1314,15 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       label: Fields?.[data?.contentstackFieldType]?.label,
       value: Fields?.[data?.contentstackFieldType]?.label,
     };
+
+    console.log("data", data);
+    
   
     const fieldsOfContentstack: Mapping = {
-      'Single Line Textbox': 'text',
-      'Single-Line Text': 'text',
+      'single_line_text': 'text',
+      'url': 'text',
       'text': 'text',
+      'json': 'allow_rich_text',
       'Multi-Line Text': 'multiline',
       'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
@@ -1349,11 +1356,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     }
   
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
-      const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
+      const fieldTypeToMatch = fieldsOfContentstack[data?.backupFieldType as keyof Mapping];
+
+      // console.log("data", data, contentTypeSchema);
+      
        
       //check if UID of souce field is matching to exsting content type field UID
       for (const value of contentTypeSchema) {
-        if (data?.uid === value?.uid || (data?.uid === value?.uid && data?.otherCmsType === value?.data_type)) {
+        if (data?.uid === value?.uid || (data?.uid === value?.uid && data?.backupFieldType === value?.data_type)) {
           OptionsForRow.push({ label: value?.display_name, value, isDisabled: false });
           break;
         }
@@ -1450,10 +1460,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     } else {
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
-    }
-
-    console.log("data====", data, OptionsForRow);
-    
+    }    
    
     const OptionValue: FieldTypes =
       OptionsForRow.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
@@ -1471,7 +1478,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             isDisabled: data?.contentstackFieldType === 'text' ||
               data?.contentstackFieldType === 'group' ||
               data?.contentstackFieldType === 'url' ||
-              data?.otherCmsType === "reference" || 
+              data?.backupFieldType === "reference" || 
               data?.contentstackFieldType === "global_field" ||
               data?.contentstackFieldType === "dropdown" ||
               data?.otherCmsType === undefined
@@ -1488,6 +1495,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         ...option,
         isDisabled: selectedOptions.includes(option?.label ?? '')
       }));
+
+    // console.log("data====", data, selectedOption);
+    
 
     return (
       <div className="table-row">
