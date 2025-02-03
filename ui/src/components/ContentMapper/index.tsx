@@ -1375,7 +1375,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
       const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
-       console.log("field type to match -----> ", fieldTypeToMatch, data?.backupFieldType)
       //check if UID of souce field is matching to exsting content type field UID
       for (const value of contentTypeSchema) {
         if (data?.uid === value?.uid || (data?.uid === value?.uid && data?.otherCmsType === value?.data_type)) {
