@@ -71,6 +71,7 @@ export interface IFile {
 
 export interface ICMSType extends ICardType {
   allowed_file_formats: ICardType[];
+  cms_id: string;
   doc_url: ICTA;
   parent: string;
 }
@@ -309,6 +310,7 @@ export const DEFAULT_FILE: IFile = {
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
   allowed_file_formats: [],
+  cms_id: '',
   title: '',
   description: '',
   group_name: '',
