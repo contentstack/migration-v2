@@ -1241,6 +1241,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         return value?.data_type === 'boolean';
       case 'link':
         return value?.data_type === 'link';
+      case 'markdown':
+        return value?.field_metadata?.markdown === true;
       default:
         return false;
     }
