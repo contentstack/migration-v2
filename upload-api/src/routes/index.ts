@@ -115,7 +115,34 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
             file_details: config
           });
         });
-        if (fileExt === 'zip') {
+        if (fileExt === 'xml') {
+          let xmlData = '';
+
+          // Collect the data from the stream as a string
+          bodyStream.on('data', (chunk) => {
+            if (typeof chunk !== 'string' && !Buffer.isBuffer(chunk)) {
+              throw new Error('Expected chunk to be a string or a Buffer');
+            } else {
+              // Convert chunk to string (if it's a Buffer)
+              xmlData += chunk.toString();
+            }
+          });
+
+          // When the stream ends, process the XML data
+          bodyStream.on('end', async () => {
+            if (!xmlData) {
+              throw new Error('No data collected from the stream.');
+            }
+
+            const data = await handleFileProcessing(fileExt, xmlData, cmsType,name);
+            res.status(data?.status || 200).json(data);
+            if (data?.status === 200) {
+              const filePath = path.join(__dirname, '..', '..', 'extracted_files', "data.json");
+              createMapper(filePath, projectId, app_token, affix, config);
+            }
+          });
+        }
+        else{
           // Create a writable stream to save the downloaded zip file
           let zipBuffer = Buffer.alloc(0);
 
@@ -140,35 +167,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
               createMapper(filePath, projectId, app_token, affix, config);
             }
           });
-      } else if (fileExt === 'xml') {
-        let xmlData = '';
-
-        // Collect the data from the stream as a string
-        bodyStream.on('data', (chunk) => {
-          if (typeof chunk !== 'string' && !Buffer.isBuffer(chunk)) {
-            throw new Error('Expected chunk to be a string or a Buffer');
-          } else {
-            // Convert chunk to string (if it's a Buffer)
-            xmlData += chunk.toString();
-          }
-        });
-
-        // When the stream ends, process the XML data
-        bodyStream.on('end', async () => {
-          if (!xmlData) {
-            throw new Error('No data collected from the stream.');
-          }
-
-          const data = await handleFileProcessing(fileExt, xmlData, cmsType,name);
-          res.status(data?.status || 200).json(data);
-          if (data?.status === 200) {
-            const filePath = path.join(__dirname, '..', '..', 'extracted_files', "data.json");
-            createMapper(filePath, projectId, app_token, affix, config);
-          }
-        });
-      }
-        return;
-      }
+        } 
     } else {
       const params = {
         Bucket: config?.awsData?.bucketName,
@@ -221,7 +220,8 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
       });
     }
 
-  } catch (err: any) {
+  } }
+  catch (err: any) {
     console.error('🚀 ~ router.get ~ err:', err);
   }
 });
