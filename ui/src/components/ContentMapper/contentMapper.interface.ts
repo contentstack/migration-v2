@@ -173,6 +173,7 @@ export interface MappingFields {
 export interface MappingObj {
   label: string;
   options: Mapping;
+  type: string
 }
 
 export interface FieldHistoryObj {
