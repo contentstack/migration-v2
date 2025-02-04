@@ -212,9 +212,33 @@ export const MIGRATION_DATA_CONFIG = {
   ASSETS_SCHEMA_FILE: "index.json",
   ASSETS_FAILED_FILE: "cs_failed.json",
   ASSETS_METADATA_FILE: "metadata.json",
+  ASSETS_FOLDER_FILE_NAME: "folders.json",
 
   ENTRIES_DIR_NAME: "entries",
   ENTRIES_MASTER_FILE: "index.json",
+
+  AUTHORS_DIR_NAME : "authors",
+  AUTHORS_FILE_NAME : "en-us.json",
+  AUTHORS_MASTER_FILE : "authors.json",
+
+  CATEGORIES_DIR_NAME: "categories",
+  CATEGORIES_FILE_NAME: "en-us.json",
+  CATEGORIES_MASTER_FILE: "categories.json",
+
+  TAG_DIR_NAME: "tags",
+  TAG_FILE_NAME: "en-us.json",
+  TAG_MASTER_FILE: "tag.json",
+
+  TERMS_DIR_NAME: "terms",
+  TERMS_FILE_NAME: "en-us.json",
+  TERMS_MASTER_FILE: "terms.json",
+
+  POSTS_DIR_NAME: "posts",
+  POSTS_FOLDER_NAME: "en-us",
+  POSTS_FILE_NAME: "en-us.json",
+  POSTS_MASTER_FILE: "posts.json",
+
+  CHUNKS_DIR_NAME: "chunks",
 
   GLOBAL_FIELDS_DIR_NAME: "global_fields",
   GLOBAL_FIELDS_FILE_NAME: "globalfields.json",

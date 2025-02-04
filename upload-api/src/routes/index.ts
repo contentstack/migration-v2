@@ -12,7 +12,6 @@ import {
 import { client } from '../services/aws/client';
 import { fileOperationLimiter } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
-import createSitecoreMapper from '../controllers/sitecore';
 import config from '../config/index';
 import createMapper from '../services/createMapper';
 
@@ -116,33 +115,59 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
             file_details: config
           });
         });
+        if (fileExt === 'xml') {
+          let xmlData = '';
 
-        // Create a writable stream to save the downloaded zip file
-        let zipBuffer = Buffer.alloc(0);
+          // Collect the data from the stream as a string
+          bodyStream.on('data', (chunk) => {
+            if (typeof chunk !== 'string' && !Buffer.isBuffer(chunk)) {
+              throw new Error('Expected chunk to be a string or a Buffer');
+            } else {
+              // Convert chunk to string (if it's a Buffer)
+              xmlData += chunk.toString();
+            }
+          });
 
-        // Collect the data from the stream into a buffer
-        bodyStream.on('data', (chunk) => {
-          if (!Buffer.isBuffer(chunk)) {
-            throw new Error('Expected chunk to be a Buffer');
-          } else {
-            zipBuffer = Buffer.concat([zipBuffer, chunk]);
-          }
-        });
+          // When the stream ends, process the XML data
+          bodyStream.on('end', async () => {
+            if (!xmlData) {
+              throw new Error('No data collected from the stream.');
+            }
 
-        //buffer fully stremd
-        bodyStream.on('end', async () => {
-          if (!zipBuffer) {
-            throw new Error('No data collected from the stream.');
-          }
-          const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,name);
-          res.status(data?.status || 200).json(data);
-          if (data?.status === 200) {
-            const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
-            createMapper(filePath, projectId, app_token, affix, config)
-          }
-        });
-        return;
-      }
+            const data = await handleFileProcessing(fileExt, xmlData, cmsType,name);
+            res.status(data?.status || 200).json(data);
+            if (data?.status === 200) {
+              const filePath = path.join(__dirname, '..', '..', 'extracted_files', "data.json");
+              createMapper(filePath, projectId, app_token, affix, config);
+            }
+          });
+        }
+        else{
+          // Create a writable stream to save the downloaded zip file
+          let zipBuffer = Buffer.alloc(0);
+
+          // Collect the data from the stream into a buffer
+          bodyStream.on('data', (chunk) => {
+            if (!Buffer.isBuffer(chunk)) {
+              throw new Error('Expected chunk to be a Buffer');
+            } else {
+              zipBuffer = Buffer.concat([zipBuffer, chunk]);
+            }
+          });
+
+          //buffer fully stremd
+          bodyStream.on('end', async () => {
+            if (!zipBuffer) {
+              throw new Error('No data collected from the stream.');
+            }
+            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,name);
+            res.status(data?.status || 200).json(data);
+            if (data?.status === 200) {
+              const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+              createMapper(filePath, projectId, app_token, affix, config);
+            }
+          });
+        } 
     } else {
       const params = {
         Bucket: config?.awsData?.bucketName,
@@ -191,11 +216,12 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
         res.send('file valited sucessfully.');
         const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
         console.log("🚀 ~ bodyStream.on ~ filePath:", filePath)
-        createSitecoreMapper(filePath, projectId, app_token, affix, config);
+        createMapper(filePath, projectId, app_token, affix, config);
       });
     }
 
-  } catch (err: any) {
+  } }
+  catch (err: any) {
     console.error('🚀 ~ router.get ~ err:', err);
   }
 });
