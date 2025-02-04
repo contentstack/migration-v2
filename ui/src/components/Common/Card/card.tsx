@@ -51,7 +51,7 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id',disabl
   };
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
-    if (!newMigrationData?.legacy_cms?.uploadedFile?.isValidated) {
+    if (newMigrationData?.project_current_step <= 1) {
       event.preventDefault(); // Prevent the default action
       onCardClick?.(data);
     }
@@ -63,7 +63,7 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id',disabl
       onMouseLeave={handleMouseLeave}
       className={`connector_list ${cardType === 'legacyCMS' ? 'trigger_list' : ''} ${disabled ? 'Card__disabled' : ''} `}
       style={{ position: 'relative' }}
-      onClick={!disabled ? handleClick : undefined}
+      onClick={handleClick}
     >
       {data.description && (
         <div style={{ position: 'absolute' }}>
