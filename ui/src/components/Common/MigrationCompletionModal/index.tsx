@@ -9,7 +9,7 @@ import {
 interface Props {
   closeModal: () => void;
   data?: StackDetail;
-  isopen?: (flag: boolean) => void;
+  isopen: (flag: boolean) => void;
   stackLink?: string;
 }
 interface StackDetail {
@@ -27,7 +27,7 @@ const MigrationCompletionModal = (props: Props) => {
         </Link>
       </ModalBody>
       <ModalFooter>
-        <Button buttonType="light"version={"v2"}  onClick={() => {props.closeModal(); props?.isopen?.(false);}}> 
+        <Button buttonType="light" version={"v2"} onClick={() => { props.closeModal(); props.isopen(false) }}>
           Close
         </Button>
       </ModalFooter>
