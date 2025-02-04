@@ -73,7 +73,7 @@ const extractAdvancedFields = (
     unique: uniqueValue,
     nonLocalizable: !(item?.localized === true),
     validationErrorMessage: validationErrorMessage,
-    referenceFields: referenceFields.length ? referenceFields : undefined,
+    embedObjects: referenceFields.length ? referenceFields : undefined,
     description:description,
   };
 };
@@ -166,7 +166,7 @@ const contentTypeMapper = (data) => {
   const schemaArray = data.reduce((acc, item) => {
     switch (item.type) {
       case 'RichText': {
-        const referenceFields = (item.contentNames?.slice(0, 9) || []).concat('sys_assets');
+        const referenceFields = (item.contentNames?.slice(0, 9) || []);
         acc.push(createFieldObject(item, 'json', 'json', referenceFields));
         break;
       }
