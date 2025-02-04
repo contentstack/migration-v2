@@ -275,7 +275,7 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
   const finalData: any = [];
   sortData.forEach((et: any) => {
     const entryObj: any = {};
-    const ctData = et?.count > 4 ? Object?.values?.(et?.entryData)?.splice?.(0, 5) : et?.entryData;
+    const ctData = et?.count > 4 ? Object?.values?.(et?.entryData)?.splice?.(0, 5) : Object?.values?.(et?.entryData);
     ctData?.forEach?.((entItem: any) => {
       entryObj[entItem?.uid] = entItem;
     })
