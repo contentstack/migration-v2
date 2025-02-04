@@ -361,6 +361,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // useEffect for rendering mapped fields with existing stack
   useEffect(() => {
+
     
     if (newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || ''] === otherContentType?.id) {
       tableData?.forEach((row) => {
@@ -1096,7 +1097,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     )
     
     if(groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
-       for(const item of groupArray[0].child){
+       for(const item of groupArray[0]?.child ?? []){
         deletedExstingField[item?.uid] = {
           label:item?.uid,
           value:existingField[item?.uid]
@@ -1274,7 +1275,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         ? existingLabel?.split('>')?.pop()?.trim()
         : existingLabel;
 
-      if(value.display_name === lastLabelSegment)
+      if(value?.display_name === lastLabelSegment)
       {
           // Process nested schemas within the current group
           for (const item of array) {
@@ -1283,7 +1284,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               for (const key of existingField[groupArray[0]?.uid]?.value?.schema || []) {
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
-                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || '', `${uid}.${key?.uid}`));
+                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key?.display_name}` || '', `${uid}.${key?.uid}`));
                 }
       
                 // Recursively process nested groups
@@ -1340,9 +1341,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     };
   
     const fieldsOfContentstack: Mapping = {
-      'Single Line Textbox': 'text',
-      'Single-Line Text': 'text',
+      'single_line_text': 'text',
+      'url': 'text',
       'text': 'text',
+      'json': 'allow_rich_text',
       'Multi-Line Text': 'multiline',
       'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
@@ -1476,7 +1478,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     } else {
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
-    }
+    }    
 
     
    
@@ -1496,7 +1498,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             isDisabled: data?.contentstackFieldType === 'text' ||
               data?.contentstackFieldType === 'group' ||
               data?.contentstackFieldType === 'url' ||
-              data?.otherCmsType === "reference" || 
+              data?.backupFieldType === "reference" || 
               data?.contentstackFieldType === "global_field" ||
               data?.contentstackFieldType === "dropdown" ||
               data?.otherCmsType === undefined
