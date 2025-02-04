@@ -80,27 +80,32 @@ const Fields: MappingFields = {
       'Single Line Textbox':'single_line_text',
       'Multi Line Textbox':'multi_line_text',
       'HTML Rich text Editor':'html',
-      'JSON Rich Text Editor':'json'}
+      'JSON Rich Text Editor':'json'},
+    type : 'text'
   },
   'multi_line_text':{
     label : 'Multi Line Textbox',
     options : {
       'Multi Line Textbox': 'multi_line_text',
       'HTML Rich text Editor': 'html',
-      'JSON Rich Text Editor':'json'}
+      'JSON Rich Text Editor':'json'},
+    type: 'multiline'
   },
   'json':{
     label:'JSON Rich Text Editor',
     options : {
       'JSON Rich Text Editor':'json',
       'HTML Rich text Editor': 'html'
-    }
+    },
+    type: 'json',
   },
   'html':{
     label : 'HTML Rich text Editor',
     options : {
       'HTML Rich text Editor': 'html',
-      'JSON Rich Text Editor':'json'}
+      'JSON Rich Text Editor':'json'
+    },
+    type:'allow_rich_text'
 
   },
   'markdown':{
@@ -108,73 +113,93 @@ const Fields: MappingFields = {
     options : {
       'Markdown':'markdown',
       'HTML Rich text Editor':'html',
-      'JSON Rich Text Editor':'json'}
+      'JSON Rich Text Editor':'json'
+    },
+    type: 'markdown'
   },
   'text':{
     label : 'Single Line Textbox',
-    options: {'Single Line Textbox':'single_line_text'}
+    options: {
+      'Single Line Textbox':'single_line_text'
+    },
+    type:''
   },
   'url': {
     label: 'URL',
-    options:{'URL':'url'}
+    options:{'URL':'url'},
+    type: ''
   },
   'file': {
     label:'File',
     options: {
       'File':'file'
-    }
+    },
+    type: 'file',
   },
   'number': { 
     label:'Number',
     options: {
       'Number':'number'
-    }
+    },
+    type: 'number'
   },
   'isodate': { label :'Date',
     options: {
       'Date':'isodate'
-    }
+    },
+    type: 'isodate'
   },
   'boolean': {
     label: 'Boolean',
     options: {
       'Boolean':'boolean'
-    }
+    },
+    type: 'boolean',
   },
   'link': {
     label:'Link',
     options: {
       'Link':'link'
-    }
+    },
+    type: 'link',
   },
   'reference':{
     label: 'Reference',
     options: {
       'Reference':'reference'
-    }
+    },
+    type: 'reference',
   },
   'dropdown': {
     label:'Dropdown',
     options: {
       'Dropdown':'dropdown'
-    }
+    },
+    type: 'enum',
   },
   'radio': {
     label :'Select',
     options: {
       'Select':'select'
-    }
+    },
+    type: 'enum',
   },
   'checkbox': {
     label:'Select',
-    options: {'Select':'checkbox'}
+    options: {
+      'Select':'checkbox'
+    },
+    type:'boolean'
   },
   'global_field':{
     label : 'Global',
-    options: {'Global':'global_field'}},
+    options: {'Global':'global_field'},
+    type: ""
+  },
   'group': {
     label: 'Group',
-    options: {'Group':'group'}
+    options: {'Group':'group'},
+    type:'Group'
   }
 
 }
@@ -336,6 +361,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // useEffect for rendering mapped fields with existing stack
   useEffect(() => {
+
     
     if (newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || ''] === otherContentType?.id) {
       tableData?.forEach((row) => {
@@ -846,7 +872,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     // Get the latest action performed row 
     const latestRow = findLatest(rowHistoryObj);
 
-    if(latestRow?.otherCmsType?.toLowerCase() === "group" && latestRow?.parentId === '') {
+    if(latestRow?.otherCmsType?.toLowerCase() === "group" && latestRow?.parentId === null){
       // get all child rows of group
       const childItems = selectedEntries?.filter((entry) => entry?.uid?.startsWith(latestRow?.uid + '.'));
       if (childItems && validateArray(childItems)) {
@@ -1069,9 +1095,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     const groupArray = nestedList.filter(item => 
       item?.child?.some(e => e?.id)
     )
-
-    if(groupArray[0].child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
-       for(const item of groupArray[0].child){
+    
+    if(groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
+       for(const item of groupArray[0]?.child ?? []){
         deletedExstingField[item?.uid] = {
           label:item?.uid,
           value:existingField[item?.uid]
@@ -1216,6 +1242,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         return value?.data_type === 'boolean';
       case 'link':
         return value?.data_type === 'link';
+      case 'markdown':
+        return value?.field_metadata?.markdown === true;
       default:
         return false;
     }
@@ -1247,16 +1275,16 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         ? existingLabel?.split('>')?.pop()?.trim()
         : existingLabel;
 
-      if(value.display_name === lastLabelSegment)
+      if(value?.display_name === lastLabelSegment)
       {
           // Process nested schemas within the current group
           for (const item of array) {
-            const fieldTypeToMatch = fieldsOfContentstack[item?.otherCmsType as keyof Mapping];
+            const fieldTypeToMatch = Fields[item?.backupFieldType as keyof Mapping]?.type;
             if (item.id === data?.id) {
               for (const key of existingField[groupArray[0]?.uid]?.value?.schema || []) {
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
-                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || '', `${uid}.${key?.uid}`));
+                  OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key?.display_name}` || '', `${uid}.${key?.uid}`));
                 }
       
                 // Recursively process nested groups
@@ -1278,7 +1306,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     } 
    else {
  
-      const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
+      const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
       if (!array.some((item : FieldMapType) => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
         OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName || '',uid ?? ''));
       }
@@ -1313,9 +1341,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     };
   
     const fieldsOfContentstack: Mapping = {
-      'Single Line Textbox': 'text',
-      'Single-Line Text': 'text',
+      'single_line_text': 'text',
+      'url': 'text',
       'text': 'text',
+      'json': 'allow_rich_text',
       'Multi-Line Text': 'multiline',
       'multiline': 'multiline',
       'HTML Rich text Editor': 'allow_rich_text',
@@ -1349,8 +1378,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     }
   
     if (contentTypeSchema && validateArray(contentTypeSchema)) {
-      const fieldTypeToMatch = fieldsOfContentstack[data?.otherCmsType as keyof Mapping];
-       
+      const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
       //check if UID of souce field is matching to exsting content type field UID
       for (const value of contentTypeSchema) {
         if (data?.uid === value?.uid || (data?.uid === value?.uid && data?.otherCmsType === value?.data_type)) {
@@ -1450,9 +1478,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     } else {
       option = [{ label: OptionsForEachRow, value: OptionsForEachRow }];
-    }
+    }    
 
-    console.log("data====", data, OptionsForRow);
     
    
     const OptionValue: FieldTypes =
@@ -1471,7 +1498,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             isDisabled: data?.contentstackFieldType === 'text' ||
               data?.contentstackFieldType === 'group' ||
               data?.contentstackFieldType === 'url' ||
-              data?.otherCmsType === "reference" || 
+              data?.backupFieldType === "reference" || 
               data?.contentstackFieldType === "global_field" ||
               data?.contentstackFieldType === "dropdown" ||
               data?.otherCmsType === undefined
