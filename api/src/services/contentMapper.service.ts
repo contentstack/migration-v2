@@ -57,7 +57,7 @@ const putTestData = async (req: Request) => {
     });
 
     FieldMapperModel.update((data: any) => {
-      data.field_mapper = [...(data?.field_mapper ?? []), ...fields];
+      data.field_mapper = [...(data?.field_mapper ?? []), ...(fields ?? [])];
     });
     contentTypes[index].fieldMapping = fieldIds;
   });

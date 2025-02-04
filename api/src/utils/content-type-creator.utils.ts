@@ -630,7 +630,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           title: extractValue(element?.contentstackField, item?.contentstackField, ' >')?.trim(),
         }
         const schema: any = convertToSchemaFormate({ field });
-        if (typeof schema === 'object' && Array.isArray(group?.schema)) {
+        if (typeof schema === 'object' && Array.isArray(group?.schema) && element?.isDeleted === false) {
           group.schema.push(schema);
         }
       })
@@ -643,7 +643,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           uid: item?.contentstackFieldUid
         }
       });
-      if (dt) {
+      if (dt && item?.isDeleted === false) {
         ct?.schema?.push(dt);
       }
     }
