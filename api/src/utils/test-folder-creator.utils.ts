@@ -224,15 +224,15 @@ const writeGlobalField = async (schema: any, globalSave: string, filePath: strin
 const sortGlobalField = async (baseDir: string, finalData: any) => {
   const globalSave = path.join(process.cwd(), baseDir, GLOBAL_FIELDS_DIR_NAME);
   const globalPath = path.join(globalSave, GLOBAL_FIELDS_FILE_NAME);
-  if(fs.existsSync(globalPath)){
+  if (fs.existsSync(globalPath)) {
     const globalData = await JSON.parse(await fs.promises.readFile(globalPath, 'utf8'));
-  const globalResult = [];
-  for await (const ct of globalData) {
-    await lookForReference(ct, finalData);
-    globalResult?.push(ct);
+    const globalResult = [];
+    for await (const ct of globalData) {
+      await lookForReference(ct, finalData);
+      globalResult?.push(ct);
+    }
+    await writeGlobalField(globalResult, globalPath, globalPath);
   }
-  await writeGlobalField(globalResult, globalPath, globalPath);
-}
 }
 
 const sortContentType = async (baseDir: string, finalData: any) => {
@@ -271,12 +271,12 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
       }
     }
   }
-  const sortData = allData.sort((a, b) => b?.count - a?.count).slice?.(1, 4);
+  const sortData = allData?.length > 3 ? allData.sort((a, b) => b?.count - a?.count).slice?.(1, 4) : allData;
   const finalData: any = [];
   sortData.forEach((et: any) => {
     const entryObj: any = {};
-    const ctData = Object?.values?.(et?.entryData)?.splice?.(0, 5);
-    ctData?.forEach((entItem: any) => {
+    const ctData = et?.count > 4 ? Object?.values?.(et?.entryData)?.splice?.(0, 5) : Object?.values?.(et?.entryData);
+    ctData?.forEach?.((entItem: any) => {
       entryObj[entItem?.uid] = entItem;
     })
     finalData?.push({ contentType: et?.contentType, entryObj, locale: et?.locale });
