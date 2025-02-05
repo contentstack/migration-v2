@@ -672,7 +672,7 @@ const resetToInitialMapping = async (req: Request) => {
 
   try {
     if (!isEmpty(fieldMappingData)) {
-      await FieldMapperModel.read();
+      //await FieldMapperModel.read();
       (fieldMappingData || []).forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) => f?.id === field?.id
