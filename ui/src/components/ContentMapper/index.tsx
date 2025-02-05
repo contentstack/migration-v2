@@ -279,6 +279,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const [isFieldDeleted, setIsFieldDeleted] = useState<boolean>(false);
   const [isContentDeleted, setIsContentDeleted] = useState<boolean>(false);
   const [isCsCTypeUpdated, setsCsCTypeUpdated] = useState<boolean>(false);
+  const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
 
 
   /** ALL HOOKS Here */
@@ -368,6 +369,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         contentTypeSchema?.forEach((schema) => {
           
           if (row?.contentstackField === schema?.display_name) {
+            if (!updatedSelectedOptions.includes(schema?.display_name)) {
+              updatedSelectedOptions.push(schema?.display_name);  
+            }
             updatedExstingField[row?.uid] = {
               label: schema?.display_name,
               value: schema
@@ -379,6 +383,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             schema?.schema?.forEach((childSchema) => {
               if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`) {
                 if(!isFieldDeleted) {
+                  if (!updatedSelectedOptions.includes(`${schema?.display_name} > ${childSchema?.display_name}`)) {
+                    updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name}`);  
+                  }
                   updatedExstingField[row?.uid] = {
                     label: `${schema?.display_name} > ${childSchema?.display_name}`,
                     value: childSchema
@@ -391,6 +398,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 childSchema?.schema?.forEach((nestedSchema) => {
                   if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`) {
                     if(!isFieldDeleted) {
+                      if (!updatedSelectedOptions.includes(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`)) {
+                        updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`);  
+                      }
                       updatedExstingField[row?.uid] = {
                         label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`,
                         value: nestedSchema
@@ -403,6 +413,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                     nestedSchema?.schema?.forEach((nestedChild) => {
                       if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`) {
                         if(!isFieldDeleted) {
+                          if (!updatedSelectedOptions.includes(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`)) {
+                            updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`);  
+                          }
                           updatedExstingField[row?.uid] = {
                             label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`,
                             value: nestedChild
@@ -417,7 +430,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           }
         });
       });
-      
+      setSelectedOptions(updatedSelectedOptions);
       setExistingField(updatedExstingField);
     }
   }, [tableData, otherContentType]);
@@ -478,7 +491,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       contentTypeSchema?.forEach((item) => {
         for (const [key, value] of Object.entries(existingField)) {
           if (value?.value?.uid === item?.uid) {
-
+            if (!updatedSelectedOptions.includes(item?.display_name)) {
+              updatedSelectedOptions.push(item?.display_name);  
+            }
+            setSelectedOptions(updatedSelectedOptions);
             setExistingField((prevOptions: ExistingFieldType) => ({
               ...prevOptions,
               [key]: { label: item?.display_name, value: item },
@@ -487,6 +503,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           if (item?.data_type === "group" && Array.isArray(item?.schema)) {
             item.schema.forEach((schemaItem) => {
               if (value?.value?.uid === schemaItem?.uid) {
+                if (!updatedSelectedOptions.includes(`${item?.display_name} > ${schemaItem?.display_name}`)) {
+                  updatedSelectedOptions.push(`${item?.display_name} > ${schemaItem?.display_name}`);  
+                }
+                setSelectedOptions(updatedSelectedOptions);
                 setExistingField((prevOptions: ExistingFieldType) => ({
                   ...prevOptions,
                   [key]: { label: `${item?.display_name} > ${schemaItem?.display_name}`, value: schemaItem },
@@ -1567,6 +1587,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
  
   const handleSaveContentType = async () => {
+    setisLoadingSaveButton(true);
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
     if (
@@ -1605,6 +1626,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         );
 
         if (data?.status == 200) {
+          setisLoadingSaveButton(false);
           Notification({
             notificationContent: { text: 'Content type saved successfully' },
             notificationProps: {
@@ -1704,7 +1726,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     setIsDropDownChanged(false);
    
     const updatedRows: FieldMapType[] = tableData.map((row) => {
-      return { ...row, contentstackFieldType: row?.backupFieldType };
+      return { ...row, 
+        contentstackFieldType: row?.backupFieldType,
+        contentstackField: row?.otherCmsField,
+        contentstackFieldUid: row?.uid,
+
+      };
     });
     setTableData(updatedRows);
     setSelectedEntries(updatedRows);
@@ -1755,14 +1782,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           );
           setFilteredContentTypes(resetCT);
           setContentTypes(resetCT);
-
-          try {
-            await updateContentMapper(orgId, projectID, {...newstate} );
-          } catch (err) {
-            console.log(err);
-            return err;
-          }
-              
           Notification({
             notificationContent: { text: data?.message },
             notificationProps: {
@@ -1771,6 +1790,15 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             },
             type: 'success'
           });
+
+          try {
+            await updateContentMapper(orgId, projectID, {...newstate} );
+          } catch (err) {
+            console.log(err);
+            return err;
+          }
+              
+          
         }
       } catch (error) {
         console.log(error);
@@ -2316,6 +2344,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 onClick={handleSaveContentType}
                 version="v2"
                 disabled={newMigrationData?.project_current_step > 4}
+                isLoading={isLoadingSaveButton}
                 >
                 Save
               </Button>
