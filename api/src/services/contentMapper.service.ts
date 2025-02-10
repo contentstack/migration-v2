@@ -390,18 +390,18 @@ const getExistingGlobalFields = async (req: Request) => {
         })
       );
 
-      if (err) {
-        throw new Error(
-          `Error fetching selected global field: ${
-            err.response?.data || err.message
-          }`
-        );
-      }
+      // if (err) {
+      //   throw new Error(
+      //     `Error fetching selected global field: ${
+      //       err.response?.data || err.message
+      //     }`
+      //   );
+      // }
 
       selectedGlobalField = {
-        title: res.data.global_field?.title,
-        uid: res.data.global_field?.uid,
-        schema: res.data.global_field?.schema,
+        title: res?.data?.global_field?.title,
+        uid: res?.data?.global_field?.uid,
+        schema: res?.data?.global_field?.schema,
       };
     }
 
