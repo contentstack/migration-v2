@@ -18,7 +18,7 @@ $ npm install -g @contentstack/cli-auth
 $ csdx COMMAND
 running command...
 $ csdx (--version)
-@contentstack/cli-auth/1.3.20 darwin-arm64 node-v21.6.1
+@contentstack/cli-auth/1.3.20 darwin-arm64 node-v20.9.0
 $ csdx --help [COMMAND]
 USAGE
   $ csdx COMMAND
