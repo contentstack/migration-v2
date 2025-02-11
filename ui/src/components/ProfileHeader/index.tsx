@@ -19,6 +19,7 @@ const ProfileCard = () => {
       navigate('/', { replace: true });
     }
   };
+  
   return (
     <div className="profile-card">
       <div className='profile-gray-background'/>
@@ -30,10 +31,8 @@ const ProfileCard = () => {
         <div className="profile-card__email">{user?.email}</div>
       </div>
 
-      <div className="profile-card__email">Region: {user?.region?.replaceAll('_', '-')?.toLowerCase()}</div>
-      <div>
-
-      </div>
+      <div className="profile-card__email">Region: {user?.region?.replaceAll('_', '-')}</div>
+      
       <div
         className="profile-card__logout"
         role="button"
