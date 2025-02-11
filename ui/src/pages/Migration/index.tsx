@@ -364,12 +364,18 @@ const Migration = () => {
       });
       const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
       
-      handleStepChange(1);
       if (res?.status === 200) {
         setIsLoading(false);
-
+        handleStepChange(1);
         const url = `/projects/${projectId}/migration/steps/2`;
         navigate(url, { replace: true });
+      }
+      else{   
+        setIsLoading(false);
+        Notification({
+          notificationContent: { text: res?.data?.error?.message},
+          type: 'error'
+        });
       }
     }
     else {
@@ -428,6 +434,13 @@ const Migration = () => {
         const url = `/projects/${projectId}/migration/steps/3`;
         navigate(url, { replace: true });
       }
+      else{   
+        setIsLoading(false);
+        Notification({
+          notificationContent: { text: res?.data?.error?.message},
+          type: 'error'
+        });
+      }
     } else{
       setIsLoading(false);
       Notification({
@@ -484,14 +497,14 @@ const Migration = () => {
   const handleOnClickTestMigration = async () => {
     setIsLoading(false);
 
-    const url = `/projects/${projectId}/migration/steps/5`;
-    navigate(url, { replace: true });
 
     await updateMigrationKey(selectedOrganisation.value, projectId);
 
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
     if(res?.status === 200){
       handleStepChange(4);
+      const url = `/projects/${projectId}/migration/steps/5`;
+      navigate(url, { replace: true });
     }
 
   }
