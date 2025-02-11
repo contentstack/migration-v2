@@ -39,6 +39,7 @@
   color: #6E6B86;
   font-size: $size-font-small;
   line-height: $line-height-default;
+  padding-top: 2px;
 }
 
 .profile-card__logout {
@@ -47,7 +48,7 @@
   cursor: pointer;
   color: #2c3e50;
   font-size: 14px;
-  height:56px;
+  height: 50px;
 }
 
 .profile-card__logout-icon {
