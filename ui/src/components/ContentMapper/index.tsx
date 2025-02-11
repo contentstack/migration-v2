@@ -502,7 +502,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           }
           if (item?.data_type === "group" && Array.isArray(item?.schema)) {
             item.schema.forEach((schemaItem) => {
-              if (value?.value?.uid === schemaItem?.uid) {
+
+              if (value?.value?.uid === schemaItem?.uid && value?.label === `${item?.display_name} > ${schemaItem?.display_name}`) {
                 if (!updatedSelectedOptions.includes(`${item?.display_name} > ${schemaItem?.display_name}`)) {
                   updatedSelectedOptions.push(`${item?.display_name} > ${schemaItem?.display_name}`);  
                 }
@@ -513,7 +514,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 }));
               }
               else if(! item?.schema?.some(
-                (schema) => schema?.uid === existingField[key]?.value?.uid) ){
+                (schema) => schema?.uid === existingField[key]?.value?.uid) && existingField[key]?.value?.data_type !== 'group' && existingField[key]?.label?.includes(item?.display_name) ){
                 
                 setExistingField((prevOptions: ExistingFieldType) => {
                   const { [key]: _, ...rest } = prevOptions; // Destructure to exclude the key to remove
@@ -647,18 +648,18 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // Method to get fieldmapping
   const fetchFields = async (contentTypeId: string, searchText: string) => {
     try {
-      const { data } = await getFieldMapping(contentTypeId || '', 0, 1000, searchText || '', projectId);
-
       const itemStatusMap: ItemStatusMapProp = {};
 
-      for (let index = 0; index <= 30; index++) {
+      for (let index = 0; index <= 1000; index++) {
         itemStatusMap[index] = 'loading';
       }
 
       setItemStatusMap(itemStatusMap);
 
+      const { data } = await getFieldMapping(contentTypeId || '', 0, 1000, searchText || '', projectId);
 
-      for (let index = 0; index <= 30; index++) {
+
+      for (let index = 0; index <= 1000; index++) {
         itemStatusMap[index] = 'loaded';
       }
 
@@ -1063,7 +1064,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.otherCmsType === "Group" ||
               data?.otherCmsField === 'title' ||
               data?.otherCmsField === 'url' ||
-              data?.otherCmsType === 'reference'||
+              data?.backupFieldType === 'reference'||
               data?.contentstackFieldType === "global_field" ||
               data?.otherCmsType === undefined ||
               newMigrationData?.project_current_step > 4
@@ -1125,7 +1126,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         }
         setIsFieldDeleted(true);
         const index = selectedOptions?.indexOf(existingField[item?.uid]?.value?.label);
-
+        
         if(index > -1){
           selectedOptions.splice(index,1 );
         }
@@ -1987,6 +1988,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             },
             type: 'success'
           });
+
+          if (data?.selectedGlobalField?.schema?.length > 0) {
+            setContentTypeSchema(data?.selectedGlobalField?.schema);
+          }
         } else {
 
           Notification({
