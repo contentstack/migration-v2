@@ -356,3 +356,5 @@ ui/.env
 upload-api/sitecoreMigrationData
 upload-api/cmsMigrationData
 upload-api/extracted_files
+
+pnpm-lock.yaml
