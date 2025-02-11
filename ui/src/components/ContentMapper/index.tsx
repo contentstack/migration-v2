@@ -665,13 +665,13 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
       setItemStatusMap({ ...itemStatusMap });
       
-      const newTableData = data?.fieldMapping?.filter((field: FieldMapType) => field !== null)
+      const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
       
-      setTableData(newTableData || []);
-      setTotalCounts(data?.count);
-      setInitialRowSelectedData(newTableData.filter((item: FieldMapType) => !item.isDeleted))
+      setTableData(validTableData || []);
+      setTotalCounts(validTableData?.length);
+      setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item.isDeleted))
       setIsLoading(false);
-      generateSourceGroupSchema(data?.fieldMapping);
+      generateSourceGroupSchema(validTableData?.fieldMapping);
     } catch (error) {
       console.error('fetchData -> error', error);
     }
@@ -704,9 +704,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
 
       setItemStatusMap({ ...updateditemStatusMapCopy });
+
+      const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined)
+
       // eslint-disable-next-line no-unsafe-optional-chaining
-      setTableData([...tableData, ...data?.fieldMapping ?? tableData]);
-      setTotalCounts(data?.count);
+      setTableData([...tableData, ...validTableData ?? tableData]);
+      setTotalCounts([...tableData, ...validTableData ?? tableData]?.length);
       setIsLoading(false)
     } catch (error) {
       console.log('loadMoreItems -> error', error);
@@ -893,7 +896,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     // Get the latest action performed row 
     const latestRow = findLatest(rowHistoryObj);
 
-    if(latestRow?.otherCmsType?.toLowerCase() === "group" && latestRow?.parentId === null){
+    if(latestRow?.otherCmsType?.toLowerCase() === "group" && latestRow?.parentId === '') {
       // get all child rows of group
       const childItems = selectedEntries?.filter((entry) => entry?.uid?.startsWith(latestRow?.uid + '.'));
       if (childItems && validateArray(childItems)) {
