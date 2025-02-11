@@ -4,16 +4,16 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "preinstall": "npx pnpm -v || npm install -g pnpm",
-    "postinstall": "npm-run-all --parallel install:api install:ui install:upload-api install:cli",
+    "preinstall": "pnpm store prune && pnpm store clean && npx pnpm -v || (npm install -g pnpm && corepack enable)",
+    "postinstall": "npm-run-all install:api install:ui install:upload-api && npm run install:cli",
     "install:api": "cd ./api && npm install --force",
     "install:ui": "cd ./ui && npm install --force",
     "install:upload-api": "cd ./upload-api && npm install --force",
     "install:cli": "cd ./cli && npm run cache:clear && npm run clean && npm run setup-repo",
     "env": "npm start",
-    "api": "cd ./api && npm run dev",
-    "upload": "cd ./upload-api && npm start",
-    "ui": "cd ./ui && npm start",
+    "api": "cd ./api && pnpm run dev",
+    "upload": "cd ./upload-api && pnpm start",
+    "ui": "cd ./ui && pnpm start",
     "start": "node index.js"
   },
   "repository": {
@@ -31,7 +31,8 @@
     "prettier": "^2.4.1",
     "rimraf": "^3.0.2",
     "validate-branch-name": "^1.3.0",
-    "npm-run-all": "^4.1.5"
+    "npm-run-all": "^4.1.5",
+    "pnpm": "^9.0.0"
   },
   "husky": {
     "hooks": {}
