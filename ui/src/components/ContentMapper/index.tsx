@@ -493,8 +493,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           }
           if (item?.data_type === "group" && Array.isArray(item?.schema)) {
             item.schema.forEach((schemaItem) => {
-              if (value?.value?.uid === schemaItem?.uid) {
-                if (!updatedSelectedOptions?.includes(`${item?.display_name} > ${schemaItem?.display_name}`)) {
+
+              if (value?.value?.uid === schemaItem?.uid && value?.label === `${item?.display_name} > ${schemaItem?.display_name}`) {
+                if (!updatedSelectedOptions.includes(`${item?.display_name} > ${schemaItem?.display_name}`)) {
                   updatedSelectedOptions.push(`${item?.display_name} > ${schemaItem?.display_name}`);  
                 }
                 setSelectedOptions(updatedSelectedOptions);
@@ -504,7 +505,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 }));
               }
               else if(! item?.schema?.some(
-                (schema) => schema?.uid === existingField[key]?.value?.uid) ){
+                (schema) => schema?.uid === existingField[key]?.value?.uid) && existingField[key]?.value?.data_type !== 'group' && existingField[key]?.label?.includes(item?.display_name) ){
                 
                 setExistingField((prevOptions: ExistingFieldType) => {
                   const { [key]: _, ...rest } = prevOptions; // Destructure to exclude the key to remove
@@ -645,22 +646,22 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
 
       setItemStatusMap(itemStatusMap);
-      // setIsLoading(true);
 
       const { data } = await getFieldMapping(contentTypeId || '', 0, 1000, searchText || '', projectId);
 
-      for (let index = 0; index <= data?.count; index++) {
+
+      for (let index = 0; index <= 1000; index++) {
         itemStatusMap[index] = 'loaded';
       }
 
       setItemStatusMap({ ...itemStatusMap });
-      setIsLoading(false);
       
-      const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined)
+      const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
       
       setTableData(validTableData || []);
       setTotalCounts(validTableData?.length);
       setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item.isDeleted))
+      setIsLoading(false);
       generateSourceGroupSchema(data?.fieldMapping);
     } catch (error) {
       console.error('fetchData -> error', error);
@@ -683,7 +684,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
 
       setItemStatusMap({ ...itemStatusMapCopy });
-      // setIsLoading(true);
+      setLoading(true);
 
       const { data } = await getFieldMapping(contentTypeUid || '', skip, limit, searchText || '', projectId);
       
@@ -1056,7 +1057,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.otherCmsType === "Group" ||
               data?.otherCmsField === 'title' ||
               data?.otherCmsField === 'url' ||
-              data?.otherCmsType === 'reference'||
+              data?.backupFieldType === 'reference'||
               data?.contentstackFieldType === "global_field" ||
               newMigrationData?.project_current_step > 4
             }
@@ -1116,7 +1117,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         }
         setIsFieldDeleted(true);
         const index = selectedOptions?.indexOf(existingField[item?.uid]?.value?.label);
-
+        
         if(index > -1){
           selectedOptions?.splice(index,1 );
         }
@@ -1978,6 +1979,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             },
             type: 'success'
           });
+
+          if (data?.selectedGlobalField?.schema?.length > 0) {
+            setContentTypeSchema(data?.selectedGlobalField?.schema);
+          }
         } else {
 
           Notification({
