@@ -4,12 +4,18 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "(cd ./api && npm install --force) ; (cd ./ui && npm install --force) ; (cd ./upload-api && npm install --force)",
+    "preinstall": "pnpm store prune && pnpm store clean && pnpm -v || npm install -g pnpm",
+    "postinstall": "npm-run-all install:api install:ui install:upload-api && npm run install:cli",
+    "install:api": "cd ./api && npm install --force",
+    "install:ui": "cd ./ui && npm install --force",
+    "install:upload-api": "cd ./upload-api && npm install --force",
+    "install:cli": "cd ./cli && npm run cache:clear && npm run clean && npm run setup-repo",
     "env": "npm start",
     "api": "cd ./api && npm run dev",
     "upload": "cd ./upload-api && npm start",
     "ui": "cd ./ui && npm start",
-    "start": "node index.js"
+    "start": "node index.js",
+    "clean-repo": "rimraf \"package-lock.json\" \"node_modules\" \"packages/**/node_modules\" \"packages/**/.nyc_output\" \"packages/**/package-lock.json\""
   },
   "repository": {
     "type": "git",
@@ -25,7 +31,9 @@
     "husky": "^4.3.8",
     "prettier": "^2.4.1",
     "rimraf": "^3.0.2",
-    "validate-branch-name": "^1.3.0"
+    "validate-branch-name": "^1.3.0",
+    "npm-run-all": "^4.1.5",
+    "pnpm": "^9.0.0"
   },
   "husky": {
     "hooks": {}
