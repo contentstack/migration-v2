@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "preinstall": "pnpm store prune && pnpm store clean && npx pnpm -v || (npm install -g pnpm && corepack enable)",
+    "preinstall": "pnpm store prune && pnpm store clean && (command -v pnpm >/dev/null 2>&1 || npm install -g pnpm)",
     "postinstall": "npm-run-all install:api install:ui install:upload-api && npm run install:cli",
     "install:api": "cd ./api && npm install --force",
     "install:ui": "cd ./ui && npm install --force",
