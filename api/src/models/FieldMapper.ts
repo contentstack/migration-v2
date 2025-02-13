@@ -36,6 +36,7 @@ interface FieldMapper {
     contentstackFieldType: string;
     isDeleted: boolean;
     backupFieldType: string;
+    backupFieldUid: string
     refrenceTo: { uid: string; title: string };
     advanced: Advanced;
   }[];
