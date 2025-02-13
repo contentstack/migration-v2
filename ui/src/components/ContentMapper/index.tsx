@@ -655,10 +655,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
 
       setItemStatusMap(itemStatusMap);
-
+      
       const { data } = await getFieldMapping(contentTypeId || '', 0, 1000, searchText || '', projectId);
 
-
+      
       for (let index = 0; index <= 1000; index++) {
         itemStatusMap[index] = 'loaded';
       }
@@ -1733,7 +1733,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       return { ...row, 
         contentstackFieldType: row?.backupFieldType,
         contentstackField: row?.otherCmsField,
-        contentstackFieldUid: row?.uid,
+        contentstackFieldUid: row?.backupFieldUid,
 
       };
     });
