@@ -682,7 +682,7 @@ const resetToInitialMapping = async (req: Request) => {
             data.field_mapper[fieldIndex] = {
               ...field,
               contentstackField: field?.otherCmsField,
-              contentstackFieldUid: field?.uid,
+              contentstackFieldUid: field?.backupFieldUid,
               contentstackFieldType: field?.backupFieldType,
             };
           });
