@@ -390,18 +390,18 @@ const getExistingGlobalFields = async (req: Request) => {
         })
       );
 
-      if (err) {
-        throw new Error(
-          `Error fetching selected global field: ${
-            err.response?.data || err.message
-          }`
-        );
-      }
+      // if (err) {
+      //   throw new Error(
+      //     `Error fetching selected global field: ${
+      //       err.response?.data || err.message
+      //     }`
+      //   );
+      // }
 
       selectedGlobalField = {
-        title: res.data.global_field?.title,
-        uid: res.data.global_field?.uid,
-        schema: res.data.global_field?.schema,
+        title: res?.data?.global_field?.title,
+        uid: res?.data?.global_field?.uid,
+        schema: res?.data?.global_field?.schema,
       };
     }
 
@@ -672,7 +672,7 @@ const resetToInitialMapping = async (req: Request) => {
 
   try {
     if (!isEmpty(fieldMappingData)) {
-      await FieldMapperModel.read();
+      //await FieldMapperModel.read();
       (fieldMappingData || []).forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) => f?.id === field?.id
@@ -682,7 +682,7 @@ const resetToInitialMapping = async (req: Request) => {
             data.field_mapper[fieldIndex] = {
               ...field,
               contentstackField: field?.otherCmsField,
-              contentstackFieldUid: field?.uid,
+              contentstackFieldUid: field?.backupFieldUid,
               contentstackFieldType: field?.backupFieldType,
             };
           });
