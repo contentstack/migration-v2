@@ -1,4 +1,11 @@
 export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA"];
+export const DEVURLS: any = {
+  'NA': 'developerhub-api.contentstack.com',
+  'EU': 'eu-developerhub-api.contentstack.com',
+  'AZURE_NA': 'azure-na-developerhub-api.contentstack.com',
+  'AZURE_EU': 'azure-eu-developerhub-api.contentstack.com',
+  'GCP_NA': 'gcp-na-developerhub-api.contentstack.com',
+}
 export const CMS = {
   CONTENTFUL: "contentful",
   SITECORE_V8: "sitecore v8",
@@ -176,6 +183,11 @@ export const LOCALE_MAPPER: any = {
 }
 export const CHUNK_SIZE = 1048576;
 
+export const KEYTOREMOVE = [
+  "update", "fetch", "delete", "oauth", "hosting", "install", "reinstall",
+  "upgrade", "getRequests", "authorize", "authorization", "listInstallations"
+]
+
 export const MIGRATION_DATA_CONFIG = {
   DATA: "./cmsMigrationData",
 
@@ -196,10 +208,12 @@ export const MIGRATION_DATA_CONFIG = {
   ENVIRONMENTS_FILE_NAME: "environments.json",
 
   CONTENT_TYPES_DIR_NAME: "content_types",
+  EXTENSIONS_MAPPER_DIR_NAME: "extension-mapper.json",
   CONTENT_TYPES_FILE_NAME: "contenttype.json",
   CONTENT_TYPES_MASTER_FILE: "contenttypes.json",
   CONTENT_TYPES_SCHEMA_FILE: "schema.json",
-
+  MARKETPLACE_APPS_DIR_NAME: "marketplace_apps",
+  MARKETPLACE_APPS_FILE_NAME: "marketplace_apps.json",
   REFERENCES_DIR_NAME: "reference",
   REFERENCES_FILE_NAME: "reference.json",
 
@@ -217,9 +231,9 @@ export const MIGRATION_DATA_CONFIG = {
   ENTRIES_DIR_NAME: "entries",
   ENTRIES_MASTER_FILE: "index.json",
 
-  AUTHORS_DIR_NAME : "authors",
-  AUTHORS_FILE_NAME : "en-us.json",
-  AUTHORS_MASTER_FILE : "authors.json",
+  AUTHORS_DIR_NAME: "authors",
+  AUTHORS_FILE_NAME: "en-us.json",
+  AUTHORS_MASTER_FILE: "authors.json",
 
   CATEGORIES_DIR_NAME: "categories",
   CATEGORIES_FILE_NAME: "en-us.json",
