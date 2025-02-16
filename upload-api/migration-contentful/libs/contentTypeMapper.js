@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 const restrictedUid = require('../utils/restrictedKeyWords');
+const appDetails = require('../utils/apps/appDetails.json')
 
 /**
  * Corrects the UID by applying a custom affix and sanitizing the string.
@@ -68,13 +69,13 @@ const extractAdvancedFields = (
   return {
     default_value: defaultText,
     validationRegex: regrexValue,
-    mandatory: ["title", "url"].includes(item.id)? true : item?.required,
+    mandatory: ["title", "url"].includes(item.id) ? true : item?.required,
     multiple: singleRef,
     unique: uniqueValue,
     nonLocalizable: !(item?.localized === true),
     validationErrorMessage: validationErrorMessage,
     embedObjects: referenceFields.length ? referenceFields : undefined,
-    description:description,
+    description: description,
   };
 };
 
@@ -131,7 +132,7 @@ const createDropdownOrRadioFieldObject = (item, fieldType) => {
     choices.push({ value: 'value', key: 'key' });
   } else {
     item.validations.forEach((valid) => {
-      valid.in?.forEach((value) => choices.push({ value: ["Symbol","Text","Array" ].includes(item.type) ? `${value}`: value, key: `${value}` }));
+      valid.in?.forEach((value) => choices.push({ value: ["Symbol", "Text", "Array"].includes(item.type) ? `${value}` : value, key: `${value}` }));
     });
   }
   return {
@@ -188,6 +189,10 @@ const contentTypeMapper = (data) => {
           case 'radio':
             acc.push(createDropdownOrRadioFieldObject(item, item.widgetId));
             break;
+          case 'tagEditor':
+          case 'listInput':
+            console.info('tag', item);
+            break;
         }
         break;
       case 'Integer':
@@ -217,12 +222,15 @@ const contentTypeMapper = (data) => {
       case 'Array':
       case 'Link':
         switch (item.widgetId) {
+          case 'assetLinkEditor':
           case 'assetLinksEditor':
           case 'assetGalleryEditor':
             acc.push(createFieldObject(item, 'file', 'file'));
             break;
 
           case 'entryLinksEditor':
+          case 'entryLinkEditor':
+          case 'entryCardEditor':
           case 'entryCardsEditor': {
             let referenceFields = [];
             let commonRef = [];
@@ -248,7 +256,7 @@ const contentTypeMapper = (data) => {
                 });
               } else {
                 referenceFields =
-                item?.contentNames?.length < 25 ? item?.contentNames
+                  item?.contentNames?.length < 25 ? item?.contentNames
                     : item?.contentNames?.slice(0, 9);
               }
             } else {
@@ -265,7 +273,7 @@ const contentTypeMapper = (data) => {
                 });
               } else {
                 referenceFields =
-                item.contentNames?.length < 25 ? item?.contentNames
+                  item.contentNames?.length < 25 ? item?.contentNames
                     : item?.contentNames?.slice(0, 9);
               }
             }
@@ -283,9 +291,12 @@ const contentTypeMapper = (data) => {
       case 'Boolean':
         acc.push(createFieldObject(item, 'boolean', 'boolean'));
         break;
-      case 'Object':
-        acc.push(createFieldObject(item, 'json', 'json'));
+      case 'Object': {
+        const findAppMeta = appDetails?.items?.find((ele) => ele?.sys?.id === item?.widgetId);
+        item.name = `${item?.name} (${findAppMeta?.name}-App)`;
+        acc.push(createFieldObject(item, 'app', 'app'));
         break;
+      }
       case 'Location': {
         acc.push(createFieldObject(item, 'group', 'group'));
         acc.push({
