@@ -225,7 +225,13 @@ const contentTypeMapper = (data) => {
           case 'assetLinkEditor':
           case 'assetLinksEditor':
           case 'assetGalleryEditor':
-            acc.push(createFieldObject(item, 'file', 'file'));
+            if (item.type === 'Array') {
+              const data = createFieldObject(item, 'file', 'file');
+              data.advanced.multiple = true;
+              acc.push(data);
+            } else {
+              acc.push(createFieldObject(item, 'file', 'file'));
+            }
             break;
 
           case 'entryLinksEditor':
