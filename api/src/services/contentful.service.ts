@@ -209,9 +209,21 @@ const processField = (
       return isPresent?.value ?? fieldData?.advanced?.default_value;
     }
     case 'file': {
-      const id = lang_value?.sys?.id;
-      if (lang_value.sys === "Asset" && id in assetId) return assetId?.[id];
-      return [];
+      if (fieldData?.advanced?.multiple) {
+        const assetsData: any = [];
+        for (const asset of lang_value) {
+          if (asset?.sys?.id in assetId) {
+            assetsData?.push(assetId?.[asset?.sys?.id])
+          }
+        }
+        return assetsData;
+      } else {
+        const id = lang_value?.sys?.id;
+        if (id in assetId) {
+          return assetId?.[id]
+        }
+        return null;
+      }
     }
     case 'reference': {
       const id = lang_value?.sys?.id;
