@@ -6,7 +6,8 @@ import _ from "lodash";
 import axios from "axios";
 import jsonpath from "jsonpath";
 import pLimit from 'p-limit';
-import { jsonToHtml, jsonToMarkdown } from '@contentstack/json-rte-serializer';
+import { JSDOM } from "jsdom";
+import { jsonToHtml, jsonToMarkdown, htmlToJson } from '@contentstack/json-rte-serializer';
 
 
 import { CHUNK_SIZE, MIGRATION_DATA_CONFIG } from "../constants/index.js";
@@ -200,14 +201,17 @@ const processField = (
     case 'text': {
       return lang_value;
     }
+
     case 'json': {
       return processRTEOrNestedObject(lang_value, lang, destination_stack_id);
     }
+
     case 'dropdown':
     case 'radio': {
       const isPresent = fieldData?.advanced?.options?.find((option: any) => lang_value === option?.value);
       return isPresent?.value ?? fieldData?.advanced?.default_value;
     }
+
     case 'file': {
       if (fieldData?.advanced?.multiple) {
         const assetsData: any = [];
@@ -225,17 +229,31 @@ const processField = (
         return null;
       }
     }
+
     case 'reference': {
+      if (Array?.isArray?.(lang_value) && fieldData?.advanced?.multiple) {
+        const refs = [];
+        for (const entry of lang_value) {
+          const id = entry?.sys?.id;
+          if (id in entryId) {
+            refs?.push(entryId?.[id]);
+          }
+        }
+        return refs;
+      }
       const id = lang_value?.sys?.id;
-      if (lang_value?.sys?.linkType === "Entry" && id in entryId) return [entryId?.[id]];
-      return [];
+      if (id in entryId) return [[entryId?.[id]]];
+      return null;
     }
+
     case 'app': {
       return damApp(fieldData?.otherCmsType, lang_value)
     }
+
     case 'boolean': {
       return lang_value;
     }
+
     case 'number': {
       if (typeof lang_value === 'string') {
         return parseInt?.(lang_value)
@@ -275,21 +293,33 @@ const processField = (
       return jsonToMarkdown(jsonValue);
     }
 
+    case 'extension': {
+      if (['listInput', 'tagEditor']?.includes(fieldData?.otherCmsType)) {
+        if (Array.isArray(lang_value) && lang_value?.length) {
+          return { value: lang_value?.map((element: any) => ({ key: element, value: element })) }
+        }
+        return { value: [] };
+      }
+      break;
+    }
+
+    case 'group': {
+      if (lang_value.lat) return lang_value;
+      break;
+    }
+
     default: {
       if (Array.isArray(lang_value)) {
         return processArrayFields(lang_value, entryId, assetId);
       }
-      console.info("🚀 ~ fieldData?.otherCmsType:", fieldData?.contentstackFieldType)
+      if (typeof lang_value !== "object") {
+        return typeof lang_value === "number" ? lang_value
+          : cleanBrackets(lang_value);
+      }
+      console.info("Missing ===>", fieldData?.contentstackFieldType)
       break;
     }
   }
-  // If lang_value is not an object
-  if (typeof lang_value !== "object") {
-    return typeof lang_value === "number" ? lang_value
-      : cleanBrackets(lang_value);
-  }
-  // Check if it's a location (lat/lon)
-  if (lang_value.lat) return lang_value;
 };
 
 // Helper function to clean up brackets in non-numeric lang_value
@@ -324,10 +354,12 @@ const processArrayFields = (array: any, entryId: any, assetId: any) => {
 
 // Helper function to process Rich Text Editor (RTE) or nested object
 const processRTEOrNestedObject = (lang_value: any, lang: any, destination_stack_id: string) => {
-  if (lang_value.data) {
+  if (lang_value?.data) {
     return jsonRTE(lang_value, lang.toLowerCase(), destination_stack_id);
   } else {
-    return lang_value;
+    const dom = new JSDOM(lang_value);
+    const htmlDoc = dom.window.document.querySelector("body");
+    return htmlToJson(htmlDoc);
   }
 };
 
