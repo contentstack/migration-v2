@@ -183,6 +183,8 @@ export const LOCALE_MAPPER: any = {
 }
 export const CHUNK_SIZE = 1048576;
 
+export const LIST_EXTENSION_UID = 'bltc44e51cc9f4b0d80';
+
 export const KEYTOREMOVE = [
   "update", "fetch", "delete", "oauth", "hosting", "install", "reinstall",
   "upgrade", "getRequests", "authorize", "authorization", "listInstallations"
@@ -209,11 +211,14 @@ export const MIGRATION_DATA_CONFIG = {
 
   CONTENT_TYPES_DIR_NAME: "content_types",
   EXTENSIONS_MAPPER_DIR_NAME: "extension-mapper.json",
+  CUSTOM_MAPPER_FILE_NAME: "custmon-mapper.json",
   CONTENT_TYPES_FILE_NAME: "contenttype.json",
   CONTENT_TYPES_MASTER_FILE: "contenttypes.json",
   CONTENT_TYPES_SCHEMA_FILE: "schema.json",
   MARKETPLACE_APPS_DIR_NAME: "marketplace_apps",
   MARKETPLACE_APPS_FILE_NAME: "marketplace_apps.json",
+  EXTENSION_APPS_DIR_NAME: "extensions",
+  EXTENSION_APPS_FILE_NAME: "extensions.json",
   REFERENCES_DIR_NAME: "reference",
   REFERENCES_FILE_NAME: "reference.json",
 

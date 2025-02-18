@@ -3,7 +3,7 @@ import path from 'path';
 import _ from 'lodash';
 import customLogger from './custom-logger.utils.js';
 import { getLogMessage } from './index.js';
-import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
+import { LIST_EXTENSION_UID, MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import { contentMapperService } from "../services/contentMapper.service.js";
 import appMeta from '../constants/app/index.json';
 
@@ -12,7 +12,8 @@ const {
   GLOBAL_FIELDS_DIR_NAME,
   CONTENT_TYPES_DIR_NAME,
   CONTENT_TYPES_SCHEMA_FILE,
-  EXTENSIONS_MAPPER_DIR_NAME
+  EXTENSIONS_MAPPER_DIR_NAME,
+  CUSTOM_MAPPER_FILE_NAME
 } = MIGRATION_DATA_CONFIG;
 
 interface Group {
@@ -73,7 +74,7 @@ const arrangGroups = ({ schema, newStack }: any) => {
   return dtSchema;
 }
 
-const saveAppMapper = async ({ marketPlacePath, data }: any) => {
+const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   try {
     await fs.promises.access(marketPlacePath);
   } catch (err) {
@@ -84,7 +85,7 @@ const saveAppMapper = async ({ marketPlacePath, data }: any) => {
       return;
     }
   }
-  const marketPlaceFilePath = path.join(marketPlacePath, EXTENSIONS_MAPPER_DIR_NAME);
+  const marketPlaceFilePath = path.join(marketPlacePath, fileName);
   const newData: any = await fs.promises.readFile(marketPlaceFilePath, "utf-8").catch(async () => {
     await fs.promises.writeFile(marketPlaceFilePath, JSON.stringify([data]));
   });
@@ -475,7 +476,11 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       const title = field?.title?.split?.(' ')?.[0];
       const appDetails = appMeta?.entries?.find?.((item: any) => item?.title === appName);
       if (appDetails?.uid) {
-        saveAppMapper({ marketPlacePath, data: { appUid: appDetails?.app_uid, extensionUid: `${appDetails?.uid}-cs.cm.stack.custom_field` } });
+        saveAppMapper({
+          marketPlacePath,
+          data: { appUid: appDetails?.app_uid, extensionUid: `${appDetails?.uid}-cs.cm.stack.custom_field` },
+          fileName: EXTENSIONS_MAPPER_DIR_NAME
+        });
         return {
           "display_name": title,
           "extension_uid": appDetails?.uid,
@@ -483,12 +488,38 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
             "extension": true
           },
           "uid": field?.uid,
-          "mandatory": false,
-          "non_localizable": false,
-          "unique": false,
           "config": {},
           "data_type": "json",
-          "multiple": false
+          "multiple": field?.advanced?.multiple ?? false,
+          "mandatory": field?.advanced?.mandatory ?? false,
+          "unique": field?.advanced?.unique ?? false,
+          "non_localizable": field.advanced?.nonLocalizable ?? false,
+        }
+      }
+      break;
+    }
+
+    case 'extension': {
+      if (['listInput', 'tagEditor']?.includes(field?.otherCmsType)) {
+        const extensionUid = LIST_EXTENSION_UID;
+        saveAppMapper({
+          marketPlacePath,
+          data: { extensionUid },
+          fileName: CUSTOM_MAPPER_FILE_NAME
+        });
+        return {
+          "display_name": field?.title,
+          "uid": field?.uid,
+          "extension_uid": extensionUid,
+          "field_metadata": {
+            "extension": true
+          },
+          "config": {},
+          "multiple": field?.advanced?.multiple ?? false,
+          "mandatory": field?.advanced?.mandatory ?? false,
+          "unique": field?.advanced?.unique ?? false,
+          "non_localizable": field.advanced?.nonLocalizable ?? false,
+          "data_type": "json",
         }
       }
       break;
