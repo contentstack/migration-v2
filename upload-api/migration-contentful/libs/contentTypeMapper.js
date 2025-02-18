@@ -290,8 +290,10 @@ const contentTypeMapper = (data) => {
             acc.push(createDropdownOrRadioFieldObject(item, item.widgetId));
             break;
           case 'tagEditor':
-            acc.push(createFieldObject(item, 'json', 'json'));
+          case 'listInput': {
+            acc.push(createFieldObject(item, 'extension', 'extension'))
             break;
+          }
         }
         break;
       case 'Boolean':
