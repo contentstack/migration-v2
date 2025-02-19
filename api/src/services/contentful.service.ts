@@ -552,7 +552,7 @@ const saveAsset = async (
 *
 * @throws Will log errors encountered during file reading, writing, or asset processing.
 */
-const createAssets = async (packagePath: any, destination_stack_id: string, projectId: string,) => {
+const createAssets = async (packagePath: any, destination_stack_id: string, projectId: string, isTest = false) => {
   const srcFunc = 'createAssets';
   try {
     const assetsSave = path?.join?.(DATA, destination_stack_id, ASSETS_DIR_NAME);
@@ -561,9 +561,12 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
     const assetData: any = {};
     const metadata: AssetMetaData[] = [];
     const fileMeta = { "1": ASSETS_SCHEMA_FILE };
-    const assets = JSON.parse(data)?.assets;
+    let assets = JSON.parse(data)?.assets;
 
     if (assets && assets.length > 0) {
+      if (isTest) {
+        assets = assets?.slice(0, 10);
+      }
       const limit = pLimit(10); // Limit concurrent operations to 10
       const tasks = assets.map((asset: any) =>
         limit(() => saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, 0))
@@ -708,7 +711,7 @@ const createEnvironment = async (packagePath: any, destination_stack_id: string,
  *
  * @throws Will log errors encountered during file reading, processing, or writing of entries.
  */
-const createEntry = async (packagePath: any, destination_stack_id: string, projectId: string, contentTypes: any): Promise<void> => {
+const createEntry = async (packagePath: any, destination_stack_id: string, projectId: string, contentTypes: any, mapperKeys: any): Promise<void> => {
   const srcFunc = 'createEntry';
   try {
     const entriesSave = path.join(DATA, destination_stack_id, ENTRIES_DIR_NAME);
@@ -721,7 +724,6 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
     if (entries && entries.length > 0) {
       const assetId = await readFile(assetsSave, ASSETS_SCHEMA_FILE) ?? [];
       const entryId = await readFile(path.join(DATA, destination_stack_id, REFERENCES_DIR_NAME), REFERENCES_FILE_NAME);
-      console.info("🚀 ~ createEntry ~ entryId:", destination_stack_id)
       const environmentsId = await readFile(environmentSave, ENVIRONMENTS_FILE_NAME);
       const displayField: { [key: string]: any } = {}
       content.map((item: any) => {
@@ -768,7 +770,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
             });
             const pathName = getDisplayName(name, displayField);
             locales.forEach((locale) => {
-              const publishDetails = Object.values(environmentsId)
+              const publishDetails = Object?.values?.(environmentsId)
                 .filter((env: any) => env?.name === environment_id)
                 ?.map((env: any) => ({
                   environment: env?.uid,
@@ -778,15 +780,15 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
 
               const title = entryData[name][locale][id][pathName] || "";
               const urlTitle = title
-                .replace(/[^a-zA-Z0-9]+/g, "-")
-                .toLowerCase();
+                ?.replace?.(/[^a-zA-Z0-9]+/g, "-")
+                ?.toLowerCase?.();
               entryData[name][locale][id] = {
-                title: title.trim() === "" ? urlTitle || id : title,
-                uid: id,
-                url: `/${name.toLowerCase()}/${urlTitle}`,
-                locale: locale.toLowerCase(),
-                publish_details: publishDetails,
                 ...entryData[name][locale][id],
+                title: title?.trim?.() === "" ? (urlTitle || id) : title,
+                uid: id,
+                url: `/${name?.toLowerCase?.()}/${urlTitle}`,
+                locale: locale?.toLowerCase?.(),
+                publish_details: publishDetails,
               };
               // Format object keys to snake_case
               Object.entries(entryData[name][locale][id]).forEach(
@@ -808,7 +810,10 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
       );
       const writePromises = [];
 
-      for (const [key, values] of Object.entries(result)) {
+      for (const [newKey, values] of Object.entries(result)) {
+        const currentCT = contentTypes?.find((ct: any) => ct?.otherCmsUid === newKey);
+        const ctName = currentCT?.contentstackUid in mapperKeys ?
+          mapperKeys?.[currentCT?.contentstackUid] : (currentCT?.contentstackUid ?? newKey.replace(/([A-Z])/g, "_$1").toLowerCase());
         for (const [localeKey, localeValues] of Object.entries(
           values as { [key: string]: any }
         )) {
@@ -816,7 +821,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           for (const [entryKey, entryValue] of Object.entries(localeValues)) {
             const message = getLogMessage(
               srcFunc,
-              `Entry title "${(entryValue as { title: string })?.title}"(${key}) in the ${localeKey} locale has been successfully transformed.`,
+              `Entry title "${(entryValue as { title: string })?.title}"(${ctName}) in the ${localeKey} locale has been successfully transformed.`,
               {}
             );
             await customLogger(projectId, destination_stack_id, "info", message);
@@ -825,7 +830,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           let chunkIndex = 1;
           const filePath = path.join(
             entriesSave,
-            key.replace(/([A-Z])/g, "_$1").toLowerCase(), localeKey.toLowerCase()
+            ctName, localeKey.toLowerCase()
           );
           for (const [chunkId, chunkData] of Object.entries(chunks)) {
             refs[chunkIndex++] = `${chunkId}-entries.json`;
