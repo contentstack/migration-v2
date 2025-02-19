@@ -276,11 +276,11 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
       }
     }
   }
-  const sortData = allData?.length > 3 ? allData.sort((a, b) => b?.count - a?.count).slice?.(1, 4) : allData;
+  const sortData = allData?.length > 3 ? allData.sort((a, b) => b?.count - a?.count).slice?.(0, 3) : allData;
   const finalData: any = [];
   sortData.forEach((et: any) => {
     const entryObj: any = {};
-    const ctData = et?.count > 4 ? Object?.values?.(et?.entryData)?.splice?.(0, 5) : et?.entryData;
+    const ctData = et?.count > 4 ? Object?.values?.(et?.entryData)?.splice?.(0, 5) : Object?.values?.(et?.entryData);
     ctData?.forEach?.((entItem: any) => {
       entryObj[entItem?.uid] = entItem;
     })
