@@ -14,7 +14,6 @@ const {
   RTE_REFERENCES_FILE_NAME,
 
 } = MIGRATION_DATA_CONFIG;
-
 type NodeType = string;
 type LangType = string;
 type StackId = string;
@@ -113,7 +112,7 @@ function parseTableRow(obj: any, lang?: LangType, destination_stack_id?: StackId
     return parsers.get(e.nodeType)?.(e, lang, destination_stack_id);
   }).filter(Boolean);
 
-  const type = types.has('table-header-cell') ? 'thead' : '';
+  const type = types.has('table-header-cell') ? 'thead' : 'th';
   return children.length ? { type, attrs: {}, uid: generateUID('tabletype'), children } : null;
 }
 
@@ -224,7 +223,7 @@ function parseBlockReference(obj: any, lang?: LangType, destination_stack_id?: S
 
   if (masterLocale === lang || lang) {
     for (const [arrayKey, arrayValue] of Object.entries(entryId)) {
-      if (arrayValue[obj.data.target.sys.id] && lang === arrayKey) {
+      if (arrayValue?.[obj?.data?.target?.sys?.id]?._content_type_uid && lang === arrayKey) {
         return {
           type: 'reference',
           attrs: {
@@ -242,7 +241,7 @@ function parseBlockReference(obj: any, lang?: LangType, destination_stack_id?: S
     }
   }
   return {
-    type: 'reference',
+    type: 'p',
     attrs: {},
     uid: generateUID('reference'),
     children: [{ text: '' }],
@@ -255,23 +254,25 @@ function parseInlineReference(obj: any, lang?: LangType, destination_stack_id?: 
 
   if (entry) {
     const [arrayKey, arrayValue] = entry;
-    return {
-      type: 'reference',
-      attrs: {
-        'display-type': 'block',
-        type: 'entry',
-        'class-name': 'embedded-entry redactor-component block-entry',
-        'entry-uid': obj.data.target.sys.id,
-        locale: arrayKey,
-        'content-type-uid': arrayValue._content_type_uid,
-      },
-      uid: generateUID('reference'),
-      children: [{ text: '' }],
-    };
+    if (arrayValue?.[obj?.data?.target?.sys?.id]?._content_type_uid && arrayKey) {
+      return {
+        type: 'reference',
+        attrs: {
+          'display-type': 'block',
+          type: 'entry',
+          'class-name': 'embedded-entry redactor-component block-entry',
+          'entry-uid': obj.data.target.sys.id,
+          locale: arrayKey,
+          'content-type-uid': arrayValue?.[obj?.data?.target?.sys?.id]?._content_type_uid,
+        },
+        uid: generateUID('reference'),
+        children: [{ text: '' }],
+      };
+    }
   }
 
   return {
-    type: 'reference',
+    type: 'p',
     attrs: {},
     uid: generateUID('reference'),
     children: [{ text: '' }],
@@ -281,18 +282,24 @@ function parseInlineReference(obj: any, lang?: LangType, destination_stack_id?: 
 function parseBlockAsset(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const assetId = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, ASSETS_DIR_NAME, ASSETS_SCHEMA_FILE));
   const asset = assetId?.[obj?.data?.target?.sys?.id];
-  // const attrs: any = {};
 
   if (asset) {
     return {
       type: 'reference',
       attrs: {
         'display-type': 'download',
+        "type": "asset",
         'asset-uid': obj.data.target.sys.id,
         'class-name': 'embedded-asset redactor-component block-asset',
-        title: asset.title,
-        filename: asset.fileName,
-        locale: asset.locale,
+        "asset-type": asset?.content_type,
+        title: asset?.title,
+        filename: asset?.fileName,
+        locale: asset?.locale,
+        "content-type-uid": "sys_assets",
+        "asset-link": asset?.url,
+        "asset-name": asset?.title,
+        "alt": "",
+        "asset-alt": "",
       },
       uid: generateUID('reference'),
       children: [{ text: '' }],
@@ -300,7 +307,7 @@ function parseBlockAsset(obj: any, lang?: LangType, destination_stack_id?: Stack
   }
 
   return {
-    type: 'reference',
+    type: 'p',
     attrs: {},
     uid: generateUID('reference'),
     children: [{ text: '' }],
