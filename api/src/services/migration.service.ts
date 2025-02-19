@@ -258,16 +258,16 @@ const startTestMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createRefrence(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createWebhooks(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
-        await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes);
+        await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId, true);
+        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys);
         await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
       default:
         break;
     }
-    // await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
-    // await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
+    await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
+    await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
   }
 }
 
@@ -299,7 +299,8 @@ const startMigration = async (req: Request): Promise<any> => {
     await customLogger(projectId, project?.destination_stack_id, 'info', message);
     await setLogFilePath(loggerPath);
     const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.destination_stack_id, region, user_id });
-
+    await marketPlaceAppService?.createAppManifest({ orgId, destinationStackId: project?.current_test_stack_id, region, userId: user_id });
+    await extensionService?.createExtension({ destinationStackId: project?.current_test_stack_id });
     switch (cms) {
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
@@ -336,7 +337,7 @@ const startMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createWebhooks(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId);
+        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys);
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
