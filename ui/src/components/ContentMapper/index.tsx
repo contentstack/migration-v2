@@ -1772,6 +1772,18 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         });
    
         if (status === 200) {
+          const updatedContentMapping = {...newMigrationData?.content_mapping?.content_type_mapping};
+          delete updatedContentMapping[selectedContentType?.contentstackUid];
+
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            content_mapping: {
+              ...newMigrationData?.content_mapping,
+              content_type_mapping: updatedContentMapping ,
+              isDropDownChanged: false
+            }
+          };
+          dispatch(updateNewMigrationData(newMigrationDataObj));
           const resetCT = filteredContentTypes?.map(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );

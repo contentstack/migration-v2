@@ -40,13 +40,14 @@ type LogsType = {
  * @param {string} projectId - The project ID for saving state to local storage.
  */
 const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: LogsType) => {
-  const [logs, setLogs] = useState<LogEntry[]>([{ message: "Migration logs will appear here once the process begins.", level: ''}]);
+  const [isLogsLoading, setisLogsLoading] = useState<boolean>(false)
+  const [logs, setLogs] = useState<LogEntry[]>([{ message: !isLogsLoading ? "Migration logs will appear here once the process begins." : '', level: ''}]);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
   const [migratedStack, setmigratedSatck] = useState<TestStacks | undefined>(
     (newMigrationData?.testStacks ?? [])?.find((test) => test?.stackUid === newMigrationData?.test_migration?.stack_api_key));
-  const [isLogsLoading, setisLogsLoading] = useState<boolean>(false)
+ 
   // Redux dispatcher
   const dispatch = useDispatch();
 
@@ -93,7 +94,10 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent,projectId }: Logs
           console.log("error in parsing logs : ", error);
         }
       });
-      setLogs((prevLogs) => [...prevLogs, ...parsedLogsArray]);
+      setLogs((prevLogs) => 
+        [...prevLogs.filter(log => log.message !== "Migration logs will appear here once the process begins."), 
+         ...parsedLogsArray]
+      );
     })
     return () => {
       socket.disconnect(); // Cleanup on component unmount
