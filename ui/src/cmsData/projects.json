@@ -56,20 +56,6 @@
               "text": "Begin your content migration journey by creating a new project. Follow the steps to ensure a smooth and efficient transfer of your content."
             }
           ]
-        },
-        {
-          "type": "p",
-          "attrs": {
-            "style": {},
-            "redactor-attributes": {},
-            "dir": "ltr"
-          },
-          "uid": "9ecb9e032e8844f0be6414dd13e318a4",
-          "children": [
-            {
-              "text": "Happy migrating!"
-            }
-          ]
         }
       ],
       "type": "doc",
