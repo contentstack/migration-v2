@@ -244,7 +244,7 @@ export const MIGRATION_DATA_CONFIG = {
   CATEGORIES_FILE_NAME: "en-us.json",
   CATEGORIES_MASTER_FILE: "categories.json",
 
-  TAG_DIR_NAME: "tags",
+  TAG_DIR_NAME: "tag",
   TAG_FILE_NAME: "en-us.json",
   TAG_MASTER_FILE: "tag.json",
 
