@@ -73,41 +73,41 @@ const createInitialMapper = async () => {
         path.resolve(process.cwd(), `${config.data}/${config.contentful.contentful}/${file}`)
       );
       const title = file.split('.')[0];
-      
+
       const contentTypeObject = {
         status: 1,
         isUpdated: false,
         updateAt: '',
         otherCmsTitle: title,
-        otherCmsUid: data[0]?.contentUid,
+        otherCmsUid: data[0]?.contentfulID,
         contentstackTitle: title.charAt(0).toUpperCase() + title.slice(1),
         contentstackUid: uidCorrector(data[0]?.contentUid),
         type: 'content_type',
         fieldMapping: []
       };
       const uidTitle = [
-            {
-              uid: 'title',
-              otherCmsField: 'title',
-              otherCmsType: 'text',
-              contentstackField: 'title',
-              contentstackFieldUid: 'title',
-              contentstackFieldType: 'text',
-              backupFieldType: 'text',
-              advanced:{ mandatory:true}
-            },
-            {
-              uid: 'url',
-              otherCmsField: 'url',
-              otherCmsType: 'text',
-              contentstackField: 'Url',
-              contentstackFieldUid: 'url',
-              contentstackFieldType: 'url',
-              backupFieldType: 'url',
-              advanced:{ mandatory:true}
-            }
-          ];
-      const dataArray = data.filter((item) => item.id!=='title' && item.id !== 'url');
+        {
+          uid: 'title',
+          otherCmsField: 'title',
+          otherCmsType: 'text',
+          contentstackField: 'title',
+          contentstackFieldUid: 'title',
+          contentstackFieldType: 'text',
+          backupFieldType: 'text',
+          advanced: { mandatory: true }
+        },
+        {
+          uid: 'url',
+          otherCmsField: 'url',
+          otherCmsType: 'text',
+          contentstackField: 'Url',
+          contentstackFieldUid: 'url',
+          contentstackFieldType: 'url',
+          backupFieldType: 'url',
+          advanced: { mandatory: true }
+        }
+      ];
+      const dataArray = data.filter((item) => item.id !== 'title' && item.id !== 'url');
       const contentstackFields = [...uidTitle, ...contentTypeMapper(dataArray)].filter(
         Boolean
       );
