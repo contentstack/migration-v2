@@ -161,7 +161,19 @@ const TestMigration = () => {
         // Update migration data in Redux
         const newMigrationDataObj: INewMigration = {
           ...newMigrationData,
-          test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key, stack_name: res?.data?.data?.data?.stack?.name }
+          test_migration: {
+            ...newMigrationData?.test_migration, 
+            stack_link: res?.data?.data?.url, 
+            stack_api_key: res?.data?.data?.data?.stack?.api_key, 
+            stack_name: res?.data?.data?.data?.stack?.name },
+            testStacks:[
+              ...(newMigrationData.testStacks),
+              {
+                stackUid: res?.data?.data?.data?.stack?.api_key, 
+                stackName: res?.data?.data?.data?.stack?.name, 
+                isMigrated: false
+              }
+            ]
         };
         dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
