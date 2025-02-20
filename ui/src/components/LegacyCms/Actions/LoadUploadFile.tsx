@@ -88,6 +88,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [processing, setProcessing] = useState('');
   //const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
   //const [setIsFormatValid] = useState<boolean>(false);
+  const [affix, setAffix] = useState<string>(newMigrationData?.legacy_cms?.affix);
 
   const { projectId = '' } = useParams();
 
@@ -409,6 +410,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
+    setAffix(newMigrationData?.legacy_cms?.affix);
   }, [newMigrationData]);
 
   const sanitizedCmsType = cmsType?.toLowerCase().replace(/[^\w\s-]/g, '');
@@ -477,7 +479,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={isDisabled}
+            disabled={isDisabled || isEmptyString(affix)}
           > 
             Validate File
           </Button>
