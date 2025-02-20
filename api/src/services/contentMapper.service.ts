@@ -631,7 +631,7 @@ const resetToInitialMapping = async (req: Request) => {
     [
       NEW_PROJECT_STATUS[0],
       NEW_PROJECT_STATUS[5],
-      NEW_PROJECT_STATUS[4],
+      //NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
   ) {
