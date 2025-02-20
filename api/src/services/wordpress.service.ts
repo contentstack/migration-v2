@@ -763,6 +763,7 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
           uid: customId,
           ...mapContentTypeToEntry(contentType, authordata),
         };
+        acc[customId].publish_details = [];
 
 
         return acc;
@@ -1463,7 +1464,7 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
           uid: customId,
           ...mapContentTypeToEntry(contentType, data), // Pass individual term object
         };
-
+        acc[customId].publish_details = [];
         return acc;
       },
       {}
@@ -1587,6 +1588,7 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
         uid:customId,
         ...mapContentTypeToEntry(contenttype,data),
       };
+      acc[customId].publish_details = [];
 
       return acc;
     }, {});
@@ -1729,6 +1731,7 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
           uid:customId,
           ...mapContentTypeToEntry(contenttype,data),
         }
+        acc[customId].publish_details = [];
 
         return acc;
       },
@@ -1873,10 +1876,13 @@ const limit = limitConcurrency(5);
 
 async function featuredImageMapping(postid: string, post: any, postdata: any) {
   try {
-    
-    const assetsId = JSON.parse(fs.readFileSync(
-      path.join(process.cwd(), assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE),'utf8'
-    ));
+    const filePath = path.join(process.cwd(), assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
+   const fileContent = fs.readFileSync(filePath, 'utf8').trim();
+  
+   if (!fileContent) {
+    throw new Error(`File ${filePath} is empty or missing`);
+  }
+    const assetsId = JSON?.parse(fileContent);
     if (!post["wp:postmeta"] || !assetsId) return;
 
     const postmetaArray = Array.isArray(post["wp:postmeta"]) ? post["wp:postmeta"]
@@ -2018,14 +2024,15 @@ async function processChunkData(
             category: postCategories,
             terms: postTerms,
             tag: postTags,
-            featured_image: ''
+            featured_image: '',
+            publish_details:[]
           };
           const formatted_posts =  await featuredImageMapping(
             `posts_${data["wp:post_id"]}`,
             data,
             postdata
           );
-          const formattedPosts = Object.entries(formatted_posts).reduce(
+          const formattedPosts = Object?.entries(formatted_posts)?.reduce(
             (acc: { [key: string]: any }, data:any) => {
              
               const customId = idCorrector(data["uid"])
@@ -2035,7 +2042,8 @@ async function processChunkData(
                 ...acc[customId],
                 uid: customId,
                 ...mapContentTypeToEntry(contenttype,data),
-              }
+              };
+              acc[customId].publish_details = [];
       
               return acc;
             },
