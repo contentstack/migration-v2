@@ -192,15 +192,20 @@ const lookForReference = async (
 
 const sortAssets = async (baseDir: string) => {
   const assetsPath = path.join(process.cwd(), baseDir, ASSETS_DIR_NAME);
-  const assetsFilesPath = path.join(assetsPath, 'files');
-  const assetsJson = JSON.parse(await fs.promises.readFile(path.join(assetsPath, ASSETS_SCHEMA_FILE), 'utf8'));
-  const sortAsset = Object?.values?.(assetsJson)?.slice(0, 10);
-  const assetsMeta: any = {};
-  sortAsset?.forEach((item: any) => {
-    assetsMeta[item?.uid] = item;
-  })
-  await cleanDirectory(assetsFilesPath, sortAsset);
-  await fs.promises.writeFile(path.join(assetsPath, ASSETS_SCHEMA_FILE), JSON?.stringify?.(assetsMeta));
+  try {
+    await fs.promises.access(assetsPath);
+    const assetsFilesPath = path.join(assetsPath, 'files');
+    const assetsJson = JSON.parse(await fs.promises.readFile(path.join(assetsPath, ASSETS_SCHEMA_FILE), 'utf8') ?? {});
+    const sortAsset = Object?.values?.(assetsJson)?.slice(0, 10);
+    const assetsMeta: any = {};
+    sortAsset?.forEach((item: any) => {
+      assetsMeta[item?.uid] = item;
+    })
+    await cleanDirectory(assetsFilesPath, sortAsset);
+    await fs.promises.writeFile(path.join(assetsPath, ASSETS_SCHEMA_FILE), JSON?.stringify?.(assetsMeta));
+  } catch (err) {
+    console.error('assest not exits on Path:', assetsPath);
+  }
 }
 
 const writeGlobalField = async (schema: any, globalSave: string, filePath: string) => {
@@ -271,7 +276,7 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
       }
     }
   }
-  const sortData = allData?.length > 3 ? allData.sort((a, b) => b?.count - a?.count).slice?.(1, 4) : allData;
+  const sortData = allData?.length > 3 ? allData.sort((a, b) => b?.count - a?.count).slice?.(0, 3) : allData;
   const finalData: any = [];
   sortData.forEach((et: any) => {
     const entryObj: any = {};

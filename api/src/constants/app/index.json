@@ -1,0 +1,3435 @@
+{
+  "entries": [
+    {
+      "uid": "blt306893215247514d",
+      "_version": 6,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "6307403f08132800192fe615",
+      "built_by": [
+        {
+          "uid": "bltec929d731b1f9d85",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2022-09-14T13:26:39.897Z",
+      "created_by": "bltf389fd468f32cd6e",
+      "description": "<p>With the Contentstack Marketplace Aprimo integration, into your <a href=\"https://www.contentstack.com/cms-guides/headless-cms\" target=\"_blank\">headless CMS</a>, you can easily manage and share digital assets across multiple platforms.</p><p>Using the <a href=\"https://www.contentstack.com/docs/developers/create-custom-fields/about-custom-fields\" target=\"_blank\">Custom Field</a> and <a href=\"https://www.contentstack.com/docs/developers/json-rich-text-editor/about-json-rich-text-editor/\" target=\"_blank\">JSON RTE</a> plugin, you can integrate Aprimo with Contentstack. You can create an entry in Contentstack and, with the integration, view all the digital assets in Contentstack.</p>",
+      "dynamic_links": [],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs3997a434a3407aca"
+          },
+          "description": "Custom Field allows you to select multiple images to add them to your entry from your Aprimo account."
+        },
+        {
+          "feature_type": [
+            {
+              "uid": "bltf9b70a5fd3c08c36",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "csb4b648266a7e609c"
+          },
+          "description": "You can add images from the Aprimo app to your JSON Rich Text Editor field using the Aprimo JSON RTE Plugin."
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "bltf38c093728e6118d",
+        "ACL": {},
+        "content_type": "image/svg+xml",
+        "created_at": "2022-09-14T13:28:32.147Z",
+        "created_by": "bltf389fd468f32cd6e",
+        "file_size": "7340",
+        "filename": "Aprimo.svg",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "Aprimo.svg",
+        "updated_at": "2022-09-14T13:28:32.147Z",
+        "updated_by": "bltf389fd468f32cd6e",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:01.962Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltf38c093728e6118d/6321d700acc2b02a2d2beb76/Aprimo.svg"
+      },
+      "installation_url": "/#!/apps/6307403f08132800192fe615/install",
+      "links": {
+        "source_code": "",
+        "documentation": "",
+        "end_user_license_agreement": "",
+        "others": []
+      },
+      "screenshots": [
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltab7667c5bfa68ab5",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-14T13:27:02.543Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "47090",
+          "filename": "aprimo1.png",
+          "parent_uid": "bltd9b123ad99b0ca80",
+          "tags": [],
+          "title": "aprimo1.png",
+          "updated_at": "2022-09-14T13:27:02.543Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:01.962Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltab7667c5bfa68ab5/6321d6a6aab1fc6da8413bbe/aprimo1.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt3a5bc2faed088ba0",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-14T13:27:03.228Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "44450",
+          "filename": "aprimo2.png",
+          "parent_uid": "bltd9b123ad99b0ca80",
+          "tags": [],
+          "title": "aprimo2.png",
+          "updated_at": "2022-09-14T13:27:03.228Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:01.962Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt3a5bc2faed088ba0/6321d6a77b677842d8282859/aprimo2.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltb6404261010a70ac",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-14T13:27:09.528Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "293528",
+          "filename": "aprimo3.png",
+          "parent_uid": "bltd9b123ad99b0ca80",
+          "tags": [],
+          "title": "aprimo3.png",
+          "updated_at": "2022-09-14T13:27:09.528Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:01.962Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltb6404261010a70ac/6321d6ad3a97082c2920f61b/aprimo3.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt54e7fb96e980dabd",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-14T13:27:09.312Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "224997",
+          "filename": "aprimo4.png",
+          "parent_uid": "bltd9b123ad99b0ca80",
+          "tags": [],
+          "title": "aprimo4.png",
+          "updated_at": "2022-09-14T13:27:09.312Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:01.962Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt54e7fb96e980dabd/6321d6adaa855a2a336b9bb0/aprimo4.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt6d4821e32a03a9ce",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-14T13:27:08.114Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "74233",
+          "filename": "aprimo5.png",
+          "parent_uid": "bltd9b123ad99b0ca80",
+          "tags": [],
+          "title": "aprimo5.png",
+          "updated_at": "2022-09-14T13:27:08.114Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:01.962Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt6d4821e32a03a9ce/6321d6ac2769d078008690e0/aprimo5.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt720989f14aff7ec3",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-14T13:27:08.848Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "137310",
+          "filename": "aprimo6.png",
+          "parent_uid": "bltd9b123ad99b0ca80",
+          "tags": [],
+          "title": "aprimo6.png",
+          "updated_at": "2022-09-14T13:27:08.848Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:01.962Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt720989f14aff7ec3/6321d6ac5d2a8f4646a65840/aprimo6.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+          "_metadata": {
+            "uid": "cse67b21f4286086a8"
+          }
+        },
+        {
+          "type": "Documentation",
+          "url": "https://www.contentstack.com/docs/developers/marketplace-apps/aprimo/",
+          "_metadata": {
+            "uid": "cs74da8d29f725d7bf"
+          }
+        }
+      ],
+      "summary": "Fetch digital assets (images) from your Aprimo account into Contentstack entries.",
+      "tags": [],
+      "title": "Aprimo",
+      "updated_at": "2025-01-24T11:35:05.653Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/aprimo",
+      "use_cases": "<p><strong>Manage Aprimo digital media with ease:</strong> The Aprimo app lets you manage images within your <a href=\"https://www.contentstack.com/docs/content-managers/working-with-entries/about-entries/\" target=\"_blank\">entries</a>. With Aprimo, you can easily link all the images without leaving your headless CMS.</p><p><strong>Better marketing campaigns with ease-to-access assets:</strong> You can create content in Contentstack and use the Aprimo Custom Field or JSON RTE field to insert images in your content. With this, cross-functional teams can work on large-scale campaigns with ease.</p><p><strong>Easy distribution of digital assets:</strong> The Aprimo app allows geographically dispersed teams to easily store, share and fetch digital media assets.</p>",
+      "publish_details": {
+        "time": "2025-01-28T10:53:49.590Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "blte0c272ac85362b1e",
+      "_version": 7,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "63e1fd2363081e001992f20f",
+      "built_by": [
+        {
+          "uid": "bltec929d731b1f9d85",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2023-02-07T09:50:55.600Z",
+      "created_by": "bltf389fd468f32cd6e",
+      "description": "<p>With the Contentstack Marketplace Brandfolder app integration into your <a href=\"https://www.contentstack.com/cms-guides/headless-cms\" target=\"_blank\">headless CMS</a>, you can easily manage and share digital assets (images) across multiple platforms.<br/>Using the <a href=\"https://www.contentstack.com/docs/developers/create-custom-fields/about-custom-fields\" target=\"_blank\">Custom Field</a> and <a href=\"https://www.contentstack.com/docs/developers/json-rich-text-editor/about-json-rich-text-editor/\" target=\"_blank\">JSON Rich Text Editor</a> plugin, you can integrate Brandfolder with Contentstack. You can create an entry in Contentstack and view all the digital assets within your Contentstack website.</p>",
+      "dynamic_links": [],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "csabc9083d38203db6"
+          },
+          "description": "Custom Field allows you to select multiple images to add to your entry from your Brandfolder account."
+        },
+        {
+          "feature_type": [
+            {
+              "uid": "bltf9b70a5fd3c08c36",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs2b539819aee4ff04"
+          },
+          "description": "You can add images from the Brandfolder app to your JSON Rich Text Editor field using the Brandfolder JSON RTE Plugin."
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "blta70fdaf98d6bb82a",
+        "ACL": {},
+        "content_type": "image/svg+xml",
+        "created_at": "2023-02-07T10:08:04.960Z",
+        "created_by": "bltf389fd468f32cd6e",
+        "file_size": "2242",
+        "filename": "Brandfolder.svg",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "Brandfolder.svg",
+        "updated_at": "2023-02-07T10:08:04.960Z",
+        "updated_by": "bltf389fd468f32cd6e",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blta70fdaf98d6bb82a/63e22304933db53d66f72d37/Brandfolder.svg"
+      },
+      "installation_url": "/#!/apps/63e1fd2363081e001992f20f/install",
+      "links": {
+        "source_code": "",
+        "documentation": "",
+        "end_user_license_agreement": "",
+        "others": []
+      },
+      "screenshots": [
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltc0ed1ab61388a84e",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-06-22T07:49:19.401Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "100032",
+          "filename": "App_Config.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "App_Config.png",
+          "updated_at": "2023-06-22T07:49:19.401Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltc0ed1ab61388a84e/6493fcffcbbe0752f5d15fd6/App_Config.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt932072d875540e5a",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-02-07T10:06:58.097Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "78360",
+          "filename": "brandfolder_customfield_select.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "brandfolder_customfield_select.png",
+          "updated_at": "2023-02-07T10:06:58.097Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt932072d875540e5a/63e222c2ea95785b83d3f5d0/brandfolder_customfield_select.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt73f9737af627514f",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-02-07T10:06:58.115Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "83799",
+          "filename": "brandfolder_contenttype.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "brandfolder_contenttype.png",
+          "updated_at": "2023-02-07T10:06:58.115Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt73f9737af627514f/63e222c2f03f747756684c77/brandfolder_contenttype.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt516dbfe1818c2389",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-02-07T10:06:59.171Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "92332",
+          "filename": "brandfolder_jsonrte_contenttype.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "brandfolder_jsonrte_contenttype.png",
+          "updated_at": "2023-02-07T10:06:59.171Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt516dbfe1818c2389/63e222c34c4b0210bc379ec6/brandfolder_jsonrte_contenttype.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt90ab63cc6a44d249",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-02-07T10:06:57.943Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "18057",
+          "filename": "customfield_without_data.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "customfield_without_data.png",
+          "updated_at": "2023-02-07T10:06:57.943Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt90ab63cc6a44d249/63e222c197fe254050234eb3/customfield_without_data.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt3485004145939873",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-02-07T10:06:58.822Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "59051",
+          "filename": "selector_collection.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "selector_collection.png",
+          "updated_at": "2023-02-07T10:06:58.822Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt3485004145939873/63e222c2fc79c04b19c2f344/selector_collection.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blta5a897dafc73a996",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-02-07T10:06:59.724Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "389773",
+          "filename": "selector_data.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "selector_data.png",
+          "updated_at": "2023-02-07T10:06:59.724Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blta5a897dafc73a996/63e222c3be94ee3bf4afd8aa/selector_data.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt58b1a3a249de1f1f",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-02-07T10:06:59.582Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "282122",
+          "filename": "selector_place_image.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "selector_place_image.png",
+          "updated_at": "2023-02-07T10:06:59.582Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt58b1a3a249de1f1f/63e222c3e414c23655e13ee9/selector_place_image.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt05120b040d890a1c",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-02-07T10:06:58.751Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "61474",
+          "filename": "customfield_data.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "customfield_data.png",
+          "updated_at": "2023-02-07T10:06:58.751Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt05120b040d890a1c/63e222c276abcd351bacd47b/customfield_data.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt44176a644efbe9b4",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-02-07T10:06:58.464Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "170476",
+          "filename": "jsonrte_data.png",
+          "parent_uid": "blt8f6e144007ba8c5c",
+          "tags": [],
+          "title": "jsonrte_data.png",
+          "updated_at": "2023-02-07T10:06:58.464Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt44176a644efbe9b4/63e222c23849a0141b70237a/jsonrte_data.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "Documentation",
+          "url": "https://www.contentstack.com/docs/developers/marketplace-apps/brandfolder/",
+          "_metadata": {
+            "uid": "csd2223db13369101b"
+          }
+        },
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps",
+          "_metadata": {
+            "uid": "cs8c54cc546665821f"
+          }
+        }
+      ],
+      "summary": "Fetch digital assets (images) from your Brandfolder account into Contentstack entries.",
+      "tags": [],
+      "title": "Brandfolder",
+      "updated_at": "2025-01-24T11:19:39.982Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/brandfolder",
+      "use_cases": "<p><strong>Manage Brandfolder digital media readily:</strong> The Brandfolder app lets you fetch and manage images within your <a href=\"https://www.contentstack.com/docs/content-managers/working-with-entries/about-entries/\" target=\"_blank\">entries</a>. With Brandfolder, you can easily link all the images without leaving your headless CMS.</p><p><strong>Better marketing campaigns with ease-to-access assets: </strong>You can create content in Contentstack and use the Custom Field or JSON RTE field to insert images in your content. With this, cross-functional teams can work on large-scale campaigns with ease.</p><p><strong>Easy distribution of digital assets:</strong> The Brandfolder app allows geographically dispersed teams to store, share, and fetch digital media assets.</p><p></p>",
+      "publish_details": {
+        "time": "2025-01-28T10:55:14.141Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "blt2e5ed9f109bb156f",
+      "_version": 12,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "61ddc1b51ecff10018907c4d",
+      "built_by": [
+        {
+          "uid": "bltec929d731b1f9d85",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2022-03-29T11:13:06.028Z",
+      "created_by": "blt89b5b90cb9e7c645",
+      "description": "<p>Contentstack's Marketplace apps offer a variety of ways to integrate third-party applications, such as Bynder, directly into your <a href=\"https://www.contentstack.com/cms-guides/headless-cms\" target=\"_blank\">headless CMS</a>. With this, you can streamline the process of managing and sharing digital assets across multiple platforms.</p><p>Using a Contentstack <a href=\"https://www.contentstack.com/docs/developers/create-custom-fields/about-custom-fields\" target=\"_blank\">Custom Field</a>, you can integrate Bynder with Contentstack directly. You can create an entry in Contentstack, the app will ensure that you are able to view the digital assets within your CMS.</p>",
+      "dynamic_links": [],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs23cd1a05a970bc44"
+          },
+          "description": "While creating entries, you can select one or more images, videos, or documents as the input value for the field from your Bynder account."
+        },
+        {
+          "feature_type": [
+            {
+              "uid": "bltf9b70a5fd3c08c36",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "csdae58a2b06a451d4"
+          },
+          "description": "You can add assets from the Bynder app to your JSON Rich Text Editor field using the Bynder JSON RTE Plugin."
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "blteb81b84adb512d31",
+        "ACL": {},
+        "content_type": "image/svg+xml",
+        "created_at": "2022-03-29T11:09:59.102Z",
+        "created_by": "blt89b5b90cb9e7c645",
+        "file_size": "2589",
+        "filename": "Bynder.svg",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "Bynder.svg",
+        "updated_at": "2022-03-29T11:09:59.102Z",
+        "updated_by": "blt89b5b90cb9e7c645",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blteb81b84adb512d31/6242e9070466d7630dd3a706/Bynder.svg"
+      },
+      "installation_url": "#!/apps/61ddc1b51ecff10018907c4d/install",
+      "links": {
+        "source_code": "",
+        "documentation": "",
+        "others": [],
+        "end_user_license_agreement": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/"
+      },
+      "screenshots": [
+        {
+          "_version": 2,
+          "is_dir": false,
+          "uid": "blt9f6cc27c83239660",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:48.091Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "description": "",
+          "file_size": "43135",
+          "filename": "bynder-config-screen.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_ConfigScreen.png",
+          "updated_at": "2022-07-21T14:47:18.151Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt9f6cc27c83239660/62d966f6a2057a5e86269a95/bynder-config-screen.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt4c0f3e1846fac19e",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:47.477Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "description": "",
+          "file_size": "42470",
+          "filename": "Bynder_ContentType_AppSelection.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_ContentType_AppSelection.png",
+          "updated_at": "2022-03-29T11:09:47.477Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt4c0f3e1846fac19e/6242e8fb311ad5112f12b57c/Bynder_ContentType_AppSelection.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt511316bff90cd2a3",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:45.503Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "description": "",
+          "file_size": "54617",
+          "filename": "Bynder_ContentTypeExtensionSelection.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_ContentTypeExtensionSelection.png",
+          "updated_at": "2022-03-29T11:09:45.503Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt511316bff90cd2a3/6242e8f99b68390fcd0530a6/Bynder_ContentTypeExtensionSelection.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt24acb3261bd466fa",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:47.491Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "description": "",
+          "file_size": "22852",
+          "filename": "Bynder_CustomField_NoAsset.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_CustomField_NoAsset.png",
+          "updated_at": "2022-03-29T11:09:47.491Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt24acb3261bd466fa/6242e8fbff4cca132d166a2c/Bynder_CustomField_NoAsset.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltd2691e7f305d8a94",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:55.518Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "file_size": "33864",
+          "filename": "Bynder_SelectorPage_Connect.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_SelectorPage_Connect.png",
+          "updated_at": "2022-03-29T11:09:55.518Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltd2691e7f305d8a94/6242e9039b68390fcd0530ae/Bynder_SelectorPage_Connect.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltc58200f52a299c8a",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:53.880Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "file_size": "202476",
+          "filename": "Bynder_SelectorPage_Login.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_SelectorPage_Login.png",
+          "updated_at": "2022-03-29T11:09:53.880Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltc58200f52a299c8a/6242e901c470e610f0a9fea5/Bynder_SelectorPage_Login.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltf6a97201c2cfb505",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:51.876Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "file_size": "358816",
+          "filename": "Bynder_SelectorPage.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_SelectorPage.png",
+          "updated_at": "2022-03-29T11:09:51.876Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltf6a97201c2cfb505/6242e8ffa9ee655f1991e1a1/Bynder_SelectorPage.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltd390b7049019a676",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:53.003Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "file_size": "333643",
+          "filename": "Bynder_SelectorPage_AddOption.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_SelectorPage_AddOption.png",
+          "updated_at": "2022-03-29T11:09:53.003Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltd390b7049019a676/6242e9015564b679c0c521c6/Bynder_SelectorPage_AddOption.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt334ba0bfefd731cd",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:45.456Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "description": "",
+          "file_size": "128375",
+          "filename": "Bynder_CustomField_Assets.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_CustomField_Assets.png",
+          "updated_at": "2022-03-29T11:09:45.456Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt334ba0bfefd731cd/6242e8f9906f01655b799992/Bynder_CustomField_Assets.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt9ec31cb593cc984f",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:46.572Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "description": "",
+          "file_size": "211471",
+          "filename": "Bynder_CustomField_ActiveHover.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "Bynder_CustomField_ActiveHover.png",
+          "updated_at": "2022-03-29T11:09:46.572Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt9ec31cb593cc984f/6242e8fadac6690b70a2dc07/Bynder_CustomField_ActiveHover.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt22269eac414805e1",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-07-21T14:22:48.908Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "49642",
+          "filename": "bynder-rte-field.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "bynder-rte-field.png",
+          "updated_at": "2022-07-21T14:22:48.908Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt22269eac414805e1/62d9613848cc366ab5407e1c/bynder-rte-field.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt85f67a817a0741b7",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-07-21T14:22:49.521Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "21861",
+          "filename": "bynder-select-plugin.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "bynder-select-plugin.png",
+          "updated_at": "2022-07-21T14:22:49.521Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt85f67a817a0741b7/62d96139e49d4a6983cc1ec2/bynder-select-plugin.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltce795eb8689ec488",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-07-21T14:22:49.605Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "51773",
+          "filename": "bynder-selected-plugin.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "bynder-selected-plugin.png",
+          "updated_at": "2022-07-21T14:22:49.605Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltce795eb8689ec488/62d96139ecc54c6cacd810c5/bynder-selected-plugin.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt4a7978cc57659046",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-07-21T14:22:49.156Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "52128",
+          "filename": "bynder-rte-icon.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "bynder-rte-icon.png",
+          "updated_at": "2022-07-21T14:22:49.156Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt4a7978cc57659046/62d961392b85cb6d849cce74/bynder-rte-icon.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blte04688a858dde8ed",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-07-21T14:22:49.349Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "97587",
+          "filename": "bynder-rte-selected-assets.png",
+          "parent_uid": "blt75dcc859c2359a54",
+          "tags": [],
+          "title": "bynder-rte-selected-assets.png",
+          "updated_at": "2022-07-21T14:22:49.349Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blte04688a858dde8ed/62d96139e9d7646bfeda2b47/bynder-rte-selected-assets.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "Documentation",
+          "url": "https://www.contentstack.com/docs/developers/marketplace-apps/bynder",
+          "_metadata": {
+            "uid": "cs5381f9ee9cce2964"
+          }
+        },
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+          "_metadata": {
+            "uid": "cs072dfa7b76c413be"
+          }
+        }
+      ],
+      "summary": "Fetch digital assets (images and videos) from your Bynder account into a field of an entry. ",
+      "tags": [],
+      "title": "Bynder",
+      "updated_at": "2025-01-24T11:33:44.597Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/bynder",
+      "use_cases": "<p><strong>Manage Bynder digital media with ease:</strong> Contentstack's integration with Bynder&nbsp;allows you to link all your Bynder digital assets&nbsp;with ease. To access your Bynder assets, you don't have to leave your CMS. Instead, the integration allows the Bynder portal to open in the entry of your content type and you can choose and insert the assets within your entry page.</p><p><strong>Get better control over all your marketing resources:</strong> The integration allows you to manage the entire content lifecycle of your marketing strategy. You can create content in Contentstack and use the Bynder Custom Field Extension to insert digital assets in your content. The integration provides a single solution to manage all your marketing resources inside your CMS.</p><p><strong>Simplify sharing and distribution of digital assets: </strong>With Bynder's integration with Contentstack, your geographically dispersed teams can easily create, share, and distribute content. This makes it possible to execute large-scale marketing campaigns with cross-functional teams.</p>",
+      "publish_details": {
+        "time": "2025-01-28T10:53:49.649Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "blt5307633e8c63d59d",
+      "_version": 17,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "61c04dd81ecff10018907bed",
+      "built_by": [
+        {
+          "uid": "bltec929d731b1f9d85",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2022-03-29T11:13:07.327Z",
+      "created_by": "blt89b5b90cb9e7c645",
+      "description": "<p>Contentstack' Marketplace Apps offers a variety of ways to integrate third-party applications, such as Cloudinary, directly into your <a href=\"https://www.contentstack.com/cms-guides/headless-cms\" target=\"_blank\">headless CMS</a>. With the Cloudinary app, you can streamline the process of managing and sharing images across multiple platforms.</p><p><a href=\"https://www.contentstack.com/docs/developers/create-custom-fields/about-custom-fields\" target=\"_blank\">Custom Field</a> or <a href=\"https://www.contentstack.com/docs/developers/json-rich-text-editor/about-json-rich-text-editor/\" target=\"_blank\">JSON RTE</a>, you can integrate Cloudinary with Contentstack directly. You can create content in Contentstack, and Cloudinary will ensure that you are able to view and access your Cloudinary images within your CMS.</p>",
+      "dynamic_links": [],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs451ee37dd5248c6e"
+          },
+          "description": "While creating entries, you can select one or more Cloudinary images or videos as the input value for the field."
+        },
+        {
+          "feature_type": [
+            {
+              "uid": "bltf9b70a5fd3c08c36",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "csa072b2b0b1c4e59b"
+          },
+          "description": "Add assets from Cloudinary app to your JSON Rich Text Editor field using the Cloudinary JSON RTE Plugin"
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "blt5492471633f54c05",
+        "ACL": {},
+        "content_type": "image/png",
+        "created_at": "2022-03-29T11:10:07.336Z",
+        "created_by": "blt89b5b90cb9e7c645",
+        "file_size": "4694",
+        "filename": "cloudinary_cloud_glyph_512x512.png",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "cloudinary_cloud_glyph_512x512.png",
+        "updated_at": "2022-03-29T11:10:07.336Z",
+        "updated_by": "blt89b5b90cb9e7c645",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt5492471633f54c05/6242e90f6aee76195cd5a511/cloudinary_cloud_glyph_512x512.png"
+      },
+      "installation_url": "/#!/apps/61c04dd81ecff10018907bed/install",
+      "links": {
+        "source_code": "",
+        "documentation": "",
+        "others": [],
+        "end_user_license_agreement": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/"
+      },
+      "screenshots": [
+        {
+          "_version": 2,
+          "is_dir": false,
+          "uid": "blt8148fc15e5e4ea9e",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-09-06T12:39:36.971Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "75712",
+          "filename": "Cloudinary-Config-1.png",
+          "parent_uid": "bltb977c7f5e15fa4f5",
+          "tags": [],
+          "title": "Cloudinary-Config-Updated.png",
+          "updated_at": "2023-09-06T12:39:48.250Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt8148fc15e5e4ea9e/64f8730916f77f0e36cbb51b/Cloudinary-Config-1.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltfd9d4a80ad36f5de",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:10:08.343Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "file_size": "32748",
+          "filename": "coudinary_entry_creation.png",
+          "parent_uid": "bltb977c7f5e15fa4f5",
+          "tags": [],
+          "title": "coudinary_entry_creation.png",
+          "updated_at": "2022-03-29T11:10:08.343Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltfd9d4a80ad36f5de/6242e9109b68390fcd0530cd/coudinary_entry_creation.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt760c78d3f76b4df2",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:10:08.579Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "file_size": "328618",
+          "filename": "cloudinary_asset_listing.png",
+          "parent_uid": "bltb977c7f5e15fa4f5",
+          "tags": [],
+          "title": "cloudinary_asset_listing.png",
+          "updated_at": "2022-03-29T11:10:08.579Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt760c78d3f76b4df2/6242e910aeff370de94d90be/cloudinary_asset_listing.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt4e911a20719951a4",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:10:07.606Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "file_size": "222866",
+          "filename": "cloudinary_asset_loaded.png",
+          "parent_uid": "bltb977c7f5e15fa4f5",
+          "tags": [],
+          "title": "cloudinary_asset_loaded.png",
+          "updated_at": "2022-03-29T11:10:07.606Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt4e911a20719951a4/6242e90fe1962d6a51cef416/cloudinary_asset_loaded.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltf92c82a97fb2b970",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-05-26T06:52:38.068Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "44299",
+          "filename": "cloudinary-entry-json-rte.png",
+          "parent_uid": "bltb977c7f5e15fa4f5",
+          "tags": [],
+          "title": "cloudinary-entry-json-rte.png",
+          "updated_at": "2022-05-26T06:52:38.068Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltf92c82a97fb2b970/628f23b640e2312e82dd096b/cloudinary-entry-json-rte.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt7ddc3a7b1103771c",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-05-26T06:52:37.903Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "38567",
+          "filename": "cloudinary-add-plugin.png",
+          "parent_uid": "bltb977c7f5e15fa4f5",
+          "tags": [],
+          "title": "cloudinary-add-plugin.png",
+          "updated_at": "2022-05-26T06:52:37.903Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt7ddc3a7b1103771c/628f23b5170c712e88665a7e/cloudinary-add-plugin.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blte3a2863a52337490",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-05-26T06:52:37.925Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "61508",
+          "filename": "cloudinary-add-plugin-added.png",
+          "parent_uid": "bltb977c7f5e15fa4f5",
+          "tags": [],
+          "title": "cloudinary-add-plugin-added.png",
+          "updated_at": "2022-05-26T06:52:37.925Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blte3a2863a52337490/628f23b597d6686b1cff96f3/cloudinary-add-plugin-added.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltdefa93e028fdb7a4",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-05-26T06:52:37.768Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "18372",
+          "filename": "cloudinary-rte.png",
+          "parent_uid": "bltb977c7f5e15fa4f5",
+          "tags": [],
+          "title": "cloudinary-rte.png",
+          "updated_at": "2022-05-26T06:52:37.768Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltdefa93e028fdb7a4/628f23b519611a7d301084a4/cloudinary-rte.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blte93e98a5c1f9b21b",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-05-26T06:52:38.513Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "356728",
+          "filename": "cloudinary-dashboard.png",
+          "parent_uid": "bltb977c7f5e15fa4f5",
+          "tags": [],
+          "title": "cloudinary-dashboard.png",
+          "updated_at": "2022-05-26T06:52:38.513Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blte93e98a5c1f9b21b/628f23b6eaff1924caa64c4b/cloudinary-dashboard.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "Documentation",
+          "url": "https://www.contentstack.com/docs/developers/marketplace-apps/cloudinary/",
+          "_metadata": {
+            "uid": "cs5be545df98c27320"
+          }
+        },
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+          "_metadata": {
+            "uid": "cs2273829bfbdc05f2"
+          }
+        }
+      ],
+      "summary": "Fetches assets (images and videos) from your Cloudinary account into the field of an entry.",
+      "tags": [],
+      "title": "Cloudinary",
+      "updated_at": "2025-01-24T11:15:04.176Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/cloudinary",
+      "use_cases": "<p><strong>One interface for content and asset management: </strong>The integration of Contentstack with Cloudinary allows you to manage content and Cloudinary assets in a single interface. Rather than managing two different apps (CMS and Cloudinary),&nbsp; you save time and effort by accessing Cloudinary assets from the entry page.</p><p></p><p><strong>Simplified digital asset sharing and distribution: </strong>Once you integrate Contentstack with Cloudinary, your geographically dispersed teams can easily create, share, and distribute content across different departments. Thus, the execution of large-scale marketing campaigns with cross-functional teams becomes possible.</p><p></p><p><strong>Improved control over all your marketing resources: </strong>With the integration of Contentstack and Cloudinary, you gain better control over your marketing resources, allowing you to easily manage the entire content lifecycle. You simply have to create content in Contentstack and use the Cloudinary Custom Field Extension to insert digital assets in your entry.</p>",
+      "publish_details": {
+        "time": "2025-01-28T10:55:29.069Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "blteb2e1c080caa44dd",
+      "_version": 3,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "6667fb7b2e29d10012f8c342",
+      "built_by": [
+        {
+          "uid": "bltec929d731b1f9d85",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2024-06-11T08:25:11.583Z",
+      "created_by": "blt7314f6e631536c9d",
+      "description": "<p><span style='color:rgb(14, 16, 26);'>By integrating the Digizuite app from the Contentstack Marketplace into your </span><a href=\"https://www.contentstack.com/cms-guides/headless-cms\">headless CMS</a><span style='color:rgb(14, 16, 26);'>, you can effortlessly manage, share, and collaborate on assets across multiple platforms.</span></p><p>By using the <a href=\"https://www.contentstack.com/docs/developers/create-custom-fields/about-custom-fields\">Custom Field</a> and<span style='color:rgb(14, 16, 26);'> </span><a href=\"https://www.contentstack.com/docs/developers/json-rich-text-editor/about-json-rich-text-editor/\">JSON Rich Text Editor</a> plugin, you can integrate Digizuite with Contentstack. You can create an entry in Contentstack and view all your digital assets stored in your Digizuite account inside it.</p>",
+      "dynamic_links": [],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "csb0eb4bdf2eac6490"
+          },
+          "description": "Custom Field allows you to select multiple assets from your Digizuite account and add them to your entry."
+        },
+        {
+          "feature_type": [
+            {
+              "uid": "bltf9b70a5fd3c08c36",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs9b68fe7c8a9a15ee"
+          },
+          "description": "Using the Digizuite JSON RTE Plugin, you can add assets from the Digizuite app to your JSON Rich Text Editor field."
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "blt1b43d8021f6505c7",
+        "ACL": {},
+        "content_type": "image/svg+xml",
+        "created_at": "2024-06-11T07:59:32.914Z",
+        "created_by": "blt7314f6e631536c9d",
+        "file_size": "1233",
+        "filename": "digizuite-logo.svg",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "digizuite-logo.svg",
+        "updated_at": "2024-06-11T07:59:32.914Z",
+        "updated_by": "blt7314f6e631536c9d",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt1b43d8021f6505c7/666803e471a11048c94face4/digizuite-logo.svg"
+      },
+      "installation_url": "/#!/apps/6667fb7b2e29d10012f8c342/install",
+      "links": {
+        "source_code": "",
+        "documentation": "https://www.contentstack.com/docs/developers/marketplace-apps/digizuite",
+        "end_user_license_agreement": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+        "others": []
+      },
+      "screenshots": [
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt66f588d3cff98276",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.279Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "21793",
+          "filename": "9-Digizuite-JSONRTE-App-Icon.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "9-Digizuite-JSONRTE-App-Icon.png",
+          "updated_at": "2024-06-11T09:07:25.279Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt66f588d3cff98276/666813cd88395e06f03965f0/9-Digizuite-JSONRTE-App-Icon.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltd34a9b21ede5e552",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.375Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "49714",
+          "filename": "2-Digizuite-UI-Locations.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "2-Digizuite-UI-Locations.png",
+          "updated_at": "2024-06-11T09:07:25.375Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltd34a9b21ede5e552/666813cdd7f5604f7b440a9f/2-Digizuite-UI-Locations.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blta1b7d8842cd0a4bb",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.527Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "55326",
+          "filename": "3-Digizuite-Custom-Field-Sample-Entry.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "3-Digizuite-Custom-Field-Sample-Entry.png",
+          "updated_at": "2024-06-11T09:07:25.527Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blta1b7d8842cd0a4bb/666813cdec03bd02bb15a673/3-Digizuite-Custom-Field-Sample-Entry.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blta00eab11702b4b97",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.527Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "107874",
+          "filename": "1-Digizuite-Configuration.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "1-Digizuite-Configuration.png",
+          "updated_at": "2024-06-11T09:07:25.527Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blta00eab11702b4b97/666813cd7456ddd5b9512c0d/1-Digizuite-Configuration.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt15c09164d59523eb",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.502Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "40003",
+          "filename": "4-Digizuite-Selector-Page-Login.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "4-Digizuite-Selector-Page-Login.png",
+          "updated_at": "2024-06-11T09:07:25.502Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt15c09164d59523eb/666813cd679953d444447fdd/4-Digizuite-Selector-Page-Login.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blta6eaff56b60384ea",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.546Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "233566",
+          "filename": "6-Digizuite-Selector-Page-Multi-Insert.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "6-Digizuite-Selector-Page-Multi-Insert.png",
+          "updated_at": "2024-06-11T09:07:25.546Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blta6eaff56b60384ea/666813cdd7f5606cd2440aa3/6-Digizuite-Selector-Page-Multi-Insert.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt03e3f8cedee5b290",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.568Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "71705",
+          "filename": "7-Digizuite-Custom-Field-Assets-Added.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "7-Digizuite-Custom-Field-Assets-Added.png",
+          "updated_at": "2024-06-11T09:07:25.568Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt03e3f8cedee5b290/666813cde46c314c3d364f88/7-Digizuite-Custom-Field-Assets-Added.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltbfc8e81a474ab1c5",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.435Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "87890",
+          "filename": "8-Digizuite-Custom-Field-Assets-View-Thumbnail-Features.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "8-Digizuite-Custom-Field-Assets-View-Thumbnail-Features.png",
+          "updated_at": "2024-06-11T09:07:25.435Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltbfc8e81a474ab1c5/666813cd472c5f1d5fc8768c/8-Digizuite-Custom-Field-Assets-View-Thumbnail-Features.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt12d61d2546171c89",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.720Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "113812",
+          "filename": "10-Digizuite-JSONRTE-Assets-Added-Features.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "10-Digizuite-JSONRTE-Assets-Added-Features.png",
+          "updated_at": "2024-06-11T09:07:25.720Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt12d61d2546171c89/666813cd049fefc578cc26a7/10-Digizuite-JSONRTE-Assets-Added-Features.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt36ee373648b4fa4c",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-06-11T09:07:25.820Z",
+          "created_by": "blt7314f6e631536c9d",
+          "file_size": "207392",
+          "filename": "5-Digizuite-Selector-Page-Placing-Single-Asset.png",
+          "parent_uid": "blt613a74bd13dd3512",
+          "tags": [],
+          "title": "5-Digizuite-Selector-Page-Placing-Single-Asset.png",
+          "updated_at": "2024-06-11T09:07:25.820Z",
+          "updated_by": "blt7314f6e631536c9d",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt36ee373648b4fa4c/666813cd599f1a26956ea87d/5-Digizuite-Selector-Page-Placing-Single-Asset.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "Documentation",
+          "url": "https://www.contentstack.com/docs/developers/marketplace-apps/digizuite",
+          "_metadata": {
+            "uid": "cse4809e1dd2392680"
+          }
+        },
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+          "_metadata": {
+            "uid": "cs8ce0c93fa2b05dc3"
+          }
+        }
+      ],
+      "summary": "Add digital assets from your Digizuite account into your Contentstack entries.",
+      "tags": [],
+      "title": "Digizuite",
+      "updated_at": "2025-01-24T06:24:10.302Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/digizuite",
+      "use_cases": "<p><strong>Manage Digizuite digital media with ease</strong>: The Digizuite app lets you manage assets within your <a href=\"https://www.contentstack.com/docs/content-managers/working-with-entries/about-entries/\">entries</a>. With Digizuite, you can easily access all the assets without leaving your headless CMS.</p><p><strong>Better marketing campaigns with easy-to-access assets: </strong>You can create content in Contentstack and insert assets in your entry using the Digizuite Custom Field or JSON RTE field. This allows cross-functional teams to work on large-scale campaigns easily.</p><p><strong>Easy distribution of digital assets</strong>: The Digizuite app allows geographically dispersed teams to readily store, share, and fetch digital media assets.&nbsp;</p>",
+      "publish_details": {
+        "time": "2025-01-28T10:56:57.063Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "blt802cfeedb40e4e3c",
+      "_version": 4,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "65eec8748ae77300126404c3",
+      "built_by": [
+        {
+          "uid": "bltec929d731b1f9d85",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2024-03-11T11:10:31.717Z",
+      "created_by": "blt78cea3a89ceb6137",
+      "description": "<p>By integrating the Egnyte app from the Contentstack Marketplace into your <a href=\"https://www.contentstack.com/cms-guides/headless-cms\" target=\"_self\">headless CMS</a>, you can effortlessly manage, share, and collaborate on assets across multiple platforms.</p><p></p><p>By using the <a href=\"https://www.contentstack.com/docs/developers/create-custom-fields/about-custom-fields\" target=\"_self\">Custom Field</a> and <a href=\"https://www.contentstack.com/docs/developers/json-rich-text-editor/about-json-rich-text-editor/\" target=\"_self\">JSON Rich Text Editor</a> plugin, you can integrate Egnyte with Contentstack. You can create an entry in Contentstack and view all your digital assets stored in Egnyte inside it.</p>",
+      "dynamic_links": [],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs1ded11395e73ee37"
+          },
+          "description": "Custom Field allows you to select multiple assets from your Egnyte account and add them to your entry."
+        },
+        {
+          "feature_type": [
+            {
+              "uid": "bltf9b70a5fd3c08c36",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "csdd8734e35c172e8a"
+          },
+          "description": "You can add assets from the Egnyte app to your JSON Rich Text Editor field using the Egnyte JSON RTE Plugin."
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "blt9bbc2541009fcd2f",
+        "ACL": {},
+        "content_type": "image/svg+xml",
+        "created_at": "2024-03-11T11:02:36.047Z",
+        "created_by": "blt78cea3a89ceb6137",
+        "file_size": "1467",
+        "filename": "Egnyte_512.svg",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "Egnyte_512.svg",
+        "updated_at": "2024-03-11T11:02:36.047Z",
+        "updated_by": "blt78cea3a89ceb6137",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt9bbc2541009fcd2f/65eee4cc6b2184040adf6434/Egnyte_512.svg"
+      },
+      "installation_url": "/#!/apps/65eec8748ae77300126404c3/install",
+      "links": {
+        "source_code": "",
+        "documentation": "",
+        "end_user_license_agreement": "",
+        "others": []
+      },
+      "screenshots": [
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt39e69a5b368a44e2",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:56.868Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "94158",
+          "filename": "SelectAssets.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "SelectAssets.png",
+          "updated_at": "2024-03-11T11:23:56.868Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt39e69a5b368a44e2/65eee9cc2d7272040a9be3b5/SelectAssets.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blta1c3e7ab01f46c79",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:56.802Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "54525",
+          "filename": "JSONRTEModeling.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "JSONRTEModeling.png",
+          "updated_at": "2024-03-11T11:23:56.802Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blta1c3e7ab01f46c79/65eee9cc9b3861040aba306a/JSONRTEModeling.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltee77f8357082a1bf",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:56.774Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "79398",
+          "filename": "SelectExtensionFinal.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "SelectExtensionFinal.png",
+          "updated_at": "2024-03-11T11:23:56.774Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltee77f8357082a1bf/65eee9cc9b01c5040a371747/SelectExtensionFinal.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt34b26dc503b5e85c",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:56.682Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "20095",
+          "filename": "JsonRTE_Select.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "JsonRTE_Select.png",
+          "updated_at": "2024-03-11T11:23:56.682Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt34b26dc503b5e85c/65eee9cc00aa28040ab71676/JsonRTE_Select.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blta5e4ff04ec5dcee3",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:43.006Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "54241",
+          "filename": "EnterPassword.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "EnterPassword.png",
+          "updated_at": "2024-03-11T11:23:43.006Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blta5e4ff04ec5dcee3/65eee9bf32eb75040a886817/EnterPassword.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltb9da556882e17694",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:43.005Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "73834",
+          "filename": "AppExtensionSelect.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "AppExtensionSelect.png",
+          "updated_at": "2024-03-11T11:23:43.005Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltb9da556882e17694/65eee9bff2e3cc040ac912c1/AppExtensionSelect.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt428d15bb4444686f",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:43.002Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "85393",
+          "filename": "ConfigScreen.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "ConfigScreen.png",
+          "updated_at": "2024-03-11T11:23:43.002Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt428d15bb4444686f/65eee9bf6c9f9b040a4d470e/ConfigScreen.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt4d94b995ba81c23e",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:42.992Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "88287",
+          "filename": "ConfigScreenWithData.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "ConfigScreenWithData.png",
+          "updated_at": "2024-03-11T11:23:42.992Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt4d94b995ba81c23e/65eee9beacd14e0407fb942f/ConfigScreenWithData.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt78f68811cc9e7f85",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:42.766Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "144988",
+          "filename": "AppEntryCreated.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "AppEntryCreated.png",
+          "updated_at": "2024-03-11T11:23:42.766Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt78f68811cc9e7f85/65eee9bef40463040a6f7c13/AppEntryCreated.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt15b5d6ef0c1ee73d",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:42.707Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "67969",
+          "filename": "CustomField1.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "CustomField1.png",
+          "updated_at": "2024-03-11T11:23:42.707Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt15b5d6ef0c1ee73d/65eee9be5aa9cf0407b08f75/CustomField1.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt838f8692be88b3fb",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:42.696Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "47709",
+          "filename": "AllowAccess.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "AllowAccess.png",
+          "updated_at": "2024-03-11T11:23:42.696Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt838f8692be88b3fb/65eee9bef40463040a6f7c0f/AllowAccess.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt7108e5839f206055",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:42.677Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "73095",
+          "filename": "ContentModelingApp.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "ContentModelingApp.png",
+          "updated_at": "2024-03-11T11:23:42.677Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt7108e5839f206055/65eee9be5b334a040a1ebffe/ContentModelingApp.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt61671b65d7b3f75a",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:42.670Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "41425",
+          "filename": "AddEmail.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "AddEmail.png",
+          "updated_at": "2024-03-11T11:23:42.670Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt61671b65d7b3f75a/65eee9be9b3861040aba3066/AddEmail.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt8fb40eb9558601fb",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-03-11T11:23:42.609Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "17201",
+          "filename": "AppEntryCreation.png",
+          "parent_uid": "blt2c3df632773487d4",
+          "tags": [],
+          "title": "AppEntryCreation.png",
+          "updated_at": "2024-03-11T11:23:42.609Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt8fb40eb9558601fb/65eee9be2d7272040a9be3b1/AppEntryCreation.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+          "_metadata": {
+            "uid": "csc0ffeffc343abc82"
+          }
+        },
+        {
+          "type": "Documentation",
+          "url": "https://www.contentstack.com/docs/developers/marketplace-apps/egnyte",
+          "_metadata": {
+            "uid": "csfdebc9f93c49b957"
+          }
+        }
+      ],
+      "summary": "Fetch digital assets from your Egnyte account into your Contentstack entries. ",
+      "tags": [],
+      "title": "Egnyte",
+      "updated_at": "2025-01-24T06:28:44.659Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/egnyte",
+      "use_cases": "<p>Manage Egnyte digital media with ease: The Egnyte app lets you manage assets within your <a href=\"https://www.contentstack.com/docs/content-managers/working-with-entries/about-entries/\" target=\"_blank\">entries</a>. With Egnyte, you can easily access all the assets without leaving your headless CMS.</p><p></p><p>Better marketing campaigns with ease-to-access assets: You can create content in Contentstack and use the Egnyte Custom Field or JSON RTE field to insert assets in your entry. With this, cross-functional teams can work on large-scale campaigns with ease.</p><p></p><p>Easy distribution of digital assets: The Egnyte app allows geographically dispersed teams to readily store, share, and fetch digital media assets.</p>",
+      "publish_details": {
+        "time": "2025-01-28T10:55:57.436Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "blt049c7b2db4db67a4",
+      "_version": 7,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "65e997d02adeba0012c6e00f",
+      "built_by": [
+        {
+          "uid": "blt4ecd9b73e0a6eef7",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2024-05-09T05:28:47.806Z",
+      "created_by": "blt78cea3a89ceb6137",
+      "description": "<p>Filerobot by Scaleflex is the single source of truth for all your digital assets, allowing for seamless collaboration across platforms via the Asset Hub and through a lively ecosystem of plugins and connectors.</p><p></p><p>Don't bother with multiple cloud storages, image editors, file compression, and CDN setup anymore, Filerobot takes care of it all.</p><p>Upload your digital assets (images, videos, and more) to Contentstack from Scaleflex’s Filerobot platform via the integrated modular widget.</p><p>Your media will then be natively accelerated by a top tier, multi-tenant, Content Delivery Network (CDN) architecture.</p><p></p><p>Deliver beautiful digital experiences thanks to seamless content operations:</p><p>Filerobot is a scalable, performance-oriented digital asset management platform. It has integrated image and video optimizers that store, organize, optimize, and deliver all your media assets lightning-fast around the world, to all device types.</p><p></p><p>Filerobot has a multi-tenant, scalable, and flexible file system, with an intuitive interface that simplifies complex workflows and integrations within your content operations. It uses AI-powered uploads with automatic workflows to enrich media assets for better categorization and retrieval.</p><p></p><p>Our overall mission?</p><p>To give meaning to your brand assets.</p><p></p><p>With Filerobot DAM, you’ll be able to:</p><p>1. Upload, manage, and enrich all of your digital assets from a single source of truth.</p><p>2. Collaborate with internal and external teams within our one cloud collaboration platform.</p><p>3. Optimize your images to boost SEO rankings, create beautiful digital experiences, and push device-friendly content.</p><p>4. Publish and accelerate the impact of your images thanks to real-time insights on the usage and performance of your media assets.</p><p></p><p>There’s no development needed to start reaping the benefits of Filerobot. Simply set up your account and start enjoying fast and responsive images now.</p>",
+      "dynamic_links": [],
+      "feature_types": [],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "blta4e22048c78a4aa8",
+        "ACL": {},
+        "content_type": "image/png",
+        "created_at": "2024-05-09T05:27:27.778Z",
+        "created_by": "blt78cea3a89ceb6137",
+        "file_size": "14374",
+        "filename": "Scaleflex_Filerobot.png",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "Scaleflex_Filerobot.png",
+        "updated_at": "2024-05-09T05:27:27.778Z",
+        "updated_by": "blt78cea3a89ceb6137",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blta4e22048c78a4aa8/663c5ebfa4f240e5875f3dfc/Scaleflex_Filerobot.png"
+      },
+      "installation_url": "/#!/apps/65e997d02adeba0012c6e00f/install",
+      "links": {
+        "source_code": "",
+        "documentation": "https://docs.scaleflex.com/filerobot-documentation/headless-dam-and-api/plugins-and-connectors/plugins/contentstack",
+        "end_user_license_agreement": "https://legal.scaleflex.com/privacy/global-privacy-policy",
+        "others": [
+          {
+            "title": "Support & Feedback",
+            "href": "hiep.le@scaleflex.com"
+          }
+        ]
+      },
+      "screenshots": [
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt652e924ceb8551f9",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-05-09T05:34:14.893Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "65506",
+          "filename": "json-rte-4.png",
+          "parent_uid": "blt60b81c8c84a94a5f",
+          "tags": [],
+          "title": "json-rte-4.png",
+          "updated_at": "2024-05-09T05:34:14.893Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt652e924ceb8551f9/663c605685e08b68b4718c7a/json-rte-4.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt20a45772230850d6",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-05-09T05:34:15.045Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "168564",
+          "filename": "config-screen-1.png",
+          "parent_uid": "blt60b81c8c84a94a5f",
+          "tags": [],
+          "title": "config-screen-1.png",
+          "updated_at": "2024-05-09T05:34:15.045Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt20a45772230850d6/663c60573af9ac0cd499b85b/config-screen-1.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt61bcba33de8f290f",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-05-09T05:34:15.142Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "68051",
+          "filename": "customfield-2.png",
+          "parent_uid": "blt60b81c8c84a94a5f",
+          "tags": [],
+          "title": "customfield-2.png",
+          "updated_at": "2024-05-09T05:34:15.142Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt61bcba33de8f290f/663c6057ece60c9134b95ce0/customfield-2.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt8190f96123ca9a48",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2024-05-09T05:34:15.727Z",
+          "created_by": "blt78cea3a89ceb6137",
+          "file_size": "808508",
+          "filename": "selector-page-3.png",
+          "parent_uid": "blt60b81c8c84a94a5f",
+          "tags": [],
+          "title": "selector-page-3.png",
+          "updated_at": "2024-05-09T05:34:15.727Z",
+          "updated_by": "blt78cea3a89ceb6137",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt8190f96123ca9a48/663c605793aa0d4b8c45683a/selector-page-3.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "Documentation",
+          "url": "https://docs.scaleflex.com/filerobot-documentation",
+          "_metadata": {
+            "uid": "cs9dc661efd6bcd427"
+          }
+        }
+      ],
+      "summary": "Filerobot allows you to store, enrich, normalize, resize, optimize, & distribute your media files rocket fast worldwide!",
+      "tags": [],
+      "title": "Filerobot by Scaleflex",
+      "updated_at": "2025-01-24T06:24:48.781Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/filerobot-by-scaleflex",
+      "use_cases": "<p>With Filerobot DAM you’ll be able to:</p><p>1. Upload, manage, and enrich all of your digital assets from a single source of truth.</p><p>2. Collaborate with internal and external teams within our one cloud collaboration platform.</p><p>3. Optimize your images to boost SEO rankings, create beautiful digital experiences, and push device-friendly content.</p><p>4. Publish and accelerate the impact of your images thanks to real-time insights on the usage and performance of your media assets.</p>",
+      "publish_details": {
+        "time": "2025-01-28T10:56:57.075Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "blt34a14a6e22c82feb",
+      "_version": 4,
+      "locale": "en-us",
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "6311ab2b92549700190fe29a",
+      "built_by": [
+        {
+          "uid": "bltec929d731b1f9d85",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2022-09-02T06:58:07.096Z",
+      "created_by": "bltd5e1f9e7bbbf5fff",
+      "description": "<p>Contentstack Marketplace offers a variety of ways to integrate third-party applications, such as Frontify, into your <a href=\"https://www.contentstack.com/cms-guides/headless-cms\" target=\"_blank\">headless CMS</a>. You can easily manage and share digital assets across multiple platforms.</p><p>Using the <a href=\"https://www.contentstack.com/docs/developers/create-custom-fields/about-custom-fields\" target=\"_blank\">Custom Field</a> and <a href=\"https://www.contentstack.com/docs/developers/json-rich-text-editor/about-json-rich-text-editor/\" target=\"_blank\">JSON RTE</a> plugin, you can integrate Frontify with Contentstack. You can create an entry in Contentstack and, with the integration, view all the digital assets in Contentstack.</p>",
+      "dynamic_links": [],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs7af6aebd48894a93"
+          },
+          "description": "Custom Field allows you to select multiple images, videos, logos, and documents to add them to your entry from your Frontify account."
+        },
+        {
+          "feature_type": [
+            {
+              "uid": "bltf9b70a5fd3c08c36",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs770641304ceb4a2c"
+          },
+          "description": "You can add assets from the Frontify app to your JSON Rich Text Editor field using the Frontify JSON RTE Plugin."
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "blt736048058b05d53a",
+        "ACL": {},
+        "content_type": "image/svg+xml",
+        "created_at": "2022-09-02T11:32:41.976Z",
+        "created_by": "bltd5e1f9e7bbbf5fff",
+        "file_size": "3182",
+        "filename": "frontify-icon.svg",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "frontify-icon.svg",
+        "updated_at": "2022-09-02T11:32:41.976Z",
+        "updated_by": "bltd5e1f9e7bbbf5fff",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt736048058b05d53a/6311e9d9ebabda6520edad38/frontify-icon.svg"
+      },
+      "installation_url": "/#!/apps/6311ab2b92549700190fe29a/install",
+      "links": {
+        "source_code": "",
+        "documentation": "",
+        "end_user_license_agreement": "",
+        "others": []
+      },
+      "screenshots": [
+        {
+          "_version": 3,
+          "is_dir": false,
+          "uid": "blt1b9cdb2da864eca7",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:06.796Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "description": "",
+          "file_size": "40411",
+          "filename": "config_screen.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "config_screen.png",
+          "updated_at": "2022-09-09T09:41:53.388Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt1b9cdb2da864eca7/631b0a6153c6564a15946c06/config_screen.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt295f242046e3a77e",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:08.161Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "38255",
+          "filename": "customField_appOptions.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "customField_appOptions.png",
+          "updated_at": "2022-09-02T11:35:08.161Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt295f242046e3a77e/6311ea6ce6bd866fcfd99c15/customField_appOptions.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt22016a475135edfc",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:24.081Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "48796",
+          "filename": "customField_contentType.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "customField_contentType.png",
+          "updated_at": "2022-09-02T11:35:24.081Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt22016a475135edfc/6311ea7c6304777e0f86d8fa/customField_contentType.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt45be00b9ef6619f5",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:18.310Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "26512",
+          "filename": "customField_noData_entry.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "customField_noData_entry.png",
+          "updated_at": "2022-09-02T11:35:18.310Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt45be00b9ef6619f5/6311ea761004b759387c7376/customField_noData_entry.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt5f3939ea525cd94b",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:53.957Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "367075",
+          "filename": "selector_page.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "selector_page.png",
+          "updated_at": "2022-09-02T11:35:53.957Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt5f3939ea525cd94b/6311ea9980f5d16e5c0da367/selector_page.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt2c7e3042f2394058",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:53.716Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "350610",
+          "filename": "selectorPage_selectAssets.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "selectorPage_selectAssets.png",
+          "updated_at": "2022-09-02T11:35:53.716Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt2c7e3042f2394058/6311ea99f948c06df05c2caf/selectorPage_selectAssets.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt239f09512de2930f",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:30.319Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "119946",
+          "filename": "customField_entry.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "customField_entry.png",
+          "updated_at": "2022-09-02T11:35:30.319Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt239f09512de2930f/6311ea82fc0b1963dcef285a/customField_entry.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt5665105a7d6053f5",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:40.654Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "301475",
+          "filename": "customField_assetHover.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "customField_assetHover.png",
+          "updated_at": "2022-09-02T11:35:40.654Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt5665105a7d6053f5/6311ea8cde82716cc171c83e/customField_assetHover.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt6cab308f19f4b548",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:28.330Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "65667",
+          "filename": "rte_contentType.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "rte_contentType.png",
+          "updated_at": "2022-09-02T11:35:28.330Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt6cab308f19f4b548/6311ea80b21f130163e54441/rte_contentType.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt43631bb8c1505ae9",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:26.095Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "38223",
+          "filename": "rte_plugin_options.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "rte_plugin_options.png",
+          "updated_at": "2022-09-02T11:35:26.095Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt43631bb8c1505ae9/6311ea7e31bdfe6df1c20a37/rte_plugin_options.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt3cf5039ad42d2ae4",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:26.007Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "35223",
+          "filename": "rte_icon_button.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "rte_icon_button.png",
+          "updated_at": "2022-09-02T11:35:26.007Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt3cf5039ad42d2ae4/6311ea7ede82716cc171c83a/rte_icon_button.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blte2a4d111c21187f1",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-09-02T11:35:30.246Z",
+          "created_by": "bltd5e1f9e7bbbf5fff",
+          "file_size": "112368",
+          "filename": "rte_entry.png",
+          "parent_uid": "bltaefa20ab37acae9e",
+          "tags": [],
+          "title": "rte_entry.png",
+          "updated_at": "2022-09-02T11:35:30.246Z",
+          "updated_by": "bltd5e1f9e7bbbf5fff",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blte2a4d111c21187f1/6311ea82e6bd866fcfd99c19/rte_entry.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+          "_metadata": {
+            "uid": "csbfcfd116d3094522"
+          }
+        },
+        {
+          "type": "Documentation",
+          "url": "https://www.contentstack.com/docs/developers/marketplace-apps/frontify/",
+          "_metadata": {
+            "uid": "csd0a7675e2345489a"
+          }
+        }
+      ],
+      "summary": "Fetch digital assets (images/documents/video/music etc.) from your Frontify account into a Contentstack entry.",
+      "tags": [],
+      "title": "Frontify",
+      "updated_at": "2025-01-24T11:32:55.556Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/frontify",
+      "use_cases": "<p><strong>Manage Frontify digital media with ease:</strong> The Frontify app lets you manage images, videos, icons, and documents within your <a href=\"https://www.contentstack.com/docs/content-managers/working-with-entries/about-entries/\" target=\"_blank\">entries</a>. With Frontify, you can easily link all the digital assets without leaving your headless CMS.</p><p><strong>Better marketing campaigns with ease-to-access assets:</strong> You can create content in Contentstack and use the Frontify Custom Field or JSON RTE Field to insert digital assets in your content. With this, cross-functional teams can work on large-scale campaigns with ease.</p><p><strong>Easy distribution of digital assets: </strong>The Frontify app allows geographically dispersed teams to easily store, share and fetch digital media assets.</p>",
+      "ACL": {},
+      "publish_details": {
+        "time": "2025-01-28T10:53:49.663Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "blt5efc6f55432a0878",
+      "_version": 10,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "621640ff4671880018efec74",
+      "built_by": [
+        {
+          "uid": "bltec929d731b1f9d85",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2022-03-29T11:13:09.115Z",
+      "created_by": "blt89b5b90cb9e7c645",
+      "description": "<p style=\"text-align: left;\">The Image Preset Builder app is a collection of formatting tools that help transform and optimize assets in the stack. You can build customized presets for any image file to tailor your assets as per your business requirements.</p><p style=\"text-align: left;\">Image Preset Builder allows you to use varied preset versions of assets across your entries. With the help of this app, you can add image presets to fields such as Custom Field extensions or the JSON Rich Text Editor.<span style=\"color: rgb(0, 0, 0);font-family: undefined;\"></span><span style=\"color: rgb(0, 0, 255);\"><strong></strong></span></p><h4>Developer Documentation:</h4><p>To render the image presets built from the Image Preset Builder app in your project using the <a href=\"https://github.com/contentstack/app-utils/\" target=\"_blank\">App Utils</a> functions, please refer to the <a href=\"https://www.contentstack.com/docs/developers/marketplace-apps/image-preset-builder/#render-images-using-image-preset-builder\" target=\"_blank\">Render Images using Image Preset Builder</a> section of the installation guide.</p>",
+      "dynamic_links": [],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt7cf992884f5eca3d",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "csa7d3f06c094c7174"
+          },
+          "description": "Create presets for your image files using the Image Preset Builder extension app."
+        },
+        {
+          "feature_type": [
+            {
+              "uid": "bltf9b70a5fd3c08c36",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "csdf8c11290f11ee6b"
+          },
+          "description": "Add customized presets to your JSON Rich Text Editor fields using the Preset Builder JSON RTE Plugin"
+        },
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs33da0ec99b1b5425"
+          },
+          "description": "Add optimized image presets to Custom fields that accept assets as input."
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "bltfe85fe6163c6371e",
+        "ACL": {},
+        "content_type": "image/svg+xml",
+        "created_at": "2022-03-29T11:09:04.361Z",
+        "created_by": "blt89b5b90cb9e7c645",
+        "file_size": "3155",
+        "filename": "preset.svg",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "preset.svg",
+        "updated_at": "2022-03-29T11:09:04.361Z",
+        "updated_by": "blt89b5b90cb9e7c645",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltfe85fe6163c6371e/6242e8d081b559640a7f7475/preset.svg"
+      },
+      "installation_url": "#!/apps/621640ff4671880018efec74/install",
+      "links": {
+        "source_code": "",
+        "documentation": "",
+        "others": [],
+        "end_user_license_agreement": ""
+      },
+      "screenshots": [
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltfd4c1b10fbadf2c8",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:03.273Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "description": "",
+          "file_size": "175853",
+          "filename": "new_preset.png",
+          "parent_uid": "bltc827a00118a50f18",
+          "tags": [],
+          "title": "new_preset.png",
+          "updated_at": "2022-03-29T11:09:03.273Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltfd4c1b10fbadf2c8/6242e8cfed063b096d929843/new_preset.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt9becbd9461e8f109",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:02.272Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "description": "",
+          "file_size": "435362",
+          "filename": "presets.png",
+          "parent_uid": "bltc827a00118a50f18",
+          "tags": [],
+          "title": "presets.png",
+          "updated_at": "2022-03-29T11:09:02.272Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt9becbd9461e8f109/6242e8cea7f9130fc619972c/presets.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltf66a57fbcf9adbb5",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2022-03-29T11:09:03.498Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "description": "",
+          "file_size": "502254",
+          "filename": "formatting_options.png",
+          "parent_uid": "bltc827a00118a50f18",
+          "tags": [],
+          "title": "formatting_options.png",
+          "updated_at": "2022-03-29T11:09:03.498Z",
+          "updated_by": "blt89b5b90cb9e7c645",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltf66a57fbcf9adbb5/6242e8cf077d7c10fb7aba67/formatting_options.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+          "_metadata": {
+            "uid": "cs6277649029047c65"
+          }
+        },
+        {
+          "type": "Documentation",
+          "url": "https://www.contentstack.com/docs/developers/marketplace-apps/image-preset-builder/",
+          "_metadata": {
+            "uid": "cs01d17b2955b24d9d"
+          }
+        }
+      ],
+      "summary": "Allows you to transform and enhance image files by creating presets to suit your business needs.",
+      "tags": [],
+      "title": "Image Preset Builder",
+      "updated_at": "2025-01-24T11:20:29.187Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/image-preset-builder",
+      "use_cases": "<p><strong>Image optimization:</strong> Easily edit images and presets to increase productivity. Businesses can also use this to quickly customize and brand their products.</p><p><strong>Media functionality:</strong> You can use the Image Preset Builder app in conjunction with the API functionality to apply campaign branding to images without having to do any frontend development.</p><p><strong>Consistent solution for your work:</strong> You can maintain consistency across all your image files by using presets, thereby defining your brand image.</p>",
+      "publish_details": {
+        "time": "2025-01-28T10:55:14.129Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "blt4bc1c01faaa9515b",
+      "_version": 4,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "6762b269e4edd60012729b3f",
+      "built_by": [
+        {
+          "uid": "blt5dfea44cb76ed4ca",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2025-01-29T13:46:00.929Z",
+      "created_by": "blt78cea3a89ceb6137",
+      "description": "<p>Pull assets like images, videos, and product sheets straight from Kontainer.</p><p>The app allows download templates, which reformat images as they are fetched, and naming templates that can automize SEO optimization. Find out more here: <a href=\"https://helpdesk.kontainer.com/article/a-guide-to-download-templates/\" target=\"_blank\">https://helpdesk.kontainer.com/article/a-guide-to-download-templates/</a></p>",
+      "dynamic_links": [
+        {
+          "title": "Support",
+          "href": "mailto:mail@kontainer.com"
+        }
+      ],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs0796754e1f71a5bb"
+          },
+          "description": "Custom Field allows you to select multiple assets from your Digizuite account and add them to your entry."
+        }
+      ],
+      "icon": {
+        "uid": "bltd8d9475a7210809e",
+        "_version": 1,
+        "title": "Kontainer_logo.png",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "created_by": "blt78cea3a89ceb6137",
+        "updated_by": "blt78cea3a89ceb6137",
+        "created_at": "2025-01-29T13:39:48.911Z",
+        "updated_at": "2025-01-29T13:39:48.911Z",
+        "content_type": "image/png",
+        "file_size": "9031",
+        "filename": "Kontainer_logo.png",
+        "ACL": {},
+        "is_dir": false,
+        "tags": [],
+        "publish_details": {
+          "time": "2025-01-30T07:20:45.856Z",
+          "user": "blt78cea3a89ceb6137",
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltd8d9475a7210809e/679a2fa4137f136ac25f8570/Kontainer_logo.png"
+      },
+      "installation_url": "#!/apps/6762b269e4edd60012729b3f/install",
+      "links": {
+        "source_code": "",
+        "documentation": "https://helpdesk.kontainer.com",
+        "end_user_license_agreement": "https://kontainer.com/terms-and-conditions",
+        "others": []
+      },
+      "screenshots": [
+        {
+          "uid": "blt98932a04b31784e7",
+          "_version": 1,
+          "title": "config-1.png",
+          "parent_uid": "blt18080c44b39acda5",
+          "created_by": "blt78cea3a89ceb6137",
+          "updated_by": "blt78cea3a89ceb6137",
+          "created_at": "2025-01-29T13:44:44.442Z",
+          "updated_at": "2025-01-29T13:44:44.442Z",
+          "content_type": "image/png",
+          "file_size": "285152",
+          "filename": "config-1.png",
+          "ACL": {},
+          "is_dir": false,
+          "tags": [],
+          "publish_details": {
+            "time": "2025-01-30T07:20:45.871Z",
+            "user": "blt78cea3a89ceb6137",
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt98932a04b31784e7/679a30cca44add02754fe973/config-1.png"
+        },
+        {
+          "uid": "bltdfe09822f7b23800",
+          "_version": 1,
+          "title": "contenttype-2.png",
+          "parent_uid": "blt18080c44b39acda5",
+          "created_by": "blt78cea3a89ceb6137",
+          "updated_by": "blt78cea3a89ceb6137",
+          "created_at": "2025-01-29T13:44:44.426Z",
+          "updated_at": "2025-01-29T13:44:44.426Z",
+          "content_type": "image/png",
+          "file_size": "150034",
+          "filename": "contenttype-2.png",
+          "ACL": {},
+          "is_dir": false,
+          "tags": [],
+          "publish_details": {
+            "time": "2025-01-30T07:20:45.840Z",
+            "user": "blt78cea3a89ceb6137",
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltdfe09822f7b23800/679a30ccc3e1cba508da025f/contenttype-2.png"
+        },
+        {
+          "uid": "blt891a39db9979903a",
+          "_version": 1,
+          "title": "custom-field-3.png",
+          "parent_uid": "blt18080c44b39acda5",
+          "created_by": "blt78cea3a89ceb6137",
+          "updated_by": "blt78cea3a89ceb6137",
+          "created_at": "2025-01-29T13:44:45.076Z",
+          "updated_at": "2025-01-29T13:44:45.076Z",
+          "content_type": "image/png",
+          "file_size": "1375271",
+          "filename": "custom-field-3.png",
+          "ACL": {},
+          "is_dir": false,
+          "tags": [],
+          "publish_details": {
+            "time": "2025-01-30T07:20:45.885Z",
+            "user": "blt78cea3a89ceb6137",
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt891a39db9979903a/679a30cdae49134467f88c26/custom-field-3.png"
+        }
+      ],
+      "seo": {
+        "title": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "canonical_url": ""
+      },
+      "static_links": [
+        {
+          "type": "End-User License Agreement",
+          "url": "https://kontainer.com/terms-and-conditions",
+          "_metadata": {
+            "uid": "csbc44d7d224052d67"
+          }
+        },
+        {
+          "type": "Documentation",
+          "url": "https://helpdesk.kontainer.com",
+          "_metadata": {
+            "uid": "cs283de2028059c0e1"
+          }
+        }
+      ],
+      "summary": "Pull assets like images, videos, and product sheets straight from Kontainer.",
+      "tags": [],
+      "title": "Kontainer",
+      "updated_at": "2025-02-07T19:39:19.147Z",
+      "updated_by": "blt78cea3a89ceb6137",
+      "url": "/marketplace/kontainer",
+      "use_cases": "<p>Connects assets from Kontainer Dam to ContentStack custom fields. Can be used all places there assets is needed</p>",
+      "publish_details": {
+        "time": "2025-02-07T19:39:26.552Z",
+        "user": "blt78cea3a89ceb6137",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    },
+    {
+      "uid": "bltf3ea0046122ec160",
+      "_version": 8,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types"
+        }
+      ],
+      "app_uid": "6422122285be5a001944ad6d",
+      "built_by": [
+        {
+          "uid": "blt31680c4e3b524fd2",
+          "_content_type_uid": "organizations"
+        }
+      ],
+      "category": [
+        {
+          "uid": "blt6abfa301df06bf93",
+          "_content_type_uid": "categories"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2023-05-05T07:59:03.313Z",
+      "created_by": "bltf389fd468f32cd6e",
+      "description": "<p><span>A minimal integration of the Ocavu 3d platform. Entries in Content Stack can be connected to an asset in Ocavu by inputting various fields. If the app is configured correctly and a valid asset key is entered into the Ocavu Asset Key field the model will be visible from the Entry edit view. This helps users stay within the Content Stack ecosystem if all they want to do is browse or preview their 3d models.</span></p>",
+      "dynamic_links": [
+        {
+          "title": "Privacy policy",
+          "href": "https://www.ocavu.com/privacy-policy/"
+        },
+        {
+          "title": "Support",
+          "href": "mailto:support@ocavu.com"
+        }
+      ],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features"
+            }
+          ],
+          "_metadata": {
+            "uid": "csf814c1f317212546"
+          },
+          "description": "Custom field enables the viewing of Ocavu-hosted assets. embeds a basic 3D viewer for a 3D model using the models."
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "bltd6915163f1454188",
+        "ACL": {},
+        "content_type": "image/svg+xml",
+        "created_at": "2023-05-05T09:24:59.115Z",
+        "created_by": "bltf389fd468f32cd6e",
+        "file_size": "24491",
+        "filename": "Ocavu.svg",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "Ocavu.svg",
+        "updated_at": "2023-05-05T09:24:59.115Z",
+        "updated_by": "bltf389fd468f32cd6e",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltd6915163f1454188/6454cb6b2215a3bedde70c78/Ocavu.svg"
+      },
+      "installation_url": "/#!/apps/6422122285be5a001944ad6d/install",
+      "links": {
+        "source_code": "",
+        "documentation": "",
+        "end_user_license_agreement": "",
+        "others": []
+      },
+      "screenshots": [
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "bltb2fa3286f0ef991a",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-05-05T09:17:05.871Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "503999",
+          "filename": "ConfigScreen-1.png",
+          "parent_uid": "bltb6c089404f41984f",
+          "tags": [],
+          "title": "ConfigScreen-1.png",
+          "updated_at": "2023-05-05T09:17:05.871Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltb2fa3286f0ef991a/6454c99197a1175f49721c63/ConfigScreen-1.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt1b3fbca5df1f4d86",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-05-05T09:17:06.237Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "217453",
+          "filename": "CustomField-2.png",
+          "parent_uid": "bltb6c089404f41984f",
+          "tags": [],
+          "title": "CustomField-2.png",
+          "updated_at": "2023-05-05T09:17:06.237Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt1b3fbca5df1f4d86/6454c99291026c2e20d77bb3/CustomField-2.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt9934f583008e9bb6",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-05-05T09:17:05.680Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "267212",
+          "filename": "AssetSelect-3.png",
+          "parent_uid": "bltb6c089404f41984f",
+          "tags": [],
+          "title": "AssetSelect-3.png",
+          "updated_at": "2023-05-05T09:17:05.680Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt9934f583008e9bb6/6454c991e0636f608d89159a/AssetSelect-3.png"
+        },
+        {
+          "_version": 1,
+          "is_dir": false,
+          "uid": "blt9b5c5739cdb6453e",
+          "ACL": {},
+          "content_type": "image/png",
+          "created_at": "2023-05-05T09:17:05.848Z",
+          "created_by": "bltf389fd468f32cd6e",
+          "file_size": "544019",
+          "filename": "AssetViewer-4.png",
+          "parent_uid": "bltb6c089404f41984f",
+          "tags": [],
+          "title": "AssetViewer-4.png",
+          "updated_at": "2023-05-05T09:17:05.848Z",
+          "updated_by": "bltf389fd468f32cd6e",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          },
+          "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt9b5c5739cdb6453e/6454c99129a8592bf4189a9a/AssetViewer-4.png"
+        }
+      ],
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "Documentation",
+          "url": "https://api.seekxr.com/docs/cs-ocavu-viewer/",
+          "_metadata": {
+            "uid": "cse3e92eac0906a9a2"
+          }
+        },
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+          "_metadata": {
+            "uid": "cs6b5ada60b8f6d4d6"
+          }
+        }
+      ],
+      "summary": "Allows viewing assets hosted in Ocavu. Embeds a simple 3d viewer of a 3d model using the Ocavu asset key of that model.",
+      "tags": [],
+      "title": "Ocavu Asset Viewer",
+      "updated_at": "2025-01-31T05:54:41.867Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/ocavu",
+      "use_cases": "<p>The app provides a way to view 3d models hosted in Ocavu without leaving Content Stack.</p>",
+      "publish_details": {
+        "time": "2025-01-31T05:54:48.273Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
+    }
+  ],
+  "count": 11
+}
