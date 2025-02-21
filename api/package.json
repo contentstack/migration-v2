@@ -28,6 +28,7 @@
     "@contentstack/cli-cm-import": "^1.16.6",
     "@contentstack/cli-utilities": "^1.7.1",
     "@contentstack/json-rte-serializer": "^2.0.7",
+    "@contentstack/marketplace-sdk": "^1.2.4",
     "axios": "^1.7.8",
     "chokidar": "^3.6.0",
     "cors": "^2.8.5",
