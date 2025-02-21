@@ -53,7 +53,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     mandatory: props?.value?.mandatory,
     allowImagesOnly: props?.value?.allowImagesOnly,
     nonLocalizable: props?.value?.nonLocalizable,
-    embedObject: true,
+    embedObject: (props?.value?.embedObjects?.length ?? 0) > 0,
     embedAssests: true,
     multiple: props?.value?.multiple,
     embedObjects: props?.value?.embedObjects,
@@ -537,12 +537,12 @@ const AdvancePropertise = (props: SchemaProps) => {
                       label="Embed Object(s)"
                       labelColor="primary"
                       labelPosition="right"
-                      checked={toggleStates?.embedObject}
+                      checked={(ctValue?.length ?? 0) > 0 || toggleStates?.embedObject}
                       onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('embedObject', (e.target as HTMLInputElement)?.checked, true))}
                     />
                   </div>
   
-                  {toggleStates?.embedObject && (
+                  {(ctValue && ctValue?.length > 0 || toggleStates?.embedObject) && (
                     <Select
                       value={ctValue}
                       isMulti={true}

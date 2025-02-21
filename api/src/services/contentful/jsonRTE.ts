@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { MIGRATION_DATA_CONFIG } from '../../constants/index.js';
 
-const { 
+const {
   DATA,
   // DIR
   LOCALE_DIR_NAME,
@@ -12,18 +12,20 @@ const {
   LOCALE_MASTER_LOCALE,
   ASSETS_SCHEMA_FILE,
   RTE_REFERENCES_FILE_NAME,
-  
-} = MIGRATION_DATA_CONFIG;
 
+} = MIGRATION_DATA_CONFIG;
 type NodeType = string;
 type LangType = string;
 type StackId = string;
 
-function readFile (filePath:string) {
-  return JSON.parse(fs.readFileSync(filePath).toString())
+function readFile(filePath: string) {
+  if (fs.existsSync(filePath)) {
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  }
+  return undefined;
 }
 
-const parsers: Map<NodeType, (obj: any, lang?: LangType, destination_stack_id?:StackId) => any> = new Map([
+const parsers: Map<NodeType, (obj: any, lang?: LangType, destination_stack_id?: StackId) => any> = new Map([
   ['document', parseDocument],
   ['paragraph', parseParagraph],
   ['text', parseText],
@@ -53,7 +55,7 @@ const parsers: Map<NodeType, (obj: any, lang?: LangType, destination_stack_id?:S
   ['table-cell', parseTableBody],
 ]);
 
-export default function jsonParse(obj: { nodeType: NodeType }, lang?: LangType, destination_stack_id?:StackId,) {
+export default function jsonParse(obj: { nodeType: NodeType }, lang?: LangType, destination_stack_id?: StackId,) {
   const parser = parsers.get(obj.nodeType);
   if (parser) {
     return parser(obj, lang, destination_stack_id);
@@ -65,7 +67,7 @@ function generateUID(prefix: string): string {
   return `${prefix}${Math.floor(Math.random() * 100000000000000)}`;
 }
 
-function parseDocument(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseDocument(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
 
   return {
@@ -85,7 +87,7 @@ function parseDocument(obj: any, lang?: LangType, destination_stack_id?:StackId)
   };
 }
 
-function parseTable(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseTable(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const rowCount = obj.content.length;
   const colCount = Math.max(...obj.content.map((e: any) => e.content.length));
   const attrs = {
@@ -103,18 +105,18 @@ function parseTable(obj: any, lang?: LangType, destination_stack_id?:StackId): a
   };
 }
 
-function parseTableRow(obj: any,lang?: LangType, destination_stack_id?:StackId): any {
+function parseTableRow(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const types = new Set<string>();
   const children = obj.content.map((e: any) => {
     types.add(e.nodeType);
     return parsers.get(e.nodeType)?.(e, lang, destination_stack_id);
   }).filter(Boolean);
 
-  const type = types.has('table-header-cell') ? 'thead' : '';
+  const type = types.has('table-header-cell') ? 'thead' : 'th';
   return children.length ? { type, attrs: {}, uid: generateUID('tabletype'), children } : null;
 }
 
-function parseHeadTR(obj: any[],lang?: LangType, destination_stack_id?:StackId): any {
+function parseHeadTR(obj: any[], lang?: LangType, destination_stack_id?: StackId): any {
   const children = obj.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'tr',
@@ -124,7 +126,7 @@ function parseHeadTR(obj: any[],lang?: LangType, destination_stack_id?:StackId):
   };
 }
 
-function parseTableHead(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseTableHead(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'th',
@@ -134,7 +136,7 @@ function parseTableHead(obj: any, lang?: LangType, destination_stack_id?:StackId
   };
 }
 
-function parseTBody(obj: any,lang?: LangType, destination_stack_id?:StackId ): any {
+function parseTBody(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const children = obj.content.map((e: any) => parsers.get('body-tr')?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'tbody',
@@ -144,17 +146,17 @@ function parseTBody(obj: any,lang?: LangType, destination_stack_id?:StackId ): a
   };
 }
 
-function parseBodyTR(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseBodyTR(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const children = obj.content.filter((e: any) => e.nodeType === 'table-cell').map((e: any) => parsers.get('table-cell')?.(e, lang, destination_stack_id)).filter(Boolean);
   return children.length ? { type: 'tr', attrs: {}, uid: generateUID('tr'), children } : null;
 }
 
-function parseTableBody(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseTableBody(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return children.length ? { type: 'td', attrs: {}, uid: generateUID('td'), children } : null;
 }
 
-function parseParagraph(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseParagraph(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'p',
@@ -165,7 +167,7 @@ function parseParagraph(obj: any, lang?: LangType, destination_stack_id?:StackId
 }
 
 function parseText(obj: any): any {
-  const result: { text: string; [key: string]: boolean | string } = { text: obj.value };
+  const result: { text: string;[key: string]: boolean | string } = { text: obj.value };
   obj.marks.forEach((e: any) => {
     result[e.type.replace('code', 'inlineCode')] = true;
   });
@@ -181,8 +183,8 @@ function parseHR(): any {
   };
 }
 
-function parseUL(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
-  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e,lang, destination_stack_id)).filter(Boolean);
+function parseUL(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'ul',
     attrs: {},
@@ -192,7 +194,7 @@ function parseUL(obj: any, lang?: LangType, destination_stack_id?:StackId): any 
   };
 }
 
-function parseOL(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseOL(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).filter(Boolean);
   return {
     type: 'ol',
@@ -203,7 +205,7 @@ function parseOL(obj: any, lang?: LangType, destination_stack_id?:StackId): any 
   };
 }
 
-function parseLI(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseLI(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e, lang, destination_stack_id)).flat().filter(Boolean);
   return {
     type: 'li',
@@ -213,7 +215,7 @@ function parseLI(obj: any, lang?: LangType, destination_stack_id?:StackId): any 
   };
 }
 
-function parseBlockReference(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseBlockReference(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const entryId: { [key: string]: any } = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, RTE_REFERENCES_DIR_NAME, RTE_REFERENCES_FILE_NAME));
   const defaultLocale = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, LOCALE_DIR_NAME, LOCALE_MASTER_LOCALE));
   const masterLocale = Object.values(defaultLocale).map((localeId: any) => localeId.code).join();
@@ -221,7 +223,7 @@ function parseBlockReference(obj: any, lang?: LangType, destination_stack_id?:St
 
   if (masterLocale === lang || lang) {
     for (const [arrayKey, arrayValue] of Object.entries(entryId)) {
-      if (arrayValue[obj.data.target.sys.id] && lang === arrayKey) {
+      if (arrayValue?.[obj?.data?.target?.sys?.id]?._content_type_uid && lang === arrayKey) {
         return {
           type: 'reference',
           attrs: {
@@ -239,57 +241,65 @@ function parseBlockReference(obj: any, lang?: LangType, destination_stack_id?:St
     }
   }
   return {
-    type: 'reference',
+    type: 'p',
     attrs: {},
     uid: generateUID('reference'),
     children: [{ text: '' }],
   };
 }
 
-function parseInlineReference(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseInlineReference(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const entryId: { [key: string]: any } = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, RTE_REFERENCES_DIR_NAME, RTE_REFERENCES_FILE_NAME));
   const entry = Object.entries(entryId).find(([arrayKey, arrayValue]) => arrayKey === lang && arrayValue[obj.data.target.sys.id]);
 
   if (entry) {
     const [arrayKey, arrayValue] = entry;
-    return {
-      type: 'reference',
-      attrs: {
-        'display-type': 'block',
-        type: 'entry',
-        'class-name': 'embedded-entry redactor-component block-entry',
-        'entry-uid': obj.data.target.sys.id,
-        locale: arrayKey,
-        'content-type-uid': arrayValue._content_type_uid,
-      },
-      uid: generateUID('reference'),
-      children: [{ text: '' }],
-    };
+    if (arrayValue?.[obj?.data?.target?.sys?.id]?._content_type_uid && arrayKey) {
+      return {
+        type: 'reference',
+        attrs: {
+          'display-type': 'block',
+          type: 'entry',
+          'class-name': 'embedded-entry redactor-component block-entry',
+          'entry-uid': obj.data.target.sys.id,
+          locale: arrayKey,
+          'content-type-uid': arrayValue?.[obj?.data?.target?.sys?.id]?._content_type_uid,
+        },
+        uid: generateUID('reference'),
+        children: [{ text: '' }],
+      };
+    }
   }
 
   return {
-    type: 'reference',
+    type: 'p',
     attrs: {},
     uid: generateUID('reference'),
     children: [{ text: '' }],
   };
 }
 
-function parseBlockAsset(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
+function parseBlockAsset(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const assetId = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, ASSETS_DIR_NAME, ASSETS_SCHEMA_FILE));
-  const asset = assetId[obj.data.target.sys.id];
-  // const attrs: any = {};
+  const asset = assetId?.[obj?.data?.target?.sys?.id];
 
   if (asset) {
     return {
       type: 'reference',
       attrs: {
         'display-type': 'download',
+        "type": "asset",
         'asset-uid': obj.data.target.sys.id,
         'class-name': 'embedded-asset redactor-component block-asset',
-        title: asset.title,
-        filename: asset.fileName,
-        locale: asset.locale,
+        "asset-type": asset?.content_type,
+        title: asset?.title,
+        filename: asset?.fileName,
+        locale: asset?.locale,
+        "content-type-uid": "sys_assets",
+        "asset-link": asset?.url,
+        "asset-name": asset?.title,
+        "alt": "",
+        "asset-alt": "",
       },
       uid: generateUID('reference'),
       children: [{ text: '' }],
@@ -297,7 +307,7 @@ function parseBlockAsset(obj: any, lang?: LangType, destination_stack_id?:StackI
   }
 
   return {
-    type: 'reference',
+    type: 'p',
     attrs: {},
     uid: generateUID('reference'),
     children: [{ text: '' }],
@@ -383,8 +393,8 @@ function parseEntryHyperlink(obj: any, lang?: LangType): any {
   };
 }
 
-function parseAssetHyperlink(obj: any, lang?: LangType, destination_stack_id?:StackId): any {
-  const assetId = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id,ASSETS_DIR_NAME , ASSETS_SCHEMA_FILE));
+function parseAssetHyperlink(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
+  const assetId = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, ASSETS_DIR_NAME, ASSETS_SCHEMA_FILE));
   const asset = assetId[obj.data.target.sys.id];
   if (asset) {
     return {

@@ -102,7 +102,7 @@ export interface FieldMetadata {
 }
 export interface ContentTypesSchema {
   display_type: string;
-  data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file' | 'reference' | 'group' | 'boolean' | 'link';
+  data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file' | 'reference' | 'group' | 'boolean' | 'link' | 'Marketplace app' | 'Extension';
   display_name: string;
   enum?: any;
   error_messages?: ErrorMessages;
