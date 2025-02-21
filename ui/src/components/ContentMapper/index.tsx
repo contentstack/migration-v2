@@ -200,6 +200,16 @@ const Fields: MappingFields = {
     label: 'Group',
     options: {'Group':'group'},
     type:'Group'
+  },
+  'app':{
+    label: 'Marketplace app',
+    options: {'Marketplace app':'app'},
+    type:'app'
+  },
+  'extension':{
+    label: 'Extension',
+    options: {'Extension':'extension'},
+    type:'extension'
   }
 
 }
@@ -1061,7 +1071,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.backupFieldType === 'reference'||
               data?.contentstackFieldType === "global_field" ||
               data?.otherCmsType === undefined ||
-              newMigrationData?.project_current_step > 4
+              newMigrationData?.project_current_step > 4 ||
+              data?.backupFieldType === 'extension' ||
+              data?.backupFieldType === 'app'
             }
           />
         </div>
@@ -1071,7 +1083,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           data?.otherCmsField === 'url' ||
           data?.otherCmsType === 'reference' ||
           data?.contentstackFieldType === 'global_field' ||
-          data?.otherCmsType === undefined
+          data?.otherCmsType === undefined ||
+          data?.backupFieldType === 'extension' ||
+          data?.backupFieldType === 'app'
            ) && (
           <Tooltip 
             content="Advanced properties" 
@@ -1427,7 +1441,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
     // Handle case where there is exactly one match and it is auto-mapped
     if(OptionsForRow?.length === 1 &&
-      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference'))
+      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference'
+      ))
       {
         updatedRows = updatedRows.map((row: FieldMapType) => {
           if (row?.uid === data?.uid) {
@@ -1496,10 +1511,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     }    
 
     
-   
     const OptionValue: FieldTypes =
       OptionsForRow?.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
-      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference')
+      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference' 
+        
+      )
         ? {
           label: OptionsForRow[0]?.value?.display_name,
           value: OptionsForRow[0]?.value,
@@ -1516,7 +1532,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.backupFieldType === "reference" || 
               data?.contentstackFieldType === "global_field" ||
               data?.contentstackFieldType === "dropdown" ||
-              data?.otherCmsType === undefined
+              data?.otherCmsType === undefined ||
+              data?.backupFieldType === 'app' || 
+              data?.backupFieldType === 'extension'
           }
           : {
           label: `${selectedOption} matches`,
@@ -1530,7 +1548,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         ...option,
         isDisabled: selectedOptions?.includes(option?.label ?? '')
       }));
-
+    console.log("**** ", data?.backupFieldType,!OptionValue?.isDisabled , OptionValue?.label === 'Dropdown',
+      (data?.backupFieldType !== 'extension' && data?.backupFieldType !== 'app'));
+    
     return (
       <div className="table-row">
         <div className="select">
@@ -1551,7 +1571,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
           />
         </div>
-        {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown') && (
+        {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown'||
+         (data?.backupFieldType !== 'extension' && data?.backupFieldType !== 'app')) && (
           <div className='advanced-setting-button'>
             <Tooltip
               content="Advanced properties" 
