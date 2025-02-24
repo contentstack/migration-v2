@@ -101,7 +101,10 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           }
         });
 
-        setLogs((prevLogs) => [...prevLogs, ...parsedLogsArray]);    
+        setLogs((prevLogs) => 
+          [...prevLogs.filter(log => log.message !== "Migration logs will appear here once the process begins."), 
+           ...parsedLogsArray]
+        );
     });
 
     return () => {
