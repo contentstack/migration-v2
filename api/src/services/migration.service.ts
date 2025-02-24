@@ -242,12 +242,12 @@ const startTestMigration = async (req: Request): Promise<any> => {
           await wordpressService?.createAssetFolderFile(file_path, project?.current_test_stack_id, projectId)
           await wordpressService?.getAllreference(file_path, packagePath, project?.current_test_stack_id, projectId)
           await wordpressService?.extractChunks(file_path, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllAuthors(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys)
+          await wordpressService?.getAllAuthors(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
           //await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id, contentTypes)
-          await wordpressService?.getAllTerms(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys)
-          await wordpressService?.extractPosts(packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys)
+          await wordpressService?.getAllTerms(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
+          await wordpressService?.getAllTags(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
+          await wordpressService?.getAllCategories(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
+          await wordpressService?.extractPosts(packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
           await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
           await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
         }
@@ -314,16 +314,16 @@ const startMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.getAllAssets(file_path, packagePath, project?.destination_stack_id, projectId)
+          await wordpressService?.getAllAssets(file_path, packagePath, project?.destination_stack_id, projectId,)
           await wordpressService?.createAssetFolderFile(file_path, project?.destination_stack_id, projectId)
           await wordpressService?.getAllreference(file_path, packagePath, project?.destination_stack_id, projectId)
           await wordpressService?.extractChunks(file_path, packagePath, project?.destination_stack_id, projectId)
-          await wordpressService?.getAllAuthors(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys)
+          await wordpressService?.getAllAuthors(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
-          await wordpressService?.getAllTerms(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys)
-          await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys)
+          await wordpressService?.getAllTerms(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.getAllTags(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
+          await wordpressService?.getAllCategories(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
+          await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
           await wordpressService?.extractGlobalFields(project?.destination_stack_id, projectId)
           await wordpressService?.createVersionFile(project?.destination_stack_id, projectId);
 
