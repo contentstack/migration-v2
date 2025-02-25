@@ -237,9 +237,17 @@ async function startingDirAssests(destinationStackId: string) {
   }
 }
 
-async function saveAsset(assets: any, retryCount: number, affix: string, destinationStackId: string, projectId: string) {
+function toCheckUrl(url : string, baseSiteUrl: string) {
+
+  const validPattern = /^(https?:\/\/|www\.)/;
+  return validPattern.test(url)
+    ? url
+    : `${baseSiteUrl}${url.replace(/^\/+/, "")}`;
+}
+
+async function saveAsset(assets: any, retryCount: number, affix: string, destinationStackId: string, projectId: string, baseSiteUrl:string) {
   const srcFunc = 'saveAsset';
-  const url = encodeURI(assets["wp:attachment_url"]);
+  const url = encodeURI(toCheckUrl(assets["wp:attachment_url"],baseSiteUrl));
   const name = url.split("/").pop() || "";
 
   let description =
@@ -355,7 +363,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
    await writeFileAsync(failedJSONFilePath, failedJSON, 4);
 
     if (retryCount === 0) {
-      return saveAsset(assets, 1, affix, destinationStackId, projectId);
+      return saveAsset(assets, 1, affix, destinationStackId, projectId, baseSiteUrl);
     } else {
       const message = getLogMessage(
         srcFunc,
@@ -369,7 +377,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
   }
 }
 
-async function getAsset(attachments: any[], affix: string, destinationStackId: string, projectId: string) {
+async function getAsset(attachments: any[], affix: string, destinationStackId: string, projectId: string, baseSiteUrl:string) {
   const BATCH_SIZE = 5; // 5 promises at a time
   const results = [];
   
@@ -378,7 +386,7 @@ async function getAsset(attachments: any[], affix: string, destinationStackId: s
     
     const batchResults = await Promise.allSettled(
       batch.map((data) => {
-        saveAsset(data, 0, affix, destinationStackId, projectId)
+        saveAsset(data, 0, affix, destinationStackId, projectId, baseSiteUrl)
       })
     );
     results.push(...batchResults);
@@ -402,6 +410,9 @@ async function getAllAssets(
     await startingDirAssests(destinationStackId);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
+    const baseSiteUrl =
+    alldataParsed?.rss?.channel?.["wp:base_site_url"] ||
+    alldataParsed?.channel?.["wp:base_site_url"];
     const assets: Asset[] =
       alldataParsed?.rss?.channel?.item ?? alldataParsed?.channel?.item;
     // await writeFileAsync(path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME), assets, 4);
@@ -420,7 +431,7 @@ async function getAllAssets(
       ({ "wp:post_type": postType }) => postType === "attachment"
     );
     if (attachments.length > 0) {
-      await getAsset(attachments, affix, destinationStackId, projectId);
+      await getAsset(attachments, affix, destinationStackId, projectId,baseSiteUrl);
     }
     return;
   } catch (error) {
