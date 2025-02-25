@@ -4,7 +4,7 @@ import JSZip from 'jszip';
 import validator from '../validators';
 import config from '../config/index';
 import logger from '../utils/logger.js';
-
+import * as Cheerio from 'cheerio';
 
 const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: string, name :string) => {
   if (fileExt === 'zip') {
@@ -36,7 +36,9 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
     }
   } else if (fileExt === 'xml') {
     if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt }) ) {
-      const parsedJson = await parseXmlToJson(zipBuffer);
+      const $ = Cheerio.load(zipBuffer, { xmlMode: true });
+      const fixedXml = $.xml(); 
+      const parsedJson = await parseXmlToJson(fixedXml);
       const isSaved = await saveJson(parsedJson,"data.json");
       if (isSaved) {
         logger.info('Validation success:', {
