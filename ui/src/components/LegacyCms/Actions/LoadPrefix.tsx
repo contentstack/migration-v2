@@ -70,6 +70,16 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         setIsRestrictedKey(false);
         setIsError(true);
         setErrorMessage('Affix must be 2 to 5 letters, with no numbers or special characters.');
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          legacy_cms: {
+            ...newMigrationData?.legacy_cms,
+            affix: '',
+            isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
+          }
+        };
+
+        dispatch(updateNewMigrationData(newMigrationDataObj));
       } else {
         setPrefix(value);
         setIsError(false);
