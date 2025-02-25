@@ -11,7 +11,8 @@ import {
   Icon,
   Select,
   Radio,
-  Button
+  Button,
+  Tag
 } from '@contentstack/venus-components';
 
 // Service
@@ -522,6 +523,20 @@ const AdvancePropertise = (props: SchemaProps) => {
 
             </div>
             
+            </Field>
+          )}
+
+          {props?.fieldtype === 'Reference' && (
+            <Field>
+              <FieldLabel className="option-label" htmlFor="options" version="v2">
+                Referenced Content Type
+              </FieldLabel>
+              <Tag
+                tags={props?.data?.refrenceTo}
+                isDisabled={true}
+                version={'v2'}
+              />            
+
             </Field>
           )}
 
