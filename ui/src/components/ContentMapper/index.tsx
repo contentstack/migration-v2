@@ -1081,7 +1081,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           data?.otherCmsType === 'Group' ||
           data?.otherCmsField === 'title' ||
           data?.otherCmsField === 'url' ||
-          data?.otherCmsType === 'reference' ||
           data?.contentstackFieldType === 'global_field' ||
           data?.otherCmsType === undefined ||
           data?.backupFieldType === 'extension' ||
@@ -1548,8 +1547,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         ...option,
         isDisabled: selectedOptions?.includes(option?.label ?? '')
       }));
-    console.log("**** ", data?.backupFieldType,!OptionValue?.isDisabled , OptionValue?.label === 'Dropdown',
-      (data?.backupFieldType !== 'extension' && data?.backupFieldType !== 'app'));
     
     return (
       <div className="table-row">
