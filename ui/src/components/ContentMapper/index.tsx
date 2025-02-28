@@ -1521,7 +1521,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           isDisabled: true
         }
         : (OptionsForRow?.length === 0 || (OptionsForRow?.length > 0 && OptionsForRow?.every((item)=>item?.isDisabled) 
-          && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ) || (OptionsForRow?.length > 0 && data?.contentstackFieldType === "dropdown"))
+          && (!existingField[data?.uid]?.label || ! updatedExstingField[data?.uid]?.label ) ) || (OptionsForRow?.length > 0 && data?.contentstackFieldType === "dropdown"))
           ? {
             label: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
             value: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
