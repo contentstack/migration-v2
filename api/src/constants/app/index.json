@@ -3429,6 +3429,239 @@
         "environment": "blt0b5712e5b06ac8b6",
         "locale": "en-us"
       }
+    },
+    {
+      "uid": "bltd54177d2353a7558",
+      "_version": 7,
+      "locale": "en-us",
+      "ACL": {},
+      "_in_progress": false,
+      "app_type": [
+        {
+          "uid": "blte9d290b2e9e0931e",
+          "_content_type_uid": "app_types",
+          "title": "Stack App"
+        }
+      ],
+      "app_uid": "6227528cd2485c001994d262",
+      "built_by": [
+        {
+          "_content_type_uid": "organizations",
+          "_version": 3,
+          "locale": "en-us",
+          "uid": "bltec929d731b1f9d85",
+          "ACL": {},
+          "_in_progress": false,
+          "accelerator": [],
+          "additional_info": "",
+          "app": [],
+          "automation": [],
+          "badges": [],
+          "collections": [],
+          "created_at": "2022-03-29T11:12:21.999Z",
+          "created_by": "blt89b5b90cb9e7c645",
+          "date": null,
+          "description": "Contentstack - Headless CMS",
+          "is_this_a_guide": false,
+          "linked_app": [],
+          "logo": {
+            "_version": 2,
+            "is_dir": false,
+            "uid": "bltd1599ef0db421778",
+            "ACL": {},
+            "content_type": "image/svg+xml",
+            "created_at": "2022-03-29T11:10:05.681Z",
+            "created_by": "blt89b5b90cb9e7c645",
+            "description": "",
+            "file_size": "3347",
+            "filename": "Logo.svg",
+            "parent_uid": null,
+            "tags": [],
+            "title": "Contentstack",
+            "updated_at": "2024-07-23T07:59:25.044Z",
+            "updated_by": "blt7314f6e631536c9d",
+            "publish_details": {
+              "environment": "blt0b5712e5b06ac8b6",
+              "locale": "en-us",
+              "time": "2024-07-23T08:16:12.228Z",
+              "user": "blt7314f6e631536c9d"
+            },
+            "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/bltd1599ef0db421778/669f62ddf2780933e9679fae/Logo.svg"
+          },
+          "metadata": {
+            "page_title": "",
+            "page_description": "",
+            "page_thumb": {
+              "_version": 3,
+              "is_dir": false,
+              "uid": "blt2af4c7391167e253",
+              "ACL": {},
+              "content_type": "image/webp",
+              "created_at": "2022-03-29T11:11:02.983Z",
+              "created_by": "blt89b5b90cb9e7c645",
+              "description": "",
+              "file_size": "73804",
+              "filename": "Cs_Marketplace.webp",
+              "parent_uid": "blt9dddaa4b9192231d",
+              "tags": [],
+              "title": "Marketplace_Hero.jpg",
+              "updated_at": "2024-06-19T12:55:48.327Z",
+              "updated_by": "bltb79b1c5ff2fe28ae",
+              "publish_details": {
+                "environment": "blt0b5712e5b06ac8b6",
+                "locale": "en-us",
+                "time": "2024-06-19T12:56:08.635Z",
+                "user": "bltb79b1c5ff2fe28ae"
+              },
+              "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt2af4c7391167e253/6672d5545c79863c672295ca/Cs_Marketplace.webp"
+            },
+            "twitter_title": "",
+            "twitter_description": "",
+            "opengraph_title": "",
+            "opengraph_description": "",
+            "canonical_url": "",
+            "json_ld": "",
+            "robots": ""
+          },
+          "partner_details": {
+            "categories": [],
+            "documentation_links": [],
+            "external_links": [],
+            "company_info": "",
+            "website": {
+              "title": "",
+              "href": ""
+            },
+            "location": [],
+            "headquarters": "",
+            "consultants": "",
+            "projects": "",
+            "cta": {
+              "title": "",
+              "link": ""
+            },
+            "services": "",
+            "use_cases": "",
+            "other_headlines": [],
+            "related_articles": [],
+            "video_section": {
+              "title": "",
+              "description": "",
+              "video_embed_code": ""
+            },
+            "download_cta": {
+              "title": "",
+              "href": ""
+            }
+          },
+          "partner_facets": [],
+          "starter": [],
+          "tags": [],
+          "title": "Contentstack",
+          "updated_at": "2024-12-11T11:41:35.586Z",
+          "updated_by": "blt05ac693470ad5ff7",
+          "url": "/contentstack",
+          "publish_details": {
+            "environment": "blt0b5712e5b06ac8b6",
+            "locale": "en-us",
+            "time": "2025-01-28T10:07:08.871Z",
+            "user": "blt05ac693470ad5ff7"
+          }
+        }
+      ],
+      "category": [
+        {
+          "uid": "blte953c795ff59241c",
+          "_content_type_uid": "categories",
+          "title": "Development"
+        }
+      ],
+      "coming_soon": false,
+      "created_at": "2022-03-29T11:13:00.640Z",
+      "created_by": "blt89b5b90cb9e7c645",
+      "description": "<p>To further enhance the business user experience, Contentstack provides prebuilt custom field extensions that let you extend the functionality of your custom fields to serve your unique business needs while providing a native Contentstack look and feel.</p><p>Using Contentstack Custom Fields, you can now input a JSON text into an entry field. With the JSON Editor custom field, you can view, edit and format JSON text, code, trees, etc. within your Contentstack entry.</p>",
+      "dynamic_links": [],
+      "feature_types": [
+        {
+          "feature_type": [
+            {
+              "uid": "blt6b35fa46f253a6bd",
+              "_content_type_uid": "app_features",
+              "title": "Custom Field"
+            }
+          ],
+          "_metadata": {
+            "uid": "cs3b4ec101f90bd171"
+          },
+          "description": "While creating entries, you can add a JSON code."
+        }
+      ],
+      "icon": {
+        "_version": 1,
+        "is_dir": false,
+        "uid": "blt38b2ab4ea0da2357",
+        "ACL": {},
+        "content_type": "image/svg+xml",
+        "created_at": "2022-03-29T11:09:08.207Z",
+        "created_by": "blt89b5b90cb9e7c645",
+        "file_size": "6981",
+        "filename": "json-editor.svg",
+        "parent_uid": "blt2eb26851df9c0e2e",
+        "tags": [],
+        "title": "json-editor.svg",
+        "updated_at": "2022-03-29T11:09:08.207Z",
+        "updated_by": "blt89b5b90cb9e7c645",
+        "publish_details": {
+          "environment": "blt0b5712e5b06ac8b6",
+          "locale": "en-us",
+          "time": "2025-01-28T10:07:08.871Z",
+          "user": "blt05ac693470ad5ff7"
+        },
+        "url": "https://eu-images.contentstack.com/v3/assets/blt8f94ebff857fe1ae/blt38b2ab4ea0da2357/6242e8d49eb79b7d7303c4bd/json-editor.svg"
+      },
+      "installation_url": "#!/apps/6227528cd2485c001994d262/install",
+      "links": {
+        "source_code": "",
+        "documentation": "",
+        "others": [],
+        "end_user_license_agreement": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/"
+      },
+      "seo": {
+        "canonical_url": "",
+        "description": "",
+        "image": null,
+        "robots": "",
+        "title": ""
+      },
+      "static_links": [
+        {
+          "type": "Documentation",
+          "url": "https://www.contentstack.com/docs/developers/marketplace-apps/json-editor/",
+          "_metadata": {
+            "uid": "csda257d0ac99cc671"
+          }
+        },
+        {
+          "type": "End-User License Agreement",
+          "url": "https://www.contentstack.com/legal/eula-for-contentstack-proprietary-marketplace-apps/",
+          "_metadata": {
+            "uid": "cs920e968d62d4580b"
+          }
+        }
+      ],
+      "summary": "Enables users to view, edit, and format input data in JSON.",
+      "tags": [],
+      "title": "JSON Editor",
+      "updated_at": "2025-01-24T11:19:14.626Z",
+      "updated_by": "blt05ac693470ad5ff7",
+      "url": "/marketplace/json-editor",
+      "use_cases": "<p><strong>Easy To Interpret:</strong> The JSON editor locates errors instantly, eliminating the need to locate errors within the entire code. In addition, it provides multiple view options like code, text, tree to name a few.</p><p><strong>Validation made simple: </strong>You can validate and check for any necessary fixes in just a few seconds. In addition, because JSON does not have many elements like XML, you can even practice your coding and see the results instantly.</p>",
+      "publish_details": {
+        "time": "2025-01-28T10:55:14.197Z",
+        "user": "blt05ac693470ad5ff7",
+        "environment": "blt0b5712e5b06ac8b6",
+        "locale": "en-us"
+      }
     }
   ],
   "count": 11
