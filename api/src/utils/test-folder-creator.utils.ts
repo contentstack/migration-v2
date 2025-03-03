@@ -270,17 +270,22 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
     if (!filePath?.endsWith('index.json')) {
       const entryData = await JSON.parse(await fs.promises.readFile(path.join(entriesPath, filePath), 'utf8'));
       if (Object?.keys?.(entryData)?.length) {
-        const ct = filePath?.split?.('/')?.[0];
-        const locale = filePath?.split?.('/')?.[1];
+        const normalizedPath = path.normalize(filePath);
+        // Split using `path.sep` for cross-platform support
+        const pathParts = normalizedPath.split(path.sep);
+        const ct = pathParts?.[0]; // First directory
+        const locale = pathParts?.[1]; // Second directory
         allData?.push({ contentType: ct, count: Object?.keys?.(entryData)?.length, entryData, filePath, locale })
       }
     }
   }
-  const sortData = allData?.length > 3 ? allData.sort((a, b) => b?.count - a?.count).slice?.(0, 3) : allData;
+  // const sortData = allData?.length > 3 ? allData.sort((a, b) => b?.count - a?.count).slice?.(0, 3) : allData;
+  const sortData = allData;
   const finalData: any = [];
   sortData.forEach((et: any) => {
     const entryObj: any = {};
-    const ctData = et?.count > 4 ? Object?.values?.(et?.entryData)?.splice?.(0, 5) : Object?.values?.(et?.entryData);
+    // const ctData = et?.count > 4 ? Object?.values?.(et?.entryData)?.splice?.(0, 5) : Object?.values?.(et?.entryData);
+    const ctData = Object?.values?.(et?.entryData)?.splice?.(0, 1);
     ctData?.forEach?.((entItem: any) => {
       entryObj[entItem?.uid] = entItem;
     })
