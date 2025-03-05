@@ -180,10 +180,21 @@ async function writeFile(dirPath: string, filename: string, data: any) {
     console.error('Error writing ${dirPath}/${filename}::', err);
   }
 }
-const damApp = (type: string, data: any) => {
+
+function convertToArray(data: any) {
+  if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+    return [data]// Converts object values into an array
+  }
+  return data; // Return as is if it's already an array or not an object
+}
+
+const mktApp = (type: string, data: any) => {
   switch (type) {
     case 'zjcnWgBknf9zB7IM9HZjE':
       return transformCloudinaryObject(data);
+    case 'objectEditor': {
+      return convertToArray(data);
+    }
   }
 }
 
@@ -247,7 +258,7 @@ const processField = (
     }
 
     case 'app': {
-      return damApp(fieldData?.otherCmsType, lang_value)
+      return mktApp(fieldData?.otherCmsType, lang_value)
     }
 
     case 'boolean': {
