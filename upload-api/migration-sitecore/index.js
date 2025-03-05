@@ -1,15 +1,18 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const contentTypes = require("./libs/contenttypes.js");
+import contentTypes from "./libs/contenttypes.js";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const ExtractConfiguration = require("./libs/configuration.js")
+import ExtractConfiguration from "./libs/configuration.js"
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const reference = require("./libs/reference.js");
+import reference from "./libs/reference.js";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const ExtractFiles = require("./libs/convert.js")
+import ExtractFiles from "./libs/convert.js"
 
-module.exports = {
+import findAndExtractLanguages from './libs/extractLocales.js'
+
+export {
   contentTypes,
   ExtractConfiguration,
   reference,
-  ExtractFiles
+  ExtractFiles, 
+  findAndExtractLanguages
 }

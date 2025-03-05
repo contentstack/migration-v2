@@ -22,7 +22,8 @@ export const HTTP_TEXTS = {
   VALIDATION_SUCCESSFULL: ' File validated successfully.',
   ZIP_FILE_SAVE: 'Issue While Saving Zip File.',
   XML_FILE_SAVE: 'Issue While Saving XML File.',
-  MAPPER_SAVED: 'Mapping process completed successfull.'
+  MAPPER_SAVED: 'Mapping process completed successfull.',
+  LOCALE_SAVED: 'Source locales stored successfully'
 };
 
 export const HTTP_RESPONSE_HEADERS = {
