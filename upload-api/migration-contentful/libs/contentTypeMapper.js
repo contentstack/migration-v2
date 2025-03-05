@@ -3,6 +3,7 @@
 const restrictedUid = require('../utils/restrictedKeyWords');
 const appDetails = require('../utils/apps/appDetails.json')
 
+
 /**
  * Corrects the UID by applying a custom affix and sanitizing the string.
  *
@@ -144,6 +145,33 @@ const createDropdownOrRadioFieldObject = (item, fieldType) => {
   };
 };
 
+
+
+const arrangeRte = (itemData, item) => {
+  const foundItem = itemData.find((element) => element?.nodes)
+  const refs = [];
+  if (foundItem?.nodes?.['embedded-entry-inline']) {
+    const contentType = foundItem?.nodes?.['embedded-entry-inline']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (foundItem?.nodes?.['embedded-entry-block']) {
+    const contentType = foundItem?.nodes?.['embedded-entry-block']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (refs?.length) {
+    const replaceUids = [];
+    for (const uid of refs ?? []) {
+      replaceUids?.push(uidCorrector(uid, item?.prefix))
+    }
+    return replaceUids;
+  }
+  return refs;
+}
+
 /**
  * Maps a collection of content type items to a schema array with specific field types and properties.
  *
@@ -167,7 +195,8 @@ const contentTypeMapper = (data) => {
   const schemaArray = data.reduce((acc, item) => {
     switch (item.type) {
       case 'RichText': {
-        const referenceFields = (item.contentNames?.slice(0, 9) || []);
+        const refsUids = arrangeRte(item?.validations, item);
+        const referenceFields = refsUids ?? (item.contentNames?.slice(0, 9) || []);
         acc.push(createFieldObject(item, 'json', 'json', referenceFields));
         break;
       }
@@ -300,9 +329,14 @@ const contentTypeMapper = (data) => {
         acc.push(createFieldObject(item, 'boolean', 'boolean'));
         break;
       case 'Object': {
-        const findAppMeta = appDetails?.items?.find((ele) => ele?.sys?.id === item?.widgetId);
-        item.name = `${item?.name} (${findAppMeta?.name}-App)`;
-        acc.push(createFieldObject(item, 'app', 'app'));
+        if (item?.widgetId === 'objectEditor') {
+          item.name = `${item?.name} (JSON Editor-App)`;
+          acc.push(createFieldObject(item, 'app', 'app'));
+        } else {
+          const findAppMeta = appDetails?.items?.find((ele) => ele?.sys?.id === item?.widgetId);
+          item.name = `${item?.name} (${findAppMeta?.name}-App)`;
+          acc.push(createFieldObject(item, 'app', 'app'));
+        }
         break;
       }
       case 'Location': {
