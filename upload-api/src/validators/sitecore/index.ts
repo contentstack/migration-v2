@@ -9,6 +9,7 @@ interface props {
   data: items;
 }
 
+
 async function sitecoreValidator({ data }: props) {
   try {
     let templates: any[] = [];
