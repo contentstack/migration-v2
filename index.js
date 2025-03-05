@@ -34,6 +34,7 @@ const envContents = {
 };
 
 
+
 // Function to create env files
 const createEnvFiles = () => {
   // Loop through each key in the envFilePaths object
