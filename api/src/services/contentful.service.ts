@@ -331,6 +331,7 @@ const processField = (
       break;
     }
   }
+  
 };
 
 // Helper function to clean up brackets in non-numeric lang_value
