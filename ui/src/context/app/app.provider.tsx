@@ -116,7 +116,7 @@ const AppContextProvider: FC<IProps> = ({ children }) => {
 
   useEffect(() => {
     const token = getDataFromLocalStorage('app_token');
-    setAuthToken(token || '');
+    setAuthToken(token ?? '');
 
     const storedNewMigration = sessionStorage.getItem('newMigration');
     if (storedNewMigration) {
@@ -129,6 +129,11 @@ const AppContextProvider: FC<IProps> = ({ children }) => {
     if (!isEmptyString(authToken)) {
       getUserDetails();
     }
+
+    // Debug token issue for hosting
+    const token = getDataFromLocalStorage('app_token');
+    setAuthToken(token ?? '');
+
   }, [authToken]);
 
   useEffect(() => {
