@@ -19,7 +19,8 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
     const newPath = path.join(filePath, 'items');
     
     const localeData = await findAndExtractLanguages(path.join(filePath, 'items','master','sitecore','content')); 
-    logger.info('Fetched Locales: ', localeData)
+    console.log("Fetched Locales: ", localeData);
+    
 
     await ExtractFiles(newPath);
     await ExtractConfiguration(newPath);
@@ -76,15 +77,15 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
 
       const mapRes = await axios.request(mapperConfig)
       if(mapRes?.status==200){
-        logger.info('Validation success', {
+        logger.info('Locales Saved', {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.LOCALE_SAVED,
-        });   
+        });
       }
 
     }
   } catch (err: any) {
-    console.error("🚀 ~ createSitecoreMapper ~ err:", err?.response?.data ?? err, err)
+    console.error("🚀 ~ createSitecoreMapper ~ err:", err?.response?.data ?? err)
     logger.warn('Validation error:', {
       status: HTTP_CODES?.UNAUTHORIZED,
       message: HTTP_TEXTS?.VALIDATION_ERROR,
