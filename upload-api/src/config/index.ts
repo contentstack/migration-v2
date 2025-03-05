@@ -14,7 +14,6 @@ export default {
   },
   
 
-  
   localPath: '/home/gaurishn/Documents/contentstack/sitetitle.xml' //package 45.zip'
  // localPath: '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/upload-api/extracted_files/package 45.zip'
 };
