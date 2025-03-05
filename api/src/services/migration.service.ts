@@ -410,10 +410,52 @@ const getLogs = async (req: Request): Promise<any> => {
 
 }
 
+export const createSourceLocales = async (req: Request) => {
+
+  console.info("ENTERED MIGRATION API LINE 415")
+  
+  const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
+  const projectId = req.params.projectId;
+
+  console.info("Request Object LINE 420",req.body)
+  const locales = req.body.locale
+
+  try {
+    // Check if the project.json file exists
+    if (!fs.existsSync(projectFilePath)) {
+      console.error(`project.json not found at ${projectFilePath}`);
+      throw new Error(`project.json not found.`);
+    }
+
+    // const data = await fs.promises.readFile(projectFilePath, 'utf8');
+    // const projects = JSON.parse(data);
+    
+    // Find the project with the specified projectId
+    const project: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
+    if (project) {
+      const index = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
+      if (index > -1) {
+        console.info("INSIDE API IF STATEMENT LINE 437",index );
+        
+        ProjectModelLowdb.update((data: any) => {
+          // console.info("DATA LINE 439 ", data?.projects?.[index])
+          data.projects[index].source_locales = locales;
+          // console.info(data.projects[index] )
+        });
+      } // Write back the updated projects
+    } else {
+      console.error(`Project with id ${projectId} not found.`);
+    }
+  } catch (err) {
+    console.error('Error updating project.json:', err);
+  }
+}
+
 export const migrationService = {
   createTestStack,
   deleteTestStack,
   startTestMigration,
   startMigration,
   getLogs,
+  createSourceLocales
 };
