@@ -821,13 +821,13 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }
 
   const modifiedObj = (obj: FieldMapType) => {
-    const {otherCmsType, uid, id} = obj
+    const {backupFieldType, uid, id} = obj
     const excludeArr = ["group"]
     return {
       id,
-      otherCmsType,
+      backupFieldType,
       uid,
-      parentId : excludeArr?.includes(otherCmsType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0])
+      parentId : excludeArr?.includes(backupFieldType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0]?.toLowerCase())
     }
   }
   
@@ -897,9 +897,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     // Get the latest action performed row 
     const latestRow = findLatest(rowHistoryObj);
 
-    if(latestRow?.otherCmsType?.toLowerCase() === "group" && latestRow?.parentId === ''){
+    if(latestRow?.backupFieldType?.toLowerCase() === "group" && latestRow?.parentId === '') {
       // get all child rows of group
-      const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(latestRow?.uid + '.'));
+      const groupUid = latestRow?.uid?.toLowerCase();
+      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupUid + '.'));
       if (childItems && validateArray(childItems)) {
         if(latestRow?.checked){
           const lastEle = getLastElements(rowHistoryObj)
@@ -930,19 +931,19 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     } else if(latestRow?.parentId && !["title", "url"]?.includes(latestRow?.uid?.toLowerCase())){
       // Extract the group UID if item is child of any group
-      const uidBeforeDot = latestRow?.uid?.split('.')[0];
-      const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);
-      const childItems = tableData?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
+      const uidBeforeDot = latestRow?.uid?.split('.')[0]?.toLowerCase();
+      const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);      
+      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupItem?.uid + '.'));
 
-      if(latestRow?.checked){
+      if(latestRow?.checked) {
         if(!selectedObj[latestRow?.parentId]){
           selectedObj[latestRow?.parentId] = true
         }
         if(!selectedObj[latestRow?.id]){
           selectedObj[latestRow?.id] = true
         }
-      }else{
-        const lastEle = getLastElements(rowHistoryObj)
+      } else {
+        const lastEle = getLastElements(rowHistoryObj);
 
         let allChildFalse = 0
         childItems?.forEach((child) => {
@@ -976,7 +977,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
     setIsDropDownChanged(true);
     setFieldValue(value);
-    const updatedRows: FieldMapType[] = tableData?.map((row) => {
+    const updatedRows: FieldMapType[] = selectedEntries?.map((row) => {
       if (row?.uid === rowIndex) {
         return { ...row, contentstackFieldType: value?.value };
       }
@@ -1124,8 +1125,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       item?.child?.some(e => e?.id)
     )
     
-    if(groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
-       for(const item of groupArray[0]?.child ?? []){
+    if(groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray?.[0]?.uid === rowIndex){
+       for(const item of groupArray?.[0]?.child ?? []){
         deletedExstingField[item?.uid] = {
           label:item?.uid,
           value:existingField[item?.uid]
@@ -1298,7 +1299,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
       }
 
-      const existingLabel = existingField[groupArray[0]?.uid]?.label ?? '';
+      const existingLabel = existingField[groupArray?.[0]?.uid]?.label ?? '';
       const lastLabelSegment = existingLabel.includes('>')
         ? existingLabel?.split('>')?.pop()?.trim()
         : existingLabel;
@@ -1309,7 +1310,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           for (const item of array) {
             const fieldTypeToMatch = Fields[item?.backupFieldType as keyof Mapping]?.type;
             if (item?.id === data?.id) {
-              for (const key of existingField[groupArray[0]?.uid]?.value?.schema || []) {
+              for (const key of existingField[groupArray?.[0]?.uid]?.value?.schema || []) {
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
                   OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key?.display_name}` || '', `${uid}.${key?.uid}`));
@@ -1422,7 +1423,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             item?.child?.some(e => e?.id === data?.id)
           );
           
-          const array = groupArray[0]?.child || []
+          const array = groupArray?.[0]?.child || []
 
           if(value.data_type === 'group'){
             processSchema(value, data, array,groupArray, OptionsForRow, fieldsOfContentstack)
@@ -1440,21 +1441,21 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
     // Handle case where there is exactly one match and it is auto-mapped
     if(OptionsForRow?.length === 1 &&
-      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference'
+      (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' || OptionsForRow?.[0]?.value?.data_type === 'group' || OptionsForRow?.[0]?.value?.data_type === 'reference'
       ))
       {
         updatedRows = updatedRows.map((row: FieldMapType) => {
           if (row?.uid === data?.uid) {
             return {
               ...row,
-              contentstackField: OptionsForRow[0]?.value?.display_name ?? '',
-              contentstackFieldUid: OptionsForRow[0]?.value?.uid ?? '',
+              contentstackField: OptionsForRow?.[0]?.value?.display_name ?? '',
+              contentstackFieldUid: OptionsForRow?.[0]?.value?.uid ?? '',
               advanced: {
-                validationRegex: OptionsForRow[0]?.value?.format ?? '',
-                mandatory: OptionsForRow[0]?.value?.mandatory,
-                multiple: OptionsForRow[0]?.value?.multiple,
-                unique: OptionsForRow[0]?.value?.unique,
-                nonLocalizable: OptionsForRow[0]?.value?.non_localizable,
+                validationRegex: OptionsForRow?.[0]?.value?.format ?? '',
+                mandatory: OptionsForRow?.[0]?.value?.mandatory,
+                multiple: OptionsForRow?.[0]?.value?.multiple,
+                unique: OptionsForRow?.[0]?.value?.unique,
+                nonLocalizable: OptionsForRow?.[0]?.value?.non_localizable,
               },
             };
           }
@@ -1462,11 +1463,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         });        
 
         // Disable option if it's not already in existingField
-        if (!existingField[data?.uid] && OptionsForRow[0]) {         
+        if (!existingField[data?.uid] && OptionsForRow?.[0]) {         
           OptionsForRow[0].isDisabled = true;
         }
-        const newLabel = OptionsForRow[0]?.value?.display_name;
-        const newvalue = OptionsForRow[0]?.value;
+        const newLabel = OptionsForRow?.[0]?.value?.display_name;
+        const newvalue = OptionsForRow?.[0]?.value;
     
         // Check if there's already a matching entry in updatedExstingField
         const hasMatchingEntry = Object.values(updatedExstingField)?.some(         
@@ -1483,7 +1484,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           existingField[data?.uid] = { label: newLabel, value: newvalue }
         }
 
-        const newValue: string = OptionsForRow[0]?.value?.display_name;
+        const newValue: string = OptionsForRow?.[0]?.value?.display_name;
         if (!updatedSelectedOptions?.includes(newValue)) {
           updatedSelectedOptions.push(newValue);  
         }
@@ -1512,12 +1513,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     
     const OptionValue: FieldTypes =
       OptionsForRow?.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
-      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference' 
+      (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' || OptionsForRow?.[0]?.value?.data_type === 'group' || OptionsForRow?.[0]?.value?.data_type === 'reference' 
         
       )
         ? {
-          label: OptionsForRow[0]?.value?.display_name,
-          value: OptionsForRow[0]?.value,
+          label: OptionsForRow?.[0]?.value?.display_name,
+          value: OptionsForRow?.[0]?.value,
           isDisabled: true
         }
         : (OptionsForRow?.length === 0 || (OptionsForRow?.length > 0 && OptionsForRow?.every((item)=>item?.isDisabled) 
