@@ -315,7 +315,6 @@ function parseBlockAsset(obj: any, lang?: LangType, destination_stack_id?: Stack
 }
 
 
-
 function parseBlockquote(obj: any): any {
   const children = obj.content.map((e: any) => parsers.get(e.nodeType)?.(e)).filter(Boolean);
   return {
