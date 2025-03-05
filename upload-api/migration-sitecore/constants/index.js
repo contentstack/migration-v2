@@ -42,6 +42,7 @@ const MIGRATION_DATA_CONFIG = {
   
     EXPORT_INFO_FILE: "export-info.json"
   }
+
   
   module.exports = {
     MIGRATION_DATA_CONFIG
