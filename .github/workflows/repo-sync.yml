@@ -81,10 +81,10 @@ jobs:
                 git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.SITECORE_REPO }}.git
                 cd migration-tool-sitecore
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-                rsync -av --delete $RSYNC_SITECORE_API_SRC_SERVICES_EXCLUDES ../api/ ./api/
+                rsync -av --delete ${{ env.RSYNC_WORDPRESS_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
                 rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
-                rsync -av --delete $RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES ../upload-api/ ./upload-api/
+                rsync -av --delete ${{ env.RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/ ./upload-api/
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
                 git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
@@ -122,10 +122,10 @@ jobs:
                 git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.CONTENTFUL_REPO }}.git
                 cd migration-tool-contentful
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-                rsync -av --delete $RSYNC_CONTENTFUL_API_SRC_SERVICES_EXCLUDES ../api/ ./api/
+                rsync -av --delete ${{ env.RSYNC_CONTENTFUL_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
                 rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
-                rsync -av --delete $RSYNC_CONTENTFUL_UPLOAD_API_SRC_EXCLUDES ../upload-api/ ./upload-api/
+                rsync -av --delete ${{ env.RSYNC_CONTENTFUL_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/ ./upload-api/
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
                 git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
@@ -163,10 +163,10 @@ jobs:
                 git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.WORDPRESS_REPO }}.git
                 cd migration-tool-wordpress
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-                rsync -av --delete $RSYNC_WORDPRESS_API_SRC_SERVICES_EXCLUDES ../api/ ./api/
+                rsync -av --delete ${{ env.RSYNC_WORDPRESS_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
                 rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
-                rsync -av --delete $RSYNC_WORDPRESS_UPLOAD_API_SRC_EXCLUDES ../upload-api/ ./upload-api/
+                rsync -av --delete ${{ env.RSYNC_WORDPRESS_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/ ./upload-api/
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
                 git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
