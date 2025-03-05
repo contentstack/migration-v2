@@ -83,25 +83,3 @@ jobs:
             --base main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    #   - name: Sync changes to repo-3 (if applicable)
-    #     if: env.merged == 'true' && (steps.file_changes.outputs.common == 'true' || steps.file_changes.outputs.child_2 == 'true')
-    #     run: |
-    #       git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/RohitKini/migration-github-workflow-variant2.git
-    #       git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-    #       rsync -av --delete ../common/ ./common/
-    #       rsync -av --delete ../child_2/ ./child_2/
-    #       git add .
-    #       git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
-    #       git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
-
-    #   - name: Create PR in repo-3
-        if: env.merged == 'true' && (steps.file_changes.outputs.common == 'true' || steps.file_changes.outputs.child_2 == 'true')
-        run: |
-          gh pr create --repo org/repo-3 \
-            --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
-            --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
-            --head sync-from-migration-v2-${{ github.event.pull_request.number }} \
-            --base main
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
