@@ -7,7 +7,7 @@ import reference from "./libs/reference.js";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import ExtractFiles from "./libs/convert.js"
 
-import findAndExtractLanguages from './libs/extractLocales.js'
+import {findAndExtractLanguages} from './libs/extractLocales.js'
 
 export {
   contentTypes,
