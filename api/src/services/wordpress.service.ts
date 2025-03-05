@@ -11,7 +11,6 @@ import { getLogMessage } from "../utils/index.js";
 import { Advanced } from "../models/FieldMapper.js";
 
 const { JSDOM } = jsdom;
-
 const virtualConsole = new jsdom.VirtualConsole();
 // Get the current file's path
 const __filename = fileURLToPath(import.meta.url);
