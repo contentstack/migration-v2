@@ -76,7 +76,7 @@ jobs:
       - name: Create PR in sitecore-repo
         if: env.merged == 'true' && (steps.file_changes.outputs.api == 'true' || steps.file_changes.outputs.cli == 'true' || steps.file_changes.outputs.ui == 'true' ||  steps.file_changes.outputs.upload-api == 'true' || steps.file_changes.outputs.migration-sitecore == 'true')
         run: |
-          gh pr create --repo org/sitecore-repo \
+          gh pr create --repo contentstack-expert-services/migration-tool-sitecore \
             --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
             --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
             --head sync-from-migration-v2-${{ github.event.pull_request.number }} \
