@@ -410,14 +410,18 @@ const getLogs = async (req: Request): Promise<any> => {
 
 }
 
+/**
+ * @description -  This function takes all the fetched locales from the exported data of the legacy CMS and stores/updates them in the project.json in DB
+ *
+ * @param req - A request body object with  fetched locales [] as payload along with project ID in params
+ * @return - void
+ * @throws Exception if the project ID is invalid or the when the path to project.json is incorrect
+ */
 export const createSourceLocales = async (req: Request) => {
 
-  console.info("ENTERED MIGRATION API LINE 415")
-  
   const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
   const projectId = req.params.projectId;
 
-  console.info("Request Object LINE 420",req.body)
   const locales = req.body.locale
 
   try {
@@ -426,29 +430,83 @@ export const createSourceLocales = async (req: Request) => {
       console.error(`project.json not found at ${projectFilePath}`);
       throw new Error(`project.json not found.`);
     }
-
-    // const data = await fs.promises.readFile(projectFilePath, 'utf8');
-    // const projects = JSON.parse(data);
     
     // Find the project with the specified projectId
     const project: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
     if (project) {
       const index = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
       if (index > -1) {
-        console.info("INSIDE API IF STATEMENT LINE 437",index );
         
         ProjectModelLowdb.update((data: any) => {
-          // console.info("DATA LINE 439 ", data?.projects?.[index])
           data.projects[index].source_locales = locales;
-          // console.info(data.projects[index] )
         });
       } // Write back the updated projects
     } else {
-      console.error(`Project with id ${projectId} not found.`);
+      logger.error(`Project with ID: ${projectId} not found`,{
+        status: HTTP_CODES?.NOT_FOUND,
+        message: HTTP_TEXTS?.INVALID_ID
+      })
     }
-  } catch (err) {
-    console.error('Error updating project.json:', err);
+  } catch (err: any) {
+    console.error("🚀 ~ createSourceLocales ~ err:", err?.response?.data ?? err, err)
+    logger.warn('Bad Request', {
+      status: HTTP_CODES?.BAD_REQUEST,
+      message: HTTP_TEXTS?.INTERNAL_ERROR,
+    });
+    throw new ExceptionFunction(
+      err?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      err?.statusCode || err?.status || HTTP_CODES.SERVER_ERROR
+    );
   }
+}
+
+
+/**
+ * @description - Function retrieves the mapped locales and updates them in the project.json in DB
+ * @param req - A request body object with mapped locales as payload and project ID in the params
+ * @return - void
+ * @throws Exception if the project ID is invalid or the when the path to project.json is incorrect
+ */
+export const updateLocaleMapper = async (req:Request) =>{
+  const mapperObject = req.body.mapper;
+  const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
+  const projectId = req.params.projectId;
+
+  try {
+    // Check if the project.json file exists
+    if (!fs.existsSync(projectFilePath)) {
+      console.error(`project.json not found at ${projectFilePath}`);
+      throw new Error(`project.json not found.`);
+    }
+    
+    // Find the project with the specified projectId
+    const project: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
+    if (project) {
+      const index = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
+      if (index > -1) {
+        ProjectModelLowdb.update((data: any) => {
+          data.projects[index].master_locale = mapperObject?.master_locale;
+          data.projects[index].locales = mapperObject?.locales;
+        });
+      } // Write back the updated projects
+    } else {
+      logger.error(`Project with ID: ${projectId} not found`,{
+        status: HTTP_CODES?.NOT_FOUND,
+        message: HTTP_TEXTS?.INVALID_ID
+      })
+    }
+  } catch (err: any) {
+    console.error("🚀 ~ createSourceLocales ~ err:", err?.response?.data ?? err, err)
+    logger.warn('Bad Request', {
+      status: HTTP_CODES?.BAD_REQUEST,
+      message: HTTP_TEXTS?.INTERNAL_ERROR,
+    });
+    throw new ExceptionFunction(
+      err?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      err?.statusCode || err?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+
 }
 
 export const migrationService = {
@@ -457,5 +515,6 @@ export const migrationService = {
   startTestMigration,
   startMigration,
   getLogs,
-  createSourceLocales
+  createSourceLocales,
+  updateLocaleMapper
 };
