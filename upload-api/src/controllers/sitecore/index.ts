@@ -42,7 +42,6 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           fieldMapping.contentTypes.push(element);
         }
       }
-      // console.log("🚀 ~ createSitecoreMapper ~ fieldMapping:", fieldMapping)
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
