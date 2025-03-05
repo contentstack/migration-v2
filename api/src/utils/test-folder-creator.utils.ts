@@ -8,7 +8,6 @@ const {
   ENTRIES_DIR_NAME,
   ASSETS_DIR_NAME,
   ASSETS_SCHEMA_FILE,
-  CONTENT_TYPES_DIR_NAME,
   CONTENT_TYPES_SCHEMA_FILE,
   ENTRIES_MASTER_FILE,
   GLOBAL_FIELDS_DIR_NAME,
@@ -240,22 +239,24 @@ const sortGlobalField = async (baseDir: string, finalData: any) => {
   }
 }
 
-const sortContentType = async (baseDir: string, finalData: any) => {
-  const contentTypePath: string = path.join(process.cwd(), baseDir, CONTENT_TYPES_DIR_NAME);
-  const contentSave = path.join(baseDir, CONTENT_TYPES_DIR_NAME);
-  const ctData = await JSON.parse(await fs.promises.readFile(path.join(contentTypePath, CONTENT_TYPES_SCHEMA_FILE), 'utf8'));
-  await sortGlobalField(baseDir, finalData);
-  const contentTypes: any = [];
-  for await (const ct of finalData) {
-    const findCtData = ctData?.find((ele: any) => ele?.uid === ct?.contentType);
-    await lookForReference(findCtData, finalData);
-    contentTypes?.push(findCtData);
-  }
-  await deleteFolderAsync(contentTypePath);
-  for await (const ctItem of contentTypes) {
-    await saveContent(ctItem, contentSave);
-  }
-}
+//this code can be used in feature
+
+// const sortContentType = async (baseDir: string, finalData: any) => {
+//   const contentTypePath: string = path.join(process.cwd(), baseDir, CONTENT_TYPES_DIR_NAME);
+//   const contentSave = path.join(baseDir, CONTENT_TYPES_DIR_NAME);
+//   const ctData = await JSON.parse(await fs.promises.readFile(path.join(contentTypePath, CONTENT_TYPES_SCHEMA_FILE), 'utf8'));
+//   await sortGlobalField(baseDir, finalData);
+//   const contentTypes: any = [];
+//   for await (const ct of finalData) {
+//     const findCtData = ctData?.find((ele: any) => ele?.uid === ct?.contentType);
+//     await lookForReference(findCtData, finalData);
+//     contentTypes?.push(findCtData);
+//   }
+//   await deleteFolderAsync(contentTypePath);
+//   for await (const ctItem of contentTypes) {
+//     await saveContent(ctItem, contentSave);
+//   }
+// }
 
 
 
@@ -275,7 +276,7 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
         const pathParts = normalizedPath.split(path.sep);
         const ct = pathParts?.[0]; // First directory
         const locale = pathParts?.[1]; // Second directory
-        allData?.push({ contentType: ct, count: Object?.keys?.(entryData)?.length, entryData, filePath, locale })
+        allData?.push({ contentType: ct, count: Object?.keys?.(entryData)?.length ?? 0, entryData, filePath, locale })
       }
     }
   }
@@ -292,7 +293,7 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
     finalData?.push({ contentType: et?.contentType, entryObj, locale: et?.locale });
   });
   await sortAssets(baseDir);
-  await sortContentType(baseDir, finalData);
+  // await sortContentType(baseDir, finalData);
   await deleteFolderAsync(entryDelete);
   for await (const entry of finalData) {
     const fileMeta = { "1": `${entry?.locale}.json` };
