@@ -77,7 +77,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
 
       const mapRes = await axios.request(mapperConfig)
       if(mapRes?.status==200){
-        logger.info('Locales Saved', {
+        logger.info('Legacy CMS', {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.LOCALE_SAVED,
         });
