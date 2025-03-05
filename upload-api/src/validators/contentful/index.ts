@@ -5,6 +5,7 @@ interface JsonData {
   [key: string]: any;
 }
 
+
 //function to validate json file data
 function contentfulValidator(data: string): boolean {
   let jsonData: JsonData;
