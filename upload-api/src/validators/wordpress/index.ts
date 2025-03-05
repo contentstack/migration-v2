@@ -1,6 +1,7 @@
 import Config from '../../models/wordpress.json';
 import * as Cheerio from 'cheerio';
 
+
 //function to validate xml file data
 function wordpressValidator(data: string): boolean {
   try {
