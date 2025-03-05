@@ -40,6 +40,8 @@ const MIGRATION_DATA_CONFIG = {
     GLOBAL_FIELDS_FILE: "globalfields",
     GLOBAL_FIELDS_FILE_NAME : "globalfields.json",
   
+
+    
     EXPORT_INFO_FILE: "export-info.json"
   }
   module.exports = {
