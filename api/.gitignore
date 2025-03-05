@@ -17,6 +17,9 @@ dist/
 # Mono auto generated files
 mono_crash.*
 
+#MAC DS_Store File
+/api/.DS_Store
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
