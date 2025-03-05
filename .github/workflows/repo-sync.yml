@@ -40,17 +40,17 @@ jobs:
         with:
           filters: |
             api:
-              - 'api/**'
+                - 'api/**'
             cli:
-              - 'cli/**'
+                - 'cli/**'
             ui:
-              - 'ui/**'
+                - 'ui/**'
             upload-api:
-              - 'upload-api/src/**
+                - 'upload-api/src/**'
             migration-sitecore:
-              - 'upload-api/migration-sitecore/**'
+                - 'upload-api/migration-sitecore/**'
             migration-contentful:
-              - 'upload-api/migration-contentful/**'  
+                - 'upload-api/migration-contentful/**'
 
       - name: Setup Git
         if: env.merged == 'true'
@@ -61,7 +61,7 @@ jobs:
       - name: Sync changes to sitecore-repo (if applicable)
         if: env.merged == 'true' && (steps.file_changes.outputs.api == 'true' || steps.file_changes.outputs.cli == 'true' || steps.file_changes.outputs.ui == 'true' ||  steps.file_changes.outputs.upload-api == 'true' || steps.file_changes.outputs.migration-sitecore == 'true')
         run: |
-          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/contentstack-expert-services/migration-tool-sitecore.git
+          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/contentstack-expert-services/migration-tool-sitecore.git
           cd migration-tool-sitecore
           git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
           rsync -av --delete ../api/ ./api/
@@ -82,4 +82,4 @@ jobs:
             --head sync-from-migration-v2-${{ github.event.pull_request.number }} \
             --base main
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
