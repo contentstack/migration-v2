@@ -333,6 +333,7 @@ const processField = (
   }
 };
 
+
 // Helper function to clean up brackets in non-numeric lang_value
 const cleanBrackets = (lang_value: any) => {
   const myJSON = JSON.stringify(lang_value);
