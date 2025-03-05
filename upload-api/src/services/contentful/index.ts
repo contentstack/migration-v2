@@ -7,6 +7,7 @@ import { Config } from '../../models/types';
 
 const { extractContentTypes, createInitialMapper } = require('migration-contentful');
 
+
 const createContentfulMapper = async (
   projectId: string | string[],
   app_token: string | string[],
