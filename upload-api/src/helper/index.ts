@@ -79,15 +79,30 @@ const saveJson = async (jsonContent: string, fileName: string) => {
   }
 };
 
+const cleanXml = (xml: string): string => {
+  return xml
+    .replace(/<!--[\s\S]*?-->/g, '') 
+    .replace(/<!DOCTYPE[^>]*>/g, '') 
+    .trim();
+};
+
+
+
 // parse xml to json
 const parseXmlToJson = async (xml: any) => {
   try {
+   
+    const xmldata = cleanXml(xml)
+
     const parser = new xml2js.Parser({
       attrkey: "attributes",
       charkey: "text",
       explicitArray: false,
+      trim: true,  
+      normalize: true, 
+      normalizeTags: true, 
     });
-    const data = await parser.parseStringPromise(xml);
+    const data = await parser.parseStringPromise(xmldata);
     return data
   } catch (err) {
     console.error(err);

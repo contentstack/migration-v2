@@ -33,6 +33,22 @@ interface ContentType {
   schema: any[]; // Replace `any` with the specific type if known
 }
 
+function extractFieldName(input: string): string {
+  // Extract text inside parentheses (e.g., "JSON Editor-App")
+  const match = input.match(/\(([^)]+)\)/);
+  const insideParentheses = match ? match?.[1] : input; // If no match, use the original string
+
+  // Remove "-App" and unwanted characters
+  const cleanedString = insideParentheses
+    .replace(/-App/g, '') // Remove "-App"
+    .trim(); // Trim spaces
+
+  return cleanedString || ''; // Return the final processed string
+}
+
+
+
+
 function extractValue(input: string, prefix: string, anoter: string): any {
   if (input.startsWith(prefix + anoter)) {
     return input.replace(prefix + anoter, '');
@@ -472,7 +488,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
     }
 
     case 'app': {
-      const appName = field?.otherCmsField?.replace?.(/[()-App]/g, '')?.trim?.()?.split?.(' ')?.[1];
+      const appName = extractFieldName(field?.otherCmsField);
       const title = field?.title?.split?.(' ')?.[0];
       const appDetails = appMeta?.entries?.find?.((item: any) => item?.title === appName);
       if (appDetails?.uid) {
