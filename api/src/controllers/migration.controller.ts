@@ -60,11 +60,17 @@ const saveLocales = async (req:Request, res: Response):Promise<void> =>{
   res.status(200).json(resp);
 }
 
+const saveMappedLocales = async (req:Request, res:Response):Promise<void> =>{
+  const resp = await migrationService.updateLocaleMapper(req);
+  res.status(200).json(resp);
+}
+
 export const migrationController = {
   createTestStack,
   deleteTestStack,
   startTestMigration,
   startMigration,
   getLogs,
-  saveLocales
+  saveLocales,
+  saveMappedLocales
 };

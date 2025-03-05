@@ -65,9 +65,30 @@ router.get(
 
 )
 
+/**
+ * Route for updating the source locales from legacy CMS
+ * @route POST /validator
+ * @group Migration
+ * @param {string} projectID - Current project ID
+ * @body {Object} locales - Fetched Locales
+ * @returns {Promise<void>} - A promise which resolves when the locales are updated in the DB
+ */
 router.post(
   "/localeMapper/:projectId",
   asyncRouter(migrationController.saveLocales)
+)
+
+/**
+ * Route for updating the mapped locales by user 
+ * @route POST /validator
+ * @group Migration
+ * @param {string} projectID - Current project ID
+ * @body {Object} locales - Mapped Locales
+ * @returns {Promise<void>} - A promise which resolves when the locales are updated in the DB
+ */
+router.post(
+  "/updateLocales/:projectId",
+  asyncRouter(migrationController.saveMappedLocales)
 )
 
 
