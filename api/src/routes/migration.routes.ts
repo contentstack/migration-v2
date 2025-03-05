@@ -65,5 +65,10 @@ router.get(
 
 )
 
+router.post(
+  "/localeMapper/:projectId",
+  asyncRouter(migrationController.saveLocales)
+)
+
 
 export default router;
