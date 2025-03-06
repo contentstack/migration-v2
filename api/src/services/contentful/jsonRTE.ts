@@ -250,7 +250,7 @@ function parseBlockReference(obj: any, lang?: LangType, destination_stack_id?: S
 
 function parseInlineReference(obj: any, lang?: LangType, destination_stack_id?: StackId): any {
   const entryId: { [key: string]: any } = destination_stack_id && readFile(path.join(process.cwd(), DATA, destination_stack_id, RTE_REFERENCES_DIR_NAME, RTE_REFERENCES_FILE_NAME));
-  const entry = Object.entries(entryId).find(([arrayKey, arrayValue]) => arrayKey === lang && arrayValue[obj.data.target.sys.id]);
+  const entry = entryId && Object.entries(entryId).find(([arrayKey, arrayValue]) => arrayKey === lang && arrayValue[obj.data.target.sys.id]);
 
   if (entry) {
     const [arrayKey, arrayValue] = entry;
@@ -313,8 +313,6 @@ function parseBlockAsset(obj: any, lang?: LangType, destination_stack_id?: Stack
     children: [{ text: '' }],
   };
 }
-
-
 
 
 function parseBlockquote(obj: any): any {
