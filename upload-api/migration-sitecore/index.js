@@ -1,18 +1,19 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-import contentTypes from "./libs/contenttypes.js";
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-import ExtractConfiguration from "./libs/configuration.js"
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-import reference from "./libs/reference.js";
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-import ExtractFiles from "./libs/convert.js"
+/* eslint-disable @typescript-eslint/no-var-requires */
 
-import {findAndExtractLanguages} from './libs/extractLocales.js'
+const contentTypes = require("./libs/contenttypes.js")
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ExtractConfiguration = require("./libs/configuration.js")
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const reference = require("./libs/reference.js")
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ExtractFiles = require("./libs/convert.js")
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const extractLocales = require("./libs/extractLocales.js")
 
-export {
+module.exports  = {
   contentTypes,
   ExtractConfiguration,
   reference,
   ExtractFiles, 
-  findAndExtractLanguages
+  extractLocales
 }
