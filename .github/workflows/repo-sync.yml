@@ -118,7 +118,7 @@ jobs:
             env:
                 GH_TOKEN: ${{ secrets.GH_PAT }}
 
-        -   name: Sync changes to wordpress-repo (if applicable)
+        -   name: Sync changes to contentful-repo (if applicable)
             if: |
                 env.merged == 'true' &&
                 (
