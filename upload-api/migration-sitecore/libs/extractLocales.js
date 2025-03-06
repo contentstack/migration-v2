@@ -1,16 +1,18 @@
-import fs from 'fs'
-import path from 'path'
+/* eslint-disable @typescript-eslint/no-var-requires */
+const fs = require("fs");
+const path = require("path");
+
 
 const uniqueLanguages = new Set(); // Define uniqueLanguages globally or pass it as a parameter
 
-export const findAndExtractLanguages = (dir) => {
+const extractLocales = (dir) => {
     const items = fs.readdirSync(dir, { withFileTypes: true });
 
     for (const item of items) {
         const fullPath = path.join(dir, item.name);
         
         if (item.isDirectory()) {
-            findAndExtractLanguages(fullPath); // Proper recursion
+            extractLocales(fullPath); // Proper recursion
         } else if (item.isFile() && item.name === "data.json.json") {
             try {
                 const rawData = fs.readFileSync(fullPath, "utf8");
@@ -27,3 +29,5 @@ export const findAndExtractLanguages = (dir) => {
     }
     return uniqueLanguages;
 };
+
+module.exports = extractLocales;
