@@ -748,7 +748,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   if (currentCt?.uid) {
     ct = await mergeTwoCts(ct, currentCt);
   }
-  if (ct?.uid) {
+  if (ct?.uid && ct?.schema?.length) {
     if (contentType?.type === 'global_field') {
       const globalSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, GLOBAL_FIELDS_DIR_NAME);
       const message = getLogMessage(srcFunc, `Global Field ${ct?.uid} has been successfully Transformed.`, {});
