@@ -468,9 +468,9 @@ export const createSourceLocales = async (req: Request) => {
  * @throws Exception if the project ID is invalid or the when the path to project.json is incorrect
  */
 export const updateLocaleMapper = async (req:Request) =>{
-  const mapperObject = req.body.mapper;
+  const mapperObject = req.body;
   const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
-  const projectId = req.params.projectId;
+  const projectId = req.params.projectId; 
 
   try {
     // Check if the project.json file exists
@@ -496,7 +496,7 @@ export const updateLocaleMapper = async (req:Request) =>{
       })
     }
   } catch (err: any) {
-    console.error("🚀 ~ createSourceLocales ~ err:", err?.response?.data ?? err, err)
+    console.error("🚀 ~ updateLocaleMapper ~ err:", err?.response?.data ?? err, err)
     logger.warn('Bad Request', {
       status: HTTP_CODES?.BAD_REQUEST,
       message: HTTP_TEXTS?.INTERNAL_ERROR,
