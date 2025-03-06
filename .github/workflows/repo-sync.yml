@@ -8,109 +8,202 @@ on:
 
 env:
   BRANCH : dev # Change this to your default branch if needed
-  SITECORE_REPO: contentstack-expert-services/migration-tool-sitecore
-  CONTENTFUL_REPO: contentstack-expert-services/migration-tool-contentful
-  WORDPRESS_REPO: contentstack-expert-services/migration-tool-wordpress
-  RSYNC_SITECORE_EXCLUDES: "--exclude 'src/services/contentful/' --exclude 'src/services/contentful.service.ts/' --exclude 'src/services/wordpress.service.ts/'" # Exclude contentful and wordpress services
-  RSYNC_CONTENTFUL_EXCLUDES: "--exclude 'src/services/wordpress.service.ts/' --exclude 'src/services/sitecore.service.ts/'" # Exclude wordpress and sitecore services
-  RSYNC_WORDPRESS_EXCLUDES: "--exclude 'src/services/contentful/' --exclude 'src/services/contentful.service.ts/' --exclude 'src/services/sitecore.service.ts/'" # Exclude contentful and sitecore services
-
+  SITECORE_REPO: contentstack-expert-services/migration-tool-sitecore # Change this to your sitecore repo
+  CONTENTFUL_REPO: contentstack-expert-services/migration-tool-contentful # Change this to your contentful repo
+  WORDPRESS_REPO: contentstack-expert-services/migration-tool-wordpress # Change this to your wordpress repo
+  RSYNC_SITECORE_API_SRC_SERVICES_EXCLUDES: "--exclude 'src/services/contentful/' --exclude 'src/services/contentful.service.ts' --exclude 'src/services/wordpress.service.ts'" # Include only sitecore services
+  RSYNC_CONTENTFUL_API_SRC_SERVICES_EXCLUDES: "--exclude 'src/services/wordpress.service.ts' --exclude 'src/services/sitecore.service.ts'" # Include only contentful services
+  RSYNC_WORDPRESS_API_SRC_SERVICES_EXCLUDES: "--exclude 'src/services/contentful/' --exclude 'src/services/contentful.service.ts' --exclude 'src/services/sitecore.service.ts'" # Include only wordpress services
+  RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES: "--exclude 'controllers/wordpress/' --exclude 'controllers/contentful/' --exclude 'models/contentful.json' --exclude 'models/wordpress.json' --exclude  'services/contentful/' --exclude  'validators/aem/' --exclude  'validators/contentful/' --exclude  'validators/wordpress/'" # Include only sitecore upload-api
+  RSYNC_CONTENTFUL_UPLOAD_API_SRC_EXCLUDES: "--exclude 'controllers/sitecore/' --exclude 'controllers/wordpress/' --exclude 'models/wordpress.json' --exclude  'validators/aem/' --exclude  'validators/sitecore/' --exclude  'validators/wordpress/'" # Include only contentful upload-api
+  RSYNC_WORDPRESS_UPLOAD_API_SRC_EXCLUDES: "--exclude 'controllers/sitecore/' --exclude 'controllers/contentful/' --exclude 'models/contentful.json' --exclude  'services/contentful/' --exclude  'validators/aem/' --exclude  'validators/sitecore/' --exclude  'validators/contentful/'" # Include only wordpress upload-api
 jobs:
   sync-on-merge:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
-      pull-requests: write
+        contents: write
+        pull-requests: write
 
     steps:
-      - name: Check if PR was merged
-        id: check_merge
-        run: |
-          if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
-            echo "PR was merged. Proceeding with sync."
-            echo "merged=true" >> $GITHUB_ENV
-          else
-            echo "PR was closed without merging. Skipping sync."
-            echo "merged=false" >> $GITHUB_ENV
-          fi
-        shell: bash
+        -   name: Check if PR was merged
+            id: check_merge
+            run: |
+                if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+                    echo "PR was merged. Proceeding with sync."
+                    echo "merged=true" >> $GITHUB_ENV
+                else
+                    echo "PR was closed without merging. Skipping sync."
+                    echo "merged=false" >> $GITHUB_ENV
+                fi
+            shell: bash
 
-      - name: Checkout migration-v2
-        if: env.merged == 'true'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch full history to compare changes
+        -   name: Checkout migration-v2
+            if: env.merged == 'true'
+            uses: actions/checkout@v4
+            with:
+                fetch-depth: 0  # Fetch full history to compare changes
 
-      - name: Detect changed files
-        if: env.merged == 'true'
-        id: file_changes
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            api:
-                - 'api/**'
-            cli:
-                - 'cli/**'
-            ui:
-                - 'ui/**'
-            upload-api:
-                - 'upload-api/src/**'
-            migration-sitecore:
-                - 'upload-api/migration-sitecore/**'
-            migration-contentful:
-                - 'upload-api/migration-contentful/**'
-            migration-wordpress:
-                - 'upload-api/migration-wordpress/**'
-            index:
-                - 'index.js'
+        -   name: Detect changed files
+            if: env.merged == 'true'
+            id: file_changes
+            uses: dorny/paths-filter@v3
+            with:
+                filters: |
+                    api:
+                        - 'api/**'
+                    cli:
+                        - 'cli/**'
+                    ui:
+                        - 'ui/**'
+                    upload-api:
+                        - 'upload-api/src/**'
+                    migration-sitecore:
+                        - 'upload-api/migration-sitecore/**'
+                    migration-contentful:
+                        - 'upload-api/migration-contentful/**'
+                    migration-wordpress:
+                        - 'upload-api/migration-wordpress/**'    
+                    index:
+                        - 'index.js'
 
-      - name: Setup Git
-        if: env.merged == 'true'
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+        -   name: Setup Git
+            if: env.merged == 'true'
+            run: |
+                git config --global user.name "github-actions"
+                git config --global user.email "github-actions@github.com"
 
-      - name: Sync changes to sitecore-repo (if applicable)
-        if: |
-            env.merged == 'true' &&
-            (
-                steps.file_changes.outputs.api == 'true' ||
-                steps.file_changes.outputs.cli == 'true' ||
-                steps.file_changes.outputs.ui == 'true' ||
-                steps.file_changes.outputs.upload-api == 'true' ||
-                steps.file_changes.outputs.migration-sitecore == 'true' ||
-                steps.file_changes.outputs.index == 'true'
-            )
-        run: |
-          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.SITECORE_REPO }}.git
-          cd migration-tool-sitecore
-          git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-          rsync -av --delete $RSYNC_SITECORE_EXCLUDES ../api/ ./api/
-          rsync -av --delete ../cli/ ./cli/
-          rsync -av --delete ../ui/ ./ui/
-          rsync -av --delete ../upload-api/src ./upload-api/src
-          rsync -av --delete ../upload-api/migration-sitecore ./upload-api/migration-sitecore
-          git add .
-          git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
-          git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
+        -   name: Sync changes to sitecore-repo (if applicable)
+            if: |
+                env.merged == 'true' &&
+                (
+                    steps.file_changes.outputs.api == 'true' ||
+                    steps.file_changes.outputs.cli == 'true' ||
+                    steps.file_changes.outputs.ui == 'true' ||
+                    steps.file_changes.outputs.upload-api == 'true' ||
+                    steps.file_changes.outputs.migration-sitecore == 'true' ||
+                    steps.file_changes.outputs.index == 'true'
+                )
+            run: |
+                git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.SITECORE_REPO }}.git
+                cd migration-tool-sitecore
+                git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
+                git pull origin ${{ env.BRANCH }}
+                rsync -av --delete ${{ env.RSYNC_SITECORE_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
+                rsync -av --delete ../cli/ ./cli/
+                rsync -av --delete ../ui/ ./ui/
+                rsync -av --delete ${{ env.RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
+                rsync -av --delete ../upload-api/migration-sitecore/ ./upload-api/migration-sitecore/
+                git add .
+                git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
+                git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
 
-      - name: Create PR in sitecore-repo
-        if: |
-            env.merged == 'true' &&
-            (
-                steps.file_changes.outputs.api == 'true' ||
-                steps.file_changes.outputs.cli == 'true' ||
-                steps.file_changes.outputs.ui == 'true' ||
-                steps.file_changes.outputs.upload-api == 'true' ||
-                steps.file_changes.outputs.migration-sitecore == 'true' ||
-                steps.file_changes.outputs.index == 'true'
-            )
-        run: |
-          gh pr create --repo ${{ env.SITECORE_REPO }} \
-            --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
-            --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
-            --head sync-from-migration-v2-${{ github.event.pull_request.number }} \
-            --base ${{ env.BRANCH }}
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+        -   name: Create PR in sitecore-repo
+            if: |
+                env.merged == 'true' &&
+                (
+                    steps.file_changes.outputs.api == 'true' ||
+                    steps.file_changes.outputs.cli == 'true' ||
+                    steps.file_changes.outputs.ui == 'true' ||
+                    steps.file_changes.outputs.upload-api == 'true' ||
+                    steps.file_changes.outputs.migration-sitecore == 'true' ||
+                    steps.file_changes.outputs.index == 'true'
+                )
+            run: |
+                gh pr create --repo ${{ env.SITECORE_REPO }} \
+                    --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
+                    --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
+                    --head sync-from-migration-v2-${{ github.event.pull_request.number }} \
+                    --base ${{ env.BRANCH }}
+            env:
+                GH_TOKEN: ${{ secrets.GH_PAT }}
+
+        -   name: Sync changes to wordpress-repo (if applicable)
+            if: |
+                env.merged == 'true' &&
+                (
+                    steps.file_changes.outputs.api == 'true' ||
+                    steps.file_changes.outputs.cli == 'true' ||
+                    steps.file_changes.outputs.ui == 'true' ||
+                    steps.file_changes.outputs.upload-api == 'true' ||
+                    steps.file_changes.outputs.migration-contentful == 'true' ||
+                    steps.file_changes.outputs.index == 'true'
+                )
+            run: |
+                git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.CONTENTFUL_REPO }}.git
+                cd migration-tool-contentful
+                git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
+                git pull origin ${{ env.BRANCH }}
+                rsync -av --delete ${{ env.RSYNC_CONTENTFUL_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
+                rsync -av --delete ../cli/ ./cli/
+                rsync -av --delete ../ui/ ./ui/
+                rsync -av --delete ${{ env.RSYNC_CONTENTFUL_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
+                rsync -av --delete ../upload-api/migration-contentful/ ./upload-api/migration-contentful/
+                git add .
+                git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
+                git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
+
+        -   name: Create PR in contentful-repo
+            if: |
+                env.merged == 'true' &&
+                (
+                    steps.file_changes.outputs.api == 'true' ||
+                    steps.file_changes.outputs.cli == 'true' ||
+                    steps.file_changes.outputs.ui == 'true' ||
+                    steps.file_changes.outputs.upload-api == 'true' ||
+                    steps.file_changes.outputs.migration-contentful == 'true' ||
+                    steps.file_changes.outputs.index == 'true'
+                )
+            run: |
+                gh pr create --repo ${{ env.CONTENTFUL_REPO }} \
+                    --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
+                    --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
+                    --head sync-from-migration-v2-${{ github.event.pull_request.number }} \
+                    --base ${{ env.BRANCH }}
+            env:
+                    GH_TOKEN: ${{ secrets.GH_PAT }}
+
+        -   name: Sync changes to wordpress-repo (if applicable)
+            if: |
+                env.merged == 'true' &&
+                (
+                    steps.file_changes.outputs.api == 'true' ||
+                    steps.file_changes.outputs.cli == 'true' ||
+                    steps.file_changes.outputs.ui == 'true' ||
+                    steps.file_changes.outputs.upload-api == 'true' ||
+                    steps.file_changes.outputs.migration-wordpress == 'true' ||
+                    steps.file_changes.outputs.index == 'true'
+                )
+            run: |
+                git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.WORDPRESS_REPO }}.git
+                cd migration-tool-wordpress
+                git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
+                git pull origin ${{ env.BRANCH }}
+                rsync -av --delete ${{ env.RSYNC_WORDPRESS_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
+                rsync -av --delete ../cli/ ./cli/
+                rsync -av --delete ../ui/ ./ui/
+                rsync -av --delete ${{ env.RSYNC_WORDPRESS_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
+                rsync -av --delete ../upload-api/migration-wordpress/ ./upload-api/migration-wordpress/
+                git add .
+                git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
+                git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
+
+        -   name: Create PR in wordpress-repo
+            if: |
+                env.merged == 'true' &&
+                (
+                    steps.file_changes.outputs.api == 'true' ||
+                    steps.file_changes.outputs.cli == 'true' ||
+                    steps.file_changes.outputs.ui == 'true' ||
+                    steps.file_changes.outputs.upload-api == 'true' ||
+                    steps.file_changes.outputs.migration-wordpress == 'true' ||
+                    steps.file_changes.outputs.index == 'true'
+                )
+            run: |
+                gh pr create --repo ${{ env.WORDPRESS_REPO }} \
+                    --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
+                    --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
+                    --head sync-from-migration-v2-${{ github.event.pull_request.number }} \
+                    --base ${{ env.BRANCH }}
+            env:
+                    GH_TOKEN: ${{ secrets.GH_PAT }}
