@@ -162,6 +162,18 @@ const arrangeRte = (itemData, item) => {
       refs?.push(...contentType?.linkContentType ?? [])
     }
   }
+  if (foundItem?.nodes?.["entry-hyperlink"]) {
+    const contentType = foundItem?.nodes?.['entry-hyperlink']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (foundItem?.nodes?.["hyperlink"]) {
+    const contentType = foundItem?.nodes?.['hyperlink']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
   if (refs?.length) {
     const replaceUids = [];
     for (const uid of refs ?? []) {
