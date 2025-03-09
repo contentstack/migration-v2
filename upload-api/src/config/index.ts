@@ -12,6 +12,7 @@ export default {
     bucketName: 'migartion-test',
     buketKey: 'project/package 45.zip'
   },
-  localPath: '/Users/shobhit.upadhyay/Downloads/package 47.zip' //package 45.zip'
+  // localPath: '/Users/shobhit.upadhyay/Downloads/contentful-data.json' //package 45.zip'
+  localPath: '/Users/shobhit.upadhyay/Downloads/package 47.zip'
  // localPath: '/Users/umesh.more/Documents/ui-migration/migration-v2-node-server/upload-api/extracted_files/package 45.zip'
 };
