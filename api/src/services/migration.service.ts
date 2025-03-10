@@ -468,7 +468,7 @@ export const createSourceLocales = async (req: Request) => {
  * @throws Exception if the project ID is invalid or the when the path to project.json is incorrect
  */
 export const updateLocaleMapper = async (req:Request) =>{
-  const mapperObject = req.body.mapper;
+  const mapperObject = req.body;
   const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
   const projectId = req.params.projectId;
 
