@@ -88,39 +88,44 @@ function makeChunks(assetData: any) {
 
 const transformCloudinaryObject = (input: any) => {
   const result: any = [];
+  if (!Array.isArray(input)) {
+    return result;
+  }
   for (const metaData of input ?? []) {
-    result?.push({
-      public_id: metaData.public_id,
-      resource_type: metaData.resource_type,
-      type: metaData.type,
-      format: metaData.format,
-      version: metaData.version,
-      url: metaData.original_url,
-      secure_url: metaData.original_secure_url,
-      width: metaData.width,
-      height: metaData.height,
-      bytes: metaData.bytes,
-      duration: metaData.duration,
-      tags: metaData.tags,
-      metadata: metaData.metadata,
-      created_at: metaData.created_at,
-      access_mode: "public",
-      access_control: [],
-      created_by: {
-        type: "",
-        id: ""
-      },
-      uploaded_by: {
-        type: "",
-        id: ""
-      },
-      folder_id: "",
-      id: "",
-      folder: "",
-      cs_metadata: {
-        config_label: "config"
-      }
-    });
+    if (metaData?.public_id) {
+      result?.push({
+        public_id: metaData?.public_id,
+        resource_type: metaData?.resource_type,
+        type: metaData?.type,
+        format: metaData?.format,
+        version: metaData?.version,
+        url: metaData?.original_url,
+        secure_url: metaData?.original_secure_url,
+        width: metaData?.width,
+        height: metaData?.height,
+        bytes: metaData?.bytes,
+        duration: metaData?.duration,
+        tags: metaData?.tags,
+        metadata: metaData?.metadata,
+        created_at: metaData?.created_at,
+        access_mode: "public",
+        access_control: [],
+        created_by: {
+          type: "",
+          id: ""
+        },
+        uploaded_by: {
+          type: "",
+          id: ""
+        },
+        folder_id: uuidv4(),
+        id: uuidv4(),
+        folder: "",
+        cs_metadata: {
+          config_label: "config"
+        }
+      });
+    }
   }
   return result;
 }
@@ -185,7 +190,7 @@ function convertToArray(data: any) {
   if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
     return [data]// Converts object values into an array
   }
-  return data; // Return as is if it's already an array or not an object
+  return data ?? []; // Return as is if it's already an array or not an object
 }
 
 const mktApp = (type: string, data: any) => {
@@ -736,7 +741,6 @@ const mapLocales = ({ masterLocale, locale, locales }: any) => {
  * @throws Will log errors encountered during file reading, processing, or writing of entries.
  */
 const createEntry = async (packagePath: any, destination_stack_id: string, projectId: string, contentTypes: any, mapperKeys: any, master_locale: string): Promise<void> => {
-  console.info("🚀 ~ createEntry ~ master_locale:", master_locale)
   const srcFunc = 'createEntry';
   try {
     const entriesSave = path.join(DATA, destination_stack_id, ENTRIES_DIR_NAME);
@@ -783,7 +787,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
               entryData[name][lang][id] ??= {};
               locales.push(lang);
               const fieldData = currentCT?.fieldMapping?.find((item: any) => key === item?.uid);
-              const newId = fieldData?.contentstackFieldUid ?? `${key}`.replace(/[^a-zA-Z0-9]+/g, "_");
+              const newId = fieldData?.contentstackFieldUid ?? `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, "_");
               entryData[name][lang][id][newId] = processField(
                 langValue,
                 entryId,
@@ -796,16 +800,14 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
             const pathName = getDisplayName(name, displayField);
             locales.forEach((locale) => {
               const localeCode = mapLocales({ masterLocale: master_locale, locale, locales: LOCALE_MAPPER });
-              console.info("🚀 ~ locales.forEach ~ localeCode:", localeCode);
               const publishDetails = Object?.values?.(environmentsId)?.length ? Object?.values?.(environmentsId)
                 .filter((env: any) => env?.name === environment_id)
                 ?.map((env: any) => ({
                   environment: env?.uid,
                   version: 1,
-                  locale: locale?.toLowerCase(),
+                  locale: locale?.toLowerCase?.(),
                 })) : [];
-
-              const title = entryData[name][locale][id][pathName] || "";
+              const title = fields?.[pathName]?.[locale] || "";
               const urlTitle = title
                 ?.replace?.(/[^a-zA-Z0-9]+/g, "-")
                 ?.toLowerCase?.();
@@ -858,7 +860,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           );
           for await (const [chunkId, chunkData] of Object.entries(chunks)) {
             refs[chunkIndex++] = `${chunkId}-entries.json`;
-            await writeFile(filePath, `${chunkId}-entries.json`, chunkData)
+            await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
           }
           await writeFile(filePath, ENTRIES_MASTER_FILE, refs);
         }
