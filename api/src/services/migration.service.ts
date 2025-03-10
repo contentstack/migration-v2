@@ -259,7 +259,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createWebhooks(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId, true);
-        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys);
+        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale);
         await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
@@ -299,8 +299,8 @@ const startMigration = async (req: Request): Promise<any> => {
     await customLogger(projectId, project?.destination_stack_id, 'info', message);
     await setLogFilePath(loggerPath);
     const contentTypes = await fieldAttacher({ orgId, projectId, destinationStackId: project?.destination_stack_id, region, user_id });
-    await marketPlaceAppService?.createAppManifest({ orgId, destinationStackId: project?.current_test_stack_id, region, userId: user_id });
-    await extensionService?.createExtension({ destinationStackId: project?.current_test_stack_id });
+    await marketPlaceAppService?.createAppManifest({ orgId, destinationStackId: project?.destination_stack_id, region, userId: user_id });
+    await extensionService?.createExtension({ destinationStackId: project?.destination_stack_id });
     switch (cms) {
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
@@ -337,7 +337,7 @@ const startMigration = async (req: Request): Promise<any> => {
         await contentfulService?.createWebhooks(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys);
+        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale);
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
@@ -410,10 +410,111 @@ const getLogs = async (req: Request): Promise<any> => {
 
 }
 
+/**
+ * @description -  This function takes all the fetched locales from the exported data of the legacy CMS and stores/updates them in the project.json in DB
+ *
+ * @param req - A request body object with  fetched locales [] as payload along with project ID in params
+ * @return - void
+ * @throws Exception if the project ID is invalid or the when the path to project.json is incorrect
+ */
+export const createSourceLocales = async (req: Request) => {
+
+  const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
+  const projectId = req.params.projectId;
+
+  const locales = req.body.locale
+
+  try {
+    // Check if the project.json file exists
+    if (!fs.existsSync(projectFilePath)) {
+      console.error(`project.json not found at ${projectFilePath}`);
+      throw new Error(`project.json not found.`);
+    }
+    
+    // Find the project with the specified projectId
+    const project: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
+    if (project) {
+      const index = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
+      if (index > -1) {
+        
+        ProjectModelLowdb.update((data: any) => {
+          data.projects[index].source_locales = locales;
+        });
+      } // Write back the updated projects
+    } else {
+      logger.error(`Project with ID: ${projectId} not found`,{
+        status: HTTP_CODES?.NOT_FOUND,
+        message: HTTP_TEXTS?.INVALID_ID
+      })
+    }
+  } catch (err: any) {
+    console.error("🚀 ~ createSourceLocales ~ err:", err?.response?.data ?? err, err)
+    logger.warn('Bad Request', {
+      status: HTTP_CODES?.BAD_REQUEST,
+      message: HTTP_TEXTS?.INTERNAL_ERROR,
+    });
+    throw new ExceptionFunction(
+      err?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      err?.statusCode || err?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+}
+
+
+/**
+ * @description - Function retrieves the mapped locales and updates them in the project.json in DB
+ * @param req - A request body object with mapped locales as payload and project ID in the params
+ * @return - void
+ * @throws Exception if the project ID is invalid or the when the path to project.json is incorrect
+ */
+export const updateLocaleMapper = async (req:Request) =>{
+  const mapperObject = req.body;
+  const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
+  const projectId = req.params.projectId; 
+
+  try {
+    // Check if the project.json file exists
+    if (!fs.existsSync(projectFilePath)) {
+      console.error(`project.json not found at ${projectFilePath}`);
+      throw new Error(`project.json not found.`);
+    }
+    
+    // Find the project with the specified projectId
+    const project: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
+    if (project) {
+      const index = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
+      if (index > -1) {
+        ProjectModelLowdb.update((data: any) => {
+          data.projects[index].master_locale = mapperObject?.master_locale;
+          data.projects[index].locales = mapperObject?.locales;
+        });
+      } // Write back the updated projects
+    } else {
+      logger.error(`Project with ID: ${projectId} not found`,{
+        status: HTTP_CODES?.NOT_FOUND,
+        message: HTTP_TEXTS?.INVALID_ID
+      })
+    }
+  } catch (err: any) {
+    console.error("🚀 ~ updateLocaleMapper ~ err:", err?.response?.data ?? err, err)
+    logger.warn('Bad Request', {
+      status: HTTP_CODES?.BAD_REQUEST,
+      message: HTTP_TEXTS?.INTERNAL_ERROR,
+    });
+    throw new ExceptionFunction(
+      err?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      err?.statusCode || err?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+
+}
+
 export const migrationService = {
   createTestStack,
   deleteTestStack,
   startTestMigration,
   startMigration,
   getLogs,
+  createSourceLocales,
+  updateLocaleMapper
 };
