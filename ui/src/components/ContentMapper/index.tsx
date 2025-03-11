@@ -370,7 +370,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         contentTypeSchema?.forEach((schema) => {
           
           if (row?.contentstackField === schema?.display_name) {
-            if (!updatedSelectedOptions?.includes(schema?.display_name)) {
+            if (!updatedSelectedOptions?.includes?.(schema?.display_name)) {
               updatedSelectedOptions.push(schema?.display_name);  
             }
             updatedExstingField[row?.uid] = {
@@ -384,7 +384,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             schema?.schema?.forEach((childSchema) => {
               if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`) {
                 if(!isFieldDeleted) {
-                  if (!updatedSelectedOptions?.includes(`${schema?.display_name} > ${childSchema?.display_name}`)) {
+                  if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name}`)) {
                     updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name}`);  
                   }
                   updatedExstingField[row?.uid] = {
@@ -399,7 +399,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 childSchema?.schema?.forEach((nestedSchema) => {
                   if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`) {
                     if(!isFieldDeleted) {
-                      if (!updatedSelectedOptions?.includes(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`)) {
+                      if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`)) {
                         updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`);  
                       }
                       updatedExstingField[row?.uid] = {
@@ -414,7 +414,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                     nestedSchema?.schema?.forEach((nestedChild) => {
                       if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`) {
                         if(!isFieldDeleted) {
-                          if (!updatedSelectedOptions?.includes(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`)) {
+                          if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`)) {
                             updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`);  
                           }
                           updatedExstingField[row?.uid] = {
@@ -492,7 +492,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       contentTypeSchema?.forEach((item) => {
         for (const [key, value] of Object.entries(existingField)) {
           if (value?.value?.uid === item?.uid) {
-            if (!updatedSelectedOptions?.includes(item?.display_name)) {
+            if (!updatedSelectedOptions?.includes?.(item?.display_name)) {
               updatedSelectedOptions.push(item?.display_name);  
             }
             setSelectedOptions(updatedSelectedOptions);
@@ -505,7 +505,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             item?.schema?.forEach((schemaItem) => {
 
               if (value?.value?.uid === schemaItem?.uid && value?.label === `${item?.display_name} > ${schemaItem?.display_name}`) {
-                if (!updatedSelectedOptions?.includes(`${item?.display_name} > ${schemaItem?.display_name}`)) {
+                if (!updatedSelectedOptions?.includes?.(`${item?.display_name} > ${schemaItem?.display_name}`)) {
                   updatedSelectedOptions.push(`${item?.display_name} > ${schemaItem?.display_name}`);  
                 }
                 setSelectedOptions(updatedSelectedOptions);
@@ -515,7 +515,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 }));
               }
               else if(! item?.schema?.some(
-                (schema) => schema?.uid === existingField[key]?.value?.uid) && existingField[key]?.value?.data_type !== 'group' && existingField[key]?.label?.includes(item?.display_name) ){
+                (schema) => schema?.uid === existingField[key]?.value?.uid) && existingField[key]?.value?.data_type !== 'group' && existingField[key]?.label?.includes?.(item?.display_name) ){
                 
                 setExistingField((prevOptions: ExistingFieldType) => {
                   const { [key]: _, ...rest } = prevOptions; // Destructure to exclude the key to remove
@@ -625,7 +625,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid);
       setIsContentType(data?.contentTypes?.[0]?.type === "content_type");
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return error;
     }
   };
@@ -641,7 +641,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setFilteredContentTypes(data?.contentTypes);
       setCount(data?.contentTypes?.length);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return error;
     }
   };
@@ -713,7 +713,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setTotalCounts([...tableData, ...validTableData ?? tableData]?.length);
       setIsLoading(false)
     } catch (error) {
-      console.log('loadMoreItems -> error', error);
+      console.error('loadMoreItems -> error', error);
     }
   };
 
@@ -763,7 +763,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean) => {
     setIsDropDownChanged(checkBoxChanged);
     
-    const newTableData = tableData?.map((row) => {
+    const newTableData = tableData?.map?.((row) => {
       if (row?.uid === rowId) {
 
         return { ...row, advanced: { ...row?.advanced, ...updatedSettings } };
@@ -790,7 +790,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         }
       });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       return err;
     }
   };
@@ -821,13 +821,13 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }
 
   const modifiedObj = (obj: FieldMapType) => {
-    const {backupFieldType, uid, id} = obj
+    const {backupFieldType, uid, id} = obj ?? {}
     const excludeArr = ["group"]
     return {
       id,
       backupFieldType,
       uid,
-      parentId : excludeArr?.includes(backupFieldType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0]?.toLowerCase())
+      parentId : excludeArr?.includes?.(backupFieldType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0]?.toLowerCase())
     }
   }
   
@@ -929,9 +929,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           })
         }
       }
-    } else if(latestRow?.parentId && !["title", "url"]?.includes(latestRow?.uid?.toLowerCase())){
+    } else if(latestRow?.parentId && !["title", "url"]?.includes?.(latestRow?.uid?.toLowerCase())){
       // Extract the group UID if item is child of any group
-      const uidBeforeDot = latestRow?.uid?.split('.')[0]?.toLowerCase();
+      const uidBeforeDot = latestRow?.uid?.split?.('.')?.[0]?.toLowerCase();
       const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);      
       const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupItem?.uid + '.'));
 
@@ -961,7 +961,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     }
    
-    const updatedTableData = tableData?.map((tableItem) => {
+    const updatedTableData = tableData?.map?.((tableItem) => {
       // Mark the item as deleted if not found in selectedData
       return {
         ...tableItem,
@@ -977,7 +977,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
     setIsDropDownChanged(true);
     setFieldValue(value);
-    const updatedRows: FieldMapType[] = selectedEntries?.map((row) => {
+    const updatedRows: FieldMapType[] = selectedEntries?.map?.((row) => {
       if (row?.uid === rowIndex) {
         return { ...row, contentstackFieldType: value?.value };
       }
@@ -1024,7 +1024,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
   
   const SelectAccessor = (data: FieldMapType) => {
-    //const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
     const OptionsForRow = Fields?.[data?.backupFieldType]?.options ;
     const initialOption = {
       label: Fields?.[data?.contentstackFieldType]?.label ?? 'No Option',
@@ -1032,12 +1031,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     };
     let option: FieldTypes[];
     if (Array.isArray(OptionsForRow)) {
-       option = OptionsForRow?.map((option) => ({
+       option = OptionsForRow?.map?.((option) => ({
         label: option,
         value: option,
       }));
     } else if (typeof OptionsForRow === 'object') {
-      option = Object.entries(OptionsForRow)?.map(([label, value]) => ({
+      option = Object.entries(OptionsForRow)?.map?.(([label, value]) => ({
         label,
         value,
       }));
@@ -1157,7 +1156,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         (item) => item !== previousSelectedValue
       );
       const newValue = selectedValue?.label;
-      if (!newSelectedOptions?.includes(newValue)) {
+      if (!newSelectedOptions?.includes?.(newValue)) {
         newSelectedOptions.push(newValue);
       }
       return newSelectedOptions;
@@ -1225,7 +1224,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   //utility function to create option object
   function getMatchingOption(value: ContentTypesSchema, matchFound: boolean, label: string, uid : string) {
-    return matchFound ? { label, value, isDisabled: selectedOptions?.includes(label), uid: uid } : {}
+    return matchFound ? { label, value, isDisabled: selectedOptions?.includes?.(label), uid: uid } : {}
   }
   
   //utility function to map the source cms field type to content type field type
@@ -1485,7 +1484,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         }
 
         const newValue: string = OptionsForRow?.[0]?.value?.display_name;
-        if (!updatedSelectedOptions?.includes(newValue)) {
+        if (!updatedSelectedOptions?.includes?.(newValue)) {
           updatedSelectedOptions.push(newValue);  
         }
         setIsUpdated(true);   
@@ -1493,12 +1492,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     
     let option: FieldTypes[];
     if (Array.isArray(OptionsForEachRow)) {
-      option = OptionsForEachRow.map((option) => ({
+      option = OptionsForEachRow?.map?.((option) => ({
         label: option,
         value: option,
       }));
     } else if (typeof OptionsForEachRow === 'object') {
-      option = Object.entries(OptionsForEachRow)?.map(([label, value]) => ({
+      option = Object.entries(OptionsForEachRow)?.map?.(([label, value]) => ({
         label,
         value,
       }));
@@ -1546,7 +1545,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       (OptionsForRow?.length > 0 && OptionsForRow?.every((item)=>item?.isDisabled) && OptionValue?.label === Fields[data?.contentstackFieldType]?.label) ? []
       : OptionsForRow.map((option: OptionsType) => ({
         ...option,
-        isDisabled: selectedOptions?.includes(option?.label ?? '')
+        isDisabled: selectedOptions?.includes?.(option?.label ?? '')
       }));
     
     return (
@@ -1564,7 +1563,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
-            isClearable={selectedOptions?.includes(existingField?.[data?.uid]?.label ?? '')}
+            isClearable={selectedOptions?.includes?.(existingField?.[data?.uid]?.label ?? '')}
             options={adjustedOptions}
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
           />
@@ -1680,7 +1679,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
                  
 
-          const savedCT = filteredContentTypes?.map(ct => 
+          const savedCT = filteredContentTypes?.map?.(ct => 
             ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
           );
 
@@ -1690,12 +1689,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           try {
             otherContentType?.id && await updateContentMapper(orgId, projectID, {...contentTypeMapped, [selectedContentType?.contentstackUid]: otherContentType?.id});
           } catch (err) {
-            console.log(err);
+            console.error(err);
             return err;
           }
 
         } else {
-          const FailedCT = filteredContentTypes?.map(ct => 
+          const FailedCT = filteredContentTypes?.map?.(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: selectedContentType?.status } : ct
           );
 
@@ -1711,7 +1710,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           });
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     }
@@ -1739,7 +1738,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     const projectID = projectId;
     setIsDropDownChanged(false);
    
-    const updatedRows: FieldMapType[] = tableData?.map((row) => {
+    const updatedRows: FieldMapType[] = tableData?.map?.((row) => {
       return { ...row, 
         contentstackFieldType: row?.backupFieldType,
         contentstackField: row?.otherCmsField,
@@ -1803,7 +1802,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             }
           };
           dispatch(updateNewMigrationData(newMigrationDataObj));
-          const resetCT = filteredContentTypes?.map(ct => 
+          const resetCT = filteredContentTypes?.map?.(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );
           setFilteredContentTypes(resetCT);
@@ -1820,14 +1819,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           try {
             await updateContentMapper(orgId, projectID, {...newstate} );
           } catch (err) {
-            console.log(err);
+            console.error(err);
             return err;
           }
               
           
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     }
@@ -1836,7 +1835,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleCTDeleted = async(isContentType:boolean, contentTypes:ContentTypeList[]) => {
     const updatedContentTypeMapping = Object.fromEntries(
       Object.entries(newMigrationData?.content_mapping?.content_type_mapping || {})?.filter(
-        ([key]) => !selectedContentType?.contentstackUid?.includes(key)
+        ([key]) => !selectedContentType?.contentstackUid?.includes?.(key)
       )
     );
 
@@ -1891,7 +1890,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         });
    
         if (status === 200) {
-          const resetCT = filteredContentTypes?.map(ct => 
+          const resetCT = filteredContentTypes?.map?.(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );
           setFilteredContentTypes(resetCT);
@@ -1900,13 +1899,13 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           try {
             await updateContentMapper(orgId, projectID, {...newstate} );
           } catch (err) {
-            console.log(err);
+            console.error(err);
             return err;
           }
               
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     }
@@ -1977,7 +1976,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           await handleCTDeleted(isContentType, data?.contentTypes);
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     } else {
@@ -2032,7 +2031,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           await handleCTDeleted(isContentType, data?.globalFields);
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     }
@@ -2054,7 +2053,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       try {
         await updateContentMapper(selectedOrganisation?.value, projectId, {... updatedState} );
       } catch (err) {
-        console.log(err);
+        console.error(err);
         return err;
       }
       setOtherContentType({
@@ -2097,7 +2096,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     });
   }
 
-  const options = contentModels?.map((item) => {
+  const options = contentModels?.map?.((item) => {
     return {
       label: item?.title,
       value: item?.title,
@@ -2108,9 +2107,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
   
 
-  const adjustedOption = options?.map((option) => ({
+  const adjustedOption = options?.map?.((option) => ({
     ...option,
-    isDisabled: filteredContentTypes?.some((ct) => ct?.contentstackUid === option?.id) || (contentTypeMapped && Object.values(contentTypeMapped)?.includes(option?.id))
+    isDisabled: filteredContentTypes?.some?.((ct) => ct?.contentstackUid === option?.id) || (contentTypeMapped && Object.values(contentTypeMapped)?.includes?.(option?.id))
   }));
 
   // Function to toggle filter panel
@@ -2213,7 +2212,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               {showFilter && (
                 <div className='filter-wrapper' ref={filterRef}> 
                   <ul>
-                    {Object.keys(CONTENT_MAPPING_STATUS)?.map((key, keyInd) => (
+                    {Object.keys(CONTENT_MAPPING_STATUS)?.map?.((key, keyInd) => (
                       <li key={`${keyInd?.toString()}`}>
                         <button
                           className='list-button'
@@ -2238,18 +2237,18 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           {filteredContentTypes && validateArray(filteredContentTypes)
             ? <div className='ct-list-wrapper'>
               <ul className="ct-list">
-                {filteredContentTypes?.map((content: ContentType, index: number) => {
+                {filteredContentTypes?.map?.((content: ContentType, index: number) => {
                   const icon = STATUS_ICON_Mapping[content?.status] || '';
 
                   const format = (str: string) => {
                     const frags = str?.split('_');
                     for (let i = 0; i < frags?.length; i++) {
-                      frags[i] = frags[i]?.charAt(0).toUpperCase() + frags[i]?.slice(1);
+                      frags[i] = frags?.[i]?.charAt?.(0)?.toUpperCase() + frags?.[i]?.slice(1);
                     }
-                    return frags?.join(' ');
+                    return frags?.join?.(' ');
                   }
                   return (
-                    <li key={`${index.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
+                    <li key={`${index?.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
                       <button
                         type='button'
                         className='list-button ct-names'
