@@ -6,7 +6,7 @@ import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { contentTypes, ExtractConfiguration, reference, ExtractFiles, findAndExtractLanguages } = require('migration-sitecore');
+const { contentTypes, ExtractConfiguration, reference, ExtractFiles, extractLocales } = require('migration-sitecore');
 
 const {
   CONTENT_TYPES_DIR_NAME,
@@ -18,7 +18,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
   try {
     const newPath = path.join(filePath, 'items');
     
-    const localeData = await findAndExtractLanguages(path.join(filePath, 'items','master','sitecore','content')); 
+    const localeData = await extractLocales(path.join(filePath, 'items','master','sitecore','content')); 
     console.log("Fetched Locales: ", localeData);
     
 
