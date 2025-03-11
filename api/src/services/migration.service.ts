@@ -244,10 +244,10 @@ const startTestMigration = async (req: Request): Promise<any> => {
           await wordpressService?.extractChunks(file_path, packagePath, project?.current_test_stack_id, projectId)
           await wordpressService?.getAllAuthors(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
           //await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id, contentTypes)
-          await wordpressService?.getAllTerms(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
-          await wordpressService?.extractPosts(packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
+          await wordpressService?.getAllTerms(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.getAllTags(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.getAllCategories(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.extractPosts(packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
           await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
           await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
         }
@@ -318,12 +318,12 @@ const startMigration = async (req: Request): Promise<any> => {
           await wordpressService?.createAssetFolderFile(file_path, project?.destination_stack_id, projectId)
           await wordpressService?.getAllreference(file_path, packagePath, project?.destination_stack_id, projectId)
           await wordpressService?.extractChunks(file_path, packagePath, project?.destination_stack_id, projectId)
-          await wordpressService?.getAllAuthors(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
+          await wordpressService?.getAllAuthors(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
           await wordpressService?.getAllTerms(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
-          await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys,project?.stackDetails?.master_locale)
+          await wordpressService?.getAllTags(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.getAllCategories(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
           await wordpressService?.extractGlobalFields(project?.destination_stack_id, projectId)
           await wordpressService?.createVersionFile(project?.destination_stack_id, projectId);
 
@@ -426,23 +426,23 @@ export const createSourceLocales = async (req: Request) => {
 
   try {
     // Check if the project.json file exists
-    if (!fs.existsSync(projectFilePath)) {
+    if (!fs?.existsSync?.(projectFilePath)) {
       console.error(`project.json not found at ${projectFilePath}`);
       throw new Error(`project.json not found.`);
     }
-    
+
     // Find the project with the specified projectId
-    const project: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
+    const project: any = ProjectModelLowdb?.chain?.get?.("projects")?.find?.({ id: projectId })?.value?.();
     if (project) {
-      const index = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
+      const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value();
       if (index > -1) {
-        
-        ProjectModelLowdb.update((data: any) => {
+
+        ProjectModelLowdb?.update((data: any) => {
           data.projects[index].source_locales = locales;
         });
       } // Write back the updated projects
     } else {
-      logger.error(`Project with ID: ${projectId} not found`,{
+      logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
         message: HTTP_TEXTS?.INVALID_ID
       })
@@ -467,30 +467,30 @@ export const createSourceLocales = async (req: Request) => {
  * @return - void
  * @throws Exception if the project ID is invalid or the when the path to project.json is incorrect
  */
-export const updateLocaleMapper = async (req:Request) =>{
-  const mapperObject = req.body;
-  const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
-  const projectId = req.params.projectId; 
+export const updateLocaleMapper = async (req: Request) => {
+  const mapperObject = req?.body;
+  const projectFilePath = path?.join?.(process?.cwd(), 'database', 'project.json'); // Adjusted path to project.json
+  const projectId = req?.params?.projectId;
 
   try {
     // Check if the project.json file exists
-    if (!fs.existsSync(projectFilePath)) {
+    if (!fs?.existsSync?.(projectFilePath)) {
       console.error(`project.json not found at ${projectFilePath}`);
       throw new Error(`project.json not found.`);
     }
-    
+
     // Find the project with the specified projectId
-    const project: any = ProjectModelLowdb.chain.get("projects").find({ id: projectId }).value();
+    const project: any = ProjectModelLowdb?.chain?.get?.("projects")?.find?.({ id: projectId })?.value();
     if (project) {
-      const index = ProjectModelLowdb.chain.get("projects").findIndex({ id: projectId }).value();
+      const index = ProjectModelLowdb?.chain?.get("projects")?.findIndex?.({ id: projectId })?.value();
       if (index > -1) {
-        ProjectModelLowdb.update((data: any) => {
+        ProjectModelLowdb?.update((data: any) => {
           data.projects[index].master_locale = mapperObject?.master_locale;
           data.projects[index].locales = mapperObject?.locales;
         });
       } // Write back the updated projects
     } else {
-      logger.error(`Project with ID: ${projectId} not found`,{
+      logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
         message: HTTP_TEXTS?.INVALID_ID
       })
