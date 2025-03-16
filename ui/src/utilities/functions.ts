@@ -145,7 +145,7 @@ export const getDays = (day: string | number | Date) => {
 };
 
 export const isEmptyString = (str: string | undefined) =>
-  str === undefined || str === null || str.trim().length < 1;
+  str === undefined || str === null || str?.trim()?.length < 1;
 
 export const shortName = (name: string) => {
   if (name && name.length > 25) {
