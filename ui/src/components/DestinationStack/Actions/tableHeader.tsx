@@ -1,5 +1,7 @@
+// Importing Library
 import { FieldLabel } from "@contentstack/venus-components";
 
+// TableHeader component of language-mapper tabel
 const TableHeader = ({cms}:{cms:string}) => {
     return (
         <div className="flex-v-center">
