@@ -45,7 +45,6 @@
   border-radius: 4px;
 }
 .destination-stack-container {
-  
   padding-left: 25px !important;
   padding-top: 26px;
   padding-right: 30px;
@@ -172,10 +171,6 @@
         }
       }
     }
-   
-    
-   
-
   }
 }
 .action-summary-wrapper {
@@ -193,7 +188,6 @@
   }
 }
 
-
 .locale-container {
   display: flex;
   background-color: $color-base-white-5;
@@ -201,17 +195,17 @@
   align-items: center;
   padding: $px-10;
 }
-.lang-container{
+.lang-container {
   //display: flex;
   //flex-wrap: wrap;
   //padding: $px-20;
   //padding-bottom: 50px;
 }
-.language-mapper{
+.language-mapper {
   //padding-top:20px;
   //margin-top: 20px;
   //padding: 24px 30px;
- // height: 150px;
+  // height: 150px;
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: 4px;
   background-color: $color-brand-white-base;
@@ -237,40 +231,40 @@
       }
     }
   }
-  .span{
+  .span {
     padding: 10px 20px;
   }
-  .field-label{
+  .field-label {
     padding: 10px 10px;
   }
 }
 
-.language-title{
+.language-title {
   margin-top: 10px;
   //margin-left: 2px;
 }
-.info-lang{
+.info-lang {
   display: flex;
+  gap: 10px;
 }
-.help-text{
+.help-text {
   margin-top: -5px;
   margin-left: 0px;
 }
-.mini-table{
+.mini-table {
   margin-left: 40px;
   margin-top: 10px;
   //width: 120px;
 }
-.lang-container{
+.lang-container {
   margin-bottom: 30px;
   margin-left: 10px;
   margin-top: 10px;
   display: flex;
 }
-.info-tag{
+.info-tag {
   max-width: 500px;
 }
-.info-language-mapper{
+.info-language-mapper {
   margin-bottom: 120px;
-
 }
