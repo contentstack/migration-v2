@@ -1,3 +1,4 @@
+// Import library
 import {
   Button,
   CircularLoader,
@@ -14,24 +15,35 @@ import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { INewMigration } from '../../../context/app/app.interface';
 
+export type ExistingFieldType = {
+  [key: string]:  { label: string ; value: string };
+};
+
+/**
+ * A functional component that displays selection for language mapping.
+ * 
+ * @param {Array<{ label: string; value: string }>} cmsLocaleOptions - An array to dispaly number of locales select.
+ * @param {Function} handleLangugeDelete - a function to delete the mapping.
+ * @param {Array<{ label: string; value: string }>} options - option array of contentstack locales.
+ * @param {Array<{ label: string; value: string }>} sourceOptions - option array of source locales.
+ * @returns {JSX.Element | null} - Returns a JSX element if empty, otherwise null.
+ */
 const Mapper = ({
   cmsLocaleOptions,
   handleLangugeDelete,
   options,
-  masterLocale,
   sourceOptions
 }: {
-  cmsLocaleOptions: Array<any>;
-  handleLangugeDelete: any;
-  options: any;
-  masterLocale: string;
-  sourceOptions: any;
+  cmsLocaleOptions: Array<{ label: string; value: string }>;
+  handleLangugeDelete: (index: number, locale: { label: string; value: string }) => void;
+  options: Array<{ label: string; value: string }>;
+  sourceOptions: Array<{ label: string; value: string }>;
 }) => {
   const [selectedMappings, setSelectedMappings] = useState<{ [key: string]: string }>({});
-  const [existingField, setExistingField] = useState<any>({});
-  const [existingLocale, setexistingLocale] = useState<any>({});
-  const [selectedCsOptions, setselectedCsOption] = useState([]);
-  const [selectedSourceOption, setselectedSourceOption] = useState([]);
+  const [existingField, setExistingField] = useState<ExistingFieldType>({});
+  const [existingLocale, setexistingLocale] = useState<ExistingFieldType>({});
+  const [selectedCsOptions, setselectedCsOption] = useState<string[]>([]);
+  const [selectedSourceOption, setselectedSourceOption] = useState<string[]>([]);
   const [csOptions, setcsOptions] = useState(options);
   const [sourceoptions, setsourceoptions] = useState(sourceOptions);
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
@@ -42,7 +54,7 @@ const Mapper = ({
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       destination_stack: {
-        ...newMigrationData.destination_stack,
+        ...newMigrationData?.destination_stack,
         localeMapping: selectedMappings
       }
     };
@@ -64,26 +76,26 @@ const Mapper = ({
 
   useEffect(() => {
     const formattedoptions = options?.filter(
-      (item: any) => !selectedCsOptions?.some((selected: any) => selected?.value === item.value)
+      (item: { label: string; value: string }) => !selectedCsOptions?.some((selected: string) => selected === item?.value)
     );
     const adjustedOptions = sourceOptions?.filter(
-      (item: any) => !selectedSourceOption?.some((selected: any) => selected === item?.label)
+      (item: { label: string; value: string }) => !selectedSourceOption?.some((selected: string) => selected === item?.label)
     );
     setcsOptions(formattedoptions);
     setsourceoptions(adjustedOptions);
   }, [selectedCsOptions, selectedSourceOption]);
 
   useEffect(() => {
-    setExistingField((prevExisting: any) => {
+    setExistingField((prevExisting: ExistingFieldType) => {
       const updatedExisting = { ...prevExisting };
 
-      cmsLocaleOptions.forEach((locale: any, index: number) => {
-        if (locale.value === 'master_locale' && !updatedExisting[index]) {
+      cmsLocaleOptions?.forEach((locale: { label: string; value: string }, index: number) => {
+        if (locale?.value === 'master_locale' && !updatedExisting?.[index]) {
           setSelectedMappings((prev) => ({
             ...prev,
             [`${locale?.label}-master_locale`]: ''
           }));
-          updatedExisting[index] = { label: locale.label, value: `${locale?.label}-master_locale` };
+          updatedExisting[index] = { label: locale?.label, value: `${locale?.label}-master_locale` };
         }
       });
 
@@ -91,15 +103,16 @@ const Mapper = ({
     });
   }, [cmsLocaleOptions]);
 
+  // function for change select value
   const handleSelectedCsLocale = (
-    selectedValue: any,
+    selectedValue: { label: string; value: string },
     index: number,
     type: 'csLocale' | 'sourceLocale'
   ) => {
     const selectedLocaleKey = selectedValue?.value;
     if (!selectedLocaleKey) return;
 
-    setExistingField((prevOptions: any) => {
+    setExistingField((prevOptions: ExistingFieldType) => {
       const updatedOptions = {
         ...prevOptions,
         [index]: { label: selectedValue?.label || null, value: selectedValue?.label }
@@ -113,8 +126,8 @@ const Mapper = ({
       return updatedOptions;
     });
     setselectedCsOption((prevSelected) => {
-      const newSelectedOptions: any = prevSelected?.filter((item) => item !== selectedValue?.label);
-      const newValue: any = selectedValue?.label;
+      const newSelectedOptions: string[] = prevSelected?.filter((item) => item !== selectedValue?.label);
+      const newValue: string = selectedValue?.label;
       if (!newSelectedOptions?.includes(newValue)) {
         newSelectedOptions.push(newValue);
       }
@@ -134,30 +147,30 @@ const Mapper = ({
     });
   };
   const handleSelectedSourceLocale = (
-    selectedValue: any,
+    selectedValue: { label: string; value: string },
     index: number,
     type: 'csLocale' | 'sourceLocale',
     label: any
   ) => {
-    const csLocaleKey = existingField[index]?.value;
+    const csLocaleKey = existingField?.[index]?.value;
 
     //const selectedLocaleKey = selectedMappings[index];
 
     if (!selectedValue?.label) {
       setselectedSourceOption((prevSelected) =>
-        prevSelected.filter((item) => item !== existingField[index]?.label)
+        prevSelected?.filter((item) => item !== existingField?.[index]?.label)
       );
     }
-    setexistingLocale((prevOptions: any) => {
-      const updatedOptions = {
+    setexistingLocale((prevOptions: ExistingFieldType) => {
+      const updatedOptions: ExistingFieldType = {
         ...prevOptions,
         [index]: { label: selectedValue?.label || null, value: selectedValue?.label }
       };
 
       // Ensure selectedOption only contains values that exist in updatedOptions
       setselectedSourceOption((prevSelected) =>
-        prevSelected.filter((item) =>
-          Object.values(updatedOptions).some((opt: any) => opt.label === item)
+        prevSelected?.filter((item) =>
+          Object.values(updatedOptions)?.some((opt: {label: string, value: string}) => opt?.label === item)
         )
       );
 
@@ -165,10 +178,10 @@ const Mapper = ({
     });
 
     setselectedSourceOption((prevSelected) => {
-      const newSelectedOptions: any = prevSelected?.filter((item) => item !== selectedValue?.label);
-      const newValue: any = selectedValue?.label;
+      const newSelectedOptions = prevSelected?.filter((item) => item !== selectedValue?.label);
+      const newValue: string = selectedValue?.label;
       if (!newSelectedOptions?.includes(newValue)) {
-        newSelectedOptions.push(newValue);
+        newSelectedOptions?.push(newValue);
       }
       return newSelectedOptions;
     });
@@ -179,7 +192,8 @@ const Mapper = ({
         [csLocaleKey]: selectedValue?.label || ''
       }));
   };
-  const handleLanguageDeletaion = (index: number, locale: any) => {
+  const handleLanguageDeletaion = (index: number, locale: {label: string, value: string}) => {
+    
     // Remove item at index from existingField
     let csLocale = '';
 
@@ -196,7 +210,7 @@ const Mapper = ({
     );
 
     // Remove item at index from existingLocale
-    setexistingLocale((prevLocales: any) => {
+    setexistingLocale((prevLocales: ExistingFieldType) => {
       if (!prevLocales) return {};
       const updatedOptions = { ...prevLocales }; // Create a shallow copy
       delete updatedOptions[index]; // Remove the key
@@ -213,18 +227,11 @@ const Mapper = ({
 
     handleLangugeDelete(index, locale);
   };
-  console.log(
-    'Updated Mappings:',
-    existingField,
-    existingLocale,
-    selectedMappings,
-    selectedCsOptions
-  );
 
   return (
     <>
       {cmsLocaleOptions?.length > 0 ? (
-        cmsLocaleOptions?.map((locale: any, index: any) => (
+        cmsLocaleOptions?.map((locale: any, index: number) => (
           <div key={index} className="lang-container">
             {locale?.value === 'master_locale' ? (
               <Tooltip
@@ -233,7 +240,7 @@ const Mapper = ({
                 <div>
                   <Select
                     value={locale?.value === 'master_locale' ? locale : existingField[locale]}
-                    onChange={(key: any) => handleSelectedCsLocale(key, index, 'csLocale')}
+                    onChange={(key: { label: string; value: string }) => handleSelectedCsLocale(key, index, 'csLocale')}
                     options={csOptions}
                     placeholder={placeholder}
                     isSearchable
@@ -253,7 +260,7 @@ const Mapper = ({
             ) : (
               <Select
                 value={existingField[locale]}
-                onChange={(key: any) => {
+                onChange={(key: { label: string; value: string }) => {
                   handleSelectedCsLocale(key, index, 'csLocale');
                 }}
                 options={csOptions}
@@ -293,7 +300,7 @@ const Mapper = ({
             /> */
               <Select
                 value={existingLocale[locale]}
-                onChange={(data: any) =>
+                onChange={(data: { label: string; value: string }) =>
                   handleSelectedSourceLocale(data, index, 'sourceLocale', locale)
                 }
                 options={sourceoptions}
@@ -344,23 +351,18 @@ const Mapper = ({
 
 const LanguageMapper = () => {
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-  const [newEntry, setnewEntry] = useState<boolean>(false);
-  const [options, setoptions] = useState([]);
+  const [options, setoptions] = useState<{ label: string; value: string }[]>([]);
   const [cmsLocaleOptions, setcmsLocaleOptions] = useState<{ label: string; value: string }[]>([]);
-  const [sourceLocales, setsourceLocales] = useState<any>([]);
-
-  const selectedOrganisation = useSelector(
-    (state: RootState) => state?.authentication?.selectedOrganisation
-  );
+  const [sourceLocales, setsourceLocales] = useState<{ label: string; value: string }[]>([]);
   const [isLoading, setisLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setisLoading(true);
-        const allLocales: any = Object.keys(
-          newMigrationData?.destination_stack?.csLocale || {}
-        ).map((key) => ({
+        const allLocales: { label: string; value: string }[] = Object.entries(
+          newMigrationData?.destination_stack?.csLocale ?? {}
+        ).map(([key]) => ({
           label: key,
           value: key
         }));
@@ -371,10 +373,10 @@ const LanguageMapper = () => {
         setsourceLocales(sourceLocale);
 
         setoptions(allLocales);
-        setcmsLocaleOptions((prevList: any) => {
+        setcmsLocaleOptions((prevList: { label: string; value: string }[]) => {
           const newLabel = newMigrationData?.destination_stack?.selectedStack?.master_locale;
 
-          const isPresent = prevList.some((item: any) => item.value === 'master_locale');
+          const isPresent = prevList.some((item: { label: string; value: string }) => item?.value === 'master_locale');
 
           if (!isPresent) {
             return [
@@ -401,8 +403,7 @@ const LanguageMapper = () => {
   //     return await getStackLocales(newMigrationData?.destination_stack?.selectedOrg?.value);
   //   };
   const addRowComp = () => {
-    setnewEntry(true);
-    setcmsLocaleOptions((prevList: any) => [
+    setcmsLocaleOptions((prevList: { label: string; value: string }[]) => [
       ...prevList, // Keep existing elements
       {
         label: `${prevList.length + 1}`, // Generate new label
@@ -411,9 +412,9 @@ const LanguageMapper = () => {
     ]);
   };
 
-  const handleDeleteLocale = (id: number, locale: any) => {
+  const handleDeleteLocale = (id: number, locale: { label: string; value: string }) => {
     setcmsLocaleOptions((prevList) => {
-      return prevList.filter((item: any) => item.label !== locale.label);
+      return prevList?.filter((item: { label: string; value: string }) => item?.label !== locale?.label);
     });
   };
 
@@ -430,7 +431,6 @@ const LanguageMapper = () => {
             }
             rowComponent={
               <Mapper
-                masterLocale={newMigrationData?.destination_stack?.selectedStack?.master_locale}
                 options={options}
                 cmsLocaleOptions={cmsLocaleOptions}
                 handleLangugeDelete={handleDeleteLocale}
