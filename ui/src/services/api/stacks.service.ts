@@ -44,7 +44,7 @@ export const getStackStatus = async (orgId: string, data: string) => {
   }
 };
 
-export const getStackLocales = async(orgId: string, api_key: string) => {
+export const getStackLocales = async(orgId: string) => {
 try {
 
   const updatedOptions = {

@@ -2,11 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getDestinationStackSteps } from './StepperSteps';
-import { CircularLoader, FieldLabel, HelpText, Icon, Info, Tooltip } from '@contentstack/venus-components';
+import {
+  CircularLoader,
+  HelpText,
+  Icon,
+  Info,
+  Tooltip
+} from '@contentstack/venus-components';
 import { CS_ENTRIES } from '../../utilities/constants';
 import {
   DEFAULT_DESTINATION_STACK_DATA,
-  IDestinationStackComponent,
+  IDestinationStackComponent
 } from '../../context/app/app.interface';
 import './DestinationStack.scss';
 import { MigrationResponse } from '../../services/api/service.interface';
@@ -124,30 +130,32 @@ const DestinationStackComponent = ({
           </div>
 
           <div className="col-12 info-lang">
-          <div className='stackTitle language-title'>Language configuration</div>
-          <Tooltip content={`Define language mappings between Contentstack and ${newMigrationData?.legacy_cms?.selectedCms?.parent} for smooth content transfer. Each mapping aligns a WordPress source language with its Contentstack equivalent.`} position='right'>
-                <Icon  className="language-title" icon='Information' version='v2' size='small'></Icon>
-          </Tooltip>
-
+            <div className="stackTitle language-title">Language configuration</div>
+            <Tooltip
+              content={`Define language mappings between Contentstack and ${newMigrationData?.legacy_cms?.selectedCms?.parent} for smooth content transfer. Each mapping aligns a WordPress source language with its Contentstack equivalent.`}
+              position="right">
+              <Icon className="language-title" icon="Information" version="v2" size="small"></Icon>
+            </Tooltip>
           </div>
-          <HelpText data-test-id="cs-paragraph-tag" className='contentMapWrapper-heading p1 regular help-text' >Contentstack and {newMigrationData?.legacy_cms?.selectedCms?.parent} Languages Mapping</HelpText>
-         
-            {/* <FieldLabel htmlFor='language-mapper' className='language-title stackTitle'>
-            Language configuration
-          </FieldLabel> */}
-          {newMigrationData?.destination_stack?.selectedStack?.value ? 
-          
-            <div className='language-mapper col-12 '>
-              <LanguageMapper/>
+          <HelpText
+            data-test-id="cs-paragraph-tag"
+            className="contentMapWrapper-heading p1 regular help-text">
+            Contentstack and {newMigrationData?.legacy_cms?.selectedCms?.parent} Languages Mapping
+          </HelpText>
 
-            </div> :  
+          {newMigrationData?.destination_stack?.selectedStack?.value ? (
+            <div className="language-mapper col-12 ">
+              <LanguageMapper />
+            </div>
+          ) : (
             <Info
-            className="info-language-mapper col-12 info-tag"
-            icon={<Icon icon='Information' version='v2' size='small'></Icon>}
-            //version="v2"
-            content="Please select the stack to processed with Language mapping"
-            type="light"/>}
-          
+              className="info-language-mapper col-12 info-tag"
+              icon={<Icon icon="Information" version="v2" size="small"></Icon>}
+              version="v2"
+              content="Please select the stack to proceed with language mapping"
+              type="light"
+            />
+          )}
         </div>
       )}
     </>
