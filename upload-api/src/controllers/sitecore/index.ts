@@ -17,12 +17,8 @@ const {
 const createSitecoreMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: object) => {
   try {
     const newPath = path.join(filePath, 'items');
-    
-    const localeData = await extractLocales(path.join(filePath, 'items','master','sitecore','content')); 
-    console.log("Fetched Locales: ", localeData);
-    
-
     await ExtractFiles(newPath);
+    const localeData = await extractLocales(path.join(filePath, 'items', 'master', 'sitecore', 'content'));
     await ExtractConfiguration(newPath);
     await contentTypes(newPath, affix, config);
     const infoMap = await reference();
@@ -61,7 +57,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           message: HTTP_TEXTS?.MAPPER_SAVED,
         });
       }
-      
+
       const mapperConfig = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -71,12 +67,12 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           'Content-Type': 'application/json'
         },
         data: {
-          locale:Array.from(localeData)
+          locale: Array.from(localeData)
         },
       };
 
       const mapRes = await axios.request(mapperConfig)
-      if(mapRes?.status==200){
+      if (mapRes?.status == 200) {
         logger.info('Legacy CMS', {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.LOCALE_SAVED,

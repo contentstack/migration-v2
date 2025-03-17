@@ -21,7 +21,7 @@ const extractLocale = async (jsonFilePath) => {
         if (Array?.isArray?.(jsonData?.locales)) {
             jsonData?.locales?.forEach?.(locale => {
                 if (locale?.code) {
-                    uniqueLanguages.add(locale?.code?.toLowerCase?.()); // Normalize to lowercase
+                    uniqueLanguages.add(locale?.code); // Normalize to lowercase
                 }
             });
         }

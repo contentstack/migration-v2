@@ -129,12 +129,18 @@ const createFieldObject = (item, contentstackFieldType, backupFieldType, referen
  */
 const createDropdownOrRadioFieldObject = (item, fieldType) => {
   let choices = [];
-  if (!item?.validations?.length) {
-    choices.push({ value: 'value', key: 'key' });
+  if (item?.items?.validations?.length) {
+    item?.items?.validations?.forEach?.((valid) => {
+      valid.in?.forEach((value) => choices.push({ value: ["Symbol", "Text", "Array"].includes(item?.items?.type) ? `${value}` : value, key: `${value}` }));
+    })
   } else {
-    item.validations.forEach((valid) => {
-      valid.in?.forEach((value) => choices.push({ value: ["Symbol", "Text", "Array"].includes(item.type) ? `${value}` : value, key: `${value}` }));
-    });
+    if (!item?.validations?.length) {
+      choices.push({ value: 'value', key: 'key' });
+    } else {
+      item.validations.forEach((valid) => {
+        valid.in?.forEach((value) => choices.push({ value: ["Symbol", "Text", "Array"].includes(item.type) ? `${value}` : value, key: `${value}` }));
+      });
+    }
   }
   return {
     ...createFieldObject(item, fieldType, fieldType),
@@ -336,6 +342,7 @@ const contentTypeMapper = (data) => {
             break;
           }
         }
+
         break;
       case 'Boolean':
         acc.push(createFieldObject(item, 'boolean', 'boolean'));
