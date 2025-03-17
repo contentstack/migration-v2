@@ -134,7 +134,7 @@ const transformCloudinaryObject = (input: any) => {
         id: uuidv4(),
         folder: "",
         cs_metadata: {
-          config_label: "config"
+          config_label: "default_multi_config_key"
         }
       });
     }
@@ -846,7 +846,6 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
         )) {
           const localeCode = mapLocales({ masterLocale: master_locale, locale: localeKey, locales: LocaleMapper });
           const chunks = makeChunks(localeValues);
-          console.info("🚀 ~ forawait ~ localeCode:", localeCode)
           for (const [entryKey, entryValue] of Object.entries(localeValues)) {
             const message = getLogMessage(
               srcFunc,
@@ -877,7 +876,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
       await customLogger(projectId, destination_stack_id, 'info', message);
     }
   } catch (err) {
-    console.info("🚀 ~ createEntry ~ err:", err)
+    console.error("🚀 ~ createEntry ~ err:", err)
     const message = getLogMessage(
       srcFunc,
       `Error encountered while creating entries.`,
