@@ -11,7 +11,7 @@ const extractLocales = (dir) => {
     for (const item of items) {
         const fullPath = path?.join?.(dir, item?.name);
 
-        if (item.isDirectory()) {
+        if (item?.isDirectory()) {
             extractLocales?.(fullPath); // Proper recursion
         } else if (item?.isFile() && item?.name === "data.json.json") {
             try {
