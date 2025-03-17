@@ -80,3 +80,25 @@ export const getRestrictedKeywords = async () => {
     }
   }
 }
+
+export const getLocales = async(api_key : string) => {
+  try {
+    const options = {
+      headers: {
+        'authtoken': getDataFromLocalStorage('app_token'),
+        'api_key': api_key ,
+        //'affix': affix,
+      },
+      
+    };
+
+    return await getCall(`https://api.contentstack.io/v3/locales`, options)
+    
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+}
