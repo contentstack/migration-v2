@@ -230,6 +230,12 @@
         }
       }
     }
+    .field-content__content{
+      height: auto !important; 
+      max-height: unset !important;  
+      overflow: visible !important;  
+      z-index: 9999;
+    }
   }
   .span {
     padding: 10px 20px;
@@ -254,6 +260,8 @@
 .mini-table {
   margin-left: 40px;
   margin-top: 10px;
+  overflow: visible !important;
+  position: relative;
   //width: 120px;
 }
 .lang-container {
