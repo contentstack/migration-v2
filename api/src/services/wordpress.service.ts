@@ -800,7 +800,7 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
 
     const message = getLogMessage(
       srcFunc,
-      `${authorDetails.length} Authors exported successfully`,
+      `${authorDetails?.length} Authors exported successfully`,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
@@ -1927,7 +1927,7 @@ async function featuredImageMapping(postid: string, post: any, postdata: any) {
       })
       .filter(Boolean); // Filter out undefined matches
     
-    if (assetsDetails.length > 0) {
+    if (assetsDetails?.length > 0) {
       postdata[postid]["featured_image"] = assetsDetails[0];
     }
     return postdata;
@@ -2031,11 +2031,11 @@ async function processChunkData(
           );
           const htmlDoc = dom.window.document.querySelector("body");
           const jsonValue = htmlToJson(htmlDoc);
-          const postDate = new Date(data["wp:post_date_gmt"]).toISOString();
+          const postDate = new Date(data["wp:post_date_gmt"])?.toISOString();
 
-          const base = blog_base_url.split("/").filter(Boolean);
-          const blogname = base[base.length - 1];
-          const url = data["link"].split(blogname)[1];
+          const base = blog_base_url?.split("/")?.filter(Boolean);
+          const blogname = base[base?.length - 1];
+          const url = data["link"]?.split(blogname)[1];
           //const title = data["title"] ?? `Posts - ${data["wp:post_id"]}`;
           const uid = `posts_${data["wp:post_id"]}`
           const customId = idCorrector(uid)
