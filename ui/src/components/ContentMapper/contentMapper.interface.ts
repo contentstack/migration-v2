@@ -191,7 +191,7 @@ export interface ModifiedField {
   at: number;
   checked: boolean;
   id: string;
-  otherCmsType: string;
+  backupFieldType: string;
   parentId: string;
   uid: string;
 }
