@@ -61,11 +61,11 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   };
 
   const getFileExtension = (filePath: string): string => {
-    const normalizedPath = filePath.replace(/\\/g, "/")?.replace(/\/$/, "");
+    const normalizedPath = filePath?.replace(/\\/g, "/")?.replace(/\/$/, "");
 
     // Use regex to extract the file extension
-    const match = normalizedPath.match(/\.([a-zA-Z0-9]+)$/);
-    const ext = match ? match[1].toLowerCase() : "";
+    const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
+    const ext = match ? match[1]?.toLowerCase() : "";
 
     const fileName = filePath?.split('/')?.pop();
     //const ext = fileName?.split('.')?.pop();

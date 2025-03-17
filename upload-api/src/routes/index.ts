@@ -184,11 +184,11 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
     //file ext from fileName
     const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
 
-    if (!s3File.Body) {
+    if (!s3File?.Body) {
       throw new Error('Empty response body from S3');
     }
 
-    const bodyStream: Readable = s3File.Body as Readable;
+    const bodyStream: Readable = s3File?.Body as Readable;
 
     // Create a writable stream to save the downloaded zip file
     const zipFileStream = createWriteStream(`${fileName}`);
