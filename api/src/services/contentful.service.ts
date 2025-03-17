@@ -86,6 +86,18 @@ function makeChunks(assetData: any) {
   return chunks;
 }
 
+const mapLocales = ({ masterLocale, locale, locales }: any) => {
+  if (locales?.masterLocale?.[masterLocale ?? ''] === locale) {
+    return Object?.keys(locales?.masterLocale)?.[0]
+  }
+  for (const [key, value] of Object?.entries?.(locales) ?? {}) {
+    if (typeof value !== 'object' && value === locale) {
+      return key;
+    }
+  }
+  return locale.toLowerCase();
+}
+
 const transformCloudinaryObject = (input: any) => {
   const result: any = [];
   if (!Array.isArray(input)) {
@@ -702,18 +714,6 @@ const createEnvironment = async (packagePath: any, destination_stack_id: string,
   }
 };
 
-const mapLocales = ({ masterLocale, locale, locales }: any) => {
-  console.info("🚀 ~ mapLocales ~ locales?.masterLocale?.[masterLocale ?? ''] :", locales, locales?.masterLocale, locale)
-  if (locales?.masterLocale?.[masterLocale ?? ''] === locale) {
-    return Object?.keys(locales?.masterLocale)?.[0]
-  }
-  for (const [key, value] of Object?.entries?.(locales) ?? {}) {
-    if (typeof value !== 'object' && value === locale) {
-      return key;
-    }
-  }
-  return locale.toLowerCase();
-}
 
 /**
  * Creates and processes entries from a given package file and saves them to the destination stack directory.
@@ -888,6 +888,10 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
   }
 };
 
+function getKeyByValue(obj: Record<string, string>, targetValue: string): string | undefined {
+  return Object.entries(obj).find(([_, value]) => value === targetValue)?.[0];
+}
+
 /**
  * Processes and creates locale configurations from a given package file and saves them to the destination stack directory.
  *
@@ -912,7 +916,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
  *
  * @throws Will log errors encountered during file reading, processing, or writing of locale configurations.
  */
-const createLocale = async (packagePath: string, destination_stack_id: string, projectId: string) => {
+const createLocale = async (packagePath: string, destination_stack_id: string, projectId: string, project: any) => {
   const srcFunc = 'createLocale';
   const localeSave = path.join(DATA, destination_stack_id, LOCALE_DIR_NAME);
   const globalFieldSave = path.join(DATA, destination_stack_id, GLOBAL_FIELDS_DIR_NAME);
@@ -936,13 +940,14 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
       )
       await customLogger(projectId, destination_stack_id, 'error', message);
     }
-
-    await Promise.all(locales.map(async (localeData: any) => {
-      const title = localeData.sys.id;
+    const fallbackMapLocales: any = { ...project?.master_locale ?? {}, ...project?.locales ?? {} }
+    await Promise?.all(locales?.map?.(async (localeData: any) => {
+      const currentMapLocale = getKeyByValue?.(fallbackMapLocales, localeData?.code) ?? `${localeData.code.toLowerCase()}`;
+      const title = localeData?.sys?.id;
       const newLocale: Locale = {
-        code: `${localeData.code.toLowerCase()}`,
-        name: localeCodes?.[localeData.code.toLowerCase()] || "English - United States",
-        fallback_locale: "",
+        code: currentMapLocale,
+        name: localeCodes?.[currentMapLocale] || "English - United States",
+        fallback_locale: getKeyByValue(fallbackMapLocales, localeData?.fallbackCode) ?? '',
         uid: `${title}`,
       };
 
@@ -950,16 +955,15 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
         msLocale[title] = newLocale;
         const message = getLogMessage(
           srcFunc,
-          `Master Locale ${newLocale.code} has been successfully transformed.`,
+          `Master Locale ${newLocale?.code} has been successfully transformed.`,
           {}
         )
         await customLogger(projectId, destination_stack_id, 'info', message);
       } else {
-        newLocale.name = `${localeData.name}`;
         allLocales[title] = newLocale;
         const message = getLogMessage(
           srcFunc,
-          `Locale ${newLocale.code} has been successfully transformed.`,
+          `Locale ${newLocale?.code} has been successfully transformed.`,
           {}
         )
         await customLogger(projectId, destination_stack_id, 'info', message);
