@@ -175,21 +175,21 @@ const Fields: MappingFields = {
     options: {
       'Dropdown':'dropdown'
     },
-    type: 'enum',
+    type: 'dropdown',
   },
   'radio': {
     label :'Select',
     options: {
       'Select':'select'
     },
-    type: 'enum',
+    type: 'radio',
   },
   'checkbox': {
     label:'Select',
     options: {
       'Select':'checkbox'
     },
-    type:'boolean'
+    type:'display_type'
   },
   'global_field':{
     label : 'Global',
@@ -1256,10 +1256,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         return value?.data_type === 'isodate';
       case 'json':
         return value?.data_type === 'json';
-      case 'enum':
-        return 'enum' in value;
-      case 'display_type':
+      // case 'enum':
+      //   return 'enum' in value;
+      case 'radio':
+        return value?.display_type === 'radio';
+      case 'dropdown':
         return value?.display_type === 'dropdown';
+      case 'checkbox':
+        return value?.display_type === 'checkbox';
       case 'allow_rich_text':
         return value?.field_metadata?.allow_rich_text === true;
       case 'Group':      
