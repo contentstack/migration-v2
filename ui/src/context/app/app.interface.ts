@@ -173,7 +173,9 @@ export interface IDestinationStack {
   selectedStack: IDropDown;
   stackArray: IDropDown[];
   migratedStacks: string[];
-
+  sourceLocale: string[];
+  localeMapping: {};
+  csLocale: string[];
 }
 export interface IContentMapper {
   existingGlobal: ContentTypeList[] | (() => ContentTypeList[]);
@@ -337,6 +339,9 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
   selectedStack: DEFAULT_DROPDOWN,
   stackArray: [],
   migratedStacks: [],
+  sourceLocale: [],
+  localeMapping: {},
+  csLocale: []
 };
 
 export const DEFAULT_CONTENT_MAPPER: IContentMapper = {
