@@ -10,7 +10,7 @@ import { JSDOM } from "jsdom";
 import { jsonToHtml, jsonToMarkdown, htmlToJson } from '@contentstack/json-rte-serializer';
 
 
-import { CHUNK_SIZE, MIGRATION_DATA_CONFIG, LOCALE_MAPPER } from "../constants/index.js";
+import { CHUNK_SIZE, LOCALE_MAPPER, MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import { Locale } from "../models/types.js";
 import jsonRTE from "./contentful/jsonRTE.js";
 import { getAllLocales, getLogMessage } from "../utils/index.js";
@@ -703,6 +703,7 @@ const createEnvironment = async (packagePath: any, destination_stack_id: string,
 };
 
 const mapLocales = ({ masterLocale, locale, locales }: any) => {
+  console.info("🚀 ~ mapLocales ~ locales?.masterLocale?.[masterLocale ?? ''] :", locales, locales?.masterLocale, locale)
   if (locales?.masterLocale?.[masterLocale ?? ''] === locale) {
     return Object?.keys(locales?.masterLocale)?.[0]
   }
@@ -740,7 +741,7 @@ const mapLocales = ({ masterLocale, locale, locales }: any) => {
  *
  * @throws Will log errors encountered during file reading, processing, or writing of entries.
  */
-const createEntry = async (packagePath: any, destination_stack_id: string, projectId: string, contentTypes: any, mapperKeys: any, master_locale: string): Promise<void> => {
+const createEntry = async (packagePath: any, destination_stack_id: string, projectId: string, contentTypes: any, mapperKeys: any, master_locale: string, project: any): Promise<void> => {
   const srcFunc = 'createEntry';
   try {
     const entriesSave = path.join(DATA, destination_stack_id, ENTRIES_DIR_NAME);
@@ -749,7 +750,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
     const data = await fs.promises.readFile(packagePath, "utf8");
     const entries = JSON.parse(data)?.entries;
     const content = JSON.parse(data)?.contentTypes;
-
+    const LocaleMapper = { masterLocale: project?.master_locale ?? LOCALE_MAPPER?.masterLocale, ...project?.locales ?? {} };
     if (entries && entries.length > 0) {
       const assetId = await readFile(assetsSave, ASSETS_SCHEMA_FILE) ?? [];
       const entryId = await readFile(path.join(DATA, destination_stack_id, REFERENCES_DIR_NAME), REFERENCES_FILE_NAME);
@@ -799,13 +800,13 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
             });
             const pathName = getDisplayName(name, displayField);
             locales.forEach((locale) => {
-              const localeCode = mapLocales({ masterLocale: master_locale, locale, locales: LOCALE_MAPPER });
+              const localeCode = mapLocales({ masterLocale: master_locale, locale, locales: LocaleMapper });
               const publishDetails = Object?.values?.(environmentsId)?.length ? Object?.values?.(environmentsId)
                 .filter((env: any) => env?.name === environment_id)
                 ?.map((env: any) => ({
                   environment: env?.uid,
                   version: 1,
-                  locale: locale?.toLowerCase?.(),
+                  locale: localeCode,
                 })) : [];
               const title = fields?.[pathName]?.[locale] || "";
               const urlTitle = title
@@ -816,7 +817,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
                 title: title?.trim?.() === "" ? (urlTitle || id) : title,
                 uid: id,
                 url: `/${name?.toLowerCase?.()}/${urlTitle}`,
-                locale: locale?.toLowerCase?.(),
+                locale: localeCode,
                 publish_details: publishDetails,
               };
               // Format object keys to snake_case
@@ -843,11 +844,13 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
         for await (const [localeKey, localeValues] of Object.entries(
           values as { [key: string]: any }
         )) {
+          const localeCode = mapLocales({ masterLocale: master_locale, locale: localeKey, locales: LocaleMapper });
           const chunks = makeChunks(localeValues);
+          console.info("🚀 ~ forawait ~ localeCode:", localeCode)
           for (const [entryKey, entryValue] of Object.entries(localeValues)) {
             const message = getLogMessage(
               srcFunc,
-              `Entry title "${(entryValue as { title: string })?.title}"(${ctName}) in the ${localeKey} locale has been successfully transformed.`,
+              `Entry title "${(entryValue as { title: string })?.title}"(${ctName}) in the ${localeCode} locale has been successfully transformed.`,
               {}
             );
             await customLogger(projectId, destination_stack_id, "info", message);
@@ -856,7 +859,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           let chunkIndex = 1;
           const filePath = path.join(
             entriesSave,
-            ctName, localeKey.toLowerCase()
+            ctName, localeCode
           );
           for await (const [chunkId, chunkData] of Object.entries(chunks)) {
             refs[chunkIndex++] = `${chunkId}-entries.json`;
