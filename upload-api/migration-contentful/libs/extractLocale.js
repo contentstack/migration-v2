@@ -13,19 +13,19 @@ const fs = require("fs");
  */
 const extractLocale = async (jsonFilePath) => {
     try {
-        const rawData = fs.readFileSync(jsonFilePath, "utf8");
-        const jsonData = JSON.parse(rawData);
-        
+        const rawData = fs?.readFileSync?.(jsonFilePath, "utf8");
+        const jsonData = JSON?.parse?.(rawData);
+
         // Extract unique language codes from locales array
         const uniqueLanguages = new Set();
-        if (Array.isArray(jsonData.locales)) {
-            jsonData.locales.forEach(locale => {
-                if (locale.code) {
-                    uniqueLanguages.add(locale.code.toLowerCase()); // Normalize to lowercase
+        if (Array?.isArray?.(jsonData?.locales)) {
+            jsonData?.locales?.forEach?.(locale => {
+                if (locale?.code) {
+                    uniqueLanguages.add(locale?.code?.toLowerCase?.()); // Normalize to lowercase
                 }
             });
         }
-        
+
         return [...uniqueLanguages]; // Convert Set to array for output
     } catch (error) {
         console.error(`Error reading JSON file:`, error.message);
