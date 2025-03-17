@@ -45,7 +45,13 @@
   border-radius: 4px;
 }
 .destination-stack-container {
-  padding: 20px;
+  padding-left: 25px !important;
+  padding-top: 26px;
+  padding-right: 30px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 80vh;
   .migration-vertical-stepper {
     padding: 24px 30px;
     border: 1px solid $color-brand-secondary-lightest;
@@ -156,8 +162,15 @@
       color: $color-brand-warning-medium;
       font-size: $size-font-small;
     }
-   
-
+    .table-content-section {
+      .Field {
+        &.Field--full {
+          .field-content {
+            border-left: none !important;
+          }
+        }
+      }
+    }
   }
 }
 .action-summary-wrapper {
@@ -175,11 +188,83 @@
   }
 }
 
-
 .locale-container {
   display: flex;
   background-color: $color-base-white-5;
   height: $px-40;
   align-items: center;
   padding: $px-10;
+}
+.lang-container {
+  //display: flex;
+  //flex-wrap: wrap;
+  //padding: $px-20;
+  //padding-bottom: 50px;
+}
+.language-mapper {
+  //padding-top:20px;
+  //margin-top: 20px;
+  //padding: 24px 30px;
+  // height: 150px;
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 4px;
+  background-color: $color-brand-white-base;
+  white-space: nowrap;
+  //z-index: 999 !important;
+  // min-height: auto;
+  // max-height: none;
+  // overflow: visible;
+  // flex-grow: 1;
+  height: auto;
+  margin-bottom: 120px;
+  //padding:  24px 30px, 24px, 30px;
+  gap: 24px;
+  //margin-bottom: 40px;
+  //padding: 10px 50px;
+  .table-content-section {
+    .Field {
+      &.Field--full {
+        .field-content {
+          width: 100% !important;
+          //border-left: none !important;
+        }
+      }
+    }
+  }
+  .span {
+    padding: 10px 20px;
+  }
+  .field-label {
+    padding: 10px 10px;
+  }
+}
+
+.language-title {
+  margin-top: 10px;
+  //margin-left: 2px;
+}
+.info-lang {
+  display: flex;
+  gap: 10px;
+}
+.help-text {
+  margin-top: -5px;
+  margin-left: 0px;
+}
+.mini-table {
+  margin-left: 40px;
+  margin-top: 10px;
+  //width: 120px;
+}
+.lang-container {
+  margin-bottom: 30px;
+  margin-left: 10px;
+  margin-top: 10px;
+  display: flex;
+}
+.info-tag {
+  max-width: 500px;
+}
+.info-language-mapper {
+  margin-bottom: 120px;
 }
