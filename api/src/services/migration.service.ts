@@ -254,7 +254,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId);
+        await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId, project);
         await contentfulService?.createRefrence(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createWebhooks(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
@@ -266,8 +266,8 @@ const startTestMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
-    // await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
-    // await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
+    await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
+    await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
   }
 }
 
@@ -330,12 +330,12 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.destination_stack_id, projectId);
+        await contentfulService?.createLocale(file_path, project?.destination_stack_id, projectId, project);
         await contentfulService?.createRefrence(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createWebhooks(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale);
+        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
