@@ -254,12 +254,12 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId);
+        await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId, project);
         await contentfulService?.createRefrence(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createWebhooks(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId, true);
-        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale);
+        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
@@ -326,18 +326,16 @@ const startMigration = async (req: Request): Promise<any> => {
           await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
           await wordpressService?.extractGlobalFields(project?.destination_stack_id, projectId)
           await wordpressService?.createVersionFile(project?.destination_stack_id, projectId);
-
-
         }
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.destination_stack_id, projectId);
+        await contentfulService?.createLocale(file_path, project?.destination_stack_id, projectId, project);
         await contentfulService?.createRefrence(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createWebhooks(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale);
+        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
@@ -419,28 +417,18 @@ const getLogs = async (req: Request): Promise<any> => {
  */
 export const createSourceLocales = async (req: Request) => {
 
-  const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
   const projectId = req.params.projectId;
-
   const locales = req.body.locale
 
   try {
-    // Check if the project.json file exists
-    if (!fs?.existsSync?.(projectFilePath)) {
-      console.error(`project.json not found at ${projectFilePath}`);
-      throw new Error(`project.json not found.`);
-    }
-
     // Find the project with the specified projectId
-    const project: any = ProjectModelLowdb?.chain?.get?.("projects")?.find?.({ id: projectId })?.value?.();
-    if (project) {
-      const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value();
-      if (index > -1) {
-
-        ProjectModelLowdb?.update((data: any) => {
-          data.projects[index].source_locales = locales;
-        });
-      } // Write back the updated projects
+    await ProjectModelLowdb?.read?.();
+    const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value?.();
+    if (index > -1) {
+      ProjectModelLowdb?.update?.((data: any) => {
+        data.projects[index].source_locales = locales;
+      });
+      // Write back the updated projects
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
@@ -469,26 +457,19 @@ export const createSourceLocales = async (req: Request) => {
  */
 export const updateLocaleMapper = async (req: Request) => {
   const mapperObject = req?.body;
-  const projectFilePath = path?.join?.(process?.cwd(), 'database', 'project.json'); // Adjusted path to project.json
+  // Adjusted path to project.json
   const projectId = req?.params?.projectId;
 
   try {
-    // Check if the project.json file exists
-    if (!fs?.existsSync?.(projectFilePath)) {
-      console.error(`project.json not found at ${projectFilePath}`);
-      throw new Error(`project.json not found.`);
-    }
-
     // Find the project with the specified projectId
-    const project: any = ProjectModelLowdb?.chain?.get?.("projects")?.find?.({ id: projectId })?.value();
-    if (project) {
-      const index = ProjectModelLowdb?.chain?.get("projects")?.findIndex?.({ id: projectId })?.value();
-      if (index > -1) {
-        ProjectModelLowdb?.update((data: any) => {
-          data.projects[index].master_locale = mapperObject?.master_locale;
-          data.projects[index].locales = mapperObject?.locales;
-        });
-      } // Write back the updated projects
+    await ProjectModelLowdb?.read?.();
+    const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value?.();
+    if (index > -1) {
+      ProjectModelLowdb?.update?.((data: any) => {
+        data.projects[index].master_locale = mapperObject?.master_locale;
+        data.projects[index].locales = mapperObject?.locales;
+      });
+      // Write back the updated projects
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,

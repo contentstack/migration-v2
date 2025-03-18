@@ -429,22 +429,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         <div className="col-12">
           <div className={containerClassName}>
             {!isConfigLoading && !isEmptyString(fileDetails?.localPath) ? (
-              <div className='file-icon-group'>
+              // <div className='file-icon-group'>
                 <FileComponent fileDetails={fileDetails || {}} />
-                {/* {(showMessage &&  !isCancelLoading) && 
-                  (<Tooltip content='cancel validation' position='top'>
-                    <Icon icon='CloseNoborder' version='v2' onClick={handleCancelValidation}/>
-
-                  </Tooltip> )
-                } */}
-                {/* { isCancelLoading &&   
-                  <div style={{justifyContent:'center', alignItems:'center', marginTop:'7px'}}>
-                    <AsyncLoader color='$color-brand-primary-base'/>
-                  </div>
-              } */}
-              </div>
-              
-
+              // </div>
             ) :
                
             <div className='loader'>
