@@ -144,7 +144,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         }
       };
       //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
-      dispatch(updateNewMigrationData(newMigrationDataObj));
+      //dispatch(updateNewMigrationData(newMigrationDataObj));
       props?.handleStepChange(props?.currentStep);
     }
       

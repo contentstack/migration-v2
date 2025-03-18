@@ -140,7 +140,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
       }
   
       //Make Step 2 complete
-      if (!isEmptyString(selectedCmsData?.cms_id) && !isEmptyString(legacyCMSData?.affix)) {
+      if (!isEmptyString(selectedCmsData?.cms_id) && (!isEmptyString(legacyCMSData?.affix) || !isEmptyString(newMigrationData?.legacy_cms?.affix))) {
         setInternalActiveStepIndex(1);
       }
   
