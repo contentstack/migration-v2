@@ -227,6 +227,15 @@ const Migration = () => {
   const stackLink = `${CS_URL[projectData?.region]}/stack/${projectData?.current_test_stack_id}/dashboard`;
   const stackName = projectData?.test_stacks?.find((stack:TestStacks)=> stack?.stackUid === projectData?.current_test_stack_id)?.stackName;
   
+  const masterLocaleEntries = projectData?.master_locale
+  ? Object?.entries(projectData?.master_locale).map(([key, value]) => [`${key}-master_locale`, value])
+  : [];
+
+  const locales = {
+    ...Object?.fromEntries(masterLocaleEntries), 
+    ...projectData?.locales 
+  };
+  
   const projectMapper = {
     ...newMigrationData,
       legacy_cms: {
@@ -258,7 +267,8 @@ const Migration = () => {
         stackArray: [],
         migratedStacks: migratedstacks?.data?.destinationStacks,
         sourceLocale: projectData?.source_locales,
-        csLocale: csLocales?.data?.locales
+        csLocale: csLocales?.data?.locales,
+        localeMapping: locales
       },
       content_mapping: {
         isDropDownChanged: false,
@@ -438,11 +448,10 @@ const Migration = () => {
     setIsLoading(true);
 
     const hasNonEmptyMapping =
-      newMigrationData?.destination_stack?.localeMapping &&
-      Object.values(newMigrationData?.destination_stack?.localeMapping)?.some(
-        (value) => value !== '' || value !== null || value !== undefined
-      );
-    console.log(hasNonEmptyMapping);
+  newMigrationData?.destination_stack?.localeMapping &&
+  Object.values(newMigrationData?.destination_stack?.localeMapping)?.every(
+    (value) => value !== '' && value !== null && value !== undefined
+  );
     
     const master_locale:any = {};
     const locales: any= {};
@@ -456,7 +465,7 @@ const Migration = () => {
     if (
       isCompleted &&
       !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) &&
-      hasNonEmptyMapping
+       hasNonEmptyMapping
     ) {
       event?.preventDefault();
       //Update Data in backend
