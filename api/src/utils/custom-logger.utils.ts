@@ -2,10 +2,11 @@ import fs from 'fs';
 import path from "path";
 import { createLogger, format, transports } from "winston";
 import logger from './logger.js';
+import { getSafePath } from './sanitize-path.utils.js';
 
 // Utility function to safely join and resolve paths
 const safeJoin = (basePath: string, ...paths: string[]) => {
-  const resolvedPath = path.resolve(basePath, ...paths);  // Resolve absolute path
+  const resolvedPath = getSafePath(path.resolve(basePath, ...paths));  // Resolve absolute path
   if (!resolvedPath.startsWith(basePath)) {
     throw new Error('Invalid file path');
   }
@@ -31,7 +32,7 @@ const customLogger = async (projectId: string, apiKey: string, level: string, me
     // Sanitize inputs to prevent path traversal
     const sanitizedProjectId = path.basename(projectId); // Strip any path traversal attempts
     const sanitizedApiKey = path.basename(apiKey); // Strip any path traversal attempts
-    const logDir = path.join(process.cwd(), 'logs', sanitizedProjectId);
+    const logDir = getSafePath(path.join(process.cwd(), 'logs', sanitizedProjectId));
     const logFilePath = safeJoin(logDir, `${sanitizedApiKey}.log`);
     // Ensure log directory exists, using async/await with fs.promises
     if (!fs.existsSync(logDir)) {

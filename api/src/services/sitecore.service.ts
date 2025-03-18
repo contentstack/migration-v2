@@ -8,6 +8,7 @@ import { entriesFieldCreator, unflatten } from '../utils/entries-field-creator.u
 import { orgService } from './org.service.js';
 import { getLogMessage } from '../utils/index.js';
 import customLogger from '../utils/custom-logger.utils.js';
+import { getSafePath } from '../utils/sanitize-path.utils.js';
 
 
 const append = "a";
@@ -93,11 +94,13 @@ const uidCorrector = ({ uid }: any) => {
   return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
 }
 
-const cretaeAssets = async ({ packagePath, baseDir, destinationStackId, projectId }: any) => {
+const cretaeAssets = async ( { packagePath, baseDir, destinationStackId, projectId }: any ) =>
+{
+  
   const srcFunc = 'cretaeAssets';
   const assetsSave = path.join(baseDir, ASSETS_DIR_NAME);
   const allAssetJSON: any = {};
-  const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'media library');
+  const folderName: any = getSafePath( path.join( packagePath, 'items', 'master', 'sitecore', 'media library' ) );
   const entryPath = read?.(folderName);
   for await (const file of entryPath) {
     if (file?.endsWith('data.json')) {
@@ -203,7 +206,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale, destinati
     const baseDir = path.join(baseDirName, destinationStackId);
     const entrySave = path.join(baseDir, ENTRIES_DIR_NAME);
     const allAssetJSON: any = await cretaeAssets({ packagePath, baseDir, destinationStackId, projectId });
-    const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'content');
+    const folderName: any = getSafePath(path.join(packagePath, 'items', 'master', 'sitecore', 'content'));
     const entriesData: any = [];
     if (fs.existsSync(folderName)) {
       const entryPath = read?.(folderName);
