@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios";
-import _ from "lodash";
+//import _ from "lodash";
 import { MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import jsdom from "jsdom";
 import { htmlToJson } from "@contentstack/json-rte-serializer";
@@ -113,7 +113,7 @@ let blog_base_url = "";
 //helper function to convert entries with content type
 function mapContentTypeToEntry(contentType: any, data: any) {
   return contentType?.fieldMapping?.reduce((acc: { [key: string]: any }, field: FieldMapping) => {
-    const fieldValue = data[field.uid];
+    const fieldValue = data?.[field?.uid];
     let formattedValue;
 
     switch (field?.contentstackFieldType) {
@@ -130,6 +130,9 @@ function mapContentTypeToEntry(contentType: any, data: any) {
         break;
       default:
         formattedValue = fieldValue;
+    }
+    if(field?.advanced?.multiple){
+      formattedValue = Array.isArray(formattedValue) ? formattedValue : [formattedValue];
     }
 
     acc[field.contentstackFieldUid] = formattedValue;
@@ -366,7 +369,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
    await writeFileAsync(failedJSONFilePath, failedJSON, 4);
 
     if (retryCount === 0) {
-      return saveAsset(assets, 1, affix, destinationStackId, projectId, baseSiteUrl);
+      return await saveAsset(assets, 1, affix, destinationStackId, projectId, baseSiteUrl);
     } else {
       const message = getLogMessage(
         srcFunc,
@@ -384,15 +387,15 @@ async function getAsset(attachments: any[], affix: string, destinationStackId: s
   const BATCH_SIZE = 5; // 5 promises at a time
   const results = [];
   
-  for (let i = 0; i < attachments.length; i += BATCH_SIZE) {
-    const batch = attachments.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < attachments?.length; i += BATCH_SIZE) {
+    const batch = attachments?.slice(i, i + BATCH_SIZE);
     
     const batchResults = await Promise.allSettled(
-      batch.map((data) => {
-        saveAsset(data, 0, affix, destinationStackId, projectId, baseSiteUrl)
+      batch?.map(async (data) => {
+        await saveAsset(data, 0, affix, destinationStackId, projectId, baseSiteUrl)
       })
     );
-    results.push(...batchResults);
+    results?.push(...batchResults);
   }
   await writeFileAsync(
     path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
@@ -419,7 +422,7 @@ async function getAllAssets(
     const assets: Asset[] =
       alldataParsed?.rss?.channel?.item ?? alldataParsed?.channel?.item;
     // await writeFileAsync(path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME), assets, 4);
-    if (!assets || assets.length === 0) {
+    if (!assets || assets?.length === 0) {
       const message = getLogMessage(
         "createAssetFolderFile",
         `No assets found.`,
@@ -430,10 +433,10 @@ async function getAllAssets(
       return;
     }
 
-    const attachments = assets.filter(
+    const attachments = assets?.filter(
       ({ "wp:post_type": postType }) => postType === "attachment"
     );
-    if (attachments.length > 0) {
+    if (attachments?.length > 0) {
       await getAsset(attachments, affix, destinationStackId, projectId,baseSiteUrl);
     }
     return;
@@ -756,45 +759,48 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
   const srcFunc = "saveAuthors";
   try {
 
-    const authordata = authorDetails.reduce(
-      async (acc: { [key: string]: any }, data) => {
-        const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]
-          }`;
+    const authordata: { [key: string]: any } = {};
 
-        const title = data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`;
-        const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
-        const customId = idCorrector(uid);
-        const authordata: any = {
-          uid: uid,
-          title: data["wp:author_login"],
-          url: url,
-          email: data["wp:author_email"],
-          first_name: data["wp:author_first_name"],
-          last_name: data["wp:author_last_name"],
-        };
-        acc[customId] = {
-          ...acc[customId],
-          uid: customId,
-          ...mapContentTypeToEntry(contentType, authordata),
-        };
-        acc[customId].publish_details = [];
+    for (const data of authorDetails) {
+      const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]}`;
+      const title = data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`;
+      const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
+      const customId = idCorrector(uid);
 
-        const message = getLogMessage(
-          srcFunc,
-          `Entry title ${data["wp:author_login"]} (authors) in the ${master_locale} locale has been successfully transformed.`,
-          {}
-        );
-        
-        await customLogger(projectId, destinationStackId, 'info', message);
-        return acc;
-      },
-      {}
-    );
+      const authordataEntry: any = {
+        uid: uid,
+        title: data["wp:author_login"],
+        url: url,
+        email: data["wp:author_email"],
+        first_name: data["wp:author_first_name"],
+        last_name: data["wp:author_last_name"],
+      };
+
+      authordata[customId] = {
+        ...authordata[customId],
+        uid: customId,
+        ...mapContentTypeToEntry(contentType, authordataEntry),
+      };
+      authordata[customId].publish_details = [];
+
+      const message = getLogMessage(
+        srcFunc,
+        `Entry title ${data["wp:author_login"]} (authors) in the ${master_locale} locale has been successfully transformed.`,
+        {}
+      );
+
+      await customLogger(projectId, destinationStackId, 'info', message);
+    }
     await writeFileAsync(authorsFilePath, authordata, 4);
-    await writeFileAsync(path.join(authorsFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
+    await writeFileAsync(
+      path.join(authorsFolderPath, "index.json"),
+      { "1": `${master_locale}.json` },
+        4
+        );
+
     const message = getLogMessage(
       srcFunc,
-      `${authorDetails.length} Authors exported successfully`,
+      `${authorDetails?.length} Authors exported successfully`,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
@@ -1522,11 +1528,11 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const terms =
-      alldataParsed?.rss?.channel["wp:term"] ||
-      alldataParsed?.channel["wp:term"] ||
+      alldataParsed?.rss?.channel?.["wp:term"] ||
+      alldataParsed?.channel?.["wp:term"] ||
       "";
 
-    if (!terms || terms.length === 0) {
+    if (!terms || terms?.length === 0) {
       const message = getLogMessage(
         srcFunc,
         `No terms found`,
@@ -1738,7 +1744,7 @@ function getParent(data: any,id: string) {
 
   return catParent;
 }
-async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string, contenttype:any, master_locale:stting) {
+async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string, contenttype:any, master_locale:string) {
   const srcFunc = 'saveCategories';
   try {
     const categorydata = categoryDetails.reduce(
@@ -1921,8 +1927,8 @@ async function featuredImageMapping(postid: string, post: any, postdata: any) {
       })
       .filter(Boolean); // Filter out undefined matches
     
-    if (assetsDetails.length > 0) {
-      postdata[postid]["featured_image"] = assetsDetails;
+    if (assetsDetails?.length > 0) {
+      postdata[postid]["featured_image"] = assetsDetails[0];
     }
     return postdata;
   } catch (error) {
@@ -2025,18 +2031,18 @@ async function processChunkData(
           );
           const htmlDoc = dom.window.document.querySelector("body");
           const jsonValue = htmlToJson(htmlDoc);
-          const postDate = new Date(data["wp:post_date_gmt"]).toISOString();
+          const postDate = new Date(data["wp:post_date_gmt"])?.toISOString();
 
-          const base = blog_base_url.split("/").filter(Boolean);
-          const blogname = base[base.length - 1];
-          const url = data["link"].split(blogname)[1];
-          const title = data["title"] ?? `Posts - ${data["wp:post_id"]}`;
+          const base = blog_base_url?.split("/")?.filter(Boolean);
+          const blogname = base[base?.length - 1];
+          const url = data["link"]?.split(blogname)[1];
+          //const title = data["title"] ?? `Posts - ${data["wp:post_id"]}`;
           const uid = `posts_${data["wp:post_id"]}`
           const customId = idCorrector(uid)
           postdata[customId] = {
             title: data["title"] || `Posts - ${data["wp:post_id"]}`,
             uid: customId,
-            url: "/"+title.toLowerCase().replace(/ /g, "_"),
+            url: url,
             date: postDate,
             full_description: jsonValue,
             excerpt: data["excerpt:encoded"]
