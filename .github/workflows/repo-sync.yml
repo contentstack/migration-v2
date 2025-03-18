@@ -98,9 +98,9 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 # Remove unused imports and missing file references
-                echo "Running ESLint to remove unused imports..."
-                npm install eslint -g
-                eslint . --fix
+                # echo "Running ESLint to remove unused imports..."
+                # npm install eslint -g
+                # eslint . --fix
 
                 echo "Running autoflake to remove unused imports..."
                 pip install autoflake
@@ -164,9 +164,9 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 # Remove unused imports and missing file references
-                echo "Running ESLint to remove unused imports..."
-                npm install eslint -g
-                eslint . --fix
+                # echo "Running ESLint to remove unused imports..."
+                # npm install eslint -g
+                # eslint . --fix
 
                 echo "Running autoflake to remove unused imports..."
                 pip install autoflake
@@ -230,9 +230,9 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 # Remove unused imports and missing file references
-                echo "Running ESLint to remove unused imports..."
-                npm install eslint -g
-                eslint . --fix
+                # echo "Running ESLint to remove unused imports..."
+                # npm install eslint -g
+                # eslint . --fix
 
                 echo "Running autoflake to remove unused imports..."
                 pip install autoflake
