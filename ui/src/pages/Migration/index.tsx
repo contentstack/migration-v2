@@ -122,7 +122,7 @@ const Migration = () => {
       }
     } catch (error) {
       // return error;
-      console.log(error);
+      console.error(error);
     }
   };
 
@@ -138,7 +138,7 @@ const Migration = () => {
       }
     } catch (error) {
       // return error;
-      console.log(error);
+      console.error(error);
     }
   }
 
@@ -442,7 +442,6 @@ const Migration = () => {
       Object.values(newMigrationData?.destination_stack?.localeMapping)?.some(
         (value) => value !== '' || value !== null || value !== undefined
       );
-    console.log(hasNonEmptyMapping);
     
     const master_locale:any = {};
     const locales: any= {};
@@ -592,7 +591,7 @@ const Migration = () => {
       }
     } catch (error) {
       // return error;
-      console.log(error);
+      console.error(error);
     }
   }
 
