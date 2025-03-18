@@ -254,12 +254,12 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId);
+        await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId, project);
         await contentfulService?.createRefrence(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createWebhooks(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId, true);
-        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale);
+        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
@@ -326,18 +326,16 @@ const startMigration = async (req: Request): Promise<any> => {
           await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
           await wordpressService?.extractGlobalFields(project?.destination_stack_id, projectId)
           await wordpressService?.createVersionFile(project?.destination_stack_id, projectId);
-
-
         }
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.destination_stack_id, projectId);
+        await contentfulService?.createLocale(file_path, project?.destination_stack_id, projectId, project);
         await contentfulService?.createRefrence(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createWebhooks(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
         await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale);
+        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
@@ -478,8 +476,8 @@ export const updateLocaleMapper = async (req: Request) => {
       console.error(`project.json not found at ${projectFilePath}`);
       throw new Error(`project.json not found.`);
     }
-
     // Find the project with the specified projectId
+    await ProjectModelLowdb.read();
     const project: any = ProjectModelLowdb?.chain?.get?.("projects")?.find?.({ id: projectId })?.value();
     if (project) {
       const index = ProjectModelLowdb?.chain?.get("projects")?.findIndex?.({ id: projectId })?.value();
