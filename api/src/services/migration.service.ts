@@ -417,17 +417,10 @@ const getLogs = async (req: Request): Promise<any> => {
  */
 export const createSourceLocales = async (req: Request) => {
 
-  const projectFilePath = path.join(process.cwd(), 'database', 'project.json'); // Adjusted path to project.json
   const projectId = req.params.projectId;
-
   const locales = req.body.locale
 
   try {
-    // Check if the project.json file exists
-    if (!fs?.existsSync?.(projectFilePath)) {
-      console.error(`project.json not found at ${projectFilePath}`);
-      throw new Error(`project.json not found.`);
-    }
     // Find the project with the specified projectId
     await ProjectModelLowdb?.read?.();
     const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value?.();
@@ -464,15 +457,10 @@ export const createSourceLocales = async (req: Request) => {
  */
 export const updateLocaleMapper = async (req: Request) => {
   const mapperObject = req?.body;
-  const projectFilePath = path?.join?.(process?.cwd(), 'database', 'project.json'); // Adjusted path to project.json
+  // Adjusted path to project.json
   const projectId = req?.params?.projectId;
 
   try {
-    // Check if the project.json file exists
-    if (!fs?.existsSync?.(projectFilePath)) {
-      console.error(`project.json not found at ${projectFilePath}`);
-      throw new Error(`project.json not found.`);
-    }
     // Find the project with the specified projectId
     await ProjectModelLowdb?.read?.();
     const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value?.();
