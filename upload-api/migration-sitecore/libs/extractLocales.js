@@ -13,7 +13,7 @@ const extractLocales = (dir) => {
 
         if (item?.isDirectory()) {
             extractLocales?.(fullPath); // Proper recursion
-        } else if (item?.isFile() && item?.name === "data.json.json") {
+        } else if (item?.isFile() && item?.name === "data.json") {
             try {
                 const rawData = fs?.readFileSync?.(fullPath, "utf8");
                 const jsonData = JSON?.parse?.(rawData);
