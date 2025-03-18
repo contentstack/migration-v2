@@ -8,7 +8,6 @@ import jsonpath from "jsonpath";
 import pLimit from 'p-limit';
 import { JSDOM } from "jsdom";
 import { jsonToHtml, jsonToMarkdown, htmlToJson } from '@contentstack/json-rte-serializer';
-
 import { CHUNK_SIZE, LOCALE_MAPPER, MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import { Locale } from "../models/types.js";
 import jsonRTE from "./contentful/jsonRTE.js";
