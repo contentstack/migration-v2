@@ -428,17 +428,14 @@ export const createSourceLocales = async (req: Request) => {
       console.error(`project.json not found at ${projectFilePath}`);
       throw new Error(`project.json not found.`);
     }
-
     // Find the project with the specified projectId
-    const project: any = ProjectModelLowdb?.chain?.get?.("projects")?.find?.({ id: projectId })?.value?.();
-    if (project) {
-      const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value();
-      if (index > -1) {
-
-        ProjectModelLowdb?.update((data: any) => {
-          data.projects[index].source_locales = locales;
-        });
-      } // Write back the updated projects
+    await ProjectModelLowdb?.read?.();
+    const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value?.();
+    if (index > -1) {
+      ProjectModelLowdb?.update?.((data: any) => {
+        data.projects[index].source_locales = locales;
+      });
+      // Write back the updated projects
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
@@ -477,16 +474,14 @@ export const updateLocaleMapper = async (req: Request) => {
       throw new Error(`project.json not found.`);
     }
     // Find the project with the specified projectId
-    await ProjectModelLowdb.read();
-    const project: any = ProjectModelLowdb?.chain?.get?.("projects")?.find?.({ id: projectId })?.value();
-    if (project) {
-      const index = ProjectModelLowdb?.chain?.get("projects")?.findIndex?.({ id: projectId })?.value();
-      if (index > -1) {
-        ProjectModelLowdb?.update((data: any) => {
-          data.projects[index].master_locale = mapperObject?.master_locale;
-          data.projects[index].locales = mapperObject?.locales;
-        });
-      } // Write back the updated projects
+    await ProjectModelLowdb?.read?.();
+    const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value?.();
+    if (index > -1) {
+      ProjectModelLowdb?.update?.((data: any) => {
+        data.projects[index].master_locale = mapperObject?.master_locale;
+        data.projects[index].locales = mapperObject?.locales;
+      });
+      // Write back the updated projects
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
