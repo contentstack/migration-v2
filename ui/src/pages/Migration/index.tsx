@@ -122,7 +122,7 @@ const Migration = () => {
       }
     } catch (error) {
       // return error;
-      console.log(error);
+      console.error(error);
     }
   };
 
@@ -138,7 +138,7 @@ const Migration = () => {
       }
     } catch (error) {
       // return error;
-      console.log(error);
+      console.error(error);
     }
   }
 
@@ -601,7 +601,7 @@ const Migration = () => {
       }
     } catch (error) {
       // return error;
-      console.log(error);
+      console.error(error);
     }
   }
 
