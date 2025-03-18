@@ -128,7 +128,7 @@ const TestMigration = () => {
         return;
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
 
     // Prepare data for stack creation
@@ -178,7 +178,15 @@ const TestMigration = () => {
         dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
+      Notification({
+        notificationContent: { text: err },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
+        type: 'error'
+      });
     }
   }
 
@@ -224,7 +232,7 @@ const TestMigration = () => {
         });
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   }
 
