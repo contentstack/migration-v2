@@ -126,7 +126,9 @@ export default class ImportCommand extends Command {
     // start import
     let backupDir: string;
     try {
-      const { flags } = await this.parse(ImportCommand);
+      const { flags } = await this.parse( ImportCommand );
+      console.log('flags===================================================', flags);
+      
       let importConfig = await setupImportConfig(flags);
       // Note setting host to create cma client
       importConfig.host = this.cmaHost;

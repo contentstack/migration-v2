@@ -8,6 +8,7 @@ import ProjectModelLowdb from "../models/project-lowdb.js";
 import AuthenticationModel from "../models/authentication.js";
 import watchLogs from "../utils/watch.utils.js";
 import { setLogFilePath } from "../server.js";
+import { getSafePath } from "../utils/sanitize-path.utils.js";
 
 const addCustomMessageInCliLogs = async (loggerPath: string, level: string = 'info', message: string) => {
   try {
@@ -35,17 +36,17 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
       .value();
     if (userData?.authtoken && stack_uid) {
       const { BACKUP_DATA, BACKUP_LOG_DIR, BACKUP_FOLDER_NAME, BACKUP_FILE_NAME } = MIGRATION_DATA_CONFIG;
-      const sourcePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, stack_uid);
-      const backupPath = path.join(process.cwd(), BACKUP_DATA, `${stack_uid}_${v4().slice(0, 4)}`);
+      const sourcePath = getSafePath(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, stack_uid));
+      const backupPath = getSafePath(path.join(process.cwd(), BACKUP_DATA, `${stack_uid}_${v4().slice(0, 4)}`));
       await copyDirectory(sourcePath, backupPath);
-      const loggerPath = path.join(backupPath, BACKUP_LOG_DIR, BACKUP_FOLDER_NAME, BACKUP_FILE_NAME);
+      const loggerPath = getSafePath(path.join(backupPath, BACKUP_LOG_DIR, BACKUP_FOLDER_NAME, BACKUP_FILE_NAME));
       await createDirectoryAndFile(loggerPath, transformePath);
       await setLogFilePath(loggerPath);
       await watchLogs(loggerPath, transformePath);
-      shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));
+      shell.cd(getSafePath(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack')));
       shell.exec(`node bin/run config:set:region ${regionCli}`);
-      shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
-      const importData = shell.exec(`node bin/run cm:stacks:import  -k ${stack_uid} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
+      shell.exec( `node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}` );
+      const importData = shell.exec( `node bin/run cm:stacks:import -k ${stack_uid} -d "${sourcePath}" --backup-dir="${backupPath}"  --yes`, { async: true } );
       importData.on('exit', async (code) => {
         console.info(`Process exited with code: ${code}`);
         if (code === 1 || code === 0) {
