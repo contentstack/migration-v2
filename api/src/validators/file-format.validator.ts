@@ -10,15 +10,12 @@ export default checkSchema({
   file_format: {
     in: "body",
     isString: {
-      errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace(
-        "$",
-        "file_format"
-      ),
+      errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace(/\$/g, "file_format"),
       bail: true,
     },
     trim: true,
     isLength: {
-      errorMessage: VALIDATION_ERRORS.LENGTH_LIMIT.replace("$", "file_format"),
+      errorMessage: VALIDATION_ERRORS.LENGTH_LIMIT.replace(/\$/g, "file_format"),
       options: {
         min: 1,
         max: 200,

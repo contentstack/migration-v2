@@ -7,8 +7,9 @@
     "postinstall": "(cd ./api && npm install --force) ; (cd ./ui && npm install --force) ; (cd ./upload-api && npm install --force)",
     "env": "npm start",
     "api": "cd ./api && npm run dev",
-    "upload": "cd ./upload-api && npm start",
+    "upload": "cd ./upload-api && npm run dev",
     "ui": "cd ./ui && npm start",
+    "cli": "cd ./cli && npm run setup-repo",
     "start": "node index.js"
   },
   "repository": {

@@ -20,6 +20,7 @@ import chokidar from "chokidar";
 import { Server } from "socket.io";
 import fs from "fs";
 import path from "path";
+import { getSafePath } from "./utils/sanitize-path.utils.js";
 
 // Initialize file watcher for the log file
 const watcher = chokidar.watch(config.LOG_FILE_PATH, {
@@ -38,9 +39,10 @@ let io: Server; // Socket.IO server instance
 export async function setLogFilePath(newPath: string) {
   try {
     // Ensure the new log file path is absolute and valid
-    const absolutePath = path.resolve(newPath);
+    const absolutePath = getSafePath(path.resolve(newPath));
     console.info(`Attempting to set new log file path: ${absolutePath}`);
     // Check if the new log file exists
+    await fs.promises.access(absolutePath, fs.constants.F_OK);
     // Stop watching the old log file
     if (config.LOG_FILE_PATH) {
       console.info(`Stopping watcher for previous log file: ${config.LOG_FILE_PATH}`);
@@ -52,7 +54,7 @@ export async function setLogFilePath(newPath: string) {
     // Start watching the new log file
     console.info(`Starting watcher for new log file: ${absolutePath}`);
     watcher.add(absolutePath);
-
+    
   } catch (error: any) {
     console.error(`Failed to set new log file path: ${error.message}`);
     // Optional: fallback to default or previous log file if the new path is invalid
