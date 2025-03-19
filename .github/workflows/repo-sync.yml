@@ -167,7 +167,7 @@ jobs:
                 npx ts-remove-unused-imports upload-api/
 
                 # Remove missing imports
-                npx ts-prune | awk '{print $1}' | xargs -I {} sed -i '/import/d' {}
+                npx ts-prune | grep -E '^(api/|ui/|upload-api/)/' | awk '{print $1}' | xargs -I {} sed -i '/import/d' {}
 
                 # Format code
                 npx prettier --write .
