@@ -128,34 +128,37 @@ const DestinationStackComponent = ({
 
             </div>
           </div>
+          <div className='row'>
+            <div className='col-12'>
+              <div className="info-lang">
+                <div className="stackTitle language-title">Language configuration</div>
+                <Tooltip
+                  content={`Define language mappings between Contentstack and ${newMigrationData?.legacy_cms?.selectedCms?.parent} for smooth content transfer. Each mapping aligns a WordPress source language with its Contentstack equivalent.`}
+                  position="right">
+                  <Icon className="language-title" icon="Information" version="v2" size="small"></Icon>
+                </Tooltip>
+              </div>
+              <HelpText
+                data-test-id="cs-paragraph-tag"
+                className="contentMapWrapper-heading p1 regular help-text">
+                Contentstack and {newMigrationData?.legacy_cms?.selectedCms?.parent} Languages Mapping
+              </HelpText>
 
-          <div className="col-12 info-lang">
-            <div className="stackTitle language-title">Language configuration</div>
-            <Tooltip
-              content={`Define language mappings between Contentstack and ${newMigrationData?.legacy_cms?.selectedCms?.parent} for smooth content transfer. Each mapping aligns a WordPress source language with its Contentstack equivalent.`}
-              position="right">
-              <Icon className="language-title" icon="Information" version="v2" size="small"></Icon>
-            </Tooltip>
-          </div>
-          <HelpText
-            data-test-id="cs-paragraph-tag"
-            className="contentMapWrapper-heading p1 regular help-text">
-            Contentstack and {newMigrationData?.legacy_cms?.selectedCms?.parent} Languages Mapping
-          </HelpText>
-
-          {newMigrationData?.destination_stack?.selectedStack?.value ? (
-            <div className="language-mapper col-12 ">
-              <LanguageMapper />
+              {newMigrationData?.destination_stack?.selectedStack?.value ? (
+                <div className="language-mapper">
+                  <LanguageMapper />
+                </div>
+              ) : (
+                <Info
+                  className="info-language-mapper info-tag"
+                  icon={<Icon icon="Information" version="v2" size="small"></Icon>}
+                  version="v2"
+                  content="Please select the stack to proceed with language mapping"
+                  type="light"
+                />
+              )}
             </div>
-          ) : (
-            <Info
-              className="info-language-mapper col-12 info-tag"
-              icon={<Icon icon="Information" version="v2" size="small"></Icon>}
-              version="v2"
-              content="Please select the stack to proceed with language mapping"
-              type="light"
-            />
-          )}
+          </div>
         </div>
       )}
     </>
