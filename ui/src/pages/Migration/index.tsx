@@ -185,7 +185,7 @@ const Migration = () => {
 
   const data = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
   const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
-  const csLocales = await getStackLocales(selectedOrganisation?.value);
+
   if (data) {
     setIsLoading(false);
     setProjectData(data?.data);
@@ -267,7 +267,6 @@ const Migration = () => {
         stackArray: [],
         migratedStacks: migratedstacks?.data?.destinationStacks,
         sourceLocale: projectData?.source_locales,
-        csLocale: csLocales?.data?.locales,
         localeMapping: locales
       },
       content_mapping: {
