@@ -97,6 +97,9 @@ jobs:
                 git clean -fdX  # Remove untracked files and directories
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
+                echo "Installing ESLint dependencies..."
+                npm install --save-dev eslint @eslint/js globals
+
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
@@ -185,6 +188,9 @@ jobs:
                 git reset --hard origin/${{ env.BRANCH }}
                 git clean -fdX  # Remove untracked files and directories
                 git gc --prune=now  # Garbage collect and prune unreachable objects
+
+                echo "Installing ESLint dependencies..."
+                npm install --save-dev eslint @eslint/js globals
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
@@ -276,6 +282,9 @@ jobs:
                 git clean -fdX  # Remove untracked files and directories
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
+                echo "Installing ESLint dependencies..."
+                npm install --save-dev eslint @eslint/js globals
+                
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
