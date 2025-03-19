@@ -112,7 +112,7 @@ const Mapper = ({
     type: 'csLocale' | 'sourceLocale'
   ) => {
     const selectedLocaleKey = selectedValue?.value;
-    if (!selectedLocaleKey) return;
+  
 
     setExistingField((prevOptions: ExistingFieldType) => {
       const updatedOptions = {
@@ -139,7 +139,11 @@ const Mapper = ({
     setSelectedMappings((prev) => {
       const updatedMappings = { ...prev };
 
-      if (type === 'csLocale') {
+
+      if (!selectedValue) {
+        delete updatedMappings[existingField[index]?.value];
+      }
+      else if (type === 'csLocale' && selectedLocaleKey) {
         updatedMappings[selectedLocaleKey] = existingLocale[index]?.label
           ? existingLocale[index]?.label
           : '';
