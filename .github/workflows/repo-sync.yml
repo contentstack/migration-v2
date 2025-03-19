@@ -89,6 +89,53 @@ jobs:
                 cd migration-tool-sitecore
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
                 git pull origin ${{ env.BRANCH }}
+
+                # Cleanup step to remove unused or deleted file references
+                echo "Cleaning up unused or deleted file references..."
+                git fetch --all
+                git reset --hard origin/${{ env.BRANCH }}
+                git clean -fdX  # Remove untracked files and directories
+                git gc --prune=now  # Garbage collect and prune unreachable objects
+
+                echo "Installing ESLint dependencies..."
+                npm install --save-dev eslint @eslint/js globals
+
+                if [ ! -f "eslint.config.cjs" ]; then
+                    echo "Creating default ESLint config..."
+                    cat <<EOL > eslint.config.cjs
+                const js = require("@eslint/js");
+                const globals = require("globals");
+
+                module.exports = [
+                js.configs.recommended,
+                {
+                    languageOptions: {
+                    ecmaVersion: "latest",
+                    sourceType: "module",
+                    globals: globals.node,
+                    },
+                    rules: {
+                    "no-unused-vars": "warn",
+                    "no-console": "off"
+                    }
+                }
+                ];
+                EOL
+                fi
+
+                # Remove unused imports and missing file references
+                echo "Running ESLint to remove unused imports..."
+                npm install eslint -g
+                eslint . --fix
+
+                echo "Running autoflake to remove unused imports..."
+                pip install autoflake
+                autoflake --remove-all-unused-imports --recursive --in-place .
+
+                echo "Running ts-prune to remove unused file references..."
+                npm install -g ts-prune
+                ts-prune | awk '{print $1}' | xargs rm -f
+
                 rsync -av --delete ${{ env.RSYNC_SITECORE_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
                 rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
@@ -134,6 +181,54 @@ jobs:
                 cd migration-tool-contentful
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
                 git pull origin ${{ env.BRANCH }}
+
+                # Cleanup step to remove unused or deleted file references
+                echo "Cleaning up unused or deleted file references..."
+                git fetch --all
+                git reset --hard origin/${{ env.BRANCH }}
+                git clean -fdX  # Remove untracked files and directories
+                git gc --prune=now  # Garbage collect and prune unreachable objects
+
+                echo "Installing ESLint dependencies..."
+                npm install --save-dev eslint @eslint/js globals
+
+                if [ ! -f "eslint.config.cjs" ]; then
+                    echo "Creating default ESLint config..."
+                    cat <<EOL > eslint.config.cjs
+                const js = require("@eslint/js");
+                const globals = require("globals");
+
+                module.exports = [
+                js.configs.recommended,
+                {
+                    languageOptions: {
+                    ecmaVersion: "latest",
+                    sourceType: "module",
+                    globals: globals.node,
+                    },
+                    rules: {
+                    "no-unused-vars": "warn",
+                    "no-console": "off"
+                    }
+                }
+                ];
+                EOL
+                fi
+
+
+                # Remove unused imports and missing file references
+                echo "Running ESLint to remove unused imports..."
+                npm install eslint -g
+                eslint . --fix
+
+                echo "Running autoflake to remove unused imports..."
+                pip install autoflake
+                autoflake --remove-all-unused-imports --recursive --in-place .
+
+                echo "Running ts-prune to remove unused file references..."
+                npm install -g ts-prune
+                ts-prune | awk '{print $1}' | xargs rm -f
+
                 rsync -av --delete ${{ env.RSYNC_CONTENTFUL_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
                 rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
@@ -179,6 +274,54 @@ jobs:
                 cd migration-tool-wordpress
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
                 git pull origin ${{ env.BRANCH }}
+
+                # Cleanup step to remove unused or deleted file references
+                echo "Cleaning up unused or deleted file references..."
+                git fetch --all
+                git reset --hard origin/${{ env.BRANCH }}
+                git clean -fdX  # Remove untracked files and directories
+                git gc --prune=now  # Garbage collect and prune unreachable objects
+
+                echo "Installing ESLint dependencies..."
+                npm install --save-dev eslint @eslint/js globals
+                
+                if [ ! -f "eslint.config.cjs" ]; then
+                    echo "Creating default ESLint config..."
+                    cat <<EOL > eslint.config.cjs
+                const js = require("@eslint/js");
+                const globals = require("globals");
+
+                module.exports = [
+                js.configs.recommended,
+                {
+                    languageOptions: {
+                    ecmaVersion: "latest",
+                    sourceType: "module",
+                    globals: globals.node,
+                    },
+                    rules: {
+                    "no-unused-vars": "warn",
+                    "no-console": "off"
+                    }
+                }
+                ];
+                EOL
+                fi
+
+
+                # Remove unused imports and missing file references
+                echo "Running ESLint to remove unused imports..."
+                npm install eslint -g
+                eslint . --fix
+
+                echo "Running autoflake to remove unused imports..."
+                pip install autoflake
+                autoflake --remove-all-unused-imports --recursive --in-place .
+
+                echo "Running ts-prune to remove unused file references..."
+                npm install -g ts-prune
+                ts-prune | awk '{print $1}' | xargs rm -f
+
                 rsync -av --delete ${{ env.RSYNC_WORDPRESS_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
                 rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/

@@ -32,12 +32,14 @@ const Mapper = ({
   cmsLocaleOptions,
   handleLangugeDelete,
   options,
-  sourceOptions
+  sourceOptions,
+  isDisabled
 }: {
   cmsLocaleOptions: Array<{ label: string; value: string }>;
   handleLangugeDelete: (index: number, locale: { label: string; value: string }) => void;
   options: Array<{ label: string; value: string }>;
   sourceOptions: Array<{ label: string; value: string }>;
+  isDisabled: boolean
 }) => {
   const [selectedMappings, setSelectedMappings] = useState<{ [key: string]: string }>({});
   const [existingField, setExistingField] = useState<ExistingFieldType>({});
@@ -259,7 +261,7 @@ const Mapper = ({
               </Tooltip>
             ) : (
               <Select
-                value={existingField[locale]}
+                value={locale?.value ? locale : existingField[locale]}
                 onChange={(key: { label: string; value: string }) => {
                   handleSelectedCsLocale(key, index, 'csLocale');
                 }}
@@ -273,7 +275,7 @@ const Mapper = ({
                 version="v2"
                 hideSelectedOptions={true}
                 isClearable={true}
-                isDisabled={false}
+                isDisabled={isDisabled}
                 className="select-container"
               />
             )}
@@ -299,26 +301,31 @@ const Mapper = ({
               className="select-container"
             /> */
               <Select
-                value={existingLocale[locale]}
+                value={locale?.value && locale?.value !== 'master_locale' ? {label: locale?.value, value: locale?.value} : existingLocale[locale]}
                 onChange={(data: { label: string; value: string }) =>
                   handleSelectedSourceLocale(data, index, 'sourceLocale', locale)
                 }
+                styles={{
+                  menuPortal: (base:any) => ({ ...base, zIndex: 9999 }) 
+                }}
                 options={sourceoptions}
                 placeholder={placeholder}
                 isSearchable
-                maxMenuHeight={150}
+                maxMenuHeight={100}
                 multiDisplayLimit={5}
-                menuPortalTarget={document.querySelector('.language-mapper')}
+                //menuPortalTarget={document.querySelector('.mini-table')}
+                menuShouldScrollIntoView={true}  
                 width="270px"
                 version="v2"
                 hideSelectedOptions={true}
                 isClearable={true}
-                isDisabled={false}
+                isDisabled={isDisabled}
                 className="select-container"
               />
             }
             <div className={''}>
-              {locale?.value !== 'master_locale' && (
+              {locale?.value !== 'master_locale' && 
+              !isDisabled  && (
                 <Tooltip content={'Delete'} position="top" showArrow={false}>
                   <Icon
                     icon="Trash"
@@ -330,6 +337,7 @@ const Mapper = ({
                     hover
                     hoverType="secondary"
                     shadow="medium"
+                    disabled={isDisabled}
                   />
                 </Tooltip>
               )}
@@ -373,7 +381,8 @@ const LanguageMapper = () => {
         setsourceLocales(sourceLocale);
 
         setoptions(allLocales);
-        setcmsLocaleOptions((prevList: { label: string; value: string }[]) => {
+        Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 &&
+         setcmsLocaleOptions((prevList: { label: string; value: string }[]) => {
           const newLabel = newMigrationData?.destination_stack?.selectedStack?.master_locale;
 
           const isPresent = prevList.some((item: { label: string; value: string }) => item?.value === 'master_locale');
@@ -390,6 +399,28 @@ const LanguageMapper = () => {
 
           return prevList;
         });
+        if (newMigrationData?.project_current_step > 2) {
+          Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.forEach(([key, value]) => {           
+            setcmsLocaleOptions((prevList) => {
+              const labelKey = key?.replace(/-master_locale$/, "");
+
+              // Check if the key already exists in the list
+              const exists = prevList?.some((item) => item?.label === labelKey);
+          
+              if (!exists) {
+                return [
+                  ...prevList,
+                  {
+                    label: labelKey,
+                    value: String(value),
+                  },
+                ];
+              }
+          
+              return prevList; // Return the same list if key exists
+            });
+          });
+        }
         setisLoading(false);
       } catch (error) {
         console.error('Error fetching locales:', error);
@@ -397,7 +428,7 @@ const LanguageMapper = () => {
     };
 
     fetchData();
-  }, []);
+  }, [newMigrationData?.destination_stack]);
 
   //   const fetchLocales = async () => {
   //     return await getStackLocales(newMigrationData?.destination_stack?.selectedOrg?.value);
@@ -435,6 +466,7 @@ const LanguageMapper = () => {
                 cmsLocaleOptions={cmsLocaleOptions}
                 handleLangugeDelete={handleDeleteLocale}
                 sourceOptions={sourceLocales}
+                isDisabled={newMigrationData?.project_current_step > 2}
               />
             }
             //  footerComponent={
@@ -461,7 +493,7 @@ const LanguageMapper = () => {
             disabled={
               Object.keys(newMigrationData?.destination_stack?.localeMapping || {})?.length ===
                 newMigrationData?.destination_stack?.sourceLocale?.length ||
-              cmsLocaleOptions?.length === newMigrationData?.destination_stack?.sourceLocale?.length
+              cmsLocaleOptions?.length === newMigrationData?.destination_stack?.sourceLocale?.length || newMigrationData?.project_current_step > 2
             }>
             Add Language
           </Button>

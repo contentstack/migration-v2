@@ -39,7 +39,7 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
       const $ = Cheerio.load(zipBuffer, { xmlMode: true });
       const fixedXml = $.xml(); 
       const parsedJson = await parseXmlToJson(fixedXml);
-      const isSaved = await saveJson(parsedJson,"data.json");
+      const isSaved = await saveJson(parsedJson,`${name}.json`);
       if (isSaved) {
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,

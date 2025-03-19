@@ -5,7 +5,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 0 0 20px 10px !important
+  margin: 0 0 20px 10px !important;
 }
 
 .title {
@@ -27,15 +27,15 @@
 }
 .Dropdown-wrapper {
   .css-b8ldur-Input {
-   margin: 0;
-   padding: 0;
+    margin: 0;
+    padding: 0;
   }
   .Select__v2 .Select__menu .Select__menu-list {
     max-height: 130px;
     padding-bottom: 0;
   }
   .Select__v2 .Select__menu {
-    max-width: 100%!important;
+    max-width: 100% !important;
   }
 }
 .stackselect {
@@ -76,7 +76,8 @@
       font-weight: $font-weight-semi-bold;
       line-height: 21px;
     }
-    .orgWrapper, .title {
+    .orgWrapper,
+    .title {
       .asterisk_input::after {
         content: '';
         color: $color-stepper-title;
@@ -89,7 +90,7 @@
       box-shadow: none;
       border: 0 none;
       border-radius: 0;
-      padding:0 !important;
+      padding: 0 !important;
     }
     .migration-vertical-stepper-container {
       border-bottom: 0 none;
@@ -102,7 +103,7 @@
       // max-width: 430px;
       width: 100%;
       margin: 0;
-      padding: 0; 
+      padding: 0;
       .createStack {
         background-color: $color-brand-white-base;
         border-top: 1px solid $color-brand-secondary-lightest;
@@ -126,9 +127,9 @@
         &:hover {
           background: $color-base-white-10;
         }
-
       }
-      .Select .Select__control .Select__value-container input, .Select__single-value input[text]{
+      .Select .Select__control .Select__value-container input,
+      .Select__single-value input[text] {
         font-size: 16px !important;
         line-height: 24px !important;
         color: $color-placeholder !important;
@@ -149,7 +150,7 @@
     }
 
     .TextInput--disabled .TextInput__v2 {
-      background-color: #F9F8FF !important;
+      background-color: #f9f8ff !important;
     }
     #Step2 {
       .action-summary-wrapper {
@@ -174,7 +175,11 @@
   }
 }
 .action-summary-wrapper {
-  .Select .Select__control .Select__value-container.Select__value-container--has-value .Select__single-value input {
+  .Select
+    .Select__control
+    .Select__value-container.Select__value-container--has-value
+    .Select__single-value
+    input {
     width: 100% !important;
     background-color: $color-brand-white-base;
     font-size: $size-font-xl;
@@ -230,6 +235,12 @@
         }
       }
     }
+    .field-content__content{
+      height: auto !important; 
+      max-height: unset !important;  
+      overflow: visible !important;  
+      z-index: 9999;
+    }
   }
   .span {
     padding: 10px 20px;
@@ -254,6 +265,8 @@
 .mini-table {
   margin-left: 40px;
   margin-top: 10px;
+  overflow: visible !important;
+  position: relative;
   //width: 120px;
 }
 .lang-container {

@@ -298,8 +298,6 @@ const AdvancePropertise = (props: SchemaProps) => {
   };
 
   const handleDragOver = (e:React.DragEvent<HTMLDivElement>, index:number) => {
-    console.log("inside function");
-    
     e.preventDefault(); 
     document.querySelectorAll('.element-wrapper').forEach((el, i) => {
       if (i === index) {
