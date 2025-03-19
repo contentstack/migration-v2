@@ -142,10 +142,10 @@ jobs:
                 rsync -av --delete ${{ env.RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-sitecore/ ./upload-api/migration-sitecore/
 
-                npx ts-remove-unused-imports --path ./api
-                npx ts-remove-unused-imports --path ./ui
-                npx ts-remove-unused-imports --path ./upload-api
-                
+                npx ts-remove-unused-imports ./api
+                npx ts-remove-unused-imports ./ui
+                npx ts-remove-unused-imports ./upload-api
+
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
                 git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
