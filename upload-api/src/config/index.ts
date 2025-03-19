@@ -3,7 +3,6 @@ export default {
     dropdown: { optionLimit: 100 }
   },
   cmsType: 'sitecore',
-  cmsType: 'sitecore',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',

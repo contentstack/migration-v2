@@ -360,3 +360,5 @@ upload-api/extracted_files
 .qodo
 *.zip
 * copy.ts
+package-lock.json*
+**package-lock.json*
