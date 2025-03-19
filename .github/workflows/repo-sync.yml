@@ -142,8 +142,32 @@ jobs:
                 rsync -av --delete ${{ env.RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-sitecore/ ./upload-api/migration-sitecore/
 
+                # Ensure tsconfig.json exists, create a default one if missing
+                if [ ! -f "tsconfig.json" ]; then
+                    echo "Creating default tsconfig.json..."
+                    cat <<EOL > tsconfig.json
+                {
+                    "compilerOptions": {
+                    "target": "ES6",
+                    "module": "CommonJS",
+                    "strict": true,
+                    "esModuleInterop": true,
+                    "skipLibCheck": true,
+                    "forceConsistentCasingInFileNames": true
+                    },
+                    "include": ["src/**/*"],
+                    "exclude": ["node_modules", "dist"]
+                }
+                EOL
+                fi
+
+                # Remove unused imports
                 npx ts-remove-unused-imports
-                npx ts-prune | awk '{print $1}' | xargs sed -i '' -e '/import/d'
+
+                # Remove missing imports
+                npx ts-prune | awk '{print $1}' | xargs -I {} sed -i '/import/d' {}
+
+                # Format code
                 npx prettier --write .
 
                 git add .
