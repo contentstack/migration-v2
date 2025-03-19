@@ -128,13 +128,13 @@ jobs:
                 # npm install eslint -g
                 # eslint . --fix
 
-                echo "Running autoflake to remove unused imports..."
-                pip install autoflake
-                autoflake --remove-all-unused-imports --recursive --in-place .
+                # echo "Running autoflake to remove unused imports..."
+                # pip install autoflake
+                # autoflake --remove-all-unused-imports --recursive --in-place .
 
-                echo "Running ts-prune to remove unused file references..."
-                npm install -g ts-prune
-                ts-prune | awk '{print $1}' | xargs rm -f
+                # echo "Running ts-prune to remove unused file references..."
+                # npm install -g ts-prune
+                # ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_SITECORE_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
                 rsync -av --delete ../cli/ ./cli/
@@ -142,9 +142,9 @@ jobs:
                 rsync -av --delete ${{ env.RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-sitecore/ ./upload-api/migration-sitecore/
 
-                npx ts-remove-unused-imports ./api
-                npx ts-remove-unused-imports ./ui
-                npx ts-remove-unused-imports ./upload-api
+                npx ts-remove-unused-imports
+                npx ts-prune | awk '{print $1}' | xargs sed -i '' -e '/import/d'
+                npx prettier --write .
 
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
