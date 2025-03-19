@@ -162,7 +162,9 @@ jobs:
                 fi
 
                 # Remove unused imports
-                npx ts-remove-unused-imports
+                npx ts-remove-unused-imports api/
+                npx ts-remove-unused-imports ui/
+                npx ts-remove-unused-imports upload-api
 
                 # Remove missing imports
                 npx ts-prune | awk '{print $1}' | xargs -I {} sed -i '/import/d' {}
