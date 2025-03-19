@@ -21,7 +21,9 @@ export const HTTP_TEXTS = {
   VALIDATION_ERROR: 'File validation failed.',
   VALIDATION_SUCCESSFULL: ' File validated successfully.',
   ZIP_FILE_SAVE: 'Issue While Saving Zip File.',
-  MAPPER_SAVED: 'Mapping process completed successfull.'
+  XML_FILE_SAVE: 'Issue While Saving XML File.',
+  MAPPER_SAVED: 'Mapping process completed successfull.',
+  LOCALE_SAVED: 'Source locales stored successfully'
 };
 
 export const HTTP_RESPONSE_HEADERS = {

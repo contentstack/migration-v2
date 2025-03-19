@@ -1,6 +1,6 @@
 import { Notification } from '@contentstack/venus-components';
 import { WEBSITE_BASE_URL } from './constants';
-import { Image, ObjectType } from './constants.interface';
+import { Image, ObjectType, MigrationStatesValues } from './constants.interface';
 
 export const Locales = {
   en: 'en-us',
@@ -106,6 +106,17 @@ export const setDataInLocalStorage = (key: string, data: string) => {
   return true;
 };
 
+// utitlity function to retrieve state from sessionStorage
+export const getStateFromLocalStorage = (key : string) => {
+  const state = sessionStorage.getItem(key);
+  return state ? JSON.parse(state) : null;
+};
+
+// utility function to save state to sessionStorage
+export const saveStateToLocalStorage = (key: string, state: MigrationStatesValues) => {
+  sessionStorage.setItem(key, JSON.stringify(state));
+};
+
 export const getDays = (day: string | number | Date) => {
   const presentDay = new Date().getTime();
   const projectDate = new Date(day).getTime();
@@ -134,7 +145,7 @@ export const getDays = (day: string | number | Date) => {
 };
 
 export const isEmptyString = (str: string | undefined) =>
-  str === undefined || str === null || str.trim().length < 1;
+  str === undefined || str === null || str?.trim()?.length < 1;
 
 export const shortName = (name: string) => {
   if (name && name.length > 25) {

@@ -123,8 +123,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
   
       //Update New Migration data; 
       const selectedCmsData: ICMSType = validateArray(data.all_cms)
-        ? data.all_cms?.find((cms: ICMSType) => {     
-          return cms?.cms_id === legacyCMSData?.cms})
+        ? data.all_cms?.find((cms: ICMSType) => cms?.cms_id === legacyCMSData?.cms) ?? DEFAULT_CMS_TYPE
         : DEFAULT_CMS_TYPE;
 
       const selectedFileFormatData: ICardType | undefined = validateArray(
@@ -141,7 +140,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
       }
   
       //Make Step 2 complete
-      if (!isEmptyString(selectedCmsData?.cms_id) && !isEmptyString(legacyCMSData?.affix)) {
+      if (!isEmptyString(selectedCmsData?.cms_id) && (!isEmptyString(legacyCMSData?.affix) || !isEmptyString(newMigrationData?.legacy_cms?.affix))) {
         setInternalActiveStepIndex(1);
       }
   

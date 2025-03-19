@@ -1,9 +1,10 @@
-import rateLimit from "express-rate-limit";
-import fs from "fs";
-import path from "path";
-import mysql from "mysql2";
-import { HTTP_TEXTS, HTTP_CODES } from '../constants';
-import logger from "../utils/logger";
+import rateLimit from 'express-rate-limit';
+import fs from 'fs';
+import path from 'path';
+import mysql from 'mysql2';
+import xml2js from 'xml2js';
+import { HTTP_TEXTS, HTTP_CODES, MIGRATION_DATA_CONFIG } from '../constants';
+import logger from '../utils/logger';
 
 const getFileName = (params: { Key: string }) => {
   const obj: { fileName?: string; fileExt?: string } = {};
@@ -16,42 +17,97 @@ const getFileName = (params: { Key: string }) => {
 
 const saveZip = async (zip: any, name: string) => {
   try {
-    const newMainFolderName = name;  
+    const newMainFolderName = name;
     const keys = Object?.keys(zip.files);
 
-        // Determine if there's a top-level folder in the ZIP archive
-        const hasTopLevelFolder = keys.some(key => key.startsWith('package 45/'));
+    // Determine if there's a top-level folder in the ZIP archive
+    const hasTopLevelFolder = keys.some((key) => key.startsWith('package 45/'));
 
-      for await (const filename of keys) {
-        const file = zip?.files?.[filename];
-        if (!file?.dir) { // Ignore directories
-          let newFilePath = filename;
+    for await (const filename of keys) {
+      const file = zip?.files?.[filename];
+      if (!file?.dir) {
+        // Ignore directories
+        let newFilePath = filename;
 
-          if (hasTopLevelFolder) {
-            newFilePath = filename.replace(/^package 45\//, `${newMainFolderName}/`);
-          }
+        if (hasTopLevelFolder) {
+          newFilePath = filename.replace(/^package 45\//, `${newMainFolderName}/`);
+        }
 
-          // Construct the full path where you want to save the file
-          const filePath = path.join(__dirname, '../../extracted_files', newFilePath);
+        // Construct the full path where you want to save the file
+        const filePath = path.join(__dirname, '../../extracted_files', newFilePath);
 
-          // Ignore __MACOSX folder asynchronously
-          if (!(filePath.includes("__MACOSX"))) {
-            
-              // Ensure the directory exists asynchronously
-              await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-      
-              const content = await file.async('nodebuffer');
-              await fs.promises.writeFile(filePath, content);
-          }
+        // Ignore __MACOSX folder asynchronously
+        if (!filePath.includes('__MACOSX')) {
+          // Ensure the directory exists asynchronously
+          await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+
+          const content = await file.async('nodebuffer');
+          await fs.promises.writeFile(filePath, content);
         }
       }
+    }
 
     return true;
   } catch (err: any) {
     console.error(err);
     logger.info('Zipfile error:', {
       status: HTTP_CODES?.SERVER_ERROR,
-      message: HTTP_TEXTS?.ZIP_FILE_SAVE,
+      message: HTTP_TEXTS?.ZIP_FILE_SAVE
+    });
+    return false;
+  }
+};
+
+const saveJson = async (jsonContent: string, fileName: string) => {
+  try {
+    const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
+
+    // Ensure the directory exists asynchronously /extracted_files
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+
+    const data =
+      typeof jsonContent == 'object' ? JSON.stringify(jsonContent, null, 4) : jsonContent || '{}';
+    // Write the XML content to the file asynchronously
+    await fs.promises.writeFile(filePath, data, 'utf8');
+
+    return true;
+  } catch (err: any) {
+    console.error(err);
+    logger.info('JSON file error while saving:', {
+      status: HTTP_CODES?.SERVER_ERROR,
+      message: HTTP_TEXTS?.XML_FILE_SAVE
+    });
+    return false;
+  }
+};
+
+const cleanXml = (xml: string): string => {
+  return xml
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<!DOCTYPE[^>]*>/g, '')
+    .trim();
+};
+
+// parse xml to json
+const parseXmlToJson = async (xml: any) => {
+  try {
+    const xmldata = cleanXml(xml);
+
+    const parser = new xml2js.Parser({
+      attrkey: 'attributes',
+      charkey: 'text',
+      explicitArray: false,
+      trim: true,
+      normalize: true,
+      normalizeTags: true
+    });
+    const data = await parser.parseStringPromise(xmldata);
+    return data;
+  } catch (err) {
+    console.error(err);
+    logger.info('XML file error:', {
+      status: HTTP_CODES?.SERVER_ERROR,
+      message: HTTP_TEXTS?.XML_FILE_SAVE
     });
     return false;
   }
@@ -61,11 +117,10 @@ const fileOperationLimiter = rateLimit({
   windowMs: 2 * 60 * 1000, // 2 minutes
   max: 2, // Limit each IP to 2 requests per windowMs for this endpoint
   message: {
-    status: "rate limit",
-    message: "Rate limit exceeded. Only 2 calls allowed every 2 minutes.",
+    status: 'rate limit',
+    message: 'Rate limit exceeded. Only 2 calls allowed every 2 minutes.'
   }
 });
-
 
 function deleteFolderSync(folderPath: string): void {
   if (fs.existsSync(folderPath)) {
@@ -84,80 +139,4 @@ function deleteFolderSync(folderPath: string): void {
   }
 }
 
-function dbConnect2({host, user, password, database}: {host: string, user: string, password: string, database: string}) {
-  var connection = mysql.createConnection({
-    host: host,
-    user:user,
-    password: password,
-    database: database,
-  });
-  return connection;
-}
-
-
-
-function dbConnect({
-  host,
-  user,
-  password,
-  database,
-}: {
-  host: string;
-  user: string;
-  password: string;
-  database: string;
-}): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    try {
-      const mysqlConfig ={
-        host: host,
-        user: user,
-        password: password,
-        database: database,
-      }
-      const connection = mysql.createConnection(mysqlConfig);
-   
-      connection.connect((err) => {
-        if (err) {
-          console.error('Connection failed:', err.message);
-          reject(false); 
-          return;
-        }
-
-        console.log('Connection successful. Running query...');
-        
-        // Execute the query
-        const query = 'SELECT * FROM node LIMIT 1;'; // Query to test
-        connection.query(query, (queryErr, results) => {
-          if (queryErr) {
-            console.error('Query failed:', queryErr.message);
-            connection.end();
-            reject(false); 
-            return;
-          }
-          const filePath = path.join(__dirname, '../../extracted_files', "mysqlConfig.json");
-          fs.writeFile(filePath, JSON.stringify(mysqlConfig, null, 2), (writeErr) => {
-            connection.end(); 
-            if (writeErr) {
-              console.error('Failed to write JSON file:', writeErr.message);
-              reject(writeErr);
-              return;
-            }
-            console.log(`Results written to ${filePath}`);
-            resolve(true);            
-          });
-          console.log('Query executed successfully:', results);
-          connection.end();
-          resolve(true); 
-        });
-      });
-    } catch (error) {
-      console.error('Unexpected error during database connection:', error);
-      reject(false);
-    }
-  });
-}
-
-
-
-export { getFileName, saveZip, fileOperationLimiter, deleteFolderSync, dbConnect };
+export { getFileName, saveZip, fileOperationLimiter, deleteFolderSync };

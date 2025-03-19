@@ -1,10 +1,10 @@
 import { HTTP_TEXTS, HTTP_CODES } from '../constants';
-import { saveZip } from '../helper';
+import { parseXmlToJson, saveJson, saveZip } from '../helper';
 import JSZip from 'jszip';
 import validator from '../validators';
 import config from '../config/index';
 import logger from '../utils/logger.js';
-
+import * as Cheerio from 'cheerio';
 
 const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: string, name :string) => {
   if (fileExt === 'zip') {
@@ -33,6 +33,34 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
         message: HTTP_TEXTS?.VALIDATION_ERROR,
         file_details: config
       };
+    }
+  } else if (fileExt === 'xml') {
+    if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt }) ) {
+      const $ = Cheerio.load(zipBuffer, { xmlMode: true });
+      const fixedXml = $.xml(); 
+      const parsedJson = await parseXmlToJson(fixedXml);
+      const isSaved = await saveJson(parsedJson,`${name}.json`);
+      if (isSaved) {
+        logger.info('Validation success:', {
+          status: HTTP_CODES?.OK,
+          message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
+        });
+        return {
+          status: HTTP_CODES?.OK,
+          message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
+          file_details: config
+        };
+      } else {
+        logger.warn('Validation error:', {
+          status: HTTP_CODES?.UNAUTHORIZED,
+          message: HTTP_TEXTS?.VALIDATION_ERROR
+        });
+        return {
+          status: HTTP_CODES?.UNAUTHORIZED,
+          message: HTTP_TEXTS?.VALIDATION_ERROR,
+          file_details: config
+        };
+      }
     }
   } else {
     // if file is not zip
