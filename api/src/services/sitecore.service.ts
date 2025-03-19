@@ -52,6 +52,18 @@ const AssetsPathSpliter = ({ path, id }: any) => {
   return newPath;
 }
 
+const mapLocales = ({ masterLocale, locale, locales }: any) => {
+  if (locales?.masterLocale?.[masterLocale ?? ''] === locale) {
+    return Object?.keys(locales?.masterLocale)?.[0]
+  }
+  for (const [key, value] of Object?.entries?.(locales) ?? {}) {
+    if (typeof value !== 'object' && value === locale) {
+      return key;
+    }
+  }
+  return locale.toLowerCase();
+}
+
 
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
@@ -197,7 +209,7 @@ const cretaeAssets = async ({ packagePath, baseDir, destinationStackId, projectI
   return allAssetJSON;
 }
 
-const createEntry = async ({ packagePath, contentTypes, master_locale, destinationStackId, projectId, keyMapper }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string, projectId: string, keyMapper: any }) => {
+const createEntry = async ({ packagePath, contentTypes, master_locale, destinationStackId, projectId, keyMapper, project }: { packagePath: any; contentTypes: any; master_locale?: string, destinationStackId: string, projectId: string, keyMapper: any, project: any }) => {
   try {
     const srcFunc = 'createEntry';
     const baseDir = path.join(baseDirName, destinationStackId);
@@ -218,7 +230,11 @@ const createEntry = async ({ packagePath, contentTypes, master_locale, destinati
           const templateIndex = entriesData?.findIndex((ele: any) => ele?.template === template);
           if (templateIndex >= 0) {
             const entry = entriesData?.[templateIndex]?.locale?.[language];
-            entry[id] = { meta: jsonData?.item?.$, fields: jsonData?.item?.fields };
+            if (entry !== undefined) {
+              entry[id] = { meta: jsonData?.item?.$, fields: jsonData?.item?.fields };
+            } else {
+              entriesData[templateIndex].locale[language] = entries;
+            }
           } else {
             const locale: any = {};
             locale[language] = entries;
@@ -230,61 +246,59 @@ const createEntry = async ({ packagePath, contentTypes, master_locale, destinati
     for await (const ctType of contentTypes) {
       const message = getLogMessage(
         srcFunc,
-        `Transforming entries of Content Type ${keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid} has begun.`,
+        `Transforming entries of Content Type ${keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid} has begun.`,
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
       const entryPresent: any = entriesData?.find((item: any) => uidCorrector({ uid: item?.template }) === ctType?.contentstackUid)
       if (entryPresent) {
         const locales: any = Object?.keys(entryPresent?.locale);
+        const allLocales: any = { masterLocale: project?.master_locale ?? LOCALE_MAPPER?.masterLocale, ...project?.locales ?? {} }
         for await (const locale of locales) {
-          let newLocale = locale;
+          const newLocale = mapLocales({ masterLocale: master_locale, locale, locales: allLocales });
           const entryLocale: any = {};
-          if (typeof LOCALE_MAPPER?.masterLocale === 'object' && LOCALE_MAPPER?.masterLocale !== null && LOCALE_MAPPER?.masterLocale?.[master_locale ?? ''] === locale) {
-            newLocale = Object?.keys(LOCALE_MAPPER?.masterLocale)?.[0];
-            Object.entries(entryPresent?.locale?.[locale] || {}).map(async ([uid, entry]: any) => {
-              const entryObj: any = {};
-              entryObj.uid = uid;
-              for await (const field of entry?.fields?.field ?? []) {
-                for await (const fsc of ctType?.fieldMapping ?? []) {
-                  if (fsc?.contentstackFieldType !== 'group' && !field?.$?.key?.includes('__')) {
-                    if (fsc?.contentstackFieldUid === 'title') {
-                      entryObj[fsc?.contentstackFieldUid] = entry?.meta?.name;
-                    }
-                    if (fsc?.contentstackFieldUid === 'url') {
-                      entryObj[fsc?.contentstackFieldUid] = `/${entry?.meta?.key}`;
-                    }
-                    if (getLastKey(fsc?.uid) === field?.$?.key) {
-                      const content: any = await entriesFieldCreator({ field: fsc, content: field?.content, idCorrector, allAssetJSON, contentTypes, entriesData, locale });
-                      const gpData: any = ctType?.fieldMapping?.find((elemant: any) => elemant?.uid === fsc?.uid?.split('.')?.[0]);
-                      if (gpData?.uid) {
-                        const ctUid = uidCorrector({ uid: gpData?.uid });
-                        if (ctUid !== gpData?.contentstackFieldUid && fsc?.contentstackFieldUid?.includes(ctUid)) {
-                          const newUid: any = fsc?.contentstackFieldUid?.replace(ctUid, gpData?.contentstackFieldUid);
-                          entryObj[newUid] = content;
-                        } else {
-                          entryObj[fsc?.contentstackFieldUid] = content;
-                        }
+          Object.entries(entryPresent?.locale?.[locale] || {}).map(async ([uid, entry]: any) => {
+            const entryObj: any = {};
+            entryObj.uid = uid;
+            for await (const field of entry?.fields?.field ?? []) {
+              for await (const fsc of ctType?.fieldMapping ?? []) {
+                if (fsc?.contentstackFieldType !== 'group' && !field?.$?.key?.includes('__')) {
+                  if (fsc?.contentstackFieldUid === 'title') {
+                    entryObj[fsc?.contentstackFieldUid] = entry?.meta?.name;
+                  }
+                  if (fsc?.contentstackFieldUid === 'url') {
+                    entryObj[fsc?.contentstackFieldUid] = `/${entry?.meta?.key}`;
+                  }
+                  if (getLastKey(fsc?.uid) === field?.$?.key) {
+                    const content: any = await entriesFieldCreator({ field: fsc, content: field?.content, idCorrector, allAssetJSON, contentTypes, entriesData, locale });
+                    const gpData: any = ctType?.fieldMapping?.find((elemant: any) => elemant?.uid === fsc?.uid?.split('.')?.[0]);
+                    if (gpData?.uid) {
+                      const ctUid = uidCorrector({ uid: gpData?.uid });
+                      if (ctUid !== gpData?.contentstackFieldUid && fsc?.contentstackFieldUid?.includes(ctUid)) {
+                        const newUid: any = fsc?.contentstackFieldUid?.replace(ctUid, gpData?.contentstackFieldUid);
+                        entryObj[newUid] = content;
                       } else {
                         entryObj[fsc?.contentstackFieldUid] = content;
                       }
+                    } else {
+                      entryObj[fsc?.contentstackFieldUid] = content;
                     }
                   }
                 }
               }
-              entryObj.publish_details = [];
-              if (Object.keys?.(entryObj)?.length > 1) {
-                entryLocale[uid] = unflatten(entryObj) ?? {};
-                const message = getLogMessage(
-                  srcFunc,
-                  `Entry title "${entryObj?.title}"(${keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid}) in the ${newLocale} locale has been successfully transformed.`,
-                  {}
-                )
-                await customLogger(projectId, destinationStackId, 'info', message)
-              }
-            });
-          }
-          const mapperCt: string = (keyMapper[ctType?.contentstackUid] !== "" && keyMapper[ctType?.contentstackUid] !== undefined) ? keyMapper[ctType?.contentstackUid]
+            }
+            entryObj.publish_details = [];
+            if (Object.keys?.(entryObj)?.length > 1) {
+              entryLocale[uid] = unflatten(entryObj) ?? {};
+              const message = getLogMessage(
+                srcFunc,
+                `Entry title "${entryObj?.title}"(${keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid}) in the ${newLocale} locale has been successfully transformed.`,
+                {}
+              )
+              await customLogger(projectId, destinationStackId, 'info', message)
+            }
+          });
+          const mapperCt: string = (keyMapper?.[ctType?.contentstackUid] !== "" && keyMapper?.[ctType?.contentstackUid] !== undefined) ? keyMapper?.[ctType?.contentstackUid]
             : ctType?.contentstackUid;
           const fileMeta = { "1": `${newLocale}.json` };
           const entryPath = path.join(
@@ -298,11 +312,11 @@ const createEntry = async ({ packagePath, contentTypes, master_locale, destinati
       } else {
         const message = getLogMessage(
           srcFunc,
-          `No entries found for the content type ${keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid}.`,
+          `No entries found for the content type ${keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid}.`,
           {}
         )
         await customLogger(projectId, destinationStackId, 'error', message)
-        console.info('Entries missing for', keyMapper[ctType?.contentstackUid] ?? ctType?.contentstackUid)
+        console.info('Entries missing for', keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid)
       }
     }
     return true;
@@ -311,13 +325,13 @@ const createEntry = async ({ packagePath, contentTypes, master_locale, destinati
   }
 }
 
-const createLocale = async (req: any, destinationStackId: string, projectId: string) => {
+const createLocale = async (req: any, destinationStackId: string, projectId: string, project: any) => {
   const srcFunc = 'createLocale';
   try {
     const baseDir = path.join(baseDirName, destinationStackId);
     const localeSave = path.join(baseDir, LOCALE_DIR_NAME);
     const allLocalesResp = await orgService.getLocales(req)
-    const masterLocale = Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
+    const masterLocale = Object?.keys?.(project?.master_locale ?? LOCALE_MAPPER?.masterLocale)?.[0];
     const msLocale: any = {};
     const uid = uuidv4();
     msLocale[uid] = {
@@ -333,14 +347,14 @@ const createLocale = async (req: any, destinationStackId: string, projectId: str
     )
     await customLogger(projectId, destinationStackId, 'info', message);
     const allLocales: any = {};
-    for (const [key, value] of Object.entries(LOCALE_MAPPER)) {
+    for (const [key, value] of Object.entries(project?.locales ?? LOCALE_MAPPER)) {
       const localeUid = uuidv4();
       if (key !== 'masterLocale' && typeof value === 'string') {
         allLocales[localeUid] = {
-          "code": value,
+          "code": key,
           "fallback_locale": masterLocale,
           "uid": localeUid,
-          "name": allLocalesResp?.data?.locales?.[value] ?? ''
+          "name": allLocalesResp?.data?.locales?.[key] ?? ''
         }
         const message = getLogMessage(
           srcFunc,
