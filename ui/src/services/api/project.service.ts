@@ -68,3 +68,15 @@ export const deleteProject = async (orgId: string, projectId: string) => {
     }
   }
 };
+
+export const getMigratedStacks = async (orgId: string, projectId: string) => {
+  try {
+    return await getCall(`${API_VERSION}/org/${orgId}/project/${projectId}/get-migrated-stacks`, options());
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in userSession: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
+  }
+};

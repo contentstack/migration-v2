@@ -16,9 +16,10 @@ import { getAllStacksInOrg } from '../../services/api/stacks.service';
 
 // Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
+import { getStateFromLocalStorage, saveStateToLocalStorage } from '../../utilities/functions';
 
 // Interface
-import { MigrationType, TestMigrationValues } from './testMigration.interface';
+import { MigrationType } from './testMigration.interface';
 import { INewMigration } from '../../context/app/app.interface';
 
 
@@ -27,17 +28,6 @@ import TestMigrationLogViewer from '../LogScreen';
 
 // CSS
 import './index.scss';
-
-// utility function to save state to sessionStorage
-export const saveStateToLocalStorage = (state:TestMigrationValues, projectId : string) => {
-  sessionStorage.setItem(`testmigration_${projectId}`, JSON.stringify(state));
-};
-
-// utitlity function to retrieve state from sessionStorage
-const getStateFromLocalStorage = (projectId : string) => {
-  const state = sessionStorage.getItem(`testmigration_${projectId}`);
-  return state ? JSON.parse(state) : null;
-};
 
 const TestMigration = () => {
 
@@ -85,7 +75,7 @@ const TestMigration = () => {
       ? !newMigrationData?.testStacks?.some(
           (stack) =>
             stack?.stackUid === newMigrationData?.test_migration?.stack_api_key &&
-            stack.isMigrated
+            stack?.isMigrated
         ) || newMigrationData?.test_migration?.isMigrationStarted
       : newMigrationData?.migration_execution?.migrationCompleted ||
         newMigrationData?.migration_execution?.migrationStarted || false;
@@ -99,7 +89,7 @@ const TestMigration = () => {
 
   useEffect(() => {
       // Retrieve and apply saved state from sessionStorage
-    const savedState = getStateFromLocalStorage(projectId);
+    const savedState = getStateFromLocalStorage(`testmigration_${projectId}`);
     if (savedState) {
       setDisableTestMigration(savedState?.isTestMigrationStarted);
       setDisableCreateStack(savedState?.isTestMigrationStarted);  
@@ -171,7 +161,19 @@ const TestMigration = () => {
         // Update migration data in Redux
         const newMigrationDataObj: INewMigration = {
           ...newMigrationData,
-          test_migration: { ...newMigrationData?.test_migration, stack_link: res?.data?.data?.url, stack_api_key: res?.data?.data?.data?.stack?.api_key, stack_name: res?.data?.data?.data?.stack?.name }
+          test_migration: {
+            ...newMigrationData?.test_migration, 
+            stack_link: res?.data?.data?.url, 
+            stack_api_key: res?.data?.data?.data?.stack?.api_key, 
+            stack_name: res?.data?.data?.data?.stack?.name },
+            testStacks:[
+              ...(newMigrationData.testStacks),
+              {
+                stackUid: res?.data?.data?.data?.stack?.api_key, 
+                stackName: res?.data?.data?.data?.stack?.name, 
+                isMigrated: false
+              }
+            ]
         };
         dispatch(updateNewMigrationData((newMigrationDataObj)));
       }
@@ -205,13 +207,12 @@ const TestMigration = () => {
         dispatch(updateNewMigrationData(newMigrationDataObj));
 
         //update test migration started flag in localstorage
-        saveStateToLocalStorage({
+        saveStateToLocalStorage(`testmigration_${projectId}`, {
           isTestMigrationCompleted : false,
           isTestMigrationStarted : true,
-        }, projectId);
+        });
 
         handleMigrationState(true);
-
         
         Notification({
           notificationContent: { text: 'Test Migration started' },

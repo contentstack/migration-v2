@@ -106,7 +106,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       }
     };
 
-    dispatch(updateNewMigrationData(newMigrationDataObj));
+    //dispatch(updateNewMigrationData(newMigrationDataObj));
 
     setCmsData(filteredCmsData)
 
@@ -144,7 +144,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         }
       };
       //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
-      dispatch(updateNewMigrationData(newMigrationDataObj));
+      //dispatch(updateNewMigrationData(newMigrationDataObj));
       props?.handleStepChange(props?.currentStep);
     }
       
@@ -205,6 +205,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
                   onCardClick={data?.cms_id !== selectedCard?.cms_id ? handleCardClick : undefined}
                   selectedCard={selectedCard}
                   idField="cms_id"
+                  disabled={newMigrationData?.project_current_step > 1}
                 />
               ))}
             </div>))

@@ -171,6 +171,11 @@ const updateMigrationExecution = async (req: Request, res: Response): Promise<vo
   res.status(project.status).json(project);
 }
 
+const getMigratedStacks = async (req: Request, res: Response): Promise<void> => {
+  const project = await projectService.getMigratedStacks(req);
+  res.status(project.status).json(project);
+}
+
 export const projectController = {
   getAllProjects,
   getProject,
@@ -187,4 +192,5 @@ export const projectController = {
   revertProject,
   updateStackDetails,
   updateMigrationExecution,
+  getMigratedStacks,
 };
