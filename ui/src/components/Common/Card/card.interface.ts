@@ -26,6 +26,8 @@ export interface ICardType {
    * The file format ID of the card.
    */
   fileformat_id?: string;
+
+  [key: string]: any;
 }
 
 /**

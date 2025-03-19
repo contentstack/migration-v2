@@ -43,3 +43,26 @@ export const getStackStatus = async (orgId: string, data: string) => {
     }
   }
 };
+
+export const getStackLocales = async(orgId: string) => {
+try {
+
+  const updatedOptions = {
+    headers: {
+      app_token: getDataFromLocalStorage('app_token'),
+      //stack_api_key: api_key 
+    }
+  };
+  
+  
+  const res = await getCall(`${API_VERSION}/org/${orgId}/locales`, updatedOptions);
+  return res;
+    
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+}

@@ -26,7 +26,7 @@ const watcher = chokidar.watch(config.LOG_FILE_PATH, {
   usePolling: true,     // Enables polling to detect changes in all environments
   interval: 1,        // Poll every 100ms (you can adjust this if needed)
   awaitWriteFinish: {   // Wait for file to finish being written before triggering
-    stabilityThreshold: 1,  // Time to wait before considering the file stable
+    stabilityThreshold: 10,  // Time to wait before considering the file stable
     pollInterval: 1,        // Interval at which to poll for file stability
   },
   persistent: true,     // Keeps watching the file even after initial change
@@ -115,16 +115,41 @@ try {
         credentials: true,
       },
     });
+    let fileOffset = 0;
+    const CHUNK_SIZE = 1024 * 1024; // Limit batch size to 1MB  
 
     // Emit initial log file content to connected clients
     //  File watcher for log file changes
     watcher.on("change", async (path) => {
       console.info(`File changed: ${path}`);
-      // Read the updated file content
       try {
-        const data = await fs.promises.readFile(path, "utf8")
-        // Emit the updated log content to connected clients
-        io.emit("logUpdate", data);
+        const fileStats = await fs.promises.stat(path);
+
+      // Read the entire file if there is an update (new logs or changes)
+      const stream = fs.createReadStream(path, { start: fileOffset });
+      let fileData = '';
+
+      stream.on('data', (chunk) => {
+        fileData += chunk.toString(); // Collect the file data as a string
+      });
+
+      stream.on('end', () => {
+        // Emit the file content in chunks
+        let index = 0;
+        while (index < fileData?.length) {
+          const chunk = fileData?.slice(index, index + CHUNK_SIZE); // Get the next chunk
+          
+          io.emit('logUpdate', chunk);  
+          index += CHUNK_SIZE; // Move to the next chunk
+        }
+
+        // Update the file offset for the next read
+        fileOffset = fileStats.size;
+      });
+
+      stream.on('error', (err) => {
+        console.error('Error reading log file:', err);
+      });
       } catch (error) {
         logger.error(`Error emitting log data: ${error}`);
       }

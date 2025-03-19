@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 const restrictedUid = require('../utils/restrictedKeyWords');
+const appDetails = require('../utils/apps/appDetails.json')
+
 
 /**
  * Corrects the UID by applying a custom affix and sanitizing the string.
@@ -68,13 +70,13 @@ const extractAdvancedFields = (
   return {
     default_value: defaultText,
     validationRegex: regrexValue,
-    mandatory: ["title", "url"].includes(item.id)? true : item?.required,
+    mandatory: ["title", "url"].includes(item.id) ? true : item?.required,
     multiple: singleRef,
     unique: uniqueValue,
     nonLocalizable: !(item?.localized === true),
     validationErrorMessage: validationErrorMessage,
-    referenceFields: referenceFields.length ? referenceFields : undefined,
-    description:description,
+    embedObjects: referenceFields.length ? referenceFields : undefined,
+    description: description,
   };
 };
 
@@ -100,7 +102,7 @@ const extractAdvancedFields = (
 const createFieldObject = (item, contentstackFieldType, backupFieldType, referenceFields = []) => ({
   uid: item.id,
   otherCmsField: item.name,
-  otherCmsType: item.type,
+  otherCmsType: item.widgetId,
   contentstackField: item.name,
   contentstackFieldUid: uidCorrector(item.id),
   contentstackFieldType: contentstackFieldType,
@@ -127,12 +129,18 @@ const createFieldObject = (item, contentstackFieldType, backupFieldType, referen
  */
 const createDropdownOrRadioFieldObject = (item, fieldType) => {
   let choices = [];
-  if (!item?.validations?.length) {
-    choices.push({ value: 'value', key: 'key' });
+  if (item?.items?.validations?.length) {
+    item?.items?.validations?.forEach?.((valid) => {
+      valid.in?.forEach((value) => choices.push({ value: ["Symbol", "Text", "Array"].includes(item?.items?.type) ? `${value}` : value, key: `${value}` }));
+    })
   } else {
-    item.validations.forEach((valid) => {
-      valid.in?.forEach((value) => choices.push({ value: ["Symbol","Text","Array" ].includes(item.type) ? `${value}`: value, key: `${value}` }));
-    });
+    if (!item?.validations?.length) {
+      choices.push({ value: 'value', key: 'key' });
+    } else {
+      item.validations.forEach((valid) => {
+        valid.in?.forEach((value) => choices.push({ value: ["Symbol", "Text", "Array"].includes(item.type) ? `${value}` : value, key: `${value}` }));
+      });
+    }
   }
   return {
     ...createFieldObject(item, fieldType, fieldType),
@@ -142,6 +150,45 @@ const createDropdownOrRadioFieldObject = (item, fieldType) => {
     }
   };
 };
+
+
+
+const arrangeRte = (itemData, item) => {
+  const foundItem = itemData.find((element) => element?.nodes)
+  const refs = [];
+  if (foundItem?.nodes?.['embedded-entry-inline']) {
+    const contentType = foundItem?.nodes?.['embedded-entry-inline']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (foundItem?.nodes?.['embedded-entry-block']) {
+    const contentType = foundItem?.nodes?.['embedded-entry-block']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (foundItem?.nodes?.["entry-hyperlink"]) {
+    const contentType = foundItem?.nodes?.['entry-hyperlink']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (foundItem?.nodes?.["hyperlink"]) {
+    const contentType = foundItem?.nodes?.['hyperlink']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (refs?.length) {
+    const replaceUids = [];
+    for (const uid of refs ?? []) {
+      replaceUids?.push(uidCorrector(uid, item?.prefix))
+    }
+    return replaceUids;
+  }
+  return refs;
+}
 
 /**
  * Maps a collection of content type items to a schema array with specific field types and properties.
@@ -166,7 +213,8 @@ const contentTypeMapper = (data) => {
   const schemaArray = data.reduce((acc, item) => {
     switch (item.type) {
       case 'RichText': {
-        const referenceFields = (item.contentNames?.slice(0, 9) || []).concat('sys_assets');
+        const refsUids = arrangeRte(item?.validations, item);
+        const referenceFields = refsUids ?? (item.contentNames?.slice(0, 9) || []);
         acc.push(createFieldObject(item, 'json', 'json', referenceFields));
         break;
       }
@@ -188,6 +236,10 @@ const contentTypeMapper = (data) => {
           case 'radio':
             acc.push(createDropdownOrRadioFieldObject(item, item.widgetId));
             break;
+          case 'tagEditor':
+          case 'listInput':
+            console.info('tag', item);
+            break;
         }
         break;
       case 'Integer':
@@ -197,10 +249,15 @@ const contentTypeMapper = (data) => {
             acc.push(createFieldObject(item, 'number', 'number'));
             break;
           case 'dropdown':
+            item.widgetId = 'dropdownNumber';
+            acc.push(createDropdownOrRadioFieldObject(item, 'dropdown'));
+            break;
           case 'radio':
-            acc.push(createDropdownOrRadioFieldObject(item, item.widgetId));
+            item.widgetId = 'radioNumber';
+            acc.push(createDropdownOrRadioFieldObject(item, 'radio'));
             break;
           case 'rating':
+            item.widgetId = 'ratingNumber';
             acc.push(createDropdownOrRadioFieldObject(item, 'dropdown'));
             break;
         }
@@ -212,12 +269,21 @@ const contentTypeMapper = (data) => {
       case 'Array':
       case 'Link':
         switch (item.widgetId) {
+          case 'assetLinkEditor':
           case 'assetLinksEditor':
           case 'assetGalleryEditor':
-            acc.push(createFieldObject(item, 'file', 'file'));
+            if (item.type === 'Array') {
+              const data = createFieldObject(item, 'file', 'file');
+              data.advanced.multiple = true;
+              acc.push(data);
+            } else {
+              acc.push(createFieldObject(item, 'file', 'file'));
+            }
             break;
 
           case 'entryLinksEditor':
+          case 'entryLinkEditor':
+          case 'entryCardEditor':
           case 'entryCardsEditor': {
             let referenceFields = [];
             let commonRef = [];
@@ -243,7 +309,7 @@ const contentTypeMapper = (data) => {
                 });
               } else {
                 referenceFields =
-                item?.contentNames?.length < 25 ? item?.contentNames
+                  item?.contentNames?.length < 25 ? item?.contentNames
                     : item?.contentNames?.slice(0, 9);
               }
             } else {
@@ -260,27 +326,38 @@ const contentTypeMapper = (data) => {
                 });
               } else {
                 referenceFields =
-                item.contentNames?.length < 25 ? item?.contentNames
+                  item.contentNames?.length < 25 ? item?.contentNames
                     : item?.contentNames?.slice(0, 9);
               }
             }
-            acc.push(createFieldObject(item, 'file', 'file', referenceFields));
+            acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
             break;
           }
           case 'checkbox':
             acc.push(createDropdownOrRadioFieldObject(item, item.widgetId));
             break;
           case 'tagEditor':
-            acc.push(createFieldObject(item, 'json', 'json'));
+          case 'listInput': {
+            acc.push(createFieldObject(item, 'extension', 'extension'))
             break;
+          }
         }
+
         break;
       case 'Boolean':
         acc.push(createFieldObject(item, 'boolean', 'boolean'));
         break;
-      case 'Object':
-        acc.push(createFieldObject(item, 'json', 'json'));
+      case 'Object': {
+        if (item?.widgetId === 'objectEditor') {
+          item.name = `${item?.name} (JSON Editor-App)`;
+          acc.push(createFieldObject(item, 'app', 'app'));
+        } else {
+          const findAppMeta = appDetails?.items?.find((ele) => ele?.sys?.id === item?.widgetId);
+          item.name = `${item?.name} (${findAppMeta?.name}-App)`;
+          acc.push(createFieldObject(item, 'app', 'app'));
+        }
         break;
+      }
       case 'Location': {
         acc.push(createFieldObject(item, 'group', 'group'));
         acc.push({

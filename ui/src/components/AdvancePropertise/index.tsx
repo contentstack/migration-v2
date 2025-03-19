@@ -11,11 +11,15 @@ import {
   Icon,
   Select,
   Radio,
-  Button
+  Button,
+  Tag
 } from '@contentstack/venus-components';
 
 // Service
 import { getContentTypes } from '../../services/api/migration.service';
+
+// Utilities
+import { validateArray } from '../../utilities/functions';
 
 // Interfaces
 import { optionsType, SchemaProps } from './advanceProperties.interface'; 
@@ -50,7 +54,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     mandatory: props?.value?.mandatory,
     allowImagesOnly: props?.value?.allowImagesOnly,
     nonLocalizable: props?.value?.nonLocalizable,
-    embedObject: true,
+    embedObject: (props?.value?.embedObjects?.length ?? 0) > 0,
     embedAssests: true,
     multiple: props?.value?.multiple,
     embedObjects: props?.value?.embedObjects,
@@ -330,9 +334,11 @@ const AdvancePropertise = (props: SchemaProps) => {
   }, [ctValue]);
 
   // Option for content types
-  const option = Array.isArray(contentTypes)
-    ? contentTypes.map((option) => ({ label: option?.contentstackTitle, value: option?.contentstackUid }))
-    : [{ label: contentTypes, value: contentTypes }];
+  const contentTypesList = contentTypes?.filter((ct: ContentType) => ct?.type === "content_type");
+  
+  const option = validateArray(contentTypesList)
+    ? contentTypesList?.map((option: ContentType) => ({ label: option?.contentstackTitle, value: option?.contentstackUid }))
+    : [{ label: contentTypesList, value: contentTypesList }];
 
   return (
     <>
@@ -520,6 +526,20 @@ const AdvancePropertise = (props: SchemaProps) => {
             </Field>
           )}
 
+          {props?.fieldtype === 'Reference' && (
+            <Field>
+              <FieldLabel className="option-label" htmlFor="options" version="v2">
+                Referenced Content Type
+              </FieldLabel>
+              <Tag
+                tags={props?.data?.refrenceTo}
+                isDisabled={true}
+                version={'v2'}
+              />            
+
+            </Field>
+          )}
+
           <Field>
             <FieldLabel className="option-label" htmlFor="options" version="v2">
               Other Options
@@ -532,12 +552,12 @@ const AdvancePropertise = (props: SchemaProps) => {
                       label="Embed Object(s)"
                       labelColor="primary"
                       labelPosition="right"
-                      checked={toggleStates?.embedObject}
+                      checked={(ctValue?.length ?? 0) > 0 || toggleStates?.embedObject}
                       onChange={handleToggleChange && ((e: React.MouseEvent<HTMLElement>) => handleToggleChange('embedObject', (e.target as HTMLInputElement)?.checked, true))}
                     />
                   </div>
   
-                  {toggleStates?.embedObject && (
+                  {(ctValue && ctValue?.length > 0 || toggleStates?.embedObject) && (
                     <Select
                       value={ctValue}
                       isMulti={true}

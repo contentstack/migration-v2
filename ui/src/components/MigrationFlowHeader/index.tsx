@@ -80,6 +80,8 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
     finalExecutionStarted || 
     newMigrationData?.migration_execution?.migrationStarted || newMigrationData?.migration_execution?.migrationCompleted;
     
+  const destinationStackMigrated =  params?.stepId === '5' && newMigrationData?.destination_stack?.migratedStacks?.includes(newMigrationData?.destination_stack?.selectedStack?.value);
+  
   return (
     <div className='d-flex align-items-center justify-content-between migration-flow-header'>
       <div className='d-flex align-items-center'>
@@ -96,7 +98,7 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
         version="v2"
         aria-label='Save and Continue'
         isLoading={isLoading || newMigrationData?.isprojectMapped}
-        disabled={isStep4AndNotMigrated || isStepInvalid || isExecutionStarted}
+        disabled={isStep4AndNotMigrated || isStepInvalid || isExecutionStarted || destinationStackMigrated}
       >
         {stepValue}
       </Button>

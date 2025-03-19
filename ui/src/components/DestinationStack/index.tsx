@@ -2,11 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getDestinationStackSteps } from './StepperSteps';
-import { CircularLoader } from '@contentstack/venus-components';
+import {
+  CircularLoader,
+  HelpText,
+  Icon,
+  Info,
+  Tooltip
+} from '@contentstack/venus-components';
 import { CS_ENTRIES } from '../../utilities/constants';
 import {
   DEFAULT_DESTINATION_STACK_DATA,
-  IDestinationStackComponent,
+  IDestinationStackComponent
 } from '../../context/app/app.interface';
 import './DestinationStack.scss';
 import { MigrationResponse } from '../../services/api/service.interface';
@@ -14,6 +20,7 @@ import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
 import { updateMigrationData } from '../../store/slice/migrationDataSlice';
 import { AutoVerticalStepperRef } from '../LegacyCms';
+import LanguageMapper from './Actions/LoadLanguageMapper';
 
 type DestinationStackComponentProps = {
   isCompleted: boolean;
@@ -103,7 +110,9 @@ const DestinationStackComponent = ({
       ) : (
         <div className="destination-stack-container">
           <div className='stackTitle'>{migrationData?.destinationStackData?.title}</div>
-          <AutoVerticalStepper
+          <div className="row">
+            <div className="col-12">
+            <AutoVerticalStepper
             key={stepperKey}
             steps={getDestinationStackSteps(
               isCompleted,
@@ -116,6 +125,37 @@ const DestinationStackComponent = ({
             isRequired={false}
             handleOnAllStepsComplete={handleAllStepsComplete}
           />
+
+            </div>
+          </div>
+
+          <div className="col-12 info-lang">
+            <div className="stackTitle language-title">Language configuration</div>
+            <Tooltip
+              content={`Define language mappings between Contentstack and ${newMigrationData?.legacy_cms?.selectedCms?.parent} for smooth content transfer. Each mapping aligns a WordPress source language with its Contentstack equivalent.`}
+              position="right">
+              <Icon className="language-title" icon="Information" version="v2" size="small"></Icon>
+            </Tooltip>
+          </div>
+          <HelpText
+            data-test-id="cs-paragraph-tag"
+            className="contentMapWrapper-heading p1 regular help-text">
+            Contentstack and {newMigrationData?.legacy_cms?.selectedCms?.parent} Languages Mapping
+          </HelpText>
+
+          {newMigrationData?.destination_stack?.selectedStack?.value ? (
+            <div className="language-mapper col-12 ">
+              <LanguageMapper />
+            </div>
+          ) : (
+            <Info
+              className="info-language-mapper col-12 info-tag"
+              icon={<Icon icon="Information" version="v2" size="small"></Icon>}
+              version="v2"
+              content="Please select the stack to proceed with language mapping"
+              type="light"
+            />
+          )}
         </div>
       )}
     </>

@@ -6,7 +6,7 @@ import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { contentTypes, ExtractConfiguration, reference, ExtractFiles } = require('migration-sitecore');
+const { contentTypes, ExtractConfiguration, reference, ExtractFiles, extractLocales } = require('migration-sitecore');
 
 const {
   CONTENT_TYPES_DIR_NAME,
@@ -18,6 +18,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
   try {
     const newPath = path.join(filePath, 'items');
     await ExtractFiles(newPath);
+    const localeData = await extractLocales(path.join(filePath, 'items', 'master', 'sitecore', 'content'));
     await ExtractConfiguration(newPath);
     await contentTypes(newPath, affix, config);
     const infoMap = await reference();
@@ -38,7 +39,6 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           fieldMapping.contentTypes.push(element);
         }
       }
-      // console.log("🚀 ~ createSitecoreMapper ~ fieldMapping:", fieldMapping)
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -57,6 +57,28 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           message: HTTP_TEXTS?.MAPPER_SAVED,
         });
       }
+
+      const mapperConfig = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
+        headers: {
+          app_token,
+          'Content-Type': 'application/json'
+        },
+        data: {
+          locale: Array.from(localeData)
+        },
+      };
+
+      const mapRes = await axios.request(mapperConfig)
+      if (mapRes?.status == 200) {
+        logger.info('Legacy CMS', {
+          status: HTTP_CODES?.OK,
+          message: HTTP_TEXTS?.LOCALE_SAVED,
+        });
+      }
+
     }
   } catch (err: any) {
     console.error("🚀 ~ createSitecoreMapper ~ err:", err?.response?.data ?? err)

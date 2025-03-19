@@ -71,6 +71,7 @@ export interface IFile {
 
 export interface ICMSType extends ICardType {
   allowed_file_formats: ICardType[];
+  cms_id: string;
   doc_url: ICTA;
   parent: string;
 }
@@ -171,6 +172,10 @@ export interface IDestinationStack {
   selectedOrg: IDropDown;
   selectedStack: IDropDown;
   stackArray: IDropDown[];
+  migratedStacks: string[];
+  sourceLocale: string[];
+  localeMapping: {};
+  csLocale: string[];
 }
 export interface IContentMapper {
   existingGlobal: ContentTypeList[] | (() => ContentTypeList[]);
@@ -220,6 +225,7 @@ export interface IDropDown {
   locales: locales[];
   created_at: string;
   isNewStack?: boolean;
+  isDisabled?:boolean;
 }
 export interface ITestMigration {
   stack_link: string;
@@ -258,7 +264,8 @@ export const DEFAULT_DROPDOWN: IDropDown = {
   master_locale: '',
   locales: [],
   created_at: '',
-  isNewStack: false
+  isNewStack: false,
+  isDisabled: false,
 };
 
 export const DEFAULT_ORGANISATION: Organization = {
@@ -305,6 +312,7 @@ export const DEFAULT_FILE: IFile = {
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
   allowed_file_formats: [],
+  cms_id: '',
   title: '',
   description: '',
   group_name: '',
@@ -330,6 +338,10 @@ export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
   selectedOrg: DEFAULT_DROPDOWN,
   selectedStack: DEFAULT_DROPDOWN,
   stackArray: [],
+  migratedStacks: [],
+  sourceLocale: [],
+  localeMapping: {},
+  csLocale: []
 };
 
 export const DEFAULT_CONTENT_MAPPER: IContentMapper = {

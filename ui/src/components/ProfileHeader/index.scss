@@ -1,6 +1,7 @@
 @import '../../scss/variables';
 
 .profile-card {
+  max-height: 203px;
   width: 300px;
   padding: 11px 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -39,6 +40,7 @@
   color: #6E6B86;
   font-size: $size-font-small;
   line-height: $line-height-default;
+  margin-top: 2px;
 }
 
 .profile-card__logout {
@@ -47,7 +49,8 @@
   cursor: pointer;
   color: #2c3e50;
   font-size: 14px;
-  height:56px;
+  height: 25px;
+  margin-top: 12px;
 }
 
 .profile-card__logout-icon {

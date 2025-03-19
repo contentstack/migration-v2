@@ -109,3 +109,10 @@ export const STATUS_ICON_Mapping: { [key: string]: string } = {
   '3': 'ErrorInverted',
   // '4': 'completed'
 };
+
+export const VALIDATION_DOCUMENTATION_URL :{ [key: string]: string } = {
+  'sitecore': 'https://assets.contentstack.io/v3/assets/bltc9bf9ea2bc503f92/blta7af9cd41858e844/676167e219cfd55b01f0d6cf/sitecore.pdf',
+  'contentful': 'https://assets.contentstack.io/v3/assets/bltc9bf9ea2bc503f92/blta71b3ed2fb3cf6df/67616dac4f07d3c474f4083d/contentful.pdf',
+  'wordpress': '',
+  'drupal': ''
+};

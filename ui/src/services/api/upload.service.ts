@@ -40,12 +40,13 @@ export const uploadFilePath = () => {
   return `${UPLOAD_FILE_RELATIVE_URL}upload`;
 };
 
-export const fileValidation = async(projectId: string) => {
+export const fileValidation = async(projectId: string, affix:string) => {
   try {
     const options = {
       headers: {
         'app_token': getDataFromLocalStorage('app_token'),
-        'projectId': projectId 
+        'projectId': projectId ,
+        'affix': affix,
       },
       
     };
@@ -70,7 +71,29 @@ export const getConfig = async() => {
 
 export const getRestrictedKeywords = async () => {
   try {
-    return await getCall(`https://dev18-api.csnonprod.com/v3/restricted_uids`);
+    return await getCall(`https://api.contentstack.io/v3/restricted_uids`);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+}
+
+export const getLocales = async(api_key : string) => {
+  try {
+    const options = {
+      headers: {
+        'authtoken': getDataFromLocalStorage('app_token'),
+        'api_key': api_key ,
+        //'affix': affix,
+      },
+      
+    };
+
+    return await getCall(`https://api.contentstack.io/v3/locales`, options)
+    
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`${error.message}`);

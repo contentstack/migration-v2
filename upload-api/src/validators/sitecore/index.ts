@@ -39,7 +39,7 @@ async function sitecoreValidator({ data }: props) {
     blob = await Promise.all(blob);
     mediaLibrary = await Promise.all(mediaLibrary);
 
-    if (templates?.length > 0 && content?.length > 0 && blob?.length > 0 && mediaLibrary?.length > 0) {    
+    if (templates?.length > 0 && content?.length > 0 && blob?.length > 0 && mediaLibrary?.length > 0) {
       return true;
     }
     return false;

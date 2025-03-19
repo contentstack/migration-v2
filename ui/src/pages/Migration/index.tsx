@@ -9,7 +9,22 @@ import { RootState } from '../../store';
 import {  updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Services
-import { getMigrationData, updateCurrentStepData, updateLegacyCMSData, updateDestinationStack, updateAffixData, fileformatConfirmation, updateFileFormatData, affixConfirmation, updateStackDetails, getExistingContentTypes, getExistingGlobalFields, startMigration, updateMigrationKey } from '../../services/api/migration.service';
+import {
+  getMigrationData,
+  updateCurrentStepData,
+  updateLegacyCMSData,
+  updateDestinationStack,
+  updateAffixData,
+  fileformatConfirmation,
+  updateFileFormatData,
+  affixConfirmation,
+  updateStackDetails,
+  getExistingContentTypes,
+  getExistingGlobalFields,
+  startMigration,
+  updateMigrationKey,
+  updateLocaleMapper
+} from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -23,7 +38,14 @@ import {
   DEFAULT_IFLOWSTEP,
   IFlowStep
 } from '../../components/Stepper/FlowStepper/flowStep.interface';
-import { IDropDown, INewMigration, ICMSType, ILegacyCMSComponent, DEFAULT_CMS_TYPE } from '../../context/app/app.interface';
+import {
+  IDropDown,
+  INewMigration,
+  ICMSType,
+  ILegacyCMSComponent,
+  DEFAULT_CMS_TYPE,
+  TestStacks
+} from '../../context/app/app.interface';
 import { ContentTypeSaveHandles } from '../../components/ContentMapper/contentMapper.interface';
 import { ICardType } from "../../components/Common/Card/card.interface";
 import { ModalObj } from '../../components/Modal/modal.interface';
@@ -37,6 +59,8 @@ import ContentMapper from '../../components/ContentMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
+import { getMigratedStacks } from '../../services/api/project.service';
+import { getStackLocales } from '../../services/api/stacks.service';
 
 type StepperComponentRef = {
   handleStepChange: (step: number) => void;
@@ -115,7 +139,6 @@ const Migration = () => {
     } catch (error) {
       // return error;
       console.log(error);
-
     }
   }
 
@@ -161,6 +184,8 @@ const Migration = () => {
   if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
 
   const data = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
+  const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
+  const csLocales = await getStackLocales(selectedOrganisation?.value);
   if (data) {
     setIsLoading(false);
     setProjectData(data?.data);
@@ -200,6 +225,7 @@ const Migration = () => {
   const existingGlobalFields = await fetchExistingGlobalFields();
   
   const stackLink = `${CS_URL[projectData?.region]}/stack/${projectData?.current_test_stack_id}/dashboard`;
+  const stackName = projectData?.test_stacks?.find((stack:TestStacks)=> stack?.stackUid === projectData?.current_test_stack_id)?.stackName;
   
   const projectMapper = {
     ...newMigrationData,
@@ -229,7 +255,10 @@ const Migration = () => {
       destination_stack: {
         selectedOrg: selectedOrganisationData,
         selectedStack: selectedStackData,
-        stackArray:[]
+        stackArray: [],
+        migratedStacks: migratedstacks?.data?.destinationStacks,
+        sourceLocale: projectData?.source_locales,
+        csLocale: csLocales?.data?.locales
       },
       content_mapping: {
         isDropDownChanged: false,
@@ -241,7 +270,8 @@ const Migration = () => {
         stack_link: stackLink,
         stack_api_key: projectData?.current_test_stack_id,
         isMigrationStarted: newMigrationData?.test_migration?.isMigrationStarted || false,
-        isMigrationComplete: newMigrationData?.test_migration?.isMigrationStarted || false
+        isMigrationComplete: newMigrationData?.test_migration?.isMigrationStarted || false,
+        stack_name: stackName,
       },
       migration_execution: {
         migrationStarted: projectData?.isMigrationStarted,
@@ -357,12 +387,19 @@ const Migration = () => {
         }
       });
       const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
-      handleStepChange(1);
-      if (res) {
+      
+      if (res?.status === 200) {
         setIsLoading(false);
-
+        handleStepChange(1);
         const url = `/projects/${projectId}/migration/steps/2`;
         navigate(url, { replace: true });
+      }
+      else{   
+        setIsLoading(false);
+        Notification({
+          notificationContent: { text: res?.data?.error?.message},
+          type: 'error'
+        });
       }
     }
     else {
@@ -400,31 +437,64 @@ const Migration = () => {
   const handleOnClickDestinationStack = async (event: MouseEvent) => {
     setIsLoading(true);
 
-    if(isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)){
+    const hasNonEmptyMapping =
+      newMigrationData?.destination_stack?.localeMapping &&
+      Object.values(newMigrationData?.destination_stack?.localeMapping)?.some(
+        (value) => value !== '' || value !== null || value !== undefined
+      );
+    console.log(hasNonEmptyMapping);
+    
+    const master_locale:any = {};
+    const locales: any= {};
+    Object.entries(newMigrationData?.destination_stack?.localeMapping).forEach(([key, value]) => {
+      if (key.includes("master_locale")) {
+        master_locale[key.replace("-master_locale", "")] = value;
+      } else {
+        locales[key] = value;
+      }
+    });
+    if (
+      isCompleted &&
+      !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) &&
+      hasNonEmptyMapping
+    ) {
       event?.preventDefault();
       //Update Data in backend
       await updateDestinationStack(selectedOrganisation?.value, projectId, {
         stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
       });
 
-      await updateStackDetails(selectedOrganisation?.value, projectId,{
-        label:newMigrationData?.destination_stack?.selectedStack?.label,
-        value:newMigrationData?.destination_stack?.selectedStack?.value,
-        master_locale:newMigrationData?.destination_stack?.selectedStack?.master_locale,
-        created_at:newMigrationData?.destination_stack?.selectedStack?.created_at,
+      await updateStackDetails(selectedOrganisation?.value, projectId, {
+        label: newMigrationData?.destination_stack?.selectedStack?.label,
+        value: newMigrationData?.destination_stack?.selectedStack?.value,
+        master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale,
+        created_at: newMigrationData?.destination_stack?.selectedStack?.created_at,
         isNewStack: newMigrationData?.destination_stack?.selectedStack?.isNewStack
-      })
-      handleStepChange(2);
+      });
+      await updateLocaleMapper(projectId,{'master_locale': master_locale, locales:locales})
       const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
-      if (res) {
+      if (res?.status === 200) {
+        handleStepChange(2);
         setIsLoading(false);
         const url = `/projects/${projectId}/migration/steps/3`;
         navigate(url, { replace: true });
+      } else {
+        setIsLoading(false);
+        Notification({
+          notificationContent: { text: res?.data?.error?.message },
+          type: 'error'
+        });
       }
-    } else{
+    } else if (!isCompleted) {
       setIsLoading(false);
       Notification({
         notificationContent: { text: 'Please select a stack to proceed further' },
+        type: 'warning'
+      });
+    } else if (! hasNonEmptyMapping) {
+      setIsLoading(false);
+      Notification({
+        notificationContent: { text: 'Please complete the language mapping to preceed futher' },
         type: 'warning'
       });
     }
@@ -477,13 +547,16 @@ const Migration = () => {
   const handleOnClickTestMigration = async () => {
     setIsLoading(false);
 
-    const url = `/projects/${projectId}/migration/steps/5`;
-    navigate(url, { replace: true });
 
     await updateMigrationKey(selectedOrganisation.value, projectId);
 
-    await updateCurrentStepData(selectedOrganisation.value, projectId);
-    handleStepChange(4);
+    const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+    if(res?.status === 200){
+      handleStepChange(4);
+      const url = `/projects/${projectId}/migration/steps/5`;
+      navigate(url, { replace: true });
+    }
+
   }
 
   /**

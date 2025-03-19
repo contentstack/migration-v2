@@ -11,6 +11,7 @@ import { ICardType } from '../../../components/Common/Card/card.interface';
 
 //import progressbar
 import ProgressBar from '../../../components/Common/ProgressBar';
+import { VALIDATION_DOCUMENTATION_URL } from '../../../utilities/constants';
 interface LoadUploadFileProps {
   stepComponentProps?: ()=>{};
   currentStep: number;
@@ -87,6 +88,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [processing, setProcessing] = useState('');
   //const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
   //const [setIsFormatValid] = useState<boolean>(false);
+  const [affix, setAffix] = useState<string>(newMigrationData?.legacy_cms?.affix);
 
   const { projectId = '' } = useParams();
 
@@ -103,7 +105,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const {data, status} =  await fileValidation(projectId);
+      const {data, status} =  await fileValidation(projectId, newMigrationData?.legacy_cms?.affix);
       
   
       setProgressPercentage(70);
@@ -380,7 +382,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       
       setIsValidated(true);
       setShowMessage(true)
-      setValidationMessage('Validation is successful');
+      setValidationMessage('File validated successfully.');
       setIsDisabled(true);
       ! isEmptyString(newMigrationData?.legacy_cms?.affix) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) && props.handleStepChange(props?.currentStep, true);
       
@@ -408,7 +410,14 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
+    setAffix(newMigrationData?.legacy_cms?.affix);
   }, [newMigrationData]);
+
+  const sanitizedCmsType = cmsType?.toLowerCase().replace(/[^\w\s-]/g, '');
+
+  const documentationUrl = VALIDATION_DOCUMENTATION_URL?.[sanitizedCmsType];
+
+
   
   const validationClassName = isValidated ? 'success' : 'error';
 
@@ -420,22 +429,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         <div className="col-12">
           <div className={containerClassName}>
             {!isConfigLoading && !isEmptyString(fileDetails?.localPath) ? (
-              <div className='file-icon-group'>
+              // <div className='file-icon-group'>
                 <FileComponent fileDetails={fileDetails || {}} />
-                {/* {(showMessage &&  !isCancelLoading) && 
-                  (<Tooltip content='cancel validation' position='top'>
-                    <Icon icon='CloseNoborder' version='v2' onClick={handleCancelValidation}/>
-
-                  </Tooltip> )
-                } */}
-                {/* { isCancelLoading &&   
-                  <div style={{justifyContent:'center', alignItems:'center', marginTop:'7px'}}>
-                    <AsyncLoader color='$color-brand-primary-base'/>
-                  </div>
-              } */}
-              </div>
-              
-
+              // </div>
             ) :
                
             <div className='loader'>
@@ -444,9 +440,12 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
              }
             {showMessage  && ! showProgress &&
               (
-              <>
+              <div className='message-container'>
                 <Paragraph className={`${validationClassName}` } tagName='p' variant="p2" text={validationMessgae}/>
-              </>
+                {(! isValidated && validationMessgae === "Validation failed.")  && <p className={`${validationClassName} p2 doc-link`}>
+                     Please check the requirements <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">here</a>
+                  </p>}
+              </div>
               )
             }
             {showProgress && isLoading && 
@@ -467,7 +466,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={isDisabled}
+            disabled={isDisabled || isEmptyString(affix)}
           > 
             Validate File
           </Button>

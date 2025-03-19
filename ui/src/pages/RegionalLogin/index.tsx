@@ -38,8 +38,6 @@ const RegionalLogin = () => {
 
   const { description, heading, regions } = data;
 
-  usePreventBackNavigation();
-
   return (
     <div className="d-flex vh-100 justify-content-center flex-column">
       <div className="mx-3">

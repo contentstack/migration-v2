@@ -76,8 +76,15 @@
  * @cssproperty box-shadow - The box shadow effect to apply.
  * @cssvalue 0 3px $px-5 $px-2 rgb(215 215 215) - The specific box shadow values.
  */
-.connector_list:hover {
+ .connector_list:hover {
   box-shadow: 0 3px $px-5 $px-2 rgb(215 215 215);
+}
+
+.connector_list.disabled-card {
+  &:hover {
+    box-shadow: none;
+    cursor: not-allowed;
+  }
 }
 
 /**
@@ -148,4 +155,8 @@
   p {
     color: $color-stepper-title;
   }
+}
+.Card__disabled{
+  cursor: not-allowed;
+  opacity: .5;
 }

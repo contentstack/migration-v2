@@ -61,10 +61,16 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   };
 
   const getFileExtension = (filePath: string): string => {
+    const normalizedPath = filePath?.replace(/\\/g, "/")?.replace(/\/$/, "");
+
+    // Use regex to extract the file extension
+    const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
+    const ext = match ? match[1]?.toLowerCase() : "";
+
     const fileName = filePath?.split('/')?.pop();
-    const ext = fileName?.split('.')?.pop();
+    //const ext = fileName?.split('.')?.pop();
     const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
-    return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : 'zip';
+    return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
   };
 
   const handleFileFormat = async() =>{
@@ -74,7 +80,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : data?.cmsType?.toLowerCase();
       const filePath = data?.localPath?.toLowerCase();
       const fileFormat =  getFileExtension(filePath);
-      if(! isEmptyString(selectedCard?.fileformat_id)){
+      if(! isEmptyString(selectedCard?.fileformat_id) && selectedCard?.fileformat_id !== fileFormat && newMigrationData?.project_current_step > 1){   
         setFileIcon(selectedCard?.title);
       }
       else{
@@ -138,14 +144,14 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
         <div className="col-12">
           <label htmlFor='file-format'>
             <TextInput
-            value={fileIcon}
+            value={fileIcon ? fileIcon : 'file extension not found'}
             version="v2"              
             isReadOnly={true}
             disabled={true}
             width="large"
             placeholder=""
             prefix={
-            <Icon icon={fileIcon} size="medium" version='v2'
+            <Icon icon={fileIcon ? fileIcon : 'CrashedPage'} size="medium" version='v2'
             aria-label='fileformat'/>}
             />
 

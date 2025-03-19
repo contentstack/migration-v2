@@ -331,3 +331,12 @@ export const updateMigrationKey = async (orgId: string, projectId: string) => {
     return error;
   }
 };
+
+export const updateLocaleMapper = async(projectId: string, data: any) => {
+  try {
+    return await postCall(
+      `${API_VERSION}/migration/updateLocales/${projectId}`, data, options);
+  } catch (error) {
+    return error;
+  }
+}

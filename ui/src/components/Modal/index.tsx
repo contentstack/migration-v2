@@ -60,7 +60,7 @@ const Modal = (props: ProjectModalProps) => {
       return 'Project name is required.'; 
     } else if (!/^[^\s].*$/.test(value)) { 
       setInputValue(false);
-      return 'Please enter a valid project name.';
+      //return 'Please enter a valid project name.';
     } else {
       setInputValue(true);
     }

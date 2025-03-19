@@ -74,12 +74,12 @@
   margin-left: 10px !important;
   border: 1px solid $color-brand-secondary-lightest;
   border-radius: var(--TermCount, 5px);
-  
+  padding: 10px 15px;
 }
-.validation-container > * {
-  margin-right: 10px;
-  margin-left: 15px;
-}
+// .validation-container > * {
+//   margin-right: 10px;
+//   margin-left: 15px;
+// }
 .error-container{
   display: flex;
   background-color: $color-base-white-5;
@@ -167,4 +167,11 @@
   line-clamp: 2;  
   -webkit-box-orient: vertical;
   width: 540px;
+}
+.message-container{
+  display: inline-flex; 
+  align-items: center; 
+}
+.doc-link{
+  margin-left: 5px;
 }

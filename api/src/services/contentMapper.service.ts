@@ -49,15 +49,15 @@ const putTestData = async (req: Request) => {
   */
   contentTypes.map((type: any, index: any) => {
     const fieldIds: string[] = [];
-    const fields = type?.fieldMapping?.map?.((field: any) => {
-      const id = field?.id?.replace(/[{}]/g, "")?.toLowerCase() || uuidv4();
+    const fields = type?.fieldMapping?.filter((field: any) => field)?.map?.((field: any) => {
+      const id = field?.id ? field?.id?.replace(/[{}]/g, "")?.toLowerCase() : uuidv4();
       field.id = id;
       fieldIds.push(id);
       return { id, projectId, isDeleted: false, ...field };
     });
 
     FieldMapperModel.update((data: any) => {
-      data.field_mapper = [...(data?.field_mapper ?? []), ...fields];
+      data.field_mapper = [...(data?.field_mapper ?? []), ...(fields ?? [])];
     });
     contentTypes[index].fieldMapping = fieldIds;
   });
@@ -292,19 +292,12 @@ const getExistingContentTypes = async (req: Request) => {
           headers,
         })
       );
-
-      if (err) {
-        throw new Error(
-          `Error fetching selected content type: ${
-            err.response?.data || err.message
-          }`
-        );
-      }
+      
 
       selectedContentType = {
-        title: res.data.content_type?.title,
-        uid: res.data.content_type?.uid,
-        schema: res.data.content_type?.schema,
+        title: res?.data?.content_type?.title,
+        uid: res?.data?.content_type?.uid,
+        schema: res?.data?.content_type?.schema,
       };
     }
     return {
@@ -314,7 +307,7 @@ const getExistingContentTypes = async (req: Request) => {
   } catch (error: any) {
     return {
       data: error.message,
-      status: 500,
+      status: error.status || 500,
     };
   }
 };
@@ -397,18 +390,18 @@ const getExistingGlobalFields = async (req: Request) => {
         })
       );
 
-      if (err) {
-        throw new Error(
-          `Error fetching selected global field: ${
-            err.response?.data || err.message
-          }`
-        );
-      }
+      // if (err) {
+      //   throw new Error(
+      //     `Error fetching selected global field: ${
+      //       err.response?.data || err.message
+      //     }`
+      //   );
+      // }
 
       selectedGlobalField = {
-        title: res.data.global_field?.title,
-        uid: res.data.global_field?.uid,
-        schema: res.data.global_field?.schema,
+        title: res?.data?.global_field?.title,
+        uid: res?.data?.global_field?.uid,
+        schema: res?.data?.global_field?.schema,
       };
     }
 
@@ -638,7 +631,7 @@ const resetToInitialMapping = async (req: Request) => {
     [
       NEW_PROJECT_STATUS[0],
       NEW_PROJECT_STATUS[5],
-      NEW_PROJECT_STATUS[4],
+      //NEW_PROJECT_STATUS[4],
     ].includes(project.status) ||
     project.current_step < STEPPER_STEPS.CONTENT_MAPPING
   ) {
@@ -679,7 +672,7 @@ const resetToInitialMapping = async (req: Request) => {
 
   try {
     if (!isEmpty(fieldMappingData)) {
-      await FieldMapperModel.read();
+      //await FieldMapperModel.read();
       (fieldMappingData || []).forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) => f?.id === field?.id
@@ -689,7 +682,7 @@ const resetToInitialMapping = async (req: Request) => {
             data.field_mapper[fieldIndex] = {
               ...field,
               contentstackField: field?.otherCmsField,
-              contentstackFieldUid: field?.uid,
+              contentstackFieldUid: field?.backupFieldUid,
               contentstackFieldType: field?.backupFieldType,
             };
           });

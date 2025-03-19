@@ -80,4 +80,6 @@ router.patch("/:projectId/stack-details", asyncRouter(projectController.updateSt
 //update migration execution key 
 router.put("/:projectId/migration-excution",asyncRouter(projectController.updateMigrationExecution));
 
+router.get("/:projectId/get-migrated-stacks", asyncRouter(projectController.getMigratedStacks))
+
 export default router;
