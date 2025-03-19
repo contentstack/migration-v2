@@ -97,29 +97,28 @@ jobs:
                 git clean -fdX  # Remove untracked files and directories
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
-                                if [ ! -f "eslint.config.cjs" ]; then
+                if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
-                    const js = require("@eslint/js");
-                    const globals = require("globals");
+                const js = require("@eslint/js");
+                const globals = require("globals");
 
-                    module.exports = [
-                      js.configs.recommended,
-                      {
-                        languageOptions: {
-                          ecmaVersion: "latest",
-                          sourceType: "module",
-                          globals: globals.node,
-                        },
-                        rules: {
-                          "no-unused-vars": "warn",
-                          "no-console": "off"
-                        }
-                      }
-                    ];
-                    EOL
+                module.exports = [
+                js.configs.recommended,
+                {
+                    languageOptions: {
+                    ecmaVersion: "latest",
+                    sourceType: "module",
+                    globals: globals.node,
+                    },
+                    rules: {
+                    "no-unused-vars": "warn",
+                    "no-console": "off"
+                    }
+                }
+                ];
+                EOL
                 fi
-
 
                 # Remove unused imports and missing file references
                 echo "Running ESLint to remove unused imports..."
@@ -187,27 +186,27 @@ jobs:
                 git clean -fdX  # Remove untracked files and directories
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
-                                if [ ! -f "eslint.config.cjs" ]; then
+                if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
-                    const js = require("@eslint/js");
-                    const globals = require("globals");
+                const js = require("@eslint/js");
+                const globals = require("globals");
 
-                    module.exports = [
-                      js.configs.recommended,
-                      {
-                        languageOptions: {
-                          ecmaVersion: "latest",
-                          sourceType: "module",
-                          globals: globals.node,
-                        },
-                        rules: {
-                          "no-unused-vars": "warn",
-                          "no-console": "off"
-                        }
-                      }
-                    ];
-                    EOL
+                module.exports = [
+                js.configs.recommended,
+                {
+                    languageOptions: {
+                    ecmaVersion: "latest",
+                    sourceType: "module",
+                    globals: globals.node,
+                    },
+                    rules: {
+                    "no-unused-vars": "warn",
+                    "no-console": "off"
+                    }
+                }
+                ];
+                EOL
                 fi
 
 
@@ -277,27 +276,27 @@ jobs:
                 git clean -fdX  # Remove untracked files and directories
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
-                                if [ ! -f "eslint.config.cjs" ]; then
+                if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
-                    const js = require("@eslint/js");
-                    const globals = require("globals");
+                const js = require("@eslint/js");
+                const globals = require("globals");
 
-                    module.exports = [
-                      js.configs.recommended,
-                      {
-                        languageOptions: {
-                          ecmaVersion: "latest",
-                          sourceType: "module",
-                          globals: globals.node,
-                        },
-                        rules: {
-                          "no-unused-vars": "warn",
-                          "no-console": "off"
-                        }
-                      }
-                    ];
-                    EOL
+                module.exports = [
+                js.configs.recommended,
+                {
+                    languageOptions: {
+                    ecmaVersion: "latest",
+                    sourceType: "module",
+                    globals: globals.node,
+                    },
+                    rules: {
+                    "no-unused-vars": "warn",
+                    "no-console": "off"
+                    }
+                }
+                ];
+                EOL
                 fi
 
 
