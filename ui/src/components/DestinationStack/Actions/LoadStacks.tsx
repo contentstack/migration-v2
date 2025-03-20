@@ -23,7 +23,7 @@ import { Stack } from '../../../components/Common/AddStack/addStack.interface';
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 
 // Services
-import { createStacksInOrg, getAllStacksInOrg } from '../../../services/api/stacks.service';
+import { createStacksInOrg, getAllStacksInOrg, getStackLocales } from '../../../services/api/stacks.service';
 
 // Components
 import AddStack from '../../../components/Common/AddStack/addStack';
@@ -191,7 +191,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       if (allStack?.length <= 0) {
         setAllStack(loadingOption);
         const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
-
+        const csLocales = await getStackLocales(selectedOrganisation?.value);
         const stackArray = validateArray(stackData?.data?.stacks)
           ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
               label: stack?.name,
@@ -239,6 +239,16 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           // Dispatch the updated migration data to Redux
           dispatch(updateNewMigrationData(newMigrationDataObj));
         }
+        const newMigrationDataObj: INewMigration = {
+          // ...newMigrationDataRef?.current,
+          ...newMigrationData,
+          destination_stack: {
+            ...newMigrationData?.destination_stack,
+            csLocale: csLocales?.data?.locales
+          }
+        };  
+        // Dispatch the updated migration data to Redux
+        dispatch(updateNewMigrationData(newMigrationDataObj));
       }
     } catch (error) {
       return error;
