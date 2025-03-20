@@ -61,7 +61,7 @@ const mapLocales = ({ masterLocale, locale, locales }: any) => {
       return key;
     }
   }
-  return locale.toLowerCase();
+  return locale?.toLowerCase?.();
 }
 
 
