@@ -8,17 +8,17 @@ export interface SchemaProps {
    * The type of the field.
    */
   fieldtype: string;
-  
+
   /**
    * The updated settings for the field.
    */
   value: UpdatedSettings;
-  
+
   /**
    * The ID of the row.
    */
   rowId: string;
-  
+
   /**
    * A function to update the field settings.
    * @param rowId - The ID of the row.
@@ -26,22 +26,22 @@ export interface SchemaProps {
    * @param checkBoxChanged - Indicates whether the checkbox has changed.
    */
   updateFieldSettings: (rowId: string, value: Advanced, checkBoxChanged: boolean) => void;
-  
+
   /**
    * Indicates whether the field is localized.
    */
   isLocalised: boolean;
-  
+
   /**
    * A function to close the modal.
    */
   closeModal: () => void;
-  
+
   /**
    * The data for the field map.
    */
   data: FieldMapType;
-  
+
   /**
    * The ID of the project.
    */
@@ -121,8 +121,8 @@ export interface UpdatedSettings {
 
   embedObjects?: any;
 
-  default_value?: string |boolean;
-  options?: any[]
+  default_value?: string | boolean;
+  options?: any[];
 }
 
 /**
@@ -236,8 +236,8 @@ export interface StateType {
   embedAssests?: boolean;
 }
 
-export interface optionsType{
-  label?:string;
-  key?:string;
-  value:string
+export interface optionsType {
+  label?: string;
+  key?: string;
+  value: string;
 }
