@@ -191,7 +191,7 @@ const Fields: MappingFields = {
     options: {
       Select: 'checkbox'
     },
-    type: 'display_type'
+    type:'checkbox'
   },
   global_field: {
     label: 'Global',

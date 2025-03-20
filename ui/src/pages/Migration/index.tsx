@@ -188,15 +188,15 @@ const Migration = () => {
   const fetchProjectData = async () => {
     if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
 
-    const data = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
-    const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId);
-    const csLocales = await getStackLocales(selectedOrganisation?.value);
-    if (data) {
-      setIsLoading(false);
-      setProjectData(data?.data);
-    }
-    setIsProjectMapper(true);
-    const projectData = data?.data;
+  const data = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
+  const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
+
+  if (data) {
+    setIsLoading(false);
+    setProjectData(data?.data);
+  }
+  setIsProjectMapper(true);
+  const projectData = data?.data;
 
     const legacyCmsData: ILegacyCMSComponent = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
 
@@ -280,7 +280,6 @@ const Migration = () => {
         stackArray: [],
         migratedStacks: migratedstacks?.data?.destinationStacks,
         sourceLocale: projectData?.source_locales,
-        csLocale: csLocales?.data?.locales,
         localeMapping: locales
       },
       content_mapping: {
