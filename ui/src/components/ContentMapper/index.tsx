@@ -2289,7 +2289,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           </span>
                           <span className='ml-10'>
                             <Tooltip content="Schema Preview" position="bottom">
-                              <button className='list-button schema-preview' onClick={() => handleSchemaPreview(content?.otherCmsTitle, content?.id ?? '')}>{SCHEMA_PREVIEW}</button>
+                              <button className='list-button schema-preview' aria-label="schemaPreview" onClick={() => handleSchemaPreview(content?.otherCmsTitle, content?.id ?? '')}>{SCHEMA_PREVIEW}</button>
                             </Tooltip>
                           </span>
                         </div>
@@ -2329,9 +2329,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 component: (
                   <div className='d-flex align-items-center'>
                     {!isNewStack && (
-                      <Tooltip content={isContentType ? 'Fetch contentstack content type'
-                        : 'Fetch contentstack global fields'
-                      } position="left">
+                      <Tooltip content={'Fetch content type'} position="left">
                         <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
                          version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                          size='small' onClick={handleFetchContentType}>
