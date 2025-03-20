@@ -17,7 +17,7 @@ const LoginLazyLoad = lazy(() => import('../../pages/Login'));
 const RegionalLoginLazyLoad = lazy(() => import('../../pages/RegionalLogin'));
 const MigrationLazyLoad = lazy(() => import('../../pages/Migration'));
 const ProjectsLazyLoad = lazy(() => import('../../pages/Projects'));
-const SettingsLazyLoad = lazy(() => import ('../Common/Settings'))
+const SettingsLazyLoad = lazy(() => import('../Common/Settings'));
 
 /**
  * Renders the application router.
@@ -40,7 +40,7 @@ const AppRouter = () => {
           path="/projects/:projectId/migration/steps/:stepId"
           element={<MigrationLazyLoad />}
         />
-          
+
         <Route path="/projects/:projectId/settings" element={<SettingsLazyLoad />} />
       </Route>
 
