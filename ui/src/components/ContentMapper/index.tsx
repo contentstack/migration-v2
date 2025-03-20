@@ -1918,7 +1918,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       ...newMigrationData,
       content_mapping:{
         ...newMigrationData?.content_mapping,
-        existingCT: contentTypes,
+        [isContentType ? 'existingCT' : 'existingGlobal']: contentTypes,
         content_type_mapping : updatedContentTypeMapping
        
       }
@@ -2329,7 +2329,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 component: (
                   <div className='d-flex align-items-center'>
                     {!isNewStack && (
-                      <Tooltip content={'Fetch content type'} position="left">
+                      <Tooltip content={isContentType ? 'Fetch contentstack content type'
+                        : 'Fetch contentstack global fields'
+                      } position="left">
                         <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
                          version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                          size='small' onClick={handleFetchContentType}>
