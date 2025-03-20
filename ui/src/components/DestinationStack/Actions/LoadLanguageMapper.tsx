@@ -386,6 +386,7 @@ const LanguageMapper = () => {
 
         setoptions(allLocales);
         Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 &&
+        newMigrationData?.project_current_step <= 2 &&
          setcmsLocaleOptions((prevList: { label: string; value: string }[]) => {
           const newLabel = newMigrationData?.destination_stack?.selectedStack?.master_locale;
 
