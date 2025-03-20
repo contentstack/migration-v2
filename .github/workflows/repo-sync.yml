@@ -173,7 +173,7 @@ jobs:
                 # # Format code
                 # npx prettier --write .
 
-                eslint api/ ui/ upload-api/ --rule 'import/no-unresolved: error' --format compact | awk -F ':' '{print $1}' | sort -u | xargs -I {} sed -i '/import/d' {}
+                # eslint api/ ui/ upload-api/ --rule 'import/no-unresolved: error' --format compact | awk -F ':' '{print $1}' | sort -u | xargs -I {} sed -i '/import/d' {}
 
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
