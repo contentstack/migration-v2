@@ -89,6 +89,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   //const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
   //const [setIsFormatValid] = useState<boolean>(false);
   const [affix, setAffix] = useState<string>(newMigrationData?.legacy_cms?.affix);
+  const [reValidate, setReValidate] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
 
   const { projectId = '' } = useParams();
 
@@ -394,6 +395,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     if(!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated ){
       setIsDisabled(false);
     }
+    setReValidate(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
    
     // else{
     //   setIsValidated(false);
@@ -466,7 +468,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={isDisabled || isEmptyString(affix)}
+            disabled={isDisabled || isEmptyString(affix) || !reValidate}
           > 
             Validate File
           </Button>
