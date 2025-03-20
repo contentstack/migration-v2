@@ -66,9 +66,8 @@ export interface FieldMapType {
   advanced?: Advanced;
   contentstackUid: string;
   _invalid?: boolean;
-  backupFieldUid:string;
-  refrenceTo: string[]
-
+  backupFieldUid: string;
+  refrenceTo: string[];
 }
 
 export interface Advanced {
@@ -78,15 +77,15 @@ export interface Advanced {
   unique?: boolean;
   nonLocalizable?: boolean;
   embedObject?: boolean;
-  embedObjects?:any;
+  embedObjects?: any;
   minChars?: string;
   maxChars?: number;
-  minRange?: number,
-  maxRange?: number,
-  default_value?:string | boolean,
-  options?: any[],
-  minSize?: number,
-  maxSize?: number,
+  minRange?: number;
+  maxRange?: number;
+  default_value?: string | boolean;
+  options?: any[];
+  minSize?: number;
+  maxSize?: number;
   title?: string;
   url?: string;
 }
@@ -103,7 +102,18 @@ export interface FieldMetadata {
 }
 export interface ContentTypesSchema {
   display_type: string;
-  data_type?: 'text' | 'number' | 'isodate' | 'json' | 'file' | 'reference' | 'group' | 'boolean' | 'link' | 'Marketplace app' | 'Extension';
+  data_type?:
+    | 'text'
+    | 'number'
+    | 'isodate'
+    | 'json'
+    | 'file'
+    | 'reference'
+    | 'group'
+    | 'boolean'
+    | 'link'
+    | 'Marketplace app'
+    | 'Extension';
   display_name: string;
   enum?: any;
   error_messages?: ErrorMessages;
@@ -136,15 +146,15 @@ export interface Mapping {
 export interface ContentTypeList {
   title: string;
   schema: ContentTypesSchema[];
-  uid:  string;
+  uid: string;
 }
 
 export interface Value {
-  uid?:string;
+  uid?: string;
   data_type?: string;
   display_name?: string;
   options?: object;
-  'No matches found'?:string;
+  'No matches found'?: string;
 }
 export interface OptionsType {
   label?: string;
@@ -167,7 +177,9 @@ export interface ContentTypeMap {
 export interface ContentTypeSaveHandles {
   handleSaveContentType: () => void;
 }
-export type MouseOrKeyboardEvent = React.MouseEvent<HTMLElement, MouseEvent> | React.KeyboardEvent<HTMLButtonElement>;
+export type MouseOrKeyboardEvent =
+  | React.MouseEvent<HTMLElement, MouseEvent>
+  | React.KeyboardEvent<HTMLButtonElement>;
 
 export interface MappingFields {
   [key: string]: MappingObj;
@@ -176,7 +188,7 @@ export interface MappingFields {
 export interface MappingObj {
   label: string;
   options: Mapping;
-  type: string
+  type: string;
 }
 
 export interface FieldHistoryObj {
@@ -195,5 +207,3 @@ export interface ModifiedField {
   parentId: string;
   uid: string;
 }
-
-
