@@ -49,7 +49,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
         },
         data: JSON.stringify(fieldMapping),
       };
-      const response = await axios.request(config)
+      const response = await axios?.request?.(config)
       if (response?.data?.content_mapper?.length) {
         deleteFolderSync(infoMap?.path);
         logger.info('Validation success:', {
@@ -67,7 +67,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           'Content-Type': 'application/json'
         },
         data: {
-          locale: Array.from(localeData)
+          locale: Array?.from?.(localeData) ?? []
         },
       };
 
