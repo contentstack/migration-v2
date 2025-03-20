@@ -4,7 +4,7 @@ import {
   ModalHeader,
   ModalFooter,
   ButtonGroup,
-  Button,
+  Button
 } from '@contentstack/venus-components';
 
 interface Props {
@@ -18,7 +18,7 @@ interface Props {
 }
 
 const SaveChangesModal = (props: Props) => {
-  return(
+  return (
     <>
       <ModalHeader
         title={'Save Changes'}
@@ -29,35 +29,50 @@ const SaveChangesModal = (props: Props) => {
         className="text-capitalize"
       />
       <ModalBody className="">
-          You have unsaved changes on content type <strong>{props?.otherCmsTitle ?? ''}</strong>. Save your changes if you don&apos;t want to lose them.
+        You have unsaved changes on content type <strong>{props?.otherCmsTitle ?? ''}</strong>. Save
+        your changes if you don&apos;t want to lose them.
       </ModalBody>
       <ModalFooter>
         <ButtonGroup>
-          <Button buttonType="light"version={"v2"}  onClick={() => {props.closeModal(); props?.isopen?.(false)}}> 
+          <Button
+            buttonType="light"
+            version={'v2'}
+            onClick={() => {
+              props.closeModal();
+              props?.isopen?.(false);
+            }}
+          >
             Cancel
           </Button>
-          <Button buttonType="secondary"version={"v2"}  onClick={() => {
-            props.closeModal(); 
-            props?.dropdownStateChange();
-            props.openContentType?.();
-            props?.isopen?.(false);
-            props?.changeStep?.();
-          }}
-          > 
+          <Button
+            buttonType="secondary"
+            version={'v2'}
+            onClick={() => {
+              props.closeModal();
+              props?.dropdownStateChange();
+              props.openContentType?.();
+              props?.isopen?.(false);
+              props?.changeStep?.();
+            }}
+          >
             Don&apos;t Save
           </Button>
-          <Button version={"v2"} onClick={() => { 
-            props?.dropdownStateChange();
-            props?.saveContentType?.(); 
-            props.closeModal(); 
-            props.openContentType?.();
-            props?.changeStep?.();
-          }}>Save</Button>
+          <Button
+            version={'v2'}
+            onClick={() => {
+              props?.dropdownStateChange();
+              props?.saveContentType?.();
+              props.closeModal();
+              props.openContentType?.();
+              props?.changeStep?.();
+            }}
+          >
+            Save
+          </Button>
         </ButtonGroup>
       </ModalFooter>
     </>
-  )
-
-}
+  );
+};
 
 export default SaveChangesModal;
