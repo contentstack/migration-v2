@@ -84,7 +84,7 @@ const Migration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
-  const [isProjectMapper, setIsProjectMapper] = useState<boolean>(false);
+  const [isProjectMapper, setIsProjectMapper] = useState<boolean>(true);
 
   const [disableMigration, setDisableMigration] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -182,7 +182,7 @@ const Migration = () => {
   */
   const fetchProjectData = async () => {
   if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
-
+  setIsProjectMapper(true);
   const data = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
   const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
 
@@ -190,7 +190,6 @@ const Migration = () => {
     setIsLoading(false);
     setProjectData(data?.data);
   }
-  setIsProjectMapper(true);
   const projectData = data?.data;
 
   const legacyCmsData:ILegacyCMSComponent = await  getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
