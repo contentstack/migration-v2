@@ -468,7 +468,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={isDisabled || isEmptyString(affix) || !reValidate}
+            disabled={isDisabled || isEmptyString(affix) || reValidate}
           > 
             Validate File
           </Button>
