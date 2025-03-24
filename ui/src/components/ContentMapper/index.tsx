@@ -501,7 +501,15 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               [key]: { label: item?.display_name, value: item },
             }));
           }
-          if (item?.data_type === "group" && Array.isArray(item?.schema)) {
+          if(contentTypeSchema?.every((item)=> value?.value?.uid !== item?.uid)){
+            setExistingField((prevOptions: ExistingFieldType) => {
+              const { [key]: _, ...rest } = prevOptions; // Destructure to exclude the key to remove
+              return {
+                ...rest
+              };
+            })
+          }
+          else if (item?.data_type === "group" && Array.isArray(item?.schema)) {
             item?.schema?.forEach((schemaItem) => {
 
               if (value?.value?.uid === schemaItem?.uid && value?.label === `${item?.display_name} > ${schemaItem?.display_name}`) {
