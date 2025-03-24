@@ -49,36 +49,33 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
         },
         data: JSON.stringify(fieldMapping),
       };
-      const response = await axios.request(config)
+      const response = await axios?.request?.(config)
       if (response?.data?.content_mapper?.length) {
         deleteFolderSync(infoMap?.path);
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.MAPPER_SAVED,
         });
+        const mapperConfig = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
+          headers: {
+            app_token,
+            'Content-Type': 'application/json'
+          },
+          data: {
+            locale: Array?.from?.(localeData) ?? []
+          },
+        };
+        const mapRes = await axios.request(mapperConfig);
+        if (mapRes?.status == 200) {
+          logger.info('Legacy CMS', {
+            status: HTTP_CODES?.OK,
+            message: HTTP_TEXTS?.LOCALE_SAVED,
+          });
+        }
       }
-
-      const mapperConfig = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
-        headers: {
-          app_token,
-          'Content-Type': 'application/json'
-        },
-        data: {
-          locale: Array.from(localeData)
-        },
-      };
-
-      const mapRes = await axios.request(mapperConfig)
-      if (mapRes?.status == 200) {
-        logger.info('Legacy CMS', {
-          status: HTTP_CODES?.OK,
-          message: HTTP_TEXTS?.LOCALE_SAVED,
-        });
-      }
-
     }
   } catch (err: any) {
     console.error("🚀 ~ createSitecoreMapper ~ err:", err?.response?.data ?? err)
