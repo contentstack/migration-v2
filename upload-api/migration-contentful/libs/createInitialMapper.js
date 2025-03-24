@@ -88,6 +88,7 @@ const createInitialMapper = async () => {
       const uidTitle = [
         {
           uid: 'title',
+          backupFieldUid: 'title',
           otherCmsField: 'title',
           otherCmsType: 'text',
           contentstackField: 'title',
@@ -99,6 +100,7 @@ const createInitialMapper = async () => {
         {
           uid: 'url',
           otherCmsField: 'url',
+          backupFieldUid: 'url',
           otherCmsType: 'text',
           contentstackField: 'Url',
           contentstackFieldUid: 'url',
