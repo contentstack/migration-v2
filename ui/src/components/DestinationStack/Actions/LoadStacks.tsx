@@ -236,10 +236,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           dispatch(updateNewMigrationData(newMigrationDataObj));
         }
         const newMigrationDataObj: INewMigration = {
-          // ...newMigrationDataRef?.current,
-          ...newMigrationData,
+           ...newMigrationDataRef?.current,
+          //...newMigrationData,
           destination_stack: {
-            ...newMigrationData?.destination_stack,
+            ...newMigrationDataRef?.current?.destination_stack,
             csLocale: csLocales?.data?.locales
           }
         };  
