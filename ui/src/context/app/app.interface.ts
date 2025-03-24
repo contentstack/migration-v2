@@ -372,7 +372,7 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   destination_stack: DEFAULT_DESTINATION_STACK,
   content_mapping: DEFAULT_CONTENT_MAPPER,
   test_migration: DEFAULT_TEST_MIGRATION,
-  isprojectMapped: false,
+  isprojectMapped: true,
   stackDetails: DEFAULT_DROPDOWN,
   testStacks: [],
   migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP,
