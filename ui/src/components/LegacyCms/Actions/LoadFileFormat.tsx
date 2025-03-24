@@ -112,7 +112,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           ...newMigrationDataRef?.current,     
           legacy_cms: {
             ...newMigrationDataRef?.current?.legacy_cms,
-            selectedFileFormat: selectedFileFormatObj
+            selectedFileFormat: selectedFileFormatObj,
           }
         };
       
@@ -131,7 +131,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   /****  ALL USEEffects  HERE  ****/
   useEffect(()=>{
     handleFileFormat();
-    handleBtnClick();
+    //handleBtnClick();
   },[]);
 
   useEffect(() => {
