@@ -35,7 +35,7 @@
       "open_in_new_tab": false
     }
   ],
-  "content_types_heading": "Content Types",
+  "content_types_heading": "Content Models",
   "contentstack_fields": {
     "title": "Contentstack Field Types",
     "field_types": [
@@ -143,7 +143,7 @@
     "_version": 3
   },
   "table_search_placeholder": "Search fields",
-  "search_placeholder": "Search content types",
+  "search_placeholder": "Search content models",
   "tags": [],
   "title": "Content Mapping",
   "updated_at": "2024-01-25T12:13:32.967Z",
