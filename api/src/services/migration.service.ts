@@ -230,7 +230,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
       case CMS.SITECORE_V9:
       case CMS.SITECORE_V10: {
         if (packagePath) {
-          await siteCoreService?.createEntry({ packagePath, contentTypes, master_locale: project?.stackDetails?.master_locale, destinationStackId: project?.current_test_stack_id, projectId, keyMapper: project?.mapperKey, project });
+          await siteCoreService?.createEntry({ packagePath, contentTypes, master_locale: project?.stackDetails?.master_locale, destinationStackId: project?.current_test_stack_id, projectId, keyMapper: project?.mapperKeys, project });
           await siteCoreService?.createLocale(req, project?.current_test_stack_id, projectId, project);
           await siteCoreService?.createVersionFile(project?.current_test_stack_id);
         }
@@ -417,18 +417,18 @@ const getLogs = async (req: Request): Promise<any> => {
  */
 export const createSourceLocales = async (req: Request) => {
 
-  const projectId = req.params.projectId;
-  const locales = req.body.locale
+  const projectId = req?.params?.projectId;
+  const locales = req?.body?.locale;
+  console.info("🚀 ~ createSourceLocales ~ locales:", locales);
 
   try {
     // Find the project with the specified projectId
     await ProjectModelLowdb?.read?.();
     const index = ProjectModelLowdb?.chain?.get?.("projects")?.findIndex?.({ id: projectId })?.value?.();
-    if (index > -1) {
+    if (typeof index === "number" && index > -1) {
       ProjectModelLowdb?.update?.((data: any) => {
         data.projects[index].source_locales = locales;
       });
-      // Write back the updated projects
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
