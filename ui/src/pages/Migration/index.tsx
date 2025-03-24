@@ -84,13 +84,14 @@ const Migration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
-  const [isProjectMapper, setIsProjectMapper] = useState<boolean>(false);
+  const [isProjectMapper, setIsProjectMapper] = useState<boolean>(true);
 
   const [disableMigration, setDisableMigration] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
 
   const saveRef = useRef<ContentTypeSaveHandles>(null);
+  const newMigrationDataRef = useRef(newMigrationData);
 
   useEffect(() => {
     fetchData();
@@ -99,14 +100,14 @@ const Migration = () => {
   /**
  * Dispatches the isprojectMapped key to redux
  */
-  useEffect(()=> {
-    dispatch(updateNewMigrationData({
-      ...newMigrationData,
-      isprojectMapped: isProjectMapper
+  // useEffect(()=> {
+  //   dispatch(updateNewMigrationData({
+  //     ...newMigrationDataRef?.current,
+  //     isprojectMapped: isProjectMapper
       
-    }));
+  //   }));
     
-  },[isProjectMapper]);
+  // },[isProjectMapper]);
 
 
   useBlockNavigation(isModalOpen);
@@ -182,7 +183,7 @@ const Migration = () => {
   */
   const fetchProjectData = async () => {
   if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
-
+  setIsProjectMapper(true);
   const data = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
   const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
 
@@ -190,7 +191,6 @@ const Migration = () => {
     setIsLoading(false);
     setProjectData(data?.data);
   }
-  setIsProjectMapper(true);
   const projectData = data?.data;
 
   const legacyCmsData:ILegacyCMSComponent = await  getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
@@ -239,11 +239,11 @@ const Migration = () => {
   const projectMapper = {
     ...newMigrationData,
       legacy_cms: {
-        ...newMigrationData?.legacy_cms,
+        ...newMigrationDataRef?.current?.legacy_cms,
         selectedCms: selectedCmsData,
-        selectedFileFormat: selectedFileFormatData,
         affix:  projectData?.legacy_cms?.affix ,
         uploadedFile: {
+          ...newMigrationDataRef?.current?.legacy_cms,
           file_details: {
             localPath: projectData?.legacy_cms?.file_path,
             awsData: {
@@ -289,6 +289,7 @@ const Migration = () => {
       },
       stackDetails: projectData?.stackDetails,
       testStacks: projectData?.test_stacks,
+      isprojectMapped: false,
       project_current_step: projectData?.current_step,
     };
 
@@ -502,7 +503,7 @@ const Migration = () => {
     } else if (! hasNonEmptyMapping) {
       setIsLoading(false);
       Notification({
-        notificationContent: { text: 'Please complete the language mapping to preceed futher' },
+        notificationContent: { text: 'Please complete the language mapping to proceed futher' },
         type: 'warning'
       });
     }

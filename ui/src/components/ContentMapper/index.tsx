@@ -501,7 +501,15 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               [key]: { label: item?.display_name, value: item },
             }));
           }
-          if (item?.data_type === "group" && Array.isArray(item?.schema)) {
+          if(contentTypeSchema?.every((item)=> value?.value?.uid !== item?.uid)){
+            setExistingField((prevOptions: ExistingFieldType) => {
+              const { [key]: _, ...rest } = prevOptions; // Destructure to exclude the key to remove
+              return {
+                ...rest
+              };
+            })
+          }
+          else if (item?.data_type === "group" && Array.isArray(item?.schema)) {
             item?.schema?.forEach((schemaItem) => {
 
               if (value?.value?.uid === schemaItem?.uid && value?.label === `${item?.display_name} > ${schemaItem?.display_name}`) {
@@ -1918,7 +1926,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       ...newMigrationData,
       content_mapping:{
         ...newMigrationData?.content_mapping,
-        existingCT: contentTypes,
+        [isContentType ? 'existingCT' : 'existingGlobal']: contentTypes,
         content_type_mapping : updatedContentTypeMapping
        
       }
@@ -2289,7 +2297,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           </span>
                           <span className='ml-10'>
                             <Tooltip content="Schema Preview" position="bottom">
-                              <button className='list-button schema-preview' onClick={() => handleSchemaPreview(content?.otherCmsTitle, content?.id ?? '')}>{SCHEMA_PREVIEW}</button>
+                              <button className='list-button schema-preview' aria-label="schemaPreview" onClick={() => handleSchemaPreview(content?.otherCmsTitle, content?.id ?? '')}>{SCHEMA_PREVIEW}</button>
                             </Tooltip>
                           </span>
                         </div>
