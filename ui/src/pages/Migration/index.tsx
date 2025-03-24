@@ -501,7 +501,7 @@ const Migration = () => {
     } else if (! hasNonEmptyMapping) {
       setIsLoading(false);
       Notification({
-        notificationContent: { text: 'Please complete the language mapping to preceed futher' },
+        notificationContent: { text: 'Please complete the language mapping to proceed futher' },
         type: 'warning'
       });
     }
