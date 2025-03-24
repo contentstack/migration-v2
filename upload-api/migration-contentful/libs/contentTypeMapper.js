@@ -100,13 +100,14 @@ const extractAdvancedFields = (
  * // Outputs an object containing the field configuration for Contentstack and backup fields
  */
 const createFieldObject = (item, contentstackFieldType, backupFieldType, referenceFields = []) => ({
-  uid: item.id,
-  otherCmsField: item.name,
-  otherCmsType: item.widgetId,
-  contentstackField: item.name,
-  contentstackFieldUid: uidCorrector(item.id),
+  uid: item?.id,
+  otherCmsField: item?.name,
+  otherCmsType: item?.widgetId,
+  contentstackField: item?.name,
+  contentstackFieldUid: uidCorrector(item?.id),
   contentstackFieldType: contentstackFieldType,
   backupFieldType: backupFieldType,
+  backupFieldUid: uidCorrector(item?.id),
   advanced: extractAdvancedFields(item, referenceFields, contentstackFieldType, backupFieldType)
 });
 

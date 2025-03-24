@@ -97,24 +97,84 @@ jobs:
                 git clean -fdX  # Remove untracked files and directories
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
-                # Remove unused imports and missing file references
+                # echo "Installing ESLint dependencies..."
+                npm install --save-dev eslint @eslint/js globals
+
+
+                # if [ ! -f "eslint.config.cjs" ]; then
+                #     echo "Creating default ESLint config..."
+                #     cat <<EOL > eslint.config.cjs
+                # const js = require("@eslint/js");
+                # const globals = require("globals");
+
+                # module.exports = [
+                # js.configs.recommended,
+                # {
+                #     languageOptions: {
+                #     ecmaVersion: "latest",
+                #     sourceType: "module",
+                #     globals: globals.node,
+                #     },
+                #     rules: {
+                #     "no-unused-vars": "warn",
+                #     "no-console": "off"
+                #     }
+                # }
+                # ];
+                # EOL
+                # fi
+
+                # # Remove unused imports and missing file references
                 # echo "Running ESLint to remove unused imports..."
                 # npm install eslint -g
                 # eslint . --fix
 
-                echo "Running autoflake to remove unused imports..."
-                pip install autoflake
-                autoflake --remove-all-unused-imports --recursive --in-place .
+                # echo "Running autoflake to remove unused imports..."
+                # pip install autoflake
+                # autoflake --remove-all-unused-imports --recursive --in-place .
 
-                echo "Running ts-prune to remove unused file references..."
-                npm install -g ts-prune
-                ts-prune | awk '{print $1}' | xargs rm -f
+                # echo "Running ts-prune to remove unused file references..."
+                # npm install -g ts-prune
+                # ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_SITECORE_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
                 rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-sitecore/ ./upload-api/migration-sitecore/
+
+                # Ensure tsconfig.json exists, create a default one if missing
+                # if [ ! -f "tsconfig.json" ]; then
+                #     echo "Creating default tsconfig.json..."
+                #     cat <<EOL > tsconfig.json
+                # {
+                #     "compilerOptions": {
+                #     "target": "ES6",
+                #     "module": "CommonJS",
+                #     "strict": true,
+                #     "esModuleInterop": true,
+                #     "skipLibCheck": true,
+                #     "forceConsistentCasingInFileNames": true
+                #     },
+                #     "include": ["src/**/*"],
+                #     "exclude": ["node_modules", "dist"]
+                # }
+                # EOL
+                # fi
+
+                # Remove unused imports
+                # npx ts-remove-unused-imports api/
+                # npx ts-remove-unused-imports ui/
+                # npx ts-remove-unused-imports upload-api/
+
+                # Remove missing imports
+                # npx ts-prune | grep -E '^(api/|ui/|upload-api/)/' | awk '{print $1}' | xargs -I {} sed -i '/import/d' {}
+
+                # # Format code
+                # npx prettier --write .
+
+                # eslint api/ ui/ upload-api/ --rule 'import/no-unresolved: error' --format compact | awk -F ':' '{print $1}' | sort -u | xargs -I {} sed -i '/import/d' {}
+
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
                 git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
@@ -163,10 +223,37 @@ jobs:
                 git clean -fdX  # Remove untracked files and directories
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
+                echo "Installing ESLint dependencies..."
+                npm install --save-dev eslint @eslint/js globals
+
+                if [ ! -f "eslint.config.cjs" ]; then
+                    echo "Creating default ESLint config..."
+                    cat <<EOL > eslint.config.cjs
+                const js = require("@eslint/js");
+                const globals = require("globals");
+
+                module.exports = [
+                js.configs.recommended,
+                {
+                    languageOptions: {
+                    ecmaVersion: "latest",
+                    sourceType: "module",
+                    globals: globals.node,
+                    },
+                    rules: {
+                    "no-unused-vars": "warn",
+                    "no-console": "off"
+                    }
+                }
+                ];
+                EOL
+                fi
+
+
                 # Remove unused imports and missing file references
-                # echo "Running ESLint to remove unused imports..."
-                # npm install eslint -g
-                # eslint . --fix
+                echo "Running ESLint to remove unused imports..."
+                npm install eslint -g
+                eslint . --fix
 
                 echo "Running autoflake to remove unused imports..."
                 pip install autoflake
@@ -229,10 +316,37 @@ jobs:
                 git clean -fdX  # Remove untracked files and directories
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
+                echo "Installing ESLint dependencies..."
+                npm install --save-dev eslint @eslint/js globals
+
+                if [ ! -f "eslint.config.cjs" ]; then
+                    echo "Creating default ESLint config..."
+                    cat <<EOL > eslint.config.cjs
+                const js = require("@eslint/js");
+                const globals = require("globals");
+
+                module.exports = [
+                js.configs.recommended,
+                {
+                    languageOptions: {
+                    ecmaVersion: "latest",
+                    sourceType: "module",
+                    globals: globals.node,
+                    },
+                    rules: {
+                    "no-unused-vars": "warn",
+                    "no-console": "off"
+                    }
+                }
+                ];
+                EOL
+                fi
+
+
                 # Remove unused imports and missing file references
-                # echo "Running ESLint to remove unused imports..."
-                # npm install eslint -g
-                # eslint . --fix
+                echo "Running ESLint to remove unused imports..."
+                npm install eslint -g
+                eslint . --fix
 
                 echo "Running autoflake to remove unused imports..."
                 pip install autoflake

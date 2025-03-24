@@ -16,12 +16,12 @@ import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice'
 import { INewMigration } from '../../../context/app/app.interface';
 
 export type ExistingFieldType = {
-  [key: string]:  { label: string ; value: string };
+  [key: string]: { label: string; value: string };
 };
 
 /**
  * A functional component that displays selection for language mapping.
- * 
+ *
  * @param {Array<{ label: string; value: string }>} cmsLocaleOptions - An array to dispaly number of locales select.
  * @param {Function} handleLangugeDelete - a function to delete the mapping.
  * @param {Array<{ label: string; value: string }>} options - option array of contentstack locales.
@@ -39,7 +39,7 @@ const Mapper = ({
   handleLangugeDelete: (index: number, locale: { label: string; value: string }) => void;
   options: Array<{ label: string; value: string }>;
   sourceOptions: Array<{ label: string; value: string }>;
-  isDisabled: boolean
+  isDisabled: boolean;
 }) => {
   const [selectedMappings, setSelectedMappings] = useState<{ [key: string]: string }>({});
   const [existingField, setExistingField] = useState<ExistingFieldType>({});
@@ -78,10 +78,12 @@ const Mapper = ({
 
   useEffect(() => {
     const formattedoptions = options?.filter(
-      (item: { label: string; value: string }) => !selectedCsOptions?.some((selected: string) => selected === item?.value)
+      (item: { label: string; value: string }) =>
+        !selectedCsOptions?.some((selected: string) => selected === item?.value)
     );
     const adjustedOptions = sourceOptions?.filter(
-      (item: { label: string; value: string }) => !selectedSourceOption?.some((selected: string) => selected === item?.label)
+      (item: { label: string; value: string }) =>
+        !selectedSourceOption?.some((selected: string) => selected === item?.label)
     );
     setcsOptions(formattedoptions);
     setsourceoptions(adjustedOptions);
@@ -97,7 +99,10 @@ const Mapper = ({
             ...prev,
             [`${locale?.label}-master_locale`]: ''
           }));
-          updatedExisting[index] = { label: locale?.label, value: `${locale?.label}-master_locale` };
+          updatedExisting[index] = {
+            label: locale?.label,
+            value: `${locale?.label}-master_locale`
+          };
         }
       });
 
@@ -112,7 +117,7 @@ const Mapper = ({
     type: 'csLocale' | 'sourceLocale'
   ) => {
     const selectedLocaleKey = selectedValue?.value;
-    if (!selectedLocaleKey) return;
+  
 
     setExistingField((prevOptions: ExistingFieldType) => {
       const updatedOptions = {
@@ -128,7 +133,9 @@ const Mapper = ({
       return updatedOptions;
     });
     setselectedCsOption((prevSelected) => {
-      const newSelectedOptions: string[] = prevSelected?.filter((item) => item !== selectedValue?.label);
+      const newSelectedOptions: string[] = prevSelected?.filter(
+        (item) => item !== selectedValue?.label
+      );
       const newValue: string = selectedValue?.label;
       if (!newSelectedOptions?.includes(newValue)) {
         newSelectedOptions.push(newValue);
@@ -139,7 +146,11 @@ const Mapper = ({
     setSelectedMappings((prev) => {
       const updatedMappings = { ...prev };
 
-      if (type === 'csLocale') {
+
+      if (!selectedValue) {
+        delete updatedMappings[existingField[index]?.value];
+      }
+      else if (type === 'csLocale' && selectedLocaleKey) {
         updatedMappings[selectedLocaleKey] = existingLocale[index]?.label
           ? existingLocale[index]?.label
           : '';
@@ -172,7 +183,9 @@ const Mapper = ({
       // Ensure selectedOption only contains values that exist in updatedOptions
       setselectedSourceOption((prevSelected) =>
         prevSelected?.filter((item) =>
-          Object.values(updatedOptions)?.some((opt: {label: string, value: string}) => opt?.label === item)
+          Object.values(updatedOptions)?.some(
+            (opt: { label: string; value: string }) => opt?.label === item
+          )
         )
       );
 
@@ -194,8 +207,7 @@ const Mapper = ({
         [csLocaleKey]: selectedValue?.label || ''
       }));
   };
-  const handleLanguageDeletaion = (index: number, locale: {label: string, value: string}) => {
-    
+  const handleLanguageDeletaion = (index: number, locale: { label: string; value: string }) => {
     // Remove item at index from existingField
     let csLocale = '';
 
@@ -238,11 +250,14 @@ const Mapper = ({
             {locale?.value === 'master_locale' ? (
               <Tooltip
                 content="This is the master locale of above selected stacks and cannot be changed. Please select a corresponding language to map."
-                position="top">
+                position="top"
+              >
                 <div>
                   <Select
                     value={locale?.value === 'master_locale' ? locale : existingField[locale]}
-                    onChange={(key: { label: string; value: string }) => handleSelectedCsLocale(key, index, 'csLocale')}
+                    onChange={(key: { label: string; value: string }) =>
+                      handleSelectedCsLocale(key, index, 'csLocale')
+                    }
                     options={csOptions}
                     placeholder={placeholder}
                     isSearchable
@@ -301,12 +316,16 @@ const Mapper = ({
               className="select-container"
             /> */
               <Select
-                value={locale?.value && locale?.value !== 'master_locale' ? {label: locale?.value, value: locale?.value} : existingLocale[locale]}
+                value={
+                  locale?.value && locale?.value !== 'master_locale'
+                    ? { label: locale?.value, value: locale?.value }
+                    : existingLocale[locale]
+                }
                 onChange={(data: { label: string; value: string }) =>
                   handleSelectedSourceLocale(data, index, 'sourceLocale', locale)
                 }
                 styles={{
-                  menuPortal: (base:any) => ({ ...base, zIndex: 9999 }) 
+                  menuPortal: (base: any) => ({ ...base, zIndex: 9999 })
                 }}
                 options={sourceoptions}
                 placeholder={placeholder}
@@ -314,7 +333,7 @@ const Mapper = ({
                 maxMenuHeight={100}
                 multiDisplayLimit={5}
                 //menuPortalTarget={document.querySelector('.mini-table')}
-                menuShouldScrollIntoView={true}  
+                menuShouldScrollIntoView={true}
                 width="270px"
                 version="v2"
                 hideSelectedOptions={true}
@@ -324,8 +343,7 @@ const Mapper = ({
               />
             }
             <div className={''}>
-              {locale?.value !== 'master_locale' && 
-              !isDisabled  && (
+              {locale?.value !== 'master_locale' && !isDisabled && (
                 <Tooltip content={'Delete'} position="top" showArrow={false}>
                   <Icon
                     icon="Trash"
@@ -382,44 +400,49 @@ const LanguageMapper = () => {
 
         setoptions(allLocales);
         Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 &&
+        newMigrationData?.project_current_step <= 2 &&
          setcmsLocaleOptions((prevList: { label: string; value: string }[]) => {
           const newLabel = newMigrationData?.destination_stack?.selectedStack?.master_locale;
 
-          const isPresent = prevList.some((item: { label: string; value: string }) => item?.value === 'master_locale');
+            const isPresent = prevList.some(
+              (item: { label: string; value: string }) => item?.value === 'master_locale'
+            );
 
-          if (!isPresent) {
-            return [
-              ...prevList,
-              {
-                label: newLabel,
-                value: 'master_locale'
-              }
-            ];
-          }
+            if (!isPresent) {
+              return [
+                ...prevList,
+                {
+                  label: newLabel,
+                  value: 'master_locale'
+                }
+              ];
+            }
 
-          return prevList;
-        });
-        if (newMigrationData?.project_current_step > 2) {
-          Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.forEach(([key, value]) => {           
-            setcmsLocaleOptions((prevList) => {
-              const labelKey = key?.replace(/-master_locale$/, "");
-
-              // Check if the key already exists in the list
-              const exists = prevList?.some((item) => item?.label === labelKey);
-          
-              if (!exists) {
-                return [
-                  ...prevList,
-                  {
-                    label: labelKey,
-                    value: String(value),
-                  },
-                ];
-              }
-          
-              return prevList; // Return the same list if key exists
-            });
+            return prevList;
           });
+        if (newMigrationData?.project_current_step > 2) {
+          Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.forEach(
+            ([key, value]) => {
+              setcmsLocaleOptions((prevList) => {
+                const labelKey = key?.replace(/-master_locale$/, '');
+
+                // Check if the key already exists in the list
+                const exists = prevList?.some((item) => item?.label === labelKey);
+
+                if (!exists) {
+                  return [
+                    ...prevList,
+                    {
+                      label: labelKey,
+                      value: String(value)
+                    }
+                  ];
+                }
+
+                return prevList; // Return the same list if key exists
+              });
+            }
+          );
         }
         setisLoading(false);
       } catch (error) {
@@ -445,7 +468,9 @@ const LanguageMapper = () => {
 
   const handleDeleteLocale = (id: number, locale: { label: string; value: string }) => {
     setcmsLocaleOptions((prevList) => {
-      return prevList?.filter((item: { label: string; value: string }) => item?.label !== locale?.label);
+      return prevList?.filter(
+        (item: { label: string; value: string }) => item?.label !== locale?.label
+      );
     });
   };
 
@@ -493,8 +518,11 @@ const LanguageMapper = () => {
             disabled={
               Object.keys(newMigrationData?.destination_stack?.localeMapping || {})?.length ===
                 newMigrationData?.destination_stack?.sourceLocale?.length ||
-              cmsLocaleOptions?.length === newMigrationData?.destination_stack?.sourceLocale?.length || newMigrationData?.project_current_step > 2
-            }>
+              cmsLocaleOptions?.length ===
+                newMigrationData?.destination_stack?.sourceLocale?.length ||
+              newMigrationData?.project_current_step > 2
+            }
+          >
             Add Language
           </Button>
         </>
