@@ -39,14 +39,16 @@ import './Settings.scss';
  */
 const Settings = () => {
   const params: Params<string> = useParams();
-  
+
   const [cmsData, setCmsData] = useState<Setting>();
   const [active, setActive] = useState<string>();
   const [currentHeader, setCurrentHeader] = useState<string>();
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
 
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const selectedOrganisation = useSelector(
+    (state: RootState) => state?.authentication?.selectedOrganisation
+  );
 
   const navigate = useNavigate();
 
@@ -136,7 +138,7 @@ const Settings = () => {
         shouldCloseOnOverlayClick: true,
         onClose: () => {
           return;
-        },
+        }
       }
     });
   };
@@ -223,11 +225,7 @@ const Settings = () => {
             </div>
           </div>
         )}
-        {active === cmsData?.execution_logs?.title && (
-          <div>
-            
-          </div>
-        )}
+        {active === cmsData?.execution_logs?.title && <div></div>}
       </div>
     )
   };
