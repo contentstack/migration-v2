@@ -240,10 +240,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           dispatch(updateNewMigrationData(newMigrationDataObj));
         }
         const newMigrationDataObj: INewMigration = {
-          // ...newMigrationDataRef?.current,
-          ...newMigrationData,
+           ...newMigrationDataRef?.current,
+          //...newMigrationData,
           destination_stack: {
-            ...newMigrationData?.destination_stack,
+            ...newMigrationDataRef?.current?.destination_stack,
             csLocale: csLocales?.data?.locales
           }
         };  
@@ -323,8 +323,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
               </div>
             </div>
             <div className="col-12">
-              <label className="title">
-                Master Locale <span className="asterisk_input"></span>
+              <label className="title" htmlFor="master_locale">Master Locale <span className='asterisk_input'></span>
               </label>
               <Tooltip
                 content="Master Locale is auto-selected based on the chosen stack."
@@ -333,8 +332,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                 <Icon icon="Information" version="v2" size="small"></Icon>
               </Tooltip>
             </div>
-            <div className="col-12 pb-2">
-              <TextInput
+            <div className="col-12 pb-2" id="master_locale">
+              <TextInput 
+                id="master_locale"
+                aria-label="master_locale"
                 version={'v2'}
                 placeholder={
                   selectedStack?.master_locale

@@ -132,7 +132,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
         ? selectedCmsData.allowed_file_formats?.find(
             (cms: ICardType) => cms?.fileformat_id === legacyCMSData?.file_format
           )
-        : defaultCardType;
+        : newMigrationData?.legacy_cms?.selectedFileFormat;
     
       //Make Step 1 Complete
       if (!isEmptyString(selectedCmsData?.cms_id || newMigrationData?.legacy_cms?.selectedCms?.cms_id)) {    
@@ -164,7 +164,8 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
               awsData: legacyCMSData?.awsDetails,
               isLocalPath: legacyCMSData?.is_localPath
             },
-            isValidated: legacyCMSData?.is_fileValid ,
+            isValidated: legacyCMSData?.is_fileValid,
+            reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
           }, //need to add backend data once endpoint exposed.
           affix: legacyCMSData?.affix ?? '',
           isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
