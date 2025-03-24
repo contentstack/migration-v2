@@ -91,6 +91,7 @@ const Migration = () => {
 
 
   const saveRef = useRef<ContentTypeSaveHandles>(null);
+  const newMigrationDataRef = useRef(newMigrationData);
 
   useEffect(() => {
     fetchData();
@@ -99,14 +100,14 @@ const Migration = () => {
   /**
  * Dispatches the isprojectMapped key to redux
  */
-  useEffect(()=> {
-    dispatch(updateNewMigrationData({
-      ...newMigrationData,
-      isprojectMapped: isProjectMapper
+  // useEffect(()=> {
+  //   dispatch(updateNewMigrationData({
+  //     ...newMigrationDataRef?.current,
+  //     isprojectMapped: isProjectMapper
       
-    }));
+  //   }));
     
-  },[isProjectMapper]);
+  // },[isProjectMapper]);
 
 
   useBlockNavigation(isModalOpen);
@@ -238,11 +239,11 @@ const Migration = () => {
   const projectMapper = {
     ...newMigrationData,
       legacy_cms: {
-        ...newMigrationData?.legacy_cms,
+        ...newMigrationDataRef?.current?.legacy_cms,
         selectedCms: selectedCmsData,
-        selectedFileFormat: selectedFileFormatData,
         affix:  projectData?.legacy_cms?.affix ,
         uploadedFile: {
+          ...newMigrationDataRef?.current?.legacy_cms,
           file_details: {
             localPath: projectData?.legacy_cms?.file_path,
             awsData: {
@@ -288,6 +289,7 @@ const Migration = () => {
       },
       stackDetails: projectData?.stackDetails,
       testStacks: projectData?.test_stacks,
+      isprojectMapped: false,
       project_current_step: projectData?.current_step,
     };
 
