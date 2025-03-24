@@ -63,7 +63,10 @@ const AddStack = (props: any): JSX.Element => {
       });
       props?.closeModal();
     } else {
-      Notification({ notificationContent: { text: 'Stack creation failed. Please try again.' }, type: 'error' });
+      Notification({
+        notificationContent: { text: 'Stack creation failed. Please try again.' },
+        type: 'error'
+      });
     }
     setIsProcessing(false);
   };
@@ -211,7 +214,9 @@ const AddStack = (props: any): JSX.Element => {
                                     className="Description-field"
                                     {...input}
                                     name="description"
-                                    onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
+                                    onChange={(
+                                      event: React.ChangeEvent<HTMLInputElement>
+                                    ): void => {
                                       input?.onChange(event);
                                     }}
                                     placeholder={addStackCMSData?.stack_description_placeholder}
