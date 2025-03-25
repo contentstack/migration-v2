@@ -117,8 +117,8 @@ jobs:
                     },
                     rules: {
                     "no-unused-vars": "warn",
-                    "no-console": "off"
-                    "@typescript-eslint/no-var-requires": 'off'
+                    "no-console": "off",
+                    "no-var-requires": 'off'
                     }
                 }
                 ];
