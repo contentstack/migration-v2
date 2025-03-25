@@ -101,33 +101,34 @@ jobs:
                 npm install --save-dev eslint @eslint/js globals
 
 
-                # if [ ! -f "eslint.config.cjs" ]; then
-                #     echo "Creating default ESLint config..."
-                #     cat <<EOL > eslint.config.cjs
-                # const js = require("@eslint/js");
-                # const globals = require("globals");
+                if [ ! -f "eslint.config.cjs" ]; then
+                    echo "Creating default ESLint config..."
+                    cat <<EOL > eslint.config.cjs
+                const js = require("@eslint/js");
+                const globals = require("globals");
 
-                # module.exports = [
-                # js.configs.recommended,
-                # {
-                #     languageOptions: {
-                #     ecmaVersion: "latest",
-                #     sourceType: "module",
-                #     globals: globals.node,
-                #     },
-                #     rules: {
-                #     "no-unused-vars": "warn",
-                #     "no-console": "off"
-                #     }
-                # }
-                # ];
-                # EOL
-                # fi
+                module.exports = [
+                js.configs.recommended,
+                {
+                    languageOptions: {
+                    ecmaVersion: "latest",
+                    sourceType: "module",
+                    globals: globals.node,
+                    },
+                    rules: {
+                    "no-unused-vars": "warn",
+                    "no-console": "off"
+                    "@typescript-eslint/no-var-requires": 'off'
+                    }
+                }
+                ];
+                EOL
+                fi
 
                 # # Remove unused imports and missing file references
-                # echo "Running ESLint to remove unused imports..."
-                # npm install eslint -g
-                # eslint . --fix
+                echo "Running ESLint to remove unused imports..."
+                npm install eslint -g
+                eslint . --fix --ignore-pattern "cli/**"
 
                 # echo "Running autoflake to remove unused imports..."
                 # pip install autoflake
