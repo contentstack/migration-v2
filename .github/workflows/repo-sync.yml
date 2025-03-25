@@ -125,8 +125,8 @@ jobs:
                 # fi
 
                 # # Remove unused imports and missing file references
-                # echo "Running ESLint to remove unused imports..."
-                # npm install eslint -g
+                echo "Running ESLint to remove unused imports..."
+                npm install eslint -g
                 eslint . --fix --ignore-path .eslintignore
 
                 # echo "Running autoflake to remove unused imports..."
