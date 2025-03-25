@@ -11,14 +11,14 @@ const getComponentObject = (
   isCompleted: boolean,
   isMigrationLocked: boolean
 ): IStep => {
-  let updatedStep = { ...step }; 
+  let updatedStep = { ...step };
   switch (step.step_id) {
     case 'Step1': {
       // Insert Data, Summary component, and status
       updatedStep = {
         ...updatedStep,
         data: LoadSelectCms,
-        status: isCompleted ? StepStatus.COMPLETED : StepStatus.ACTIVE,
+        status: isCompleted ? StepStatus.COMPLETED : StepStatus.ACTIVE
       };
       break;
     }
@@ -28,7 +28,7 @@ const getComponentObject = (
       updatedStep = {
         ...updatedStep,
         data: LoadPreFix,
-        status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED,
+        status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED
       };
       break;
     }
@@ -38,7 +38,7 @@ const getComponentObject = (
       updatedStep = {
         ...updatedStep,
         data: LoadFileFormat,
-        status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED,
+        status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED
       };
       break;
     }
@@ -48,7 +48,7 @@ const getComponentObject = (
       updatedStep = {
         ...updatedStep,
         data: LoadUploadFile,
-        status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED,
+        status: isCompleted ? StepStatus.COMPLETED : StepStatus.DISABLED
       };
       break;
     }
