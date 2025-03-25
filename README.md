@@ -1,9 +1,13 @@
 # Migration v2
+
 ## Overview
+
 The migration-v2 project is designed to facilitate the migration of assets and related functionalities. This project includes multiple components such as API, UI, and upload API.
 
 ## Installation
+
 Clone the repository:
+
 ```
 git clone https://github.com/contentstack/migration-v2.git
 cd migration-v2
@@ -16,6 +20,7 @@ Check for readme.md files and install dependencies for folders
 This is the migration V2's node server.
 
 ### Environment Variables
+
 The following environment variables are used in this project:
 
 - `APP_TOKEN_KEY`: The token key for the application. Default is `MIGRATION_V2`.
@@ -27,14 +32,15 @@ Make sure to set these variables in a `.env` file at the root of your project.
 2. To run the production server, create a `./production.env` file and add environment variables as per `./example.env`
 
 ### To start the server
-Run `npm run dev`
 
+Run `npm run dev`
 
 ## Migration UI
 
 Migration UI is a web application designed to facilitate the migration of content. It provides a user-friendly interface for managing and migrating content efficiently.
 
 ### Features
+
 - User-friendly interface for content migration
 - Integration with Contentstack
 - State management with Redux Toolkit
@@ -43,14 +49,15 @@ Migration UI is a web application designed to facilitate the migration of conten
 ### Installation
 
 1. Navigate to the project directory:
-    ```sh
-    cd ui
-    ```
+
+   ```sh
+   cd ui
+   ```
 
 2. Install the dependencies:
-    ```sh
-    npm install
-    ```
+   ```sh
+   npm install
+   ```
 
 ### Environment Variables
 
@@ -66,7 +73,9 @@ The following environment variables are used in this project:
 Make sure to set these variables in a `.env` file at the root of your ui project.
 
 ### Usage
+
 Start the development server:
+
 ```sh
 npm start
 ```
@@ -74,6 +83,7 @@ npm start
 Open your browser and navigate to http://localhost:3000.
 
 ### Dependencies
+
 - @contentstack/json-rte-serializer: ^2.0.5
 - @contentstack/venus-components: ^2.2.4
 - @reduxjs/toolkit: ^2.2.5
@@ -85,15 +95,21 @@ Open your browser and navigate to http://localhost:3000.
 - @types/react-redux: ^7.1.33
 
 ## Migration v2 upload-api
+
 ### Overview
+
 The migration-v2 upload-api project is designed to facilitate the migration of different CMS to Contentstack functionalities.
 
 ### Installation
+
 Navigate to the project directory:
+
 ```
 cd migration-v2/upload-api
 ```
+
 Install dependencies:
+
 ```
 npm install
 ```
@@ -108,6 +124,7 @@ The following environment variables are used in this project:
 Make sure to set these variables in a `.env` file at the root of your project.
 
 ### Configuration
+
 Please refer sample.config.json and provide this config in index.ts of config folder of upload-api/src
 The following configuration is used in this project:
 
@@ -116,6 +133,7 @@ The following configuration is used in this project:
 - `isLocalPath`: A flag to indicate if the path is local. Default is `true`.
 
 #### AWS Data
+
 - `awsRegion`: The AWS region. Default is `us-east-2`.
 - `awsAccessKeyId`: The AWS access key ID.
 - `awsSecretAccessKey`: The AWS secret access key.
@@ -124,22 +142,29 @@ The following configuration is used in this project:
 - `buketKey`: The key for the AWS S3 bucket. Default is `project/package 45.zip`.
 
 #### Local Path
+
 - `localPath`: The local path to the extracted files. for example `/upload-api/extracted_files/package 45.zip`.
 
 ## Cli
+
 Navigate to the project directory
-  1. Install pnpm
-  Since pnpm is required, you need to install it globally if it's not already installed:
-  ```
-  npm install -g pnpm
-  ```
-  2. Run the Setup Script
-  Now, run the main setup script specified in the package.json:
-  ```
-  npm run setup-repo
-  ```
+
+1. Install pnpm
+   Since pnpm is required, you need to install it globally if it's not already installed:
+
+```
+npm install -g pnpm
+```
+
+2. Run the Setup Script
+   Now, run the main setup script specified in the package.json:
+
+```
+npm run setup-repo
+```
 
 ## Scripts
+
 - `npm start`: Starts the main server by running index.js.
 - `npm run api`: Navigates to the api directory and runs the development server.
 - `npm run upload`: Navigates to the upload-api directory and starts the upload API server.
@@ -149,22 +174,27 @@ Navigate to the project directory
 - `npm test`: Displays an error message indicating that no tests are specified.
 
 ## Repository
+
 - Type: git
 - URL: https://github.com/contentstack/migration-v2.git
 
 ## Bugs and Issues
+
 - URL: https://github.com/contentstack/migration-v2/issues
 
 ## Homepage
+
 - URL: https://github.com/contentstack/migration-v2#readme
 
 ## DevDependencies
+
 - husky: ^4.3.8
 - prettier: ^2.4.1
 - rimraf: ^3.0.2
 - validate-branch-name: ^1.3.0
 
 ## Husky Configuration
+
 ```
 "husky": {
   "hooks": {}
@@ -172,6 +202,7 @@ Navigate to the project directory
 ```
 
 - Branch Name Validation
+
 ```
 "validate-branch-name": {
   "pattern": "^(feature|bugfix|hotfix)/[a-z0-9-]{5,30}$",
@@ -180,10 +211,13 @@ Navigate to the project directory
 ```
 
 ## License
+
 This project is licensed under the ISC License.
 
 ## Author
+
 The author information is not specified.
 
 ## Contact
+
 For further assistance, please contact the project maintainer through the issues page on GitHub.

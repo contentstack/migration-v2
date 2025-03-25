@@ -2,12 +2,10 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
-
 // Utilities
 import { isEmptyString, isValidPrefix } from '../../../utilities/functions';
 
 import { getRestrictedKeywords } from '../../../services/api/upload.service';
-
 
 // Interface
 import { DEFAULT_URL_TYPE, INewMigration } from '../../../context/app/app.interface';
@@ -26,8 +24,8 @@ interface LoadSelectCmsProps {
 
 const LoadPreFix = (props: LoadSelectCmsProps) => {
   /****  ALL HOOKS HERE  ****/
-  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
 
   const dispatch = useDispatch();
 
@@ -40,7 +38,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
   );
   const [isRestrictedKey, setIsRestrictedKey] = useState<boolean>(false);
 
-  const [restrictedKeywords,  setRestrictedKeywords] = useState<string[]>([])
+  const [restrictedKeywords, setRestrictedKeywords] = useState<string[]>([]);
 
   useEffect(() => {
     fetchRestrictedKeywords();
@@ -50,17 +48,17 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     const restrictedIds = await getRestrictedKeywords();
 
     if (restrictedIds?.status === 200) {
-      setRestrictedKeywords(restrictedIds?.data?.restricted)
+      setRestrictedKeywords(restrictedIds?.data?.restricted);
     }
-  }
-  
+  };
+
   /****  ALL METHODS HERE  ****/
 
-  const handleOnChange = useDebouncer(async(e: ChangeEvent<HTMLInputElement>) => {
+  const handleOnChange = useDebouncer(async (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
 
-    const value  = e.target.value;
-    if (!isEmptyString(value)) {   
+    const value = e.target.value;
+    if (!isEmptyString(value)) {
       if (restrictedKeywords?.includes(value)) {
         setIsError(true);
         setErrorMessage('Affix should be valid and not a restricted keyword');
@@ -95,9 +93,9 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         };
 
         dispatch(updateNewMigrationData(newMigrationDataObj));
-  
+
         setIsError(false);
-  
+
         //call for Step Change
         props?.handleStepChange(props?.currentStep);
         return;
@@ -115,42 +113,47 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       };
 
       dispatch(updateNewMigrationData(newMigrationDataObj));
-
     }
   });
 
-
   /****  ALL USEEffects  HERE  ****/
 
-  const { restricted_keyword_link = DEFAULT_URL_TYPE } =
-    migrationData.legacyCMSData;
+  const { restricted_keyword_link = DEFAULT_URL_TYPE } = migrationData.legacyCMSData;
 
   return (
     <div className="p-3">
       <div className="col-12">
         <TextInput
-          onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{handleOnChange(e)}}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            handleOnChange(e);
+          }}
           value={prefix}
           autoFocus={true}
           width="large"
           placeholder={'Add Affix'}
           version="v2"
           error={isError}
-          aria-label='affix'
+          aria-label="affix"
           disabled={newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
           isReadOnly={newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
         />
-        {isError && <p className="errorMessage">{errorMessage}</p>}       
-        
+        {isError && <p className="errorMessage">{errorMessage}</p>}
       </div>
-      { isRestrictedKey && 
-      <div className="col-12">
-        
-        <p className='link-discription'>
-          Please refer the list of Contentstack <a href={restricted_keyword_link?.href} target="_blank" rel="noreferrer" className="link">restricted keywords</a>
-        </p>
-
-      </div>}
+      {isRestrictedKey && (
+        <div className="col-12">
+          <p className="link-discription">
+            Please refer the list of Contentstack{' '}
+            <a
+              href={restricted_keyword_link?.href}
+              target="_blank"
+              rel="noreferrer"
+              className="link"
+            >
+              restricted keywords
+            </a>
+          </p>
+        </div>
+      )}
     </div>
   );
 };
