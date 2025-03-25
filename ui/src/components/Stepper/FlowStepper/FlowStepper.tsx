@@ -1,8 +1,7 @@
 // Libraries
 import { useContext } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { UseDispatch,useSelector } from 'react-redux';
-
+import { UseDispatch, useSelector } from 'react-redux';
 
 // Interface
 import { IFlowStep } from './flowStep.interface';
@@ -31,13 +30,12 @@ const FlowStepper = ({ currentStep }: IProp) => {
   const params = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
-  const migrationData = useSelector((state:any)=>state?.migration?.migrationData)
+
+  const migrationData = useSelector((state: any) => state?.migration?.migrationData);
 
   const onStepClick = (step: IFlowStep, isCompleted: boolean) => async () => {
     if (params?.stepId === `${step?.name}`) return;
-    dispatch(updateMigrationData({ currentFlowStep: step }))
-
+    dispatch(updateMigrationData({ currentFlowStep: step }));
 
     const url = `/projects/${params?.projectId}/migration/steps/${step?.name}`;
 
