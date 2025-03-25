@@ -1,10 +1,17 @@
 // Libraries
 import { useEffect, useState } from 'react';
-import { PageLayout, EmptyState, Button, Icon, cbModal,  StackCardSkeleton} from '@contentstack/venus-components';
+import {
+  PageLayout,
+  EmptyState,
+  Button,
+  Icon,
+  cbModal,
+  StackCardSkeleton
+} from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
 import { useLocation } from 'react-router-dom';
-import {useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 
 // Redux
 import { RootState } from '../../store';
@@ -23,7 +30,6 @@ import { ProjectsType, ProjectsObj } from './projects.interface';
 import { ModalObj } from '../../components/Modal/modal.interface';
 import { CTA } from '../Home/home.interface';
 import usePreventBackNavigation from '../../hooks/usePreventBackNavigation';
-
 
 // Components
 import ProjectsHeader from '../../components/ProjectsHeader';
@@ -47,7 +53,9 @@ const Projects = () => {
     create_project_modal: createProjectModal
   } = data;
 
-  const selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
+  const selectedOrganisation = useSelector(
+    (state: RootState) => state?.authentication?.selectedOrganisation
+  );
 
   const outputIntro = HTMLReactParser(jsonToHtml(emptystate?.description ?? {}));
 
@@ -63,7 +71,7 @@ const Projects = () => {
   usePreventBackNavigation();
 
   const fetchProjects = async () => {
-       setLoadStatus(true); 
+    setLoadStatus(true);
     if (selectedOrganisation?.value) {
       try {
         const { data, status } = await getAllProjects(selectedOrganisation?.value || ''); //org id will always present
@@ -72,29 +80,25 @@ const Projects = () => {
           setProjects(data);
           setAllProjects(data);
         }
-        
       } catch (error) {
-        return error
+        return error;
       }
-      
     }
   };
 
   const fetchData = async () => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
     getCMSDataFromFile(CS_ENTRIES.PROJECTS)
-    .then((data) => setData(data))
-    .catch((err) => {
-      console.error(err);
-      setData({});
-    });
+      .then((data) => setData(data))
+      .catch((err) => {
+        console.error(err);
+        setData({});
+      });
   };
 
   useEffect(() => {
     fetchData();
   }, []);
-
-
 
   useEffect(() => {
     setLoadStatus(true);
@@ -127,11 +131,11 @@ const Projects = () => {
     fetchProjects();
   };
   useBlockNavigation(isModalOpen || true);
-  
+
   // Function for open modal
   const openModal = () => {
     setIsModalOpen(true);
-    
+
     cbModal({
       component: (props: ModalObj) => (
         <Modal
@@ -170,7 +174,7 @@ const Projects = () => {
         {loadStatus ? (
           <div className="flex-wrap">
             {[...Array(20)].map((e, i) => (
-               <StackCardSkeleton key={`${i?.toString()}`} />
+              <StackCardSkeleton key={`${i?.toString()}`} />
             ))}
           </div>
         ) : (

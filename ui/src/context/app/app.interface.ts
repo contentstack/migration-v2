@@ -12,14 +12,14 @@ export interface ICTA {
 }
 
 export type DataProps = {
-  stepComponentProps?:  ()=>{}; 
+  stepComponentProps?: () => {};
   currentStep: number;
   handleStepChange: (step: number) => void;
 };
 
 export type SummaryProps = {
   stepData: IStep;
-  stepComponentProps: ()=>{};
+  stepComponentProps: () => {};
 };
 interface ContentTypeMap {
   [key: string]: string;
@@ -45,7 +45,7 @@ export interface User {
   mobile_number: string;
   country_code: string;
   organizations: Organization[];
-  region:string;
+  region: string;
 }
 export interface FileDetails {
   isLocalPath?: boolean;
@@ -66,7 +66,7 @@ export interface IFile {
   validation?: string;
   file_details?: FileDetails;
   isValidated: boolean;
-  reValidate: boolean
+  reValidate: boolean;
 }
 
 export interface ICMSType extends ICardType {
@@ -84,10 +84,10 @@ export interface IStep {
   status?: string;
   lock: boolean;
   active?: boolean;
-  data?: (props:DataProps) => JSX.Element;
+  data?: (props: DataProps) => JSX.Element;
   summery?: (props: SummaryProps) => JSX.Element;
   empty_step_placeholder?: string;
-  ifReadonly?:boolean;
+  ifReadonly?: boolean;
   isRequired?: boolean;
   titleNote?: string;
 }
@@ -165,8 +165,8 @@ export interface ILegacyCms {
   affix: string;
   isRestictedKeywordCheckboxChecked: boolean;
   isFileFormatCheckboxChecked: boolean;
-  currentStep:number,
-  projectStatus:number,
+  currentStep: number;
+  projectStatus: number;
 }
 export interface IDestinationStack {
   selectedOrg: IDropDown;
@@ -183,7 +183,7 @@ export interface IContentMapper {
   content_type_mapping: ContentTypeMap;
   isDropDownChanged?: boolean;
   otherCmsTitle?: string;
-  contentTypeList:ContentTypeList[]
+  contentTypeList: ContentTypeList[];
 }
 export interface INewMigration {
   testStacks: TestStacks[];
@@ -216,7 +216,7 @@ export interface IMigrationData {
   testmigrationData: ITestMigration;
 }
 
-export interface IDropDown { 
+export interface IDropDown {
   uid?: string;
   label: string;
   value: string;
@@ -225,7 +225,7 @@ export interface IDropDown {
   locales: locales[];
   created_at: string;
   isNewStack?: boolean;
-  isDisabled?:boolean;
+  isDisabled?: boolean;
 }
 export interface ITestMigration {
   stack_link: string;
@@ -265,7 +265,7 @@ export const DEFAULT_DROPDOWN: IDropDown = {
   locales: [],
   created_at: '',
   isNewStack: false,
-  isDisabled: false,
+  isDisabled: false
 };
 
 export const DEFAULT_ORGANISATION: Organization = {
@@ -288,7 +288,7 @@ export const DEFAULT_USER: User = {
   mobile_number: '',
   country_code: '',
   organizations: [],
-  region:''
+  region: ''
 };
 
 export const DEFAULT_FILE: IFile = {
@@ -307,7 +307,7 @@ export const DEFAULT_FILE: IFile = {
     }
   },
   isValidated: false,
-  reValidate: false,
+  reValidate: false
 };
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
@@ -330,8 +330,8 @@ export const DEFAULT_LEGACY_CMS: ILegacyCms = {
   affix: '',
   isRestictedKeywordCheckboxChecked: false,
   isFileFormatCheckboxChecked: false,
-  currentStep:-1,
-  projectStatus:0
+  currentStep: -1,
+  projectStatus: 0
 };
 
 export const DEFAULT_DESTINATION_STACK: IDestinationStack = {
@@ -363,8 +363,8 @@ export const DEFAULT_TEST_MIGRATION: ITestMigration = {
 
 export const DEFAULT_MIGRATION_EXECUTION_STEP: IMigrationExecutionStep = {
   migrationStarted: false,
-  migrationCompleted:false
-}
+  migrationCompleted: false
+};
 
 export const DEFAULT_NEW_MIGRATION: INewMigration = {
   mapperKeys: {},
@@ -376,7 +376,7 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   stackDetails: DEFAULT_DROPDOWN,
   testStacks: [],
   migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP,
-  project_current_step: 0,
+  project_current_step: 0
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {
