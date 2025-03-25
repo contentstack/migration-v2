@@ -299,13 +299,13 @@ const contentTypeMapper = (data) => {
             };
 
             // Process validations and content names when data.items is not defined
-            if (!item.items) {
-              if (item.validations?.length > 0) {
+            if (!item?.items) {
+              if (item?.validations?.length > 0) {
                 item.validations.forEach((entries) => {
-                  if (entries.linkContentType?.length) {
-                    commonRef = processLinkContentType(entries.linkContentType);
+                  if (entries?.linkContentType?.length) {
+                    commonRef = processLinkContentType(entries?.linkContentType);
                     referenceFields =
-                      commonRef.length > 0 ? commonRef : item.contentNames?.slice(0, 9);
+                      commonRef?.length > 0 ? commonRef : item?.contentNames?.slice(0, 9);
                   }
                 });
               } else {
@@ -331,7 +331,9 @@ const contentTypeMapper = (data) => {
                     : item?.contentNames?.slice(0, 9);
               }
             }
-            acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
+            const refFieldData = createFieldObject(item, 'reference', 'reference', referenceFields)
+            refFieldData.refrenceTo = referenceFields;
+            acc.push(refFieldData);
             break;
           }
           case 'checkbox':
