@@ -755,7 +755,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
       const environmentsId = await readFile(environmentSave, ENVIRONMENTS_FILE_NAME) ?? {};
       const displayField: { [key: string]: any } = {}
       content.map((item: any) => {
-        displayField[item.name.toLowerCase().replace(/[^a-z0-9]+/g, "_")] =
+        displayField[item?.sys?.id] =
         {
           displayField: item.displayField || "untitled",
         };
