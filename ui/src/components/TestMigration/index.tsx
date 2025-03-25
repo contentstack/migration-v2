@@ -41,6 +41,15 @@ import TestMigrationLogViewer from '../LogScreen';
 // CSS
 import './index.scss';
 
+interface ErrorObject {
+  error_message?: string;
+  errors?: Errors;
+}
+
+interface Errors {
+  org_uid?: string[];
+}
+
 const TestMigration = () => {
   // Access Redux state for migration data and selected organization
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
@@ -174,15 +183,15 @@ const TestMigration = () => {
         data
       );
 
-      if (res?.status === 200) {
+      if (res?.status === 201) {
         setIsStackLoading(false);
         setDisableCreateStack(true);
         setDisableTestMigration(false);
         Notification({
-          notificationContent: { text: 'Test Stack created successfully' },
+          notificationContent: { text: res?.data?.data?.data?.notice ?? 'Test Stack created successfully' },
           notificationProps: {
             position: 'bottom-center',
-            hideProgressBar: false
+            hideProgressBar: true
           },
           type: 'success'
         });
@@ -206,19 +215,37 @@ const TestMigration = () => {
           ]
         };
         dispatch(updateNewMigrationData(newMigrationDataObj));
+      } else {
+        const errorMessage = formatErrorMessage(res?.data?.data);
+        setIsStackLoading(false);
+        Notification({
+          notificationContent: { text: errorMessage },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: true
+          },
+          type: 'error'
+        });
       }
     } catch (err) {
       console.error(err);
-      Notification({
-        notificationContent: { text: err },
-        notificationProps: {
-          position: 'bottom-center',
-          hideProgressBar: true
-        },
-        type: 'error'
-      });
     }
   };
+
+  /**
+   * Function to format the error message
+   */
+  const formatErrorMessage = (errorData: ErrorObject) => {
+    let message = errorData.error_message;
+
+    if (errorData.errors) {
+      Object.entries(errorData.errors).forEach(([key, value]) => {
+        message += `\n${key}: ${(value as string[]).join(", ")}`;
+      });
+    }
+
+    return message;
+  }
 
   /**
    * Start the test migration
@@ -256,7 +283,7 @@ const TestMigration = () => {
           notificationContent: { text: 'Test Migration started' },
           notificationProps: {
             position: 'bottom-center',
-            hideProgressBar: false
+            hideProgressBar: true
           },
           type: 'message'
         });
