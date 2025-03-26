@@ -381,7 +381,9 @@ const groupFlat = (data, item) => {
         uid: `${item?.meta?.key}.${element?.uid}`,
         otherCmsField: `${item?.meta?.name} > ${element?.otherCmsField}`,
         contentstackField: `${item?.meta?.name} > ${element?.contentstackField}`,
-        contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`,
+        contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${
+          element?.contentstackFieldUid
+        }`,
         backupFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`
       };
       flat?.push(obj);
