@@ -419,7 +419,6 @@ export const createSourceLocales = async (req: Request) => {
 
   const projectId = req?.params?.projectId;
   const locales = req?.body?.locale;
-  console.info("🚀 ~ createSourceLocales ~ locales:", locales);
 
   try {
     // Find the project with the specified projectId
