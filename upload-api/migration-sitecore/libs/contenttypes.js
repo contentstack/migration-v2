@@ -587,6 +587,11 @@ const contentTypeMapper = ({
 };
 
 const contentTypeMaker = ({ template, basePath, sitecore_folder, affix }) => {
+  let uid = uidCorrector({ uid: template?.key });
+  const isPresent = restrictedUid?.find?.((item) => item === uid);
+  if (isPresent) {
+    uid = `${affix}_${uid}`;
+  }
   const content_type = {
     id: template?.id,
     status: 1,
@@ -595,7 +600,7 @@ const contentTypeMaker = ({ template, basePath, sitecore_folder, affix }) => {
     isUpdated: false,
     updateAt: '',
     contentstackTitle: template?.name,
-    contentstackUid: uidCorrector({ uid: template?.key })
+    contentstackUid: uid
   };
   template?.field?.forEach((item) => {
     if (item?.$?.key === '__base template' && item?.$?.type === 'tree list') {
