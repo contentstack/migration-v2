@@ -41,5 +41,7 @@
   "_version",
   "__v",
   "locale",
-  "publish_details"
+  "publish_details",
+  "title",
+  "url"
 ]
