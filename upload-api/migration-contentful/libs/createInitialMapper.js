@@ -44,9 +44,9 @@ const uidCorrector = (uid, prefix) => {
 
 /**
  * Creates an initial mapping for content types by processing files in a specified directory.
- * 
+ *
  * @returns {Promise<{ contentTypes: object[] }>} A promise that resolves to an object containing an array of content type objects.
- * 
+ *
  * @description
  * This function performs the following steps:
  * 1. Reads all files in a specified directory containing data about content types.
@@ -56,9 +56,9 @@ const uidCorrector = (uid, prefix) => {
  * 5. The content type fields are further enriched by mapping the fields from the data using a helper function `contentTypeMapper`.
  * 6. After processing all the files, the content type objects are returned as an array.
  * 7. The function handles errors and logs them to the console if any occur during the process.
- * 
+ *
  * The function also deletes a folder at the end of the process (using `deleteFolderSync`), which may be used for cleanup purposes.
- * 
+ *
  * // Outputs: an array of content type objects, each containing metadata and field mappings.
  */
 const createInitialMapper = async () => {
@@ -110,9 +110,7 @@ const createInitialMapper = async () => {
         }
       ];
       const dataArray = data.filter((item) => item.id !== 'title' && item.id !== 'url');
-      const contentstackFields = [...uidTitle, ...contentTypeMapper(dataArray)].filter(
-        Boolean
-      );
+      const contentstackFields = [...uidTitle, ...contentTypeMapper(dataArray)].filter(Boolean);
 
       contentTypeObject.fieldMapping = contentstackFields;
       initialMapper.push(contentTypeObject);
