@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FileDetails, ICMSType, INewMigration } from '../../../context/app/app.interface';
-import { fileValidation, getConfig } from '../../../services/api/upload.service';
+import { fileValidation } from '../../../services/api/upload.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import {  Button, CircularLoader, Paragraph } from '@contentstack/venus-components';
@@ -73,14 +73,14 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const newMigrationDataRef = useRef(newMigrationData);
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isValidated, setIsValidated] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
-  const [showMessage, setShowMessage] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
+  const [isValidated, setIsValidated] = useState<boolean>(newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.isValidated);
+  const [showMessage, setShowMessage] = useState<boolean>(newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.isValidated);
   const [validationMessgae, setValidationMessage] = useState<string>('');
   const [isValidationAttempted, setIsValidationAttempted] = useState<boolean>(false);
   const [isDisabled, setIsDisabled] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
   const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
   const [cmsType, setCmsType]= useState('');
-  const [fileDetails, setFileDetails] = useState(newMigrationData?.legacy_cms?.uploadedFile?.file_details);
+  const [fileDetails, setFileDetails] = useState(newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details);
   const [fileExtension, setFileExtension] = useState<string>('');
   const [progressPercentage, setProgressPercentage] = useState<number>(0);
   const [showProgress, setShowProgress]= useState<boolean>(false);
@@ -135,7 +135,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                 bucketName: data?.file_details?.awsData?.bucketName,
                 buketKey: data?.file_details?.awsData?.buketKey
               }
-            }
+            },
+            cmsType: data?.cmsType
             
           }
         }
@@ -222,54 +223,25 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   //function to get config details
   const getConfigDetails = async () =>{
     try {
-      setIsConfigLoading(true);
-    const {data, status} = await getConfig();
+      //setIsConfigLoading(true);
   
-    if (!isEmptyString(fileDetails?.localPath) && data?.localPath !== fileDetails?.localPath && !isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)) {
+    if (!isEmptyString(fileDetails?.localPath) && newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath !== fileDetails?.localPath && !isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)) {
       setIsDisabled(false); 
       setShowMessage(true);
       setValidationMessage('');
       
     }
     
-    if(status === 200){
-      const extension = getFileExtension(data?.localPath);     
-      setCmsType(data?.cmsType);
-      setFileDetails(data);
+      const extension = getFileExtension(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '');     
+      setCmsType(newMigrationData?.legacy_cms?.uploadedFile?.cmsType);
+      //setFileDetails(data);
       setFileExtension(extension);
 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationDataRef?.current,
-        legacy_cms: {
-          ...newMigrationDataRef?.current?.legacy_cms,
-          uploadedFile: {
-            name: data?.localPath,
-            url: data?.localPath,
-            isValidated: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
-            reValidate: false,
-            file_details: {
-              isLocalPath: data?.isLocalPath,
-              cmsType: data?.cmsType,
-              localPath: data?.localPath,
-              awsData: {
-                awsRegion: data?.awsData?.awsRegion,
-                bucketName: data?.awsData?.bucketName,
-                buketKey: data?.awsData?.buketKey
-              }
-            }
-          }
-        }
-      };
-
-      if(isEmptyString(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath) ){
-        dispatch(updateNewMigrationData(newMigrationDataObj));
-
-      }
       
       const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
       let filteredCmsData:ICMSType[] = all_cms;
-      if (data?.cmsType) {
-        filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.parent?.toLowerCase() === data?.cmsType?.toLowerCase());
+      if (newMigrationData?.legacy_cms?.uploadedFile?.cmsType) {
+        filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.parent?.toLowerCase() === newMigrationData?.legacy_cms?.uploadedFile?.cmsType?.toLowerCase());
       }
    
       const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.some((format: ICardType) => {
@@ -277,8 +249,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         return isValid;
       });
 
-      //setIsFormatValid(isFormatValid);    
-
+      
+      //setIsFormatValid(isFormatValid); 
       setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
       if(!isFormatValid){
         setValidationMessage('');
@@ -296,17 +268,17 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       } 
 
     
-    }
-  if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
-    newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
-    {     
-      setIsValidated(false);
-      setValidationMessage('file format is not appropriate');
-      setIsValidationAttempted(true);
-      setShowMessage(true);
-      setIsLoading(false);
-      setIsDisabled(true);
-    }
+    //}
+  // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
+  //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
+  //   {     
+  //     setIsValidated(false);
+  //     setValidationMessage('file format is not appropriate');
+  //     setIsValidationAttempted(true);
+  //     setShowMessage(true);
+  //     setIsLoading(false);
+  //     setIsDisabled(true);
+  //   }
      setIsConfigLoading(false);
       
     } catch (error) {
@@ -319,10 +291,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   }
 
   useEffect(() => {
-    if(isEmptyString(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath)){
-      getConfigDetails();
-    }
-    
+      getConfigDetails();   
   }, []);
 
   useEffect(() => {
@@ -332,7 +301,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setIsConfigLoading(savedState.isConfigLoading);
       setIsValidated(savedState?.isValidated);
       setValidationMessage(savedState?.validationMessage);
-      setIsDisabled(savedState?.isDisabled);
+      //setIsDisabled(savedState?.isDisabled);
       setCmsType(savedState.cmsType);
       //setFileDetails(savedState.fileDetails);
       setFileExtension(savedState.fileExtension);
@@ -392,7 +361,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     if(newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
       setValidationMessage('');
     }
-    if(!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated ){
+    if(!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
       setIsDisabled(false);
     }
     setReValidate(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
@@ -418,8 +387,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const sanitizedCmsType = cmsType?.toLowerCase().replace(/[^\w\s-]/g, '');
 
   const documentationUrl = VALIDATION_DOCUMENTATION_URL?.[sanitizedCmsType];
-
-
   
   const validationClassName = isValidated ? 'success' : 'error';
 
@@ -468,7 +435,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={isDisabled || isEmptyString(affix) || reValidate}
+            disabled={!(reValidate || (!isDisabled && !isEmptyString(newMigrationData?.legacy_cms?.affix)))}
           > 
             Validate File
           </Button>
