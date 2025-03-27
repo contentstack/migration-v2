@@ -109,14 +109,14 @@ const createInitialMapper = async () => {
           advanced: { mandatory: true }
         }
       ];
-      const contentstackFields = [...uidTitle, ...contentTypeMapper(data)].filter(
+      const contentstackFields = [...uidTitle, ...contentTypeMapper(data)]?.filter?.(
         Boolean
       );
 
       contentTypeObject.fieldMapping = contentstackFields;
       initialMapper.push(contentTypeObject);
     }
-    deleteFolderSync(path.resolve(process.cwd(), config.data));
+    deleteFolderSync(path.resolve(process.cwd(), config?.data));
     return { contentTypes: initialMapper };
   } catch (error) {
     console.error('Error saving content type:', error);
