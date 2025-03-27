@@ -9,7 +9,8 @@
     "api": "cd ./api && npm run dev",
     "upload": "cd ./upload-api && npm start",
     "ui": "cd ./ui && npm start",
-    "start": "node index.js"
+    "start": "node index.js",
+    "setup:mac": "bash setup.sh"
   },
   "repository": {
     "type": "git",
