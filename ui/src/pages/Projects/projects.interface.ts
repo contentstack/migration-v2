@@ -32,7 +32,7 @@ interface EmptyState {
 export interface ProjectsObj {
   legacy_cms: LegacyCms;
   id: string;
-  uid:string;
+  uid: string;
   region: string;
   org_id: string;
   owner: string;

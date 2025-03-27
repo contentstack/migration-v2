@@ -45,6 +45,6 @@ const MIGRATION_DATA_CONFIG = {
 
 
 
-  module.exports = {
-    MIGRATION_DATA_CONFIG
-  };
+module.exports = {
+  MIGRATION_DATA_CONFIG
+};
