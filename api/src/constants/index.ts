@@ -1,11 +1,11 @@
 export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA"];
 export const DEVURLS: any = {
-  'NA': 'developerhub-api.contentstack.com',
-  'EU': 'eu-developerhub-api.contentstack.com',
-  'AZURE_NA': 'azure-na-developerhub-api.contentstack.com',
-  'AZURE_EU': 'azure-eu-developerhub-api.contentstack.com',
-  'GCP_NA': 'gcp-na-developerhub-api.contentstack.com',
-}
+  NA: "developerhub-api.contentstack.com",
+  EU: "eu-developerhub-api.contentstack.com",
+  AZURE_NA: "azure-na-developerhub-api.contentstack.com",
+  AZURE_EU: "azure-eu-developerhub-api.contentstack.com",
+  GCP_NA: "gcp-na-developerhub-api.contentstack.com",
+};
 export const CMS = {
   CONTENTFUL: "contentful",
   SITECORE_V8: "sitecore v8",
@@ -13,7 +13,7 @@ export const CMS = {
   SITECORE_V10: "sitecore v10",
   WORDPRESS: "wordpress",
   AEM: "aem",
-}
+};
 export const MODULES = [
   "Project",
   "Migration",
@@ -58,7 +58,8 @@ export const HTTP_TEXTS = {
     "Project's Fileformat confirmation updated successfully",
   CMS_UPDATED: "Project's migration cms updated successfully",
   STACK_UPDATED: "Project's migration stack details updated successfully",
-  CONTENT_MAPPER_UPDATED: "Project's migration content mapping updated successfully",
+  CONTENT_MAPPER_UPDATED:
+    "Project's migration content mapping updated successfully",
   FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
   DESTINATION_STACK_UPDATED:
     "Project's migration destination stack updated successfully",
@@ -95,14 +96,11 @@ export const HTTP_TEXTS = {
     "Sorry, the requested content mapper id does not exists.",
   ADMIN_LOGIN_ERROR:
     "Sorry, You Don't have admin access in any of the Organisation",
-  PROJECT_DELETE:
-    "Project Deleted Successfully",
-  PROJECT_REVERT:
-    "Project Reverted Successfully",
-  LOGS_NOT_FOUND:
-    "Sorry, no logs found for requested stack migration.",
+  PROJECT_DELETE: "Project Deleted Successfully",
+  PROJECT_REVERT: "Project Reverted Successfully",
+  LOGS_NOT_FOUND: "Sorry, no logs found for requested stack migration.",
   MIGRATION_EXECUTION_KEY_UPDATED:
-    "Project's migration execution key updated successfully"
+    "Project's migration execution key updated successfully",
 };
 
 export const HTTP_RESPONSE_HEADERS = {
@@ -177,18 +175,28 @@ export const CONTENT_TYPE_STATUS = {
 export const LOCALE_MAPPER: any = {
   //not more than one locale mapping in master locale
   masterLocale: {
-    'en-us': 'en'
+    "en-us": "en",
   },
-  'fr': 'fr-fr'
-}
+  fr: "fr-fr",
+};
 export const CHUNK_SIZE = 1048576;
 
-export const LIST_EXTENSION_UID = 'bltc44e51cc9f4b0d80';
+export const LIST_EXTENSION_UID = "bltc44e51cc9f4b0d80";
 
 export const KEYTOREMOVE = [
-  "update", "fetch", "delete", "oauth", "hosting", "install", "reinstall",
-  "upgrade", "getRequests", "authorize", "authorization", "listInstallations"
-]
+  "update",
+  "fetch",
+  "delete",
+  "oauth",
+  "hosting",
+  "install",
+  "reinstall",
+  "upgrade",
+  "getRequests",
+  "authorize",
+  "authorization",
+  "listInstallations",
+];
 
 export const MIGRATION_DATA_CONFIG = {
   DATA: "./cmsMigrationData",
@@ -262,5 +270,5 @@ export const MIGRATION_DATA_CONFIG = {
   GLOBAL_FIELDS_DIR_NAME: "global_fields",
   GLOBAL_FIELDS_FILE_NAME: "globalfields.json",
 
-  EXPORT_INFO_FILE: "export-info.json"
-}
+  EXPORT_INFO_FILE: "export-info.json",
+};
