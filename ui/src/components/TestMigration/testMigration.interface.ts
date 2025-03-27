@@ -10,6 +10,6 @@ export interface CTA {
 }
 
 export interface TestMigrationValues {
-  isTestMigrationStarted: boolean,
-  isTestMigrationCompleted: boolean,
+  isTestMigrationStarted: boolean;
+  isTestMigrationCompleted: boolean;
 }

@@ -23,11 +23,11 @@ const appDetails = require('../utils/apps/appDetails.json')
  */
 const uidCorrector = (uid, affix) => {
   let newId = uid;
-  if (restrictedUid.includes(uid)) {
-    newId = uid.replace(uid, `${affix}_${uid}`);
-    newId = newId.replace(/[^a-zA-Z0-9]+/g, '_');
+  if (restrictedUid?.includes?.(uid)) {
+    newId = uid?.replace?.(uid, `${affix}_${uid}`);
+    newId = newId?.replace?.(/[^a-zA-Z0-9]+/g, '_');
   }
-  return newId.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`);
+  return newId.replace(/([A-Z])/g, (match) => `_${match?.toLowerCase?.()}`);
 };
 
 /**
@@ -104,10 +104,10 @@ const createFieldObject = (item, contentstackFieldType, backupFieldType, referen
   otherCmsField: item?.name,
   otherCmsType: item?.widgetId,
   contentstackField: item?.name,
-  contentstackFieldUid: uidCorrector(item?.id),
+  contentstackFieldUid: uidCorrector(item?.id, item?.prefix),
   contentstackFieldType: contentstackFieldType,
   backupFieldType: backupFieldType,
-  backupFieldUid: uidCorrector(item?.id),
+  backupFieldUid: uidCorrector(item?.id, item?.prefix),
   advanced: extractAdvancedFields(item, referenceFields, contentstackFieldType, backupFieldType)
 });
 
@@ -368,7 +368,7 @@ const contentTypeMapper = (data) => {
           otherCmsField: `${item.name} > lat`,
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lat`,
-          contentstackFieldUid: `${uidCorrector(item?.id)}.lat`,
+          contentstackFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lat`,
           contentstackFieldType: 'number',
           backupFieldType: 'number',
           advanced: {
@@ -382,7 +382,7 @@ const contentTypeMapper = (data) => {
           otherCmsField: `${item.name} > lon`,
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lon`,
-          contentstackFieldUid: `${uidCorrector(item?.id)}.lon`,
+          contentstackFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lon`,
           contentstackFieldType: 'number',
           backupFieldType: 'number',
           advanced: {
