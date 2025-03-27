@@ -475,7 +475,7 @@ const LanguageMapper = () => {
   };
 
   return (
-    <div className="mini-table">
+    <div>
       {isLoading ? (
         <CircularLoader size="small"></CircularLoader>
       ) : (
