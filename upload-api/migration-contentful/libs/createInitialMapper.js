@@ -12,7 +12,7 @@ const contentTypeMapper = require('./contentTypeMapper');
 /**
  * Internal module dependencies.
  */
-const { readFile, writeFile, deleteFolderSync } = require('../utils/helper');
+const { readFile, deleteFolderSync } = require('../utils/helper');
 const config = require('../config');
 const idArray = require('../utils/restrictedKeyWords');
 
@@ -109,14 +109,14 @@ const createInitialMapper = async () => {
           advanced: { mandatory: true }
         }
       ];
-      const dataArray = data.filter((item) => item.id !== 'title' && item.id !== 'url');
-      const contentstackFields = [...uidTitle, ...contentTypeMapper(dataArray)].filter(Boolean);
+      const contentstackFields = [...uidTitle, ...contentTypeMapper(data)]?.filter?.(
+        Boolean
+      );
 
       contentTypeObject.fieldMapping = contentstackFields;
       initialMapper.push(contentTypeObject);
     }
-    // writeFile(path.join(path.resolve(process.cwd(), `${config.data}/${config.contentful.contentful}`), 'schemaTest.json'), JSON.stringify(initialMapper, null, 4));
-    deleteFolderSync(path.resolve(process.cwd(), config.data));
+    deleteFolderSync(path.resolve(process.cwd(), config?.data));
     return { contentTypes: initialMapper };
   } catch (error) {
     console.error('Error saving content type:', error);
