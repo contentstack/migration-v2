@@ -56,11 +56,12 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
 
   /** ALL HOOKS HERE */
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
   const [stepperKey] = useState<string>('legacy-Vertical-stepper');
 
   const [isAllStepsCompleted, setIsAllStepsCompleted] = useState(false);
+  const [isProjectMapped, setisProjectMapped] = useState<boolean>(newMigrationData?.isprojectMapped);
   const autoVerticalStepper = useRef<AutoVerticalStepperRef>(null);
 
 
@@ -152,26 +153,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
       ) {
         setInternalActiveStepIndex(2);
       }   
-      dispatch(updateNewMigrationData({
-        ...newMigrationData,
-        legacy_cms: {
-          currentStep: internalActiveStepIndex,
-          selectedCms: selectedCmsData,
-          selectedFileFormat: selectedFileFormatData,
-          uploadedFile: {
-            file_details:{
-              localPath: legacyCMSData?.file_path,
-              awsData: legacyCMSData?.awsDetails,
-              isLocalPath: legacyCMSData?.is_localPath
-            },
-            isValidated: legacyCMSData?.is_fileValid,
-            reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
-          }, //need to add backend data once endpoint exposed.
-          affix: legacyCMSData?.affix ?? '',
-          isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
-          isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
-        }
-      }))
       setIsLoading(false);          
   
       //Check for migration Status and lock.
@@ -224,6 +205,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
     if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && !isEmptyString(newMigrationData?.legacy_cms?.affix) && newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
       setInternalActiveStepIndex(3);
     }
+    setisProjectMapped(newMigrationData?.isprojectMapped)
 
   },[newMigrationData]);
   
@@ -244,7 +226,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
 
   return (
     <>
-      {isLoading || newMigrationData?.isprojectMapped ? (
+      {isLoading || isProjectMapped ? (
         <div className="loader-container">
           <CircularLoader />
         </div>
