@@ -757,7 +757,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
       content.map((item: any) => {
         displayField[item?.sys?.id] =
         {
-          displayField: item.displayField || "untitled",
+          displayField: item?.displayField || "untitled",
         };
       }
       );
@@ -785,7 +785,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
               entryData[name][lang] ??= {};
               entryData[name][lang][id] ??= {};
               locales.push(lang);
-              const fieldData = currentCT?.fieldMapping?.find((item: any) => key === item?.uid);
+              const fieldData = currentCT?.fieldMapping?.find?.((item: any) => (key === item?.uid) && (!["text", "url"]?.includes?.(item?.backupFieldType)));
               const newId = fieldData?.contentstackFieldUid ?? `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, "_");
               entryData[name][lang][id][newId] = processField(
                 langValue,
