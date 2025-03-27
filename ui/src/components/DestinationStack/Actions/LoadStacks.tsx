@@ -27,6 +27,7 @@ import { createStacksInOrg, getAllStacksInOrg, getStackLocales } from '../../../
 
 // Components
 import AddStack from '../../../components/Common/AddStack/addStack';
+import LanguageMapper from '../Actions/LoadLanguageMapper';
 
 interface LoadFileFormatProps {
   stepComponentProps?: () => {};
@@ -292,66 +293,82 @@ const LoadStacks = (props: LoadFileFormatProps) => {
 
   return (
     <div className="">
-      <div className="action-summary-wrapper ">
-        <div>
-          <div className="row">
-            <div className="col-12">
-              <div className="Dropdown-wrapper p-0 active ">
-                <Select
-                  className="stackselect"
-                  value={selectedStack}
-                  options={allStack}
-                  onChange={handleDropdownChange('stacks')}
-                  isSearchable={true}
-                  // placeholder='Select a stack'
-                  placeholder={placeholder}
-                  isClearable={allStack?.length > 0 && !emptyStackValue}
-                  // hideSelectedOptions={true}
-                  isDisabled={newMigrationData?.project_current_step > 2}
-                  error={isLoading ? false : !!isError}
-                  width="600px"
-                  hasAddOption={true}
-                  // menuIsOpen
-                  version="v2"
-                  addOptionText={
-                    <div className="createStack" onClick={handleCreateNewStack}>
-                      + Create a new stack
-                    </div>
-                  }
-                />
-                {isError && !isLoading && <div className="errorMessage">{errorMessage}</div>}
-              </div>
-            </div>
-            <div className="col-12">
-              <label className="title" htmlFor="master_locale">Master Locale <span className='asterisk_input'></span>
-              </label>
-              <Tooltip
-                content="Master Locale is auto-selected based on the chosen stack."
-                position="right"
-              >
-                <Icon icon="Information" version="v2" size="small"></Icon>
-              </Tooltip>
-            </div>
-            <div className="col-12 pb-2" id="master_locale">
-              <TextInput 
-                id="master_locale"
-                aria-label="master_locale"
-                version={'v2'}
-                placeholder={
-                  selectedStack?.master_locale
-                    ? ''
-                    : 'Master Locale will be set after stack selection'
-                }
-                value={selectedStack?.master_locale}
-                width="600px"
-                className="orgInput"
-                isReadOnly
-                disabled
-              />
-            </div>
+      <div className="row">
+        <div className="col-12">
+          <div className="Dropdown-wrapper p-0 active ">
+            <Select
+              className="stackselect"
+              value={selectedStack}
+              options={allStack}
+              onChange={handleDropdownChange('stacks')}
+              isSearchable={true}
+              // placeholder='Select a stack'
+              placeholder={placeholder}
+              isClearable={allStack?.length > 0 && !emptyStackValue}
+              // hideSelectedOptions={true}
+              isDisabled={newMigrationData?.project_current_step > 2}
+              error={isLoading ? false : !!isError}
+              width="600px"
+              hasAddOption={true}
+              // menuIsOpen
+              version="v2"
+              addOptionText={
+                <div className="createStack" onClick={handleCreateNewStack}>
+                  + Create a new stack
+                </div>
+              }
+            />
+            {isError && !isLoading && <div className="errorMessage">{errorMessage}</div>}
           </div>
         </div>
+        <div className="col-12">
+          <label className="title" htmlFor="master_locale">Master Locale <span className='asterisk_input'></span>
+          </label>
+          <Tooltip
+            content="Master Locale is auto-selected based on the chosen stack."
+            position="right"
+          >
+            <Icon icon="Information" version="v2" size="small"></Icon>
+          </Tooltip>
+        </div>
+        <div className="col-12 pb-2" id="master_locale">
+          <TextInput 
+            id="master_locale"
+            aria-label="master_locale"
+            version={'v2'}
+            placeholder={
+              selectedStack?.master_locale
+                ? ''
+                : 'Master Locale will be set after stack selection'
+            }
+            value={selectedStack?.master_locale}
+            width="600px"
+            className="orgInput"
+            isReadOnly
+            disabled
+          />
+        </div>
       </div>
+
+      {newMigrationData?.destination_stack?.selectedStack?.value && (
+        <div className="language-mapper">
+          <div className="info-lang">
+            <div className="stackTitle language-title">Language Mapping</div>
+            <Tooltip
+              content={`Match your source CMS languages with Contentstack to ensure a seamless migration`}
+              position="right"
+            >
+              <Icon
+                className="language-title"
+                icon="Information"
+                version="v2"
+                size="small"
+              ></Icon>
+            </Tooltip>
+          </div>
+          <LanguageMapper />
+        </div>
+      )}
     </div>
   );
 };
