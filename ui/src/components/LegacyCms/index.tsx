@@ -46,21 +46,24 @@ export interface AutoVerticalStepperRef {
   handleDynamicStepChange: (stepIndex: number, isLastStep?: boolean) => void;
 }
 
-const LegacyCMSComponent = forwardRef(
-  ({ legacyCMSData, isCompleted, handleOnAllStepsComplete }: LegacyCMSComponentProps, ref) => {
-    //react-redux apis
-    const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
-    const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-    const dispatch = useDispatch();
 
-    /** ALL HOOKS HERE */
-    const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
-    const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
-    const [stepperKey] = useState<string>('legacy-Vertical-stepper');
+const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAllStepsComplete, }: LegacyCMSComponentProps, ref) => {
+  //react-redux apis
+  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+  const  newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const dispatch = useDispatch();
 
-    const [isAllStepsCompleted, setIsAllStepsCompleted] = useState(false);
-    const autoVerticalStepper = useRef<AutoVerticalStepperRef>(null);
+
+  /** ALL HOOKS HERE */
+  const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [internalActiveStepIndex, setInternalActiveStepIndex] = useState<number>(-1);
+  const [stepperKey] = useState<string>('legacy-Vertical-stepper');
+
+  const [isAllStepsCompleted, setIsAllStepsCompleted] = useState(false);
+  const [isProjectMapped, setisProjectMapped] = useState<boolean>(newMigrationData?.isprojectMapped);
+  const autoVerticalStepper = useRef<AutoVerticalStepperRef>(null);
+
 
     //Handle on all steps are completed
     const handleAllStepsComplete = (flag = false) => {
@@ -151,26 +154,6 @@ const LegacyCMSComponent = forwardRef(
       ) {
         setInternalActiveStepIndex(2);
       }   
-      dispatch(updateNewMigrationData({
-        ...newMigrationData,
-        legacy_cms: {
-          currentStep: internalActiveStepIndex,
-          selectedCms: selectedCmsData,
-          selectedFileFormat: selectedFileFormatData,
-          uploadedFile: {
-            file_details:{
-              localPath: legacyCMSData?.file_path,
-              awsData: legacyCMSData?.awsDetails,
-              isLocalPath: legacyCMSData?.is_localPath
-            },
-            isValidated: legacyCMSData?.is_fileValid,
-            reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
-          }, //need to add backend data once endpoint exposed.
-          affix: legacyCMSData?.affix ?? '',
-          isFileFormatCheckboxChecked: true, //need to add backend data once endpoint exposed.
-          isRestictedKeywordCheckboxChecked: true //need to add backend data once endpoint exposed.
-        }
-      }))
       setIsLoading(false);          
   
       //Check for migration Status and lock.
@@ -220,59 +203,56 @@ const LegacyCMSComponent = forwardRef(
         setInternalActiveStepIndex(1);
       }
 
-      if (
-        !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
-        !isEmptyString(newMigrationData?.legacy_cms?.affix) &&
-        newMigrationData?.legacy_cms?.uploadedFile?.isValidated
-      ) {
-        setInternalActiveStepIndex(3);
-      }
-    }, [newMigrationData]);
+    if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && !isEmptyString(newMigrationData?.legacy_cms?.affix) && newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+      setInternalActiveStepIndex(3);
+    }
+    setisProjectMapped(newMigrationData?.isprojectMapped)
 
-    useEffect(() => {
-      if (
-        !isEmptyString(newMigrationData?.legacy_cms?.affix) &&
-        !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.title) &&
-        !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) &&
-        newMigrationData?.legacy_cms?.uploadedFile?.isValidated
-      ) {
-        setIsAllStepsCompleted(true);
-        handleAllStepsComplete(true);
-      } else {
-        setIsAllStepsCompleted(false);
-        handleAllStepsComplete(false);
-      }
-    }, [newMigrationData, isAllStepsCompleted]);
+  },[newMigrationData]);
+  
+  useEffect(()=>{
+   if(! isEmptyString(newMigrationData?.legacy_cms?.affix) 
+      && !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.title) &&
+    ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) && 
+    newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+      setIsAllStepsCompleted(true);
+      handleAllStepsComplete(true);
+    }
+    else{
+      setIsAllStepsCompleted(false);
+      handleAllStepsComplete(false);
 
-    return (
-      <>
-        {isLoading || newMigrationData?.isprojectMapped ? (
-          <div className="loader-container">
-            <CircularLoader />
-          </div>
-        ) : (
-          <div className="legacy-cms-container">
-            <div className="row">
-              <div className="col-12">
-                <AutoVerticalStepper
-                  ref={autoVerticalStepper}
-                  key={stepperKey}
-                  steps={getLegacyCMSSteps(
-                    isCompleted,
-                    isMigrationLocked,
-                    migrationData?.legacyCMSData?.all_steps
-                  )}
-                  isEdit={!isMigrationLocked}
-                  isRequired={true}
-                  handleOnAllStepsComplete={handleAllStepsComplete}
-                />
-              </div>
+    }
+  },[newMigrationData,isAllStepsCompleted])
+
+  return (
+    <>
+      {isLoading || isProjectMapped ? (
+        <div className="loader-container">
+          <CircularLoader />
+        </div>
+      ) : (
+        <div className="legacy-cms-container">
+          <div className="row">
+            <div className="col-12">
+              <AutoVerticalStepper
+                ref={autoVerticalStepper}
+                key={stepperKey}
+                steps={getLegacyCMSSteps(
+                  isCompleted,
+                  isMigrationLocked,
+                  migrationData?.legacyCMSData?.all_steps
+                )}
+                isEdit={!isMigrationLocked}
+                isRequired={true}
+                handleOnAllStepsComplete={handleAllStepsComplete}
+              />
             </div>
           </div>
-        )}
-      </>
-    );
-  }
-);
+        </div>
+      )}
+    </>
+  );
+});
 LegacyCMSComponent.displayName = 'LegacyCMSComponent';
 export default LegacyCMSComponent;
