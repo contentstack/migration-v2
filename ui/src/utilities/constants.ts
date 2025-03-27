@@ -26,16 +26,16 @@ export const REGIONS = {
   AZURE_NA: 'AZURE_NA',
   EU: 'EU',
   AZURE_EU: 'AZURE_EU',
-  GCP_NA: 'GCP_NA',
+  GCP_NA: 'GCP_NA'
 };
 
 export const CS_URL: ObjectType = {
-  NA: "https://app.contentstack.com/#!",
-  EU: "https://eu-app.contentstack.com/#!",
-  AZURE_NA: "https://azure-na-app.contentstack.com/#!",
-  AZURE_EU: "https://azure-eu-app.contentstack.com/#!",
-  GCP_NA: "https://gcp-na-app.contentstack.com/#!",
-}
+  NA: 'https://app.contentstack.com/#!',
+  EU: 'https://eu-app.contentstack.com/#!',
+  AZURE_NA: 'https://azure-na-app.contentstack.com/#!',
+  AZURE_EU: 'https://azure-eu-app.contentstack.com/#!',
+  GCP_NA: 'https://gcp-na-app.contentstack.com/#!'
+};
 
 export const HEADERS = {
   'Content-Type': 'application/json',
@@ -98,21 +98,23 @@ export const isOfflineCMSDataRequired = process.env.REACT_APP_OFFLINE_CMS
 
 export const CONTENT_MAPPING_STATUS: ObjectType = {
   '1': 'Mapped',
-  '2': 'Verified',
+  '2': 'Updated',
   '3': 'Failed',
   '4': 'All'
   // '4': 'Auto-Dump'
-}
+};
 export const STATUS_ICON_Mapping: { [key: string]: string } = {
   '1': 'CheckedCircle',
   '2': 'SuccessInverted',
-  '3': 'ErrorInverted',
+  '3': 'ErrorInverted'
   // '4': 'completed'
 };
 
-export const VALIDATION_DOCUMENTATION_URL :{ [key: string]: string } = {
-  'sitecore': 'https://assets.contentstack.io/v3/assets/bltc9bf9ea2bc503f92/blta7af9cd41858e844/676167e219cfd55b01f0d6cf/sitecore.pdf',
-  'contentful': 'https://assets.contentstack.io/v3/assets/bltc9bf9ea2bc503f92/blta71b3ed2fb3cf6df/67616dac4f07d3c474f4083d/contentful.pdf',
-  'wordpress': '',
-  'drupal': ''
+export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
+  sitecore:
+    'https://assets.contentstack.io/v3/assets/bltc9bf9ea2bc503f92/blta7af9cd41858e844/676167e219cfd55b01f0d6cf/sitecore.pdf',
+  contentful:
+    'https://assets.contentstack.io/v3/assets/bltc9bf9ea2bc503f92/blta71b3ed2fb3cf6df/67616dac4f07d3c474f4083d/contentful.pdf',
+  wordpress: '',
+  drupal: ''
 };
