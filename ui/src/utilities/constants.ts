@@ -98,7 +98,7 @@ export const isOfflineCMSDataRequired = process.env.REACT_APP_OFFLINE_CMS
 
 export const CONTENT_MAPPING_STATUS: ObjectType = {
   '1': 'Mapped',
-  '2': 'Verified',
+  '2': 'Updated',
   '3': 'Failed',
   '4': 'All'
   // '4': 'Auto-Dump'
