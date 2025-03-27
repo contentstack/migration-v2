@@ -156,11 +156,17 @@
       padding: 0 1.25rem;
     }
     .cms-field {
-      text-transform: capitalize;
+      // text-transform: capitalize;
+      // overflow: hidden;
+      // text-overflow: ellipsis;
+      // white-space: nowrap;
+      // width: 445px;
+
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
-      width: 445px;
     }
     .InstructionText {
       font-size: $size-font-small;
@@ -300,4 +306,8 @@ div .table-row {
 }
 .advanced-setting-button {
   padding: 5px;
+}
+.field-count {
+  font-size: $size-font-large;
+  font-weight: $font-weight-semi-bold;
 }
