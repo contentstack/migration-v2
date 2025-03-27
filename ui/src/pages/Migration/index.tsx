@@ -339,7 +339,7 @@ const Migration = () => {
           />
         ),
         id: '2',
-        title: 'Select Destination Stack'
+        title: 'Configure Destination Stack'
       },
       {
         data: <ContentMapper ref={saveRef} handleStepChange={handleStepChange} />,
