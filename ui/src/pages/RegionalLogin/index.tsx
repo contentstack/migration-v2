@@ -41,7 +41,7 @@ const RegionalLogin = () => {
   return (
     <div className="d-flex vh-100 justify-content-center flex-column">
       <div className="mx-3">
-        <div className='container-fluid'>
+        <div className="container-fluid">
           <div className="text-center mt-4">
             {heading && <h1>{heading}</h1>}
             {description && description != '' && (
@@ -75,10 +75,10 @@ const RegionalLogin = () => {
                         <a
                           href={`/login?region=${region?.region}`}
                           className="body-4 fw-bold stretched-link"
-                          onClick={(e) =>{
+                          onClick={(e) => {
                             e.preventDefault();
-                            navigate(`/login?region=${region?.region}`, { replace: true })}
-                          }
+                            navigate(`/login?region=${region?.region}`, { replace: true });
+                          }}
                         >
                           <span className="link-basic-icon link-arrow">{region?.cta?.title}</span>
                         </a>

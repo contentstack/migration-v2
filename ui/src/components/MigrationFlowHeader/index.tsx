@@ -16,8 +16,8 @@ type MigrationFlowHeaderProps = {
   handleOnClick: (event: MouseEvent, handleStepChange: (currentStep: number) => void) => void;
   isLoading: boolean;
   isCompleted: boolean;
-  legacyCMSRef: React.MutableRefObject<any>; 
-  projectData:MigrationResponse;
+  legacyCMSRef: React.MutableRefObject<any>;
+  projectData: MigrationResponse;
   finalExecutionStarted?: boolean;
 };
 
@@ -28,16 +28,22 @@ type MigrationFlowHeaderProps = {
  * @param isLoading - isLoading flag to load redux data
  * @param finalExecutionStarted - The finalExecutionStarted boolean to check if migration execution is started to disable Start Migration button.
  */
-const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecutionStarted }: MigrationFlowHeaderProps) => {
+const MigrationFlowHeader = ({
+  projectData,
+  handleOnClick,
+  isLoading,
+  finalExecutionStarted
+}: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
   const [currentStep, setCurrentStep] = useState<number>(0);
 
   const navigate = useNavigate();
   const params: Params<string> = useParams();
 
-  const selectedOrganisation = useSelector((state: RootState)=>state?.authentication?.selectedOrganisation);
+  const selectedOrganisation = useSelector(
+    (state: RootState) => state?.authentication?.selectedOrganisation
+  );
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-
 
   useEffect(() => {
     fetchProject();
@@ -65,45 +71,54 @@ const MigrationFlowHeader = ({projectData, handleOnClick, isLoading, finalExecut
     stepValue = 'Save and Continue';
   }
 
-  const isStep4AndNotMigrated = 
-  params?.stepId === '4' && 
-  !newMigrationData?.testStacks?.some(
-    (stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key && stack?.isMigrated
-  );
+  const isStep4AndNotMigrated =
+    params?.stepId === '4' &&
+    !newMigrationData?.testStacks?.some(
+      (stack) =>
+        stack?.stackUid === newMigrationData?.test_migration?.stack_api_key && stack?.isMigrated
+    );
 
-  const isStepInvalid = 
-    params?.stepId && 
-    params?.stepId <= '2' && 
+  const isStepInvalid =
+    params?.stepId &&
+    params?.stepId <= '2' &&
     newMigrationData?.project_current_step?.toString() !== params?.stepId;
 
-  const isExecutionStarted = 
-    finalExecutionStarted || 
-    newMigrationData?.migration_execution?.migrationStarted || newMigrationData?.migration_execution?.migrationCompleted;
-    
-  const destinationStackMigrated =  params?.stepId === '5' && newMigrationData?.destination_stack?.migratedStacks?.includes(newMigrationData?.destination_stack?.selectedStack?.value);
-  
+  const isExecutionStarted =
+    finalExecutionStarted ||
+    newMigrationData?.migration_execution?.migrationStarted ||
+    newMigrationData?.migration_execution?.migrationCompleted;
+
+  const destinationStackMigrated =
+    params?.stepId === '5' &&
+    newMigrationData?.destination_stack?.migratedStacks?.includes(
+      newMigrationData?.destination_stack?.selectedStack?.value
+    );
+
   return (
-    <div className='d-flex align-items-center justify-content-between migration-flow-header'>
-      <div className='d-flex align-items-center'>
-        { projectName && 
-        <Tooltip content={projectName} position='right' version={'v2'}>
-          <h1 className='project-name-ellipsis'>{projectName}</h1> 
-        </Tooltip>}
+    <div className="d-flex align-items-center justify-content-between migration-flow-header">
+      <div className="d-flex align-items-center">
+        {projectName && (
+          <Tooltip content={projectName} position="right" version={'v2'}>
+            <h1 className="project-name-ellipsis">{projectName}</h1>
+          </Tooltip>
+        )}
       </div>
 
       <Button
-        buttonType='primary'
+        buttonType="primary"
         className="ml-10"
         onClick={handleOnClick}
         version="v2"
-        aria-label='Save and Continue'
+        aria-label="Save and Continue"
         isLoading={isLoading || newMigrationData?.isprojectMapped}
-        disabled={isStep4AndNotMigrated || isStepInvalid || isExecutionStarted || destinationStackMigrated}
+        disabled={
+          isStep4AndNotMigrated || isStepInvalid || isExecutionStarted || destinationStackMigrated
+        }
       >
         {stepValue}
       </Button>
     </div>
-  )
-}
+  );
+};
 
 export default MigrationFlowHeader;

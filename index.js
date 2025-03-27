@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 const apiEnvContent = `
 APP_TOKEN_KEY=MIGRATION_V2
@@ -21,18 +21,17 @@ NODE_BACKEND_API =http://localhost:5001
 `;
 
 const envFilePaths = {
-  API: path.join(__dirname, 'api', 'production.env'),
-  UI: path.join(__dirname, 'ui', '.env.local'),
-  'Upload-API': path.join(__dirname, 'upload-api', '.env'),
+  API: path.join(__dirname, "api", "production.env"),
+  UI: path.join(__dirname, "ui", ".env.local"),
+  "Upload-API": path.join(__dirname, "upload-api", ".env"),
 };
 
 // Define the contents for each file in an array
 const envContents = {
   API: apiEnvContent,
   UI: uiEnvContent,
-  'Upload-API': uploadAPIEnvContent,
+  "Upload-API": uploadAPIEnvContent,
 };
-
 
 // Function to create env files
 const createEnvFiles = () => {
