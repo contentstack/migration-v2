@@ -12,7 +12,7 @@ const contentTypeMapper = require('./contentTypeMapper');
 /**
  * Internal module dependencies.
  */
-const { readFile, writeFile, deleteFolderSync } = require('../utils/helper');
+const { readFile, deleteFolderSync } = require('../utils/helper');
 const config = require('../config');
 const idArray = require('../utils/restrictedKeyWords');
 
@@ -44,9 +44,9 @@ const uidCorrector = (uid, prefix) => {
 
 /**
  * Creates an initial mapping for content types by processing files in a specified directory.
- * 
+ *
  * @returns {Promise<{ contentTypes: object[] }>} A promise that resolves to an object containing an array of content type objects.
- * 
+ *
  * @description
  * This function performs the following steps:
  * 1. Reads all files in a specified directory containing data about content types.
@@ -56,9 +56,9 @@ const uidCorrector = (uid, prefix) => {
  * 5. The content type fields are further enriched by mapping the fields from the data using a helper function `contentTypeMapper`.
  * 6. After processing all the files, the content type objects are returned as an array.
  * 7. The function handles errors and logs them to the console if any occur during the process.
- * 
+ *
  * The function also deletes a folder at the end of the process (using `deleteFolderSync`), which may be used for cleanup purposes.
- * 
+ *
  * // Outputs: an array of content type objects, each containing metadata and field mappings.
  */
 const createInitialMapper = async () => {
@@ -109,16 +109,14 @@ const createInitialMapper = async () => {
           advanced: { mandatory: true }
         }
       ];
-      const dataArray = data.filter((item) => item.id !== 'title' && item.id !== 'url');
-      const contentstackFields = [...uidTitle, ...contentTypeMapper(dataArray)].filter(
+      const contentstackFields = [...uidTitle, ...contentTypeMapper(data)]?.filter?.(
         Boolean
       );
 
       contentTypeObject.fieldMapping = contentstackFields;
       initialMapper.push(contentTypeObject);
     }
-    // writeFile(path.join(path.resolve(process.cwd(), `${config.data}/${config.contentful.contentful}`), 'schemaTest.json'), JSON.stringify(initialMapper, null, 4));
-    deleteFolderSync(path.resolve(process.cwd(), config.data));
+    deleteFolderSync(path.resolve(process.cwd(), config?.data));
     return { contentTypes: initialMapper };
   } catch (error) {
     console.error('Error saving content type:', error);

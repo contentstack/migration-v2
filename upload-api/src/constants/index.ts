@@ -36,10 +36,10 @@ export const HTTP_RESPONSE_HEADERS = {
 export const MIGRATION_DATA_CONFIG = {
   DATA: "cmsMigrationData",
 
-  BACKUP_DATA: "migration-data",
-  BACKUP_LOG_DIR: "logs",
-  BACKUP_FOLDER_NAME: "import",
-  BACKUP_FILE_NAME: "success.log",
+  BACKUP_DATA: 'migration-data',
+  BACKUP_LOG_DIR: 'logs',
+  BACKUP_FOLDER_NAME: 'import',
+  BACKUP_FILE_NAME: 'success.log',
 
   LOCALE_DIR_NAME: "locale",
   LOCALE_FILE_NAME: "locales.json",
@@ -75,5 +75,5 @@ export const MIGRATION_DATA_CONFIG = {
   GLOBAL_FIELDS_DIR_NAME: "global_fields",
   GLOBAL_FIELDS_FILE_NAME: "globalfields.json",
 
-  EXPORT_INFO_FILE: "export-info.json"
-}
+  EXPORT_INFO_FILE: 'export-info.json'
+};
