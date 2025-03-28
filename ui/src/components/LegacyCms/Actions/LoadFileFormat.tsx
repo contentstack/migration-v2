@@ -89,11 +89,11 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           fileformat_id: fileFormat,
           group_name: fileFormat,
           isactive: true,
-          title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
+          title: fileFormat === 'zip' ? fileFormat?.charAt?.(0)?.toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase()
         }
         
       
-        setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1) : fileFormat?.toUpperCase());
+        setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt?.(0).toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase());
 
       }
     } catch (error) {
