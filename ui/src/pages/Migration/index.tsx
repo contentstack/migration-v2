@@ -61,6 +61,7 @@ import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
 import { getMigratedStacks } from '../../services/api/project.service';
 import { getStackLocales } from '../../services/api/stacks.service';
+import { getConfig } from '../../services/api/upload.service';
 
 type StepperComponentRef = {
   handleStepChange: (step: number) => void;
@@ -184,20 +185,71 @@ const Migration = () => {
     setCurrentStepIndex(stepIndex !== -1 ? stepIndex : 0);
   };
 
+  const getFileExtension = (filePath: string): string => {
+    const normalizedPath = filePath?.replace(/\\/g, "/")?.replace(/\/$/, "");
+
+    // Use regex to extract the file extension
+    const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
+    const ext = match ? match[1]?.toLowerCase() : "";
+
+    const fileName = filePath?.split('/')?.pop();
+    //const ext = fileName?.split('.')?.pop();
+    const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
+    return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
+  };
+
+  // funcrion to form file format object from config response
+  const fetchFileFormat = (data:any) => {
+    const filePath = data?.localPath?.toLowerCase();
+    const fileFormat =  getFileExtension(filePath);
+    const selectedFileFormatObj = {
+      description: "",
+      fileformat_id: fileFormat,
+      group_name: fileFormat,
+      isactive: true,
+      title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
+    }
+    return selectedFileFormatObj;
+  }
+
+// funcrion to form upload object from config response
+  const getFileInfo = (data:any) => {
+    const newMigrationDataObj = {
+          name: data?.localPath,
+          url: data?.localPath,
+          isValidated: data?.localePath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath ? false : newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+          file_details: {
+            isLocalPath: data?.isLocalPath,
+            cmsType: data?.cmsType,
+            localPath: data?.localPath,
+            awsData: {
+              awsRegion: data?.awsData?.awsRegion,
+              bucketName: data?.awsData?.bucketName,
+              buketKey: data?.awsData?.buketKey
+            }
+          },
+          cmsType: data?.cmsType  
+    };
+    return newMigrationDataObj;
+  }
+
   /**
    * Fetch the project data
    */
   const fetchProjectData = async () => {
   if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
   setIsProjectMapper(true);
-  const data = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
+  const migrationData = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
   const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
-
-  if (data) {
+  const {data} = await getConfig();
+  const fileFormat =  fetchFileFormat(data);
+  const uploadObj = getFileInfo(data);
+ 
+  if (migrationData) {
     setIsLoading(false);
-    setProjectData(data?.data);
+    setProjectData(migrationData?.data);
   }
-  const projectData = data?.data;
+  const projectData = migrationData?.data;
 
     const legacyCmsData: ILegacyCMSComponent = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
 
@@ -213,7 +265,7 @@ const Migration = () => {
       ? selectedCmsData.allowed_file_formats?.find(
           (cms: ICardType) => cms?.fileformat_id === projectData?.legacy_cms?.file_format
         )
-      : newMigrationData?.legacy_cms?.selectedFileFormat;
+      : fileFormat;
 
     const selectedOrganisationData = validateArray(organisationsList)
       ? organisationsList?.find((org: IDropDown) => org?.value === projectData?.org_id)
@@ -253,11 +305,12 @@ const Migration = () => {
     const projectMapper = {
       ...newMigrationData,
       legacy_cms: {
-        ...newMigrationDataRef?.current?.legacy_cms,
+        ...newMigrationData?.legacy_cms,
         selectedCms: selectedCmsData,
+        selectedFileFormat: selectedFileFormatData,
         affix:  projectData?.legacy_cms?.affix ,
-        uploadedFile: {
-          ...newMigrationDataRef?.current?.legacy_cms,
+        uploadedFile: projectData?.legacy_cms?.is_fileValid ? {
+          ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
           file_details: {
             localPath: projectData?.legacy_cms?.file_path,
             awsData: {
@@ -269,7 +322,7 @@ const Migration = () => {
           },
           isValidated: projectData?.legacy_cms?.is_fileValid,
           reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
-        },
+        } : uploadObj,
         isFileFormatCheckboxChecked: true,
         isRestictedKeywordCheckboxChecked: true,
         projectStatus: projectData?.status,
