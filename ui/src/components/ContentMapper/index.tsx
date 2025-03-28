@@ -176,21 +176,21 @@ const Fields: MappingFields = {
     options: {
       'Dropdown':'dropdown'
     },
-    type: 'dropdown',
+    type: '',
   },
   'radio': {
-    label :'Select',
+    label :'Radio',
     options: {
-      'Select':'select'
+      'Radio':'radio'
     },
-    type: 'radio',
+    type: '',
   },
   'checkbox': {
-    label:'Select',
+    label:'Checkbox',
     options: {
-      'Select':'checkbox'
+      'Checkbox':'checkbox'
     },
-    type:'checkbox'
+    type:''
   },
   'global_field':{
     label : 'Global',
@@ -1532,7 +1532,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           isDisabled: true
         }
         : (OptionsForRow?.length === 0 || (OptionsForRow?.length > 0 && OptionsForRow?.every((item)=>item?.isDisabled) 
-          && (!existingField[data?.uid]?.label || ! updatedExstingField[data?.uid]?.label ) ) || (OptionsForRow?.length > 0 && data?.contentstackFieldType === "dropdown"))
+          && (!existingField[data?.uid]?.label || ! updatedExstingField[data?.uid]?.label ) ))
           ? {
             label: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
             value: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
@@ -1541,7 +1541,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.contentstackFieldType === 'url' ||
               data?.backupFieldType === "reference" || 
               data?.contentstackFieldType === "global_field" ||
-              data?.contentstackFieldType === "dropdown" ||
               data?.otherCmsType === undefined ||
               data?.backupFieldType === 'app' || 
               data?.backupFieldType === 'extension'
