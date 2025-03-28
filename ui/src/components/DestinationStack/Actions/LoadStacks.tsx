@@ -84,11 +84,21 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [placeholder] = useState<string>('Select a stack');
+  const [localePlaceholder, setlocalePlaceholder ] = useState<string>('Master Locale will be set after stack selection');
   const newMigrationDataRef = useRef(newMigrationData);
 
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
   }, [newMigrationData]);
+
+  useEffect(()=>{
+    if(selectedStack?.value !== undefined && selectedStack?.master_locale){
+      setlocalePlaceholder('')
+    }
+    else{
+      setlocalePlaceholder('Master Locale will be set after stack selection');
+    }
+  },[selectedStack])
 
   useEffect(() => {
     if (!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value)) {
@@ -336,12 +346,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
             id="master_locale"
             aria-label="master_locale"
             version={'v2'}
-            placeholder={
-              selectedStack?.master_locale
-                ? ''
-                : 'Master Locale will be set after stack selection'
-            }
-            value={selectedStack?.master_locale}
+            placeholder={localePlaceholder}
+            value={selectedStack?.value !== undefined ? selectedStack?.master_locale : ''}
             width="600px"
             className="orgInput"
             isReadOnly
