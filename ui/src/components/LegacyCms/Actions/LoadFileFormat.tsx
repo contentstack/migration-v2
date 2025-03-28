@@ -32,7 +32,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const [isCheckedBoxChecked] = useState<boolean>(
     newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked || true
   );
-  const [fileIcon, setFileIcon] = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.title);
+  const [fileIcon, setFileIcon]  = useState(newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat?.title);
   const [isError, setIsError] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -55,33 +55,13 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     }
   };
 
-  const getFileExtension = (filePath: string): string => {
-    const normalizedPath = filePath?.replace(/\\/g, '/')?.replace(/\/$/, '');
-
-    // Use regex to extract the file extension
-    const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
-    const ext = match ? match[1]?.toLowerCase() : '';
-
-    const fileName = filePath?.split('/')?.pop();
-    //const ext = fileName?.split('.')?.pop();
-    const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
-    return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
-  };
-
-  const handleFileFormat = async () => {
+  const handleFileFormat = async() =>{
     try {
-      const { data } = await getConfig();
-
-      const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent)
-        ? newMigrationData?.legacy_cms?.selectedCms?.parent
-        : data?.cmsType?.toLowerCase();
-      const filePath = data?.localPath?.toLowerCase();
-      const fileFormat = getFileExtension(filePath);
-      if (
-        !isEmptyString(selectedCard?.fileformat_id) &&
-        selectedCard?.fileformat_id !== fileFormat &&
-        newMigrationData?.project_current_step > 1
-      ) {
+    
+      const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : newMigrationData?.legacy_cms?.uploadedFile?.cmsType;
+      const filePath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath?.toLowerCase();
+      const fileFormat: string =  newMigrationData?.legacy_cms?.selectedFileFormat?.title?.toLowerCase();
+      if(! isEmptyString(selectedCard?.fileformat_id) && selectedCard?.fileformat_id !== fileFormat && newMigrationData?.project_current_step > 1){   
         setFileIcon(selectedCard?.title);
       } else {
         const { all_cms = [] } = migrationData?.legacyCMSData || {};
@@ -103,32 +83,18 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           setIsError(true);
           setError('File format does not support, please add the correct file format.');
         }
-
+    
         const selectedFileFormatObj = {
           description: '',
           fileformat_id: fileFormat,
           group_name: fileFormat,
           isactive: true,
-          title:
-            fileFormat === 'zip'
-              ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1)
-              : fileFormat?.toUpperCase()
-        };
+          title: fileFormat === 'zip' ? fileFormat?.charAt?.(0)?.toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase()
+        }
+        
+      
+        setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt?.(0).toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase());
 
-        const newMigrationDataObj = {
-          ...newMigrationDataRef?.current,
-          legacy_cms: {
-            ...newMigrationDataRef?.current?.legacy_cms,
-            selectedFileFormat: selectedFileFormatObj,
-          }
-        };
-
-        setFileIcon(
-          fileFormat === 'zip'
-            ? fileFormat?.charAt(0).toUpperCase() + fileFormat.slice(1)
-            : fileFormat?.toUpperCase()
-        );
-        dispatch(updateNewMigrationData(newMigrationDataObj));
       }
     } catch (error) {
       return error;
@@ -138,13 +104,13 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   /****  ALL USEEffects  HERE  ****/
   useEffect(() => {
     handleFileFormat();
-    //handleBtnClick();
   },[]);
 
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
   }, [newMigrationData]);
 
+  
   return (
     <div className="p-3">
       <div className="col-12">
