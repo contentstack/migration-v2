@@ -48,6 +48,9 @@ sudo chown -R $(id -u):$(id -g) "$HOME/.npm"
 echo "Creating .env file..."
 npm run create:env
 
+echo "Updating config file..."
+npm run setup:file
+
 # Start services in new terminals
 echo "Starting services in new terminals..."
 
