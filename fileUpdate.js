@@ -99,7 +99,7 @@ const XMLMigration = async () => {
     choices: ['sitecore', 'contentful'],
     type: 'list',
     name: 'value',
-    message: 'Choose the option to proceed'
+    message: 'Choose the option to proceed with your legacy CMS:'
   });
 
   const data = await typeSwitcher('Locale Path');
