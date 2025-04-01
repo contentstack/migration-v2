@@ -9,7 +9,9 @@
     "api": "cd ./api && npm run dev",
     "upload": "cd ./upload-api && npm start",
     "ui": "cd ./ui && npm start",
-    "start": "node index.js"
+    "setup:file": "npm i && node fileUpdate.js",
+    "create:env": "node index.js",
+    "setup:mac": "bash setup.sh"
   },
   "repository": {
     "type": "git",
@@ -36,5 +38,8 @@
   "validate-branch-name": {
     "pattern": "^(feature|bugfix|hotfix)/[a-z0-9-]{5,30}$",
     "errorMsg": "Please add valid branch name!"
+  },
+  "dependencies": {
+    "@contentstack/cli-utilities": "^1.8.4"
   }
 }
