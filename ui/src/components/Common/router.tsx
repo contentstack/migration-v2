@@ -33,7 +33,6 @@ const AppRouter = () => {
 
       {/* ALL PROTECTED ROUTES HERE */}
       <Route element={<PrivateRoute redirectTo="/" />}>
-        <Route path="/migrations" element={<MigrationLazyLoad />} />
         <Route path="/projects" element={<ProjectsLazyLoad />} />
 
         <Route
