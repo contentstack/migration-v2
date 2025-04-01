@@ -23,7 +23,7 @@ import { Setting } from './setting.interface';
 import { ModalObj } from '../../../components/Modal/modal.interface';
 
 // Service
-import { getProject, updateProject } from '../../../services/api/project.service';
+import { deleteProject, getProject, updateProject } from '../../../services/api/project.service';
 import { CS_ENTRIES } from '../../../utilities/constants';
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 
@@ -32,6 +32,9 @@ import DeleteProjectModal from '../DeleteProjectModal';
 
 //stylesheet
 import './Settings.scss';
+import { useDispatch } from 'react-redux';
+import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
+import { DEFAULT_NEW_MIGRATION } from '../../../context/app/app.interface';
 
 /**
  * Renders the Settings component.
@@ -51,6 +54,7 @@ const Settings = () => {
   );
 
   const navigate = useNavigate();
+  const dispatch = useDispatch()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,6 +124,29 @@ const Settings = () => {
       });
     }
   };
+   const handleDeleteProject = async (closeModal: ()=> void): Promise<void> => {
+      //setIsLoading(true);
+      const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
+  
+      if (response?.status === 200) {
+        //setIsLoading(false);
+        closeModal();
+        dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
+        setTimeout(() => {
+          navigate('/projects');
+        }, 800);
+        setTimeout(() => {
+          Notification({
+            notificationContent: { text: response?.data?.data?.message },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'success'
+          });
+        }, 1200);
+      }
+    };
 
   const handleClick = () => {
     cbModal({
@@ -129,6 +156,7 @@ const Settings = () => {
           projectId={params?.projectId ?? ''}
           projectName={projectName}
           navigate={navigate}
+          handleDeleteProject={() => handleDeleteProject(props?.closeModal)}
           {...props}
         />
       ),
