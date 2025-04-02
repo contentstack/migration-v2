@@ -217,6 +217,13 @@ const Mapper = ({
 
         const updatedOptions = { ...prevOptions }; // Create a shallow copy
         csLocale = updatedOptions[index]?.label;
+        setselectedCsOption((prevSelected) => {
+          const newSelectedOptions: string[] = prevSelected?.filter(
+            (item) => item !== csLocale // Remove the item equal to csLocale
+          );
+          return newSelectedOptions;
+        });
+        
         delete updatedOptions[index]; // Remove the key
 
         return updatedOptions;
@@ -226,7 +233,14 @@ const Mapper = ({
     // Remove item at index from existingLocale
     setexistingLocale((prevLocales: ExistingFieldType) => {
       if (!prevLocales) return {};
-      const updatedOptions = { ...prevLocales }; // Create a shallow copy
+      const updatedOptions = { ...prevLocales }; // Create a shallow copy;
+      const locale = updatedOptions[index]?.label
+      setselectedSourceOption((prevSelected) => {
+        const newSelectedOptions: string[] = prevSelected?.filter(
+          (item) => item !== locale // Remove the item equal to csLocale
+        );
+        return newSelectedOptions;
+      });
       delete updatedOptions[index]; // Remove the key
       return updatedOptions;
     });

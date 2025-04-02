@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { contentMapperService } from "../services/contentMapper.service.js";
 /**
- * Handles the PUT request to update test data.
+ * Handles the PUT request t o update test data.
  *
  * @param req - The request object.
  * @param res - The response object.
@@ -9,7 +9,7 @@ import { contentMapperService } from "../services/contentMapper.service.js";
  */
 const putTestData = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.putTestData(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 
 /**
@@ -21,7 +21,7 @@ const putTestData = async (req: Request, res: Response): Promise<void> => {
  */
 const getContentTypes = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.getContentTypes(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 /**
  * Retrieves the field mapping for a given request and sends the response as JSON.
@@ -32,7 +32,7 @@ const getContentTypes = async (req: Request, res: Response): Promise<void> => {
  */
 const getFieldMapping = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.getFieldMapping(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 /**
  * Retrieves the existing content types.
@@ -76,7 +76,7 @@ const putContentTypeFields = async (
   res: Response
 ): Promise<void> => {
   const resp = await contentMapperService.updateContentType(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 /**
  * Resets the content type to its initial mapping.
@@ -87,7 +87,7 @@ const putContentTypeFields = async (
  */
 const resetContentType = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.resetToInitialMapping(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 // TODO Will remove if not required
 // const removeMapping = async (req: Request, res: Response): Promise<void> => {
