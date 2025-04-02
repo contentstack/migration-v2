@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getDestinationStackSteps } from './StepperSteps';
-import { CircularLoader, HelpText, Icon, Info, Tooltip } from '@contentstack/venus-components';
+import { CircularLoader } from '@contentstack/venus-components';
 import { CS_ENTRIES } from '../../utilities/constants';
 import {
   DEFAULT_DESTINATION_STACK_DATA,
@@ -39,8 +39,8 @@ const DestinationStackComponent = ({
   const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const dispatch = useDispatch();
-  const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
-
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isProjectMapped, setisProjectMapped] = useState<boolean>(newMigrationData?.isprojectMapped);
   const handleAllStepsComplete = (flag = false) => {
     handleOnAllStepsComplete(flag);
   };
@@ -94,9 +94,14 @@ const DestinationStackComponent = ({
       }
     }
   }, [internalActiveStepIndex]);
+
+  useEffect(()=>{
+    setisProjectMapped(newMigrationData?.isprojectMapped);
+  },[newMigrationData?.isprojectMapped]);
+
   return (
     <>
-      {isLoading || newMigrationData?.isprojectMapped ? (
+      {isLoading || isProjectMapped ? (
         <div className="loader-container">
           <CircularLoader />
         </div>
