@@ -329,12 +329,14 @@ const Migration = () => {
         currentStep: -1
       },
       destination_stack: {
+        ...newMigrationData?.destination_stack,
         selectedOrg: selectedOrganisationData,
         selectedStack: selectedStackData,
         stackArray: [],
         migratedStacks: migratedstacks?.data?.destinationStacks,
         sourceLocale: projectData?.source_locales,
-        localeMapping: locales
+        localeMapping: locales,
+        csLocale: newMigrationDataRef?.current?.destination_stack?.csLocale
       },
       content_mapping: {
         isDropDownChanged: false,
@@ -721,6 +723,7 @@ const Migration = () => {
           handleSaveCT={saveRef?.current?.handleSaveContentType}
           changeDropdownState={changeDropdownState}
           projectData={projectData || defaultMigrationResponse}
+          isProjectMapped={isProjectMapper}
         />
       </div>
     </div>
