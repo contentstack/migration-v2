@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { contentMapperService } from "../services/contentMapper.service.js";
 /**
- * Handles the PUT request t o update test data.
+ * Handles the PUT request to update test data.
  *
  * @param req - The request object.
  * @param res - The response object.
