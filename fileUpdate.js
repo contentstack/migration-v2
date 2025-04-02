@@ -3,7 +3,7 @@ const path = require('path');
 const { cliux, messageHandler } = require('@contentstack/cli-utilities');
 const isEmpty = (value) => value === null || value === undefined ||
   (typeof value === 'object' && Object.keys(value).length === 0) ||
-  (typeof value === 'string' && value.trim().length === 0);;
+  (typeof value === 'string' && value.trim().length === 0);
 const config = {
   plan: {
     dropdown: { optionLimit: 100 }
@@ -15,8 +15,8 @@ const config = {
     awsAccessKeyId: '',
     awsSecretAccessKey: '',
     awsSessionToken: '',
-    bucketName: 'migartion-test',
-    buketKey: 'project/package 45.zip'
+    bucketName: '',
+    bucketKey: ''
   },
   localPath: null
 };
