@@ -508,7 +508,7 @@ const LanguageMapper = () => {
             type="Secondary"
           />
           <Button
-            className="ml-10 mt-10 mb-10"
+            className="mt-10"
             buttonType="secondary"
             aria-label="add language"
             version={'v2'}
