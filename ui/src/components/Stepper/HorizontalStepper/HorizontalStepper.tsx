@@ -1,5 +1,5 @@
 // Libraries
-import React, { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './HorizontalStepper.scss';
 import { cbModal, Notification, Button, CircularLoader } from '@contentstack/venus-components';
@@ -46,6 +46,7 @@ export type stepperProps = {
   handleSaveCT?: () => void;
   changeDropdownState: () => void;
   projectData: MigrationResponse;
+  isProjectMapped: boolean;
 };
 
 export type HorizontalStepperHandles = {
@@ -88,16 +89,21 @@ const HorizontalStepper = forwardRef(
 
     const navigate = useNavigate();
     const { projectId = '' } = useParams();
+      const newMigrationDataRef = useRef(newMigrationData);
 
     const handleSaveCT = props?.handleSaveCT;
     const handleDropdownChange = props?.changeDropdownState;
     useBlockNavigation(isModalOpen);
 
     useEffect(() => {
+      newMigrationDataRef.current = newMigrationData;
+    }, [newMigrationData]);
+
+    useEffect(() => {
       const stepIndex = parseInt(stepId || '', 10) - 1;
 
       if (!Number.isNaN(stepIndex) && stepIndex >= 0 && stepIndex < steps?.length) {
-        !newMigrationData?.isprojectMapped && setShowStep(stepIndex);
+        !newMigrationDataRef?.current?.isprojectMapped && setShowStep(stepIndex);
         setStepsCompleted((prev) => {
           const updatedStepsCompleted = [...prev];
           if (
@@ -266,7 +272,7 @@ const HorizontalStepper = forwardRef(
           <>
             {!hideTabView && <StepsTitleCreator />}
             <div className={`stepContent ${props.stepContentClassName}`}>
-              {newMigrationData?.isprojectMapped ? (
+              {(newMigrationDataRef?.current?.isprojectMapped || props?.isProjectMapped)? (
                 <div className={`stepper-loader `}>
                   <CircularLoader />
                 </div>
