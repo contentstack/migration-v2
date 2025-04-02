@@ -136,7 +136,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
               throw new Error('No data collected from the stream.');
             }
 
-            const data = await handleFileProcessing(fileExt, xmlData, cmsType,name);
+            const data = await handleFileProcessing(fileExt, xmlData, cmsType, name);
             res.status(data?.status || 200).json(data);
             if (data?.status === 200) {
               const filePath = path.join(__dirname, '..', '..', 'extracted_files', `${name}.json`);
@@ -144,7 +144,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
             }
           });
         }
-        else{
+        else {
           // Create a writable stream to save the downloaded zip file
           let zipBuffer = Buffer.alloc(0);
 
@@ -162,67 +162,67 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
             if (!zipBuffer) {
               throw new Error('No data collected from the stream.');
             }
-            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,name);
+            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
             res.status(data?.status || 200).json(data);
             if (data?.status === 200) {
               const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
               createMapper(filePath, projectId, app_token, affix, config);
             }
           });
-        } 
-    } 
-  }else {
-    const params = {
-      Bucket: config?.awsData?.bucketName,
-      Key: config?.awsData?.buketKey
-    };
-    const getObjectCommand = new GetObjectCommand(params);
-    // Get the object from S3
-    const s3File = await client.send(getObjectCommand);
-    //file Name From key
-    const fileName = params?.Key?.split?.('/')?.pop?.() ?? '';
-    //file ext from fileName
-    const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
+        }
+      }
+    } else {
+      const params = {
+        Bucket: config?.awsData?.bucketName,
+        Key: config?.awsData?.bucketKey
+      };
+      const getObjectCommand = new GetObjectCommand(params);
+      // Get the object from S3
+      const s3File = await client.send(getObjectCommand);
+      //file Name From key
+      const fileName = params?.Key?.split?.('/')?.pop?.() ?? '';
+      //file ext from fileName
+      const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
 
-    if (!s3File?.Body) {
-      throw new Error('Empty response body from S3');
+      if (!s3File?.Body) {
+        throw new Error('Empty response body from S3');
+      }
+
+      const bodyStream: Readable = s3File?.Body as Readable;
+
+      // Create a writable stream to save the downloaded zip file
+      const zipFileStream = createWriteStream(`${fileName}`);
+
+      // // Pipe the S3 object's body to the writable stream
+      bodyStream.pipe(zipFileStream);
+
+      // Create a writable stream to save the downloaded zip file
+      let zipBuffer: Buffer | null = null;
+
+      // Collect the data from the stream into a buffer
+      bodyStream.on('data', (chunk) => {
+        if (zipBuffer === null) {
+          zipBuffer = chunk;
+        } else {
+          zipBuffer = Buffer.concat([zipBuffer, chunk]);
+        }
+      });
+
+      //buffer fully stremd
+      bodyStream.on('end', async () => {
+        if (!zipBuffer) {
+          throw new Error('No data collected from the stream.');
+        }
+
+        const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
+        res.json(data);
+        res.send('file valited sucessfully.');
+        const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
+        console.log("🚀 ~ bodyStream.on ~ filePath:", filePath)
+        createMapper(filePath, projectId, app_token, affix, config);
+      });
     }
-
-    const bodyStream: Readable = s3File?.Body as Readable;
-
-    // Create a writable stream to save the downloaded zip file
-    const zipFileStream = createWriteStream(`${fileName}`);
-
-    // // Pipe the S3 object's body to the writable stream
-    bodyStream.pipe(zipFileStream);
-
-    // Create a writable stream to save the downloaded zip file
-    let zipBuffer: Buffer | null = null;
-
-    // Collect the data from the stream into a buffer
-    bodyStream.on('data', (chunk) => {
-      if (zipBuffer === null) {
-        zipBuffer = chunk;
-      } else {
-        zipBuffer = Buffer.concat([zipBuffer, chunk]);
-      }
-    });
-
-    //buffer fully stremd
-    bodyStream.on('end', async () => {
-      if (!zipBuffer) {
-        throw new Error('No data collected from the stream.');
-      }
-
-      const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,fileName);
-      res.json(data);
-      res.send('file valited sucessfully.');
-      const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
-      console.log("🚀 ~ bodyStream.on ~ filePath:", filePath)
-      createMapper(filePath, projectId, app_token, affix, config);
-    });
   }
-}
   catch (err: any) {
     console.error('🚀 ~ router.get ~ err:', err);
   }
