@@ -237,7 +237,7 @@ const Mapper = ({
       const locale = updatedOptions[index]?.label
       setselectedSourceOption((prevSelected) => {
         const newSelectedOptions: string[] = prevSelected?.filter(
-          (item) => item !== locale // Remove the item equal to csLocale
+          (item) => item !== locale // Remove the item equal to locale
         );
         return newSelectedOptions;
       });
