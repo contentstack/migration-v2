@@ -277,7 +277,7 @@ const getFieldMapping = async (req: Request) => {
     logger.error(
       getLogMessage(
         srcFunc,
-        "Error occurred while while getting field mapping of projects",
+        "Error occurred while getting field mapping of projects",
         error
       )
     );
