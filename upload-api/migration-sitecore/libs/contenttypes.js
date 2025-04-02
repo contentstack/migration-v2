@@ -372,7 +372,8 @@ const groupFlat = (data, item) => {
       contentstackField: item?.meta?.name,
       contentstackFieldUid: uidCorrector({ uid: item?.meta?.key }),
       contentstackFieldType: 'group',
-      backupFieldType: 'group'
+      backupFieldType: 'group',
+      backupFieldUid: uidCorrector({ uid: item?.meta?.key })
     };
     flat?.push(group);
     data?.schema?.forEach((element) => {
