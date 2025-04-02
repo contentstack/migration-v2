@@ -12,7 +12,7 @@ export interface Config {
     awsSecretAccessKey: string;
     awsSessionToken: string;
     bucketName: string;
-    buketKey: string;
+    bucketKey: string;
   };
   localPath: string;
 }

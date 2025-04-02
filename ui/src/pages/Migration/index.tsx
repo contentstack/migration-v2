@@ -44,7 +44,8 @@ import {
   ICMSType,
   ILegacyCMSComponent,
   DEFAULT_CMS_TYPE,
-  TestStacks
+  TestStacks,
+  FileDetails
 } from '../../context/app/app.interface';
 import { ContentTypeSaveHandles } from '../../components/ContentMapper/contentMapper.interface';
 import { ICardType } from '../../components/Common/Card/card.interface';
@@ -60,7 +61,6 @@ import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
 import { getMigratedStacks } from '../../services/api/project.service';
-import { getStackLocales } from '../../services/api/stacks.service';
 import { getConfig } from '../../services/api/upload.service';
 
 type StepperComponentRef = {
@@ -69,6 +69,9 @@ type StepperComponentRef = {
 type LegacyCmsRef = {
   getInternalActiveStepIndex: () => number;
 };
+type LocalesType = {
+  [key: string]: any
+}
 
 const Migration = () => {
   const params: Params<string> = useParams();
@@ -190,18 +193,18 @@ const Migration = () => {
 
     // Use regex to extract the file extension
     const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
-    const ext = match ? match[1]?.toLowerCase() : "";
+    const ext = match ? match?.[1]?.toLowerCase() : "";
 
-    const fileName = filePath?.split('/')?.pop();
+    // const fileName = filePath?.split('/')?.pop();
     //const ext = fileName?.split('.')?.pop();
     const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
     return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
   };
-
+ 
   // funcrion to form file format object from config response
-  const fetchFileFormat = (data:any) => {
+  const fetchFileFormat = (data: FileDetails) => {
     const filePath = data?.localPath?.toLowerCase();
-    const fileFormat =  getFileExtension(filePath);
+    const fileFormat =  getFileExtension(filePath ?? '');
     const selectedFileFormatObj = {
       description: "",
       fileformat_id: fileFormat,
@@ -213,11 +216,11 @@ const Migration = () => {
   }
 
 // funcrion to form upload object from config response
-  const getFileInfo = (data:any) => {
+  const getFileInfo = (data: FileDetails) => {
     const newMigrationDataObj = {
           name: data?.localPath,
           url: data?.localPath,
-          isValidated: data?.localePath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath ? false : newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+          isValidated: data?.localPath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath ? false : newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
           file_details: {
             isLocalPath: data?.isLocalPath,
             cmsType: data?.cmsType,
@@ -534,11 +537,11 @@ const Migration = () => {
         (value) => value !== '' && value !== null && value !== undefined
       );
 
-    const master_locale: any = {};
-    const locales: any = {};
-    Object.entries(newMigrationData?.destination_stack?.localeMapping).forEach(([key, value]) => {
-      if (key.includes('master_locale')) {
-        master_locale[key.replace('-master_locale', '')] = value;
+    const master_locale: LocalesType = {};
+    const locales: LocalesType = {};
+    Object.entries(newMigrationData?.destination_stack?.localeMapping)?.forEach(([key, value]) => {
+      if (key?.includes('master_locale')) {
+        master_locale[key?.replace('-master_locale', '')] = value;
       } else {
         locales[key] = value;
       }
