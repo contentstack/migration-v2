@@ -17,6 +17,7 @@ export interface SettingsModalProps {
   projectName?: string;
   closeModal: () => void;
   navigate: (url: string) => void;
+  handleDeleteProject: () => void;
 }
 
 export interface FormData {
