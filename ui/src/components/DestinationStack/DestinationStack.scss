@@ -45,13 +45,10 @@
   border-radius: 4px;
 }
 .destination-stack-container {
-  padding-left: 25px !important;
-  padding-top: 26px;
-  padding-right: 30px;
-
+  height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: 65vh;
+  padding: 25px;
   .migration-vertical-stepper {
     padding: 24px 30px;
     border: 1px solid $color-brand-secondary-lightest;
@@ -207,6 +204,7 @@
   //padding-bottom: 50px;
 }
 .language-mapper {
+  border-top: 1px solid $color-brand-secondary-lightest;
   margin-top: 16px;
   
   .table-content-section {
@@ -220,6 +218,7 @@
     }
     .field-content__content {
       height: auto !important;
+      margin-left: 0;
       max-height: unset !important;
       overflow: visible !important;
       z-index: 9999;
@@ -229,7 +228,8 @@
     padding: 10px 20px;
   }
   .field-label {
-    padding: 10px 0;
+    padding: 15px 0 0;
+    width: 290px;
   }
 }
 
@@ -253,9 +253,9 @@
   //width: 120px;
 }
 .lang-container {
-  margin-bottom: 30px;
-  margin-left: 10px;
-  margin-top: 10px;
+  // margin-bottom: 30px;
+  // margin-left: 10px;
+  // margin-top: 10px;
   display: flex;
 }
 .info-tag {
