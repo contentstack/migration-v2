@@ -360,3 +360,4 @@ upload-api/extracted_files
 *.zip
 *copy*
 **/package-lock.json
+.qodo
