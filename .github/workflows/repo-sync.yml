@@ -104,29 +104,33 @@ jobs:
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
-                const js = require("@eslint/js");
-                const globals = require("globals");
+                    const js = require("@eslint/js");
+                    const globals = require("globals");
+                    const tsPlugin = require("@typescript-eslint/eslint-plugin");
 
-                module.exports = [
-                js.configs.recommended,
-                {
-                    languageOptions: {
-                    ecmaVersion: "latest",
-                    sourceType: "module",
-                    globals: globals.node,
-                    },
-                    rules: {
-                    "no-unused-vars": "warn",
-                    "no-console": "off",
-                    "@typescript-eslint/no-var-requires": 'off',
-                    "@typescript-eslint/no-var-requires": "off",
-                    "no-prototype-builtins": "off",
-                    "@typescript-eslint/no-explicit-any": "off",
-                    "no-constant-condition": "off"
+                    module.exports = [
+                    js.configs.recommended,
+                    {
+                        languageOptions: {
+                        ecmaVersion: "latest",
+                        sourceType: "module",
+                        globals: globals.node,
+                        parser: require.resolve("@typescript-eslint/parser"),
+                        },
+                        plugins: {
+                        "@typescript-eslint": tsPlugin,
+                        },
+                        rules: {
+                        "no-unused-vars": "warn",
+                        "no-console": "off",
+                        "@typescript-eslint/no-var-requires": "off",
+                        "no-prototype-builtins": "off",
+                        "@typescript-eslint/no-explicit-any": "off",
+                        "no-constant-condition": "off"
+                        }
                     }
-                }
-                ];
-                EOL
+                    ];
+                    EOL
                 fi
 
                 # # Remove unused imports and missing file references
