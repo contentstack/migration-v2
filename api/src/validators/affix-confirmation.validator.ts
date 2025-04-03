@@ -10,10 +10,7 @@ export default checkSchema({
   affix_confirmation: {
     in: "body",
     isBoolean: {
-      errorMessage: VALIDATION_ERRORS.BOOLEAN_REQUIRED.replace(
-        "$",
-        "affix_confirmation"
-      ),
+      errorMessage: VALIDATION_ERRORS.BOOLEAN_REQUIRED.replace(/\$/g, "affix_confirmation"),
       bail: true,
     },
   },
