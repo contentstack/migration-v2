@@ -115,7 +115,7 @@ jobs:
                     ecmaVersion: "latest",
                     sourceType: "module",
                     globals: globals.node,
-                    parser: require.resolve("@typescript-eslint/parser"),
+                    parser: require("@typescript-eslint/parser"),
                     },
                     plugins: {
                     "@typescript-eslint": tsPlugin,
