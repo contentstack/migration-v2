@@ -14,7 +14,7 @@ function contentfulValidator(data: string): boolean {
     jsonData = JSON.parse(data);
 
     //iterate through jsonconfig to check to check if data is valid
-    return Object.entries(jsonConfig).every(([key, prop]) => {
+    return Object.values(jsonConfig).every((prop:any) => {
       // Check if the current property exists in the json data.
       if (jsonData?.hasOwnProperty(prop?.name)) {
         return true;
