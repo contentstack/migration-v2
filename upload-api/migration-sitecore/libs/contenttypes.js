@@ -11,7 +11,6 @@ const configChecker = path?.join('content', 'Common', 'Configuration');
 const append = 'a';
 let config = {};
 
-
 const {
   DATA_MAPPER_DIR,
   DATA_MAPPER_CONFIG_FILE,
@@ -370,8 +369,7 @@ const groupFlat = (data, item) => {
       contentstackField: item?.meta?.name,
       contentstackFieldUid: uidCorrector({ uid: item?.meta?.key }),
       contentstackFieldType: 'group',
-      backupFieldType: 'group',
-      backupFieldUid: uidCorrector({ uid: item?.meta?.key })
+      backupFieldType: 'group'
     };
     flat?.push(group);
     data?.schema?.forEach((element) => {
@@ -395,6 +393,7 @@ const contentTypeMapper = ({
   components,
   standardValues,
   content_type,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   basePath,
   sitecore_folder,
   affix
