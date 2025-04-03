@@ -306,19 +306,47 @@ export const runCli = async (
         transformePath
       ); // Pass the log file path here
 
-      // Log completion message to the MAIN log file
-      await addCustomMessageInCliLogs(transformePath, 'info', message);
-      // Log to backup location as well
-      await addCustomMessageInCliLogs(loggerPath, 'info', message);
+      // Add debug log to confirm command completed
+      console.info('Import command completed successfully');
 
-      // Update project status after migration
+      // Log completion message to logs
+      await addCustomMessageInCliLogs(transformePath, 'info', message);
+      await addCustomMessageInCliLogs(loggerPath, 'info', message);
+      console.info('Added completion messages to logs');
+
+      // Add debug logs to track project index and test flag
+      console.info(
+        `Updating project status: projectId=${projectId}, isTest=${isTest}`
+      );
+
+      // Make sure we have the latest data
+      await ProjectModelLowdb.read();
       const projectIndex = ProjectModelLowdb.chain
         .get('projects')
         .findIndex({ id: projectId })
         .value();
 
+      console.info(`Found project index: ${projectIndex}`);
+
+      // Debug: Log the full project data to verify it exists
+      try {
+        const project = ProjectModelLowdb.chain
+          .get('projects')
+          .find({ id: projectId })
+          .value();
+        console.info(`Project found: ${project ? 'Yes' : 'No'}`);
+        if (project) {
+          console.info(
+            `Current migration status: started=${project.isMigrationStarted}, completed=${project.isMigrationCompleted}`
+          );
+        }
+      } catch (err) {
+        console.error('Error reading project data:', err);
+      }
+
       // Handle test migration updates
       if (projectIndex > -1 && isTest) {
+        console.info('Updating test migration status');
         const project = ProjectModelLowdb.data.projects[projectIndex];
 
         // Initialize test_stacks if needed
@@ -338,15 +366,12 @@ export const runCli = async (
 
       // Update project status for non-test migrations
       if (projectIndex > -1 && !isTest) {
-        ProjectModelLowdb.update((data) => {
-          data.projects[projectIndex].isMigrationCompleted = true;
-          data.projects[projectIndex].isMigrationStarted = false;
-        });
-
-        // Make sure changes are persisted
+        // Direct modification might be more reliable
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted =
+          true;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
+          false;
         ProjectModelLowdb.write();
-
-        // Add debug log to confirm status update
         console.info(
           `Project ${projectId} status updated: migration completed`
         );
