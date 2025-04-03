@@ -10,6 +10,9 @@ const {
   DATA_MAPPER_CONFIG_TREE
 } = MIGRATION_DATA_CONFIG;
 
+
+
+
 const assignFolderName = ({ path }) => {
   const spliter = "/sitecore";
   const newPath = path.split(spliter)?.[1];
