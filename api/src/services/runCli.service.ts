@@ -6,7 +6,7 @@ import { copyDirectory, createDirectoryAndFile } from '../utils/index.js';
 import { CS_REGIONS, MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import AuthenticationModel from '../models/authentication.js';
-import watchLogs from '../utils/watch.utils.js';
+// import watchLogs from '../utils/watch.utils.js';
 import { setLogFilePath } from '../server.js';
 
 /**
@@ -68,13 +68,31 @@ const addCustomMessageInCliLogs = async (
 const determineLogLevel = (text: string): string => {
   const lowerText = text.toLowerCase();
 
-  if (lowerText.includes('error') || lowerText.includes('failed')) {
+  // Check for errors first - be more aggressive in detection
+  if (
+    lowerText.includes('error') ||
+    lowerText.includes('failed') ||
+    lowerText.includes('exception') ||
+    lowerText.includes('not found')
+  ) {
     return 'error';
-  } else if (lowerText.includes('warn')) {
+  }
+  // Then check for warnings
+  else if (lowerText.includes('warn') || lowerText.includes('warning')) {
     return 'warn';
-  } else {
+  }
+  // Default to info
+  else {
     return 'info';
   }
+};
+
+/**
+ * Strips ANSI color codes from text to create clean logs
+ */
+const stripAnsiCodes = (text: string): string => {
+  // This regex removes all ANSI escape sequences (color codes)
+  return text.replace(/\u001b\[\d+m/g, '');
 };
 
 /**
@@ -89,40 +107,40 @@ const runCommand = (
   return new Promise<void>((resolve, reject) => {
     const cmdProcess = spawn(command, args, { shell: true });
 
-    // Capture stdout and write to log file
+    // For stdout handler
     cmdProcess.stdout.on('data', (data) => {
       const output = data.toString();
-      process.stdout.write(output); // Display in console
+      process.stdout.write(output); // Keep colors in console
 
-      // Log to the provided log file path if available
       if (logFilePath) {
         try {
-          // Determine log level based on content but keep ANSI codes
-          const logLevel = determineLogLevel(output);
-
+          // Clean the output by removing ANSI color codes
+          const cleanedOutput = stripAnsiCodes(output);
+          const logLevel = determineLogLevel(cleanedOutput);
           const logEntry = {
             level: logLevel,
-            message: output.trim(),
+            message: cleanedOutput.trim(),
             timestamp: new Date().toISOString(),
           };
           fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + '\n');
         } catch (err) {
-          console.error('Error writing stdout to log file:', err);
+          console.error('Error writing to log file:', err);
         }
       }
     });
 
-    // Capture stderr and write to log file
+    // For stderr handler
     cmdProcess.stderr.on('data', (data) => {
       const output = data.toString();
-      process.stderr.write(output); // Display in console
+      process.stderr.write(output); // Keep colors in console
 
-      // Log to the provided log file path if available
       if (logFilePath) {
         try {
+          // Clean the output by removing ANSI color codes
+          const cleanedOutput = stripAnsiCodes(output);
           const logEntry = {
             level: 'error',
-            message: output.trim(),
+            message: cleanedOutput.trim(),
             timestamp: new Date().toISOString(),
           };
           fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + '\n');
@@ -234,10 +252,42 @@ export const runCli = async (
       );
       await createDirectoryAndFile(loggerPath, transformePath);
 
+      // Debug which log path is being used
+      console.info(`Log path for CLI commands: ${transformePath}`);
+
+      // Test writing all log levels directly to the file
+      try {
+        const testLogs = [
+          {
+            level: 'info',
+            message: 'TEST INFO LOG',
+            timestamp: new Date().toISOString(),
+          },
+          {
+            level: 'warn',
+            message: 'TEST WARNING LOG',
+            timestamp: new Date().toISOString(),
+          },
+          {
+            level: 'error',
+            message: 'TEST ERROR LOG',
+            timestamp: new Date().toISOString(),
+          },
+        ];
+
+        for (const log of testLogs) {
+          fs.appendFileSync(transformePath, JSON.stringify(log) + '\n');
+        }
+        console.info('Test logs written successfully');
+      } catch (err) {
+        console.error('Failed to write test logs:', err);
+      }
+
       // Make sure to set the global.currentLogFile to the project log file
       // This is the key part - setting the log file path to the migration service log file
       await setLogFilePath(transformePath);
-      await watchLogs(loggerPath, transformePath);
+      // Comment out the watchLogs call to see if that's causing the issue
+      // await watchLogs(loggerPath, transformePath);
 
       // Execute the stack import command
       await runCommand(
@@ -255,6 +305,11 @@ export const runCli = async (
         ],
         transformePath
       ); // Pass the log file path here
+
+      // Log completion message to the MAIN log file
+      await addCustomMessageInCliLogs(transformePath, 'info', message);
+      // Log to backup location as well
+      await addCustomMessageInCliLogs(loggerPath, 'info', message);
 
       // Update project status after migration
       const projectIndex = ProjectModelLowdb.chain
@@ -281,21 +336,24 @@ export const runCli = async (
         ProjectModelLowdb.write();
       }
 
-      // Log completion message
-      await addCustomMessageInCliLogs(loggerPath, 'info', message);
-
       // Update project status for non-test migrations
-      if (!isTest) {
+      if (projectIndex > -1 && !isTest) {
         ProjectModelLowdb.update((data) => {
           data.projects[projectIndex].isMigrationCompleted = true;
           data.projects[projectIndex].isMigrationStarted = false;
         });
+
+        // Make sure changes are persisted
+        ProjectModelLowdb.write();
+
+        // Add debug log to confirm status update
+        console.info(
+          `Project ${projectId} status updated: migration completed`
+        );
       }
     } else {
       console.info('User not found.');
     }
-
-    console.info('✅ Region setup and import command executed successfully');
   } catch (error) {
     console.error('🚀 ~ runCli ~ error:', error);
   }

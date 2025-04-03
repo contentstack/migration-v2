@@ -47,14 +47,20 @@ const customLogger = async (
 
     if (!fs.existsSync(logFilePath)) {
       // If the file does not exist, create it and write an initial log entry
-      fs.promises.writeFile(logFilePath, 'Log file created\n', { flag: 'a' }); // 'a' flag for appending
+      console.info(`Creating new log file at: ${logFilePath}`);
+      // Add stack trace to debug where this is being called from
+      console.info(new Error().stack);
+
+      await fs.promises.writeFile(logFilePath, 'Log file created\n', {
+        flag: 'a',
+      });
       console.info(
         `Log file created and initial entry written: ${logFilePath}`
       );
     }
     // Create a logger instance with a file transport
     const log = createLogger({
-      level: 'info',
+      level: process.env.LOG_LEVEL || 'silly', // Use 'silly' to capture ALL log levels
       format: format.combine(format.timestamp(), format.json()),
       transports: [
         // Write logs to a file named after the apiKey
