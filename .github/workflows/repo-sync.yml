@@ -129,7 +129,7 @@ jobs:
                         "no-constant-condition": "off"
                         }
                     }
-                    ];
+                    ]
                     EOL
                 fi
 
