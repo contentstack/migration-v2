@@ -13,6 +13,7 @@ const {
 
 
 
+
 const assignFolderName = ({ path }) => {
   const spliter = "/sitecore";
   const newPath = path.split(spliter)?.[1];
