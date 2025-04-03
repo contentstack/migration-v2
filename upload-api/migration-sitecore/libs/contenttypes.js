@@ -33,13 +33,10 @@ function startsWithNumber(str) {
 
 const uidCorrector = ({ uid }) => {
   if (startsWithNumber(uid)) {
-    return `${append}_${_.replace(uid, new RegExp('[ -]', 'g'), '_')?.toLowerCase()}`?.replace?.(
-      '$',
-      ''
-    );
+    return `${append}_${_.replace(uid, /[ -]/g, '_')?.toLowerCase()}`.replace(/\$/g, '');
   }
-  const newUid = _.replace(uid, new RegExp('[ -]', 'g'), '_')?.toLowerCase();
-  return newUid?.replace?.('$', '');
+  const newUid = _.replace(uid, /[ -]/g, '_')?.toLowerCase();
+  return newUid.replace(/\$/g, '');
 };
 
 const templatesComponents = ({ path: newPath }) => {
@@ -471,7 +468,7 @@ const contentTypeMapper = ({
             } else {
               if (source) {
                 if (item?.content?.includes('datasource=')) {
-                  const gUid = item?.content?.split('}')?.[0]?.replace('datasource={', '');
+                  const gUid = item?.content?.split('}')?.[0]?.replace?.(/datasource=\{\s*/i, '');
                   if (gUid) {
                     const dataSourcePaths = read(
                       path?.join?.(sitecore_folder, 'master', 'sitecore', 'content', 'Common')
