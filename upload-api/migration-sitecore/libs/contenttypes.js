@@ -11,6 +11,7 @@ const configChecker = path?.join('content', 'Common', 'Configuration');
 const append = 'a';
 let config = {};
 
+
 const {
   DATA_MAPPER_DIR,
   DATA_MAPPER_CONFIG_FILE,
