@@ -214,7 +214,7 @@ const createAssets = async ({
         } else {
           const message = getLogMessage(
             srcFunc,
-            `Asset "${jsonAsset?.item?.$?.name}" blob is not there for this assets.`,
+            `Asset "${jsonAsset?.item?.$?.name}" blob is missing for these assets.`,
             {}
           );
           await customLogger(projectId, destinationStackId, 'error', message);
