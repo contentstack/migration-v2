@@ -21,7 +21,7 @@ const watchLogs = async (sourceFile: string, destinationFile: string) => {
     ignoreInitial: true, // Do not trigger on the existing state
     awaitWriteFinish: {
       stabilityThreshold: 100, // Wait 1 millisecond before triggering (for fast writes)
-      pollInterval: 100 // Check for changes every 1 ms
+      pollInterval: 100, // Check for changes every 1 ms
     },
   });
   // Event listener for file changes
