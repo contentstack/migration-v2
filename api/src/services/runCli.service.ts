@@ -306,13 +306,55 @@ export const runCli = async (
         transformePath
       ); // Pass the log file path here
 
-      // Add debug log to confirm command completed
+      // After the import command completes
       console.info('Import command completed successfully');
 
-      // Log completion message to logs
-      await addCustomMessageInCliLogs(transformePath, 'info', message);
-      await addCustomMessageInCliLogs(loggerPath, 'info', message);
-      console.info('Added completion messages to logs');
+      // Write the completion message ONCE in the format the UI expects
+      if (isTest) {
+        const directLogEntry = {
+          level: 'info',
+          message: 'Test Migration Process Completed',
+          timestamp: new Date().toISOString(),
+        };
+
+        // Write to the transform path (main log file) - ONLY ONCE
+        fs.appendFileSync(
+          transformePath,
+          JSON.stringify(directLogEntry) + '\n'
+        );
+
+        // Also write to backup log path if different
+        if (loggerPath && loggerPath !== transformePath) {
+          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
+        }
+
+        console.info('Added test completion message to logs');
+      } else {
+        const directLogEntry = {
+          level: 'info',
+          message: 'Migration Process Completed',
+          timestamp: new Date().toISOString(),
+        };
+
+        // Write to the transform path (main log file) - ONLY ONCE
+        fs.appendFileSync(
+          transformePath,
+          JSON.stringify(directLogEntry) + '\n'
+        );
+
+        // Also write to backup log path if different
+        if (loggerPath && loggerPath !== transformePath) {
+          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
+        }
+
+        console.info('Added migration completion message to logs');
+      }
+
+      // Keep the project status update code:
+      console.info(
+        `Updating project status: projectId=${projectId}, isTest=${isTest}`
+      );
+      // ... rest of the code ...
 
       // Add debug logs to track project index and test flag
       console.info(
