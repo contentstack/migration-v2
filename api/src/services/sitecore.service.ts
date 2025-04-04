@@ -47,7 +47,7 @@ function getLastKey(path: string) {
   return lastKey;
 }
 
-const AssetsPathSpliter = ({ path, id }: any) => {
+const AssetsPathSplitter = ({ path, id }: any) => {
   let newPath = path?.split(id)?.[0];
   if (newPath?.includes('media library/')) {
     newPath = newPath?.split('media library/')?.[1];
@@ -135,37 +135,37 @@ const createAssets = async ({
         'utf8'
       );
       const jsonAsset = JSON.parse(data);
-      const assetPath = AssetsPathSpliter({
+      const assetPath = AssetsPathSplitter({
         path: file,
         id: jsonAsset?.item?.$?.id,
       });
       // const folder = getFolderName({ assetPath });
-      const mestaData: any = {};
-      mestaData.uid = idCorrector({ id: jsonAsset?.item?.$?.id });
+      const metaData: any = {};
+      metaData.uid = idCorrector({ id: jsonAsset?.item?.$?.id });
       jsonAsset?.item?.fields?.field?.forEach?.((field: any) => {
         if (field?.$?.key === 'blob' && field?.$?.type === 'attachment') {
-          mestaData.id = field?.content?.replace(/[{}]/g, '')?.toLowerCase();
+          metaData.id = field?.content?.replace(/[{}]/g, '')?.toLowerCase();
         }
         if (field?.$?.key === 'extension') {
-          mestaData.extension = field?.content;
+          metaData.extension = field?.content;
         }
         if (field?.$?.key === 'mime type') {
-          mestaData.content_type = field?.content;
+          metaData.content_type = field?.content;
         }
         if (field?.$?.key === 'size') {
-          mestaData.size = field?.content;
+          metaData.size = field?.content;
         }
       });
       const blobPath: any = path.join(packagePath, 'blob', 'master');
       const assetsPath = read(blobPath);
       if (assetsPath?.length) {
         const isIdPresent = assetsPath?.find((ast) =>
-          ast?.includes(mestaData?.id)
+          ast?.includes(metaData?.id)
         );
         if (isIdPresent) {
           try {
             const assets = fs.readFileSync(path.join(blobPath, isIdPresent));
-            fs.mkdirSync(path.join(assetsSave, 'files', mestaData?.uid), {
+            fs.mkdirSync(path.join(assetsSave, 'files', metaData?.uid), {
               recursive: true,
             });
             fs.writeFileSync(
@@ -173,8 +173,8 @@ const createAssets = async ({
                 process.cwd(),
                 assetsSave,
                 'files',
-                mestaData?.uid,
-                `${jsonAsset?.item?.$?.name}.${mestaData?.extension}`
+                metaData?.uid,
+                `${jsonAsset?.item?.$?.name}.${metaData?.extension}`
               ),
               assets
             );
@@ -185,19 +185,19 @@ const createAssets = async ({
             );
             const message = getLogMessage(
               srcFunc,
-              `Not able to read the asset"${jsonAsset?.item?.$?.name}(${mestaData?.uid})".`,
+              `Not able to read the asset"${jsonAsset?.item?.$?.name}(${metaData?.uid})".`,
               {},
               err
             );
             await customLogger(projectId, destinationStackId, 'error', message);
           }
-          allAssetJSON[mestaData?.uid] = {
-            urlPath: `/assets/${mestaData?.uid}`,
-            uid: mestaData?.uid,
-            content_type: mestaData?.content_type,
-            file_size: mestaData.size,
+          allAssetJSON[metaData?.uid] = {
+            urlPath: `/assets/${metaData?.uid}`,
+            uid: metaData?.uid,
+            content_type: metaData?.content_type,
+            file_size: metaData.size,
             tags: [],
-            filename: `${jsonAsset?.item?.$?.name}.${mestaData?.extension}`,
+            filename: `${jsonAsset?.item?.$?.name}.${metaData?.extension}`,
             is_dir: false,
             parent_uid: null,
             title: jsonAsset?.item?.$?.name,
@@ -210,11 +210,11 @@ const createAssets = async ({
             {}
           );
           await customLogger(projectId, destinationStackId, 'info', message);
-          allAssetJSON[mestaData?.uid].parent_uid = '2146b0cee522cc3a38d';
+          allAssetJSON[metaData?.uid].parent_uid = '2146b0cee522cc3a38d';
         } else {
           const message = getLogMessage(
             srcFunc,
-            `Asset "${jsonAsset?.item?.$?.name}" blob is not there for this asstes.`,
+            `Asset "${jsonAsset?.item?.$?.name}" blob is not there for this assets.`,
             {}
           );
           await customLogger(projectId, destinationStackId, 'error', message);
@@ -503,7 +503,7 @@ const createLocale = async (
   } catch (err) {
     const message = getLogMessage(
       srcFunc,
-      `error while Createing the locales.`,
+      `error while Creating the locales.`,
       {},
       err
     );
