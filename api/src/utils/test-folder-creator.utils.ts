@@ -269,7 +269,7 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
   const allData = [];
   for await (const filePath of read(entriesPath)) {
     if (!filePath?.endsWith('index.json')) {
-      const entryData = await JSON.parse(await fs.promises.readFile(path.join(entriesPath, filePath), 'utf8'));
+      const entryData = await JSON?.parse?.(await fs?.promises?.readFile?.(path?.join?.(entriesPath, filePath), 'utf8'));
       if (Object?.keys?.(entryData)?.length) {
         const normalizedPath = path.normalize(filePath);
         // Split using `path.sep` for cross-platform support
