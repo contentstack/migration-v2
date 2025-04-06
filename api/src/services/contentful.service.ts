@@ -970,9 +970,11 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
       localeList[title] = newLocale;
     }));
     const masterLocaleData = Object?.values(msLocale)?.[0];
-    for (const [key, value] of Object.entries(allLocales) ?? {}) {
-      if (value?.code === masterLocaleData?.fallback_locale) {
-        allLocales[key].fallback_locale = masterLocaleData?.code
+    if (masterLocaleData) {
+      for (const [key, value] of Object.entries(allLocales) ?? {}) {
+        if (value?.code === masterLocaleData?.fallback_locale) {
+          allLocales[key].fallback_locale = masterLocaleData?.code
+        }
       }
     }
     await writeFile(localeSave, LOCALE_FILE_NAME, allLocales)
