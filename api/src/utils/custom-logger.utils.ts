@@ -48,9 +48,10 @@ const customLogger = async (
     if (!fs.existsSync(logFilePath)) {
       // If the file does not exist, create it and write an initial log entry
       console.info(`Creating new log file at: ${logFilePath}`);
-      // Add stack trace to debug where this is being called from
-      console.info(new Error().stack);
-
+      // Conditionally log stack trace based on environment
+      if (process.env.NODE_ENV !== 'production') {
+        console.info(new Error().stack);
+      }
       await fs.promises.writeFile(logFilePath, 'Log file created\n', {
         flag: 'a',
       });
