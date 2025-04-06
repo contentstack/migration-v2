@@ -958,13 +958,15 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
         )
         await customLogger(projectId, destination_stack_id, 'info', message);
       } else {
-        allLocales[title] = newLocale;
-        const message = getLogMessage(
-          srcFunc,
-          `Locale ${newLocale?.code} has been successfully transformed.`,
-          {}
-        )
-        await customLogger(projectId, destination_stack_id, 'info', message);
+        if (project?.locales?.[localeData?.code]) {
+          allLocales[title] = newLocale;
+          const message = getLogMessage(
+            srcFunc,
+            `Locale ${newLocale?.code} has been successfully transformed.`,
+            {}
+          )
+          await customLogger(projectId, destination_stack_id, 'info', message);
+        }
       }
       localeList[title] = newLocale;
     }));
