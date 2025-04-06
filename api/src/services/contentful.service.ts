@@ -937,7 +937,6 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
       )
       await customLogger(projectId, destination_stack_id, 'error', message);
     }
-    console.info(project?.stackDetails?.master_locale)
     const fallbackMapLocales: any = { ...project?.master_locale ?? {}, ...project?.locales ?? {} }
     await Promise?.all(locales?.map?.(async (localeData: any) => {
       const currentMapLocale = getKeyByValue?.(fallbackMapLocales, localeData?.code) ?? `${localeData?.code?.toLowerCase?.()}`;
