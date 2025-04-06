@@ -223,14 +223,15 @@ const createAssets = async ({
     }
   }
   const fileMeta = { '1': ASSETS_SCHEMA_FILE };
-  fs.writeFileSync(
+  await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, ASSETS_FILE_NAME),
     JSON.stringify(fileMeta)
   );
-  fs.writeFileSync(
+  await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, ASSETS_SCHEMA_FILE),
     JSON.stringify(allAssetJSON)
   );
+
   return allAssetJSON;
 };
 
