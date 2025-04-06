@@ -969,8 +969,8 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
       }
       localeList[title] = newLocale;
     }));
+    const masterLocaleData = Object?.values(msLocale)?.[0];
     for (const [key, value] of Object.entries(allLocales) ?? {}) {
-      const masterLocaleData = Object?.values(msLocale)?.[0];
       if (value?.code === masterLocaleData?.fallback_locale) {
         allLocales[key].fallback_locale = masterLocaleData?.code
       }
