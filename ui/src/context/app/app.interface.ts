@@ -56,6 +56,7 @@ export interface FileDetails {
     bucketName?: string;
     buketKey?: string;
   };
+  filePath?: string | undefined;
 }
 export interface IFile {
   id?: string;
