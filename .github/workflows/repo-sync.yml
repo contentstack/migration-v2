@@ -98,14 +98,15 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 # echo "Installing ESLint dependencies..."
-                npm install --save-dev eslint @eslint/js globals
+                npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
 
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
-                const js = require("@eslint/js");
-                const globals = require("globals");
+                    const js = require("@eslint/js");
+                    const globals = require("globals");
+                    const tsPlugin = require("@typescript-eslint/eslint-plugin");
 
                 module.exports = [
                 js.configs.recommended,
@@ -114,11 +115,19 @@ jobs:
                     ecmaVersion: "latest",
                     sourceType: "module",
                     globals: globals.node,
+                    parser: require("@typescript-eslint/parser"),
+                    },
+                    plugins: {
+                    "@typescript-eslint": tsPlugin,
                     },
                     rules: {
                     "no-unused-vars": "warn",
                     "no-console": "off",
-                    "@typescript-eslint/no-var-requires": 'off'
+                    "@typescript-eslint/no-var-requires": "off",
+                    "no-prototype-builtins": "off",
+                    "@typescript-eslint/no-explicit-any": "off",
+                    "no-constant-condition": "off",
+                    "no-constant-binary-expression": "off",
                     }
                 }
                 ];
@@ -225,7 +234,7 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 echo "Installing ESLint dependencies..."
-                npm install --save-dev eslint @eslint/js globals
+                npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
@@ -243,7 +252,12 @@ jobs:
                     },
                     rules: {
                     "no-unused-vars": "warn",
-                    "no-console": "off"
+                    "no-console": "off",
+                    "@typescript-eslint/no-var-requires": 'off',
+                    "@typescript-eslint/no-var-requires": "off",
+                    "no-prototype-builtins": "off",
+                    "@typescript-eslint/no-explicit-any": "off",
+                    "no-constant-condition": "off"
                     }
                 }
                 ];
@@ -318,7 +332,7 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 echo "Installing ESLint dependencies..."
-                npm install --save-dev eslint @eslint/js globals
+                npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
@@ -336,7 +350,12 @@ jobs:
                     },
                     rules: {
                     "no-unused-vars": "warn",
-                    "no-console": "off"
+                    "no-console": "off",
+                    "@typescript-eslint/no-var-requires": 'off',
+                    "@typescript-eslint/no-var-requires": "off",
+                    "no-prototype-builtins": "off",
+                    "@typescript-eslint/no-explicit-any": "off",
+                    "no-constant-condition": "off"
                     }
                 }
                 ];

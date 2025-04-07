@@ -35,8 +35,8 @@ const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
   const contentTypes = req.body.contentTypes;
 
-
-  await FieldMapperModel.read();
+  try {
+    await FieldMapperModel.read();
 
   /*
   this code snippet iterates over an array of contentTypes and performs 
@@ -93,7 +93,7 @@ const putTestData = async (req: Request) => {
   if (index > -1 && contentIds?.length) {
     ProjectModelLowdb.data.projects[index].content_mapper = contentIds;
     ProjectModelLowdb.data.projects[index].extract_path = req?.body?.extractPath;
-    ProjectModelLowdb.write();
+    await ProjectModelLowdb.write();
   } else {
     throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
   }
@@ -102,8 +102,21 @@ const putTestData = async (req: Request) => {
     .get("projects")
     .find({ id: projectId })
     .value();
+  
+  return {
+    status: HTTP_CODES?.OK,
+    data: pData
+  }
+      
+  } catch (error:any) {
 
-  return pData;
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+    
+  }
+  
 };
 
 /**
@@ -120,57 +133,80 @@ const getContentTypes = async (req: Request) => {
 
   let result: any = [];
   let totalCount = 0;
-
-  await ProjectModelLowdb.read();
-  const projectDetails = ProjectModelLowdb.chain
+  try {
+    await ProjectModelLowdb.read();
+    const projectDetails = ProjectModelLowdb.chain
     .get("projects")
     .find({ id: projectId })
     .value();
 
-  if (isEmpty(projectDetails)) {
-    logger.error(
+    if (isEmpty(projectDetails)) {
+      logger.error(
+        getLogMessage(
+          sourceFn,
+          `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+        )
+      );
+      throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+    }
+    const contentMapperId = projectDetails.content_mapper;
+    await ContentTypesMapperModelLowdb.read();
+    await FieldMapperModel.read();
+
+    const content_mapper: any = [];
+    contentMapperId.map((data: any) => {
+      const contentMapperData = ContentTypesMapperModelLowdb.chain
+        .get("ContentTypesMappers")
+        .find({ id: data, projectId: projectId })
+        .value();
+      content_mapper.push(contentMapperData);
+    });
+
+    if (!isEmpty(content_mapper)) {
+      if (search) {
+        const filteredResult = content_mapper
+          .filter((item: any) =>
+            item?.otherCmsTitle?.toLowerCase().includes(search)
+          )
+          ?.sort((a: any, b: any) =>
+            a.otherCmsTitle.localeCompare(b.otherCmsTitle)
+          );
+        totalCount = filteredResult.length;
+        result = filteredResult.slice(skip, Number(skip) + Number(limit));
+      } else {
+        totalCount = content_mapper.length;
+        result = content_mapper
+          ?.sort((a: any, b: any) =>
+            a.otherCmsTitle.localeCompare(b.otherCmsTitle)
+          )
+          ?.slice(skip, Number(skip) + Number(limit));
+      }
+    }
+
+    return { 
+      status: HTTP_CODES?.OK,
+      count: totalCount, 
+      contentTypes: result 
+    };
+    
+  } catch (error:any) {
+     // Log error message
+     logger.error(
       getLogMessage(
         sourceFn,
-        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+        "Error occurred while while getting contentTypes of projects",
+        error
       )
     );
-    throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
-  }
-  const contentMapperId = projectDetails.content_mapper;
-  await ContentTypesMapperModelLowdb.read();
-  await FieldMapperModel.read();
 
-  const content_mapper: any = [];
-  contentMapperId.map((data: any) => {
-    const contentMapperData = ContentTypesMapperModelLowdb.chain
-      .get("ContentTypesMappers")
-      .find({ id: data, projectId: projectId })
-      .value();
-    content_mapper.push(contentMapperData);
-  });
-
-  if (!isEmpty(content_mapper)) {
-    if (search) {
-      const filteredResult = content_mapper
-        .filter((item: any) =>
-          item?.otherCmsTitle?.toLowerCase().includes(search)
-        )
-        ?.sort((a: any, b: any) =>
-          a.otherCmsTitle.localeCompare(b.otherCmsTitle)
-        );
-      totalCount = filteredResult.length;
-      result = filteredResult.slice(skip, Number(skip) + Number(limit));
-    } else {
-      totalCount = content_mapper.length;
-      result = content_mapper
-        ?.sort((a: any, b: any) =>
-          a.otherCmsTitle.localeCompare(b.otherCmsTitle)
-        )
-        ?.slice(skip, Number(skip) + Number(limit));
-    }
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+    
   }
 
-  return { count: totalCount, contentTypes: result };
+  
 };
 
 /**
@@ -191,46 +227,68 @@ const getFieldMapping = async (req: Request) => {
   let filteredResult = [];
   let totalCount = 0;
 
-  await ContentTypesMapperModelLowdb.read();
+  try {
+    await ContentTypesMapperModelLowdb.read();
 
-  const contentType = ContentTypesMapperModelLowdb.chain
-    .get("ContentTypesMappers")
-    .find({ id: contentTypeId, projectId: projectId })
-    .value();
+    const contentType = ContentTypesMapperModelLowdb.chain
+      .get("ContentTypesMappers")
+      .find({ id: contentTypeId, projectId: projectId })
+      .value();
 
-  if (isEmpty(contentType)) {
+    if (isEmpty(contentType)) {
+      logger.error(
+        getLogMessage(
+          srcFunc,
+          `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        )
+      );
+      throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
+    }
+    await FieldMapperModel.read();
+    const fieldData = contentType?.fieldMapping?.map?.((fields: any) => {
+      const fieldMapper = FieldMapperModel.chain
+        .get("field_mapper")
+        .find({ id: fields, projectId: projectId })
+        .value();
+
+      return fieldMapper;
+    });
+    const fieldMapping: any = fieldData;
+    if (!isEmpty(fieldMapping)) {
+      if (search) {
+        filteredResult = fieldMapping?.filter?.((item: any) =>
+          item?.otherCmsField?.toLowerCase().includes(search)
+        );
+        totalCount = filteredResult.length;
+        result = filteredResult.slice(skip, Number(skip) + Number(limit));
+      } else {
+        totalCount = fieldMapping.length;
+        result = fieldMapping.slice(skip, Number(skip) + Number(limit));
+      }
+    }
+
+    return { 
+      status: HTTP_CODES?.OK,
+      count: totalCount, 
+      fieldMapping: result };
+    
+  } catch (error: any) {
+    // Log error message
     logger.error(
       getLogMessage(
         srcFunc,
-        `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        "Error occurred while getting field mapping of projects",
+        error
       )
     );
-    throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
-  }
-  await FieldMapperModel.read();
-  const fieldData = contentType?.fieldMapping?.map?.((fields: any) => {
-    const fieldMapper = FieldMapperModel.chain
-      .get("field_mapper")
-      .find({ id: fields, projectId: projectId })
-      .value();
 
-    return fieldMapper;
-  });
-  const fieldMapping: any = fieldData;
-  if (!isEmpty(fieldMapping)) {
-    if (search) {
-      filteredResult = fieldMapping?.filter?.((item: any) =>
-        item?.otherCmsField?.toLowerCase().includes(search)
-      );
-      totalCount = filteredResult.length;
-      result = filteredResult.slice(skip, Number(skip) + Number(limit));
-    } else {
-      totalCount = fieldMapping.length;
-      result = fieldMapping.slice(skip, Number(skip) + Number(limit));
-    }
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+    
   }
-
-  return { count: totalCount, fieldMapping: result };
+  
 };
 
 /**
@@ -705,7 +763,11 @@ const resetToInitialMapping = async (req: Request) => {
     await ContentTypesMapperModelLowdb.update((data: any) => {
       data.ContentTypesMappers[contentIndex].status = CONTENT_TYPE_STATUS[1];
     });
-    return { message: HTTP_TEXTS.RESET_CONTENT_MAPPING, data: contentTypeData };
+    return { 
+      status: HTTP_CODES?.OK,
+      message: HTTP_TEXTS.RESET_CONTENT_MAPPING, 
+      data: contentTypeData 
+    };
 
   } catch (error: any) {
     logger.error(

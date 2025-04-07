@@ -939,7 +939,7 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
     }
     const fallbackMapLocales: any = { ...project?.master_locale ?? {}, ...project?.locales ?? {} }
     await Promise?.all(locales?.map?.(async (localeData: any) => {
-      const currentMapLocale = getKeyByValue?.(fallbackMapLocales, localeData?.code) ?? `${localeData.code.toLowerCase()}`;
+      const currentMapLocale = getKeyByValue?.(fallbackMapLocales, localeData?.code) ?? `${localeData?.code?.toLowerCase?.()}`;
       const title = localeData?.sys?.id;
       const newLocale: Locale = {
         code: currentMapLocale,
@@ -947,8 +947,8 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
         fallback_locale: getKeyByValue(fallbackMapLocales, localeData?.fallbackCode) ?? '',
         uid: `${title}`,
       };
-
-      if (localeData.default === true) {
+      const masterLocaleCode = getKeyByValue(project?.master_locale, localeData?.code);
+      if (masterLocaleCode !== undefined) {
         msLocale[title] = newLocale;
         const message = getLogMessage(
           srcFunc,
@@ -957,16 +957,26 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
         )
         await customLogger(projectId, destination_stack_id, 'info', message);
       } else {
-        allLocales[title] = newLocale;
-        const message = getLogMessage(
-          srcFunc,
-          `Locale ${newLocale?.code} has been successfully transformed.`,
-          {}
-        )
-        await customLogger(projectId, destination_stack_id, 'info', message);
+        if (project?.locales?.[localeData?.code]) {
+          allLocales[title] = newLocale;
+          const message = getLogMessage(
+            srcFunc,
+            `Locale ${newLocale?.code} has been successfully transformed.`,
+            {}
+          )
+          await customLogger(projectId, destination_stack_id, 'info', message);
+        }
       }
       localeList[title] = newLocale;
     }));
+    const masterLocaleData = Object?.values(msLocale)?.[0];
+    if (masterLocaleData) {
+      for (const [key, value] of Object.entries(allLocales) ?? {}) {
+        if (value?.code === masterLocaleData?.fallback_locale) {
+          allLocales[key].fallback_locale = masterLocaleData?.code
+        }
+      }
+    }
     await writeFile(localeSave, LOCALE_FILE_NAME, allLocales)
     await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale)
     await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList)

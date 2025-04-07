@@ -372,8 +372,7 @@ const groupFlat = (data, item) => {
       contentstackField: item?.meta?.name,
       contentstackFieldUid: uidCorrector({ uid: item?.meta?.key }),
       contentstackFieldType: 'group',
-      backupFieldType: 'group',
-      backupFieldUid: uidCorrector({ uid: item?.meta?.key })
+      backupFieldType: 'group'
     };
     flat?.push(group);
     data?.schema?.forEach((element) => {
@@ -397,6 +396,7 @@ const contentTypeMapper = ({
   components,
   standardValues,
   content_type,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   basePath,
   sitecore_folder,
   affix
