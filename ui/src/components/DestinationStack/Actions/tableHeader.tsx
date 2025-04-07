@@ -9,21 +9,19 @@ const TableHeader = ({ cms }: { cms: string }) => {
         htmlFor="Content Types"
         className="contentTypeRows__label field-color field-label"
         version="v2"
-        requiredText="(destination language)"
+        requiredText="(destination)"
       >
         Contentstack
       </FieldLabel>
 
-      <div style={{ marginLeft: '15px' }}>
         <FieldLabel
           htmlFor="Fields"
-          className="contentTypeRows__label field-color field-label"
-          requiredText="(source language)"
+          className="contentTypeRows__label field-color field-label ml-20"
+          requiredText="(source)"
           version="v2"
         >
           {cms}
         </FieldLabel>
-      </div>
     </div>
   );
 };
