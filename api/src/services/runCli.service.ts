@@ -19,50 +19,6 @@ interface TestStack {
 import utilitiesHandler from '@contentstack/cli-utilities';
 
 /**
- * Adds a custom message to the CLI logs file
- * @param loggerPath - Path to the log file
- * @param level - Log level (default: 'info')
- * @param message - Message to be logged
- */
-const addCustomMessageInCliLogs = async (
-  loggerPath: string,
-  level: string = 'info',
-  message: string
-) => {
-  try {
-    const logEntry = {
-      level,
-      message,
-      timestamp: new Date().toISOString(),
-    };
-
-    // Create directory if it doesn't exist
-    const logDir = path.dirname(loggerPath);
-    await fs.promises.mkdir(logDir, { recursive: true });
-
-    // Append log with proper formatting
-    await fs.promises.appendFile(
-      loggerPath,
-      JSON.stringify(logEntry, null, 2) + '\n'
-    );
-
-    // Also log to console based on level
-    switch (level) {
-      case 'error':
-        console.error(message);
-        break;
-      case 'warn':
-        console.warn(message);
-        break;
-      default:
-        console.info(message);
-    }
-  } catch (error) {
-    console.error('Error writing to log file:', error);
-  }
-};
-
-/**
  * Determines log level based on message content without removing ANSI codes
  */
 const determineLogLevel = (text: string): string => {
@@ -190,11 +146,6 @@ export const runCli = async (
   transformePath: string
 ) => {
   try {
-    // Set appropriate completion message based on migration type
-    const message = isTest
-      ? 'Test Migration Process Completed'
-      : 'Migration Process Completed';
-
     // Format region string for CLI compatibility
     const regionPresent =
       CS_REGIONS.find((item) => item === rg) ?? 'NA'.replace(/_/g, '-');
