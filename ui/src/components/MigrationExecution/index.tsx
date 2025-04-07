@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Icon, Field, TextInput, FieldLabel, CircularLoader } from '@contentstack/venus-components';
+import { Icon, Field, TextInput, FieldLabel, CircularLoader, Tooltip } from '@contentstack/venus-components';
 import { useSelector, useDispatch } from 'react-redux';
 
 // Services
@@ -96,15 +96,22 @@ const MigrationExecution = ({ handleStepChange }: migrationWxecutionProps) => {
                     <FieldLabel className="selectedOptions" htmlFor="label">
                       {item?.title}
                     </FieldLabel>
-                    <TextInput
-                      type="text"
-                      isReadOnly
-                      name="stackKey"
-                      value={getPlaceHolder(item?.title)}
-                      version="v2"
-                      disabled
-                      // width="regular"
-                    />
+                    <Tooltip 
+                    position='top'
+                    content={getPlaceHolder(item?.title)}>
+                      <TextInput
+                        inputClassName='textInput-ellipse'
+                        type="text"
+                        isReadOnly
+                        name="stackKey"
+                        value={getPlaceHolder(item?.title)}
+                        version="v2"
+                        disabled
+                        // width="regular"
+                      />
+
+                    </Tooltip>
+                   
                   </Field>
                   {index < MigrationInformation?.length - 1 && (
                     <Icon className="arrow-wrapper" icon="ArrowRight" size="large" />
