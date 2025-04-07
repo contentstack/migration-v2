@@ -5,12 +5,33 @@ import logger from './logger.js';
 import { getSafePath } from './sanitize-path.utils.js';
 
 // Utility function to safely join and resolve paths
-const safeJoin = (basePath: string, ...paths: string[]) => {
-  const resolvedPath = getSafePath(path.resolve(basePath, ...paths)); // Resolve absolute path
-  if (!resolvedPath.startsWith(basePath)) {
-    throw new Error('Invalid file path');
+/**
+ * Safely joins and resolves paths to prevent directory traversal attacks
+ * @param basePath - Base directory that should contain the result
+ * @param paths - Path segments to join with the base path
+ * @returns A safe absolute path guaranteed to be within basePath
+ */
+const safeJoin = (basePath: string, ...paths: string[]): string => {
+  // Get normalized absolute base path
+  const absoluteBasePath = path.resolve(basePath);
+
+  // Get sanitized absolute resolved path
+  const resolvedPath = getSafePath(path.resolve(basePath, ...paths));
+
+  // Use path.relative to check containment - this is more secure
+  const relativePath = path.relative(absoluteBasePath, resolvedPath);
+
+  // Check if path attempts to traverse up/outside the base directory
+  if (
+    relativePath === '' ||
+    relativePath === '.' ||
+    (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
+  ) {
+    return resolvedPath; // Path is safely within base directory
   }
-  return resolvedPath;
+
+  // Path is trying to escape - reject it
+  throw new Error('Invalid file path: Directory traversal attempt detected');
 };
 
 const fileExists = async (path: string): Promise<boolean> => {
