@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Service
@@ -37,6 +37,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   //sconst selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
 
   const dispatch = useDispatch();
+  const newMigrationDataRef = useRef(newMigrationData);
 
   const [cmsData, setCmsData] = useState<ICMSType[]>([]);
   const [searchText] = useState<string>('');
@@ -142,7 +143,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           }
         };
         //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
-        //dispatch(updateNewMigrationData(newMigrationDataObj));
+        dispatch(updateNewMigrationData(newMigrationDataObj));
         props?.handleStepChange(props?.currentStep);
       }
     } catch (error) {
@@ -155,25 +156,30 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     filterCMSData(searchText);
   }, []);
 
+  useEffect(()=>{
+    newMigrationDataRef.current = newMigrationData;
+  },[newMigrationData])
+
   // Handle Legacy cms selection for single match
-  useEffect(() => {
-    const isSingleMatch = cmsData?.length === 1;
-    if (isSingleMatch) {
-      setSelectedCard({ ...selectedCard });
+  // useEffect(() => {
+  //   const isSingleMatch = cmsData?.length === 1;
+  //   if (isSingleMatch) {
+  //     setSelectedCard({ ...selectedCard });
 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData.legacy_cms,
-          selectedCms: { ...selectedCard }
-        }
-      };
-      dispatch(updateNewMigrationData(newMigrationDataObj));
+  //     const newMigrationDataObj: INewMigration = {
+  //       ...newMigrationData,
+  //       legacy_cms: {
+  //         ...newMigrationDataRef?.current?.legacy_cms,
+  //         selectedCms: { ...selectedCard }
+  //       }
+  //     };
+  //     console.info("neMigObj ---> ", newMigrationDataObj, cmsData)
+  //     dispatch(updateNewMigrationData(newMigrationDataObj));
 
-      // Call for Step Change
-      props?.handleStepChange(props?.currentStep);
-    }
-  }, [cmsData]);
+  //     // Call for Step Change
+  //     props?.handleStepChange(props?.currentStep);
+  //   }
+  // }, [cmsData]);
 
   return (
     <div>
