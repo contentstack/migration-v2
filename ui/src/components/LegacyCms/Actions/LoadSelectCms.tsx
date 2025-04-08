@@ -37,7 +37,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   //sconst selectedOrganisation = useSelector((state:RootState)=>state?.authentication?.selectedOrganisation);
 
   const dispatch = useDispatch();
-  const newMigrationDataRef = useRef(newMigrationData);
 
   const [cmsData, setCmsData] = useState<ICMSType[]>([]);
   const [searchText] = useState<string>('');
@@ -156,9 +155,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     filterCMSData(searchText);
   }, []);
 
-  useEffect(()=>{
-    newMigrationDataRef.current = newMigrationData;
-  },[newMigrationData])
 
   // Handle Legacy cms selection for single match
   // useEffect(() => {
