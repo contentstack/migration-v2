@@ -5,7 +5,7 @@ import axios from "axios";
 //import _ from "lodash";
 import { MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import jsdom from "jsdom";
-import { htmlToJson } from "@contentstack/json-rte-serializer";
+import { htmlToJson, jsonToHtml } from "@contentstack/json-rte-serializer";
 import customLogger from "../utils/custom-logger.utils.js";
 import { getLogMessage } from "../utils/index.js";
 import { Advanced } from "../models/FieldMapper.js";
@@ -108,20 +108,28 @@ let assetData: Record<string, any> | any = {};
 let blog_base_url = "";
 
 //helper function to convert entries with content type
-function mapContentTypeToEntry(contentType: any, data: any) {
-  return contentType?.fieldMapping?.reduce((acc: { [key: string]: any }, field: FieldMapping) => {
+async function mapContentTypeToEntry(contentType: any, data: any) {
+  const result: { [key: string]: any } = {};
+
+  for (const field of contentType?.fieldMapping || []) {
     const fieldValue = data?.[field?.uid];
     let formattedValue;
 
     switch (field?.contentstackFieldType) {
       case "single_line_text":
       case "text":
-      case 'html':
         formattedValue = fieldValue;
         break;
-      case "json":
-        formattedValue = convertHtmlToJson(fieldValue);
+      case "html":
+        formattedValue =
+          fieldValue && typeof fieldValue === "object"
+            ? await convertJsonToHtml(fieldValue)
+            : fieldValue;
         break;
+      case "json":
+        
+            formattedValue = await convertHtmlToJson(fieldValue);    
+    break;
       case "reference":
         formattedValue = getParent(data,data[field.uid]);
         break;
@@ -132,10 +140,12 @@ function mapContentTypeToEntry(contentType: any, data: any) {
       formattedValue = Array.isArray(formattedValue) ? formattedValue : [formattedValue];
     }
 
-    acc[field.contentstackFieldUid] = formattedValue;
-    return acc;
-  }, {});
+    result[field?.contentstackFieldUid] = formattedValue;
+  }
+
+  return result;
 }
+
 // helper functions
 async function writeFileAsync(filePath: string, data: any, tabSpaces: number) {
   filePath = path.resolve(filePath);
@@ -596,7 +606,7 @@ async function getAllreference(affix: string, packagePath: string, destinationSt
       ...processReferenceData(referenceTerms, "terms", "wp:term_slug", terms)
     );
     referenceArray.push(
-      ...processReferenceData(referenceTags, "tags", "wp:tag_slug", tag)
+      ...processReferenceData(referenceTags, "tag", "wp:tag_slug", tag)
     );
 
     if (referenceArray.length > 0) {
@@ -776,7 +786,7 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
       authordata[customId] = {
         ...authordata[customId],
         uid: customId,
-        ...mapContentTypeToEntry(contentType, authordataEntry),
+        ...( await mapContentTypeToEntry(contentType, authordataEntry)),
       };
       authordata[customId].publish_details = [];
 
@@ -1473,7 +1483,7 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
       `${master_locale}.json`
     );
     const termsdata = termsDetails.reduce(
-      (acc: { [key: string]: any }, data) => {
+      async (acc: { [key: string]: any }, data) => {
     
         const { id } = data;
          const uid = `terms_${id}`;
@@ -1485,7 +1495,7 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
         acc[customId] = {
           ...acc[customId],
           uid: customId,
-          ...mapContentTypeToEntry(contentType, data), // Pass individual term object
+          ...(await mapContentTypeToEntry(contentType, data)), // Pass individual term object
         };
         acc[customId].publish_details = [];
         return acc;
@@ -1598,7 +1608,7 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
       tagsFolderPath,
       `${master_locale}.json`
     );
-    const tagdata = tagDetails.reduce((acc: { [key: string]: any }, data) => {
+    const tagdata = tagDetails.reduce(async (acc: { [key: string]: any }, data) => {
       const { id } = data;
       const uid = `tags_${id}`;
       //const title = `Tags - ${id}`;
@@ -1609,7 +1619,7 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
       acc[customId]={
         ...acc[customId],
         uid:customId,
-        ...mapContentTypeToEntry(contenttype,data),
+        ...( await mapContentTypeToEntry(contenttype,data)),
       };
       acc[customId].publish_details = [];
 
@@ -1715,10 +1725,21 @@ async function startingDirCategories(affix: string, ct: string, master_locale:st
 }
 
 const convertHtmlToJson = (htmlString: any) => {
-  const dom = new JSDOM(htmlString?.replace(/&amp;/g, "&"));
-  const htmlDoc = dom.window.document.querySelector("body");
-  return htmlToJson(htmlDoc);
+  if(typeof htmlString === 'string'){
+    const dom =  new JSDOM(htmlString?.replace(/&amp;/g, "&"));
+    const htmlDoc = dom.window.document.querySelector("body");
+    const jsonValue = htmlToJson(htmlDoc)
+    return jsonValue;
+
+  }
+  else return htmlString;
 };
+
+const convertJsonToHtml = async (json: any) => {
+  const htmlValue = await jsonToHtml(json);
+  return htmlValue;
+
+}
 
 function getParent(data: any,id: string) {
   const parentId: any = fs.readFileSync(
@@ -1745,7 +1766,7 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
   const srcFunc = 'saveCategories';
   try {
     const categorydata = categoryDetails.reduce(
-      (acc: { [key: string]: any }, data) => {
+      async (acc: { [key: string]: any }, data) => {
         const uid = `category_${data["id"]}`;
 
         const customId = uid
@@ -1754,7 +1775,7 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
         acc[customId]={
           ...acc[customId],
           uid:customId,
-          ...mapContentTypeToEntry(contenttype,data),
+          ...(await mapContentTypeToEntry(contenttype,data)),
         }
         acc[customId].publish_details = [];
 
@@ -2057,23 +2078,18 @@ async function processChunkData(
             data,
             postdata
           );
-          const formattedPosts = Object?.entries(formatted_posts)?.reduce(
-            (acc: { [key: string]: any }, data:any) => {
-             
-              const customId = idCorrector(data["uid"])
-      
-              // Accumulate category data
-              acc[customId]={
-                ...acc[customId],
-                uid: customId,
-                ...mapContentTypeToEntry(contenttype,data),
-              };
-              acc[customId].publish_details = [];
-      
-              return acc;
-            },
-            {}
-          );
+          const formattedPosts: any = {};
+         
+          for (const [key, value] of Object.entries(formatted_posts as {[key: string]: any})) {
+            const customId = idCorrector(value?.uid);
+    
+            formattedPosts[customId] = {
+              ...formattedPosts[customId],
+              uid: customId,
+              ...(await mapContentTypeToEntry(contenttype, value)),
+            };
+            formattedPosts[customId].publish_details = [];
+          }
           Object.assign(postdata,formattedPosts);
 
           // await writeFileAsync(
@@ -2095,6 +2111,7 @@ async function processChunkData(
     if (isLastChunk && allSuccess) {
       console.info("last data");
     }
+    console.info("postData ---> ", postdata)
     return postdata
   } catch (error) {
     console.error(error);
@@ -2105,8 +2122,8 @@ async function processChunkData(
 
 async function extractPosts( packagePath: string, destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string) {
   const srcFunc = "extractPosts";
-  const ct:any = keyMapper?.["categories"];
-  const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'categories');
+  const ct:any = keyMapper?.["posts"];
+  const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'posts');
 
   try {
     await startingDirPosts(ct, master_locale);

@@ -36,7 +36,21 @@ const putTestData = async (req: Request) => {
   const contentTypes = req.body.contentTypes;
 
   try {
-    await FieldMapperModel.read();
+
+     /*
+  this code snippet is iterating over an array called contentTypes and 
+  transforming each element by adding a unique identifier (id) if it doesn't already exist. 
+  The transformed elements are then stored in the contentType variable, 
+  and the generated id values are pushed into the contentIds array.
+  */
+  await ContentTypesMapperModelLowdb.read();
+  const contentIds: any[] = [];
+  const contentType = contentTypes.map((item: any) => {
+    const id = item?.id?.replace(/[{}]/g, "")?.toLowerCase() || uuidv4();
+    item.id = id;
+    contentIds.push(id);
+    return { ...item, id, projectId };
+  });
 
   /*
   this code snippet iterates over an array of contentTypes and performs 
@@ -47,36 +61,24 @@ const putTestData = async (req: Request) => {
   It then updates the field_mapper property of a data object using the FieldMapperModel.update() function. 
   Finally, it updates the fieldMapping property of each type in the contentTypes array with the fieldIds array.
   */
+  await FieldMapperModel.read();
+
   contentTypes.map((type: any, index: any) => {
     const fieldIds: string[] = [];
     const fields = type?.fieldMapping?.filter((field: any) => field)?.map?.((field: any) => {
       const id = field?.id ? field?.id?.replace(/[{}]/g, "")?.toLowerCase() : uuidv4();
       field.id = id;
       fieldIds.push(id);
-      return { id, projectId, isDeleted: false, ...field };
+      return { id, projectId, contentTypeId: type?.id, isDeleted: false, ...field };
     });
 
     FieldMapperModel.update((data: any) => {
       data.field_mapper = [...(data?.field_mapper ?? []), ...(fields ?? [])];
     });
-    contentTypes[index].fieldMapping = fieldIds;
+    contentType[index].fieldMapping = fieldIds;
   });
 
-  await ContentTypesMapperModelLowdb.read();
-  const contentIds: any[] = [];
 
-  /*
-  this code snippet is iterating over an array called contentTypes and 
-  transforming each element by adding a unique identifier (id) if it doesn't already exist. 
-  The transformed elements are then stored in the contentType variable, 
-  and the generated id values are pushed into the contentIds array.
-  */
-  const contentType = contentTypes.map((item: any) => {
-    const id = item?.id?.replace(/[{}]/g, "")?.toLowerCase() || uuidv4();
-    item.id = id;
-    contentIds.push(id);
-    return { ...item, id, projectId };
-  });
 
   await ContentTypesMapperModelLowdb.update((data: any) => {
     data.ContentTypesMappers = [
@@ -248,7 +250,7 @@ const getFieldMapping = async (req: Request) => {
     const fieldData = contentType?.fieldMapping?.map?.((fields: any) => {
       const fieldMapper = FieldMapperModel.chain
         .get("field_mapper")
-        .find({ id: fields, projectId: projectId })
+        .find({ id: fields, projectId: projectId, contentTypeId: contentTypeId })
         .value();
 
       return fieldMapper;
@@ -616,7 +618,7 @@ const updateContentType = async (req: Request) => {
       await FieldMapperModel.read();
       fieldMapping.forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
-          (f: any) => f?.id === field?.id
+          (f: any) => f?.id === field?.id && f?.contentTypeId === field?.contentTypeId
         );
         if (fieldIndex > -1 && field?.contentstackFieldType !== "") {
           FieldMapperModel.update((data: any) => {
