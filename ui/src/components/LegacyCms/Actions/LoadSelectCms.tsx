@@ -142,7 +142,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           }
         };
         //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
-        //dispatch(updateNewMigrationData(newMigrationDataObj));
+        dispatch(updateNewMigrationData(newMigrationDataObj));
         props?.handleStepChange(props?.currentStep);
       }
     } catch (error) {
@@ -155,25 +155,27 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
     filterCMSData(searchText);
   }, []);
 
+
   // Handle Legacy cms selection for single match
-  useEffect(() => {
-    const isSingleMatch = cmsData?.length === 1;
-    if (isSingleMatch) {
-      setSelectedCard({ ...selectedCard });
+  // useEffect(() => {
+  //   const isSingleMatch = cmsData?.length === 1;
+  //   if (isSingleMatch) {
+  //     setSelectedCard({ ...selectedCard });
 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData.legacy_cms,
-          selectedCms: { ...selectedCard }
-        }
-      };
-      dispatch(updateNewMigrationData(newMigrationDataObj));
+  //     const newMigrationDataObj: INewMigration = {
+  //       ...newMigrationData,
+  //       legacy_cms: {
+  //         ...newMigrationDataRef?.current?.legacy_cms,
+  //         selectedCms: { ...selectedCard }
+  //       }
+  //     };
+  //     console.info("neMigObj ---> ", newMigrationDataObj, cmsData)
+  //     dispatch(updateNewMigrationData(newMigrationDataObj));
 
-      // Call for Step Change
-      props?.handleStepChange(props?.currentStep);
-    }
-  }, [cmsData]);
+  //     // Call for Step Change
+  //     props?.handleStepChange(props?.currentStep);
+  //   }
+  // }, [cmsData]);
 
   return (
     <div>
