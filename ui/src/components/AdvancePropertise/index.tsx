@@ -576,7 +576,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                       isMulti={true}
                       onChange={(selectedOptions: ContentTypeOption[]) => {
                         setCTValue(selectedOptions);
-                        const embedObject = selectedOptions.map((item: optionsType) => item.label); // Update the state with the selected options
+                        const embedObject = selectedOptions.map((item: optionsType) => item?.value); // Update the state with the selected options
                         props?.updateFieldSettings(
                           props?.rowId,
                           {
