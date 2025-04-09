@@ -508,21 +508,9 @@ const LanguageMapper = () => {
                 isDisabled={newMigrationData?.project_current_step > 2}
               />
             }
-            //  footerComponent={
-            //      <Button className="ml-10 mt-10 mb-10"
-            //      buttonType="secondary"
-            //      version={'v2'}
-            //      icon="AddPlus"
-            //      onClick={addRowComp}
-            //      size='small'>
-            //          Add Language
-            //      </Button>
-
-            //  }
             type="Secondary"
           />
           <Button
-            className="mt-10"
             buttonType="secondary"
             aria-label="add language"
             version={'v2'}
