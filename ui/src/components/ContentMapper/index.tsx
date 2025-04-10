@@ -671,6 +671,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
       
       setTableData(validTableData || []);
+      setSelectedEntries(validTableData);
       setTotalCounts(validTableData?.length);
       setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item?.isDeleted))
       setIsLoading(false);
