@@ -296,6 +296,7 @@ export const testFolderCreator = async ({ destinationStackId }: any) => {
   // await sortContentType(baseDir, finalData);
   await deleteFolderAsync(entryDelete);
   for await (const entry of finalData) {
+    console.info(entry,"<====",entryDelete)
     const fileMeta = { "1": `${entry?.locale}.json` };
     const entryPath = path.join(
       process.cwd(),
