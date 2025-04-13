@@ -36,6 +36,7 @@ const MigrationFlowHeader = ({
 }: MigrationFlowHeaderProps) => {
   const [projectName, setProjectName] = useState('');
   const [currentStep, setCurrentStep] = useState<number>(0);
+  const [contentMapperLength, setcontentMapperLength] = useState<number>();
 
   const navigate = useNavigate();
   const params: Params<string> = useParams();
@@ -56,6 +57,7 @@ const MigrationFlowHeader = ({
   const fetchProject = async () => {
     setProjectName(projectData?.name);
     setCurrentStep(projectData?.current_step);
+    setcontentMapperLength(projectData?.content_mapper?.length)
 
     //Navigate to lastest or active Step
     const url = `/projects/${params?.projectId}/migration/steps/${projectData?.current_step}`;
@@ -94,6 +96,8 @@ const MigrationFlowHeader = ({
       newMigrationData?.destination_stack?.selectedStack?.value
     );
 
+  const enableButton = contentMapperLength === 0 && newMigrationData?.project_current_step === 3 && params?.stepId === '1' && (!newMigrationData?.legacy_cms?.uploadedFile?.reValidate || newMigrationData?.legacy_cms?.uploadedFile?.reValidate) && newMigrationData?.legacy_cms?.uploadedFile?.file_revalidated
+
   return (
     <div className="d-flex align-items-center justify-content-between migration-flow-header">
       <div className="d-flex align-items-center">
@@ -112,7 +116,7 @@ const MigrationFlowHeader = ({
         aria-label="Save and Continue"
         isLoading={isLoading || newMigrationData?.isprojectMapped}
         disabled={
-          isStep4AndNotMigrated || isStepInvalid || isExecutionStarted || destinationStackMigrated
+          (isStep4AndNotMigrated || isStepInvalid || isExecutionStarted || destinationStackMigrated) && !enableButton
         }
       >
         {stepValue}

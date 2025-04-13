@@ -215,7 +215,7 @@ const Fields: MappingFields = {
 
 }
 type contentMapperProps  = {
-  handleStepChange: (currentStep: number) => void;
+  handleStepChange: (step: number) => void;
 }
 
 const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: React.ForwardedRef<ContentTypeSaveHandles>) => {
@@ -2410,7 +2410,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                   ...newMigrationData?.legacy_cms,
                   uploadedFile:{
                     ...newMigrationData?.legacy_cms?.uploadedFile,
-                    reValidate: true
+                    reValidate: true,
+                    file_revalidated: true
                   }
                 }
               }
