@@ -324,7 +324,8 @@ const Migration = () => {
             isLocalPath: projectData?.legacy_cms?.is_localPath
           },
           isValidated: projectData?.legacy_cms?.is_fileValid,
-          reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
+          reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
+          file_revalidated: newMigrationData?.legacy_cms?.uploadedFile?.file_revalidated
         } : uploadObj,
         isFileFormatCheckboxChecked: true,
         isRestictedKeywordCheckboxChecked: true,
@@ -373,7 +374,7 @@ const Migration = () => {
    */
   const createStepper = (
     projectData: MigrationResponse,
-    handleStepChange: (currentStep: number) => void
+    handleStepChange: (step: number) => void
   ) => {
     const steps = [
       {
@@ -450,7 +451,7 @@ const Migration = () => {
   const handleOnClickLegacyCms = async (event: MouseEvent) => {
     setIsLoading(true);
 
-    if (isCompleted) {
+    if (isCompleted && newMigrationData?.project_current_step === 1) {
       event.preventDefault();
 
       //Update Data in backend
@@ -493,6 +494,26 @@ const Migration = () => {
           type: 'error'
         });
       }
+    }
+    else if(newMigrationData?.project_current_step > 1 && (!newMigrationData?.legacy_cms?.uploadedFile?.reValidate || newMigrationData?.legacy_cms?.uploadedFile?.reValidate)){
+      if(!newMigrationData?.legacy_cms?.uploadedFile?.file_revalidated){
+        setIsLoading(false);
+        Notification({
+          notificationContent: {
+            text: 'Please reValidate the file to procced furthur'
+          },
+          type: 'warning'
+        });
+      }
+      else{
+        setIsLoading(false);
+        handleStepChange(2);
+        const url = `/projects/${projectId}/migration/steps/3`;
+        navigate(url, { replace: true });
+
+      }
+
+
     } else {
       setIsLoading(false);
 
@@ -623,12 +644,21 @@ const Migration = () => {
         }
       });
     } else {
-      event.preventDefault();
-      const url = `/projects/${projectId}/migration/steps/4`;
-      navigate(url, { replace: true });
 
-      await updateCurrentStepData(selectedOrganisation.value, projectId);
-      handleStepChange(3);
+      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+      if (res?.status === 200) {
+        setIsLoading(false);
+        event.preventDefault();
+        const url = `/projects/${projectId}/migration/steps/4`;
+        navigate(url, { replace: true });
+      } else {
+        setIsLoading(false);
+        Notification({
+          notificationContent: { text: res?.data?.error?.message },
+          type: 'error'
+        });
+      }
+     
     }
   };
 
@@ -722,7 +752,7 @@ const Migration = () => {
       <div className="steps-wrapper">
         <HorizontalStepper
           ref={stepperRef}
-          steps={createStepper(projectData ?? defaultMigrationResponse, handleClick)}
+          steps={createStepper(projectData ?? defaultMigrationResponse, handleStepChange)}
           handleSaveCT={saveRef?.current?.handleSaveContentType}
           changeDropdownState={changeDropdownState}
           projectData={projectData || defaultMigrationResponse}
