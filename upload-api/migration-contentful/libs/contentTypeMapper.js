@@ -364,13 +364,14 @@ const contentTypeMapper = (data) => {
       case 'Location': {
         acc.push(createFieldObject(item, 'group', 'group'));
         acc.push({
-          uid: `${item.name}.lat`,
+          uid: `${item.id}.lat`,
           otherCmsField: `${item.name} > lat`,
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lat`,
           contentstackFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lat`,
           contentstackFieldType: 'number',
           backupFieldType: 'number',
+          backupFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lat`,
           advanced: {
             mandatory: item?.required,
             unique: false,
@@ -378,13 +379,14 @@ const contentTypeMapper = (data) => {
           }
         });
         acc.push({
-          uid: `${item.name}.lon`,
+          uid: `${item.id}.lon`,
           otherCmsField: `${item.name} > lon`,
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lon`,
           contentstackFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lon`,
           contentstackFieldType: 'number',
           backupFieldType: 'number',
+          backupFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lon`,
           advanced: {
             mandatory: item?.required,
             unique: false,

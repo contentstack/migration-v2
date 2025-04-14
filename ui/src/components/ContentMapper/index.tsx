@@ -825,7 +825,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }, [tableData]);
 
   const getParentId = (uid: string) => {
-    return tableData?.find(i => i?.uid === uid)?.id ?? ''
+    return tableData?.find(i => i?.uid?.toLowerCase() === uid?.toLowerCase())?.id ?? ''
   }
 
   const modifiedObj = (obj: FieldMapType) => {
@@ -940,8 +940,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     } else if(latestRow?.parentId && !["title", "url"]?.includes?.(latestRow?.uid?.toLowerCase())){
       // Extract the group UID if item is child of any group
       const uidBeforeDot = latestRow?.uid?.split?.('.')?.[0]?.toLowerCase();
-      const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);      
-      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupItem?.uid + '.'));
+      const groupItem = tableData?.find((entry) => entry?.uid?.toLowerCase() === uidBeforeDot);   
+      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupItem?.uid?.toLowerCase() + '.'));
 
       if(latestRow?.checked) {
         if(!selectedObj[latestRow?.parentId]){
