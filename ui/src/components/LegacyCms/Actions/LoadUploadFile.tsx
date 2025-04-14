@@ -137,8 +137,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                 buketKey: data?.file_details?.awsData?.buketKey
               }
             },
-            cmsType: data?.cmsType,
-            file_revalidated: true
+            cmsType: data?.cmsType
             
           }
         }
