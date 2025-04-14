@@ -37,7 +37,6 @@ export interface MigrationResponse {
   isMigrationStarted: boolean;
   isMigrationCompleted: boolean;
   migration_execution: boolean;
-  content_mapper: []
 }
 
 export interface LegacyCms {
@@ -66,8 +65,7 @@ export const defaultMigrationResponse: MigrationResponse = {
   current_step: 1,
   isMigrationStarted: false,
   isMigrationCompleted: false,
-  migration_execution: false,
-  content_mapper: []
+  migration_execution: false
 };
 interface data {
   file_details: FileDetails;
