@@ -70,7 +70,7 @@ const extractAdvancedFields = (
   return {
     default_value: defaultText,
     validationRegex: regrexValue,
-    mandatory: ["title", "url"].includes(item.id) ? true : item?.required,
+    mandatory: item?.required,
     multiple: singleRef,
     unique: uniqueValue,
     nonLocalizable: !(item?.localized === true),
