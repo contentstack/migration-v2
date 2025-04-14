@@ -68,8 +68,7 @@ export interface IFile {
   file_details?: FileDetails;
   isValidated: boolean;
   reValidate: boolean;
-  cmsType: string;
-  file_revalidated: boolean;
+  cmsType: string
 }
 
 export interface ICMSType extends ICardType {
@@ -312,7 +311,6 @@ export const DEFAULT_FILE: IFile = {
   isValidated: false,
   reValidate: false,
   cmsType: '',
-  file_revalidated: false
 };
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
