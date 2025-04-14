@@ -84,7 +84,7 @@ function makeChunks(assetData: any) {
   return chunks;
 }
 
-const mapLocales = ({ masterLocale, locale, locales }: any) => {
+const mapLocales = ({ masterLocale, locale, locales, isNull = false }: any) => {
   if (locales?.masterLocale?.[masterLocale ?? ''] === locale) {
     return Object?.keys(locales?.masterLocale)?.[0]
   }
@@ -93,7 +93,11 @@ const mapLocales = ({ masterLocale, locale, locales }: any) => {
       return key;
     }
   }
-  return locale.toLowerCase();
+  if (isNull !== true) {
+    return locale?.toLowerCase?.();
+  } else {
+    return null;
+  }
 }
 
 const transformCloudinaryObject = (input: any) => {
@@ -842,7 +846,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
         for await (const [localeKey, localeValues] of Object.entries(
           values as { [key: string]: any }
         )) {
-          const localeCode = mapLocales({ masterLocale: master_locale, locale: localeKey, locales: LocaleMapper });
+          const localeCode = mapLocales({ masterLocale: master_locale, locale: localeKey, locales: LocaleMapper, isNull: true });
           const chunks = makeChunks(localeValues);
           for (const [entryKey, entryValue] of Object.entries(localeValues)) {
             const message = getLogMessage(
@@ -854,15 +858,18 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           }
           const refs: { [key: string]: any } = {};
           let chunkIndex = 1;
-          const filePath = path.join(
-            entriesSave,
-            ctName, localeCode
-          );
-          for await (const [chunkId, chunkData] of Object.entries(chunks)) {
-            refs[chunkIndex++] = `${chunkId}-entries.json`;
-            await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
+          if (localeCode) {
+            const filePath = path.join(
+              entriesSave,
+              ctName,
+              localeCode
+            );
+            for await (const [chunkId, chunkData] of Object.entries(chunks)) {
+              refs[chunkIndex++] = `${chunkId}-entries.json`;
+              await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
+            }
+            await writeFile(filePath, ENTRIES_MASTER_FILE, refs);
           }
-          await writeFile(filePath, ENTRIES_MASTER_FILE, refs);
         }
       }
     } else {
@@ -957,7 +964,8 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
         )
         await customLogger(projectId, destination_stack_id, 'info', message);
       } else {
-        if (project?.locales?.[localeData?.code]) {
+        const newValueLocale = getKeyByValue(project?.locales, localeData?.code);
+        if (newValueLocale) {
           allLocales[title] = newLocale;
           const message = getLogMessage(
             srcFunc,
