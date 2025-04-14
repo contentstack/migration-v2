@@ -326,7 +326,7 @@
         "uid": "cs752bfd62296e4791"
       },
       "title": "Select CMS",
-      "description": "Select the CMS you are migrating content from.",
+      "description": "Select the CMS you are migrating content from",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": true,
@@ -338,7 +338,7 @@
         "uid": "cs6c761d71844ac800"
       },
       "title": "Add Source Affix",
-      "description": "Add a 2–5 character affix for the source name. Use only letters, no numbers or special characters.",
+      "description": "Add a 2–5 character affix for the source name. Use only letters, no numbers or special characters",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": false,
@@ -350,7 +350,7 @@
         "uid": "cs7c935e15de9ea7c8"
       },
       "title": "Select File Format",
-      "description": "Select the file format compatible with the selected CMS.",
+      "description": "Select the file format compatible with the selected CMS",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": true,
@@ -362,7 +362,7 @@
         "uid": "cs0279f1f0ce13e83e"
       },
       "title": "Uploaded File",
-      "description": "This is the file you have uploaded.",
+      "description": "This is the file you have uploaded",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration.",
       "lock": false,
       "active": true,
