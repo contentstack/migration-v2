@@ -50,7 +50,7 @@ export type stepperProps = {
 };
 
 export type HorizontalStepperHandles = {
-  handleStepChange: (stepIndex: number) => void;
+  handleStepChange: (currentStep: number) => void;
 };
 
 const showNotification = (currentIndex: number) => {
