@@ -68,6 +68,7 @@ const Mapper = ({
     if (selectedCsOptions?.length === 0) {
       setcsOptions(options);
     }
+
   }, [options]);
 
   useEffect(() => {
@@ -79,15 +80,16 @@ const Mapper = ({
   useEffect(() => {
     const formattedoptions = options?.filter(
       (item: { label: string; value: string }) =>
-        !selectedCsOptions?.some((selected: string) => selected === item?.value)
+        !selectedCsOptions?.some((selected: string) => selected === item?.value) && !cmsLocaleOptions?.some((locale: {label: string, value: string}) => locale?.label === item?.value)
     );
+
     const adjustedOptions = sourceOptions?.filter(
       (item: { label: string; value: string }) =>
         !selectedSourceOption?.some((selected: string) => selected === item?.label)
     );
     setcsOptions(formattedoptions);
     setsourceoptions(adjustedOptions);
-  }, [selectedCsOptions, selectedSourceOption]);
+  }, [selectedCsOptions, selectedSourceOption, options]);
 
   useEffect(() => {
     setExistingField((prevExisting: ExistingFieldType) => {
@@ -117,6 +119,12 @@ const Mapper = ({
     type: 'csLocale' | 'sourceLocale'
   ) => {
     const selectedLocaleKey = selectedValue?.value;
+
+    if (!selectedValue?.label) {
+      setselectedCsOption((prevSelected) =>
+        prevSelected?.filter((item) => item !== existingField?.[index]?.label)
+      );
+    }
   
 
     setExistingField((prevOptions: ExistingFieldType) => {
@@ -285,6 +293,7 @@ const Mapper = ({
                     isDisabled={true} // Ensure it's disabled
                     className="select-container"
                     noOptionsMessage={() => ''}
+                    menuPlacement="auto"
                   />
                 </div>
               </Tooltip>
@@ -306,6 +315,7 @@ const Mapper = ({
                 isClearable={true}
                 isDisabled={isDisabled}
                 className="select-container"
+                menuPlacement="auto"
               />
             )}
             <span className="span">-</span>
@@ -354,6 +364,7 @@ const Mapper = ({
                 isClearable={true}
                 isDisabled={isDisabled}
                 className="select-container"
+                menuPlacement="auto"
               />
             }
             <div className={''}>
@@ -508,21 +519,9 @@ const LanguageMapper = () => {
                 isDisabled={newMigrationData?.project_current_step > 2}
               />
             }
-            //  footerComponent={
-            //      <Button className="ml-10 mt-10 mb-10"
-            //      buttonType="secondary"
-            //      version={'v2'}
-            //      icon="AddPlus"
-            //      onClick={addRowComp}
-            //      size='small'>
-            //          Add Language
-            //      </Button>
-
-            //  }
             type="Secondary"
           />
           <Button
-            className="mt-10"
             buttonType="secondary"
             aria-label="add language"
             version={'v2'}
