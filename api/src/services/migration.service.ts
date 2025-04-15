@@ -429,35 +429,36 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.CONTENTFUL: {
+        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
         await contentfulService?.createLocale(
-          file_path,
+          cleanLocalPath,
           project?.current_test_stack_id,
           projectId,
           project
         );
         await contentfulService?.createRefrence(
-          file_path,
+          cleanLocalPath,
           project?.current_test_stack_id,
           projectId
         );
         await contentfulService?.createWebhooks(
-          file_path,
+          cleanLocalPath,
           project?.current_test_stack_id,
           projectId
         );
         await contentfulService?.createEnvironment(
-          file_path,
+          cleanLocalPath,
           project?.current_test_stack_id,
           projectId
         );
         await contentfulService?.createAssets(
-          file_path,
+          cleanLocalPath,
           project?.current_test_stack_id,
           projectId,
           true
         );
         await contentfulService?.createEntry(
-          file_path,
+          cleanLocalPath,
           project?.current_test_stack_id,
           projectId,
           contentTypes,
@@ -698,34 +699,35 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.CONTENTFUL: {
+        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
         await contentfulService?.createLocale(
-          file_path,
+          cleanLocalPath,
           project?.destination_stack_id,
           projectId,
           project
         );
         await contentfulService?.createRefrence(
-          file_path,
+          cleanLocalPath,
           project?.destination_stack_id,
           projectId
         );
         await contentfulService?.createWebhooks(
-          file_path,
+          cleanLocalPath,
           project?.destination_stack_id,
           projectId
         );
         await contentfulService?.createEnvironment(
-          file_path,
+          cleanLocalPath,
           project?.destination_stack_id,
           projectId
         );
         await contentfulService?.createAssets(
-          file_path,
+          cleanLocalPath,
           project?.destination_stack_id,
           projectId
         );
         await contentfulService?.createEntry(
-          file_path,
+          cleanLocalPath,
           project?.destination_stack_id,
           projectId,
           contentTypes,
@@ -805,8 +807,8 @@ const getLogs = async (req: Request): Promise<any> => {
  * @throws Exception if the project ID is invalid or the when the path to project.json is incorrect
  */
 export const createSourceLocales = async (req: Request) => {
-  const projectId = req.params.projectId;
-  const locales = req.body.locale;
+  const projectId = req?.params?.projectId;
+  const locales = req?.body?.locale;
 
   try {
     // Find the project with the specified projectId
