@@ -254,12 +254,13 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId, project);
-        await contentfulService?.createRefrence(file_path, project?.current_test_stack_id, projectId);
-        await contentfulService?.createWebhooks(file_path, project?.current_test_stack_id, projectId);
-        await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
-        await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId, true);
-        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
+        await contentfulService?.createLocale(cleanLocalPath, project?.current_test_stack_id, projectId, project);
+        await contentfulService?.createRefrence(cleanLocalPath, project?.current_test_stack_id, projectId);
+        await contentfulService?.createWebhooks(cleanLocalPath, project?.current_test_stack_id, projectId);
+        await contentfulService?.createEnvironment(cleanLocalPath, project?.current_test_stack_id, projectId);
+        await contentfulService?.createAssets(cleanLocalPath, project?.current_test_stack_id, projectId, true);
+        await contentfulService?.createEntry(cleanLocalPath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
@@ -330,12 +331,13 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.destination_stack_id, projectId, project);
-        await contentfulService?.createRefrence(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createWebhooks(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
+        await contentfulService?.createLocale(cleanLocalPath, project?.destination_stack_id, projectId, project);
+        await contentfulService?.createRefrence(cleanLocalPath, project?.destination_stack_id, projectId);
+        await contentfulService?.createWebhooks(cleanLocalPath, project?.destination_stack_id, projectId);
+        await contentfulService?.createEnvironment(cleanLocalPath, project?.destination_stack_id, projectId);
+        await contentfulService?.createAssets(cleanLocalPath, project?.destination_stack_id, projectId);
+        await contentfulService?.createEntry(cleanLocalPath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
@@ -419,7 +421,6 @@ export const createSourceLocales = async (req: Request) => {
 
   const projectId = req?.params?.projectId;
   const locales = req?.body?.locale;
-  console.info("🚀 ~ createSourceLocales ~ locales:", locales);
 
   try {
     // Find the project with the specified projectId
