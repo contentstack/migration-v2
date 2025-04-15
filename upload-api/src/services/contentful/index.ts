@@ -15,9 +15,10 @@ const createContentfulMapper = async (
 ) => {
   try {
     const { localPath } = config;
-    const fetchedLocales: [] = await extractLocale(localPath);
+    const cleanLocalPath = localPath?.replace?.(/\/$/, '');
+    const fetchedLocales: [] = await extractLocale(cleanLocalPath);
 
-    await extractContentTypes(localPath, affix);
+    await extractContentTypes(cleanLocalPath, affix);
     const initialMapper = await createInitialMapper();
     const req = {
       method: 'post',
@@ -29,7 +30,7 @@ const createContentfulMapper = async (
       },
       data: JSON.stringify(initialMapper)
     };
-    const {data, status} = await axios.request(req);
+    const { data, status } = await axios.request(req);
     if (data?.data?.content_mapper?.length) {
       logger.info('Validation success:', {
         status: HTTP_CODES?.OK,
