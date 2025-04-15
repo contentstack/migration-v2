@@ -2159,6 +2159,11 @@ async function extractPosts( packagePath: string, destinationStackId: string, pr
       postdataCombined,
       4
     );
+    await writeFileAsync(
+      path.join(postFolderPath, "index.json"),
+      { "1": `${master_locale}.json` },
+        4
+        );
     return;
   } catch (error) {
     const message = getLogMessage(
