@@ -110,11 +110,9 @@ let blog_base_url = "";
 //helper function to convert entries with content type
 async function mapContentTypeToEntry(contentType: any, data: any) {
   const result: { [key: string]: any } = {};
-
   for (const field of contentType?.fieldMapping || []) {
-    const fieldValue = data?.[field?.uid];
-    let formattedValue;
-
+    const fieldValue = data?.[field?.uid] ?? null;
+    let formattedValue ;
     switch (field?.contentstackFieldType) {
       case "single_line_text":
       case "text":
@@ -126,10 +124,14 @@ async function mapContentTypeToEntry(contentType: any, data: any) {
             ? await convertJsonToHtml(fieldValue)
             : fieldValue;
         break;
-      case "json":
-        
-            formattedValue = await convertHtmlToJson(fieldValue);    
-    break;
+      case "json":    
+          try {
+            formattedValue = typeof fieldValue !== 'object' ? await convertHtmlToJson(fieldValue) : fieldValue;
+          } catch (err) {
+            console.error(`Error converting HTML to JSON for field ${field?.uid}:`, err);
+            formattedValue = null;
+          }
+        break;
       case "reference":
         formattedValue = getParent(data,data[field.uid]);
         break;
@@ -1482,26 +1484,22 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
       termsFolderPath,
       `${master_locale}.json`
     );
-    const termsdata = termsDetails.reduce(
-      async (acc: { [key: string]: any }, data) => {
-    
-        const { id } = data;
-         const uid = `terms_${id}`;
+    const termsdata: { [key: string]: any } = {};
+    for (const data of termsDetails) {
+      const { id } = data;
+      const uid = `terms_${id}`;
+      const customId = uid;
         // const title = name ?? `Terms - ${id}`;
         //const url = `/${title.toLowerCase().replace(/ /g, "_")}`; 
-        
-        const customId = uid;
 
-        acc[customId] = {
-          ...acc[customId],
+
+        termsdata[customId] = {
+          ...termsdata[customId],
           uid: customId,
-          ...(await mapContentTypeToEntry(contentType, data)), // Pass individual term object
+          ...(await mapContentTypeToEntry(contentType, data)),
         };
-        acc[customId].publish_details = [];
-        return acc;
-      },
-      {}
-    );
+        termsdata[customId].publish_details = [];
+    }
 
     await writeFileAsync(termsFilePath, termsdata, 4);
     await writeFileAsync(path.join(termsFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
@@ -1608,7 +1606,9 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
       tagsFolderPath,
       `${master_locale}.json`
     );
-    const tagdata = tagDetails.reduce(async (acc: { [key: string]: any }, data) => {
+    const tagsdata: { [key: string]: any } = {};
+  
+    for(const data of tagDetails) {
       const { id } = data;
       const uid = `tags_${id}`;
       //const title = `Tags - ${id}`;
@@ -1616,16 +1616,15 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
       //const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
       const customId = idCorrector(uid);
 
-      acc[customId]={
-        ...acc[customId],
+      tagsdata[customId]={
+        ...tagsdata[customId],
         uid:customId,
         ...( await mapContentTypeToEntry(contenttype,data)),
       };
-      acc[customId].publish_details = [];
+      tagsdata[customId].publish_details = [];
 
-      return acc;
-    }, {});
-    await writeFileAsync(tagsFilePath, tagdata, 4);
+    }
+    await writeFileAsync(tagsFilePath, tagsdata, 4);
     await writeFileAsync(path.join(tagsFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
     const message = getLogMessage(
       srcFunc,
@@ -1724,15 +1723,14 @@ async function startingDirCategories(affix: string, ct: string, master_locale:st
   }
 }
 
-const convertHtmlToJson = (htmlString: any) => {
-  if(typeof htmlString === 'string'){
-    const dom =  new JSDOM(htmlString?.replace(/&amp;/g, "&"));
+const convertHtmlToJson = (htmlString: unknown): any => {
+  if (typeof htmlString === 'string') {
+    const dom = new JSDOM(htmlString.replace(/&amp;/g, "&"));
     const htmlDoc = dom.window.document.querySelector("body");
-    const jsonValue = htmlToJson(htmlDoc)
-    return jsonValue;
-
+    return htmlToJson(htmlDoc);
   }
-  else return htmlString;
+
+  return htmlString;
 };
 
 const convertJsonToHtml = async (json: any) => {
@@ -1765,24 +1763,21 @@ function getParent(data: any,id: string) {
 async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string, contenttype:any, master_locale:string) {
   const srcFunc = 'saveCategories';
   try {
-    const categorydata = categoryDetails.reduce(
-      async (acc: { [key: string]: any }, data) => {
+    const categorydata: { [key: string]: any } = {}
+    for(const data of categoryDetails){
+     
         const uid = `category_${data["id"]}`;
 
         const customId = uid
 
         // Accumulate category data
-        acc[customId]={
-          ...acc[customId],
+        categorydata[customId]={
+          ...categorydata[customId],
           uid:customId,
           ...(await mapContentTypeToEntry(contenttype,data)),
         }
-        acc[customId].publish_details = [];
-
-        return acc;
-      },
-      {}
-    );
+        categorydata[customId].publish_details = [];
+    }
 
     await writeFileAsync(
       path.join(
@@ -2011,6 +2006,9 @@ async function processChunkData(
   contenttype: any
 ) {
   const postdata: any = {};
+  const formattedPosts: any = {};
+  let postdataCombined = {}
+  
   try {
     const writePromises = [];
 
@@ -2073,16 +2071,10 @@ async function processChunkData(
             featured_image: '',
             publish_details:[]
           };
-          const formatted_posts =  await featuredImageMapping(
-            `posts_${data["wp:post_id"]}`,
-            data,
-            postdata
-          );
-          const formattedPosts: any = {};
+        
          
-          for (const [key, value] of Object.entries(formatted_posts as {[key: string]: any})) {
+          for (const [key, value] of Object.entries(postdata as {[key: string]: any})) {
             const customId = idCorrector(value?.uid);
-    
             formattedPosts[customId] = {
               ...formattedPosts[customId],
               uid: customId,
@@ -2090,7 +2082,12 @@ async function processChunkData(
             };
             formattedPosts[customId].publish_details = [];
           }
-          Object.assign(postdata,formattedPosts);
+          const formatted_posts =  await featuredImageMapping(
+            `posts_${data["wp:post_id"]}`,
+            data,
+            formattedPosts
+          );
+          postdataCombined = { ...postdataCombined, ...formatted_posts };
 
           // await writeFileAsync(
           //   path.join(postFolderPath, filename),
@@ -2111,8 +2108,8 @@ async function processChunkData(
     if (isLastChunk && allSuccess) {
       console.info("last data");
     }
-    console.info("postData ---> ", postdata)
-    return postdata
+
+    return postdataCombined
   } catch (error) {
     console.error(error);
     console.error("Error saving posts", error);
