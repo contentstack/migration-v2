@@ -58,7 +58,7 @@ const TestMigration = () => {
   );
 
   const [data, setData] = useState<MigrationType>({});
-  const [isLoading, setIsLoading] = useState(newMigrationData?.isprojectMapped);
+  const [isLoading, setIsLoading] = useState(true);
   const [isStackLoading, setIsStackLoading] = useState<boolean>(false);
   const [disableTestMigration, setDisableTestMigration] = useState<boolean>(
     newMigrationData?.test_migration?.isMigrationStarted
@@ -66,6 +66,7 @@ const TestMigration = () => {
 
   const [disableCreateStack, setDisableCreateStack] = useState<boolean>(false);
   const [stackLimitReached, setStackLimitReached] = useState<boolean>(false);
+  const [isProjectMapped, setisProjectMapped] = useState<boolean>(newMigrationData?.isprojectMapped);
 
   // Extract project ID from URL parameters
   const { projectId = '' } = useParams();
@@ -118,12 +119,15 @@ const TestMigration = () => {
     ) {
       setDisableTestMigration(true);
     }
+    setisProjectMapped(newMigrationData?.isprojectMapped)
   }, [newMigrationData]);
 
   useEffect(() => {
     // Retrieve and apply saved state from sessionStorage
     const savedState = getStateFromLocalStorage(`testmigration_${projectId}`);
-    if (savedState) {
+    if (savedState && newMigrationData?.testStacks?.find(
+      (stack) => stack?.stackUid === newMigrationData?.test_migration?.stack_api_key
+    )?.isMigrated !== true) {
       setDisableTestMigration(savedState?.isTestMigrationStarted);
       setDisableCreateStack(savedState?.isTestMigrationStarted);
     }
@@ -305,7 +309,7 @@ const TestMigration = () => {
     }
   };
 
-  return isLoading || newMigrationData?.isprojectMapped ? (
+  return (isLoading || isProjectMapped) ? (
     <div className="loader-container">
       <CircularLoader />
     </div>
