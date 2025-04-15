@@ -625,19 +625,11 @@ const Migration = () => {
     } else {
 
       const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
-      if (res?.status === 200) {
         setIsLoading(false);
         event.preventDefault();
         handleStepChange(3);
         const url = `/projects/${projectId}/migration/steps/4`;
         navigate(url, { replace: true });
-      } else {
-        setIsLoading(false);
-        Notification({
-          notificationContent: { text: res?.data?.error?.message },
-          type: 'error'
-        });
-      }
 
     }
   };
