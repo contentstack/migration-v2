@@ -83,3 +83,34 @@ export const getMigratedStacks = async (orgId: string, projectId: string) => {
     }
   }
 };
+
+export const getMigrationLogs = async (orgId: string, projectId: string, stackId: string) => {
+  try {
+    return await getCall(
+      `${API_VERSION}/migration/get_migration_logs/${orgId}/${projectId}/${stackId}`,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in userSession: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
+  }
+}
+
+export const getStackIds = async (projectId: string) => {
+  try {
+    return await getCall(
+      `${API_VERSION}/migration/get-stack-ids/${projectId}`,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in userSession: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
+  }
+}
+

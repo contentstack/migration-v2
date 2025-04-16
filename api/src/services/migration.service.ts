@@ -490,6 +490,45 @@ export const updateLocaleMapper = async (req: Request) => {
 
 }
 
+const getStackIds = async (req: Request): Promise<any> => {
+  const { projectId } = req?.params ?? {};
+
+  const srcFunc = "getStackIds";
+  
+
+  try {
+    await ProjectModelLowdb?.read?.();
+  const project: any = ProjectModelLowdb?.chain?.get("projects")?.find({ id: projectId })?.value();
+
+  if (!project) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Project with id ${projectId} not found`
+      )
+    );
+    throw new BadRequestError("Project not found");
+  }
+
+  return project?.test_stacks ?? [];
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        HTTP_TEXTS.INTERNAL_ERROR,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || HTTP_CODES.SERVER_ERROR
+    );
+  }
+
+}
+
+
+
 export const migrationService = {
   createTestStack,
   deleteTestStack,
@@ -497,5 +536,6 @@ export const migrationService = {
   startMigration,
   getLogs,
   createSourceLocales,
-  updateLocaleMapper
+  updateLocaleMapper,
+  getStackIds
 };

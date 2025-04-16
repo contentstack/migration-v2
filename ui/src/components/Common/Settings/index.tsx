@@ -1,4 +1,3 @@
-// Libraries
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
@@ -12,7 +11,9 @@ import {
   Textarea,
   PageLayout,
   Notification,
-  cbModal
+  cbModal,
+  InfiniteScrollTable,
+  Dropdown
 } from '@contentstack/venus-components';
 
 // Redux
@@ -23,7 +24,13 @@ import { Setting } from './setting.interface';
 import { ModalObj } from '../../../components/Modal/modal.interface';
 
 // Service
-import { deleteProject, getProject, updateProject } from '../../../services/api/project.service';
+import {
+  deleteProject,
+  getMigrationLogs,
+  getProject,
+  getStackIds,
+  updateProject
+} from '../../../services/api/project.service';
 import { CS_ENTRIES } from '../../../utilities/constants';
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 
@@ -35,7 +42,7 @@ import './Settings.scss';
 import { useDispatch } from 'react-redux';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { DEFAULT_NEW_MIGRATION } from '../../../context/app/app.interface';
-
+import ExecutionLog from '../../../components/ExecutionLogs';
 /**
  * Renders the Settings component.
  * This component is responsible for displaying and updating project settings.
@@ -47,14 +54,117 @@ const Settings = () => {
   const [active, setActive] = useState<string>();
   const [currentHeader, setCurrentHeader] = useState<string>();
   const [projectName, setProjectName] = useState('');
+  const [projectId, setProjectId] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
+
+  type LogEntry = {
+    level: string;
+    message: string;
+    methodName: string;
+    timestamp: string;
+    user: {};
+  };
+
+  const [data, updateData] = useState<LogEntry[]>([]);
+  const [loading, updateLoading] = useState(false);
+  const [totalCounts, updateTotalCounts] = useState(null);
+  const [itemStatusMap, updateItemStatusMap] = useState<Record<string, string>>({});
+  const [selectedStackId, setSelectedStackId] = useState<string>('');
+
+
+
+  const fetchData = async () => {
+    try {
+      
+      if (selectedStackId === '') {
+        Notification({
+          notificationContent: { text: 'Please select stack id' },
+          notificationProps: {
+            hideProgressBar: true,
+            position: 'bottom-center'
+          },
+          type: 'error'
+        });
+        updateLoading(false);
+        return;
+      }
+      
+      updateLoading(true);
+      // eslint-disable-next-line no-console
+      console.log('Selected Stack ID:', selectedStackId, projectId, selectedOrganisation?.value);
+      const response = await getMigrationLogs(
+        selectedOrganisation?.value || '',
+        projectId,
+        selectedStackId
+      );
+
+      // eslint-disable-next-line no-console
+      console.log(response);
+      updateData(response.data);
+      updateTotalCounts(response.data.length);
+      updateLoading(false);
+    } catch (error) {
+      console.error('fetchData -> error', error);
+      updateLoading(false);
+    }
+  };
+
+  const loadMoreItems = async ({ startIndex, stopIndex }: any) => {
+
+    if (selectedStackId === '') {
+      Notification({
+        notificationContent: { text: 'Please select stack id' },
+        notificationProps: {
+          hideProgressBar: true,
+          position: 'bottom-center'
+        },
+        type: 'error'
+      });
+      updateLoading(false);
+      return;
+    }
+    
+    //eslint-disable-next-line no-console
+    for (let index = startIndex; index <= stopIndex; index++) {
+      itemStatusMap[index] = 'loading';
+    }
+    updateItemStatusMap({ ...itemStatusMap });
+    updateLoading(true);
+
+    const response = await getMigrationLogs(
+      selectedOrganisation?.value || '',
+      projectId,
+      selectedStackId,
+    );
+
+    const updateditemStatusMapCopy = { ...itemStatusMap };
+
+    for (let index = startIndex; index <= stopIndex; index++) {
+      updateditemStatusMapCopy[index] = 'loaded';
+    }
+    updateItemStatusMap({ ...updateditemStatusMapCopy });
+    updateLoading(false);
+    updateData([...data, ...response.data]);
+    updateTotalCounts(response.data.length);
+    return response.data;
+  };
 
   const selectedOrganisation = useSelector(
     (state: RootState) => state?.authentication?.selectedOrganisation
   );
 
+  const stacks = useSelector(
+    (state: RootState) => state?.migration?.newMigrationData?.testStacks
+  );
+
+  const stackIds = stacks?.map((stack: any) => ({
+    label: stack?.stackName,
+    value: stack?.stackUid
+  }));
+
+
   const navigate = useNavigate();
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,6 +188,7 @@ const Settings = () => {
       if (status === 200) {
         setProjectName(data?.name);
         setProjectDescription(data?.description);
+        setProjectId(params?.projectId ?? '');
       }
     };
 
@@ -124,29 +235,30 @@ const Settings = () => {
       });
     }
   };
-   const handleDeleteProject = async (closeModal: ()=> void): Promise<void> => {
-      //setIsLoading(true);
-      const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
-  
-      if (response?.status === 200) {
-        //setIsLoading(false);
-        closeModal();
-        dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
-        setTimeout(() => {
-          navigate('/projects');
-        }, 800);
-        setTimeout(() => {
-          Notification({
-            notificationContent: { text: response?.data?.data?.message },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'success'
-          });
-        }, 1200);
-      }
-    };
+
+  const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
+    //setIsLoading(true);
+    const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
+
+    if (response?.status === 200) {
+      //setIsLoading(false);
+      closeModal();
+      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
+      setTimeout(() => {
+        navigate('/projects');
+      }, 800);
+      setTimeout(() => {
+        Notification({
+          notificationContent: { text: response?.data?.data?.message },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: true
+          },
+          type: 'success'
+        });
+      }, 1200);
+    }
+  };
 
   const handleClick = () => {
     cbModal({
@@ -178,15 +290,13 @@ const Settings = () => {
           class="Button Button--secondary Button--size-large Button--icon-alignment-left Button--v2"
           aria-label="Delete Project for deleting project"
           type="button"
-          onClick={handleClick}
-        >
+          onClick={handleClick}>
           <div className="flex-center">
             <div className="flex-v-center Button__mt-regular Button__visible">
               <Icon
                 icon="Delete"
                 version="v2"
-                data={cmsData?.project?.delete_project?.title}
-              ></Icon>
+                data={cmsData?.project?.delete_project?.title}></Icon>
             </div>
           </div>
         </Button>
@@ -214,8 +324,7 @@ const Settings = () => {
                         aria-label="projectname"
                         version="v2"
                         value={projectName}
-                        onChange={handleProjectNameChange}
-                      ></TextInput>
+                        onChange={handleProjectNameChange}></TextInput>
                     </div>
                   </div>
                 </div>
@@ -244,8 +353,7 @@ const Settings = () => {
                     icon={'v2-Save'}
                     autoClose={5000}
                     label={'Success'}
-                    onClick={handleUpdateProject}
-                  >
+                    onClick={handleUpdateProject}>
                     {cmsData?.project?.save_project?.title}
                   </Button>
                 </div>
@@ -253,7 +361,11 @@ const Settings = () => {
             </div>
           </div>
         )}
-        {active === cmsData?.execution_logs?.title && <div></div>}
+        {active === cmsData?.execution_logs?.title && (
+          <div>
+            <ExecutionLog projectId={projectId} />
+          </div>
+        )}
       </div>
     )
   };
@@ -265,8 +377,7 @@ const Settings = () => {
           data-testid="cs-section-header"
           className="SectionHeader SectionHeader--extra-bold SectionHeader--medium SectionHeader--black SectionHeader--v2"
           aria-label={cmsData?.title}
-          aria-level={1}
-        >
+          aria-level={1}>
           {cmsData?.title}
         </div>
 
@@ -278,6 +389,18 @@ const Settings = () => {
           onClick={() => {
             setActive(cmsData?.project?.title);
             setCurrentHeader(cmsData?.project?.title);
+          }}
+          version="v2"
+        />
+
+        <ListRow
+          rightArrow={true}
+          active={active === cmsData?.execution_logs?.title}
+          content={cmsData?.execution_logs?.title}
+          leftIcon={<Icon icon="Stacks" version="v2" />}
+          onClick={() => {
+            setActive(cmsData?.execution_logs?.title);
+            setCurrentHeader(cmsData?.execution_logs?.title);
           }}
           version="v2"
         />
