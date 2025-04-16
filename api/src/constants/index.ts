@@ -177,7 +177,7 @@ export const LOCALE_MAPPER: any = {
   masterLocale: {
     "en-us": "en",
   },
-  fr: "fr-fr",
+  locales:{fr: "fr-fr",}
 };
 export const CHUNK_SIZE = 1048576;
 
