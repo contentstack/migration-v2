@@ -160,6 +160,7 @@ const TestMigration = () => {
       if (stack_count >= max_stack_limit) {
         setIsLoading(false);
         setDisableCreateStack(true);
+        setIsStackLoading(false);
         setStackLimitReached(true);
         Notification({
           notificationContent: {
