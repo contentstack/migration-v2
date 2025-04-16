@@ -335,11 +335,13 @@ const startTestMigration = async (req: Request): Promise<any> => {
             destinationStackId: project?.current_test_stack_id,
             projectId,
             keyMapper: project?.mapperKeys,
+            project
           });
           await siteCoreService?.createLocale(
             req,
             project?.current_test_stack_id,
-            projectId
+            projectId,
+            project
           );
           await siteCoreService?.createVersionFile(
             project?.current_test_stack_id
@@ -509,11 +511,13 @@ const startMigration = async (req: Request): Promise<any> => {
             destinationStackId: project?.destination_stack_id,
             projectId,
             keyMapper: project?.mapperKeys,
+            project
           });
           await siteCoreService?.createLocale(
             req,
             project?.destination_stack_id,
-            projectId
+            projectId,
+            project
           );
           await siteCoreService?.createVersionFile(
             project?.destination_stack_id
