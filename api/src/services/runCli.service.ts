@@ -45,7 +45,18 @@ export const runCli = async (rg: string, user_id: string, stack_uid: any, projec
       shell.cd(path.join(process.cwd(), '..', 'cli', 'packages', 'contentstack'));
       shell.exec(`node bin/run config:set:region ${regionCli}`);
       shell.exec(`node bin/run login -a ${userData?.authtoken}  -e ${userData?.email}`);
-      const importData = shell.exec(`node bin/run cm:stacks:import  -k ${stack_uid} -d ${sourcePath} --backup-dir=${backupPath}  --yes`, { async: true });
+      // Resolve paths to be absolute and Windows-safe
+      const safeSourcePath = path.resolve(sourcePath);
+      const safeBackupPath = path.resolve(backupPath);
+
+      // Build the command with quoted paths
+      const importCommand = `node bin/run cm:stacks:import -k "${stack_uid}" -d "${safeSourcePath}" --backup-dir="${safeBackupPath}" --yes`;
+
+      // Log the command for verification
+      console.info(`Running command: ${importCommand}`);
+
+      // Execute the command asynchronously
+      const importData = shell.exec(importCommand, { async: true });
       importData.on('exit', async (code) => {
         console.info(`Process exited with code: ${code}`);
         if (code === 1 || code === 0) {
