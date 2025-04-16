@@ -272,8 +272,12 @@ const processField = (
         return refs;
       }
       const id = lang_value?.sys?.id;
-      if (entryId && id in entryId) return [[entryId?.[id]]];
-      return null;
+      if(Array?.isArray(entryId?.id)){
+        return entryId?.[id];
+      }
+      else{
+        return [entryId?.[id]];
+      }
     }
 
     case 'app': {
