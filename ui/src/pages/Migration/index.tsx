@@ -623,12 +623,14 @@ const Migration = () => {
         }
       });
     } else {
-      event.preventDefault();
-      const url = `/projects/${projectId}/migration/steps/4`;
-      navigate(url, { replace: true });
 
-      await updateCurrentStepData(selectedOrganisation.value, projectId);
-      handleStepChange(3);
+      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+        setIsLoading(false);
+        event.preventDefault();
+        handleStepChange(3);
+        const url = `/projects/${projectId}/migration/steps/4`;
+        navigate(url, { replace: true });
+
     }
   };
 
@@ -722,7 +724,7 @@ const Migration = () => {
       <div className="steps-wrapper">
         <HorizontalStepper
           ref={stepperRef}
-          steps={createStepper(projectData ?? defaultMigrationResponse, handleClick)}
+          steps={createStepper(projectData ?? defaultMigrationResponse, handleStepChange)}
           handleSaveCT={saveRef?.current?.handleSaveContentType}
           changeDropdownState={changeDropdownState}
           projectData={projectData || defaultMigrationResponse}
