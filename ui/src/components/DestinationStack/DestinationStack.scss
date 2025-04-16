@@ -197,12 +197,6 @@
   align-items: center;
   padding: $px-10;
 }
-.lang-container {
-  //display: flex;
-  //flex-wrap: wrap;
-  //padding: $px-20;
-  //padding-bottom: 50px;
-}
 .language-mapper {
   border-top: 1px solid $color-brand-secondary-lightest;
   margin-top: 16px;
@@ -212,7 +206,6 @@
       &.Field--full {
         .field-content {
           width: 100% !important;
-          //border-left: none !important;
         }
       }
     }
@@ -250,13 +243,11 @@
   margin-top: 10px;
   overflow: visible !important;
   position: relative;
-  //width: 120px;
 }
 .lang-container {
-  // margin-bottom: 30px;
-  // margin-left: 10px;
-  // margin-top: 10px;
   display: flex;
+  margin-bottom: 20px;
+  margin-top: 10px;
 }
 .info-tag {
   max-width: 500px;
