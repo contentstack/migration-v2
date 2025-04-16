@@ -62,7 +62,6 @@ router.post(
 router.get(
   "/get_migration_logs/:orgId/:projectId/:stackId",
   asyncRouter(migrationController.getLogs)
-
 )
 
 /**
@@ -89,6 +88,17 @@ router.post(
 router.post(
   "/updateLocales/:projectId",
   asyncRouter(migrationController.saveMappedLocales)
+)
+
+/**
+ * Route for getting stack ids
+ * @group Migration
+ * @param {string} projectId - The ID of the project.
+ * @returns {Promise<void>} - A promise that resolves when the stack ids are fetched.
+ */
+router.get(
+  "/get-stack-ids/:projectId",
+  asyncRouter(migrationController.getStackIds)
 )
 
 
