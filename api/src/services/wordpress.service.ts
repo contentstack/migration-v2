@@ -9,6 +9,8 @@ import { htmlToJson, jsonToHtml } from "@contentstack/json-rte-serializer";
 import customLogger from "../utils/custom-logger.utils.js";
 import { getLogMessage } from "../utils/index.js";
 import { Advanced } from "../models/FieldMapper.js";
+import { v4 as uuidv4 } from "uuid";
+import { orgService } from "./org.service.js";
 
 const { JSDOM } = jsdom;
 const virtualConsole = new jsdom.VirtualConsole();
@@ -110,11 +112,9 @@ let blog_base_url = "";
 //helper function to convert entries with content type
 async function mapContentTypeToEntry(contentType: any, data: any) {
   const result: { [key: string]: any } = {};
-
   for (const field of contentType?.fieldMapping || []) {
-    const fieldValue = data?.[field?.uid];
-    let formattedValue;
-
+    const fieldValue = data?.[field?.uid] ?? null;
+    let formattedValue ;
     switch (field?.contentstackFieldType) {
       case "single_line_text":
       case "text":
@@ -126,10 +126,14 @@ async function mapContentTypeToEntry(contentType: any, data: any) {
             ? await convertJsonToHtml(fieldValue)
             : fieldValue;
         break;
-      case "json":
-        
-            formattedValue = await convertHtmlToJson(fieldValue);    
-    break;
+      case "json":    
+          try {
+            formattedValue = typeof fieldValue !== 'object' ? await convertHtmlToJson(fieldValue) : fieldValue;
+          } catch (err) {
+            console.error(`Error converting HTML to JSON for field ${field?.uid}:`, err);
+            formattedValue = null;
+          }
+        break;
       case "reference":
         formattedValue = getParent(data,data[field.uid]);
         break;
@@ -154,6 +158,86 @@ async function writeFileAsync(filePath: string, data: any, tabSpaces: number) {
       : data || "{}";
   await fs.promises.writeFile(filePath, data, "utf-8");
 }
+
+async function writeOneFile(indexPath: string, fileMeta: any) {
+    fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
+      if (err) {
+        console.error('Error writing file: 3', err);
+      }
+    });
+  }
+
+  const getKeys = (obj: Record<string, any>): string[] => { //Function to fetch all the locale codes
+    return Object.keys(obj);
+  };
+
+/************  Locale module functions start *********/
+  
+  const createLocale = async (req: any, destinationStackId: string, projectId: string, project: any) => {
+    const srcFunc = 'createLocale';
+    try {
+      const baseDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
+      const localeSave = path.join(baseDir, MIGRATION_DATA_CONFIG.LOCALE_DIR_NAME);
+      const allLocalesResp = await orgService.getLocales(req)
+      const masterLocale = Object?.keys?.(project?.master_locale ?? LOCALE_MAPPER?.masterLocale)?.[0];
+      const msLocale: any = {};
+      const uid = uuidv4();
+      msLocale[uid] = {
+        "code": masterLocale,
+        "fallback_locale": null,
+        "uid": uid,
+        "name": allLocalesResp?.data?.locales?.[masterLocale] ?? ''
+      }
+      const message = getLogMessage(
+        srcFunc,
+        `Master locale ${masterLocale} has been successfully transformed.`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+      const allLocales: any = {};
+      for (const [key, value] of Object.entries(project?.locales ?? LOCALE_MAPPER.locales)) {
+        const localeUid = uuidv4();
+        if (key !== 'masterLocale' && typeof value === 'string') {
+          allLocales[localeUid] = {
+            "code": key,
+            "fallback_locale": masterLocale,
+            "uid": localeUid,
+            "name": allLocalesResp?.data?.locales?.[key] ?? ''
+          }
+          const message = getLogMessage(
+            srcFunc,
+            `locale ${value} has been successfully transformed.`,
+            {}
+          )
+          await customLogger(projectId, destinationStackId, 'info', message);
+        }
+      }
+      const masterPath = path.join(localeSave, MIGRATION_DATA_CONFIG.LOCALE_MASTER_LOCALE);
+      const allLocalePath = path.join(localeSave, MIGRATION_DATA_CONFIG.LOCALE_FILE_NAME);
+      fs.access(localeSave, async (err) => {
+        if (err) {
+          fs.mkdir(localeSave, { recursive: true }, async (err) => {
+            if (!err) {
+              await writeOneFile(masterPath, msLocale);
+              await writeOneFile(allLocalePath, allLocales);
+            }
+          })
+        } else {
+          await writeOneFile(masterPath, msLocale);
+          await writeOneFile(allLocalePath, allLocales);
+        }
+      })
+    } catch (err) {
+      const message = getLogMessage(
+        srcFunc,
+        `error while Createing the locales.`,
+        {},
+        err
+      )
+      await customLogger(projectId, destinationStackId, 'error', message);
+    }
+  }
+
 
 /************  Assests module functions start *********/
 async function startingDirAssests(destinationStackId: string) {
@@ -744,92 +828,132 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
 /************  end of chunks module functions *********/
 
 /************  authors module functions start *********/
-async function startingDirAuthors(affix: string, ct: string, master_locale:string) {
-  const authorFolderName = ct ? ct : MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
-
-  authorsFolderPath = path.join(entrySave, authorFolderName, master_locale);
-  authorsFilePath = path.join(
-    authorsFolderPath,
-   `${master_locale}.json`
-  );
-  try {
-    await fs.promises.access(authorsFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(authorsFolderPath, { recursive: true });
-    await fs.promises.writeFile(authorsFilePath, "{}");
+async function startingDirAuthors(
+    affix: string,
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+    const authorFolderName = ct || MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
+  
+    authorsFolderPath = path.join(entrySave, authorFolderName, master_locale);
+    authorsFilePath = path.join(authorsFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(authorsFolderPath);
+    } catch {
+      await fs.promises.mkdir(authorsFolderPath, { recursive: true });
+      await fs.promises.writeFile(authorsFilePath, "{}");
+    }
+  
+    // Read master data once
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(authorsFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master author file:", err);
+    }
+  
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, authorFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
 
 const filePath = false;
-async function saveAuthors(authorDetails: any[], destinationStackId: string, projectId: string, contentType: any, master_locale:string) {
-  const srcFunc = "saveAuthors";
-  try {
-
-    const authordata: { [key: string]: any } = {};
-
-    for (const data of authorDetails) {
-      const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]}`;
-      const title = data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`;
-      const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
-      const customId = idCorrector(uid);
-
-      const authordataEntry: any = {
-        uid: uid,
-        title: data["wp:author_login"],
-        url: url,
-        email: data["wp:author_email"],
-        first_name: data["wp:author_first_name"],
-        last_name: data["wp:author_last_name"],
-      };
-
-      authordata[customId] = {
-        ...authordata[customId],
-        uid: customId,
-        ...( await mapContentTypeToEntry(contentType, authordataEntry)),
-      };
-      authordata[customId].publish_details = [];
-
+async function saveAuthors(authorDetails: any[], destinationStackId: string, projectId: string, contentType: any, master_locale:string, locales:object) {
+    const srcFunc = "saveAuthors";
+    const localeKeys = getKeys(locales)
+    try {
+  
+      const authordata: { [key: string]: any } = {};
+  
+      for (const data of authorDetails) {
+        const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]}`;
+        const title = data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`;
+        const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
+        const customId = idCorrector(uid);
+  
+        const authordataEntry: any = {
+          uid: uid,
+          title: data["wp:author_login"],
+          url: url,
+          email: data["wp:author_email"],
+          first_name: data["wp:author_first_name"],
+          last_name: data["wp:author_last_name"],
+        };
+  
+        authordata[customId] = {
+          ...authordata[customId],
+          uid: customId,
+          ...( await mapContentTypeToEntry(contentType, authordataEntry)),
+        };
+        authordata[customId].publish_details = [];
+  
+        const message = getLogMessage(
+          srcFunc,
+          `Entry title ${data["wp:author_login"]} (authors) in the ${master_locale} locale has been successfully transformed.`,
+          {}
+        );
+  
+        await customLogger(projectId, destinationStackId, 'info', message);
+      }
+      await writeFileAsync(authorsFilePath, authordata, 4);
+      await writeFileAsync(
+        path.join(authorsFolderPath, "index.json"),
+        { "1": `${master_locale}.json` },
+          4
+          );
+          // Write index.json in other locale folders (not master)
+for (const loc of localeKeys) {
+    if (loc === master_locale) continue;
+  
+    const localeFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME, loc);
+    const indexPath = path.join(localeFolderPath, "index.json");
+  
+    try {
+      await fs.promises.writeFile(
+        indexPath,
+        JSON.stringify({ "1": `${loc}.json` }, null, 4)
+      );
+    } catch (err) {
+      console.error(`Error writing index.json for locale ${loc}:`, err);
+    }
+  }
+  
+  
       const message = getLogMessage(
         srcFunc,
-        `Entry title ${data["wp:author_login"]} (authors) in the ${master_locale} locale has been successfully transformed.`,
+        `${authorDetails?.length} Authors exported successfully`,
         {}
-      );
-
+      )
       await customLogger(projectId, destinationStackId, 'info', message);
+    } catch (error) {
+      const message = getLogMessage(
+        srcFunc,
+        `Error while saving authors`,
+        {},
+        error
+      )
+      await customLogger(projectId, destinationStackId, 'error', message);
     }
-    await writeFileAsync(authorsFilePath, authordata, 4);
-    await writeFileAsync(
-      path.join(authorsFolderPath, "index.json"),
-      { "1": `${master_locale}.json` },
-        4
-        );
-
-    const message = getLogMessage(
-      srcFunc,
-      `${authorDetails?.length} Authors exported successfully`,
-      {}
-    )
-    await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log(authorDetails.length, " Authors exported successfully");
-    // console.log(`${authorDetails.length} Authors exported successfully`);
-  } catch (error) {
-    const message = getLogMessage(
-      srcFunc,
-      `Error while saving authors`,
-      {},
-      error
-    )
-    await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("error while saving authors", error);
   }
-}
-async function getAllAuthors(affix: string, packagePath: string,destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any, master_locale:string) {
+async function getAllAuthors(affix: string, packagePath: string,destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any, master_locale:string, project:any) {
   const srcFunc = "getAllAuthors";
   const ct:any = keyMapper?.["authors"];
   const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'authors')
   try {
-    await startingDirAuthors(affix, ct, master_locale);
+    await startingDirAuthors(affix, ct, master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const authors: any =
@@ -839,7 +963,7 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
 
     if (authors && authors.length > 0) {
       if (!filePath) {
-        await saveAuthors(authors, destinationStackId, projectId,contenttype,master_locale);
+        await saveAuthors(authors, destinationStackId, projectId,contenttype,master_locale, project?.locales);
       } else {
         const authorIds = fs.existsSync(filePath)? fs.readFileSync(filePath, "utf-8").split(",")
           : [];
@@ -850,7 +974,7 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
           );
 
           if (authorDetails.length > 0) {
-            await saveAuthors(authorDetails, destinationStackId, projectId,contenttype,master_locale);
+            await saveAuthors(authorDetails, destinationStackId, projectId,contenttype,master_locale, project?.locales);
           }
         }
       }
@@ -863,7 +987,7 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
             .split(",")
             .includes(authors["wp:author_id"]))
       ) {
-        await saveAuthors([authors], destinationStackId, projectId,contenttype, master_locale);
+        await saveAuthors([authors], destinationStackId, projectId,contenttype, master_locale, project?.locales);
       } else {
         const message = getLogMessage(
           srcFunc,
@@ -1458,54 +1582,95 @@ async function extractContentTypes(projectId: string,destinationStackId: string)
 /************  end of contenttypes module functions *********/
 
 /************  terms module functions start *********/
-async function startingDirTerms(affix: string, ct:string, master_locale: string) {
-  termsFolderPath = path.join(
-    entrySave,
-   ct ? ct :  MIGRATION_DATA_CONFIG.TERMS_DIR_NAME, master_locale
-  );
-  try {
-    await fs.promises.access(termsFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(termsFolderPath, { recursive: true });
-    await fs.promises.writeFile(
-      path.join(termsFolderPath, `${master_locale}.json`),
-      "{}"
-    );
+async function startingDirTerms(
+    affix: string,
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+    const termsFolderName = ct || MIGRATION_DATA_CONFIG.TERMS_DIR_NAME;
+  
+    // Master locale folder and file
+    termsFolderPath = path.join(entrySave, termsFolderName, master_locale);
+    const masterFilePath = path.join(termsFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(termsFolderPath);
+    } catch {
+      await fs.promises.mkdir(termsFolderPath, { recursive: true });
+      await fs.promises.writeFile(masterFilePath, "{}");
+    }
+  
+    // Read data from the master locale file
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(masterFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master locale file:", err);
+    }
+  
+    // Other locale folders and files
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, termsFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
 
-async function saveTerms(termsDetails: any[], destinationStackId: string, projectId: string, contentType:any,master_locale: string) {
-  const srcFunc = "saveTerms";
+async function saveTerms(termsDetails: any[], destinationStackId: string, projectId: string, contentType:any,master_locale: string, locales:object) {
+  const localeKeys = getKeys(locales)
+    const srcFunc = "saveTerms";
   try {
     const termsFilePath = path.join(
       termsFolderPath,
       `${master_locale}.json`
     );
-    const termsdata = termsDetails.reduce(
-      async (acc: { [key: string]: any }, data) => {
-    
-        const { id } = data;
-         const uid = `terms_${id}`;
+    const termsdata: { [key: string]: any } = {};
+    for (const data of termsDetails) {
+      const { id } = data;
+      const uid = `terms_${id}`;
+      const customId = uid;
         // const title = name ?? `Terms - ${id}`;
         //const url = `/${title.toLowerCase().replace(/ /g, "_")}`; 
-        
-        const customId = uid;
 
-        acc[customId] = {
-          ...acc[customId],
+
+        termsdata[customId] = {
+          ...termsdata[customId],
           uid: customId,
-          ...(await mapContentTypeToEntry(contentType, data)), // Pass individual term object
+          ...(await mapContentTypeToEntry(contentType, data)),
         };
-        acc[customId].publish_details = [];
-        return acc;
-      },
-      {}
-    );
+        termsdata[customId].publish_details = [];
+    }
 
     await writeFileAsync(termsFilePath, termsdata, 4);
     await writeFileAsync(path.join(termsFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
 
+    for (const loc of localeKeys) {
+        if (loc === master_locale) continue;
+  
+        const localeFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.TERMS_DIR_NAME, loc);
+        const indexPath = path.join(localeFolderPath, "index.json");
+  
+        try {
+          await fs.promises.mkdir(localeFolderPath, { recursive: true });
+          await writeFileAsync(
+            indexPath,
+            { "1": `${loc}.json` },
+            4
+          );
+        } catch (err) {
+          console.error(`Error creating index.json for ${loc}:`, err);
+        }
+      }
     const message = getLogMessage(
       srcFunc,
       `${termsDetails.length} Terms exported successfully`,
@@ -1526,12 +1691,12 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
   }
 }
 
-async function getAllTerms(affix: string, packagePath: string, destinationStackId:string, projectId: string, contentTypes:any, keyMapper:any,master_locale: string) {
+async function getAllTerms(affix: string, packagePath: string, destinationStackId:string, projectId: string, contentTypes:any, keyMapper:any,master_locale: string, project:any) {
   const srcFunc = "getAllTerms";
   const ct:any = keyMapper?.["terms"];
   const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'terms')
   try {
-    await startingDirTerms(affix, ct,master_locale);
+    await startingDirTerms(affix, ct,master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const terms =
@@ -1568,7 +1733,7 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
         },
       ];
     
-    await saveTerms(termsArray, destinationStackId, projectId, contenttype,master_locale);
+    await saveTerms(termsArray, destinationStackId, projectId, contenttype,master_locale, project?.locales);
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1584,31 +1749,63 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
 /************  end of terms module functions *********/
 
 /************  tags module functions start *********/
-async function startingDirTags(affix: string, ct:string, master_locale: string) {
-  tagsFolderPath = path.join(
-    entrySave,
-    ct ? ct : MIGRATION_DATA_CONFIG.TAG_DIR_NAME, master_locale
-  );
-  try {
-    await fs.promises.access(tagsFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(tagsFolderPath, { recursive: true });
-    await fs.promises.writeFile(
-      path.join(tagsFolderPath, `${master_locale}.json`),
-      "{}"
-    );
+async function startingDirTags(
+    affix: string,
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+  
+    const tagsFolderName = ct || MIGRATION_DATA_CONFIG.TAG_DIR_NAME;
+  
+    // Master locale folder and file
+    tagsFolderPath = path.join(entrySave, tagsFolderName, master_locale);
+    const masterFilePath = path.join(tagsFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(tagsFolderPath);
+    } catch {
+      await fs.promises.mkdir(tagsFolderPath, { recursive: true });
+      await fs.promises.writeFile(masterFilePath, "{}");
+    }
+  
+    // Read the data from the master locale JSON
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(masterFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master locale file:", err);
+    }
+  
+    // Create locale-specific folders and copy master data
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, tagsFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
 
-async function saveTags(tagDetails: any[], destinationStackId: string, projectId: string, contenttype:any, master_locale: string) {
+async function saveTags(tagDetails: any[], destinationStackId: string, projectId: string, contenttype:any, master_locale: string, locales:object) {
+    const localeKeys = getKeys(locales)
   const srcFunc = 'saveTags';
   try {
     const tagsFilePath = path.join(
       tagsFolderPath,
       `${master_locale}.json`
     );
-    const tagdata = tagDetails.reduce(async (acc: { [key: string]: any }, data) => {
+    const tagsdata: { [key: string]: any } = {};
+  
+    for(const data of tagDetails) {
       const { id } = data;
       const uid = `tags_${id}`;
       //const title = `Tags - ${id}`;
@@ -1616,17 +1813,30 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
       //const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
       const customId = idCorrector(uid);
 
-      acc[customId]={
-        ...acc[customId],
+      tagsdata[customId]={
+        ...tagsdata[customId],
         uid:customId,
         ...( await mapContentTypeToEntry(contenttype,data)),
       };
-      acc[customId].publish_details = [];
+      tagsdata[customId].publish_details = [];
 
-      return acc;
-    }, {});
-    await writeFileAsync(tagsFilePath, tagdata, 4);
+    }
+    await writeFileAsync(tagsFilePath, tagsdata, 4);
     await writeFileAsync(path.join(tagsFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
+         // Write index.json for all other locales
+         for (const loc of localeKeys) {
+           if (loc === master_locale) continue;
+     
+           const localeFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.TAG_DIR_NAME, loc);
+           const indexPath = path.join(localeFolderPath, "index.json");
+     
+           try {
+             await fs.promises.mkdir(localeFolderPath, { recursive: true });
+             await writeFileAsync(indexPath, { "1": `${loc}.json` }, 4);
+           } catch (err) {
+             console.error(`Error creating index.json for locale '${loc}' in tags:`, err);
+           }
+         }
     const message = getLogMessage(
       srcFunc,
       `${tagDetails.length}, Tags exported successfully`,
@@ -1646,13 +1856,13 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
     throw error;
   }
 }
-async function getAllTags(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string) {
+async function getAllTags(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string, project:any) {
   const srcFunc = "getAllTags";
   const ct:any = keyMapper?.["tag"];
   const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'tag');
 
   try {
-    await startingDirTags(affix, ct, master_locale);
+    await startingDirTags(affix, ct, master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const tags =
@@ -1687,7 +1897,7 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
         },
       ];
 
-    await saveTags(tagsArray, destinationStackId, projectId, contenttype, master_locale);
+    await saveTags(tagsArray, destinationStackId, projectId, contenttype, master_locale, project?.locales);
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1703,36 +1913,60 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
 /************  end of tags module functions *********/
 
 /************  categories module functions start *********/
-async function startingDirCategories(affix: string, ct: string, master_locale:string) {
-  categoriesFolderPath = path.join(
-    entrySave,
-    ct ? ct : MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME, master_locale
-  );
-
-  try {
-    await fs.promises.access(categoriesFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(categoriesFolderPath, { recursive: true });
-    await fs.promises.writeFile(
-      path.join(
-        categoriesFolderPath,
-        `${master_locale}.json`
-      ),
-      "{}"
-    );
+async function startingDirCategories(
+    affix: string,
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+  
+    const categoryFolderName = ct || MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME;
+  
+    // Create master locale folder and file
+    categoriesFolderPath = path.join(entrySave, categoryFolderName, master_locale);
+    const masterFilePath = path.join(categoriesFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(categoriesFolderPath);
+    } catch {
+      await fs.promises.mkdir(categoriesFolderPath, { recursive: true });
+      await fs.promises.writeFile(masterFilePath, "{}");
+    }
+  
+    // Read master locale data
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(masterFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master locale file:", err);
+    }
+  
+    // Create locale-specific folders and files (excluding master)
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, categoryFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
 
-const convertHtmlToJson = (htmlString: any) => {
-  if(typeof htmlString === 'string'){
-    const dom =  new JSDOM(htmlString?.replace(/&amp;/g, "&"));
+const convertHtmlToJson = (htmlString: unknown): any => {
+  if (typeof htmlString === 'string') {
+    const dom = new JSDOM(htmlString.replace(/&amp;/g, "&"));
     const htmlDoc = dom.window.document.querySelector("body");
-    const jsonValue = htmlToJson(htmlDoc)
-    return jsonValue;
-
+    return htmlToJson(htmlDoc);
   }
-  else return htmlString;
+
+  return htmlString;
 };
 
 const convertJsonToHtml = async (json: any) => {
@@ -1762,27 +1996,25 @@ function getParent(data: any,id: string) {
 
   return catParent;
 }
-async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string, contenttype:any, master_locale:string) {
+async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string, contenttype:any, master_locale:string, locales:object) {
   const srcFunc = 'saveCategories';
+  const localeKeys = getKeys(locales);
   try {
-    const categorydata = categoryDetails.reduce(
-      async (acc: { [key: string]: any }, data) => {
+    const categorydata: { [key: string]: any } = {}
+    for(const data of categoryDetails){
+     
         const uid = `category_${data["id"]}`;
 
         const customId = uid
 
         // Accumulate category data
-        acc[customId]={
-          ...acc[customId],
+        categorydata[customId]={
+          ...categorydata[customId],
           uid:customId,
           ...(await mapContentTypeToEntry(contenttype,data)),
         }
-        acc[customId].publish_details = [];
-
-        return acc;
-      },
-      {}
-    );
+        categorydata[customId].publish_details = [];
+    }
 
     await writeFileAsync(
       path.join(
@@ -1793,6 +2025,22 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
       4
     );
     await writeFileAsync(path.join(categoriesFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
+        // Create index.json for other locales and write data for those locales
+        for (const loc of localeKeys) {
+            if (loc === master_locale) continue;
+      
+            const localeFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME, loc);
+            const indexPath = path.join(localeFolderPath, "index.json");
+      
+            try {
+              await fs.promises.writeFile(
+                indexPath,
+                JSON.stringify({ "1": `${loc}.json` }, null, 4)
+              );
+            } catch (err) {
+              console.error(`Error writing index.json for locale ${loc}:`, err);
+            }
+          }
 
     const message = getLogMessage(
       srcFunc,
@@ -1815,13 +2063,13 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
     // console.error("Error in saving categories:", err);
   }
 }
-async function getAllCategories(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string) {
+async function getAllCategories(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string, project:any) {
   const srcFunc = 'getAllCategories';
   const ct:any = keyMapper?.["categories"];
   const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'categories');
 
   try {
-    await startingDirCategories(affix, ct, master_locale);
+    await startingDirCategories(affix, ct, master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const categories =
@@ -1858,7 +2106,7 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
         },
       ];
 
-    await saveCategories(categoriesArrray, destinationStackId, projectId, contenttype, master_locale);
+    await saveCategories(categoriesArrray, destinationStackId, projectId, contenttype, master_locale, project.locales);
   } catch (err) {
     const message = getLogMessage(
       srcFunc,
@@ -1873,21 +2121,49 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
 
 /************  Start of Posts module functions *********/
 
-async function startingDirPosts(ct:string, master_locale: string) {
-  postFolderPath = path.join(
-    entrySave, 
-    ct ? ct : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
-    master_locale
-  );
-  //path.join(entrySave, affix ? affix+"_"+"terms": "terms");
-  try {
-    await fs.promises.access(postFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(postFolderPath, { recursive: true });
+async function startingDirPosts(
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+    const postsFolderName = ct || MIGRATION_DATA_CONFIG.POSTS_DIR_NAME;
+  
+    // Create master locale folder and file
+    postFolderPath = path.join(entrySave, postsFolderName, master_locale);
+    const masterFilePath = path.join(postFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(postFolderPath);
+    } catch {
+      await fs.promises.mkdir(postFolderPath, { recursive: true });
+      await fs.promises.writeFile(masterFilePath, "{}");
+    }
+  
+    // Read the master locale data
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(masterFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master locale file:", err);
+    }
+  
+    // Create folders and files for other locales
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, postsFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
-
 function limitConcurrency(maxConcurrency: number) {
   let running = 0;
   const queue: any = [];
@@ -2011,6 +2287,9 @@ async function processChunkData(
   contenttype: any
 ) {
   const postdata: any = {};
+  const formattedPosts: any = {};
+  let postdataCombined = {}
+  
   try {
     const writePromises = [];
 
@@ -2073,16 +2352,10 @@ async function processChunkData(
             featured_image: '',
             publish_details:[]
           };
-          const formatted_posts =  await featuredImageMapping(
-            `posts_${data["wp:post_id"]}`,
-            data,
-            postdata
-          );
-          const formattedPosts: any = {};
+        
          
-          for (const [key, value] of Object.entries(formatted_posts as {[key: string]: any})) {
+          for (const [key, value] of Object.entries(postdata as {[key: string]: any})) {
             const customId = idCorrector(value?.uid);
-    
             formattedPosts[customId] = {
               ...formattedPosts[customId],
               uid: customId,
@@ -2090,7 +2363,12 @@ async function processChunkData(
             };
             formattedPosts[customId].publish_details = [];
           }
-          Object.assign(postdata,formattedPosts);
+          const formatted_posts =  await featuredImageMapping(
+            `posts_${data["wp:post_id"]}`,
+            data,
+            formattedPosts
+          );
+          postdataCombined = { ...postdataCombined, ...formatted_posts };
 
           // await writeFileAsync(
           //   path.join(postFolderPath, filename),
@@ -2111,8 +2389,8 @@ async function processChunkData(
     if (isLastChunk && allSuccess) {
       console.info("last data");
     }
-    console.info("postData ---> ", postdata)
-    return postdata
+
+    return postdataCombined
   } catch (error) {
     console.error(error);
     console.error("Error saving posts", error);
@@ -2120,13 +2398,13 @@ async function processChunkData(
   }
 }
 
-async function extractPosts( packagePath: string, destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string) {
+async function extractPosts( packagePath: string, destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string, project:any) {
   const srcFunc = "extractPosts";
   const ct:any = keyMapper?.["posts"];
   const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'posts');
 
   try {
-    await startingDirPosts(ct, master_locale);
+    await startingDirPosts(ct, master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     blog_base_url =
@@ -2162,6 +2440,29 @@ async function extractPosts( packagePath: string, destinationStackId: string, pr
       postdataCombined,
       4
     );
+    await writeFileAsync(
+      path.join(postFolderPath, "index.json"),
+      { "1": `${master_locale}.json` },
+        4
+        );
+    // Save index.json for other locales
+     const localeKeys = getKeys(project?.locales);
+     const postsFolderName = ct || MIGRATION_DATA_CONFIG.POSTS_DIR_NAME;
+     for (const loc of localeKeys) {
+       if (loc === master_locale) continue;
+ 
+       const localeFolderPath = path.join(entrySave, postsFolderName, loc);
+       const indexPath = path.join(localeFolderPath, "index.json");
+ 
+       try {
+         await fs.promises.writeFile(
+           indexPath,
+           JSON.stringify({ "1": `${loc}.json` }, null, 4)
+         );
+       } catch (err) {
+         console.error(`Error writing index.json for locale ${loc}:`, err);
+       }
+     }
     return;
   } catch (error) {
     const message = getLogMessage(
