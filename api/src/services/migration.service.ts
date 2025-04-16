@@ -238,28 +238,30 @@ const startTestMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
+          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
           await wordpressService?.getAllAssets(file_path, packagePath, project?.current_test_stack_id, projectId)
           await wordpressService?.createAssetFolderFile(file_path, project?.current_test_stack_id, projectId)
           await wordpressService?.getAllreference(file_path, packagePath, project?.current_test_stack_id, projectId)
           await wordpressService?.extractChunks(file_path, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllAuthors(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.getAllAuthors(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
           //await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id, contentTypes)
-          await wordpressService?.getAllTerms(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
-          await wordpressService?.extractPosts(packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.getAllTerms(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.getAllTags(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.getAllCategories(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.extractPosts(packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
           await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
           await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
         }
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.current_test_stack_id, projectId, project);
-        await contentfulService?.createRefrence(file_path, project?.current_test_stack_id, projectId);
-        await contentfulService?.createWebhooks(file_path, project?.current_test_stack_id, projectId);
-        await contentfulService?.createEnvironment(file_path, project?.current_test_stack_id, projectId);
-        await contentfulService?.createAssets(file_path, project?.current_test_stack_id, projectId, true);
-        await contentfulService?.createEntry(file_path, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
+        await contentfulService?.createLocale(cleanLocalPath, project?.current_test_stack_id, projectId, project);
+        await contentfulService?.createRefrence(cleanLocalPath, project?.current_test_stack_id, projectId);
+        await contentfulService?.createWebhooks(cleanLocalPath, project?.current_test_stack_id, projectId);
+        await contentfulService?.createEnvironment(cleanLocalPath, project?.current_test_stack_id, projectId);
+        await contentfulService?.createAssets(cleanLocalPath, project?.current_test_stack_id, projectId, true);
+        await contentfulService?.createEntry(cleanLocalPath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await contentfulService?.createVersionFile(project?.current_test_stack_id, projectId);
         break;
       }
@@ -314,28 +316,30 @@ const startMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
+          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
           await wordpressService?.getAllAssets(file_path, packagePath, project?.destination_stack_id, projectId,)
           await wordpressService?.createAssetFolderFile(file_path, project?.destination_stack_id, projectId)
           await wordpressService?.getAllreference(file_path, packagePath, project?.destination_stack_id, projectId)
           await wordpressService?.extractChunks(file_path, packagePath, project?.destination_stack_id, projectId)
-          await wordpressService?.getAllAuthors(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.getAllAuthors(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
-          await wordpressService?.getAllTerms(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
-          await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale)
+          await wordpressService?.getAllTerms(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.getAllTags(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.getAllCategories(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
           await wordpressService?.extractGlobalFields(project?.destination_stack_id, projectId)
           await wordpressService?.createVersionFile(project?.destination_stack_id, projectId);
         }
         break;
       }
       case CMS.CONTENTFUL: {
-        await contentfulService?.createLocale(file_path, project?.destination_stack_id, projectId, project);
-        await contentfulService?.createRefrence(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createWebhooks(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEnvironment(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createAssets(file_path, project?.destination_stack_id, projectId);
-        await contentfulService?.createEntry(file_path, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
+        await contentfulService?.createLocale(cleanLocalPath, project?.destination_stack_id, projectId, project);
+        await contentfulService?.createRefrence(cleanLocalPath, project?.destination_stack_id, projectId);
+        await contentfulService?.createWebhooks(cleanLocalPath, project?.destination_stack_id, projectId);
+        await contentfulService?.createEnvironment(cleanLocalPath, project?.destination_stack_id, projectId);
+        await contentfulService?.createAssets(cleanLocalPath, project?.destination_stack_id, projectId);
+        await contentfulService?.createEntry(cleanLocalPath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
         await contentfulService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
@@ -419,7 +423,6 @@ export const createSourceLocales = async (req: Request) => {
 
   const projectId = req?.params?.projectId;
   const locales = req?.body?.locale;
-  console.info("🚀 ~ createSourceLocales ~ locales:", locales);
 
   try {
     // Find the project with the specified projectId
