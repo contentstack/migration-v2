@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: 'wordpress',
+  cmsType: 'contentful',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
@@ -13,5 +13,5 @@ export default {
     bucketKey: ''
   },
   // localPath: '/Users/sayali.joshi/Downloads/contentfulDummyEmbedData.json' //package 45.zip'
-  localPath: '/Users/shobhit.upadhyay/Downloads/sitetitle (1).xml'
+  localPath: '/Users/shobhit.upadhyay/Downloads/asic.json'
 };
