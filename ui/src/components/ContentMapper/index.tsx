@@ -612,10 +612,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   useBlockNavigation(isModalOpen);
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
       const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
 
+      setIsLoading(false);
       setContentTypes(data?.contentTypes);
       setCount(data?.contentTypes?.length);
       setFilteredContentTypes(data?.contentTypes);
@@ -670,7 +672,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
       
-      setTableData(validTableData || []);
+      setTableData(validTableData ?? []);
+      setSelectedEntries(validTableData ?? []);
       setTotalCounts(validTableData?.length);
       setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item?.isDeleted))
       setIsLoading(false);
@@ -824,7 +827,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }, [tableData]);
 
   const getParentId = (uid: string) => {
-    return tableData?.find(i => i?.uid === uid)?.id ?? ''
+    return tableData?.find(i => i?.uid?.toLowerCase() === uid?.toLowerCase())?.id ?? ''
   }
 
   const modifiedObj = (obj: FieldMapType) => {
@@ -939,8 +942,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     } else if(latestRow?.parentId && !["title", "url"]?.includes?.(latestRow?.uid?.toLowerCase())){
       // Extract the group UID if item is child of any group
       const uidBeforeDot = latestRow?.uid?.split?.('.')?.[0]?.toLowerCase();
-      const groupItem = tableData?.find((entry) => entry?.uid === uidBeforeDot);      
-      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupItem?.uid + '.'));
+      const groupItem = tableData?.find((entry) => entry?.uid?.toLowerCase() === uidBeforeDot);   
+      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupItem?.uid?.toLowerCase() + '.'));
 
       if(latestRow?.checked) {
         if(!selectedObj[latestRow?.parentId]){
@@ -1071,6 +1074,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             maxWidth="290px"
             isClearable={false}
             options={option}
+            menuPlacement="auto"
             isDisabled={
               data?.otherCmsType === "Group" ||
               data?.otherCmsField === 'title' ||
@@ -1576,6 +1580,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             isClearable={selectedOptions?.includes?.(existingField?.[data?.uid]?.label ?? '')}
             options={adjustedOptions}
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
+            menuPlacement="auto"
           />
         </div>
         {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown'||
