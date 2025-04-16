@@ -448,7 +448,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // To make all the fields checked
   useEffect(() => {
     const selectedId = tableData?.reduce<UidMap>((acc, item) => {
-      if(! item?.isDeleted) {
+      if(!item?.isDeleted) {
         acc[item?.id] = true;
 
       }
@@ -975,7 +975,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       // Mark the item as deleted if not found in selectedData
       return {
         ...tableItem,
-        isDeleted: !selectedObj[tableItem?.id] //!found ? true : false,
+        isDeleted: (tableItem?._canSelect ) ? !selectedObj[tableItem?.id] : tableItem?.isDeleted //!found ? true : false,
       };
     });  
 
