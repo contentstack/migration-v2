@@ -94,10 +94,31 @@ const Mapper = ({
   useEffect(() => {
     setExistingField((prevExisting: ExistingFieldType) => {
       const updatedExisting = { ...prevExisting };
+      const validLabels = cmsLocaleOptions?.map(locale => locale.label) || [];
+      Object.entries(updatedExisting).forEach(([index, entry]) => {
+        const [labelPart] = entry.label.split('-');
+        if (!validLabels.includes(labelPart)) {
+          delete updatedExisting[index];
+        }
+      });
+      
+      setSelectedMappings((prev) => {
+        const updated = { ...prev };
+    
+        Object.keys(updated).forEach((key) => {
+          const [labelPart] = key.split('-');
+          if (!validLabels.includes(labelPart)) {
+            delete updated[key];
+          }
+        });
+    
+        return updated;
+      });
 
       cmsLocaleOptions?.forEach((locale: { label: string; value: string }, index: number) => {
         if (locale?.value === 'master_locale' && !updatedExisting?.[index]) {
           setSelectedMappings((prev) => ({
+            
             ...prev,
             [`${locale?.label}-master_locale`]: ''
           }));
@@ -422,18 +443,28 @@ const LanguageMapper = () => {
           value: item
         }));
         setsourceLocales(sourceLocale);
-
         setoptions(allLocales);
-        Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 &&
+        const keys = Object.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
+        
+        (Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 || keys !== `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale` ) &&
         newMigrationData?.project_current_step <= 2 &&
          setcmsLocaleOptions((prevList: { label: string; value: string }[]) => {
           const newLabel = newMigrationData?.destination_stack?.selectedStack?.master_locale;
-
-            const isPresent = prevList.some(
-              (item: { label: string; value: string }) => item?.value === 'master_locale'
+    
+            const isPresent = prevList.filter(
+              (item: { label: string; value: string }) => (item?.value === 'master_locale')
             );
-
-            if (!isPresent) {
+            
+            if(isPresent[0]?.label !== newLabel){
+              return [
+                ...prevList.filter(item => item.value !== 'master_locale'),
+                {
+                  label: newLabel,
+                  value: 'master_locale',
+                }
+              ];
+            }
+            if (isPresent?.length <= 0 ) {
               return [
                 ...prevList,
                 {
