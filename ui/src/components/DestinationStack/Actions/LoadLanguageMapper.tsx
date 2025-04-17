@@ -94,10 +94,10 @@ const Mapper = ({
   useEffect(() => {
     setExistingField((prevExisting: ExistingFieldType) => {
       const updatedExisting = { ...prevExisting };
-      const validLabels = cmsLocaleOptions?.map(locale => locale.label) || [];
-      Object.entries(updatedExisting).forEach(([index, entry]) => {
+      const validLabels = cmsLocaleOptions?.map(locale => locale?.label) || [];
+      Object?.entries(updatedExisting)?.forEach(([index, entry]) => {
         const [labelPart] = entry.label.split('-');
-        if (!validLabels.includes(labelPart)) {
+        if (!validLabels?.includes(labelPart)) {
           delete updatedExisting[index];
         }
       });
@@ -105,9 +105,9 @@ const Mapper = ({
       setSelectedMappings((prev) => {
         const updated = { ...prev };
     
-        Object.keys(updated).forEach((key) => {
-          const [labelPart] = key.split('-');
-          if (!validLabels.includes(labelPart)) {
+        Object?.keys(updated)?.forEach((key) => {
+          const [labelPart] = key?.split('-');
+          if (!validLabels?.includes(labelPart)) {
             delete updated[key];
           }
         });
@@ -167,7 +167,7 @@ const Mapper = ({
       );
       const newValue: string = selectedValue?.label;
       if (!newSelectedOptions?.includes(newValue)) {
-        newSelectedOptions.push(newValue);
+        newSelectedOptions?.push(newValue);
       }
       return newSelectedOptions;
     });
@@ -432,7 +432,7 @@ const LanguageMapper = () => {
     const fetchData = async () => {
       try {
         setisLoading(true);
-        const allLocales: { label: string; value: string }[] = Object.entries(
+        const allLocales: { label: string; value: string }[] = Object?.entries(
           newMigrationData?.destination_stack?.csLocale ?? {}
         ).map(([key]) => ({
           label: key,
@@ -444,20 +444,20 @@ const LanguageMapper = () => {
         }));
         setsourceLocales(sourceLocale);
         setoptions(allLocales);
-        const keys = Object.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
+        const keys = Object?.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
         
         (Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 || keys !== `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale` ) &&
         newMigrationData?.project_current_step <= 2 &&
          setcmsLocaleOptions((prevList: { label: string; value: string }[]) => {
           const newLabel = newMigrationData?.destination_stack?.selectedStack?.master_locale;
     
-            const isPresent = prevList.filter(
+            const isPresent = prevList?.filter(
               (item: { label: string; value: string }) => (item?.value === 'master_locale')
             );
             
-            if(isPresent[0]?.label !== newLabel){
+            if(isPresent?.[0]?.label !== newLabel){
               return [
-                ...prevList.filter(item => item.value !== 'master_locale'),
+                ...prevList?.filter(item => item?.value !== 'master_locale'),
                 {
                   label: newLabel,
                   value: 'master_locale',
@@ -477,7 +477,7 @@ const LanguageMapper = () => {
             return prevList;
           });
         if (newMigrationData?.project_current_step > 2) {
-          Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.forEach(
+          Object?.entries(newMigrationData?.destination_stack?.localeMapping || {})?.forEach(
             ([key, value]) => {
               setcmsLocaleOptions((prevList) => {
                 const labelKey = key?.replace(/-master_locale$/, '');
