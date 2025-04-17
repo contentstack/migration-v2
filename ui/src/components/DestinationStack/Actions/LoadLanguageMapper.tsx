@@ -106,7 +106,7 @@ const Mapper = ({
         const updated = { ...prev };
     
         Object?.keys(updated)?.forEach((key) => {
-          const [labelPart] = key?.split('-');
+          const [labelPart] = key?.split('-') ?? [];
           if (!validLabels?.includes(labelPart)) {
             delete updated?.[key];
           }
@@ -457,7 +457,7 @@ const LanguageMapper = () => {
             
             if(isPresent?.[0]?.label !== newLabel){
               return [
-                ...prevList?.filter(item => item?.value !== 'master_locale'),
+                ...prevList?.filter(item => item?.value !== 'master_locale') ?? [],
                 {
                   label: newLabel,
                   value: 'master_locale',
