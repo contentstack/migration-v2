@@ -2,13 +2,11 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios";
-//import _ from "lodash";
-import { MIGRATION_DATA_CONFIG } from "../constants/index.js";
+import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER } from "../constants/index.js";
 import jsdom from "jsdom";
 import { htmlToJson, jsonToHtml } from "@contentstack/json-rte-serializer";
 import customLogger from "../utils/custom-logger.utils.js";
 import { getLogMessage } from "../utils/index.js";
-import { Advanced } from "../models/FieldMapper.js";
 import { v4 as uuidv4 } from "uuid";
 import { orgService } from "./org.service.js";
 
@@ -22,7 +20,6 @@ const __dirname = path.dirname(__filename);
 
 const { DATA, EXPORT_INFO_FILE } = MIGRATION_DATA_CONFIG
 
-//const slugRegExp = /[^a-z0-9_-]+/g;
 let assetsSave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
@@ -70,27 +67,12 @@ let assetMasterFolderPath = path.join(
   "logs",
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
 );
-// let globalPrefix = "";
 
 interface Asset {
   "wp:post_type": string;
   [key: string]: any;
 }
 
-interface FieldMapping {
-  id: string;
-    projectId: string;
-    uid: string;
-    otherCmsField: string;
-    otherCmsType: string;
-    contentstackField: string;
-    contentstackFieldUid: string;
-    contentstackFieldType: string;
-    isDeleted: boolean;
-    backupFieldType: string;
-    refrenceTo: { uid: string; title: string };
-    advanced: Advanced;
-}
 
 const idCorrector = (id: any) => {
   const newId = id?.replace(/[-{}]/g, (match: any) => match === '-' ? '' : '')
@@ -369,13 +351,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     console.error(`Asset already present: ${customId}`);
     return assets["wp:post_id"];
   }
-  // else{
-  //   fs.mkdirSync(
-  //     path.resolve(
-  //       assetPath
-  //     )
-  //   );
-  // }
+
 
   try {
     const response = await axios.get(url, { responseType: "arraybuffer" });
@@ -412,11 +388,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
       await writeFileAsync(failedJSONFilePath, failedJSON, 4);
     }
     assetData[key] = acc[key];
-    // await writeFileAsync(
-    //   path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
-    //   assetData,
-    //   4
-    // );
+
 
     await writeFileAsync(
       path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE),
@@ -430,13 +402,6 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     )
     await customLogger(projectId, destinationStackId, 'info', message);
 
-    // console.log(
-    //   "An asset with id",
-    //   `assets_${assets["wp:post_id"]}`,
-    //   "and name",
-    //   `${name}`,
-    //   "downloaded successfully."
-    // );
 
     return assets["wp:post_id"];
   } catch (err: any) {
@@ -512,7 +477,6 @@ async function getAllAssets(
     alldataParsed?.channel?.["wp:base_site_url"];
     const assets: Asset[] =
       alldataParsed?.rss?.channel?.item ?? alldataParsed?.channel?.item;
-    // await writeFileAsync(path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME), assets, 4);
     if (!assets || assets?.length === 0) {
       const message = getLogMessage(
         "createAssetFolderFile",
@@ -520,7 +484,6 @@ async function getAllAssets(
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("No assets found", projectId);
       return;
     }
 
@@ -565,7 +528,6 @@ const createAssetFolderFile = async (affix: string, destinationStackId:string, p
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log("Folder JSON created successfully.");
     return;
   } catch (error) {
     return {
@@ -618,7 +580,7 @@ async function saveReference(referenceDetails: any[], destinationStackId:string,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log("Reference data saved successfully.");
+
   } catch (error) {
     return {
       err: "error in saving references",
@@ -703,7 +665,6 @@ async function getAllreference(affix: string, packagePath: string, destinationSt
     )
     await customLogger(projectId, destinationStackId, 'info', message);
 
-    // console.log("All references processed successfully.");
   } catch (error) {
     return {
       err: "error in processing references",
@@ -803,7 +764,6 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("Post chunks creation completed.");
     } else {
       const message = getLogMessage(
         srcFunc,
@@ -811,7 +771,6 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
         {},
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.error("No posts found.");
     }
   } catch (error) {
     const message = getLogMessage(
@@ -821,7 +780,6 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error(error);
     return;
   }
 }
@@ -995,7 +953,6 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
           {}
         )
         await customLogger(projectId, destinationStackId, 'info', message);
-        // console.log("\nNo authors UID found");
       }
     } else {
       const message = getLogMessage(
@@ -1004,7 +961,6 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("\nNo authors found");
     }
   } catch (error) {
     const message = getLogMessage(
@@ -1014,7 +970,6 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.log("error while getting authors", error);
   }
 }
 /************  end of authors module functions *********/
@@ -1031,13 +986,6 @@ async function startingDirContentTypes(destinationStackId: string) {
   } catch {
     // Directory doesn't exist, create it
     await fs.promises.mkdir(contentTypeFolderPath, { recursive: true });
-    // await fs.promises.writeFile(
-    //   path.join(
-    //     contentTypeFolderPath,
-    //     MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
-    //   ),
-    //   "{}"
-    // );
     await fs.promises.writeFile(
       path.join(
         contentTypeFolderPath,
@@ -1047,18 +995,6 @@ async function startingDirContentTypes(destinationStackId: string) {
     );
   }
 }
-
-// const generateUid = (suffix: string) =>
-//   globalPrefix
-//     ? `${globalPrefix
-//         .replace(/^\d+/, "")
-//         .replace(/[^a-zA-Z0-9]+/g, "_")
-//         .replace(/(^_+)|(_+$)/g, "")
-//         .toLowerCase()}_${suffix}`
-//     : suffix;
-
-// const generateTitle = (title: string) =>
-//   globalPrefix ? `${globalPrefix} - ${title}` : title;
 
 const generateSchema = (
   title: string,
@@ -1543,14 +1479,6 @@ async function extractContentTypes(projectId: string,destinationStackId: string)
       }
         
     );
-    // await writeFileAsync(
-    //   path.join(
-    //     contentTypeFolderPath,
-    //     MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
-    //   ),
-    //   schemaJson,
-    //   4
-    // );
     await writeFileAsync(
       path.join(
         contentTypeFolderPath,
@@ -1639,8 +1567,6 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
       const { id } = data;
       const uid = `terms_${id}`;
       const customId = uid;
-        // const title = name ?? `Terms - ${id}`;
-        //const url = `/${title.toLowerCase().replace(/ /g, "_")}`; 
 
 
         termsdata[customId] = {
@@ -1677,7 +1603,6 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log(`${termsDetails.length} Terms exported successfully`);
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1686,7 +1611,6 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("Error saving terms:", error);
     throw error;
   }
 }
@@ -1711,7 +1635,6 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("\nNo terms found");
       return;
     }
     
@@ -1742,7 +1665,6 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("Error retrieving terms:", error);
   }
 }
 
@@ -1808,9 +1730,6 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
     for(const data of tagDetails) {
       const { id } = data;
       const uid = `tags_${id}`;
-      //const title = `Tags - ${id}`;
-     // const url = `/tags/${uid}`;
-      //const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
       const customId = idCorrector(uid);
 
       tagsdata[customId]={
@@ -1844,7 +1763,6 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
     )
     await customLogger(projectId, destinationStackId, 'info', message);
 
-    // console.log(`${tagDetails.length}`, " Tags exported successfully");
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1877,7 +1795,6 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("\nNo tags found");
       return;
     }
     const tagsArray = Array.isArray(tags) ? tags.map((taginfo) => ({
@@ -1906,7 +1823,6 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("Error retrieving tags:", error);
     throw error;
   }
 }
@@ -2025,7 +1941,6 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
       4
     );
     await writeFileAsync(path.join(categoriesFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
-        // Create index.json for other locales and write data for those locales
         for (const loc of localeKeys) {
             if (loc === master_locale) continue;
       
@@ -2048,10 +1963,6 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log(
-    //   `${categoryDetails.length}`,
-    //   " Categories exported successfully"
-    // );
   } catch (err) {
     const message = getLogMessage(
       srcFunc,
@@ -2060,7 +1971,6 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
       err
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("Error in saving categories:", err);
   }
 }
 async function getAllCategories(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string, project:any) {
@@ -2084,7 +1994,6 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("\nNo categories found");
       return;
     }
    
@@ -2333,7 +2242,6 @@ async function processChunkData(
           const base = blog_base_url?.split("/")?.filter(Boolean);
           const blogname = base[base?.length - 1];
           const url = data["link"]?.split(blogname)[1];
-          //const title = data["title"] ?? `Posts - ${data["wp:post_id"]}`;
           const uid = `posts_${data["wp:post_id"]}`
           const customId = idCorrector(uid)
           postdata[customId] = {
@@ -2370,11 +2278,6 @@ async function processChunkData(
           );
           postdataCombined = { ...postdataCombined, ...formatted_posts };
 
-          // await writeFileAsync(
-          //   path.join(postFolderPath, filename),
-          //   postdata,
-          //   4
-          // );
         })
       );
     }
@@ -2507,7 +2410,7 @@ async function copyFolder(src: string, dest: string) {
       err
     )
     await customLogger("projectId", dest, 'error', message);
-    // console.error(`Error copying folder from ${src} to ${dest}:`, err);
+
   }
 }
 async function extractGlobalFields(destinationStackId: string, projectId: string) {
@@ -2544,7 +2447,6 @@ async function extractGlobalFields(destinationStackId: string, projectId: string
         err
       )
       await customLogger(projectId, destinationStackId, 'error', message);
-      // console.error(`Error copying ${folder}:`, err);
     }
   }
 }
@@ -2576,6 +2478,7 @@ const createVersionFile = async (destinationStackId: string, projectId: string) 
 
 export const wordpressService = {
   getAllAssets,
+  createLocale,
   createAssetFolderFile,
   getAllreference,
   extractChunks,
