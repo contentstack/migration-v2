@@ -98,7 +98,7 @@ const Mapper = ({
       Object?.entries(updatedExisting)?.forEach(([index, entry]) => {
         const [labelPart] = entry.label.split('-');
         if (!validLabels?.includes(labelPart)) {
-          delete updatedExisting[index];
+          delete updatedExisting?.[index];
         }
       });
       
@@ -108,7 +108,7 @@ const Mapper = ({
         Object?.keys(updated)?.forEach((key) => {
           const [labelPart] = key?.split('-');
           if (!validLabels?.includes(labelPart)) {
-            delete updated[key];
+            delete updated?.[key];
           }
         });
     
