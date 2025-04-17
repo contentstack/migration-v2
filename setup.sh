@@ -25,18 +25,6 @@ if [[ "$NODE_VERSION" != v21.* ]]; then
 fi
 nvm use 21
 
-Setup CLI
-echo "Setting up CLI repo..."
-cd "$SCRIPT_DIR/cli" || exit 1
-
-# Check if current user can write to node_modules
-if [ -w node_modules ] || [ ! -d node_modules ]; then
-  npm run setup-repo --force
-else
-  echo "Permission issue detected. Trying with sudo..."
-  sudo npm run setup-repo --force
-fi
-
 # Return to script root
 cd "$SCRIPT_DIR" || exit 1
 
