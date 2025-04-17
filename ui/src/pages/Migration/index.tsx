@@ -643,11 +643,11 @@ const Migration = () => {
     await updateMigrationKey(selectedOrganisation.value, projectId);
 
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
-    if (res?.status === 200) {
+    //if (res?.status === 200) {
       handleStepChange(4);
       const url = `/projects/${projectId}/migration/steps/5`;
       navigate(url, { replace: true });
-    }
+    //}
   };
 
   /**
