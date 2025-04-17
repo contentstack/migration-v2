@@ -32,11 +32,8 @@ const DeleteProjectModal = (props: SettingsModalProps) => {
       />
 
       <ModalBody className="modalBodyCustomClass">
-        <h3>You are about to delete the project, {projectName}</h3> <br />
-        <p>
-          All the content stored within the project will be deleted permanently. This action cannot
-          be undone.
-        </p>
+        You are about to delete this project. <br />
+        This will permanently remove the project and all its content. This action cannot be undone.
       </ModalBody>
 
       <ModalFooter>
