@@ -55,12 +55,12 @@ const Mapper = ({
   const [csOptions, setcsOptions] = useState(options);
   const [sourceoptions, setsourceoptions] = useState(sourceOptions);
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-  const [selectedStack,setselectedStack] = useState<IDropDown>();
+  const [selectedStack,setSelectedStack] = useState<IDropDown>();
   const dispatch = useDispatch();
   const [placeholder] = useState<string>('Select language');
 
   useEffect(()=>{
-    setselectedStack(stack)
+    setSelectedStack(stack)
   },[]);
 
   useEffect(() => {
@@ -454,8 +454,8 @@ const LanguageMapper = ({stack, uid } :{ stack : IDropDown, uid: string}) => {
   const [sourceLocales, setsourceLocales] = useState<{ label: string; value: string }[]>([]);
   const [isLoading, setisLoading] = useState<boolean>(false);
   const [localeChanged, setlocaleChanged] = useState<boolean>(false);
-  const [currentStack, setcurrentStack] = useState<IDropDown>();
-  const [previousStack, setpreviousStack] = useState<IDropDown>();
+  const [currentStack, setCurrentStack] = useState<IDropDown>();
+  const [previousStack, setPreviousStack] = useState<IDropDown>();
   const [isStackChanged, setisStackChanged] = useState<boolean>(false);
 
   const prevStackRef:any = useRef(null);
@@ -463,8 +463,8 @@ const LanguageMapper = ({stack, uid } :{ stack : IDropDown, uid: string}) => {
   useEffect(() => {
     if (prevStackRef.current && stack?.uid !== prevStackRef.current?.uid) {
       setisStackChanged(true);
-      setcurrentStack(stack);
-      setpreviousStack(prevStackRef?.current);
+      setCurrentStack(stack);
+      setPreviousStack(prevStackRef?.current);
     }
     prevStackRef.current = stack;
   }, [stack]);
