@@ -299,7 +299,6 @@ const Mapper = ({
 
     handleLangugeDelete(index, locale);
   };
-  //console.info("cms Locale option ----> ", cmsLocaleOptions, existingLocale)
   return (
     <>
       {cmsLocaleOptions?.length > 0  ? (
@@ -441,7 +440,6 @@ const Mapper = ({
 const LanguageMapper = ({stack} :{ stack : IDropDown}) => {
   
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-  //console.info("again render ", newMigrationData?.destination_stack?.selectedStack?.master_locale)
   const [options, setoptions] = useState<{ label: string; value: string }[]>([]);
   const [cmsLocaleOptions, setcmsLocaleOptions] = useState<{ label: string; value: string }[]>([]);
   const [sourceLocales, setsourceLocales] = useState<{ label: string; value: string }[]>([]);
