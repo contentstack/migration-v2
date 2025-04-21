@@ -372,7 +372,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
               ></Icon>
             </Tooltip>
           </div>
-          <LanguageMapper />
+          <LanguageMapper
+          stack={selectedStack} />
         </div>
       )}
     </div>
