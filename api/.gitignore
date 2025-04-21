@@ -365,3 +365,5 @@ database/
 /sitecoreMigrationData
 /cmsMigrationData
 /migration-data
+**/copy*
+**copy.ts

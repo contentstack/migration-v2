@@ -20,7 +20,7 @@
   "homepage": "https://github.com/contentstack-expert-services/migration-wordpress-xml#readme",
   "dependencies": {
     "@contentstack/json-rte-serializer": "^2.0.2",
-    "@sitecore-jss/sitecore-jss-cli": "^21.2.4",
+    "@sitecore-jss/sitecore-jss-cli": "^22.4.0",
     "ansi-colors": "^4.1.3",
     "axios": "^1.3.4",
     "chalk": "^4.1.0",
