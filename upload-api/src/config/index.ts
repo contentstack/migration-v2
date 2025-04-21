@@ -9,8 +9,8 @@ export default {
     awsAccessKeyId: '',
     awsSecretAccessKey: '',
     awsSessionToken: '',
-    bucketName: 'migartion-test',
-    buketKey: 'project/package 45.zip'
+    bucketName: '',
+    bucketKey: ''
   },
   mysql: {
     host: '127.0.0.1',

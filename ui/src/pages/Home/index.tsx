@@ -18,7 +18,7 @@ import usePreventBackNavigation from '../../hooks/usePreventBackNavigation';
 const Home = () => {
   const [data, setData] = useState<HomepageType>({});
   useBlockNavigation(true);
-  usePreventBackNavigation(); 
+  usePreventBackNavigation();
 
   const fetchData = async () => {
     //check if offline CMS data field is set to true, if then read data from cms data file.
@@ -40,7 +40,7 @@ const Home = () => {
     <div className="d-flex vh-100 align-items-center justify-content-center flex-column">
       {heading && <h1 className="pb-3">{heading}</h1>}
 
-      {description && <div className='welcome-para'>{parse(description)}</div>}
+      {description && <div className="welcome-para">{parse(description)}</div>}
 
       {cta?.title && (
         <Link to={cta?.url as string} className="btn primary-btn pb-0 mt-3">

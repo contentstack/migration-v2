@@ -1,3 +1,5 @@
+@import '../../../scss/App.scss';
+
 /**
  * Styles for the ReactModal__add-stack class.
  */
@@ -25,4 +27,13 @@
  */
 .ReactModal__Overlay .ReactModal__Content .ReactModal__Content__body.selectWrapperBody {
   overflow: visible;
+}
+.stack-creation-warning {
+  color: $color-font-base;
+  font-size: $size-font-large;
+  margin-left: .5rem;
+  margin-top: .5rem;
+  .imp-text {
+    font-weight: $font-weight-semi-bold;
+  }
 }

@@ -21,7 +21,6 @@ import logger from "../utils/logger.js";
  * @returns A promise that resolves to a LoginServiceType object.
  * @throws ExceptionFunction if an error occurs during the login process.
  */
-
 const login = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "Login";
   /*

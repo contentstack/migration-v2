@@ -10,7 +10,7 @@ export default checkSchema({
   affix: {
     in: "body",
     isString: {
-      errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace("$", "affix"),
+      errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace(/\$/g, "affix"),
       bail: true,
     },
     trim: true,

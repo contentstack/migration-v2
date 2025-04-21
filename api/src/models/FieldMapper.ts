@@ -28,6 +28,7 @@ interface FieldMapper {
   field_mapper: {
     id: string;
     projectId: string;
+    contentTypeId: string;
     uid: string;
     otherCmsField: string;
     otherCmsType: string;

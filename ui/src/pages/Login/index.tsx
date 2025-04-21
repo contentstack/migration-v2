@@ -1,5 +1,5 @@
 // Libraries
-import { FC,useEffect, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -31,7 +31,6 @@ import { userSession, requestSMSToken } from '../../services/api/login.service';
 // Interface
 import { IProps, IStates, defaultStates, User, UserRes, LoginType } from './login.interface';
 
-
 //Components
 import AccountPage from '../../components/AccountPage';
 
@@ -41,7 +40,6 @@ import { RootState } from '../../store';
 
 const Login: FC<IProps> = () => {
   const [data, setData] = useState<LoginType>({});
-
 
   // ************* Fetch Login Data ************
   const fetchData = async () => {
@@ -59,7 +57,7 @@ const Login: FC<IProps> = () => {
   }, []);
 
   const { login, two_factor_authentication: twoFactorAuthentication } = data;
-  const user = useSelector((state:RootState)=>state?.authentication?.user);
+  const user = useSelector((state: RootState) => state?.authentication?.user);
   const accountData = {
     heading: data?.heading,
     subtitle: data?.subtitle,
@@ -68,17 +66,16 @@ const Login: FC<IProps> = () => {
 
   // ************* ALL States Here ************
   const [loginStates, setLoginStates] = useState<IStates>(defaultStates);
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   // const [isBlock, setIsBlock] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  
+
   // Get the region
   const urlParams = new URLSearchParams(location?.search);
   const region = urlParams?.get?.('region');
-
 
   // ************* send SMS token ************
   const sendSMS = async () => {
@@ -160,22 +157,21 @@ const Login: FC<IProps> = () => {
     if (response?.status === 200 && response?.data?.message === LOGIN_SUCCESSFUL_MESSAGE) {
       setIsLoading(false);
       setDataInLocalStorage('app_token', response?.data?.app_token);
-      const authenticationObj =  {
-      
+      const authenticationObj = {
         authToken: response?.data?.app_token,
         isAuthenticated: true
-       }
-      const userObj  = {
+      };
+      const userObj = {
         ...user,
-        region : region,
-      }
-      dispatch( setUser(userObj));
+        region: region
+      };
+      dispatch(setUser(userObj));
       dispatch(setAuthToken(authenticationObj));
 
       setLoginStates((prev) => ({ ...prev, submitted: true }));
-      
+
       dispatch(getUserDetails());
-      
+
       navigate(`/projects`, { replace: true });
     }
   };
@@ -199,7 +195,7 @@ const Login: FC<IProps> = () => {
   // useEffect(()=>{
   //   if(region && loginStates?.tfa){
   //     setIsBlock(true);
-  
+
   //   }
 
   // },[loginStates]);
@@ -214,8 +210,8 @@ const Login: FC<IProps> = () => {
   };
 
   const onEmailChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-    setLoginStates(prevState => updateUserEmail(prevState, event.target.value));
-  }
+    setLoginStates((prevState) => updateUserEmail(prevState, event.target.value));
+  };
 
   const updateUserEmail = (prevState: IStates, email: string): IStates => {
     return {
@@ -228,8 +224,8 @@ const Login: FC<IProps> = () => {
   };
 
   const onPasswordChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-    setLoginStates(prevState => updateUserPassword(prevState, event.target.value));
-  }
+    setLoginStates((prevState) => updateUserPassword(prevState, event.target.value));
+  };
 
   const updateUserPassword = (prevState: IStates, password: string): IStates => {
     return {
@@ -240,8 +236,8 @@ const Login: FC<IProps> = () => {
       }
     };
   };
-  
-  // useEffect(()=>{ 
+
+  // useEffect(()=>{
   //   const handlePopState = (event: PopStateEvent) => {
   //     event.preventDefault();
   //     window.history.pushState(null, '', window.location.href);
@@ -257,8 +253,7 @@ const Login: FC<IProps> = () => {
   // },[isBlock]);
 
   useEffect(() => {
-
-    const redirectUrl = loginStates?.tfa && region ? `/login?region=${region}` : "/region-login"
+    const redirectUrl = loginStates?.tfa && region ? `/login?region=${region}` : '/region-login';
 
     const handleBackButton = () => {
       // Redirect to an internal route
@@ -276,10 +271,8 @@ const Login: FC<IProps> = () => {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [navigate,  loginStates]);  
-      
-  
-  
+  }, [navigate, loginStates]);
+
   return (
     <AccountPage data={accountData}>
       {loginStates?.tfa ? (
@@ -499,5 +492,3 @@ const Login: FC<IProps> = () => {
 };
 
 export default Login;
-
-

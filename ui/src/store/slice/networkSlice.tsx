@@ -6,7 +6,7 @@ interface NetworkState {
 }
 
 const initialState: NetworkState = {
-  isOnline: navigator.onLine,
+  isOnline: navigator.onLine
 };
 
 const networkSlice = createSlice({
@@ -18,8 +18,8 @@ const networkSlice = createSlice({
     },
     setOffline(state) {
       state.isOnline = false;
-    },
-  },
+    }
+  }
 });
 
 export const { setOnline, setOffline } = networkSlice.actions;

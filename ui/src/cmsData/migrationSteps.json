@@ -17,7 +17,7 @@
               "type": "p",
               "attrs": { "style": {}, "redactor-attributes": {}, "dir": "ltr" },
               "uid": "f4f59ae597494fd5bf9b40920a2e7e86",
-              "children": [{ "text": "Select source CMS for data migration." }]
+              "children": [{ "text": "Select source CMS for data migration" }]
             }
           ],
           "type": "doc"
@@ -118,7 +118,7 @@
               "type": "p",
               "attrs": { "style": {}, "redactor-attributes": {}, "dir": "ltr" },
               "uid": "9a6dbc02eff4492d81d5824a82f4c18e",
-              "children": [{ "text": "Review of content mapping on the target stack." }]
+              "children": [{ "text": "Review of content mapping on the target stack" }]
             }
           ],
           "_version": 11

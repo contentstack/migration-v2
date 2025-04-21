@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsc && node build/index.js",
+    "dev": "tsc --watch & node --watch build/index.js",
     "validation": "tsc && node build/main.js",
     "prettify": "prettier --write .",
     "lint": "eslint .",
@@ -48,13 +49,15 @@
     "inquirer": "^9.2.15",
     "jszip": "^3.10.1",
     "lodash.isempty": "^4.4.0",
+    "migration-contentful": "file:migration-contentful",
     "migration-drupal": "file:migration-drupal",
+    "migration-contentful": "file:migration-contentful",
     "migration-sitecore": "file:migration-sitecore",
     "migration-wordpress": "file:migration-wordpress",
-    "migration-contentful": "file:migration-contentful",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.11.4",
     "node-fetch": "^2.7.0",
+    "nodemon": "^3.1.9",
     "prettier": "^3.3.3",
     "xml2js": "^0.6.2"
   }

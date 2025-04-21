@@ -33,9 +33,9 @@
   .Search__v2 {
     background-color: $color-brand-white-base;
     height: 2.5rem;
-    width: 100%!important;
+    width: 100% !important;
     .Search-input-show {
-      width: 100%!important;
+      width: 100% !important;
     }
   }
   // svg {
@@ -98,7 +98,8 @@
         width: 20px;
       }
     }
-    &:hover, &.active-ct {
+    &:hover,
+    &.active-ct {
       background-color: $color-brand-white-base;
       .cms-title {
         span {
@@ -106,7 +107,7 @@
         }
       }
     }
-  } 
+  }
 }
 .mapped-icon {
   circle {
@@ -117,7 +118,7 @@
   .Dropdown__menu--primary {
     right: 0;
     top: 1.5rem;
-  }       
+  }
 }
 .content-type-list {
   padding-left: $px-12;
@@ -144,6 +145,9 @@
   flex: 1;
   .TablePanel {
     border-left: 0 none;
+    .TablePanel__list-count {
+      display: none;
+    }
   }
   .Table {
     border-left: 0 none;
@@ -152,11 +156,17 @@
       padding: 0 1.25rem;
     }
     .cms-field {
-      text-transform: capitalize;
+      // text-transform: capitalize;
+      // overflow: hidden;
+      // text-overflow: ellipsis;
+      // white-space: nowrap;
+      // width: 445px;
+
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
-      width: 445px;
     }
     .InstructionText {
       font-size: $size-font-small;
@@ -202,7 +212,7 @@ div .select {
     width: 100%;
     max-width: 100% !important;
   }
-} 
+}
 div .table-row {
   display: flex;
   justify-content: space-between;
@@ -249,7 +259,7 @@ div .table-row {
 .filter-wrapper {
   background-color: $color-brand-white-base;
   border-radius: $px-4;
-  box-shadow: 0 $px-4 $px-30 rgba(0,0,0,.25);
+  box-shadow: 0 $px-4 $px-30 rgba(0, 0, 0, 0.25);
   position: absolute;
   right: $px-12;
   top: $px-50;
@@ -262,7 +272,7 @@ div .table-row {
       font-size: $size-font-medium;
       padding: $px-8 $px-12;
     }
-    
+
     &:hover {
       background-color: $color-base-white-10;
       color: $color-brand-primary-base;
@@ -288,7 +298,7 @@ div .table-row {
   background-color: $color-brand-fail-light;
   cursor: pointer;
 }
-.mapper-emptystate{
+.mapper-emptystate {
   padding: 10px 10px;
 }
 .Checkbox .Checkbox__tick svg {
@@ -296,4 +306,8 @@ div .table-row {
 }
 .advanced-setting-button {
   padding: 5px;
+}
+.field-count {
+  font-size: $size-font-large;
+  font-weight: $font-weight-semi-bold;
 }

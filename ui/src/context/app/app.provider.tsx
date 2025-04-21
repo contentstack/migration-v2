@@ -137,7 +137,6 @@ const AppContextProvider: FC<IProps> = ({ children }) => {
     if (token) {
       setAuthToken(token ?? '');
     }
-
   }, [authToken]);
 
   useEffect(() => {

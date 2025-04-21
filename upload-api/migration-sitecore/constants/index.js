@@ -36,6 +36,7 @@ const MIGRATION_DATA_CONFIG = {
     ENTRIES_DIR_NAME : "entries",
     ENTRIES_MASTER_FILE : "index.json",
   
+    
     GLOBAL_FIELDS_DIR_NAME : "global_fields",
     GLOBAL_FIELDS_FILE: "globalfields",
     GLOBAL_FIELDS_FILE_NAME : "globalfields.json",
@@ -44,6 +45,6 @@ const MIGRATION_DATA_CONFIG = {
 
 
 
-  module.exports = {
-    MIGRATION_DATA_CONFIG
-  };
+module.exports = {
+  MIGRATION_DATA_CONFIG
+};

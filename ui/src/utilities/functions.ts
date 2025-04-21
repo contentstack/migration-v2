@@ -74,7 +74,7 @@ export const extractWindowObj = (str: string): string | null => {
   if (!matches) {
     return null;
   }
-  
+
   for (const matchStr of matches) {
     if (matchStr.includes('window.sso')) {
       return matchStr.replace('<script>', '').replace('</script>', '');
@@ -107,7 +107,7 @@ export const setDataInLocalStorage = (key: string, data: string) => {
 };
 
 // utitlity function to retrieve state from sessionStorage
-export const getStateFromLocalStorage = (key : string) => {
+export const getStateFromLocalStorage = (key: string) => {
   const state = sessionStorage.getItem(key);
   return state ? JSON.parse(state) : null;
 };

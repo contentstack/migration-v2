@@ -672,6 +672,9 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
     ...ct,
     title: mergeCts?.title,
     uid: mergeCts?.uid,
+    options: {
+      "singleton": false,
+    }
   }
   for await (const field of ctData?.schema ?? []) {
     if (field?.data_type === 'group') {

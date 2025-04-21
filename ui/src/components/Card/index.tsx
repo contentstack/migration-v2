@@ -32,7 +32,7 @@ const CardList = ({ project }: ProjectType) => {
     '3': 'Warning',
     '4': 'Warning',
     '5': 'CheckCircleDark',
-    '6': 'Close',
+    '6': 'Close'
   };
 
   const statusClassMapping: { [key: string]: string } = {
@@ -42,7 +42,7 @@ const CardList = ({ project }: ProjectType) => {
     '3': 'pending',
     '4': 'pending',
     '5': 'completed',
-    '6': 'failed',
+    '6': 'failed'
   };
 
   const status = project?.status ?? '0';
@@ -66,23 +66,27 @@ const CardList = ({ project }: ProjectType) => {
     <div style={{ margin: '0 19px 20px 0' }}>
       <div onClick={() => onClickProject(project?.id ?? '')}>
         <div className="ProjectCard">
-          <div className='ProjectCardWrapper'>
+          <div className="ProjectCardWrapper">
             <Tooltip content={project?.name} position="right" type="primary" variantType="basic">
               <div className="ProjectCard__heading">
-                {project?.name && <h4 className="ProjectCard__title flex-v-center">{project?.name}</h4>}
+                {project?.name && (
+                  <h4 className="ProjectCard__title flex-v-center">{project?.name}</h4>
+                )}
               </div>
             </Tooltip>
             <div className="ProjectCard__content">
               <div className="ProjectCard__stats">
-                <div className='ProjectCard__Staus-unit'>
+                <div className="ProjectCard__Staus-unit">
                   <span className="ProjectCard__stats-Title">Source</span>
-                  <div className="ProjectCard__cms">{project?.legacy_cms?.cms ? project?.legacy_cms?.cms : '-'}</div>
+                  <div className="ProjectCard__cms">
+                    {project?.legacy_cms?.cms ? project?.legacy_cms?.cms : '-'}
+                  </div>
                 </div>
                 <div className="ProjectCard__unit">
                   <span className="ProjectCard__stats-Title">Project Status</span>
                   <div className={`ProjectCard__stats-category ${statusClass}`}>
                     {icon && <Icon size="mini" icon={icon} version="v2" />}
-                    {statusText && <span className='ml-5'>{statusText}</span>}
+                    {statusText && <span className="ml-5">{statusText}</span>}
                   </div>
                 </div>
               </div>
@@ -93,7 +97,15 @@ const CardList = ({ project }: ProjectType) => {
               <div className="ProjectCard__modified flex-v-center">
                 <Tooltip content="Last Modified" position="top" type="primary" variantType="basic">
                   <div className="flex-v-center">
-                    <Icon version="v2" icon="Clock" height="18" width="18" size='small' fill='none' stroke='#6E6B86' />
+                    <Icon
+                      version="v2"
+                      icon="Clock"
+                      height="18"
+                      width="18"
+                      size="small"
+                      fill="none"
+                      stroke="#6E6B86"
+                    />
                     <span className="ProjectCard__modified-date">
                       {project?.updated_at && getDays(project?.updated_at)}
                     </span>

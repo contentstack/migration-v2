@@ -21,7 +21,6 @@ import { ProjectModalProps, FormData } from './modal.interface';
 import { useState } from 'react';
 import { createProject } from '../../services/api/project.service';
 
-
 const Modal = (props: ProjectModalProps) => {
   const {
     closeModal,
@@ -48,7 +47,7 @@ const Modal = (props: ProjectModalProps) => {
       return res?.error;
     }
     if (res?.status === 201) {
-      const projectId = res?.data?.project?.id
+      const projectId = res?.data?.project?.id;
       window.location.href = `/projects/${projectId}/migration/steps/1`;
     }
     return res;
@@ -57,8 +56,8 @@ const Modal = (props: ProjectModalProps) => {
   const nameValidation = (value: string) => {
     if (!value) {
       setInputValue(false);
-      return 'Project name is required.'; 
-    } else if (!/^[^\s].*$/.test(value)) { 
+      return 'Project name is required.';
+    } else if (!/^[^\s].*$/.test(value)) {
       setInputValue(false);
       //return 'Please enter a valid project name.';
     } else {
@@ -88,17 +87,16 @@ const Modal = (props: ProjectModalProps) => {
     <>
       <ModalHeader
         title={title}
-        closeModal={()=> {
+        closeModal={() => {
           closeModal();
-          isOpen(false)}}
+          isOpen(false);
+        }}
         closeIconTestId="cs-default-header-close"
-       
       />
 
       <FinalForm
         className="customForm"
         onSubmit={handleSubmit}
-        
         render={({ handleSubmit }): JSX.Element => {
           return (
             <form
@@ -150,20 +148,16 @@ const Modal = (props: ProjectModalProps) => {
                           {/* Show maxLength error immediately */}
                           {validateMaxLength(input.value) && (
                             <ValidationMessage
-                            testId="cs-name-length-error"
-                            className="mt-2"
-                            version="v2"
-                          >
-                            {validateMaxLength(input.value)}
-                          </ValidationMessage>
-                          )}
-                          {/* Show required error only after the field has been touched */}
-                          {meta.error && meta.touched && !validateMaxLength(input.value) && (
-                            <ValidationMessage
-                              testId="cs-name-error"
+                              testId="cs-name-length-error"
                               className="mt-2"
                               version="v2"
                             >
+                              {validateMaxLength(input.value)}
+                            </ValidationMessage>
+                          )}
+                          {/* Show required error only after the field has been touched */}
+                          {meta.error && meta.touched && !validateMaxLength(input.value) && (
+                            <ValidationMessage testId="cs-name-error" className="mt-2" version="v2">
                               {meta?.error}
                             </ValidationMessage>
                           )}
@@ -214,13 +208,26 @@ const Modal = (props: ProjectModalProps) => {
                 {((primaryCta && primaryCta?.title) ?? (secondaryCta && secondaryCta?.title)) && (
                   <ButtonGroup>
                     {secondaryCta && secondaryCta?.title && (
-                      <Button buttonType={secondaryCta?.theme} onClick={() => {closeModal();isOpen(false);}} size="large" className="baseColorButton">
+                      <Button
+                        buttonType={secondaryCta?.theme}
+                        onClick={() => {
+                          closeModal();
+                          isOpen(false);
+                        }}
+                        size="large"
+                        className="baseColorButton"
+                      >
                         {secondaryCta?.title}
                       </Button>
                     )}
 
                     {primaryCta && primaryCta?.title && (
-                      <Button type="submit" buttonType={primaryCta?.theme} disabled={!inputValue} size="large">
+                      <Button
+                        type="submit"
+                        buttonType={primaryCta?.theme}
+                        disabled={!inputValue}
+                        size="large"
+                      >
                         {primaryCta?.title}
                       </Button>
                     )}

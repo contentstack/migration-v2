@@ -15,14 +15,13 @@ const ProjectsHeader = ({
   allProject,
   handleModal
 }: ProjectsHeaderType) => {
-
   const [disableCreateProject, setDisableCreateProject] = useState<boolean>(false);
 
   useEffect(() => {
     allProject?.forEach((project: ProjectsObj) => {
       setDisableCreateProject(project?.isMigrationStarted && !project?.isMigrationCompleted);
     });
-  },[allProject]);
+  }, [allProject]);
 
   let interval: ReturnType<typeof setTimeout>;
   function setFocus() {
@@ -37,9 +36,9 @@ const ProjectsHeader = ({
       <Search
         placeholder={searchPlaceholder}
         type="secondary"
-        onChange={(search: string) =>{
-          search.trim()?.length > 0 ? setSearchText(search?.trim()) : setSearchText(search)}
-        }
+        onChange={(search: string) => {
+          search.trim()?.length > 0 ? setSearchText(search?.trim()) : setSearchText(search);
+        }}
         width="large"
         onClear={true}
         onClick={setFocus}
@@ -72,7 +71,7 @@ const ProjectsHeader = ({
       type: 'primary'
     }
   ];
-  
+
   return (
     <PageHeader
       title={{ label: headingText, component: SearchProject }}

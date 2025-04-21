@@ -24,11 +24,10 @@
   justify-content: center;
   font-size: 24px;
   margin: 12px auto;
-  
 }
 
 .profile-card__name {
-  color: #6E6B86;
+  color: #6e6b86;
   font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
   line-height: $line-height-default;
@@ -37,7 +36,7 @@
 }
 
 .profile-card__email {
-  color: #6E6B86;
+  color: #6e6b86;
   font-size: $size-font-small;
   line-height: $line-height-default;
   margin-top: 2px;
@@ -59,7 +58,7 @@
 }
 
 .profile-card__logout-text {
-  color: #6E6B86;
+  color: #6e6b86;
   font-size: $size-font-large;
   &:hover {
     text-decoration: underline;
@@ -74,7 +73,7 @@
   height: 64px;
   top: 0;
   left: 0;
-  background-color: #F9F8FF;
+  background-color: #f9f8ff;
   z-index: 1;
 }
 .profile-card__avatar {

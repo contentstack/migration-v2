@@ -23,11 +23,11 @@ const appDetails = require('../utils/apps/appDetails.json')
  */
 const uidCorrector = (uid, affix) => {
   let newId = uid;
-  if (restrictedUid.includes(uid)) {
-    newId = uid.replace(uid, `${affix}_${uid}`);
-    newId = newId.replace(/[^a-zA-Z0-9]+/g, '_');
+  if (restrictedUid?.includes?.(uid)) {
+    newId = uid?.replace?.(uid, `${affix}_${uid}`);
+    newId = newId?.replace?.(/[^a-zA-Z0-9]+/g, '_');
   }
-  return newId.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`);
+  return newId.replace(/([A-Z])/g, (match) => `_${match?.toLowerCase?.()}`);
 };
 
 /**
@@ -70,7 +70,7 @@ const extractAdvancedFields = (
   return {
     default_value: defaultText,
     validationRegex: regrexValue,
-    mandatory: ["title", "url"].includes(item.id) ? true : item?.required,
+    mandatory: item?.required,
     multiple: singleRef,
     unique: uniqueValue,
     nonLocalizable: !(item?.localized === true),
@@ -100,13 +100,14 @@ const extractAdvancedFields = (
  * // Outputs an object containing the field configuration for Contentstack and backup fields
  */
 const createFieldObject = (item, contentstackFieldType, backupFieldType, referenceFields = []) => ({
-  uid: item.id,
-  otherCmsField: item.name,
-  otherCmsType: item.widgetId,
-  contentstackField: item.name,
-  contentstackFieldUid: uidCorrector(item.id),
+  uid: item?.id,
+  otherCmsField: item?.name,
+  otherCmsType: item?.widgetId,
+  contentstackField: item?.name,
+  contentstackFieldUid: uidCorrector(item?.id, item?.prefix),
   contentstackFieldType: contentstackFieldType,
   backupFieldType: backupFieldType,
+  backupFieldUid: uidCorrector(item?.id, item?.prefix),
   advanced: extractAdvancedFields(item, referenceFields, contentstackFieldType, backupFieldType)
 });
 
@@ -298,13 +299,13 @@ const contentTypeMapper = (data) => {
             };
 
             // Process validations and content names when data.items is not defined
-            if (!item.items) {
-              if (item.validations?.length > 0) {
+            if (!item?.items) {
+              if (item?.validations?.length > 0) {
                 item.validations.forEach((entries) => {
-                  if (entries.linkContentType?.length) {
-                    commonRef = processLinkContentType(entries.linkContentType);
+                  if (entries?.linkContentType?.length) {
+                    commonRef = processLinkContentType(entries?.linkContentType);
                     referenceFields =
-                      commonRef.length > 0 ? commonRef : item.contentNames?.slice(0, 9);
+                      commonRef?.length > 0 ? commonRef : item?.contentNames?.slice(0, 9);
                   }
                 });
               } else {
@@ -330,7 +331,9 @@ const contentTypeMapper = (data) => {
                     : item?.contentNames?.slice(0, 9);
               }
             }
-            acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
+            const refFieldData = createFieldObject(item, 'reference', 'reference', referenceFields)
+            refFieldData.refrenceTo = referenceFields;
+            acc.push(refFieldData);
             break;
           }
           case 'checkbox':
@@ -361,13 +364,14 @@ const contentTypeMapper = (data) => {
       case 'Location': {
         acc.push(createFieldObject(item, 'group', 'group'));
         acc.push({
-          uid: `${item.name}.lat`,
+          uid: `${item.id}.lat`,
           otherCmsField: `${item.name} > lat`,
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lat`,
-          contentstackFieldUid: `${uidCorrector(item?.id)}.lat`,
+          contentstackFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lat`,
           contentstackFieldType: 'number',
           backupFieldType: 'number',
+          backupFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lat`,
           advanced: {
             mandatory: item?.required,
             unique: false,
@@ -375,13 +379,14 @@ const contentTypeMapper = (data) => {
           }
         });
         acc.push({
-          uid: `${item.name}.lon`,
+          uid: `${item.id}.lon`,
           otherCmsField: `${item.name} > lon`,
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lon`,
-          contentstackFieldUid: `${uidCorrector(item?.id)}.lon`,
+          contentstackFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lon`,
           contentstackFieldType: 'number',
           backupFieldType: 'number',
+          backupFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lon`,
           advanced: {
             mandatory: item?.required,
             unique: false,

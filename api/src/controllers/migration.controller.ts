@@ -10,7 +10,7 @@ import { migrationService } from "../services/migration.service.js"
  */
 const createTestStack = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.createTestStack(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 
 /**
@@ -55,12 +55,12 @@ const getLogs = async (req: Request, res: Response): Promise<void> => {
   res.status(200).json(resp);
 };
 
-const saveLocales = async (req:Request, res: Response):Promise<void> =>{
+const saveLocales = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.createSourceLocales(req)
   res.status(200).json(resp);
 }
 
-const saveMappedLocales = async (req:Request, res:Response):Promise<void> =>{
+const saveMappedLocales = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.updateLocaleMapper(req);
   res.status(200).json(resp);
 }

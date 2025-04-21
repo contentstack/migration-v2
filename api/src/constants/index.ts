@@ -13,9 +13,6 @@ export const CMS = {
   SITECORE_V10: 'sitecore v10',
   WORDPRESS: 'wordpress',
   AEM: 'aem',
-  DRUPAL_V7: 'drupal v7',
-  DRUPAL_V8: 'drupal v8+',
-  DRUPAL: 'drupal',
 };
 export const MODULES = [
   'Project',
@@ -63,6 +60,8 @@ export const HTTP_TEXTS = {
   STACK_UPDATED: "Project's migration stack details updated successfully",
   CONTENT_MAPPER_UPDATED:
     "Project's migration content mapping updated successfully",
+  CONTENT_MAPPER_UPDATED:
+    "Project's migration content mapping updated successfully",
   FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
   DESTINATION_STACK_UPDATED:
     "Project's migration destination stack updated successfully",
@@ -103,6 +102,7 @@ export const HTTP_TEXTS = {
   PROJECT_REVERT: 'Project Reverted Successfully',
   LOGS_NOT_FOUND: 'Sorry, no logs found for requested stack migration.',
   MIGRATION_EXECUTION_KEY_UPDATED:
+    "Project's migration execution key updated successfully",
     "Project's migration execution key updated successfully",
 };
 
@@ -180,11 +180,11 @@ export const LOCALE_MAPPER: any = {
   masterLocale: {
     'en-us': 'en',
   },
-  fr: 'fr-fr',
+  locales: { fr: 'fr-fr' },
 };
 export const CHUNK_SIZE = 1048576;
 
-export const LIST_EXTENSION_UID = 'bltc44e51cc9f4b0d80';
+export const LIST_EXTENSION_UID = "bltc44e51cc9f4b0d80";
 
 export const KEYTOREMOVE = [
   'update',
@@ -308,37 +308,4 @@ export const MIGRATION_DATA_CONFIG = {
   QUERY_FILE_NAME: 'index.json',
 
   EXPORT_INFO_FILE: 'export-info.json',
-  BASE_LOCALE: { name: 'English US', code: 'en-us' },
-  MYSQL: {
-    HOST: '127.0.0.1',
-    USER: 'drupaluser',
-    PASSWORD: 'root',
-    DATABASE: 'drupaldb',
-  },
-  BASE_URL: 'http://127.0.0.1/web',
-  PUBLIC_PATH: '/sites/default/files/',
-  PRIVATE_PATH: '',
-  DRUPAL_BASE_URL: '',
-  'mysql-query': {
-    locale: 'SELECT languages.language,languages.name FROM `languages`',
-    taxonomy_term_data:
-      'SELECT a.name, max(a.description__value) as description__value ,max(b.tid) as tid,max(b.vid) as vid FROM taxonomy_term_field_data a, taxonomy_term_data b WHERE a.vid=b.vid group by a.name',
-    taxonomyCount:
-      'SELECT count(b.tid) as taxonomycount FROM taxonomy_term_field_data a, taxonomy_term_data b WHERE a.tid = b.tid AND a.vid=b.vid',
-    ct_mapped:
-      "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'",
-    fileID: 'SELECT * FROM `file_usage`',
-    assetCount: 'SELECT count(a.fid) as assetcount FROM file_managed a',
-    assets: 'SELECT a.fid, a.filename, a.uri, a.filesize FROM file_managed a',
-    assetsFID:
-      'SELECT a.fid, a.filename, a.uri, b.id,b.count FROM file_managed a, file_usage b WHERE a.fid IN',
-    authorCount:
-      'SELECT count(users_field_data.uid) as usercount FROM users_field_data LEFT JOIN file_managed ON file_managed.fid = users_field_data.uid',
-    authors:
-      'SELECT a.uid, a.name, a.mail, a.timezone, a.langcode, b.user_picture_target_id as picture FROM users_field_data a LEFT JOIN user__user_picture b ON a.uid = b.entity_id',
-    vocabulary:
-      'SELECT taxonomy_term_field_data.vid, taxonomy_term_field_data.name AS title, taxonomy_term_field_data.description__value FROM taxonomy_term_field_data',
-    vocabularyCount:
-      'SELECT count(taxonomy_term_field_data.vid) as vocabularycount FROM taxonomy_term_field_data',
-  },
 };

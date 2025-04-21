@@ -2,13 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import AutoVerticalStepper from '../Stepper/VerticalStepper/AutoVerticalStepper';
 import { getDestinationStackSteps } from './StepperSteps';
-import {
-  CircularLoader,
-  HelpText,
-  Icon,
-  Info,
-  Tooltip
-} from '@contentstack/venus-components';
+import { CircularLoader } from '@contentstack/venus-components';
 import { CS_ENTRIES } from '../../utilities/constants';
 import {
   DEFAULT_DESTINATION_STACK_DATA,
@@ -20,22 +14,21 @@ import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
 import { updateMigrationData } from '../../store/slice/migrationDataSlice';
 import { AutoVerticalStepperRef } from '../LegacyCms';
-import LanguageMapper from './Actions/LoadLanguageMapper';
 
 type DestinationStackComponentProps = {
   isCompleted: boolean;
   projectData: MigrationResponse;
-  handleOnAllStepsComplete:(flag : boolean)=>void;
+  handleOnAllStepsComplete: (flag: boolean) => void;
 };
 
 const DestinationStackComponent = ({
   projectData,
   isCompleted,
   // handleStepChange,
-  handleOnAllStepsComplete,
+  handleOnAllStepsComplete
 }: DestinationStackComponentProps) => {
   /** ALL HOOKS HERE */
-  
+
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
   const [stepperKey] = useState<string>('destination-Vertical-stepper');
   const [internalActiveStepIndex] = useState<number>(-1);
@@ -43,11 +36,11 @@ const DestinationStackComponent = ({
   const autoVerticalStepperComponent = useRef<AutoVerticalStepperRef>(null);
 
   /** ALL CONTEXT HERE */
-  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
-  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const dispatch = useDispatch();
-  const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
-
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isProjectMapped, setisProjectMapped] = useState<boolean>(newMigrationData?.isprojectMapped);
   const handleAllStepsComplete = (flag = false) => {
     handleOnAllStepsComplete(flag);
   };
@@ -100,62 +93,38 @@ const DestinationStackComponent = ({
         );
       }
     }
-  }, [internalActiveStepIndex]); 
+  }, [internalActiveStepIndex]);
+
+  useEffect(()=>{
+    setisProjectMapped(newMigrationData?.isprojectMapped);
+  },[newMigrationData?.isprojectMapped]);
+
   return (
     <>
-      {isLoading || newMigrationData?.isprojectMapped ? (
+      {isLoading || isProjectMapped ? (
         <div className="loader-container">
           <CircularLoader />
         </div>
       ) : (
         <div className="destination-stack-container">
-          <div className='stackTitle'>{migrationData?.destinationStackData?.title}</div>
+          <div className="stackTitle">{migrationData?.destinationStackData?.title}</div>
           <div className="row">
             <div className="col-12">
-            <AutoVerticalStepper
-            key={stepperKey}
-            steps={getDestinationStackSteps(
-              isCompleted,
-              !isMigrationLocked,
-              migrationData?.destinationStackData?.all_steps
-            )}
-            description={migrationData?.destinationStackData?.description}
-            ref={autoVerticalStepperComponent}
-            isEdit={!isMigrationLocked}
-            isRequired={false}
-            handleOnAllStepsComplete={handleAllStepsComplete}
-          />
-
+              <AutoVerticalStepper
+                key={stepperKey}
+                steps={getDestinationStackSteps(
+                  isCompleted,
+                  !isMigrationLocked,
+                  migrationData?.destinationStackData?.all_steps
+                )}
+                description={migrationData?.destinationStackData?.description}
+                ref={autoVerticalStepperComponent}
+                isEdit={!isMigrationLocked}
+                isRequired={false}
+                handleOnAllStepsComplete={handleAllStepsComplete}
+              />
             </div>
           </div>
-
-          <div className="col-12 info-lang">
-            <div className="stackTitle language-title">Language configuration</div>
-            <Tooltip
-              content={`Define language mappings between Contentstack and ${newMigrationData?.legacy_cms?.selectedCms?.parent} for smooth content transfer. Each mapping aligns a WordPress source language with its Contentstack equivalent.`}
-              position="right">
-              <Icon className="language-title" icon="Information" version="v2" size="small"></Icon>
-            </Tooltip>
-          </div>
-          <HelpText
-            data-test-id="cs-paragraph-tag"
-            className="contentMapWrapper-heading p1 regular help-text">
-            Contentstack and {newMigrationData?.legacy_cms?.selectedCms?.parent} Languages Mapping
-          </HelpText>
-
-          {newMigrationData?.destination_stack?.selectedStack?.value ? (
-            <div className="language-mapper col-12 ">
-              <LanguageMapper />
-            </div>
-          ) : (
-            <Info
-              className="info-language-mapper col-12 info-tag"
-              icon={<Icon icon="Information" version="v2" size="small"></Icon>}
-              version="v2"
-              content="Please select the stack to proceed with language mapping"
-              type="light"
-            />
-          )}
         </div>
       )}
     </>

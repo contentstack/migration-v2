@@ -19,30 +19,28 @@ const AppLayout: FC<IProps> = ({ children }) => {
   const location = useLocation();
   const dispatch = useDispatch();
 
-  const  authentication = useSelector((state:RootState)=>state?.authentication?.isAuthenticated);
+  const authentication = useSelector((state: RootState) => state?.authentication?.isAuthenticated);
 
   const projectId = location?.pathname?.split('/')?.[2];
 
-  useEffect(()=>{
+  useEffect(() => {
     dispatch(getUserDetails());
-  },[]);
+  }, []);
 
   useAuthCheck();
 
   return (
     <>
-      {location.pathname.includes('projects') && 
+      {location.pathname.includes('projects') && (
         <>
-        <MainHeader />
-        <SideBar projectId={projectId} /> 
+          <MainHeader />
+          <SideBar projectId={projectId} />
         </>
-      }
-      <div className={`${(location.pathname.includes('projects')) ? 'sidebarWrapper' : ''} page-wrapper`}>
-        <div
-          className='w-100'
-        >
-          {children}
-        </div>
+      )}
+      <div
+        className={`${location.pathname.includes('projects') ? 'sidebarWrapper' : ''} page-wrapper`}
+      >
+        <div className="w-100">{children}</div>
       </div>
     </>
   );

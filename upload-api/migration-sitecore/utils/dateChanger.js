@@ -8,5 +8,4 @@ function dateConverter({ inputDate }) {
   return null;
 }
 
-
 module.exports = dateConverter;

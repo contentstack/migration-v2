@@ -9,7 +9,7 @@ export interface ProjectModalProps {
   modalData: ModalType;
   selectedOrg: IDropDown;
   closeModal: () => void;
-  isOpen : (flag:boolean) => void;
+  isOpen: (flag: boolean) => void;
 }
 export interface SettingsModalProps {
   selectedOrg: IDropDown;
@@ -17,6 +17,7 @@ export interface SettingsModalProps {
   projectName?: string;
   closeModal: () => void;
   navigate: (url: string) => void;
+  handleDeleteProject: () => void;
 }
 
 export interface FormData {

@@ -31,7 +31,14 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
         },
         data: JSON.stringify(fieldMapping),
       };
-      const response = await axios.request(config)
+      const {data, status} = await axios.request(config);
+      if (data?.data?.content_mapper?.length) {
+        logger.info('Validation success:', {
+          status: HTTP_CODES?.OK,
+          message: HTTP_TEXTS?.MAPPER_SAVED,
+        });
+      }
+
 
       const mapperConfig = {
         method: 'post',
