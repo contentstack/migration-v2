@@ -15,7 +15,7 @@ import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 
 // Interface
-import { IDropDown, INewMigration } from '../../../context/app/app.interface';
+import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
 import { StackResponse } from '../../../services/api/service.interface';
 import { Stack } from '../../../components/Common/AddStack/addStack.interface';
 
@@ -373,7 +373,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
             </Tooltip>
           </div>
           <LanguageMapper
-          stack={selectedStack} />
+          stack={selectedStack ?? DEFAULT_DROPDOWN} />
         </div>
       )}
     </div>
