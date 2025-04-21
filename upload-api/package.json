@@ -6,7 +6,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsc && node build/index.js",
-    "dev": "tsc --watch & node --watch build/index.js",
     "validation": "tsc && node build/main.js",
     "prettify": "prettier --write .",
     "lint": "eslint .",
