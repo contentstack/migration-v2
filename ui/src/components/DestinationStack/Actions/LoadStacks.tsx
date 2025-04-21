@@ -373,6 +373,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
             </Tooltip>
           </div>
           <LanguageMapper
+          uid={selectedStack?.uid ?? ''}
           stack={selectedStack ?? DEFAULT_DROPDOWN} />
         </div>
       )}

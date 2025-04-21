@@ -8,8 +8,8 @@ import {
   Select,
   Tooltip
 } from '@contentstack/venus-components';
-import { useEffect, useState } from 'react';
-import TableHeader from './tableHeader';
+import { useEffect, useRef, useState } from 'react';
+import TableHeader from './tableHeader'
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
@@ -29,6 +29,8 @@ export type ExistingFieldType = {
  * @returns {JSX.Element | null} - Returns a JSX element if empty, otherwise null.
  */
 const Mapper = ({
+  key,
+  stack,
   cmsLocaleOptions,
   handleLangugeDelete,
   options,
@@ -41,7 +43,9 @@ const Mapper = ({
   options: Array<{ label: string; value: string }>;
   sourceOptions: Array<{ label: string; value: string }>;
   isDisabled: boolean;
-  localeChanged: boolean
+  localeChanged: boolean,
+  stack: IDropDown,
+  key: string,
 }) => {
   const [selectedMappings, setSelectedMappings] = useState<{ [key: string]: string }>({});
   const [existingField, setExistingField] = useState<ExistingFieldType>({});
@@ -51,8 +55,13 @@ const Mapper = ({
   const [csOptions, setcsOptions] = useState(options);
   const [sourceoptions, setsourceoptions] = useState(sourceOptions);
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const [selectedStack,setselectedStack] = useState<IDropDown>();
   const dispatch = useDispatch();
   const [placeholder] = useState<string>('Select language');
+
+  useEffect(()=>{
+    setselectedStack(stack)
+  },[]);
 
   useEffect(() => {
     const newMigrationDataObj: INewMigration = {
@@ -437,7 +446,7 @@ const Mapper = ({
   );
 };
 
-const LanguageMapper = ({stack} :{ stack : IDropDown}) => {
+const LanguageMapper = ({stack, uid } :{ stack : IDropDown, uid: string}) => {
   
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const [options, setoptions] = useState<{ label: string; value: string }[]>([]);
@@ -445,6 +454,20 @@ const LanguageMapper = ({stack} :{ stack : IDropDown}) => {
   const [sourceLocales, setsourceLocales] = useState<{ label: string; value: string }[]>([]);
   const [isLoading, setisLoading] = useState<boolean>(false);
   const [localeChanged, setlocaleChanged] = useState<boolean>(false);
+  const [currentStack, setcurrentStack] = useState<IDropDown>();
+  const [previousStack, setpreviousStack] = useState<IDropDown>();
+  const [isStackChanged, setisStackChanged] = useState<boolean>(false);
+
+  const prevStackRef:any = useRef(null);
+
+  useEffect(() => {
+    if (prevStackRef.current && stack?.uid !== prevStackRef.current?.uid) {
+      setisStackChanged(true);
+      setcurrentStack(stack);
+      setpreviousStack(prevStackRef?.current);
+    }
+    prevStackRef.current = stack;
+  }, [stack]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -463,16 +486,19 @@ const LanguageMapper = ({stack} :{ stack : IDropDown}) => {
         setsourceLocales(sourceLocale);
         setoptions(allLocales);
         const keys = Object?.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
-        
-        (Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 || !keys ) &&
-        newMigrationData?.project_current_step <= 2 &&
+        if((Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 || 
+        !keys || 
+        currentStack?.uid !== previousStack?.uid || isStackChanged) &&
+        newMigrationData?.project_current_step <= 2)
+        {
          setcmsLocaleOptions((prevList: { label: string; value: string }[]) => {
           const newLabel = stack?.master_locale;
     
             const isPresent = prevList?.filter(
               (item: { label: string; value: string }) => (item?.value === 'master_locale')
             );
-            if(isPresent?.[0]?.label !== newLabel){
+            if(isPresent?.[0]?.label !== newLabel || currentStack?.uid !== previousStack?.uid || isStackChanged){
+              setisStackChanged(false);
               setlocaleChanged(true);
               return [
                 ...prevList?.filter(item => (item?.value !== 'master_locale' && item?.value !== '')) ?? [],
@@ -493,7 +519,7 @@ const LanguageMapper = ({stack} :{ stack : IDropDown}) => {
             }
 
             return prevList;
-          });
+          });}
         if (newMigrationData?.project_current_step > 2) {
           Object?.entries(newMigrationData?.destination_stack?.localeMapping || {})?.forEach(
             ([key, value]) => {
@@ -525,7 +551,7 @@ const LanguageMapper = ({stack} :{ stack : IDropDown}) => {
     };
 
     fetchData();
-  }, [newMigrationData?.destination_stack?.selectedStack]);
+  }, [newMigrationData?.destination_stack?.selectedStack, currentStack]);
 
   //   const fetchLocales = async () => {
   //     return await getStackLocales(newMigrationData?.destination_stack?.selectedOrg?.value);
@@ -562,6 +588,8 @@ const LanguageMapper = ({stack} :{ stack : IDropDown}) => {
             }
             rowComponent={
               <Mapper
+                key={stack?.value}
+                stack={stack}
                 localeChanged={localeChanged}
                 options={options}
                 cmsLocaleOptions={cmsLocaleOptions}
