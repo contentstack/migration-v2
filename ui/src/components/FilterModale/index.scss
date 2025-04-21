@@ -1,0 +1,90 @@
+@import '../../scss/variables';
+
+.tableFilterModalStories {
+  position: absolute;
+  top: 40px;
+  z-index: 1000;
+  width: 350px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  max-height: 350px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+.tableFilterModalStories__header {
+  padding: 16px 16px;
+  color: #3d3f4c;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tableFilterModalStories__suggestion-items {
+  overflow-y: auto;
+  max-height: 150px;
+  scrollbar-width: thin;
+}
+
+.tableFilterModalStories__suggestion-item {
+  padding: 8px 16px;
+}
+.Checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.Checkbox .Checkbox__tick svg {
+  display: block !important;
+}
+.Checkbox .Checkbox__label {
+  font-size: $size-font-medium;
+  line-height: $line-height-reset;
+  color: #3d3f4c;
+  text-transform: capitalize;
+}
+
+.tableFilterModalStories__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 8px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: $size-font-medium;
+  line-height: $line-height-reset;
+}
+
+.close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.close-btn:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* subtle shadow */
+  transform: scale(1.05);
+  border-radius: 8px;
+  background-color: #f0f1f3; /* soft gray-blue background */
+  cursor: pointer;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.close-btn:active {
+  transform: scale(0.95);
+}
+
+.text-size {
+  font-size: $size-font-medium;
+  line-height: $line-height-reset;
+}
