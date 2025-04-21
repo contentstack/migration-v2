@@ -340,3 +340,18 @@ export const updateLocaleMapper = async(projectId: string, data: any) => {
     return error;
   }
 }
+
+export const getMigrationLogs = async (orgId: string, projectId: string, stackId: string, skip:number , limit:number  , startIndex:number, stopIndex:number,searchText:string, filter: string ) => {
+  try {
+      return await getCall(
+        `${API_VERSION}/migration/get_migration_logs/${orgId}/${projectId}/${stackId}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}/${filter}`,
+        options
+      );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in userSession: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
+  }
+}

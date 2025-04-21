@@ -1,4 +1,3 @@
-// Libraries
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
@@ -12,7 +11,7 @@ import {
   Textarea,
   PageLayout,
   Notification,
-  cbModal
+  cbModal,
 } from '@contentstack/venus-components';
 
 // Redux
@@ -23,7 +22,11 @@ import { Setting } from './setting.interface';
 import { ModalObj } from '../../../components/Modal/modal.interface';
 
 // Service
-import { deleteProject, getProject, updateProject } from '../../../services/api/project.service';
+import {
+  deleteProject,
+  getProject,
+  updateProject
+} from '../../../services/api/project.service';
 import { CS_ENTRIES } from '../../../utilities/constants';
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 
@@ -35,6 +38,7 @@ import './Settings.scss';
 import { useDispatch } from 'react-redux';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { DEFAULT_NEW_MIGRATION } from '../../../context/app/app.interface';
+import ExecutionLog from '../../../components/ExecutionLogs';
 
 /**
  * Renders the Settings component.
@@ -47,14 +51,19 @@ const Settings = () => {
   const [active, setActive] = useState<string>();
   const [currentHeader, setCurrentHeader] = useState<string>();
   const [projectName, setProjectName] = useState('');
+  const [projectId, setProjectId] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
+
+
+
 
   const selectedOrganisation = useSelector(
     (state: RootState) => state?.authentication?.selectedOrganisation
   );
 
+
   const navigate = useNavigate();
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,6 +87,7 @@ const Settings = () => {
       if (status === 200) {
         setProjectName(data?.name);
         setProjectDescription(data?.description);
+        setProjectId(params?.projectId ?? '');
       }
     };
 
@@ -124,29 +134,30 @@ const Settings = () => {
       });
     }
   };
-   const handleDeleteProject = async (closeModal: ()=> void): Promise<void> => {
-      //setIsLoading(true);
-      const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
-  
-      if (response?.status === 200) {
-        //setIsLoading(false);
-        closeModal();
-        dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
-        setTimeout(() => {
-          navigate('/projects');
-        }, 800);
-        setTimeout(() => {
-          Notification({
-            notificationContent: { text: response?.data?.data?.message },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'success'
-          });
-        }, 1200);
-      }
-    };
+
+  const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
+    //setIsLoading(true);
+    const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
+
+    if (response?.status === 200) {
+      //setIsLoading(false);
+      closeModal();
+      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
+      setTimeout(() => {
+        navigate('/projects');
+      }, 800);
+      setTimeout(() => {
+        Notification({
+          notificationContent: { text: response?.data?.data?.message },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: true
+          },
+          type: 'success'
+        });
+      }, 1200);
+    }
+  };
 
   const handleClick = () => {
     cbModal({
@@ -178,15 +189,13 @@ const Settings = () => {
           class="Button Button--secondary Button--size-large Button--icon-alignment-left Button--v2"
           aria-label="Delete Project for deleting project"
           type="button"
-          onClick={handleClick}
-        >
+          onClick={handleClick}>
           <div className="flex-center">
             <div className="flex-v-center Button__mt-regular Button__visible">
               <Icon
                 icon="Delete"
                 version="v2"
-                data={cmsData?.project?.delete_project?.title}
-              ></Icon>
+                data={cmsData?.project?.delete_project?.title}></Icon>
             </div>
           </div>
         </Button>
@@ -214,8 +223,7 @@ const Settings = () => {
                         aria-label="projectname"
                         version="v2"
                         value={projectName}
-                        onChange={handleProjectNameChange}
-                      ></TextInput>
+                        onChange={handleProjectNameChange}></TextInput>
                     </div>
                   </div>
                 </div>
@@ -244,8 +252,7 @@ const Settings = () => {
                     icon={'v2-Save'}
                     autoClose={5000}
                     label={'Success'}
-                    onClick={handleUpdateProject}
-                  >
+                    onClick={handleUpdateProject}>
                     {cmsData?.project?.save_project?.title}
                   </Button>
                 </div>
@@ -253,7 +260,11 @@ const Settings = () => {
             </div>
           </div>
         )}
-        {active === cmsData?.execution_logs?.title && <div></div>}
+        {active === cmsData?.execution_logs?.title && (
+          <div style={{ height: '100px'}}>
+            <ExecutionLog projectId={projectId} />
+          </div>
+        )}
       </div>
     )
   };
@@ -265,8 +276,7 @@ const Settings = () => {
           data-testid="cs-section-header"
           className="SectionHeader SectionHeader--extra-bold SectionHeader--medium SectionHeader--black SectionHeader--v2"
           aria-label={cmsData?.title}
-          aria-level={1}
-        >
+          aria-level={1}>
           {cmsData?.title}
         </div>
 
@@ -278,6 +288,18 @@ const Settings = () => {
           onClick={() => {
             setActive(cmsData?.project?.title);
             setCurrentHeader(cmsData?.project?.title);
+          }}
+          version="v2"
+        />
+
+        <ListRow
+          rightArrow={true}
+          active={active === cmsData?.execution_logs?.title}
+          content={cmsData?.execution_logs?.title}
+          leftIcon={<Icon icon="ExecutionLog" version="v2" />}
+          onClick={() => {
+            setActive(cmsData?.execution_logs?.title);
+            setCurrentHeader(cmsData?.execution_logs?.title);
           }}
           version="v2"
         />

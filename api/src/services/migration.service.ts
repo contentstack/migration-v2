@@ -636,25 +636,32 @@ const startMigration = async (req: Request): Promise<any> => {
 const getLogs = async (req: Request): Promise<any> => {
   const projectId = path.basename(req?.params?.projectId);
   const stackId = path.basename(req?.params?.stackId);
-  const srcFunc = 'getLogs';
+  const limit = parseInt(req?.params?.limit);
+  const startIndex = parseInt(req?.params?.startIndex);
+  const stopIndex = startIndex + limit;
+  const searchText = req?.params?.searchText;
+  const filter = req?.params?.filter;
 
-  if (projectId.includes('..') || stackId.includes('..')) {
-    throw new BadRequestError('Invalid projectId or stackId');
+  const srcFunc = "getLogs";
+
+  if (projectId.includes("..") || stackId.includes("..")) {
+    throw new BadRequestError("Invalid projectId or stackId");
   }
 
   try {
-    const logsDir = path.join(process.cwd(), 'logs');
+    const mainPath = process.cwd().split("migration-v2")[0];
+    const logsDir = path.join(mainPath, "migration-v2", "api", "logs");
     const loggerPath = path.join(logsDir, projectId, `${stackId}.log`);
-    const absolutePath = path.resolve(loggerPath); // Resolve the absolute path
+    const absolutePath = path.resolve(loggerPath);
 
     if (!absolutePath.startsWith(logsDir)) {
-      throw new BadRequestError('Access to this file is not allowed.');
+      throw new BadRequestError("Access to this file is not allowed.");
     }
 
     if (fs.existsSync(absolutePath)) {
-      const logs = await fs.promises.readFile(absolutePath, 'utf8');
-      const logEntries = logs
-        .split('\n')
+      const logs = await fs.promises.readFile(absolutePath, "utf8");
+      let logEntries = logs
+        .split("\n")
         .map((line) => {
           try {
             return JSON.parse(line);
@@ -663,7 +670,40 @@ const getLogs = async (req: Request): Promise<any> => {
           }
         })
         .filter((entry) => entry !== null);
-      return logEntries;
+
+      logEntries = logEntries.slice(1, logEntries.length - 2);
+
+      if (filter != "all") {
+        const filters = filter.split("-");
+        logEntries = logEntries.filter((log) => {
+          return filters.some((filter) => {
+            return (
+              log?.level?.toLowerCase()?.includes(filter?.toLowerCase())
+            );
+          });
+        });
+
+      }
+
+      if (searchText != "null") {
+        logEntries = logEntries.filter((log) => {
+          return (
+            log?.level?.toLowerCase()?.includes(searchText?.toLowerCase()) ||
+            log?.message?.toLowerCase()?.includes(searchText?.toLowerCase()) ||
+            log?.methodName
+              ?.toLowerCase()
+              ?.includes(searchText?.toLowerCase()) ||
+            log?.timestamp?.toLowerCase()?.includes(searchText?.toLowerCase())
+          );
+        });
+        
+      }
+
+      const paginatedLogs = logEntries.slice(startIndex, stopIndex);
+      return {
+        logs: paginatedLogs,
+        total: logEntries.length,
+      };
     } else {
       logger.error(getLogMessage(srcFunc, HTTP_TEXTS.LOGS_NOT_FOUND));
       throw new BadRequestError(HTTP_TEXTS.LOGS_NOT_FOUND);
