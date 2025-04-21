@@ -354,17 +354,17 @@ export const runCli = async (
           }
         });
 
-        ProjectModelLowdb.write();
+        await ProjectModelLowdb.write();
       }
 
       // Update project status for non-test migrations
       if (projectIndex > -1 && !isTest) {
         // Direct modification might be more reliable
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted =
-          true;
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
-          false;
-        ProjectModelLowdb.write();
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted = true;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted = false;
+        ProjectModelLowdb.data.projects[projectIndex].current_step = 5;
+        ProjectModelLowdb.data.projects[projectIndex].status = 5;
+        await ProjectModelLowdb.write();
         console.info(
           `Project ${projectId} status updated: migration completed`
         );
