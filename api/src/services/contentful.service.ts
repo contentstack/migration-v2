@@ -8,7 +8,6 @@ import jsonpath from "jsonpath";
 import pLimit from 'p-limit';
 import { JSDOM } from "jsdom";
 import { jsonToHtml, jsonToMarkdown, htmlToJson } from '@contentstack/json-rte-serializer';
-
 import { CHUNK_SIZE, LOCALE_MAPPER, MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import { Locale } from "../models/types.js";
 import jsonRTE from "./contentful/jsonRTE.js";
@@ -85,7 +84,7 @@ function makeChunks(assetData: any) {
   return chunks;
 }
 
-const mapLocales = ({ masterLocale, locale, locales }: any) => {
+const mapLocales = ({ masterLocale, locale, locales, isNull = false }: any) => {
   if (locales?.masterLocale?.[masterLocale ?? ''] === locale) {
     return Object?.keys(locales?.masterLocale)?.[0]
   }
@@ -94,7 +93,11 @@ const mapLocales = ({ masterLocale, locale, locales }: any) => {
       return key;
     }
   }
-  return locale.toLowerCase();
+  if (isNull !== true) {
+    return locale?.toLowerCase?.();
+  } else {
+    return null;
+  }
 }
 
 const transformCloudinaryObject = (input: any) => {
@@ -269,8 +272,12 @@ const processField = (
         return refs;
       }
       const id = lang_value?.sys?.id;
-      if (entryId && id in entryId) return [[entryId?.[id]]];
-      return null;
+      if(Array?.isArray(entryId?.id)){
+        return entryId?.[id];
+      }
+      else{
+        return [entryId?.[id]];
+      }
     }
 
     case 'app': {
@@ -756,9 +763,9 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
       const environmentsId = await readFile(environmentSave, ENVIRONMENTS_FILE_NAME) ?? {};
       const displayField: { [key: string]: any } = {}
       content.map((item: any) => {
-        displayField[item.name.toLowerCase().replace(/[^a-z0-9]+/g, "_")] =
+        displayField[item?.sys?.id] =
         {
-          displayField: item.displayField || "untitled",
+          displayField: item?.displayField || "untitled",
         };
       }
       );
@@ -786,7 +793,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
               entryData[name][lang] ??= {};
               entryData[name][lang][id] ??= {};
               locales.push(lang);
-              const fieldData = currentCT?.fieldMapping?.find((item: any) => key === item?.uid);
+              const fieldData = currentCT?.fieldMapping?.find?.((item: any) => (key === item?.uid) && (!["text", "url"]?.includes?.(item?.backupFieldType)));
               const newId = fieldData?.contentstackFieldUid ?? `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, "_");
               entryData[name][lang][id][newId] = processField(
                 langValue,
@@ -843,7 +850,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
         for await (const [localeKey, localeValues] of Object.entries(
           values as { [key: string]: any }
         )) {
-          const localeCode = mapLocales({ masterLocale: master_locale, locale: localeKey, locales: LocaleMapper });
+          const localeCode = mapLocales({ masterLocale: master_locale, locale: localeKey, locales: LocaleMapper, isNull: true });
           const chunks = makeChunks(localeValues);
           for (const [entryKey, entryValue] of Object.entries(localeValues)) {
             const message = getLogMessage(
@@ -855,15 +862,18 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           }
           const refs: { [key: string]: any } = {};
           let chunkIndex = 1;
-          const filePath = path.join(
-            entriesSave,
-            ctName, localeCode
-          );
-          for await (const [chunkId, chunkData] of Object.entries(chunks)) {
-            refs[chunkIndex++] = `${chunkId}-entries.json`;
-            await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
+          if (localeCode) {
+            const filePath = path.join(
+              entriesSave,
+              ctName,
+              localeCode
+            );
+            for await (const [chunkId, chunkData] of Object.entries(chunks)) {
+              refs[chunkIndex++] = `${chunkId}-entries.json`;
+              await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
+            }
+            await writeFile(filePath, ENTRIES_MASTER_FILE, refs);
           }
-          await writeFile(filePath, ENTRIES_MASTER_FILE, refs);
         }
       }
     } else {
@@ -940,7 +950,7 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
     }
     const fallbackMapLocales: any = { ...project?.master_locale ?? {}, ...project?.locales ?? {} }
     await Promise?.all(locales?.map?.(async (localeData: any) => {
-      const currentMapLocale = getKeyByValue?.(fallbackMapLocales, localeData?.code) ?? `${localeData.code.toLowerCase()}`;
+      const currentMapLocale = getKeyByValue?.(fallbackMapLocales, localeData?.code) ?? `${localeData?.code?.toLowerCase?.()}`;
       const title = localeData?.sys?.id;
       const newLocale: Locale = {
         code: currentMapLocale,
@@ -948,8 +958,8 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
         fallback_locale: getKeyByValue(fallbackMapLocales, localeData?.fallbackCode) ?? '',
         uid: `${title}`,
       };
-
-      if (localeData.default === true) {
+      const masterLocaleCode = getKeyByValue(project?.master_locale, localeData?.code);
+      if (masterLocaleCode !== undefined) {
         msLocale[title] = newLocale;
         const message = getLogMessage(
           srcFunc,
@@ -958,16 +968,27 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
         )
         await customLogger(projectId, destination_stack_id, 'info', message);
       } else {
-        allLocales[title] = newLocale;
-        const message = getLogMessage(
-          srcFunc,
-          `Locale ${newLocale?.code} has been successfully transformed.`,
-          {}
-        )
-        await customLogger(projectId, destination_stack_id, 'info', message);
+        const newValueLocale = getKeyByValue(project?.locales, localeData?.code);
+        if (newValueLocale) {
+          allLocales[title] = newLocale;
+          const message = getLogMessage(
+            srcFunc,
+            `Locale ${newLocale?.code} has been successfully transformed.`,
+            {}
+          )
+          await customLogger(projectId, destination_stack_id, 'info', message);
+        }
       }
       localeList[title] = newLocale;
     }));
+    const masterLocaleData = Object?.values(msLocale)?.[0];
+    if (masterLocaleData) {
+      for (const [key, value] of Object.entries(allLocales) ?? {}) {
+        if (value?.code === masterLocaleData?.fallback_locale) {
+          allLocales[key].fallback_locale = masterLocaleData?.code
+        }
+      }
+    }
     await writeFile(localeSave, LOCALE_FILE_NAME, allLocales)
     await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale)
     await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList)

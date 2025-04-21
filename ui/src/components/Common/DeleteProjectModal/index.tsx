@@ -2,15 +2,11 @@
 import { useState } from 'react';
 import {
   Button,
-  Notification,
   ModalBody,
   ModalHeader,
   ModalFooter,
   ButtonGroup
 } from '@contentstack/venus-components';
-
-// Service
-import { deleteProject } from '../../../services/api/project.service';
 
 // Interfaces
 import { SettingsModalProps } from '../../../components/Modal/modal.interface';
@@ -22,46 +18,11 @@ import { SettingsModalProps } from '../../../components/Modal/modal.interface';
  * @returns {JSX.Element} The rendered DeleteProjectModal component.
  */
 const DeleteProjectModal = (props: SettingsModalProps) => {
-  const {
-    closeModal,
-    navigate,
-    projectId,
-    projectName,
-    selectedOrg
-  } = props;
+  const { closeModal, projectName, handleDeleteProject } = props;
 
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-
-  /**
-   * Handles the deletion of the project.
-   *
-   * @param {() => void} closeModal - A function to close the modal.
-   * @returns {Promise<void>} A promise that resolves when the project is deleted.
-   */
-  const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
-    setIsLoading(true);
-    const response = await deleteProject(selectedOrg?.value || '', projectId ?? '',);
-
-    if (response?.status === 200) {
-      setIsLoading(false);
-      closeModal();
-      setTimeout(() => {
-        navigate('/projects')
-      }, 800)
-      setTimeout(() => {
-        Notification({
-          notificationContent: { text: response?.data?.data?.message },
-          notificationProps: {
-            position: 'bottom-center',
-            hideProgressBar: true
-          },
-          type: 'success'
-        });
-      }, 1200)
-    }
-  }
-
+  
   return (
     <>
       <ModalHeader
@@ -71,11 +32,8 @@ const DeleteProjectModal = (props: SettingsModalProps) => {
       />
 
       <ModalBody className="modalBodyCustomClass">
-        <h3>You are about to delete the project, {projectName}</h3> <br />
-        <p>
-          All the content stored within the project will be deleted permanently. This action
-          cannot be undone.
-        </p>
+        You are about to delete this project. <br />
+        This will permanently remove the project and all its content. This action cannot be undone.
       </ModalBody>
 
       <ModalFooter>
@@ -83,14 +41,15 @@ const DeleteProjectModal = (props: SettingsModalProps) => {
           <Button buttonType="light" onClick={() => closeModal()}>
             Cancel
           </Button>
-          <Button 
+          <Button
             version="v2"
             buttonType="destructive"
             type="submit"
             icon="v2-Delete"
             tabindex={0}
             isLoading={isLoading}
-            onClick={() => handleDeleteProject(closeModal)}>
+            onClick={() => handleDeleteProject()}
+          >
             Delete
           </Button>
         </ButtonGroup>
