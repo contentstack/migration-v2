@@ -1076,9 +1076,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             options={option}
             menuPlacement="auto"
             isDisabled={
-              data?.otherCmsType === "Group" ||
-              data?.otherCmsField === 'title' ||
-              data?.otherCmsField === 'url' ||
+              data?.contentstackFieldType === 'group' ||
+              (data?.contentstackFieldType === 'text') ||
+              ( data?.contentstackFieldType === 'url') ||
               data?.backupFieldType === 'reference'||
               data?.contentstackFieldType === "global_field" ||
               data?.otherCmsType === undefined ||
@@ -1089,9 +1089,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           />
         </div>
         {!(
-          data?.otherCmsType === 'Group' ||
-          data?.otherCmsField === 'title' ||
-          data?.otherCmsField === 'url' ||
+          data?.contentstackFieldType === 'Group' ||
+          data?.contentstackFieldType === 'text' ||
+          data?.contentstackFieldType === 'url' ||
           data?.contentstackFieldType === 'global_field' ||
           data?.otherCmsType === undefined ||
           data?.backupFieldType === 'extension' ||
