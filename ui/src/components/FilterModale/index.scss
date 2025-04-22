@@ -2,7 +2,6 @@
 
 .tableFilterModalStories {
   position: absolute;
-  top: 40px;
   z-index: 1000;
   width: 350px;
   background-color: #ffffff;
@@ -24,15 +23,10 @@
   justify-content: space-between;
 }
 
-.tableFilterModalStories__suggestion-items {
-  overflow-y: auto;
-  max-height: 150px;
-  scrollbar-width: thin;
-}
-
 .tableFilterModalStories__suggestion-item {
   padding: 8px 16px;
 }
+
 .Checkbox {
   display: flex;
   align-items: center;
@@ -42,6 +36,7 @@
 .Checkbox .Checkbox__tick svg {
   display: block !important;
 }
+
 .Checkbox .Checkbox__label {
   font-size: $size-font-medium;
   line-height: $line-height-reset;
@@ -70,10 +65,10 @@
 }
 
 .close-btn:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* subtle shadow */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); 
   transform: scale(1.05);
   border-radius: 8px;
-  background-color: #f0f1f3; /* soft gray-blue background */
+  background-color: #f0f1f3; 
   cursor: pointer;
   transition:
     box-shadow 0.2s ease,
