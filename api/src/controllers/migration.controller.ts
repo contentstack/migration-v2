@@ -49,7 +49,10 @@ const deleteTestStack = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.deleteTestStack(req);
   res.status(200).json(resp);
 };
-
+const getAuditData = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.getAuditData(req);
+  res.status(200).json(resp);
+};
 const getLogs = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.getLogs(req);
   res.status(200).json(resp);
@@ -72,5 +75,6 @@ export const migrationController = {
   startMigration,
   getLogs,
   saveLocales,
-  saveMappedLocales
+  saveMappedLocales,
+  getAuditData
 };

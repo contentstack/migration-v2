@@ -20,7 +20,10 @@ router.post(
   "/test-stack/:orgId/:projectId",
   asyncRouter(migrationController.startTestMigration)
 );
-
+router.get(
+  "/get_audit_data/:orgId/:projectId/:stackId/:moduleName/:skip/:limit/:startIndex/:stopIndex/:searchText",
+  asyncRouter(migrationController.getAuditData)
+)
 /**
  * Route for deleting a test stack.
  * @route POST /test-stack/:projectId

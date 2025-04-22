@@ -20,7 +20,17 @@ export const getAllProjects = async (orgId: string) => {
     }
   }
 };
-
+export const getAuditData = async (orgId: string, projectId: string, stackId: string, moduleName: string, skip: number, limit: number, startIndex: number, stopIndex: number, searchText: string) => {
+  try {
+    return await getCall(`${API_VERSION}/migration/get_audit_data/${orgId}/${projectId}/${stackId}/${moduleName}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}`, options());
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in userSession: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in userSession');
+    }
+  }
+};
 export const getProject = async (orgId: string, projectId: string) => {
   try {
     return await getCall(`${API_VERSION}/org/${orgId}/project/${projectId}`, options());
