@@ -131,7 +131,6 @@ const Settings = () => {
       });
     }
   };
-
   const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
     //setIsLoading(true);
     const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
