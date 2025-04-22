@@ -35,6 +35,7 @@ import './Settings.scss';
 import { useDispatch } from 'react-redux';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { DEFAULT_NEW_MIGRATION } from '../../../context/app/app.interface';
+import AuditLogs from '../../AuditLogs';
 
 /**
  * Renders the Settings component.
@@ -124,29 +125,29 @@ const Settings = () => {
       });
     }
   };
-   const handleDeleteProject = async (closeModal: ()=> void): Promise<void> => {
-      //setIsLoading(true);
-      const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
-  
-      if (response?.status === 200) {
-        //setIsLoading(false);
-        closeModal();
-        dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
-        setTimeout(() => {
-          navigate('/projects');
-        }, 800);
-        setTimeout(() => {
-          Notification({
-            notificationContent: { text: response?.data?.data?.message },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'success'
-          });
-        }, 1200);
-      }
-    };
+  const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
+    //setIsLoading(true);
+    const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
+
+    if (response?.status === 200) {
+      //setIsLoading(false);
+      closeModal();
+      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
+      setTimeout(() => {
+        navigate('/projects');
+      }, 800);
+      setTimeout(() => {
+        Notification({
+          notificationContent: { text: response?.data?.data?.message },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: true
+          },
+          type: 'success'
+        });
+      }, 1200);
+    }
+  };
 
   const handleClick = () => {
     cbModal({
@@ -253,7 +254,11 @@ const Settings = () => {
             </div>
           </div>
         )}
-        {active === cmsData?.execution_logs?.title && <div></div>}
+        {active === "AuditLogs" &&
+          <div>
+            <AuditLogs />
+          </div>
+        }
       </div>
     )
   };
@@ -278,6 +283,17 @@ const Settings = () => {
           onClick={() => {
             setActive(cmsData?.project?.title);
             setCurrentHeader(cmsData?.project?.title);
+          }}
+          version="v2"
+        />
+        <ListRow
+          rightArrow={true}
+          active={active === "AuditLogs"}
+          content={"AuditLogs"}
+          leftIcon={<Icon icon="Stacks" version="v2" />}
+          onClick={() => {
+            setActive("AuditLogs");
+            setCurrentHeader("AuditLogs");
           }}
           version="v2"
         />

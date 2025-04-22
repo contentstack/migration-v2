@@ -118,9 +118,8 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     return {
       data: {
         data: res.data,
-        url: `${
-          config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
-        }/stack/${res.data.stack.api_key}/dashboard`,
+        url: `${config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
+          }/stack/${res.data.stack.api_key}/dashboard`,
       },
       status: res.status,
     };
@@ -141,6 +140,160 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   }
 };
 
+const getAuditData = async (req: Request): Promise<any> => {
+  const projectId = path.basename(req?.params?.projectId);
+  const stackId = path.basename(req?.params?.stackId);
+  const moduleName = path.basename(req?.params?.moduleName);
+  const limit = parseInt(req?.params?.limit);
+  const startIndex = parseInt(req?.params?.startIndex);
+  const stopIndex = startIndex + limit;
+  const searchText = req?.params?.searchText;
+  const srcFunc = "getAuditData";
+
+  if (projectId.includes('..') || stackId.includes('..') || moduleName.includes('..')) {
+    throw new BadRequestError("Invalid projectId, stackId, or moduleName");
+  }
+
+  try {
+    const mainPath = process.cwd().split("migration-v2")[0];
+    const logsDir = path.join(mainPath, "migration-v2", "api", "migration-data");
+
+    const stackFolders = fs.readdirSync(logsDir);
+
+    const stackFolder = stackFolders.find(folder => folder.startsWith(stackId));
+    if (!stackFolder) {
+      throw new BadRequestError("Migration data not found for this stack");
+    }
+
+    const auditLogPath = path.join(logsDir, stackFolder, "logs", "audit", "audit-report");
+    if (!fs.existsSync(auditLogPath)) {
+      throw new BadRequestError("Audit log path not found");
+    }
+
+    const files = fs.readdirSync(auditLogPath);
+    const jsonFiles = files.filter(file => file.endsWith('.json'));
+
+    let fileData = null;
+    let fileName = null;
+
+    for (const file of jsonFiles) {
+      const fileModuleName = file.replace('.json', '');
+
+      if (fileModuleName === moduleName) {
+        const filePath = path.join(auditLogPath, file);
+        try {
+          const content = fs.readFileSync(filePath, 'utf8');
+          fileData = JSON.parse(content);
+          fileName = file;
+          break;
+        } catch (err) {
+          logger.warn(
+            getLogMessage(
+              srcFunc,
+              `Failed to parse JSON file for module ${moduleName}: ${file}`
+            )
+          );
+          fileData = {
+            error: 'Failed to parse file',
+          };
+          fileName = file;
+          break;
+        }
+      }
+    }
+
+    // If no matching module was found
+    if (!fileData) {
+      throw new BadRequestError(`No audit data found for module: ${moduleName}`);
+    }
+
+    // Transform and flatten the data with sequential tuid
+    let transformedData = transformAndFlattenData(fileData);
+
+    // Apply search filter if searchText is provided and not "null"
+    if (searchText && searchText !== "null") {
+      transformedData = transformedData.filter((item: any) => {
+        // Adjust these fields based on your actual audit data structure
+        return Object.values(item).some(value =>
+          value &&
+          typeof value === 'string' &&
+          value.toLowerCase().includes(searchText.toLowerCase())
+        );
+      });
+    }
+
+    // Apply pagination
+    const paginatedData = transformedData.slice(startIndex, stopIndex);
+
+    return {
+      data: paginatedData,
+      totalCount: transformedData.length
+    };
+
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error getting audit log data for module: ${moduleName}`,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+/**
+ * Transforms and flattens nested data structure into an array of items
+ * with sequential tuid values
+ */
+const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: number }> => {
+  try {
+    const flattenedItems: Array<{ [key: string]: any }> = [];
+
+    // Handle the data based on its structure
+    if (Array.isArray(data)) {
+      // If data is already an array, use it directly
+      data.forEach((item, index) => {
+        flattenedItems.push({
+          ...item,
+          uid: item.uid || `item-${index}`
+        });
+      });
+    } else if (typeof data === 'object' && data !== null) {
+      // Process object data
+      Object.entries(data).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          // If property contains an array, flatten each item
+          value.forEach((item, index) => {
+            flattenedItems.push({
+              ...item,
+              parentKey: key,
+              uid: item.uid || `${key}-${index}`
+            });
+          });
+        } else if (typeof value === 'object' && value !== null) {
+          // If property contains an object, add it as an item
+          flattenedItems.push({
+            ...value,
+            key,
+            uid: (value as any).uid || key
+          });
+        }
+      });
+    }
+
+    // Add sequential tuid to each item
+    return flattenedItems.map((item, index) => ({
+      ...item,
+      id: index + 1
+    }));
+  } catch (error) {
+    console.error('Error transforming data:', error);
+    return [];
+  }
+};
 /**
  * Deletes a test stack.
  * @param req - The request object.
@@ -777,4 +930,5 @@ export const migrationService = {
   getLogs,
   createSourceLocales,
   updateLocaleMapper,
+  getAuditData
 };
