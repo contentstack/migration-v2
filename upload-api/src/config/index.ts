@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: 'contentful',
+  cmsType: 'sitecore',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
