@@ -241,7 +241,7 @@ const AuditLogs: React.FC = () => {
                     disableSortBy: true,
                     disableResizing: false,
                     canDragDrop: true,
-                    width: 150
+                    width: 350
                 },
                 {
                     Header: 'Name',
@@ -286,7 +286,7 @@ const AuditLogs: React.FC = () => {
                     disableSortBy: true,
                     disableResizing: false,
                     canDragDrop: true,
-                    width: 200
+                    width: 250
                 },
                 {
                     Header: 'Fix Status',
@@ -391,25 +391,6 @@ const AuditLogs: React.FC = () => {
             setLoading(false);
         }
     };
-    const EmptyObj = {
-        heading: !selectedStack ? `execute test migraiton` : selectedStack && !selectedFile ? `select module` : '',
-        forPage: "emptyStateV2",
-        description: (
-            <>
-                <EmptyState
-                    heading={
-                        <div className="empty_text">
-                            {!selectedStack ? `execute test migraiton` : selectedStack && !selectedFile ? `select module` : ''}
-                        </div>
-                    }
-                    // img={NoDataFound}
-                    version="v2"
-                    className="emptycomponent"
-                />
-            </>
-        ),
-    }
-    // Create the export CTA component for the table with both stack and file selectors
     const exportCtaComponent = (
         <div className="d-flex align-items-center">
             <div className="d-flex justify-content-end ml-8">
@@ -474,43 +455,47 @@ const AuditLogs: React.FC = () => {
     ];
 
     return (
-        <InfiniteScrollTable
-            key={tableKey}
-            tableHeight={570}
-            itemSize={80}
-            data={tableData}
-            columns={tableColumns.length > 0 ? tableColumns : defaultEmptyColumns}
-            uniqueKey={"id"}
-            fetchTableData={fetchTableData}
-            totalCounts={totalCounts}
-            loading={loading}
-            rowPerPageOptions={[10, 30, 50, 100]}
-            minBatchSizeToFetch={30}
-            v2Features={{
-                pagination: true,
-                isNewEmptyState: true
-            }}
-            isResizable={false}
-            isRowSelect={false}
-            columnSelector={false}
-            canSearch={true}
-            searchPlaceholder={'Search Audit Logs'}
-            searchValue={searchText}
-            onSearchChangeEvent={handleSearchChange}
-            withExportCta={{
-                component: exportCtaComponent,
-                showExportCta: true
-            }}
-            customEmptyState={
-                <EmptyState
-                    heading="No Logs"
-                    description={!selectedStack ? `execute test migraiton` : selectedStack && !selectedFile ? `select module` : ''}
-                    moduleIcon="NoDataEmptyState"
-                    type="secondary"
-                    className="custom-empty-state"
-                />
-            }
-        />
+        <div className="audit-logs-Table">
+
+            <InfiniteScrollTable
+                key={tableKey}
+                tableHeight={570}
+                itemSize={80}
+                data={tableData}
+                columns={tableColumns.length > 0 ? tableColumns : defaultEmptyColumns}
+                uniqueKey={"id"}
+                fetchTableData={fetchTableData}
+                totalCounts={totalCounts}
+                loading={loading}
+                rowPerPageOptions={[10, 30, 50, 100]}
+                minBatchSizeToFetch={30}
+                v2Features={{
+                    pagination: true,
+                    isNewEmptyState: true
+                }}
+                isResizable={false}
+                isRowSelect={false}
+                columnSelector={false}
+                canSearch={true}
+                searchPlaceholder={'Search Audit Logs'}
+                searchValue={searchText}
+                onSearchChangeEvent={handleSearchChange}
+                withExportCta={{
+                    component: exportCtaComponent,
+                    showExportCta: true
+                }}
+                customEmptyState={
+                    <EmptyState
+                        heading={selectedStack && selectedFile ? "No Matching Result Found" : "No Logs Found"}
+                        description={!selectedStack ? `Try executing Test Migration` : selectedStack && !selectedFile ? `Select Module to see the Logs` : 'Try Changing the search query to find what you are looking for '}
+                        moduleIcon={(selectedStack && !selectedFile) || !selectedStack ? "NoDataEmptyState" : "NoSearchResult"}
+                        type="secondary"
+                        className="custom-empty-state"
+                    />
+                }
+            />
+        </div>
+
     );
 };
 

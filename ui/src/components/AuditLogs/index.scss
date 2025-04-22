@@ -12,10 +12,13 @@
     width: calc(100% - 15rem);
 }
 
+.Table:has(.custom-empty-state) {
+    height: 40.5rem;
+}
 
 .custom-empty-state {
     .Icon--original {
-        width: 207px !important;
+        width: 240x !important;
         height: auto !important;
         max-width: 100%;
         display: block;
