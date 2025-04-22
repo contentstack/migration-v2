@@ -1,0 +1,24 @@
+.select-box {
+
+    margin-bottom: 4px;
+    width: 220px;
+}
+
+.Search-input-show {
+    margin-bottom: 4px;
+}
+
+.PageLayout--primary .PageLayout__leftSidebar+.PageLayout__content .PageLayout__body {
+    width: calc(100% - 15rem);
+}
+
+
+.custom-empty-state {
+    .Icon--original {
+        width: 207px !important;
+        height: auto !important;
+        max-width: 100%;
+        display: block;
+        margin: 0 auto;
+    }
+}
