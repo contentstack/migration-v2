@@ -12,6 +12,7 @@ import {
   PageLayout,
   Notification,
   cbModal,
+  ClipBoard
 } from '@contentstack/venus-components';
 
 // Redux
@@ -22,11 +23,7 @@ import { Setting } from './setting.interface';
 import { ModalObj } from '../../../components/Modal/modal.interface';
 
 // Service
-import {
-  deleteProject,
-  getProject,
-  updateProject
-} from '../../../services/api/project.service';
+import { deleteProject, getProject, updateProject } from '../../../services/api/project.service';
 import { CS_ENTRIES } from '../../../utilities/constants';
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 
@@ -54,13 +51,13 @@ const Settings = () => {
   const [projectId, setProjectId] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
 
-
-
-
   const selectedOrganisation = useSelector(
     (state: RootState) => state?.authentication?.selectedOrganisation
   );
 
+  const currentStep = useSelector(
+    (state: RootState) => state?.migration?.newMigrationData?.project_current_step
+  );
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -158,6 +155,10 @@ const Settings = () => {
       }, 1200);
     }
   };
+
+  const handleBack = () => {
+    navigate(`/projects/${params?.projectId}/migration/steps/${currentStep}`);
+  }
 
   const handleClick = () => {
     cbModal({
@@ -261,7 +262,7 @@ const Settings = () => {
           </div>
         )}
         {active === cmsData?.execution_logs?.title && (
-          <div style={{ height: '100px'}}>
+          <div>
             <ExecutionLog projectId={projectId} />
           </div>
         )}
@@ -277,6 +278,20 @@ const Settings = () => {
           className="SectionHeader SectionHeader--extra-bold SectionHeader--medium SectionHeader--black SectionHeader--v2"
           aria-label={cmsData?.title}
           aria-level={1}>
+          <div>
+            <Icon
+              version="v2"
+              icon={'LeftArrow'}
+              size="medium"
+              onClick={() => {
+                handleBack();
+              }}
+              withTooltip={true}
+              tooltipContent={'Back'}
+              tooltipPosition="right"
+              className='back-button'
+            />
+          </div>
           {cmsData?.title}
         </div>
 
