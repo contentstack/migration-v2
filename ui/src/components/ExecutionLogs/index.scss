@@ -1,123 +1,42 @@
-.Dropdown-wrapper {
-    display: flex;
-    justify-content: center;
-    padding: 1rem;
-  }
-
-
-  .no-data-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 60vh; /* fill full height */
-    width: 100%;
-  }
-  
-  .no-data-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-  }
-  
-  .no-data-text {
-    font-size: 16px;
-    color: #4a4a4a;
-    font-weight: 500;
-  }
-  
-
-
-  .Search-input-show{
-    margin-bottom: 8px;
-    width: 300px;
-  }
-  .Search .Search__search-icon{
-    top: calc(50% - 10px);
-    width: 20px;  
-  }
-
-  .Search .Search__input.regular-corners{
-    margin-left: 8px;
-  }
-
-  .centered {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .custom-empty-state {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: #4b5563;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    width: 100%;
-    pointer-events: none;
-    height: 50vh;
-  }
-  
-  .custom-empty-state svg {
-    width: 200px;
-    height: auto;
-    margin-bottom: 12px;
-  }
-  
-  .custom-empty-message {
-    font-size: 16px;
-    font-weight: 500;
-  }
-  
-  .scroll-wrapper {
-    height: 600px;
-    overflow: auto;
-  }
-
-  .dropdown-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 8px;
-  }
-
-  .header-with-filter {
-    display: flex;
-    justify-content: space-between;
-  }
-  
-  .header-title {
-    font-weight: 600;
-    font-size: 14px;
-    color: #3e3e52;
-  }
-  
-  .filter-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    padding: 14px;
-    margin-left: 4px;
-  }
-
-  .PageLayout--primary .PageLayout__leftSidebar+.PageLayout__content .PageLayout__body {
-    width: calc(100% - 16rem);
-  }
-.TableStories-filter-icon-wrapper {
-  position: relative;
+.Search-input-show {
+  margin-bottom: 8px;
+  width: 300px;
 }
-  
-  .Table__head__row .Table__head__column {
-    align-items: center;
-    display: flex;
-    justify-content: space-between;
-  }
+.Search .Search__search-icon {
+  top: calc(50% - 10px);
+  width: 20px;
+}
 
-  
+.Search .Search__input.regular-corners {
+  margin-left: 8px;
+}
+
+.dropdown-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.PageLayout--primary .PageLayout__leftSidebar + .PageLayout__content .PageLayout__body {
+  width: calc(100% - 15.4rem);
+}
+
+.Table__head__column {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.Table__head{
+  height: auto;
+}
+
+.custom-empty-state {
+  .Icon--original {
+    width: 207px !important;
+    height: auto !important;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+  }
+}
