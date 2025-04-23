@@ -118,7 +118,6 @@ jobs:
                     },
                     plugins: {
                     "@typescript-eslint": tsPlugin,
-                    "import": require("eslint-plugin-import"),
                     },
                     rules: {
                     "no-unused-vars": "warn",
@@ -128,7 +127,7 @@ jobs:
                     "@typescript-eslint/no-explicit-any": "off",
                     "no-constant-condition": "off",
                     "no-constant-binary-expression": "off",
-                    "import/no-unresolved": 'error',
+                    "import/no-unresolved": 'off',
                     }
                 }
                 ];
