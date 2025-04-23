@@ -106,6 +106,7 @@ jobs:
                     const js = require("@eslint/js");
                     const globals = require("globals");
                     const tsPlugin = require("@typescript-eslint/eslint-plugin");
+                    const importPlugin = require("eslint-plugin-import");
 
                 module.exports = [
                 js.configs.recommended,
@@ -118,6 +119,7 @@ jobs:
                     },
                     plugins: {
                     "@typescript-eslint": tsPlugin,
+                    import: importPlugin,
                     },
                     rules: {
                     "no-unused-vars": "warn",
@@ -234,14 +236,15 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 echo "Installing ESLint dependencies..."
-                npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
+                npm install --save-dev eslint eslint-plugin-import @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
+
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
                 const js = require("@eslint/js");
                 const globals = require("globals");
-
+                const importPlugin = require("eslint-plugin-import");
                 module.exports = [
                 js.configs.recommended,
                 {
@@ -332,14 +335,15 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 echo "Installing ESLint dependencies..."
-                npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
+                npm install --save-dev eslint eslint-plugin-import @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
+
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
                 const js = require("@eslint/js");
                 const globals = require("globals");
-
+                const importPlugin = require("eslint-plugin-import");
                 module.exports = [
                 js.configs.recommended,
                 {
