@@ -150,7 +150,7 @@ jobs:
                 # ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_SITECORE_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
-                rsync -av --delete ../cli/ ./cli/
+                # rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-sitecore/ ./upload-api/migration-sitecore/
@@ -282,7 +282,7 @@ jobs:
                 ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_CONTENTFUL_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
-                rsync -av --delete ../cli/ ./cli/
+                # rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_CONTENTFUL_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-contentful/ ./upload-api/migration-contentful/
@@ -381,7 +381,7 @@ jobs:
                 ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_WORDPRESS_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
-                rsync -av --delete ../cli/ ./cli/
+                # rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_WORDPRESS_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-wordpress/ ./upload-api/migration-wordpress/
