@@ -286,46 +286,43 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         onSearchChangeEvent={(value: string) => setSearchText(value)}
         withExportCta={{
           component: (
-            <Select
-              version="v2"
-              options={stackIds}
-              value={selectedStackName}
-              placeholder={
-                selectedStackName === ''
-                  ? stackIds.length > 0
-                    ? 'Select Stack Id'
-                    : 'No stack created'
-                  : selectedStackName
-              }
-              onChange={(s: DropdownOption) => {
-                setSelectedStackId(s.value);
-                setSelectedStackName(s.label);
-                setSearchText('');
-              }}
-            />
+            <div className="select-container">
+              <Select
+              width='250px'
+              maxWidth='300px'
+                version="v2"
+                options={stackIds}
+                value={selectedStackName}
+                placeholder={
+                  selectedStackName === ''
+                    ? stackIds.length > 0
+                      ? 'Select Stack Id'
+                      : 'No stack created'
+                    : selectedStackName
+                }
+                onChange={(s: DropdownOption) => {
+                  setSelectedStackId(s.value);
+                  setSelectedStackName(s.label);
+                  setSearchText('');
+                }}
+              />
+            </div>
           ),
           showExportCta: true
         }}
         customEmptyState={
-          searchText === '' ? (
-            <EmptyState
-              forPage="list"
-              heading="No Logs"
-              description="Try Executing the Migration."
-              moduleIcon="NoDataEmptyState"
-              type="secondary"
-              className="custom-empty-state"
-            />
-          ) : (
-            <EmptyState
-              forPage="list"
-              heading="No matching results found!"
-              description="Try changing the search query to find what you are looking for."
-              moduleIcon="NoSearchResult"
-              type="secondary"
-              className="custom-empty-state"
-            />
-          )
+          <EmptyState
+            forPage="list"
+            heading={searchText === '' ? 'No Logs' : 'No matching results found!'}
+            description={
+              searchText === ''
+                ? 'Try Executing the Migration.'
+                : 'Try changing the search query to find what you are looking for.'
+            }
+            moduleIcon={searchText === '' ? 'NoDataEmptyState' : 'NoSearchResult'}
+            type="secondary"
+            className="custom-empty-state"
+          />
         }
       />
     </div>
