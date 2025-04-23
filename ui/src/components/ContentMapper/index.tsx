@@ -205,12 +205,12 @@ const Fields: MappingFields = {
   'app':{
     label: 'Marketplace app',
     options: {'Marketplace app':'app'},
-    type:'app'
+    type:''
   },
   'extension':{
     label: 'Extension',
     options: {'Extension':'extension'},
-    type:'extension'
+    type:''
   }
 
 }
