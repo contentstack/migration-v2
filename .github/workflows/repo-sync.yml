@@ -100,7 +100,6 @@ jobs:
                 # echo "Installing ESLint dependencies..."
                 npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
 
-
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
@@ -128,6 +127,7 @@ jobs:
                     "@typescript-eslint/no-explicit-any": "off",
                     "no-constant-condition": "off",
                     "no-constant-binary-expression": "off",
+                    "import/no-unresolved": 'error',
                     }
                 }
                 ];
