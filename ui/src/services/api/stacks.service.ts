@@ -9,7 +9,7 @@ const options = {
   }
 };
 
-export const getAllStacksInOrg = async (orgId: string,searchText: string) => {
+export const getAllStacksInOrg = async (orgId: string, searchText: string) => {
   try {
     return await getCall(`${API_VERSION}/org/${orgId}/stacks/${searchText}?`, options);
   } catch (error) {
@@ -40,6 +40,26 @@ export const getStackStatus = async (orgId: string, data: string) => {
       throw new Error(`Error in userSession: ${error.message}`);
     } else {
       throw new Error('Unknown error in userSession');
+    }
+  }
+};
+
+export const getStackLocales = async (orgId: string) => {
+  try {
+    const updatedOptions = {
+      headers: {
+        app_token: getDataFromLocalStorage('app_token')
+        //stack_api_key: api_key
+      }
+    };
+
+    const res = await getCall(`${API_VERSION}/org/${orgId}/locales`, updatedOptions);
+    return res;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
     }
   }
 };

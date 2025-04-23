@@ -17,7 +17,7 @@
   margin-bottom: 20px;
   grid-template-columns: 1fr;
   gap: 20px;
-  }
+}
 /**
  * Styles for the option label in the AdvancePropertise component.
  *
@@ -51,15 +51,15 @@
     margin-bottom: 0.75rem;
   }
   .Radio {
-    width: calc(33.33333% - .66667rem);
-    padding: .5rem;
+    width: calc(33.33333% - 0.66667rem);
+    padding: 0.5rem;
     margin: 0 !important;
   }
   .FieldLabel {
     margin-bottom: $px-8;
   }
   .info-style {
-    margin-top: .75rem;
+    margin-top: 0.75rem;
     margin-bottom: 1.5rem;
     .Info__border {
       border-left-color: #0469e3;
@@ -73,11 +73,11 @@
     font-size: $size-font-large;
     line-height: $line-height-default;
     margin-left: 2.75rem;
-    margin-top: -.25rem !important;
+    margin-top: -0.25rem !important;
   }
   .ToggleWrap {
     margin-top: 0.5rem;
-    padding: 0 0.5rem
+    padding: 0 0.5rem;
   }
   .Field {
     margin-bottom: $px-24;
@@ -97,10 +97,10 @@
           .Checkbox__label {
             height: auto;
           }
-        } 
+        }
       }
-    } 
-  } 
+    }
+  }
   .Select__menu {
     position: relative;
     z-index: 10000;
@@ -109,49 +109,44 @@
     position: relative;
     border: 2px solid red;
     z-index: 10000;
-  } 
+  }
 }
-.Radio-class{
+.Radio-class {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 20px;
   grid-template-columns: 1fr;
-  
 }
-.dropdown-choices-wrapper{
+.dropdown-choices-wrapper {
   height: auto;
   width: auto;
   border: 1px solid #dde3ee;
   margin: 10px 10px;
 }
-.element-wrapper{
+.element-wrapper {
   margin: 20px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   transition: opacity 0.2s ease, border 0.2s ease;
   position: relative;
-
- 
 }
 .element-wrapper.dragging {
-  opacity: 0.4; 
-  
+  opacity: 0.4;
 }
 
-
-.dropdown-filter-wrapper{
+.dropdown-filter-wrapper {
   background-color: $color-brand-white-base;
   border-radius: $px-4;
-  box-shadow: 0 $px-4 $px-30 rgba(0,0,0,.25);
+  box-shadow: 0 $px-4 $px-30 rgba(0, 0, 0, 0.25);
   position: absolute;
 
   top: 45px;
   right: -9px;
   width: auto;
-  z-index:99;
+  z-index: 99;
   li {
     button {
       align-items: center;
@@ -160,7 +155,7 @@
       font-size: $size-font-medium;
       padding: $px-8 $px-12;
     }
-    
+
     &:hover {
       background-color: $color-base-white-10;
       color: $color-brand-primary-base;
@@ -177,16 +172,13 @@
     }
   }
 }
-.button-filter-wrapper{
+.button-filter-wrapper {
   margin: 20px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-
 }
-.read-only-text{
-  
-    font-size: 14px;
-    color: $color-stepper-title;
-  
+.read-only-text {
+  font-size: 14px;
+  color: $color-stepper-title;
 }

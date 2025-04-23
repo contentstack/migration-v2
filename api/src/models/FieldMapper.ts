@@ -28,6 +28,7 @@ interface FieldMapper {
   field_mapper: {
     id: string;
     projectId: string;
+    contentTypeId: string;
     uid: string;
     otherCmsField: string;
     otherCmsType: string;
@@ -36,6 +37,7 @@ interface FieldMapper {
     contentstackFieldType: string;
     isDeleted: boolean;
     backupFieldType: string;
+    backupFieldUid: string
     refrenceTo: { uid: string; title: string };
     advanced: Advanced;
   }[];

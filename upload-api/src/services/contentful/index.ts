@@ -5,7 +5,7 @@ import logger from '../../utils/logger';
 import { HTTP_CODES, HTTP_TEXTS } from '../../constants';
 import { Config } from '../../models/types';
 
-const { extractContentTypes, createInitialMapper } = require('migration-contentful');
+const { extractContentTypes, createInitialMapper, extractLocale } = require('migration-contentful');
 
 const createContentfulMapper = async (
   projectId: string | string[],
@@ -15,7 +15,10 @@ const createContentfulMapper = async (
 ) => {
   try {
     const { localPath } = config;
-    await extractContentTypes(localPath, affix);
+    const cleanLocalPath = localPath?.replace?.(/\/$/, '');
+    const fetchedLocales: [] = await extractLocale(cleanLocalPath);
+
+    await extractContentTypes(cleanLocalPath, affix);
     const initialMapper = await createInitialMapper();
     const req = {
       method: 'post',
@@ -27,11 +30,32 @@ const createContentfulMapper = async (
       },
       data: JSON.stringify(initialMapper)
     };
-    const response = await axios.request(req)
-    if (response?.data?.content_mapper?.length) {
+    const { data, status } = await axios.request(req);
+    if (data?.data?.content_mapper?.length) {
       logger.info('Validation success:', {
         status: HTTP_CODES?.OK,
         message: HTTP_TEXTS?.MAPPER_SAVED
+      });
+    }
+
+    const mapperConfig = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
+      headers: {
+        app_token,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        locale: Array.from(fetchedLocales)
+      }
+    };
+
+    const mapRes = await axios.request(mapperConfig);
+    if (mapRes?.status == 200) {
+      logger.info('Legacy CMS', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.LOCALE_SAVED
       });
     }
   } catch (err: any) {

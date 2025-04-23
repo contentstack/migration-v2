@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FileDetails, ICMSType, INewMigration } from '../../../context/app/app.interface';
-import { fileValidation, getConfig } from '../../../services/api/upload.service';
+import { fileValidation } from '../../../services/api/upload.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import {  Button, CircularLoader, Paragraph } from '@contentstack/venus-components';
+import { Button, CircularLoader, Paragraph } from '@contentstack/venus-components';
 import { isEmptyString } from '../../../utilities/functions';
 import { useParams } from 'react-router';
 import { ICardType } from '../../../components/Common/Card/card.interface';
@@ -13,7 +13,7 @@ import { ICardType } from '../../../components/Common/Card/card.interface';
 import ProgressBar from '../../../components/Common/ProgressBar';
 import { VALIDATION_DOCUMENTATION_URL } from '../../../utilities/constants';
 interface LoadUploadFileProps {
-  stepComponentProps?: ()=>{};
+  stepComponentProps?: () => {};
   currentStep: number;
   handleStepChange: (stepIndex: number, closeStep: boolean) => void;
 }
@@ -21,28 +21,28 @@ interface Props {
   fileDetails: FileDetails;
 }
 interface UploadState {
-  cmsType:string;
+  cmsType: string;
   fileExtension: string;
   fileFormat?: string;
-  isConfigLoading:boolean;
-  isLoading:boolean;
+  isConfigLoading: boolean;
+  isLoading: boolean;
   isValidated: boolean;
-  isDisabled?:boolean;
+  isDisabled?: boolean;
   processing: string;
-  progressPercentage:number;
+  progressPercentage: number;
   showProgress: boolean;
-  validationMessgae:string;
-  fileDetails?: FileDetails
+  validationMessgae: string;
+  fileDetails?: FileDetails;
 }
 
-const FileComponent = ({fileDetails}:Props ) => { 
-  
+const FileComponent = ({ fileDetails }: Props) => {
   return (
     <div>
-      {fileDetails?.isLocalPath && (!isEmptyString(fileDetails?.localPath) || !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
-        <div className='file-container'>
-          <Paragraph tagName="p" variant='p1' text={`Local Path: ${fileDetails?.localPath}`}/>
-          
+      {fileDetails?.isLocalPath &&
+      (!isEmptyString(fileDetails?.localPath) ||
+        !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
+        <div className="file-container">
+          <Paragraph tagName="p" variant="p1" text={`Local Path: ${fileDetails?.localPath}`} />
         </div>
       ) : (
         <div>
@@ -55,42 +55,48 @@ const FileComponent = ({fileDetails}:Props ) => {
   );
 };
 
-const saveStateToLocalStorage = (state:UploadState, projectId : string) => {
+const saveStateToLocalStorage = (state: UploadState, projectId: string) => {
   sessionStorage.setItem(`uploadProgressState_${projectId}`, JSON.stringify(state));
 };
 
-const getStateFromLocalStorage = (projectId : string) => {
+const getStateFromLocalStorage = (projectId: string) => {
   const state = sessionStorage.getItem(`uploadProgressState_${projectId}`);
   return state ? JSON.parse(state) : null;
 };
 
 const LoadUploadFile = (props: LoadUploadFileProps) => {
   /****  ALL HOOKS HERE  ****/
-  
-  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
-  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
+
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
 
   const newMigrationDataRef = useRef(newMigrationData);
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isValidated, setIsValidated] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
-  const [showMessage, setShowMessage] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
+  const [isValidated, setIsValidated] = useState<boolean>(newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.isValidated);
+  const [showMessage, setShowMessage] = useState<boolean>(newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.isValidated);
   const [validationMessgae, setValidationMessage] = useState<string>('');
   const [isValidationAttempted, setIsValidationAttempted] = useState<boolean>(false);
-  const [isDisabled, setIsDisabled] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.isValidated || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
+  const [isDisabled, setIsDisabled] = useState<boolean>(
+    newMigrationData?.legacy_cms?.uploadedFile?.isValidated ||
+      isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)
+  );
   const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
   const [cmsType, setCmsType]= useState('');
-  const [fileDetails, setFileDetails] = useState(newMigrationData?.legacy_cms?.uploadedFile?.file_details);
+  const [fileDetails, setFileDetails] = useState(newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details);
   const [fileExtension, setFileExtension] = useState<string>('');
   const [progressPercentage, setProgressPercentage] = useState<number>(0);
-  const [showProgress, setShowProgress]= useState<boolean>(false);
-  const [fileFormat, setFileFormat] = useState(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);
+  const [showProgress, setShowProgress] = useState<boolean>(false);
+  const [fileFormat, setFileFormat] = useState(
+    newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id
+  );
   const [processing, setProcessing] = useState('');
   //const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
   //const [setIsFormatValid] = useState<boolean>(false);
+  const [affix, setAffix] = useState<string>(newMigrationData?.legacy_cms?.affix);
+  const [reValidate, setReValidate] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
 
   const { projectId = '' } = useParams();
-
 
   //Handle further action on file is uploaded to server
   const handleOnFileUploadCompletion = async () => {
@@ -101,19 +107,16 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setProgressPercentage(30);
       setShowProgress(true);
       setProcessing('Processing...30%');
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const {data, status} =  await fileValidation(projectId, newMigrationData?.legacy_cms?.affix);
-      
-  
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const { data, status } = await fileValidation(projectId, newMigrationData?.legacy_cms?.affix);
+
       setProgressPercentage(70);
       setProcessing('Processing...70%');
-  
-  
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-     
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       const newMigrationDataObj: INewMigration = {
         ...newMigrationDataRef?.current,
         legacy_cms: {
@@ -133,81 +136,76 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                 bucketName: data?.file_details?.awsData?.bucketName,
                 buketKey: data?.file_details?.awsData?.buketKey
               }
-            }
+            },
+            cmsType: data?.cmsType
             
           }
         }
       };
-     
+
       dispatch(updateNewMigrationData(newMigrationDataObj));
-  
-      if(status === 200){ 
+
+      if (status === 200) {
         setIsValidated(true);
         setValidationMessage('File validated successfully.');
-     
-        setIsDisabled(true); 
-        
-        if(! isEmptyString(newMigrationData?.legacy_cms?.affix) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)){
+
+        setIsDisabled(true);
+
+        if (
+          !isEmptyString(newMigrationData?.legacy_cms?.affix) &&
+          !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
+          !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)
+        ) {
           props.handleStepChange(props?.currentStep, true);
         }
-        
-      }
-      else if(status === 500){
+      } else if (status === 500) {
         setIsValidated(false);
         setValidationMessage('File not found');
         setIsValidationAttempted(true);
         setProgressPercentage(100);
-      
-      }
-      else if(status === 429){
+      } else if (status === 429) {
         setIsValidated(false);
         setValidationMessage('Rate limit exceeded. Please wait and try again.');
         setIsValidationAttempted(true);
         setProgressPercentage(100);
-  
-      }
-      else{
+      } else {
         setIsValidated(false);
         setValidationMessage('Validation failed.');
         setIsValidationAttempted(true);
         setProgressPercentage(100);
-  
       }
-  
+
       setProgressPercentage(100);
       setProcessing('Processing...100%');
-  
-      await new Promise(resolve => setTimeout(resolve, 1000));
-  
-      setTimeout(() => { 
-        setShowProgress(false); 
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      setTimeout(() => {
+        setShowProgress(false);
         setShowMessage(true);
       }, 1000);
-  
+
       setIsLoading(false);
-      saveStateToLocalStorage({
-        isLoading,
-        isConfigLoading,
-        isValidated,
-        validationMessgae,
-        isDisabled,
-        cmsType,
-        //fileDetails,
-        fileExtension,
-        progressPercentage,
-        showProgress,
-        fileFormat,
-        processing
-      }, projectId);
-      
+      saveStateToLocalStorage(
+        {
+          isLoading,
+          isConfigLoading,
+          isValidated,
+          validationMessgae,
+          isDisabled,
+          cmsType,
+          //fileDetails,
+          fileExtension,
+          progressPercentage,
+          showProgress,
+          fileFormat,
+          processing
+        },
+        projectId
+      );
     } catch (error) {
       return error;
-      
     }
-  
-    
-
-    
   };
 
   const getFileExtension = (filePath: string): string => {
@@ -218,56 +216,27 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   };
 
   //function to get config details
-  const getConfigDetails = async () =>{
+  const getConfigDetails = async () => {
     try {
-      setIsConfigLoading(true);
-    const {data, status} = await getConfig();
+      //setIsConfigLoading(true);
   
-    if (!isEmptyString(fileDetails?.localPath) && data?.localPath !== fileDetails?.localPath && !isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)) {
+    if (!isEmptyString(fileDetails?.localPath) && newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath !== fileDetails?.localPath && !isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)) {
       setIsDisabled(false); 
       setShowMessage(true);
       setValidationMessage('');
       
     }
     
-    if(status === 200){
-      const extension = getFileExtension(data?.localPath);     
-      setCmsType(data?.cmsType);
-      setFileDetails(data);
+      const extension = getFileExtension(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '');     
+      setCmsType(newMigrationData?.legacy_cms?.uploadedFile?.cmsType);
+      //setFileDetails(data);
       setFileExtension(extension);
 
-      const newMigrationDataObj: INewMigration = {
-        ...newMigrationDataRef?.current,
-        legacy_cms: {
-          ...newMigrationDataRef?.current?.legacy_cms,
-          uploadedFile: {
-            name: data?.localPath,
-            url: data?.localPath,
-            isValidated: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
-            reValidate: false,
-            file_details: {
-              isLocalPath: data?.isLocalPath,
-              cmsType: data?.cmsType,
-              localPath: data?.localPath,
-              awsData: {
-                awsRegion: data?.awsData?.awsRegion,
-                bucketName: data?.awsData?.bucketName,
-                buketKey: data?.awsData?.buketKey
-              }
-            }
-          }
-        }
-      };
-
-      if(isEmptyString(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath) ){
-        dispatch(updateNewMigrationData(newMigrationDataObj));
-
-      }
       
       const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
       let filteredCmsData:ICMSType[] = all_cms;
-      if (data?.cmsType) {
-        filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.parent?.toLowerCase() === data?.cmsType?.toLowerCase());
+      if (newMigrationData?.legacy_cms?.uploadedFile?.cmsType) {
+        filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.parent?.toLowerCase() === newMigrationData?.legacy_cms?.uploadedFile?.cmsType?.toLowerCase());
       }
    
       const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.some((format: ICardType) => {
@@ -275,8 +244,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         return isValid;
       });
 
-      //setIsFormatValid(isFormatValid);    
-
+      
+      //setIsFormatValid(isFormatValid); 
       setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
       if(!isFormatValid){
         setValidationMessage('');
@@ -294,33 +263,26 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       } 
 
     
-    }
-  if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
-    newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
-    {     
-      setIsValidated(false);
-      setValidationMessage('file format is not appropriate');
-      setIsValidationAttempted(true);
-      setShowMessage(true);
-      setIsLoading(false);
-      setIsDisabled(true);
-    }
+    //}
+  // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
+  //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
+  //   {     
+  //     setIsValidated(false);
+  //     setValidationMessage('file format is not appropriate');
+  //     setIsValidationAttempted(true);
+  //     setShowMessage(true);
+  //     setIsLoading(false);
+  //     setIsDisabled(true);
+  //   }
      setIsConfigLoading(false);
       
     } catch (error) {
       return error;
-      
     }
-    
-    
-
-  }
+  };
 
   useEffect(() => {
-    if(isEmptyString(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath)){
-      getConfigDetails();
-    }
-    
+      getConfigDetails();   
   }, []);
 
   useEffect(() => {
@@ -330,7 +292,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setIsConfigLoading(savedState.isConfigLoading);
       setIsValidated(savedState?.isValidated);
       setValidationMessage(savedState?.validationMessage);
-      setIsDisabled(savedState?.isDisabled);
+      //setIsDisabled(savedState?.isDisabled);
       setCmsType(savedState.cmsType);
       //setFileDetails(savedState.fileDetails);
       setFileExtension(savedState.fileExtension);
@@ -339,27 +301,33 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setFileFormat(savedState.fileFormat);
       setProcessing(savedState.processing);
     }
-    if (savedState && savedState.isLoading && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated) {
-
+    if (
+      savedState &&
+      savedState.isLoading &&
+      !newMigrationData?.legacy_cms?.uploadedFile?.isValidated
+    ) {
       handleOnFileUploadCompletion();
     }
-  },[]);
+  }, []);
 
   useEffect(() => {
-    saveStateToLocalStorage({
-      isLoading,
-      isConfigLoading,
-      isValidated,
-      validationMessgae,
-      //isDisabled,
-      cmsType,
-      //fileDetails,
-      fileExtension,
-      progressPercentage,
-      showProgress,
-      fileFormat: fileFormat ?? '',
-      processing
-    },projectId);
+    saveStateToLocalStorage(
+      {
+        isLoading,
+        isConfigLoading,
+        isValidated,
+        validationMessgae,
+        //isDisabled,
+        cmsType,
+        //fileDetails,
+        fileExtension,
+        progressPercentage,
+        showProgress,
+        fileFormat: fileFormat ?? '',
+        processing
+      },
+      projectId
+    );
   }, [
     isLoading,
     isConfigLoading,
@@ -375,115 +343,114 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     processing
   ]);
 
-  useEffect(()=>{ 
-    if(newMigrationData?.legacy_cms?.uploadedFile?.isValidated && ! showProgress && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate)
-    {   
-      
+  useEffect(() => {
+    if (
+      newMigrationData?.legacy_cms?.uploadedFile?.isValidated &&
+      !showProgress &&
+      !newMigrationData?.legacy_cms?.uploadedFile?.reValidate
+    ) {
       setIsValidated(true);
-      setShowMessage(true)
+      setShowMessage(true);
       setValidationMessage('File validated successfully.');
       setIsDisabled(true);
-      ! isEmptyString(newMigrationData?.legacy_cms?.affix) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) || ! isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) && props.handleStepChange(props?.currentStep, true);
-      
-      
+      !isEmptyString(newMigrationData?.legacy_cms?.affix) ||
+        !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) ||
+        (!isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) &&
+          props.handleStepChange(props?.currentStep, true));
     }
-    if(newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
+    if (newMigrationData?.legacy_cms?.uploadedFile?.reValidate) {
       setValidationMessage('');
     }
-    if(!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated ){
+    if(!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
       setIsDisabled(false);
     }
+    setReValidate(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
    
     // else{
     //   setIsValidated(false);
     // }
-   
-  },[isValidated,newMigrationData]);
+  }, [isValidated, newMigrationData]);
 
-
-  useEffect(()=>{
-    if(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id){
-    setFileFormat(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);}
-
-  },[newMigrationData?.legacy_cms?.selectedFileFormat]);
+  useEffect(() => {
+    if (newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) {
+      setFileFormat(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id);
+    }
+  }, [newMigrationData?.legacy_cms?.selectedFileFormat]);
 
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
+    setAffix(newMigrationData?.legacy_cms?.affix);
   }, [newMigrationData]);
 
   const sanitizedCmsType = cmsType?.toLowerCase().replace(/[^\w\s-]/g, '');
 
   const documentationUrl = VALIDATION_DOCUMENTATION_URL?.[sanitizedCmsType];
-
-
   
   const validationClassName = isValidated ? 'success' : 'error';
 
-  const containerClassName = `validation-container ${isValidationAttempted && !isValidated ? 'error-container pb-2' : ''}`;
-  
+  const containerClassName = `validation-container ${
+    isValidationAttempted && !isValidated ? 'error-container pb-2' : ''
+  }`;
+
   return (
     <div className="row">
       <div className="col-12">
         <div className="col-12">
           <div className={containerClassName}>
             {!isConfigLoading && !isEmptyString(fileDetails?.localPath) ? (
-              <div className='file-icon-group'>
-                <FileComponent fileDetails={fileDetails || {}} />
-                {/* {(showMessage &&  !isCancelLoading) && 
-                  (<Tooltip content='cancel validation' position='top'>
-                    <Icon icon='CloseNoborder' version='v2' onClick={handleCancelValidation}/>
-
-                  </Tooltip> )
-                } */}
-                {/* { isCancelLoading &&   
-                  <div style={{justifyContent:'center', alignItems:'center', marginTop:'7px'}}>
-                    <AsyncLoader color='$color-brand-primary-base'/>
-                  </div>
-              } */}
+              // <div className='file-icon-group'>
+              <FileComponent fileDetails={fileDetails || {}} />
+            ) : (
+              // </div>
+              <div className="loader">
+                <CircularLoader />
               </div>
-              
-
-            ) :
-               
-            <div className='loader'>
-              <CircularLoader/>
-             </div>
-             }
-            {showMessage  && ! showProgress &&
-              (
-              <div className='message-container'>
-                <Paragraph className={`${validationClassName}` } tagName='p' variant="p2" text={validationMessgae}/>
-                {(! isValidated && validationMessgae === "Validation failed.")  && <p className={`${validationClassName} p2 doc-link`}>
-                     Please check the requirements <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">here</a>
-                  </p>}
+            )}
+            {showMessage && !showProgress && (
+              <div className="message-container">
+                <Paragraph
+                  className={`${validationClassName}`}
+                  tagName="p"
+                  variant="p2"
+                  text={validationMessgae}
+                />
+                {!isValidated && validationMessgae === 'Validation failed.' && (
+                  <p className={`${validationClassName} p2 doc-link`}>
+                    Please check the requirements{' '}
+                    <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">
+                      here
+                    </a>
+                  </p>
+                )}
               </div>
-              )
-            }
-            {showProgress && isLoading && 
-              <Paragraph className='pb-2 processing-test' tagName='p' variant="p2" text={processing}/>
-            }
-           
+            )}
+            {showProgress && isLoading && (
+              <Paragraph
+                className="pb-2 processing-test"
+                tagName="p"
+                variant="p2"
+                text={processing}
+              />
+            )}
           </div>
-          {showProgress && 
-            <div className='bar-container'>
-              <ProgressBar percentage={progressPercentage} type='bar' color='#6c5ce7'/>
-          </div>
-          }
-          
-           <Button 
-            className="validation-cta" 
+          {showProgress && (
+            <div className="bar-container">
+              <ProgressBar percentage={progressPercentage} type="bar" color="#6c5ce7" />
+            </div>
+          )}
+
+          <Button
+            className="validation-cta"
             buttonType="secondary"
             onClick={handleOnFileUploadCompletion}
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={isDisabled}
+            disabled={!(reValidate || (!isDisabled && !isEmptyString(newMigrationData?.legacy_cms?.affix)))}
           > 
             Validate File
           </Button>
-           
         </div>
-
       </div>
     </div>
   );
