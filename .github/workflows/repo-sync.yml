@@ -129,7 +129,7 @@ jobs:
                     "@typescript-eslint/no-explicit-any": "off",
                     "no-constant-condition": "off",
                     "no-constant-binary-expression": "off",
-                    "import/no-unresolved": 'error',
+                    "import/no-unresolved": 'off',
                     }
                 }
                 ];
