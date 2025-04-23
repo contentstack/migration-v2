@@ -2,25 +2,30 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import axios from "axios";
-import _ from "lodash";
-import { MIGRATION_DATA_CONFIG } from "../constants/index.js";
+import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER } from "../constants/index.js";
 import jsdom from "jsdom";
-import { htmlToJson } from "@contentstack/json-rte-serializer";
+import { htmlToJson, jsonToHtml } from "@contentstack/json-rte-serializer";
 import customLogger from "../utils/custom-logger.utils.js";
 import { getLogMessage } from "../utils/index.js";
-import { Advanced } from "../models/FieldMapper.js";
+import { v4 as uuidv4 } from "uuid";
+import { orgService } from "./org.service.js";
+
+
+
+
+
 
 
 const { JSDOM } = jsdom;
 const virtualConsole = new jsdom.VirtualConsole();
 // Get the current file's path
 const __filename = fileURLToPath(import.meta.url);
+
 // Get the current directory
 const __dirname = path.dirname(__filename);
 
 const { DATA, EXPORT_INFO_FILE } = MIGRATION_DATA_CONFIG
 
-//const slugRegExp = /[^a-z0-9_-]+/g;
 let assetsSave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
@@ -68,27 +73,12 @@ let assetMasterFolderPath = path.join(
   "logs",
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
 );
-// let globalPrefix = "";
 
 interface Asset {
   "wp:post_type": string;
   [key: string]: any;
 }
 
-interface FieldMapping {
-  id: string;
-    projectId: string;
-    uid: string;
-    otherCmsField: string;
-    otherCmsType: string;
-    contentstackField: string;
-    contentstackFieldUid: string;
-    contentstackFieldType: string;
-    isDeleted: boolean;
-    backupFieldType: string;
-    refrenceTo: { uid: string; title: string };
-    advanced: Advanced;
-}
 
 const idCorrector = (id: any) => {
   const newId = id?.replace(/[-{}]/g, (match: any) => match === '-' ? '' : '')
@@ -108,19 +98,29 @@ let assetData: Record<string, any> | any = {};
 let blog_base_url = "";
 
 //helper function to convert entries with content type
-function mapContentTypeToEntry(contentType: any, data: any) {
-  return contentType?.fieldMapping?.reduce((acc: { [key: string]: any }, field: FieldMapping) => {
-    const fieldValue = data[field.uid];
-    let formattedValue;
-
+async function mapContentTypeToEntry(contentType: any, data: any) {
+  const result: { [key: string]: any } = {};
+  for (const field of contentType?.fieldMapping || []) {
+    const fieldValue = data?.[field?.uid] ?? null;
+    let formattedValue ;
     switch (field?.contentstackFieldType) {
       case "single_line_text":
       case "text":
-      case 'html':
         formattedValue = fieldValue;
         break;
-      case "json":
-        formattedValue = convertHtmlToJson(fieldValue);
+      case "html":
+        formattedValue =
+          fieldValue && typeof fieldValue === "object"
+            ? await convertJsonToHtml(fieldValue)
+            : fieldValue;
+        break;
+      case "json":    
+          try {
+            formattedValue = typeof fieldValue !== 'object' ? await convertHtmlToJson(fieldValue) : fieldValue;
+          } catch (err) {
+            console.error(`Error converting HTML to JSON for field ${field?.uid}:`, err);
+            formattedValue = null;
+          }
         break;
       case "reference":
         formattedValue = getParent(data,data[field.uid]);
@@ -128,11 +128,16 @@ function mapContentTypeToEntry(contentType: any, data: any) {
       default:
         formattedValue = fieldValue;
     }
+    if(field?.advanced?.multiple){
+      formattedValue = Array.isArray(formattedValue) ? formattedValue : [formattedValue];
+    }
 
-    acc[field.contentstackFieldUid] = formattedValue;
-    return acc;
-  }, {});
+    result[field?.contentstackFieldUid] = formattedValue;
+  }
+
+  return result;
 }
+
 // helper functions
 async function writeFileAsync(filePath: string, data: any, tabSpaces: number) {
   filePath = path.resolve(filePath);
@@ -141,6 +146,86 @@ async function writeFileAsync(filePath: string, data: any, tabSpaces: number) {
       : data || "{}";
   await fs.promises.writeFile(filePath, data, "utf-8");
 }
+
+async function writeOneFile(indexPath: string, fileMeta: any) {
+    fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
+      if (err) {
+        console.error('Error writing file: 3', err);
+      }
+    });
+  }
+
+  const getKeys = (obj: Record<string, any>): string[] => { //Function to fetch all the locale codes
+    return Object.keys(obj);
+  };
+
+/************  Locale module functions start *********/
+  
+  const createLocale = async (req: any, destinationStackId: string, projectId: string, project: any) => {
+    const srcFunc = 'createLocale';
+    try {
+      const baseDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
+      const localeSave = path.join(baseDir, MIGRATION_DATA_CONFIG.LOCALE_DIR_NAME);
+      const allLocalesResp = await orgService.getLocales(req)
+      const masterLocale = Object?.keys?.(project?.master_locale ?? LOCALE_MAPPER?.masterLocale)?.[0];
+      const msLocale: any = {};
+      const uid = uuidv4();
+      msLocale[uid] = {
+        "code": masterLocale,
+        "fallback_locale": null,
+        "uid": uid,
+        "name": allLocalesResp?.data?.locales?.[masterLocale] ?? ''
+      }
+      const message = getLogMessage(
+        srcFunc,
+        `Master locale ${masterLocale} has been successfully transformed.`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+      const allLocales: any = {};
+      for (const [key, value] of Object.entries(project?.locales ?? LOCALE_MAPPER.locales)) {
+        const localeUid = uuidv4();
+        if (key !== 'masterLocale' && typeof value === 'string') {
+          allLocales[localeUid] = {
+            "code": key,
+            "fallback_locale": masterLocale,
+            "uid": localeUid,
+            "name": allLocalesResp?.data?.locales?.[key] ?? ''
+          }
+          const message = getLogMessage(
+            srcFunc,
+            `locale ${value} has been successfully transformed.`,
+            {}
+          )
+          await customLogger(projectId, destinationStackId, 'info', message);
+        }
+      }
+      const masterPath = path.join(localeSave, MIGRATION_DATA_CONFIG.LOCALE_MASTER_LOCALE);
+      const allLocalePath = path.join(localeSave, MIGRATION_DATA_CONFIG.LOCALE_FILE_NAME);
+      fs.access(localeSave, async (err) => {
+        if (err) {
+          fs.mkdir(localeSave, { recursive: true }, async (err) => {
+            if (!err) {
+              await writeOneFile(masterPath, msLocale);
+              await writeOneFile(allLocalePath, allLocales);
+            }
+          })
+        } else {
+          await writeOneFile(masterPath, msLocale);
+          await writeOneFile(allLocalePath, allLocales);
+        }
+      })
+    } catch (err) {
+      const message = getLogMessage(
+        srcFunc,
+        `error while Createing the locales.`,
+        {},
+        err
+      )
+      await customLogger(projectId, destinationStackId, 'error', message);
+    }
+  }
+
 
 /************  Assests module functions start *********/
 async function startingDirAssests(destinationStackId: string) {
@@ -237,9 +322,17 @@ async function startingDirAssests(destinationStackId: string) {
   }
 }
 
-async function saveAsset(assets: any, retryCount: number, affix: string, destinationStackId: string, projectId: string) {
+function toCheckUrl(url : string, baseSiteUrl: string) {
+
+  const validPattern = /^(https?:\/\/|www\.)/;
+  return validPattern.test(url)
+    ? url
+    : `${baseSiteUrl}${url.replace(/^\/+/, "")}`;
+}
+
+async function saveAsset(assets: any, retryCount: number, affix: string, destinationStackId: string, projectId: string, baseSiteUrl:string) {
   const srcFunc = 'saveAsset';
-  const url = encodeURI(assets["wp:attachment_url"]);
+  const url = encodeURI(toCheckUrl(assets["wp:attachment_url"],baseSiteUrl));
   const name = url.split("/").pop() || "";
 
   let description =
@@ -264,13 +357,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     console.error(`Asset already present: ${customId}`);
     return assets["wp:post_id"];
   }
-  // else{
-  //   fs.mkdirSync(
-  //     path.resolve(
-  //       assetPath
-  //     )
-  //   );
-  // }
+
 
   try {
     const response = await axios.get(url, { responseType: "arraybuffer" });
@@ -307,11 +394,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
       await writeFileAsync(failedJSONFilePath, failedJSON, 4);
     }
     assetData[key] = acc[key];
-    // await writeFileAsync(
-    //   path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
-    //   assetData,
-    //   4
-    // );
+
 
     await writeFileAsync(
       path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE),
@@ -325,13 +408,6 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     )
     await customLogger(projectId, destinationStackId, 'info', message);
 
-    // console.log(
-    //   "An asset with id",
-    //   `assets_${assets["wp:post_id"]}`,
-    //   "and name",
-    //   `${name}`,
-    //   "downloaded successfully."
-    // );
 
     return assets["wp:post_id"];
   } catch (err: any) {
@@ -355,7 +431,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
    await writeFileAsync(failedJSONFilePath, failedJSON, 4);
 
     if (retryCount === 0) {
-      return saveAsset(assets, 1, affix, destinationStackId, projectId);
+      return await saveAsset(assets, 1, affix, destinationStackId, projectId, baseSiteUrl);
     } else {
       const message = getLogMessage(
         srcFunc,
@@ -369,19 +445,19 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
   }
 }
 
-async function getAsset(attachments: any[], affix: string, destinationStackId: string, projectId: string) {
+async function getAsset(attachments: any[], affix: string, destinationStackId: string, projectId: string, baseSiteUrl:string) {
   const BATCH_SIZE = 5; // 5 promises at a time
   const results = [];
   
-  for (let i = 0; i < attachments.length; i += BATCH_SIZE) {
-    const batch = attachments.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < attachments?.length; i += BATCH_SIZE) {
+    const batch = attachments?.slice(i, i + BATCH_SIZE);
     
     const batchResults = await Promise.allSettled(
-      batch.map((data) => {
-        saveAsset(data, 0, affix, destinationStackId, projectId)
+      batch?.map(async (data) => {
+        await saveAsset(data, 0, affix, destinationStackId, projectId, baseSiteUrl)
       })
     );
-    results.push(...batchResults);
+    results?.push(...batchResults);
   }
   await writeFileAsync(
     path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME),
@@ -402,25 +478,26 @@ async function getAllAssets(
     await startingDirAssests(destinationStackId);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
+    const baseSiteUrl =
+    alldataParsed?.rss?.channel?.["wp:base_site_url"] ||
+    alldataParsed?.channel?.["wp:base_site_url"];
     const assets: Asset[] =
       alldataParsed?.rss?.channel?.item ?? alldataParsed?.channel?.item;
-    // await writeFileAsync(path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_FILE_NAME), assets, 4);
-    if (!assets || assets.length === 0) {
+    if (!assets || assets?.length === 0) {
       const message = getLogMessage(
         "createAssetFolderFile",
         `No assets found.`,
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("No assets found", projectId);
       return;
     }
 
-    const attachments = assets.filter(
+    const attachments = assets?.filter(
       ({ "wp:post_type": postType }) => postType === "attachment"
     );
-    if (attachments.length > 0) {
-      await getAsset(attachments, affix, destinationStackId, projectId);
+    if (attachments?.length > 0) {
+      await getAsset(attachments, affix, destinationStackId, projectId,baseSiteUrl);
     }
     return;
   } catch (error) {
@@ -457,7 +534,6 @@ const createAssetFolderFile = async (affix: string, destinationStackId:string, p
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log("Folder JSON created successfully.");
     return;
   } catch (error) {
     return {
@@ -510,7 +586,7 @@ async function saveReference(referenceDetails: any[], destinationStackId:string,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log("Reference data saved successfully.");
+
   } catch (error) {
     return {
       err: "error in saving references",
@@ -582,7 +658,7 @@ async function getAllreference(affix: string, packagePath: string, destinationSt
       ...processReferenceData(referenceTerms, "terms", "wp:term_slug", terms)
     );
     referenceArray.push(
-      ...processReferenceData(referenceTags, "tags", "wp:tag_slug", tag)
+      ...processReferenceData(referenceTags, "tag", "wp:tag_slug", tag)
     );
 
     if (referenceArray.length > 0) {
@@ -595,7 +671,6 @@ async function getAllreference(affix: string, packagePath: string, destinationSt
     )
     await customLogger(projectId, destinationStackId, 'info', message);
 
-    // console.log("All references processed successfully.");
   } catch (error) {
     return {
       err: "error in processing references",
@@ -695,7 +770,6 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("Post chunks creation completed.");
     } else {
       const message = getLogMessage(
         srcFunc,
@@ -703,7 +777,6 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
         {},
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.error("No posts found.");
     }
   } catch (error) {
     const message = getLogMessage(
@@ -713,44 +786,69 @@ async function extractChunks(affix: string, packagePath: string, destinationStac
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error(error);
     return;
   }
 }
 /************  end of chunks module functions *********/
 
 /************  authors module functions start *********/
-async function startingDirAuthors(affix: string, ct: string) {
-  const authorFolderName = MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
-
-  authorsFolderPath = path.join(entrySave, authorFolderName, "en-us");
-  authorsFilePath = path.join(
-    authorsFolderPath,
-    ct ? ct : MIGRATION_DATA_CONFIG.AUTHORS_FILE_NAME
-  );
-  try {
-    await fs.promises.access(authorsFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(authorsFolderPath, { recursive: true });
-    await fs.promises.writeFile(authorsFilePath, "{}");
+async function startingDirAuthors(
+    affix: string,
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+    const authorFolderName = ct || MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
+  
+    authorsFolderPath = path.join(entrySave, authorFolderName, master_locale);
+    authorsFilePath = path.join(authorsFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(authorsFolderPath);
+    } catch {
+      await fs.promises.mkdir(authorsFolderPath, { recursive: true });
+      await fs.promises.writeFile(authorsFilePath, "{}");
+    }
+  
+    // Read master data once
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(authorsFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master author file:", err);
+    }
+  
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, authorFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
 
 const filePath = false;
-async function saveAuthors(authorDetails: any[], destinationStackId: string, projectId: string, contentType: any) {
-  const srcFunc = "saveAuthors";
-  try {
-
-    const authordata = authorDetails.reduce(
-      (acc: { [key: string]: any }, data) => {
-        const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]
-          }`;
-
+async function saveAuthors(authorDetails: any[], destinationStackId: string, projectId: string, contentType: any, master_locale:string, locales:object) {
+    const srcFunc = "saveAuthors";
+    const localeKeys = getKeys(locales)
+    try {
+  
+      const authordata: { [key: string]: any } = {};
+  
+      for (const data of authorDetails) {
+        const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]}`;
         const title = data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`;
         const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
         const customId = idCorrector(uid);
-        const authordata: any = {
+  
+        const authordataEntry: any = {
           uid: uid,
           title: data["wp:author_login"],
           url: url,
@@ -758,44 +856,68 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
           first_name: data["wp:author_first_name"],
           last_name: data["wp:author_last_name"],
         };
-        acc[customId] = {
-          ...acc[customId],
+  
+        authordata[customId] = {
+          ...authordata[customId],
           uid: customId,
-          ...mapContentTypeToEntry(contentType, authordata),
+          ...( await mapContentTypeToEntry(contentType, authordataEntry)),
         };
-
-
-        return acc;
-      },
-      {}
-    );
-    await writeFileAsync(authorsFilePath, authordata, 4);
-    await writeFileAsync(path.join(authorsFolderPath, "index.json"), {"1": "en-us.json"}, 4);
-    const message = getLogMessage(
-      srcFunc,
-      `${authorDetails.length} Authors exported successfully`,
-      {}
-    )
-    await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log(authorDetails.length, " Authors exported successfully");
-    // console.log(`${authorDetails.length} Authors exported successfully`);
-  } catch (error) {
-    const message = getLogMessage(
-      srcFunc,
-      `Error while saving authors`,
-      {},
-      error
-    )
-    await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("error while saving authors", error);
+        authordata[customId].publish_details = [];
+  
+        const message = getLogMessage(
+          srcFunc,
+          `Entry title ${data["wp:author_login"]} (authors) in the ${master_locale} locale has been successfully transformed.`,
+          {}
+        );
+  
+        await customLogger(projectId, destinationStackId, 'info', message);
+      }
+      await writeFileAsync(authorsFilePath, authordata, 4);
+      await writeFileAsync(
+        path.join(authorsFolderPath, "index.json"),
+        { "1": `${master_locale}.json` },
+          4
+          );
+          // Write index.json in other locale folders (not master)
+for (const loc of localeKeys) {
+    if (loc === master_locale) continue;
+  
+    const localeFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME, loc);
+    const indexPath = path.join(localeFolderPath, "index.json");
+  
+    try {
+      await fs.promises.writeFile(
+        indexPath,
+        JSON.stringify({ "1": `${loc}.json` }, null, 4)
+      );
+    } catch (err) {
+      console.error(`Error writing index.json for locale ${loc}:`, err);
+    }
   }
-}
-async function getAllAuthors(affix: string, packagePath: string,destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any) {
+  
+  
+      const message = getLogMessage(
+        srcFunc,
+        `${authorDetails?.length} Authors exported successfully`,
+        {}
+      )
+      await customLogger(projectId, destinationStackId, 'info', message);
+    } catch (error) {
+      const message = getLogMessage(
+        srcFunc,
+        `Error while saving authors`,
+        {},
+        error
+      )
+      await customLogger(projectId, destinationStackId, 'error', message);
+    }
+  }
+async function getAllAuthors(affix: string, packagePath: string,destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any, master_locale:string, project:any) {
   const srcFunc = "getAllAuthors";
   const ct:any = keyMapper?.["authors"];
   const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'authors')
   try {
-    await startingDirAuthors(affix, ct);
+    await startingDirAuthors(affix, ct, master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const authors: any =
@@ -805,7 +927,7 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
 
     if (authors && authors.length > 0) {
       if (!filePath) {
-        await saveAuthors(authors, destinationStackId, projectId,contenttype);
+        await saveAuthors(authors, destinationStackId, projectId,contenttype,master_locale, project?.locales);
       } else {
         const authorIds = fs.existsSync(filePath)? fs.readFileSync(filePath, "utf-8").split(",")
           : [];
@@ -816,7 +938,7 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
           );
 
           if (authorDetails.length > 0) {
-            await saveAuthors(authorDetails, destinationStackId, projectId,contenttype);
+            await saveAuthors(authorDetails, destinationStackId, projectId,contenttype,master_locale, project?.locales);
           }
         }
       }
@@ -829,7 +951,7 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
             .split(",")
             .includes(authors["wp:author_id"]))
       ) {
-        await saveAuthors([authors], destinationStackId, projectId,contenttype);
+        await saveAuthors([authors], destinationStackId, projectId,contenttype, master_locale, project?.locales);
       } else {
         const message = getLogMessage(
           srcFunc,
@@ -837,7 +959,6 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
           {}
         )
         await customLogger(projectId, destinationStackId, 'info', message);
-        // console.log("\nNo authors UID found");
       }
     } else {
       const message = getLogMessage(
@@ -846,7 +967,6 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("\nNo authors found");
     }
   } catch (error) {
     const message = getLogMessage(
@@ -856,7 +976,6 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.log("error while getting authors", error);
   }
 }
 /************  end of authors module functions *********/
@@ -873,13 +992,6 @@ async function startingDirContentTypes(destinationStackId: string) {
   } catch {
     // Directory doesn't exist, create it
     await fs.promises.mkdir(contentTypeFolderPath, { recursive: true });
-    // await fs.promises.writeFile(
-    //   path.join(
-    //     contentTypeFolderPath,
-    //     MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
-    //   ),
-    //   "{}"
-    // );
     await fs.promises.writeFile(
       path.join(
         contentTypeFolderPath,
@@ -889,18 +1001,6 @@ async function startingDirContentTypes(destinationStackId: string) {
     );
   }
 }
-
-// const generateUid = (suffix: string) =>
-//   globalPrefix
-//     ? `${globalPrefix
-//         .replace(/^\d+/, "")
-//         .replace(/[^a-zA-Z0-9]+/g, "_")
-//         .replace(/(^_+)|(_+$)/g, "")
-//         .toLowerCase()}_${suffix}`
-//     : suffix;
-
-// const generateTitle = (title: string) =>
-//   globalPrefix ? `${globalPrefix} - ${title}` : title;
 
 const generateSchema = (
   title: string,
@@ -1385,14 +1485,6 @@ async function extractContentTypes(projectId: string,destinationStackId: string)
       }
         
     );
-    // await writeFileAsync(
-    //   path.join(
-    //     contentTypeFolderPath,
-    //     MIGRATION_DATA_CONFIG.CONTENT_TYPES_FILE_NAME
-    //   ),
-    //   schemaJson,
-    //   4
-    // );
     await writeFileAsync(
       path.join(
         contentTypeFolderPath,
@@ -1424,61 +1516,99 @@ async function extractContentTypes(projectId: string,destinationStackId: string)
 /************  end of contenttypes module functions *********/
 
 /************  terms module functions start *********/
-async function startingDirTerms(affix: string, ct:string) {
-  termsFolderPath = path.join(
-    entrySave,
-   ct ? ct :  MIGRATION_DATA_CONFIG.TERMS_DIR_NAME, "en-us"
-  );
-  try {
-    await fs.promises.access(termsFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(termsFolderPath, { recursive: true });
-    await fs.promises.writeFile(
-      path.join(termsFolderPath, MIGRATION_DATA_CONFIG.TERMS_FILE_NAME),
-      "{}"
-    );
+async function startingDirTerms(
+    affix: string,
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+    const termsFolderName = ct || MIGRATION_DATA_CONFIG.TERMS_DIR_NAME;
+  
+    // Master locale folder and file
+    termsFolderPath = path.join(entrySave, termsFolderName, master_locale);
+    const masterFilePath = path.join(termsFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(termsFolderPath);
+    } catch {
+      await fs.promises.mkdir(termsFolderPath, { recursive: true });
+      await fs.promises.writeFile(masterFilePath, "{}");
+    }
+  
+    // Read data from the master locale file
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(masterFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master locale file:", err);
+    }
+  
+    // Other locale folders and files
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, termsFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
 
-async function saveTerms(termsDetails: any[], destinationStackId: string, projectId: string, contentType:any) {
-  const srcFunc = "saveTerms";
+async function saveTerms(termsDetails: any[], destinationStackId: string, projectId: string, contentType:any,master_locale: string, locales:object) {
+  const localeKeys = getKeys(locales)
+    const srcFunc = "saveTerms";
   try {
     const termsFilePath = path.join(
       termsFolderPath,
-      MIGRATION_DATA_CONFIG.TERMS_FILE_NAME
+      `${master_locale}.json`
     );
-    const termsdata = termsDetails.reduce(
-      (acc: { [key: string]: any }, data) => {
-    
-        const { id } = data;
-         const uid = `terms_${id}`;
-        // const title = name ?? `Terms - ${id}`;
-        //const url = `/${title.toLowerCase().replace(/ /g, "_")}`; 
-        
-        const customId = uid;
+    const termsdata: { [key: string]: any } = {};
+    for (const data of termsDetails) {
+      const { id } = data;
+      const uid = `terms_${id}`;
+      const customId = uid;
 
-        acc[customId] = {
-          ...acc[customId],
+
+        termsdata[customId] = {
+          ...termsdata[customId],
           uid: customId,
-          ...mapContentTypeToEntry(contentType, data), // Pass individual term object
+          ...(await mapContentTypeToEntry(contentType, data)),
         };
-
-        return acc;
-      },
-      {}
-    );
+        termsdata[customId].publish_details = [];
+    }
 
     await writeFileAsync(termsFilePath, termsdata, 4);
-    await writeFileAsync(path.join(termsFolderPath, "index.json"), {"1": "en-us.json"}, 4);
+    await writeFileAsync(path.join(termsFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
 
+    for (const loc of localeKeys) {
+        if (loc === master_locale) continue;
+  
+        const localeFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.TERMS_DIR_NAME, loc);
+        const indexPath = path.join(localeFolderPath, "index.json");
+  
+        try {
+          await fs.promises.mkdir(localeFolderPath, { recursive: true });
+          await writeFileAsync(
+            indexPath,
+            { "1": `${loc}.json` },
+            4
+          );
+        } catch (err) {
+          console.error(`Error creating index.json for ${loc}:`, err);
+        }
+      }
     const message = getLogMessage(
       srcFunc,
       `${termsDetails.length} Terms exported successfully`,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log(`${termsDetails.length} Terms exported successfully`);
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1487,32 +1617,30 @@ async function saveTerms(termsDetails: any[], destinationStackId: string, projec
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("Error saving terms:", error);
     throw error;
   }
 }
 
-async function getAllTerms(affix: string, packagePath: string, destinationStackId:string, projectId: string, contentTypes:any, keyMapper:any) {
+async function getAllTerms(affix: string, packagePath: string, destinationStackId:string, projectId: string, contentTypes:any, keyMapper:any,master_locale: string, project:any) {
   const srcFunc = "getAllTerms";
   const ct:any = keyMapper?.["terms"];
   const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'terms')
   try {
-    await startingDirTerms(affix, ct);
+    await startingDirTerms(affix, ct,master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const terms =
-      alldataParsed?.rss?.channel["wp:term"] ||
-      alldataParsed?.channel["wp:term"] ||
+      alldataParsed?.rss?.channel?.["wp:term"] ||
+      alldataParsed?.channel?.["wp:term"] ||
       "";
 
-    if (!terms || terms.length === 0) {
+    if (!terms || terms?.length === 0) {
       const message = getLogMessage(
         srcFunc,
         `No terms found`,
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("\nNo terms found");
       return;
     }
     
@@ -1534,7 +1662,7 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
         },
       ];
     
-    await saveTerms(termsArray, destinationStackId, projectId, contenttype);
+    await saveTerms(termsArray, destinationStackId, projectId, contenttype,master_locale, project?.locales);
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1543,55 +1671,97 @@ async function getAllTerms(affix: string, packagePath: string, destinationStackI
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("Error retrieving terms:", error);
   }
 }
 
 /************  end of terms module functions *********/
 
 /************  tags module functions start *********/
-async function startingDirTags(affix: string, ct:string) {
-  tagsFolderPath = path.join(
-    entrySave,
-    ct ? ct : MIGRATION_DATA_CONFIG.TAG_DIR_NAME, "en-us"
-  );
-  try {
-    await fs.promises.access(tagsFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(tagsFolderPath, { recursive: true });
-    await fs.promises.writeFile(
-      path.join(tagsFolderPath, MIGRATION_DATA_CONFIG.TAG_FILE_NAME),
-      "{}"
-    );
+async function startingDirTags(
+    affix: string,
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+  
+    const tagsFolderName = ct || MIGRATION_DATA_CONFIG.TAG_DIR_NAME;
+  
+    // Master locale folder and file
+    tagsFolderPath = path.join(entrySave, tagsFolderName, master_locale);
+    const masterFilePath = path.join(tagsFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(tagsFolderPath);
+    } catch {
+      await fs.promises.mkdir(tagsFolderPath, { recursive: true });
+      await fs.promises.writeFile(masterFilePath, "{}");
+    }
+  
+    // Read the data from the master locale JSON
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(masterFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master locale file:", err);
+    }
+  
+    // Create locale-specific folders and copy master data
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, tagsFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
 
-async function saveTags(tagDetails: any[], destinationStackId: string, projectId: string, contenttype:any) {
+async function saveTags(tagDetails: any[], destinationStackId: string, projectId: string, contenttype:any, master_locale: string, locales:object) {
+    const localeKeys = getKeys(locales)
   const srcFunc = 'saveTags';
   try {
     const tagsFilePath = path.join(
       tagsFolderPath,
-      MIGRATION_DATA_CONFIG.TAG_FILE_NAME
+      `${master_locale}.json`
     );
-    const tagdata = tagDetails.reduce((acc: { [key: string]: any }, data) => {
+    const tagsdata: { [key: string]: any } = {};
+  
+    for(const data of tagDetails) {
       const { id } = data;
       const uid = `tags_${id}`;
-      //const title = name ?? `Tags - ${id}`;
-     // const url = `/tags/${uid}`;
-      //const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
       const customId = idCorrector(uid);
 
-      acc[customId]={
-        ...acc[customId],
+      tagsdata[customId]={
+        ...tagsdata[customId],
         uid:customId,
-        ...mapContentTypeToEntry(contenttype,data),
+        ...( await mapContentTypeToEntry(contenttype,data)),
       };
+      tagsdata[customId].publish_details = [];
 
-      return acc;
-    }, {});
-    await writeFileAsync(tagsFilePath, tagdata, 4);
-    await writeFileAsync(path.join(tagsFolderPath, "index.json"), {"1": "en-us.json"}, 4);
+    }
+    await writeFileAsync(tagsFilePath, tagsdata, 4);
+    await writeFileAsync(path.join(tagsFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
+         // Write index.json for all other locales
+         for (const loc of localeKeys) {
+           if (loc === master_locale) continue;
+     
+           const localeFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.TAG_DIR_NAME, loc);
+           const indexPath = path.join(localeFolderPath, "index.json");
+     
+           try {
+             await fs.promises.mkdir(localeFolderPath, { recursive: true });
+             await writeFileAsync(indexPath, { "1": `${loc}.json` }, 4);
+           } catch (err) {
+             console.error(`Error creating index.json for locale '${loc}' in tags:`, err);
+           }
+         }
     const message = getLogMessage(
       srcFunc,
       `${tagDetails.length}, Tags exported successfully`,
@@ -1599,7 +1769,6 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
     )
     await customLogger(projectId, destinationStackId, 'info', message);
 
-    // console.log(`${tagDetails.length}`, " Tags exported successfully");
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1611,13 +1780,13 @@ async function saveTags(tagDetails: any[], destinationStackId: string, projectId
     throw error;
   }
 }
-async function getAllTags(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any ) {
+async function getAllTags(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string, project:any) {
   const srcFunc = "getAllTags";
   const ct:any = keyMapper?.["tag"];
   const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'tag');
 
   try {
-    await startingDirTags(affix, ct);
+    await startingDirTags(affix, ct, master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const tags =
@@ -1632,7 +1801,6 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("\nNo tags found");
       return;
     }
     const tagsArray = Array.isArray(tags) ? tags.map((taginfo) => ({
@@ -1640,6 +1808,7 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
         name: taginfo["wp:tag_name"],
         slug: taginfo["wp:tag_slug"],
         description: taginfo["wp:tag_description"],
+        title:taginfo["wp:tag_name"]
       }))
       : [
         {
@@ -1647,10 +1816,11 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
           name: tags["wp:tag_name"],
           slug: tags["wp:tag_slug"],
           description: tags["wp:tag_description"],
+          title:tags["wp:tag_name"]
         },
       ];
 
-    await saveTags(tagsArray, destinationStackId, projectId, contenttype);
+    await saveTags(tagsArray, destinationStackId, projectId, contenttype, master_locale, project?.locales);
   } catch (error) {
     const message = getLogMessage(
       srcFunc,
@@ -1659,39 +1829,73 @@ async function getAllTags(affix: string, packagePath: string, destinationStackId
       error
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("Error retrieving tags:", error);
     throw error;
   }
 }
 /************  end of tags module functions *********/
 
 /************  categories module functions start *********/
-async function startingDirCategories(affix: string, ct: string) {
-  categoriesFolderPath = path.join(
-    entrySave,
-    ct ? ct : MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME, "en-us"
-  );
-
-  try {
-    await fs.promises.access(categoriesFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(categoriesFolderPath, { recursive: true });
-    await fs.promises.writeFile(
-      path.join(
-        categoriesFolderPath,
-        MIGRATION_DATA_CONFIG.CATEGORIES_FILE_NAME
-      ),
-      "{}"
-    );
+async function startingDirCategories(
+    affix: string,
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+  
+    const categoryFolderName = ct || MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME;
+  
+    // Create master locale folder and file
+    categoriesFolderPath = path.join(entrySave, categoryFolderName, master_locale);
+    const masterFilePath = path.join(categoriesFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(categoriesFolderPath);
+    } catch {
+      await fs.promises.mkdir(categoriesFolderPath, { recursive: true });
+      await fs.promises.writeFile(masterFilePath, "{}");
+    }
+  
+    // Read master locale data
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(masterFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master locale file:", err);
+    }
+  
+    // Create locale-specific folders and files (excluding master)
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, categoryFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
 
-const convertHtmlToJson = (htmlString: any) => {
-  const dom = new JSDOM(htmlString?.replace(/&amp;/g, "&"));
-  const htmlDoc = dom.window.document.querySelector("body");
-  return htmlToJson(htmlDoc);
+const convertHtmlToJson = (htmlString: unknown): any => {
+  if (typeof htmlString === 'string') {
+    const dom = new JSDOM(htmlString.replace(/&amp;/g, "&"));
+    const htmlDoc = dom.window.document.querySelector("body");
+    return htmlToJson(htmlDoc);
+  }
+
+  return htmlString;
 };
+
+const convertJsonToHtml = async (json: any) => {
+  const htmlValue = await jsonToHtml(json);
+  return htmlValue;
+
+}
 
 function getParent(data: any,id: string) {
   const parentId: any = fs.readFileSync(
@@ -1714,26 +1918,25 @@ function getParent(data: any,id: string) {
 
   return catParent;
 }
-async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string, contenttype:any) {
+async function saveCategories(categoryDetails: any[], destinationStackId:string, projectId: string, contenttype:any, master_locale:string, locales:object) {
   const srcFunc = 'saveCategories';
+  const localeKeys = getKeys(locales);
   try {
-    const categorydata = categoryDetails.reduce(
-      (acc: { [key: string]: any }, data) => {
+    const categorydata: { [key: string]: any } = {}
+    for(const data of categoryDetails){
+     
         const uid = `category_${data["id"]}`;
 
         const customId = uid
 
         // Accumulate category data
-        acc[customId]={
-          ...acc[customId],
+        categorydata[customId]={
+          ...categorydata[customId],
           uid:customId,
-          ...mapContentTypeToEntry(contenttype,data),
+          ...(await mapContentTypeToEntry(contenttype,data)),
         }
-
-        return acc;
-      },
-      {}
-    );
+        categorydata[customId].publish_details = [];
+    }
 
     await writeFileAsync(
       path.join(
@@ -1743,7 +1946,22 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
       categorydata,
       4
     );
-    await writeFileAsync(path.join(categoriesFolderPath, "index.json"), {"1": "en-us.json"}, 4);
+    await writeFileAsync(path.join(categoriesFolderPath, "index.json"), {"1": `${master_locale}.json`}, 4);
+        for (const loc of localeKeys) {
+            if (loc === master_locale) continue;
+      
+            const localeFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME, loc);
+            const indexPath = path.join(localeFolderPath, "index.json");
+      
+            try {
+              await fs.promises.writeFile(
+                indexPath,
+                JSON.stringify({ "1": `${loc}.json` }, null, 4)
+              );
+            } catch (err) {
+              console.error(`Error writing index.json for locale ${loc}:`, err);
+            }
+          }
 
     const message = getLogMessage(
       srcFunc,
@@ -1751,10 +1969,6 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
       {}
     )
     await customLogger(projectId, destinationStackId, 'info', message);
-    // console.log(
-    //   `${categoryDetails.length}`,
-    //   " Categories exported successfully"
-    // );
   } catch (err) {
     const message = getLogMessage(
       srcFunc,
@@ -1763,16 +1977,15 @@ async function saveCategories(categoryDetails: any[], destinationStackId:string,
       err
     )
     await customLogger(projectId, destinationStackId, 'error', message);
-    // console.error("Error in saving categories:", err);
   }
 }
-async function getAllCategories(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any) {
+async function getAllCategories(affix: string, packagePath: string, destinationStackId:string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string, project:any) {
   const srcFunc = 'getAllCategories';
   const ct:any = keyMapper?.["categories"];
   const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'categories');
 
   try {
-    await startingDirCategories(affix, ct);
+    await startingDirCategories(affix, ct, master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     const categories =
@@ -1787,7 +2000,6 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
         {}
       )
       await customLogger(projectId, destinationStackId, 'info', message);
-      // console.log("\nNo categories found");
       return;
     }
    
@@ -1809,7 +2021,7 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
         },
       ];
 
-    await saveCategories(categoriesArrray, destinationStackId, projectId, contenttype);
+    await saveCategories(categoriesArrray, destinationStackId, projectId, contenttype, master_locale, project.locales);
   } catch (err) {
     const message = getLogMessage(
       srcFunc,
@@ -1824,21 +2036,49 @@ async function getAllCategories(affix: string, packagePath: string, destinationS
 
 /************  Start of Posts module functions *********/
 
-async function startingDirPosts(ct:string) {
-  postFolderPath = path.join(
-    entrySave, 
-    ct ? ct : MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
-    MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
-  );
-  //path.join(entrySave, affix ? affix+"_"+"terms": "terms");
-  try {
-    await fs.promises.access(postFolderPath);
-  } catch {
-    // Directory doesn't exist, create it
-    await fs.promises.mkdir(postFolderPath, { recursive: true });
+async function startingDirPosts(
+    ct: string,
+    master_locale: string,
+    locales: object
+  ) {
+    const localeKeys = getKeys(locales);
+    const postsFolderName = ct || MIGRATION_DATA_CONFIG.POSTS_DIR_NAME;
+  
+    // Create master locale folder and file
+    postFolderPath = path.join(entrySave, postsFolderName, master_locale);
+    const masterFilePath = path.join(postFolderPath, `${master_locale}.json`);
+  
+    try {
+      await fs.promises.access(postFolderPath);
+    } catch {
+      await fs.promises.mkdir(postFolderPath, { recursive: true });
+      await fs.promises.writeFile(masterFilePath, "{}");
+    }
+  
+    // Read the master locale data
+    let masterData = "{}";
+    try {
+      masterData = await fs.promises.readFile(masterFilePath, "utf-8");
+    } catch (err) {
+      console.error("Error reading master locale file:", err);
+    }
+  
+    // Create folders and files for other locales
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+  
+      const localeFolderPath = path.join(entrySave, postsFolderName, loc);
+      const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+  
+  
+      try {
+        await fs.promises.mkdir(localeFolderPath, { recursive: true });
+        await fs.promises.writeFile(localeFilePath, masterData);
+      } catch (err) {
+        console.error(`Error creating/writing file for locale ${loc}:`, err);
+      }
+    }
   }
-}
-
 function limitConcurrency(maxConcurrency: number) {
   let running = 0;
   const queue: any = [];
@@ -1873,10 +2113,13 @@ const limit = limitConcurrency(5);
 
 async function featuredImageMapping(postid: string, post: any, postdata: any) {
   try {
-    
-    const assetsId = JSON.parse(fs.readFileSync(
-      path.join(process.cwd(), assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE),'utf8'
-    ));
+    const filePath = path.join(process.cwd(), assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
+   const fileContent = fs.readFileSync(filePath, 'utf8').trim();
+  
+   if (!fileContent) {
+    throw new Error(`File ${filePath} is empty or missing`);
+  }
+    const assetsId = JSON?.parse(fileContent);
     if (!post["wp:postmeta"] || !assetsId) return;
 
     const postmetaArray = Array.isArray(post["wp:postmeta"]) ? post["wp:postmeta"]
@@ -1893,8 +2136,8 @@ async function featuredImageMapping(postid: string, post: any, postdata: any) {
       })
       .filter(Boolean); // Filter out undefined matches
     
-    if (assetsDetails.length > 0) {
-      postdata[postid]["featured_image"] = assetsDetails;
+    if (assetsDetails?.length > 0) {
+      postdata[postid]["featured_image"] = assetsDetails[0];
     }
     return postdata;
   } catch (error) {
@@ -1959,6 +2202,9 @@ async function processChunkData(
   contenttype: any
 ) {
   const postdata: any = {};
+  const formattedPosts: any = {};
+  let postdataCombined = {}
+  
   try {
     const writePromises = [];
 
@@ -1997,18 +2243,17 @@ async function processChunkData(
           );
           const htmlDoc = dom.window.document.querySelector("body");
           const jsonValue = htmlToJson(htmlDoc);
-          const postDate = new Date(data["wp:post_date_gmt"]).toISOString();
+          const postDate = new Date(data["wp:post_date_gmt"])?.toISOString();
 
-          const base = blog_base_url.split("/").filter(Boolean);
-          const blogname = base[base.length - 1];
-          const url = data["link"].split(blogname)[1];
-          const title = data["title"] ?? `Posts - ${data["wp:post_id"]}`;
+          const base = blog_base_url?.split("/")?.filter(Boolean);
+          const blogname = base[base?.length - 1];
+          const url = data["link"]?.split(blogname)[1];
           const uid = `posts_${data["wp:post_id"]}`
           const customId = idCorrector(uid)
           postdata[customId] = {
             title: data["title"] || `Posts - ${data["wp:post_id"]}`,
             uid: customId,
-            url: "/"+title.toLowerCase().replace(/ /g, "_"),
+            url: url,
             date: postDate,
             full_description: jsonValue,
             excerpt: data["excerpt:encoded"]
@@ -2018,36 +2263,27 @@ async function processChunkData(
             category: postCategories,
             terms: postTerms,
             tag: postTags,
-            featured_image: ''
+            featured_image: '',
+            publish_details:[]
           };
+        
+         
+          for (const [key, value] of Object.entries(postdata as {[key: string]: any})) {
+            const customId = idCorrector(value?.uid);
+            formattedPosts[customId] = {
+              ...formattedPosts[customId],
+              uid: customId,
+              ...(await mapContentTypeToEntry(contenttype, value)),
+            };
+            formattedPosts[customId].publish_details = [];
+          }
           const formatted_posts =  await featuredImageMapping(
             `posts_${data["wp:post_id"]}`,
             data,
-            postdata
+            formattedPosts
           );
-          const formattedPosts = Object.entries(formatted_posts).reduce(
-            (acc: { [key: string]: any }, data:any) => {
-             
-              const customId = idCorrector(data["uid"])
-      
-              // Accumulate category data
-              acc[customId]={
-                ...acc[customId],
-                uid: customId,
-                ...mapContentTypeToEntry(contenttype,data),
-              }
-      
-              return acc;
-            },
-            {}
-          );
-          Object.assign(postdata,formattedPosts);
+          postdataCombined = { ...postdataCombined, ...formatted_posts };
 
-          // await writeFileAsync(
-          //   path.join(postFolderPath, filename),
-          //   postdata,
-          //   4
-          // );
         })
       );
     }
@@ -2062,7 +2298,8 @@ async function processChunkData(
     if (isLastChunk && allSuccess) {
       console.info("last data");
     }
-    return postdata
+
+    return postdataCombined
   } catch (error) {
     console.error(error);
     console.error("Error saving posts", error);
@@ -2070,13 +2307,13 @@ async function processChunkData(
   }
 }
 
-async function extractPosts( packagePath: string, destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any) {
+async function extractPosts( packagePath: string, destinationStackId: string, projectId: string,contentTypes:any, keyMapper:any, master_locale: string, project:any) {
   const srcFunc = "extractPosts";
-  const ct:any = keyMapper?.["categories"];
-  const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'categories');
+  const ct:any = keyMapper?.["posts"];
+  const contenttype = contentTypes?.find((item:any)=> item?.otherCmsUid === 'posts');
 
   try {
-    await startingDirPosts(ct);
+    await startingDirPosts(ct, master_locale, project?.locales);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     blog_base_url =
@@ -2108,10 +2345,33 @@ async function extractPosts( packagePath: string, destinationStackId: string, pr
 
     }
     await writeFileAsync(
-      path.join(postFolderPath, "en-us.json"),
+      path.join(postFolderPath, `${master_locale}.json`),
       postdataCombined,
       4
     );
+    await writeFileAsync(
+      path.join(postFolderPath, "index.json"),
+      { "1": `${master_locale}.json` },
+        4
+        );
+    // Save index.json for other locales
+     const localeKeys = getKeys(project?.locales);
+     const postsFolderName = ct || MIGRATION_DATA_CONFIG.POSTS_DIR_NAME;
+     for (const loc of localeKeys) {
+       if (loc === master_locale) continue;
+ 
+       const localeFolderPath = path.join(entrySave, postsFolderName, loc);
+       const indexPath = path.join(localeFolderPath, "index.json");
+ 
+       try {
+         await fs.promises.writeFile(
+           indexPath,
+           JSON.stringify({ "1": `${loc}.json` }, null, 4)
+         );
+       } catch (err) {
+         console.error(`Error writing index.json for locale ${loc}:`, err);
+       }
+     }
     return;
   } catch (error) {
     const message = getLogMessage(
@@ -2156,7 +2416,7 @@ async function copyFolder(src: string, dest: string) {
       err
     )
     await customLogger("projectId", dest, 'error', message);
-    // console.error(`Error copying folder from ${src} to ${dest}:`, err);
+
   }
 }
 async function extractGlobalFields(destinationStackId: string, projectId: string) {
@@ -2193,7 +2453,6 @@ async function extractGlobalFields(destinationStackId: string, projectId: string
         err
       )
       await customLogger(projectId, destinationStackId, 'error', message);
-      // console.error(`Error copying ${folder}:`, err);
     }
   }
 }
@@ -2225,6 +2484,7 @@ const createVersionFile = async (destinationStackId: string, projectId: string) 
 
 export const wordpressService = {
   getAllAssets,
+  createLocale,
   createAssetFolderFile,
   getAllreference,
   extractChunks,

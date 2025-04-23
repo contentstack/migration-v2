@@ -68,7 +68,8 @@ const ContentTypeSchema = ({
       contentstackField: name.toLowerCase(),
       contentstackFieldUid: uid,
       contentstackFieldType: 'text',
-      backupFieldType: 'text'
+      backupFieldType: 'text',
+      backupFieldUid: uid
     };
   }
   if (sitecoreKey === 'url') {
@@ -80,7 +81,8 @@ const ContentTypeSchema = ({
       contentstackField: name.toLowerCase(),
       contentstackFieldUid: uid,
       contentstackFieldType: 'url',
-      backupFieldType: 'url'
+      backupFieldType: 'url',
+      backupFieldUid: uid
     };
   }
   switch (type) {
@@ -94,7 +96,8 @@ const ContentTypeSchema = ({
         contentstackFieldUid: uid,
         contentstackFieldType: 'single_line_text',
         backupFieldType: 'single_line_text',
-        advanced: { default_value: default_value !== '' ? default_value : null }
+        advanced: { default_value: default_value !== '' ? default_value : null },
+        backupFieldUid: uid
       };
     }
 
@@ -109,7 +112,8 @@ const ContentTypeSchema = ({
         contentstackFieldUid: uid,
         contentstackFieldType: 'json',
         backupFieldType: 'json',
-        advanced: { default_value: default_value !== '' ? default_value : null }
+        advanced: { default_value: default_value !== '' ? default_value : null },
+        backupFieldUid: uid
       };
     }
 
@@ -124,7 +128,8 @@ const ContentTypeSchema = ({
         contentstackFieldUid: uid,
         contentstackFieldType: 'file',
         backupFieldType: 'file',
-        advanced: { default_value: default_value !== '' ? default_value : null }
+        advanced: { default_value: default_value !== '' ? default_value : null },
+        backupFieldUid: uid
       };
     }
 
@@ -138,7 +143,8 @@ const ContentTypeSchema = ({
         contentstackFieldUid: uid,
         contentstackFieldType: 'multi_line_text',
         backupFieldType: 'multi_line_text',
-        advanced: { default_value: default_value !== '' ? default_value : null }
+        advanced: { default_value: default_value !== '' ? default_value : null },
+        backupFieldUid: uid
       };
     }
 
@@ -153,7 +159,8 @@ const ContentTypeSchema = ({
         contentstackFieldUid: uid,
         contentstackFieldType: 'number',
         backupFieldType: 'number',
-        advanced: { default_value: default_value !== '' ? default_value : null }
+        advanced: { default_value: default_value !== '' ? default_value : null },
+        backupFieldUid: uid
       };
     }
 
@@ -169,7 +176,8 @@ const ContentTypeSchema = ({
         contentstackFieldUid: uid,
         contentstackFieldType: 'isodate',
         backupFieldType: 'isodate',
-        advanced: { default_value: default_value !== '' ? default_value : null }
+        advanced: { default_value: default_value !== '' ? default_value : null },
+        backupFieldUid: uid
       };
     }
 
@@ -183,7 +191,8 @@ const ContentTypeSchema = ({
         contentstackFieldUid: uid,
         contentstackFieldType: 'reference',
         backupFieldType: 'reference',
-        refrenceTo: reference_to
+        refrenceTo: reference_to,
+        backupFieldUid: uid
       };
     }
   }

@@ -13,7 +13,8 @@ import {
   cbModal,
   InstructionText,
   CircularLoader,
-  EmptyState
+  EmptyState,
+  OutlineTag
 } from '@contentstack/venus-components';
 
 // Services
@@ -168,28 +169,28 @@ const Fields: MappingFields = {
     options: {
       'Reference':'reference'
     },
-    type: 'reference',
+    type: '',
   },
   'dropdown': {
     label:'Dropdown',
     options: {
       'Dropdown':'dropdown'
     },
-    type: 'enum',
+    type: '',
   },
   'radio': {
-    label :'Select',
+    label :'Radio',
     options: {
-      'Select':'select'
+      'Radio':'radio'
     },
-    type: 'enum',
+    type: '',
   },
   'checkbox': {
-    label:'Select',
+    label:'Checkbox',
     options: {
-      'Select':'checkbox'
+      'Checkbox':'checkbox'
     },
-    type:'boolean'
+    type:''
   },
   'global_field':{
     label : 'Global',
@@ -200,6 +201,16 @@ const Fields: MappingFields = {
     label: 'Group',
     options: {'Group':'group'},
     type:'Group'
+  },
+  'app':{
+    label: 'Marketplace app',
+    options: {'Marketplace app':'app'},
+    type:''
+  },
+  'extension':{
+    label: 'Extension',
+    options: {'Extension':'extension'},
+    type:''
   }
 
 }
@@ -252,10 +263,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   );
 
   const [otherContentType, setOtherContentType] = useState<FieldTypes>({
-    label: contentTypeMapped?.[otherCmsTitle] ?? `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
-    value: contentTypeMapped?.[otherCmsTitle] ?? `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
+    label: contentTypeMapped?.[otherCmsTitle] ?? `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`,
+    value: contentTypeMapped?.[otherCmsTitle] ?? `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`,
   });
-  const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes[0]?.otherCmsUid);
+  const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes?.[0]?.otherCmsUid);
 
   const [active, setActive] = useState<number | null>(0);
 
@@ -311,40 +322,24 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if (field?.otherCmsField !== 'title' && field?.otherCmsField !== 'url') {
+      if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
         field._canSelect = true;
       }
-
-      if (field?.otherCmsType === undefined) {
-        field._invalid = true;
-      } else {
-        field._invalid = false;
-      }
     });
-
-    const validatedData = tableData?.filter((data) => !data?._invalid);
-    setSelectedEntries(validatedData);
   },[tableData]);
 
   useEffect(() => {
     const mappedContentType = contentModels && contentModels?.find((item)=> item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || '']);
     // if (contentTypeMapped && otherCmsTitle  ) {
       
-      if (mappedContentType?.uid) {
-        setOtherContentType({
-          id: mappedContentType?.uid,
-          label: mappedContentType?.title,
-          value: mappedContentType?.title
-        });
-        setIsContentDeleted(false);
-      } 
-      // else {
-      //   setOtherContentType({
-      //     label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
-      //     value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
-      //   });
-      // }
-    // }
+    if (mappedContentType?.uid) {
+      setOtherContentType({
+        id: mappedContentType?.uid,
+        label: mappedContentType?.title,
+        value: mappedContentType?.title
+      });
+      setIsContentDeleted(false);
+    } 
   }, [contentTypeMapped, otherCmsTitle, contentModels]);
 
   useEffect(()=>{
@@ -369,7 +364,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         contentTypeSchema?.forEach((schema) => {
           
           if (row?.contentstackField === schema?.display_name) {
-            if (!updatedSelectedOptions.includes(schema?.display_name)) {
+            if (!updatedSelectedOptions?.includes?.(schema?.display_name)) {
               updatedSelectedOptions.push(schema?.display_name);  
             }
             updatedExstingField[row?.uid] = {
@@ -383,7 +378,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             schema?.schema?.forEach((childSchema) => {
               if(row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`) {
                 if(!isFieldDeleted) {
-                  if (!updatedSelectedOptions.includes(`${schema?.display_name} > ${childSchema?.display_name}`)) {
+                  if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name}`)) {
                     updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name}`);  
                   }
                   updatedExstingField[row?.uid] = {
@@ -398,7 +393,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 childSchema?.schema?.forEach((nestedSchema) => {
                   if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`) {
                     if(!isFieldDeleted) {
-                      if (!updatedSelectedOptions.includes(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`)) {
+                      if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`)) {
                         updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`);  
                       }
                       updatedExstingField[row?.uid] = {
@@ -413,7 +408,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                     nestedSchema?.schema?.forEach((nestedChild) => {
                       if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`) {
                         if(!isFieldDeleted) {
-                          if (!updatedSelectedOptions.includes(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`)) {
+                          if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`)) {
                             updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`);  
                           }
                           updatedExstingField[row?.uid] = {
@@ -452,8 +447,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // To make all the fields checked
   useEffect(() => {
-    const selectedId = tableData.reduce<UidMap>((acc, item) => {
-      if(! item?.isDeleted && !item?._invalid) {
+    const selectedId = tableData?.reduce<UidMap>((acc, item) => {
+      if(!item?.isDeleted) {
         acc[item?.id] = true;
 
       }
@@ -491,7 +486,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       contentTypeSchema?.forEach((item) => {
         for (const [key, value] of Object.entries(existingField)) {
           if (value?.value?.uid === item?.uid) {
-            if (!updatedSelectedOptions.includes(item?.display_name)) {
+            if (!updatedSelectedOptions?.includes?.(item?.display_name)) {
               updatedSelectedOptions.push(item?.display_name);  
             }
             setSelectedOptions(updatedSelectedOptions);
@@ -500,11 +495,19 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               [key]: { label: item?.display_name, value: item },
             }));
           }
-          if (item?.data_type === "group" && Array.isArray(item?.schema)) {
-            item.schema.forEach((schemaItem) => {
+          if(contentTypeSchema?.every((item)=> value?.value?.uid !== item?.uid)){
+            setExistingField((prevOptions: ExistingFieldType) => {
+              const { [key]: _, ...rest } = prevOptions; // Destructure to exclude the key to remove
+              return {
+                ...rest
+              };
+            })
+          }
+          else if (item?.data_type === "group" && Array.isArray(item?.schema)) {
+            item?.schema?.forEach((schemaItem) => {
 
               if (value?.value?.uid === schemaItem?.uid && value?.label === `${item?.display_name} > ${schemaItem?.display_name}`) {
-                if (!updatedSelectedOptions.includes(`${item?.display_name} > ${schemaItem?.display_name}`)) {
+                if (!updatedSelectedOptions?.includes?.(`${item?.display_name} > ${schemaItem?.display_name}`)) {
                   updatedSelectedOptions.push(`${item?.display_name} > ${schemaItem?.display_name}`);  
                 }
                 setSelectedOptions(updatedSelectedOptions);
@@ -514,7 +517,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 }));
               }
               else if(! item?.schema?.some(
-                (schema) => schema?.uid === existingField[key]?.value?.uid) && existingField[key]?.value?.data_type !== 'group' && existingField[key]?.label?.includes(item?.display_name) ){
+                (schema) => schema?.uid === existingField[key]?.value?.uid) && existingField[key]?.value?.data_type !== 'group' && existingField[key]?.label?.includes?.(item?.display_name) ){
                 
                 setExistingField((prevOptions: ExistingFieldType) => {
                   const { [key]: _, ...rest } = prevOptions; // Destructure to exclude the key to remove
@@ -551,7 +554,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             }));
           }
           if (item?.data_type === "group" && Array.isArray(item?.schema)) {
-            item.schema.forEach((schemaItem) => {
+            item?.schema?.forEach((schemaItem) => {
               if (value?.value?.uid === schemaItem?.uid) {
                 
                 matchedKeys.add(key);
@@ -572,12 +575,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setExistingField((prevOptions: ExistingFieldType) => {
         const updatedOptions:ExistingFieldType = { ...prevOptions };
         Object.keys(prevOptions).forEach((key) => {
-          if (matchedKeys.has(key)) {
+          if (matchedKeys?.has(key)) {
             
             const index = selectedOptions?.indexOf(updatedOptions?.[key]?.label ?? '');
                
             if ( index > -1) {
-              selectedOptions.splice(index, 1);
+              selectedOptions?.splice(index, 1);
             }
             delete updatedOptions[key];
           }
@@ -609,10 +612,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   useBlockNavigation(isModalOpen);
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
       const { data } = await getContentTypes(projectId || '', 0, 5000, searchContentType || ''); //org id will always present
 
+      setIsLoading(false);
       setContentTypes(data?.contentTypes);
       setCount(data?.contentTypes?.length);
       setFilteredContentTypes(data?.contentTypes);
@@ -624,7 +629,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid);
       setIsContentType(data?.contentTypes?.[0]?.type === "content_type");
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return error;
     }
   };
@@ -640,7 +645,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setFilteredContentTypes(data?.contentTypes);
       setCount(data?.contentTypes?.length);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return error;
     }
   };
@@ -655,10 +660,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
 
       setItemStatusMap(itemStatusMap);
-
+      
       const { data } = await getFieldMapping(contentTypeId || '', 0, 1000, searchText || '', projectId);
 
-
+      
       for (let index = 0; index <= 1000; index++) {
         itemStatusMap[index] = 'loaded';
       }
@@ -667,11 +672,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
       
-      setTableData(validTableData || []);
+      setTableData(validTableData ?? []);
+      setSelectedEntries(validTableData ?? []);
       setTotalCounts(validTableData?.length);
-      setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item.isDeleted))
+      setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item?.isDeleted))
       setIsLoading(false);
-      generateSourceGroupSchema(validTableData?.fieldMapping);
+      generateSourceGroupSchema(validTableData);
     } catch (error) {
       console.error('fetchData -> error', error);
     }
@@ -705,14 +711,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
       setItemStatusMap({ ...updateditemStatusMapCopy });
 
-      const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined)
+      const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
 
       // eslint-disable-next-line no-unsafe-optional-chaining
       setTableData([...tableData, ...validTableData ?? tableData]);
       setTotalCounts([...tableData, ...validTableData ?? tableData]?.length);
       setIsLoading(false)
     } catch (error) {
-      console.log('loadMoreItems -> error', error);
+      console.error('loadMoreItems -> error', error);
     }
   };
 
@@ -753,8 +759,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setSelectedContentType(filteredContentTypes?.[i]);
       setIsContentType(filteredContentTypes?.[i]?.type === "content_type");
       setOtherContentType({ 
-        label: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`, 
-        value: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from existing stack`,
+        label: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from Destination Stack`, 
+        value: mappedContentType?.title ?? `Select ${filteredContentTypes?.[i]?.type === "content_type" ? 'Content Type' : 'Global Field'} from Destination Stack`,
         
       });
   }
@@ -762,7 +768,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean) => {
     setIsDropDownChanged(checkBoxChanged);
     
-    const newTableData = tableData?.map((row) => {
+    const newTableData = tableData?.map?.((row) => {
       if (row?.uid === rowId) {
 
         return { ...row, advanced: { ...row?.advanced, ...updatedSettings } };
@@ -789,7 +795,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         }
       });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       return err;
     }
   };
@@ -797,7 +803,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const accessorCall = (data: FieldMapType) => {
     return (
       <div>
-        <Tooltip content={data?.otherCmsField} position='bottom'><div className="cms-field">{data?.otherCmsField}</div></Tooltip>
+        <div className='d-flex align-items-center'>
+          <div className={`${data?.backupFieldType === 'text' || data?.backupFieldType === 'url' ? `cms-field w-auto` : `cms-field`}`}>{data?.otherCmsField}</div>
+          {(data?.backupFieldType === 'text' || data?.backupFieldType === 'url') && (
+            <OutlineTag content='Default Field' className="ml-10" />
+          )}
+        </div>
         <InstructionText>
           Type: {data?.otherCmsType}
           <br />
@@ -809,24 +820,24 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // add row ids with their data to rowHistoryObj
   useEffect(() => {
-    Object.keys(rowHistoryObj).forEach(key => delete rowHistoryObj[key]);
+    Object.keys(rowHistoryObj)?.forEach(key => delete rowHistoryObj[key]);
     tableData?.forEach(item => { 
       rowHistoryObj[item?.id] = [{checked: true, at: Date.now(), ...modifiedObj(item)}]
     });
   }, [tableData]);
 
   const getParentId = (uid: string) => {
-    return tableData?.find(i => i?.uid === uid)?.id ?? ''
+    return tableData?.find(i => i?.uid?.toLowerCase() === uid?.toLowerCase())?.id ?? ''
   }
 
   const modifiedObj = (obj: FieldMapType) => {
-    const {otherCmsType, uid, id} = obj
+    const {backupFieldType, uid, id} = obj ?? {}
     const excludeArr = ["group"]
     return {
       id,
-      otherCmsType,
+      backupFieldType,
       uid,
-      parentId : excludeArr?.includes(otherCmsType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0])
+      parentId : excludeArr?.includes?.(backupFieldType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0]?.toLowerCase())
     }
   }
   
@@ -875,7 +886,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
     const selectedObj: UidMap = {};
   
-    singleSelectedRowIds.forEach((uid: string) => {
+    singleSelectedRowIds?.forEach((uid: string) => {
       const isId = selectedEntries?.some((item) => item?.id === uid);
       if (isId) {
         selectedObj[uid] = true;
@@ -896,14 +907,15 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     // Get the latest action performed row 
     const latestRow = findLatest(rowHistoryObj);
 
-    if(latestRow?.otherCmsType?.toLowerCase() === "group" && latestRow?.parentId === '') {
+    if(latestRow?.backupFieldType?.toLowerCase() === "group" && latestRow?.parentId === '') {
       // get all child rows of group
-      const childItems = selectedEntries?.filter((entry) => entry?.uid?.startsWith(latestRow?.uid + '.'));
+      const groupUid = latestRow?.uid?.toLowerCase();
+      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupUid + '.'));
       if (childItems && validateArray(childItems)) {
-        if(latestRow.checked){
+        if(latestRow?.checked){
           const lastEle = getLastElements(rowHistoryObj)
           let isChildChecked = false
-          childItems.forEach((child) => {
+          childItems?.forEach((child) => {
             if(lastEle[child?.id]?.checked){
               isChildChecked = true
             }
@@ -927,21 +939,21 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           })
         }
       }
-    } else if(latestRow?.parentId && !["title", "url"].includes(latestRow?.uid?.toLowerCase())){
+    } else if(latestRow?.parentId && !["title", "url"]?.includes?.(latestRow?.uid?.toLowerCase())){
       // Extract the group UID if item is child of any group
-      const uidBeforeDot = latestRow?.uid?.split('.')[0];
-      const groupItem = selectedEntries?.find((entry) => entry?.uid === uidBeforeDot);
-      const childItems = selectedEntries?.filter((entry) => entry?.uid?.startsWith(groupItem?.uid + '.'));
+      const uidBeforeDot = latestRow?.uid?.split?.('.')?.[0]?.toLowerCase();
+      const groupItem = tableData?.find((entry) => entry?.uid?.toLowerCase() === uidBeforeDot);   
+      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupItem?.uid?.toLowerCase() + '.'));
 
-      if(latestRow.checked){
+      if(latestRow?.checked) {
         if(!selectedObj[latestRow?.parentId]){
           selectedObj[latestRow?.parentId] = true
         }
         if(!selectedObj[latestRow?.id]){
           selectedObj[latestRow?.id] = true
         }
-      }else{
-        const lastEle = getLastElements(rowHistoryObj)
+      } else {
+        const lastEle = getLastElements(rowHistoryObj);
 
         let allChildFalse = 0
         childItems?.forEach((child) => {
@@ -959,11 +971,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     }
    
-    const updatedTableData = selectedEntries.map((tableItem) => {
+    const updatedTableData = tableData?.map?.((tableItem) => {
       // Mark the item as deleted if not found in selectedData
       return {
         ...tableItem,
-        isDeleted: !selectedObj[tableItem?.id] && !tableItem?._invalid //!found ? true : false,
+        isDeleted: (tableItem?._canSelect ) ? !selectedObj[tableItem?.id] : tableItem?.isDeleted //!found ? true : false,
       };
     });  
 
@@ -975,7 +987,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
     setIsDropDownChanged(true);
     setFieldValue(value);
-    const updatedRows: FieldMapType[] = tableData?.map((row) => {
+    const updatedRows: FieldMapType[] = selectedEntries?.map?.((row) => {
       if (row?.uid === rowIndex) {
         return { ...row, contentstackFieldType: value?.value };
       }
@@ -1022,7 +1034,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
   
   const SelectAccessor = (data: FieldMapType) => {
-    //const OptionsForRow = Fields[data?.backupFieldType as keyof Mapping];
     const OptionsForRow = Fields?.[data?.backupFieldType]?.options ;
     const initialOption = {
       label: Fields?.[data?.contentstackFieldType]?.label ?? 'No Option',
@@ -1030,12 +1041,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     };
     let option: FieldTypes[];
     if (Array.isArray(OptionsForRow)) {
-       option = OptionsForRow.map((option) => ({
+       option = OptionsForRow?.map?.((option) => ({
         label: option,
         value: option,
       }));
     } else if (typeof OptionsForRow === 'object') {
-      option = Object.entries(OptionsForRow).map(([label, value]) => ({
+      option = Object.entries(OptionsForRow)?.map?.(([label, value]) => ({
         label,
         value,
       }));
@@ -1063,24 +1074,28 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             maxWidth="290px"
             isClearable={false}
             options={option}
+            menuPlacement="auto"
             isDisabled={
-              data?.otherCmsType === "Group" ||
-              data?.otherCmsField === 'title' ||
-              data?.otherCmsField === 'url' ||
+              data?.contentstackFieldType === 'group' ||
+              (data?.contentstackFieldType === 'text') ||
+              ( data?.contentstackFieldType === 'url') ||
               data?.backupFieldType === 'reference'||
               data?.contentstackFieldType === "global_field" ||
               data?.otherCmsType === undefined ||
-              newMigrationData?.project_current_step > 4
+              newMigrationData?.project_current_step > 4 ||
+              data?.backupFieldType === 'extension' ||
+              data?.backupFieldType === 'app'
             }
           />
         </div>
         {!(
-          data?.otherCmsType === 'Group' ||
-          data?.otherCmsField === 'title' ||
-          data?.otherCmsField === 'url' ||
-          data?.otherCmsType === 'reference' ||
+          data?.contentstackFieldType === 'Group' ||
+          data?.contentstackFieldType === 'text' ||
+          data?.contentstackFieldType === 'url' ||
           data?.contentstackFieldType === 'global_field' ||
-          data?.otherCmsType === undefined
+          data?.otherCmsType === undefined ||
+          data?.backupFieldType === 'extension' ||
+          data?.backupFieldType === 'app'
            ) && (
           <Tooltip 
             content="Advanced properties" 
@@ -1116,12 +1131,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string) => {
     setIsDropDownChanged(true);
     const previousSelectedValue = existingField[rowIndex]?.label;
-    const groupArray = nestedList.filter(item => 
+    const groupArray = nestedList?.filter(item => 
       item?.child?.some(e => e?.id)
     )
     
-    if(groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray[0]?.uid === rowIndex){
-       for(const item of groupArray[0]?.child ?? []){
+    if(groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray?.[0]?.uid === rowIndex){
+       for(const item of groupArray?.[0]?.child ?? []){
         deletedExstingField[item?.uid] = {
           label:item?.uid,
           value:existingField[item?.uid]
@@ -1131,7 +1146,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         const index = selectedOptions?.indexOf(existingField[item?.uid]?.value?.label);
         
         if(index > -1){
-          selectedOptions.splice(index,1 );
+          selectedOptions?.splice(index,1 );
         }
         delete existingField[item?.uid]    
         
@@ -1148,11 +1163,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
     //add selected option to array if it is not mapped to any other field
     setSelectedOptions((prevSelected) => {
-      const newSelectedOptions = prevSelected.filter(
+      const newSelectedOptions = prevSelected?.filter(
         (item) => item !== previousSelectedValue
       );
       const newValue = selectedValue?.label;
-      if (!newSelectedOptions.includes(newValue)) {
+      if (!newSelectedOptions?.includes?.(newValue)) {
         newSelectedOptions.push(newValue);
       }
       return newSelectedOptions;
@@ -1220,12 +1235,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   //utility function to create option object
   function getMatchingOption(value: ContentTypesSchema, matchFound: boolean, label: string, uid : string) {
-    return matchFound ? { label, value, isDisabled: selectedOptions.includes(label), uid: uid } : {}
+    return matchFound ? { label, value, isDisabled: selectedOptions?.includes?.(label), uid: uid } : {}
   }
   
   //utility function to map the source cms field type to content type field type
   function checkConditions(fieldTypeToMatch: string | string[], value: ContentTypesSchema, data: FieldMapType) {
-    const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link','global_field']);  
+    const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link','global_field','json','blocks']);  
     switch (fieldTypeToMatch) {
       case 'text':
         return (
@@ -1251,11 +1266,15 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       case 'isodate':
         return value?.data_type === 'isodate';
       case 'json':
-        return value?.data_type === 'json';
-      case 'enum':
-        return 'enum' in value;
-      case 'display_type':
+        return value?.data_type === 'json' && value?.field_metadata?.allow_json_rte;
+      // case 'enum':
+      //   return 'enum' in value;
+      case 'radio':
+        return value?.display_type === 'radio';
+      case 'dropdown':
         return value?.display_type === 'dropdown';
+      case 'checkbox':
+        return value?.display_type === 'checkbox';
       case 'allow_rich_text':
         return value?.field_metadata?.allow_rich_text === true;
       case 'Group':      
@@ -1294,7 +1313,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
       }
 
-      const existingLabel = existingField[groupArray[0]?.uid]?.label ?? '';
+      const existingLabel = existingField[groupArray?.[0]?.uid]?.label ?? '';
       const lastLabelSegment = existingLabel.includes('>')
         ? existingLabel?.split('>')?.pop()?.trim()
         : existingLabel;
@@ -1304,8 +1323,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           // Process nested schemas within the current group
           for (const item of array) {
             const fieldTypeToMatch = Fields[item?.backupFieldType as keyof Mapping]?.type;
-            if (item.id === data?.id) {
-              for (const key of existingField[groupArray[0]?.uid]?.value?.schema || []) {
+            if (item?.id === data?.id) {
+              for (const key of existingField[groupArray?.[0]?.uid]?.value?.schema || []) {
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
                   OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key?.display_name}` || '', `${uid}.${key?.uid}`));
@@ -1337,10 +1356,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
       // Process nested schemas if value is not a group
       for (const item of array) {
-        if (item.id === data?.id) {
-          for (const key of value.schema || []) {
+        if (item?.id === data?.id) {
+          for (const key of value?.schema || []) {
             if (checkConditions(fieldTypeToMatch, key, item)) {
-              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key.display_name}` || '',`${uid}.${key?.uid}`));
+              OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key?.display_name}` || '',`${uid}.${key?.uid}`));
             }
   
             // Recursively process nested groups
@@ -1411,19 +1430,19 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         }
       }
   
-      if (OptionsForRow.length === 0) {
+      if (OptionsForRow?.length === 0) {
         for (const value of contentTypeSchema) {
 
           const groupArray = nestedList.filter(item => 
             item?.child?.some(e => e?.id === data?.id)
           );
           
-          const array = groupArray[0]?.child || []
+          const array = groupArray?.[0]?.child || []
 
           if(value.data_type === 'group'){
             processSchema(value, data, array,groupArray, OptionsForRow, fieldsOfContentstack)
           }
-          else if (!array.some(item => item.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
+          else if (!array?.some(item => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
             
             OptionsForRow.push(getMatchingOption(value, true, value?.display_name || '', value?.uid ?? ''));
             
@@ -1435,21 +1454,22 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     const selectedOption = OptionsForRow?.filter((option) => !option?.isDisabled)?.length
 
     // Handle case where there is exactly one match and it is auto-mapped
-    if(OptionsForRow.length === 1 &&
-      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference'))
+    if(OptionsForRow?.length === 1 &&
+      (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' || OptionsForRow?.[0]?.value?.data_type === 'group' || OptionsForRow?.[0]?.value?.data_type === 'reference'
+      ))
       {
         updatedRows = updatedRows.map((row: FieldMapType) => {
           if (row?.uid === data?.uid) {
             return {
               ...row,
-              contentstackField: OptionsForRow[0]?.value?.display_name ?? '',
-              contentstackFieldUid: OptionsForRow[0]?.value?.uid ?? '',
+              contentstackField: OptionsForRow?.[0]?.value?.display_name ?? '',
+              contentstackFieldUid: OptionsForRow?.[0]?.value?.uid ?? '',
               advanced: {
-                validationRegex: OptionsForRow[0]?.value?.format ?? '',
-                mandatory: OptionsForRow[0]?.value?.mandatory,
-                multiple: OptionsForRow[0]?.value?.multiple,
-                unique: OptionsForRow[0]?.value?.unique,
-                nonLocalizable: OptionsForRow[0]?.value?.non_localizable,
+                validationRegex: OptionsForRow?.[0]?.value?.format ?? '',
+                mandatory: OptionsForRow?.[0]?.value?.mandatory,
+                multiple: OptionsForRow?.[0]?.value?.multiple,
+                unique: OptionsForRow?.[0]?.value?.unique,
+                nonLocalizable: OptionsForRow?.[0]?.value?.non_localizable,
               },
             };
           }
@@ -1457,14 +1477,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         });        
 
         // Disable option if it's not already in existingField
-        if (!existingField[data?.uid] && OptionsForRow[0]) {         
+        if (!existingField[data?.uid] && OptionsForRow?.[0]) {         
           OptionsForRow[0].isDisabled = true;
         }
-        const newLabel = OptionsForRow[0]?.value?.display_name;
-        const newvalue = OptionsForRow[0]?.value;
+        const newLabel = OptionsForRow?.[0]?.value?.display_name;
+        const newvalue = OptionsForRow?.[0]?.value;
     
         // Check if there's already a matching entry in updatedExstingField
-        const hasMatchingEntry = Object.values(updatedExstingField).some(         
+        const hasMatchingEntry = Object.values(updatedExstingField)?.some(         
           (entry) =>{ 
             return entry?.label === newLabel 
           }
@@ -1478,8 +1498,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           existingField[data?.uid] = { label: newLabel, value: newvalue }
         }
 
-        const newValue: string = OptionsForRow[0]?.value?.display_name;
-        if (!updatedSelectedOptions.includes(newValue)) {
+        const newValue: string = OptionsForRow?.[0]?.value?.display_name;
+        if (!updatedSelectedOptions?.includes?.(newValue)) {
           updatedSelectedOptions.push(newValue);  
         }
         setIsUpdated(true);   
@@ -1487,12 +1507,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     
     let option: FieldTypes[];
     if (Array.isArray(OptionsForEachRow)) {
-      option = OptionsForEachRow.map((option) => ({
+      option = OptionsForEachRow?.map?.((option) => ({
         label: option,
         value: option,
       }));
     } else if (typeof OptionsForEachRow === 'object') {
-      option = Object.entries(OptionsForEachRow).map(([label, value]) => ({
+      option = Object.entries(OptionsForEachRow)?.map?.(([label, value]) => ({
         label,
         value,
       }));
@@ -1505,17 +1525,18 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     }    
 
     
-   
     const OptionValue: FieldTypes =
-      OptionsForRow.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
-      (OptionsForRow[0]?.value?.uid === 'url' || OptionsForRow[0]?.value?.uid === 'title' || OptionsForRow[0]?.value?.data_type === 'group' || OptionsForRow[0]?.value?.data_type === 'reference')
+      OptionsForRow?.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
+      (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' || OptionsForRow?.[0]?.value?.data_type === 'group' || OptionsForRow?.[0]?.value?.data_type === 'reference' 
+        
+      )
         ? {
-          label: OptionsForRow[0]?.value?.display_name,
-          value: OptionsForRow[0]?.value,
+          label: OptionsForRow?.[0]?.value?.display_name,
+          value: OptionsForRow?.[0]?.value,
           isDisabled: true
         }
-        : (OptionsForRow.length === 0 || (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) 
-          && (!existingField[data?.uid] || ! updatedExstingField[data?.uid] ) ) || (OptionsForRow.length > 0 && data?.contentstackFieldType === "dropdown"))
+        : (OptionsForRow?.length === 0 || (OptionsForRow?.length > 0 && OptionsForRow?.every((item)=>item?.isDisabled) 
+          && (!existingField[data?.uid]?.label || ! updatedExstingField[data?.uid]?.label ) ))
           ? {
             label: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
             value: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
@@ -1524,8 +1545,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               data?.contentstackFieldType === 'url' ||
               data?.backupFieldType === "reference" || 
               data?.contentstackFieldType === "global_field" ||
-              data?.contentstackFieldType === "dropdown" ||
-              data?.otherCmsType === undefined
+              data?.otherCmsType === undefined ||
+              data?.backupFieldType === 'app' || 
+              data?.backupFieldType === 'extension'
           }
           : {
           label: `${selectedOption} matches`,
@@ -1534,19 +1556,19 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         };
     
     const adjustedOptions: OptionsType[] | OptionsType = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
-      (OptionsForRow.length > 0 && OptionsForRow.every((item)=>item.isDisabled) && OptionValue.label === Fields[data?.contentstackFieldType]?.label) ? []
+      (OptionsForRow?.length > 0 && OptionsForRow?.every((item)=>item?.isDisabled) && OptionValue?.label === Fields[data?.contentstackFieldType]?.label) ? []
       : OptionsForRow.map((option: OptionsType) => ({
         ...option,
-        isDisabled: selectedOptions.includes(option?.label ?? '')
+        isDisabled: selectedOptions?.includes?.(option?.label ?? '')
       }));
-
+    
     return (
       <div className="table-row">
         <div className="select">
           <Select
-            value={(OptionsForRow.length === 0 || existingField?.[data?.uid]?.label === undefined) ? OptionValue : existingField[data?.uid]}
+            value={(OptionsForRow?.length === 0 || existingField?.[data?.uid]?.label === undefined) ? OptionValue : existingField[data?.uid]}
             onChange={(selectedOption: FieldTypes) => {
-              if (OptionsForRow.length === 0) {
+              if (OptionsForRow?.length === 0) {
                 handleValueChange(selectedOption, data?.uid)
               } else {
                 handleFieldChange(selectedOption, data?.uid)
@@ -1555,12 +1577,17 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
-            isClearable={selectedOptions?.includes(existingField?.[data?.uid]?.label ?? '')}
+            isClearable={selectedOptions?.includes?.(existingField?.[data?.uid]?.label ?? '')}
             options={adjustedOptions}
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
+            menuPlacement="auto"
           />
         </div>
-        {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown') && (
+        {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown'||
+         (data?.backupFieldType !== 'extension' && 
+          data?.backupFieldType !== 'app' && 
+          data?.otherCmsField !== 'title' &&
+          data?.otherCmsField !== 'url')) && (
           <div className='advanced-setting-button'>
             <Tooltip
               content="Advanced properties" 
@@ -1670,7 +1697,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
                  
 
-          const savedCT = filteredContentTypes?.map(ct => 
+          const savedCT = filteredContentTypes?.map?.(ct => 
             ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
           );
 
@@ -1680,12 +1707,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           try {
             otherContentType?.id && await updateContentMapper(orgId, projectID, {...contentTypeMapped, [selectedContentType?.contentstackUid]: otherContentType?.id});
           } catch (err) {
-            console.log(err);
+            console.error(err);
             return err;
           }
 
         } else {
-          const FailedCT = filteredContentTypes?.map(ct => 
+          const FailedCT = filteredContentTypes?.map?.(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: selectedContentType?.status } : ct
           );
 
@@ -1701,7 +1728,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           });
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     }
@@ -1729,11 +1756,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     const projectID = projectId;
     setIsDropDownChanged(false);
    
-    const updatedRows: FieldMapType[] = tableData.map((row) => {
+    const updatedRows: FieldMapType[] = tableData?.map?.((row) => {
       return { ...row, 
         contentstackFieldType: row?.backupFieldType,
         contentstackField: row?.otherCmsField,
-        contentstackFieldUid: row?.uid,
+        contentstackFieldUid: row?.backupFieldUid,
 
       };
     });
@@ -1776,12 +1803,24 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         setExistingField({});
         setContentTypeSchema([]);
         setOtherContentType({
-          label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
-          value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
+          label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`,
+          value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`
         });
    
         if (status === 200) {
-          const resetCT = filteredContentTypes?.map(ct => 
+          const updatedContentMapping = {...newMigrationData?.content_mapping?.content_type_mapping};
+          delete updatedContentMapping[selectedContentType?.contentstackUid];
+
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            content_mapping: {
+              ...newMigrationData?.content_mapping,
+              content_type_mapping: updatedContentMapping ,
+              isDropDownChanged: false
+            }
+          };
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+          const resetCT = filteredContentTypes?.map?.(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );
           setFilteredContentTypes(resetCT);
@@ -1798,14 +1837,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           try {
             await updateContentMapper(orgId, projectID, {...newstate} );
           } catch (err) {
-            console.log(err);
+            console.error(err);
             return err;
           }
               
           
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     }
@@ -1813,8 +1852,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   const handleCTDeleted = async(isContentType:boolean, contentTypes:ContentTypeList[]) => {
     const updatedContentTypeMapping = Object.fromEntries(
-      Object.entries(newMigrationData?.content_mapping?.content_type_mapping || {}).filter(
-        ([key]) => !selectedContentType?.contentstackUid.includes(key)
+      Object.entries(newMigrationData?.content_mapping?.content_type_mapping || {})?.filter(
+        ([key]) => !selectedContentType?.contentstackUid?.includes?.(key)
       )
     );
 
@@ -1864,12 +1903,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         setExistingField({});
         setContentTypeSchema([]);
         setOtherContentType({
-          label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
-          value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
+          label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`,
+          value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`
         });
    
         if (status === 200) {
-          const resetCT = filteredContentTypes?.map(ct => 
+          const resetCT = filteredContentTypes?.map?.(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );
           setFilteredContentTypes(resetCT);
@@ -1878,13 +1917,13 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           try {
             await updateContentMapper(orgId, projectID, {...newstate} );
           } catch (err) {
-            console.log(err);
+            console.error(err);
             return err;
           }
               
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     }
@@ -1893,7 +1932,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       ...newMigrationData,
       content_mapping:{
         ...newMigrationData?.content_mapping,
-        existingCT: contentTypes,
+        [isContentType ? 'existingCT' : 'existingGlobal']: contentTypes,
         content_type_mapping : updatedContentTypeMapping
        
       }
@@ -1955,7 +1994,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           await handleCTDeleted(isContentType, data?.contentTypes);
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     } else {
@@ -2010,7 +2049,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           await handleCTDeleted(isContentType, data?.globalFields);
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
         return error;
       }
     }
@@ -2032,12 +2071,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       try {
         await updateContentMapper(selectedOrganisation?.value, projectId, {... updatedState} );
       } catch (err) {
-        console.log(err);
+        console.error(err);
         return err;
       }
       setOtherContentType({
-        label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`,
-        value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Existing Stack`
+        label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`,
+        value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`
 
       });
     }
@@ -2075,7 +2114,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     });
   }
 
-  const options = contentModels?.map((item) => {
+  const options = contentModels?.map?.((item) => {
     return {
       label: item?.title,
       value: item?.title,
@@ -2086,9 +2125,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
   
 
-  const adjustedOption = options?.map((option) => ({
+  const adjustedOption = options?.map?.((option) => ({
     ...option,
-    isDisabled: filteredContentTypes?.some((ct) => ct?.contentstackUid === option?.id) || (contentTypeMapped && Object.values(contentTypeMapped).includes(option?.id))
+    isDisabled: filteredContentTypes?.some?.((ct) => ct?.contentstackUid === option?.id) || (contentTypeMapped && Object.values(contentTypeMapped)?.includes?.(option?.id))
   }));
 
   // Function to toggle filter panel
@@ -2101,7 +2140,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const handleContentTypeFilter = (value: string, e: MouseOrKeyboardEvent) => {
     const li_list = document.querySelectorAll('.filter-wrapper li');
     if(li_list) {
-      li_list.forEach((ele) => {
+      li_list?.forEach((ele) => {
         ele?.classList?.remove('active-filter');
       })
     }
@@ -2124,7 +2163,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setFilteredContentTypes(contentTypes);
       setCount(contentTypes?.length);
       
-      const selectedIndex = contentTypes.findIndex(ct => ct?.otherCmsUid === otherCmsUid);
+      const selectedIndex = contentTypes?.findIndex(ct => ct?.otherCmsUid === otherCmsUid);
       setActive(selectedIndex);
     }   
     setShowFilter(false);
@@ -2164,13 +2203,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       </div>
     : 
       <div className="step-container">
-        {(contentTypes.length > 0  || tableData?.length > 0) ?
+        {(contentTypes?.length > 0  || tableData?.length > 0) ?
          <div className="d-flex flex-wrap table-container">
         {/* Content Types List */}
         <div className="content-types-list-wrapper">
           <div className="content-types-list-header d-flex align-items-center justify-content-between">
-            {contentTypesHeading && <h2>{contentTypesHeading}</h2> }
-            {contentTypes &&  count }
+            {contentTypesHeading && <h2>{`${contentTypesHeading} (${contentTypes &&  count})`}</h2> }
           </div>
 
           <div className='ct-search-wrapper'>
@@ -2191,7 +2229,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               {showFilter && (
                 <div className='filter-wrapper' ref={filterRef}> 
                   <ul>
-                    {Object.keys(CONTENT_MAPPING_STATUS).map((key, keyInd) => (
+                    {Object.keys(CONTENT_MAPPING_STATUS)?.map?.((key, keyInd) => (
                       <li key={`${keyInd?.toString()}`}>
                         <button
                           className='list-button'
@@ -2216,18 +2254,18 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           {filteredContentTypes && validateArray(filteredContentTypes)
             ? <div className='ct-list-wrapper'>
               <ul className="ct-list">
-                {filteredContentTypes?.map((content: ContentType, index: number) => {
+                {filteredContentTypes?.map?.((content: ContentType, index: number) => {
                   const icon = STATUS_ICON_Mapping[content?.status] || '';
 
                   const format = (str: string) => {
                     const frags = str?.split('_');
                     for (let i = 0; i < frags?.length; i++) {
-                      frags[i] = frags[i]?.charAt(0).toUpperCase() + frags[i]?.slice(1);
+                      frags[i] = frags?.[i]?.charAt?.(0)?.toUpperCase() + frags?.[i]?.slice(1);
                     }
-                    return frags?.join(' ');
+                    return frags?.join?.(' ');
                   }
                   return (
-                    <li key={`${index.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
+                    <li key={`${index?.toString()}`} className={`${active == index ? 'active-ct' : ''}`}>
                       <button
                         type='button'
                         className='list-button ct-names'
@@ -2264,7 +2302,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           </span>
                           <span className='ml-10'>
                             <Tooltip content="Schema Preview" position="bottom">
-                              <button className='list-button schema-preview' onClick={() => handleSchemaPreview(content?.otherCmsTitle, content?.id ?? '')}>{SCHEMA_PREVIEW}</button>
+                              <button className='list-button schema-preview' aria-label="schemaPreview" onClick={() => handleSchemaPreview(content?.otherCmsTitle, content?.id ?? '')}>{SCHEMA_PREVIEW}</button>
                             </Tooltip>
                           </span>
                         </div>
@@ -2304,36 +2342,35 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 component: (
                   <div className='d-flex align-items-center'>
                     {!isNewStack && (
-                      <Tooltip content={'Fetch content type'} position="left">
-                        <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
-                         version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
-                         size='small' onClick={handleFetchContentType}>
-                        </Button>
-                        
-                      </Tooltip>
+                      <>
+                        <div className="d-flex justify-content-end ml-8">
+                          <Select
+                            value={otherContentType}
+                            onChange={handleDropDownChange}
+                            options={adjustedOption}
+                            width="440px"
+                            maxWidth="440px"
+                            placeholder={otherContentType?.label}
+                            isSearchable
+                            version="v2"
+                            isDisabled={newMigrationData?.project_current_step > 4}
+                          />
+                        </div>
+
+                        <Tooltip content={'Fetch content types from destination stack'} position="left">
+                          <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
+                          version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
+                          size='small' onClick={handleFetchContentType}>
+                          </Button>
+                        </Tooltip>
+                      </>
                     )}
 
-                    <Tooltip content={'Reset to default mapping'} position="left">
-                       <Button buttonType="light" icon={onlyIcon ? "v2-Restore" : ''} 
+                    <Tooltip content={'Reset to system mapping'} position="left">
+                       <Button buttonType="light" icon={onlyIcon ? "v2-ResetReverse" : ''} 
                        version="v2" onlyIcon={true} onlyIconHoverColor={'primary'} 
                        size='small' onClick={handleResetContentType}></Button>
                     </Tooltip>
-
-                    {!isNewStack && (
-                      <div className="d-flex justify-content-end ml-8">
-                        <Select
-                          value={otherContentType}
-                          onChange={handleDropDownChange}
-                          options={adjustedOption}
-                          width="440px"
-                          maxWidth="440px"
-                          placeholder={otherContentType?.label}
-                          isSearchable
-                          version="v2"
-                          isDisabled={newMigrationData?.project_current_step > 4}
-                        />
-                      </div>
-                    )}
                   </div>
                 ),
                 showExportCta: true
@@ -2344,9 +2381,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                 singular: '',
                 plural: `${totalCounts === 0 ? 'Count' : ''}`
               }}
-              rowDisableProp={{ key: '_invalid', value: true }}
             />
-            <div className='text-end my-2 mx-3 px-1 py-1'>
+            <div className='d-flex align-items-center justify-content-between my-2 mx-3 px-1 py-1'>
+              <div>Total Fields: <strong>{totalCounts}</strong></div>
               <Button
                 className="saveButton"
                 onClick={handleSaveContentType}
