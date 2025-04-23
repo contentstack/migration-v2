@@ -50,7 +50,7 @@ const AuditLogs: React.FC = () => {
             setStackOptions(formattedOptions);
 
             if (!selectedStack) {
-                setSelectedStack(formattedOptions[0]);
+                setSelectedStack(formattedOptions[stacks.length - 1]);
                 updateFileOptionsForStack(formattedOptions[0]);
             }
         }
@@ -96,12 +96,9 @@ const AuditLogs: React.FC = () => {
             const columns = generateColumnsForFile(selectedOption.value);
             setTableColumns(columns);
 
-            setTableData([]);
-
             setTableKey(prevKey => prevKey + 1);
         } else {
             setFileContent(null);
-            setTableData([]);
             setTableColumns([]);
         }
     };
@@ -306,35 +303,7 @@ const AuditLogs: React.FC = () => {
         }
         else {
             // Default columns for other file types
-            return [
-                {
-                    Header: 'Name',
-                    accessor: (data: TableDataItem) => renderCell(data.name || data.uid || '-'),
-                    addToColumnSelector: true,
-                    disableSortBy: true,
-                    disableResizing: false,
-                    canDragDrop: true,
-                    width: 150
-                },
-                {
-                    Header: 'Type',
-                    accessor: (data: TableDataItem) => renderCell(data.type || data.data_type || '-'),
-                    addToColumnSelector: true,
-                    disableSortBy: true,
-                    disableResizing: false,
-                    canDragDrop: true,
-                    width: 200
-                },
-                {
-                    Header: 'Details',
-                    accessor: (data: TableDataItem) => renderCell(data.details || data.description || '-'),
-                    addToColumnSelector: true,
-                    disableSortBy: true,
-                    disableResizing: false,
-                    canDragDrop: true,
-                    width: 200
-                }
-            ];
+            return [];
         }
     };
 
@@ -392,8 +361,8 @@ const AuditLogs: React.FC = () => {
         }
     };
     const exportCtaComponent = (
-        <div className="d-flex align-items-center">
-            <div className="d-flex justify-content-end ml-8">
+        <div className="select-container">
+            <div className="select-wrapper">
                 <Select
                     value={selectedStack}
                     onChange={handleStackChange}
@@ -407,7 +376,7 @@ const AuditLogs: React.FC = () => {
                     className="select-box"
                 />
             </div>
-            <div className="d-flex justify-content-end ml-8">
+            <div className="select-wrapper">
                 <Select
                     value={selectedFile}
                     onChange={handleFileChange}
@@ -456,7 +425,6 @@ const AuditLogs: React.FC = () => {
 
     return (
         <div className="audit-logs-Table">
-
             <InfiniteScrollTable
                 key={tableKey}
                 tableHeight={570}
@@ -487,7 +455,7 @@ const AuditLogs: React.FC = () => {
                 customEmptyState={
                     <EmptyState
                         heading={selectedStack && selectedFile ? "No Matching Result Found" : "No Logs Found"}
-                        description={!selectedStack ? `Try executing Test Migration` : selectedStack && !selectedFile ? `Select Module to see the Logs` : 'Try Changing the search query to find what you are looking for '}
+                        description={!selectedStack ? `Try executing Test Migration` : selectedStack && !selectedFile ? `Select Module to See the Logs` : 'Try Changing the Search Suery to find what you are looking for '}
                         moduleIcon={(selectedStack && !selectedFile) || !selectedStack ? "NoDataEmptyState" : "NoSearchResult"}
                         type="secondary"
                         className="custom-empty-state"

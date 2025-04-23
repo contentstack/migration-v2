@@ -1,7 +1,14 @@
-.select-box {
+.select-container {
+    display: flex;
 
-    margin-bottom: 4px;
-    width: 220px;
+    .select-wrapper {
+        display: flex;
+        margin-left: 1rem;
+
+        .select-box {
+            margin-bottom: 4px;
+        }
+    }
 }
 
 .Search-input-show {
@@ -18,10 +25,14 @@
 
 .custom-empty-state {
     .Icon--original {
-        width: 240x !important;
+        width: 240px !important;
         height: auto !important;
         max-width: 100%;
         display: block;
         margin: 0 auto;
     }
+}
+
+.TablePanel__list-count flex-v-center {
+    display: none;
 }
