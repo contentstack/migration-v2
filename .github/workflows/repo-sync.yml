@@ -118,6 +118,7 @@ jobs:
                     },
                     plugins: {
                     "@typescript-eslint": tsPlugin,
+                    "import": require("eslint-plugin-import"),
                     },
                     rules: {
                     "no-unused-vars": "warn",
