@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: 'sitecore',
+  cmsType: 'contentful',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
@@ -13,5 +13,5 @@ export default {
     bucketKey: ''
   },
   // localPath: '/Users/sayali.joshi/Downloads/contentfulDummyEmbedData.json' //package 45.zip'
-  localPath: '/Users/yash.shinde/Documents/Migration/update-script/package 45.zip'
+  localPath: '/Users/yash.shinde/Downloads/contentful-export-qkbsabj2eulh-master-2024-04-30T15-17-15.json'
 };
