@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 const restrictedUid = require('../utils/restrictedKeyWords');
+const appDetails = require('../utils/apps/appDetails.json')
+
 
 /**
  * Corrects the UID by applying a custom affix and sanitizing the string.
@@ -21,11 +23,11 @@ const restrictedUid = require('../utils/restrictedKeyWords');
  */
 const uidCorrector = (uid, affix) => {
   let newId = uid;
-  if (restrictedUid.includes(uid)) {
-    newId = uid.replace(uid, `${affix}_${uid}`);
-    newId = newId.replace(/[^a-zA-Z0-9]+/g, '_');
+  if (restrictedUid?.includes?.(uid)) {
+    newId = uid?.replace?.(uid, `${affix}_${uid}`);
+    newId = newId?.replace?.(/[^a-zA-Z0-9]+/g, '_');
   }
-  return newId.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`);
+  return newId.replace(/([A-Z])/g, (match) => `_${match?.toLowerCase?.()}`);
 };
 
 /**
@@ -68,13 +70,13 @@ const extractAdvancedFields = (
   return {
     default_value: defaultText,
     validationRegex: regrexValue,
-    mandatory: ["title", "url"].includes(item.id)? true : item?.required,
+    mandatory: item?.required,
     multiple: singleRef,
     unique: uniqueValue,
     nonLocalizable: !(item?.localized === true),
     validationErrorMessage: validationErrorMessage,
     embedObjects: referenceFields.length ? referenceFields : undefined,
-    description:description,
+    description: description,
   };
 };
 
@@ -98,13 +100,14 @@ const extractAdvancedFields = (
  * // Outputs an object containing the field configuration for Contentstack and backup fields
  */
 const createFieldObject = (item, contentstackFieldType, backupFieldType, referenceFields = []) => ({
-  uid: item.id,
-  otherCmsField: item.name,
-  otherCmsType: item.widgetId,
-  contentstackField: item.name,
-  contentstackFieldUid: uidCorrector(item.id),
+  uid: item?.id,
+  otherCmsField: item?.name,
+  otherCmsType: item?.widgetId,
+  contentstackField: item?.name,
+  contentstackFieldUid: uidCorrector(item?.id, item?.prefix),
   contentstackFieldType: contentstackFieldType,
   backupFieldType: backupFieldType,
+  backupFieldUid: uidCorrector(item?.id, item?.prefix),
   advanced: extractAdvancedFields(item, referenceFields, contentstackFieldType, backupFieldType)
 });
 
@@ -127,12 +130,18 @@ const createFieldObject = (item, contentstackFieldType, backupFieldType, referen
  */
 const createDropdownOrRadioFieldObject = (item, fieldType) => {
   let choices = [];
-  if (!item?.validations?.length) {
-    choices.push({ value: 'value', key: 'key' });
+  if (item?.items?.validations?.length) {
+    item?.items?.validations?.forEach?.((valid) => {
+      valid.in?.forEach((value) => choices.push({ value: ["Symbol", "Text", "Array"].includes(item?.items?.type) ? `${value}` : value, key: `${value}` }));
+    })
   } else {
-    item.validations.forEach((valid) => {
-      valid.in?.forEach((value) => choices.push({ value: ["Symbol","Text","Array" ].includes(item.type) ? `${value}`: value, key: `${value}` }));
-    });
+    if (!item?.validations?.length) {
+      choices.push({ value: 'value', key: 'key' });
+    } else {
+      item.validations.forEach((valid) => {
+        valid.in?.forEach((value) => choices.push({ value: ["Symbol", "Text", "Array"].includes(item.type) ? `${value}` : value, key: `${value}` }));
+      });
+    }
   }
   return {
     ...createFieldObject(item, fieldType, fieldType),
@@ -142,6 +151,45 @@ const createDropdownOrRadioFieldObject = (item, fieldType) => {
     }
   };
 };
+
+
+
+const arrangeRte = (itemData, item) => {
+  const foundItem = itemData.find((element) => element?.nodes)
+  const refs = [];
+  if (foundItem?.nodes?.['embedded-entry-inline']) {
+    const contentType = foundItem?.nodes?.['embedded-entry-inline']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (foundItem?.nodes?.['embedded-entry-block']) {
+    const contentType = foundItem?.nodes?.['embedded-entry-block']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (foundItem?.nodes?.["entry-hyperlink"]) {
+    const contentType = foundItem?.nodes?.['entry-hyperlink']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (foundItem?.nodes?.["hyperlink"]) {
+    const contentType = foundItem?.nodes?.['hyperlink']?.find((element) => element?.linkContentType);
+    if (contentType?.linkContentType?.length) {
+      refs?.push(...contentType?.linkContentType ?? [])
+    }
+  }
+  if (refs?.length) {
+    const replaceUids = [];
+    for (const uid of refs ?? []) {
+      replaceUids?.push(uidCorrector(uid, item?.prefix))
+    }
+    return replaceUids;
+  }
+  return refs;
+}
 
 /**
  * Maps a collection of content type items to a schema array with specific field types and properties.
@@ -166,7 +214,8 @@ const contentTypeMapper = (data) => {
   const schemaArray = data.reduce((acc, item) => {
     switch (item.type) {
       case 'RichText': {
-        const referenceFields = (item.contentNames?.slice(0, 9) || []);
+        const refsUids = arrangeRte(item?.validations, item);
+        const referenceFields = refsUids ?? (item.contentNames?.slice(0, 9) || []);
         acc.push(createFieldObject(item, 'json', 'json', referenceFields));
         break;
       }
@@ -187,6 +236,10 @@ const contentTypeMapper = (data) => {
           case 'dropdown':
           case 'radio':
             acc.push(createDropdownOrRadioFieldObject(item, item.widgetId));
+            break;
+          case 'tagEditor':
+          case 'listInput':
+            console.info('tag', item);
             break;
         }
         break;
@@ -217,12 +270,21 @@ const contentTypeMapper = (data) => {
       case 'Array':
       case 'Link':
         switch (item.widgetId) {
+          case 'assetLinkEditor':
           case 'assetLinksEditor':
           case 'assetGalleryEditor':
-            acc.push(createFieldObject(item, 'file', 'file'));
+            if (item.type === 'Array') {
+              const data = createFieldObject(item, 'file', 'file');
+              data.advanced.multiple = true;
+              acc.push(data);
+            } else {
+              acc.push(createFieldObject(item, 'file', 'file'));
+            }
             break;
 
           case 'entryLinksEditor':
+          case 'entryLinkEditor':
+          case 'entryCardEditor':
           case 'entryCardsEditor': {
             let referenceFields = [];
             let commonRef = [];
@@ -237,18 +299,18 @@ const contentTypeMapper = (data) => {
             };
 
             // Process validations and content names when data.items is not defined
-            if (!item.items) {
-              if (item.validations?.length > 0) {
+            if (!item?.items) {
+              if (item?.validations?.length > 0) {
                 item.validations.forEach((entries) => {
-                  if (entries.linkContentType?.length) {
-                    commonRef = processLinkContentType(entries.linkContentType);
+                  if (entries?.linkContentType?.length) {
+                    commonRef = processLinkContentType(entries?.linkContentType);
                     referenceFields =
-                      commonRef.length > 0 ? commonRef : item.contentNames?.slice(0, 9);
+                      commonRef?.length > 0 ? commonRef : item?.contentNames?.slice(0, 9);
                   }
                 });
               } else {
                 referenceFields =
-                item?.contentNames?.length < 25 ? item?.contentNames
+                  item?.contentNames?.length < 25 ? item?.contentNames
                     : item?.contentNames?.slice(0, 9);
               }
             } else {
@@ -265,37 +327,51 @@ const contentTypeMapper = (data) => {
                 });
               } else {
                 referenceFields =
-                item.contentNames?.length < 25 ? item?.contentNames
+                  item.contentNames?.length < 25 ? item?.contentNames
                     : item?.contentNames?.slice(0, 9);
               }
             }
-            acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
+            const refFieldData = createFieldObject(item, 'reference', 'reference', referenceFields)
+            refFieldData.refrenceTo = referenceFields;
+            acc.push(refFieldData);
             break;
           }
           case 'checkbox':
             acc.push(createDropdownOrRadioFieldObject(item, item.widgetId));
             break;
           case 'tagEditor':
-            acc.push(createFieldObject(item, 'json', 'json'));
+          case 'listInput': {
+            acc.push(createFieldObject(item, 'extension', 'extension'))
             break;
+          }
         }
+
         break;
       case 'Boolean':
         acc.push(createFieldObject(item, 'boolean', 'boolean'));
         break;
-      case 'Object':
-        acc.push(createFieldObject(item, 'json', 'json'));
+      case 'Object': {
+        if (item?.widgetId === 'objectEditor') {
+          item.name = `${item?.name} (JSON Editor-App)`;
+          acc.push(createFieldObject(item, 'app', 'app'));
+        } else {
+          const findAppMeta = appDetails?.items?.find((ele) => ele?.sys?.id === item?.widgetId);
+          item.name = `${item?.name} (${findAppMeta?.name}-App)`;
+          acc.push(createFieldObject(item, 'app', 'app'));
+        }
         break;
+      }
       case 'Location': {
         acc.push(createFieldObject(item, 'group', 'group'));
         acc.push({
-          uid: `${item.name}.lat`,
+          uid: `${item.id}.lat`,
           otherCmsField: `${item.name} > lat`,
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lat`,
-          contentstackFieldUid: `${uidCorrector(item?.id)}.lat`,
+          contentstackFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lat`,
           contentstackFieldType: 'number',
           backupFieldType: 'number',
+          backupFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lat`,
           advanced: {
             mandatory: item?.required,
             unique: false,
@@ -303,13 +379,14 @@ const contentTypeMapper = (data) => {
           }
         });
         acc.push({
-          uid: `${item.name}.lon`,
+          uid: `${item.id}.lon`,
           otherCmsField: `${item.name} > lon`,
           otherCmsType: 'Number',
           contentstackField: `${item.name} > lon`,
-          contentstackFieldUid: `${uidCorrector(item?.id)}.lon`,
+          contentstackFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lon`,
           contentstackFieldType: 'number',
           backupFieldType: 'number',
+          backupFieldUid: `${uidCorrector(item?.id, item?.prefix)}.lon`,
           advanced: {
             mandatory: item?.required,
             unique: false,

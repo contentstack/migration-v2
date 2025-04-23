@@ -10,7 +10,7 @@
       "dirName": "content_types",
       "fileName": "contenttype.json",
       "masterfile": "contenttypes.json",
-      "schemaFile" : "schema.json"
+      "schemaFile": "schema.json"
     },
     "authors": {
       "dirName": "authors",

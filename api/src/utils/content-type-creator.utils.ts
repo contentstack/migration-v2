@@ -3,14 +3,17 @@ import path from 'path';
 import _ from 'lodash';
 import customLogger from './custom-logger.utils.js';
 import { getLogMessage } from './index.js';
-import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
+import { LIST_EXTENSION_UID, MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import { contentMapperService } from "../services/contentMapper.service.js";
+import appMeta from '../constants/app/index.json';
 
 const {
   GLOBAL_FIELDS_FILE_NAME,
   GLOBAL_FIELDS_DIR_NAME,
   CONTENT_TYPES_DIR_NAME,
-  CONTENT_TYPES_SCHEMA_FILE
+  CONTENT_TYPES_SCHEMA_FILE,
+  EXTENSIONS_MAPPER_DIR_NAME,
+  CUSTOM_MAPPER_FILE_NAME
 } = MIGRATION_DATA_CONFIG;
 
 interface Group {
@@ -29,6 +32,22 @@ interface ContentType {
   uid: string | undefined;
   schema: any[]; // Replace `any` with the specific type if known
 }
+
+function extractFieldName(input: string): string {
+  // Extract text inside parentheses (e.g., "JSON Editor-App")
+  const match = input.match(/\(([^)]+)\)/);
+  const insideParentheses = match ? match?.[1] : input; // If no match, use the original string
+
+  // Remove "-App" and unwanted characters
+  const cleanedString = insideParentheses
+    .replace(/-App/g, '') // Remove "-App"
+    .trim(); // Trim spaces
+
+  return cleanedString || ''; // Return the final processed string
+}
+
+
+
 
 function extractValue(input: string, prefix: string, anoter: string): any {
   if (input.startsWith(prefix + anoter)) {
@@ -71,7 +90,29 @@ const arrangGroups = ({ schema, newStack }: any) => {
   return dtSchema;
 }
 
-const convertToSchemaFormate = ({ field, advanced = true }: any) => {
+const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
+  try {
+    await fs.promises.access(marketPlacePath);
+  } catch (err) {
+    try {
+      await fs.promises.mkdir(marketPlacePath, { recursive: true });
+    } catch (mkdirErr) {
+      console.error("🚀 ~ fs.mkdir ~ err:", mkdirErr);
+      return;
+    }
+  }
+  const marketPlaceFilePath = path.join(marketPlacePath, fileName);
+  const newData: any = await fs.promises.readFile(marketPlaceFilePath, "utf-8").catch(async () => {
+    await fs.promises.writeFile(marketPlaceFilePath, JSON.stringify([data]));
+  });
+  if (newData !== "" && newData !== undefined) {
+    const parseData: any = JSON.parse(newData);
+    parseData?.push(data);
+    await fs.promises.writeFile(marketPlaceFilePath, JSON.stringify(parseData));
+  }
+}
+
+const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any) => {
   switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
@@ -446,6 +487,60 @@ const convertToSchemaFormate = ({ field, advanced = true }: any) => {
       return htmlField;
     }
 
+    case 'app': {
+      const appName = extractFieldName(field?.otherCmsField);
+      const title = field?.title?.split?.(' ')?.[0];
+      const appDetails = appMeta?.entries?.find?.((item: any) => item?.title === appName);
+      if (appDetails?.uid) {
+        saveAppMapper({
+          marketPlacePath,
+          data: { appUid: appDetails?.app_uid, extensionUid: `${appDetails?.uid}-cs.cm.stack.custom_field` },
+          fileName: EXTENSIONS_MAPPER_DIR_NAME
+        });
+        return {
+          "display_name": title,
+          "extension_uid": appDetails?.uid,
+          "field_metadata": {
+            "extension": true
+          },
+          "uid": field?.uid,
+          "config": {},
+          "data_type": "json",
+          "multiple": field?.advanced?.multiple ?? false,
+          "mandatory": field?.advanced?.mandatory ?? false,
+          "unique": field?.advanced?.unique ?? false,
+          "non_localizable": field.advanced?.nonLocalizable ?? false,
+        }
+      }
+      break;
+    }
+
+    case 'extension': {
+      if (['listInput', 'tagEditor']?.includes(field?.otherCmsType)) {
+        const extensionUid = LIST_EXTENSION_UID;
+        saveAppMapper({
+          marketPlacePath,
+          data: { extensionUid },
+          fileName: CUSTOM_MAPPER_FILE_NAME
+        });
+        return {
+          "display_name": field?.title,
+          "uid": field?.uid,
+          "extension_uid": extensionUid,
+          "field_metadata": {
+            "extension": true
+          },
+          "config": {},
+          "multiple": field?.advanced?.multiple ?? false,
+          "mandatory": field?.advanced?.mandatory ?? false,
+          "unique": field?.advanced?.unique ?? false,
+          "non_localizable": field.advanced?.nonLocalizable ?? false,
+          "data_type": "json",
+        }
+      }
+      break;
+    }
+
     default: {
       if (field?.contentstackFieldType) {
         return {
@@ -577,6 +672,9 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
     ...ct,
     title: mergeCts?.title,
     uid: mergeCts?.uid,
+    options: {
+      "singleton": false,
+    }
   }
   for await (const field of ctData?.schema ?? []) {
     if (field?.data_type === 'group') {
@@ -598,6 +696,7 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
 }
 
 export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
+  const marketPlacePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, destinationStackId);
   const srcFunc = 'contenTypeMaker';
   let ct: ContentType = {
     title: contentType?.contentstackTitle,
@@ -629,7 +728,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           uid: extractValue(element?.contentstackFieldUid, item?.contentstackFieldUid, '.'),
           title: extractValue(element?.contentstackField, item?.contentstackField, ' >')?.trim(),
         }
-        const schema: any = convertToSchemaFormate({ field });
+        const schema: any = convertToSchemaFormate({ field, marketPlacePath });
         if (typeof schema === 'object' && Array.isArray(group?.schema) && element?.isDeleted === false) {
           group.schema.push(schema);
         }
@@ -641,7 +740,8 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           ...item,
           title: item?.contentstackField,
           uid: item?.contentstackFieldUid
-        }
+        },
+        marketPlacePath
       });
       if (dt && item?.isDeleted === false) {
         ct?.schema?.push(dt);
@@ -651,7 +751,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   if (currentCt?.uid) {
     ct = await mergeTwoCts(ct, currentCt);
   }
-  if (ct?.uid) {
+  if (ct?.uid && ct?.schema?.length) {
     if (contentType?.type === 'global_field') {
       const globalSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, GLOBAL_FIELDS_DIR_NAME);
       const message = getLogMessage(srcFunc, `Global Field ${ct?.uid} has been successfully Transformed.`, {});

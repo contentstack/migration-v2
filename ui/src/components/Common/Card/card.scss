@@ -42,7 +42,7 @@
 .action_list,
 .trigger_list {
   //border: 1px solid $color-base-gray-40;
-  border: 1px solid #6C5CE766;
+  border: 1px solid #6c5ce766;
   border-radius: $px-6;
   flex: 0 10%;
   cursor: pointer;
@@ -76,7 +76,7 @@
  * @cssproperty box-shadow - The box shadow effect to apply.
  * @cssvalue 0 3px $px-5 $px-2 rgb(215 215 215) - The specific box shadow values.
  */
- .connector_list:hover {
+.connector_list:hover {
   box-shadow: 0 3px $px-5 $px-2 rgb(215 215 215);
 }
 
@@ -156,7 +156,7 @@
     color: $color-stepper-title;
   }
 }
-.Card__disabled{
+.Card__disabled {
   cursor: not-allowed;
-  opacity: .5;
+  opacity: 0.5;
 }
