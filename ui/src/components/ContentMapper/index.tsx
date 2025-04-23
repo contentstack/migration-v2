@@ -1586,8 +1586,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown'||
          (data?.backupFieldType !== 'extension' && 
           data?.backupFieldType !== 'app' && 
-          data?.otherCmsField !== 'title' &&
-          data?.otherCmsField !== 'url')) && (
+          data?.backupFieldUid !== 'title' &&
+          data?.backupFieldUid !== 'url')) && (
           <div className='advanced-setting-button'>
             <Tooltip
               content="Advanced properties" 
