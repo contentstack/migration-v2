@@ -22,7 +22,9 @@ export const HTTP_TEXTS = {
   VALIDATION_SUCCESSFULL: ' File validated successfully.',
   ZIP_FILE_SAVE: 'Issue While Saving Zip File.',
   XML_FILE_SAVE: 'Issue While Saving XML File.',
-  MAPPER_SAVED: 'Mapping process completed successfull.'
+  MAPPER_SAVED: 'Mapping process completed successfull.',
+  LOCALE_SAVED: 'Source locales stored successfully',
+  LOCALE_FAILED: 'Unable to create source.',
 };
 
 export const HTTP_RESPONSE_HEADERS = {
@@ -32,46 +34,46 @@ export const HTTP_RESPONSE_HEADERS = {
 };
 
 export const MIGRATION_DATA_CONFIG = {
-  DATA :"cmsMigrationData",
+  DATA: "cmsMigrationData",
 
-  BACKUP_DATA: "migration-data",
-  BACKUP_LOG_DIR: "logs",
-  BACKUP_FOLDER_NAME: "import",
-  BACKUP_FILE_NAME: "success.log",
+  BACKUP_DATA: 'migration-data',
+  BACKUP_LOG_DIR: 'logs',
+  BACKUP_FOLDER_NAME: 'import',
+  BACKUP_FILE_NAME: 'success.log',
 
-  LOCALE_DIR_NAME : "locale",
-  LOCALE_FILE_NAME : "locales.json",
-  LOCALE_MASTER_LOCALE : "master-locale.json",
-  LOCALE_CF_LANGUAGE : "language.json",
+  LOCALE_DIR_NAME: "locale",
+  LOCALE_FILE_NAME: "locales.json",
+  LOCALE_MASTER_LOCALE: "master-locale.json",
+  LOCALE_CF_LANGUAGE: "language.json",
 
-  WEBHOOKS_DIR_NAME : "webhooks",
-  WEBHOOKS_FILE_NAME : "webhooks.json",
+  WEBHOOKS_DIR_NAME: "webhooks",
+  WEBHOOKS_FILE_NAME: "webhooks.json",
 
-  ENVIRONMENTS_DIR_NAME : "environments",
-  ENVIRONMENTS_FILE_NAME : "environments.json",
+  ENVIRONMENTS_DIR_NAME: "environments",
+  ENVIRONMENTS_FILE_NAME: "environments.json",
 
-  CONTENT_TYPES_DIR_NAME : "content_types",
-  CONTENT_TYPES_FILE_NAME : "contenttype.json",
-  CONTENT_TYPES_MASTER_FILE : "contenttypes.json",
-  CONTENT_TYPES_SCHEMA_FILE : "schema.json",
+  CONTENT_TYPES_DIR_NAME: "content_types",
+  CONTENT_TYPES_FILE_NAME: "contenttype.json",
+  CONTENT_TYPES_MASTER_FILE: "contenttypes.json",
+  CONTENT_TYPES_SCHEMA_FILE: "schema.json",
 
-  REFERENCES_DIR_NAME : "reference",
-  REFERENCES_FILE_NAME : "reference.json",
+  REFERENCES_DIR_NAME: "reference",
+  REFERENCES_FILE_NAME: "reference.json",
 
-  RTE_REFERENCES_DIR_NAME : "rteReference",
-  RTE_REFERENCES_FILE_NAME : "rteReference.json",
+  RTE_REFERENCES_DIR_NAME: "rteReference",
+  RTE_REFERENCES_FILE_NAME: "rteReference.json",
 
-  ASSETS_DIR_NAME : "assets",
-  ASSETS_FILE_NAME : "assets.json",
-  ASSETS_SCHEMA_FILE : "index.json",
-  ASSETS_FAILED_FILE : "cs_failed.json",
-  ASSETS_METADATA_FILE :"metadata.json",
+  ASSETS_DIR_NAME: "assets",
+  ASSETS_FILE_NAME: "assets.json",
+  ASSETS_SCHEMA_FILE: "index.json",
+  ASSETS_FAILED_FILE: "cs_failed.json",
+  ASSETS_METADATA_FILE: "metadata.json",
 
-  ENTRIES_DIR_NAME : "entries",
-  ENTRIES_MASTER_FILE : "index.json",
+  ENTRIES_DIR_NAME: "entries",
+  ENTRIES_MASTER_FILE: "index.json",
 
-  GLOBAL_FIELDS_DIR_NAME : "global_fields",
-  GLOBAL_FIELDS_FILE_NAME : "globalfields.json",
+  GLOBAL_FIELDS_DIR_NAME: "global_fields",
+  GLOBAL_FIELDS_FILE_NAME: "globalfields.json",
 
-  EXPORT_INFO_FILE: "export-info.json"
-}
+  EXPORT_INFO_FILE: 'export-info.json'
+};

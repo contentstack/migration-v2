@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Icon, Field, TextInput, FieldLabel, CircularLoader } from '@contentstack/venus-components';
+import { Icon, Field, TextInput, FieldLabel, CircularLoader, Tooltip } from '@contentstack/venus-components';
 import { useSelector, useDispatch } from 'react-redux';
 
 // Services
@@ -22,15 +22,15 @@ import MigrationLogViewer from '../LogScreen/MigrationLogViewer';
 //stylesheet
 import './index.scss';
 
-export type migrationWxecutionProps  = {
+export type migrationWxecutionProps = {
   handleStepChange: (currentStep: number) => void;
-}
+};
 
-const MigrationExecution = ({handleStepChange}: migrationWxecutionProps) => {
+const MigrationExecution = ({ handleStepChange }: migrationWxecutionProps) => {
   const dispatch = useDispatch();
 
-  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
-  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const {
     migrationexecution: { migration_information: MigrationInformation }
   } = migrationData;
@@ -51,9 +51,8 @@ const MigrationExecution = ({handleStepChange}: migrationWxecutionProps) => {
         }
 
         //updateMigrationData({ migrationexecution: data });
-        dispatch(updateMigrationData({ migrationexecution: data }))
+        dispatch(updateMigrationData({ migrationexecution: data }));
         setIsLoading(false);
-
       })
       .catch((err) => {
         console.error(err);
@@ -76,50 +75,63 @@ const MigrationExecution = ({handleStepChange}: migrationWxecutionProps) => {
     }
   };
 
-  return (
-    isLoading || newMigrationData?.isprojectMapped
-      ? <div className="loader-container">
-        <CircularLoader />
-      </div>
-      : <div className='migration-step-container'>
-        <div className='content-block'>
-          <div className='content-body'>
-            <p>Your legacy CMS, organization, stack, and locale are configured. You can now begin the migration process.</p>
-            <div className='select-wrapper mt-3'>
-              {MigrationInformation &&
-                validateArray(MigrationInformation) &&
-                MigrationInformation?.map((item, index) => (
+  return isLoading || newMigrationData?.isprojectMapped ? (
+    <div className="loader-container">
+      <CircularLoader />
+    </div>
+  ) : (
+    <div className="migration-step-container">
+      <div className="content-block">
+        <div className="content-body">
+          <p>
+            Your legacy CMS, organization, stack, and locale are configured. You can now begin the
+            migration process
+          </p>
+          <div className="select-wrapper mt-3">
+            {MigrationInformation &&
+              validateArray(MigrationInformation) &&
+              MigrationInformation?.map((item, index) => (
                 <div className="select-wrapper" key={`${index.toString()}`}>
                   <Field disabled={item?.disable}>
                     <FieldLabel className="selectedOptions" htmlFor="label">
                       {item?.title}
                     </FieldLabel>
-                    <TextInput
-                      type="text"
-                      isReadOnly
-                      name="stackKey"
-                      value={getPlaceHolder(item?.title)}
-                      version="v2"
-                      disabled
-                      // width="regular"
-                    />
+                    <Tooltip 
+                    position='top'
+                    content={getPlaceHolder(item?.title)}>
+                      <TextInput
+                        inputClassName='textInput-ellipse'
+                        type="text"
+                        isReadOnly
+                        name="stackKey"
+                        value={getPlaceHolder(item?.title)}
+                        version="v2"
+                        disabled
+                        // width="regular"
+                      />
+
+                    </Tooltip>
+                   
                   </Field>
                   {index < MigrationInformation?.length - 1 && (
                     <Icon className="arrow-wrapper" icon="ArrowRight" size="large" />
                   )}
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-
-        <div className='content-block'>
-          <div className='content-header'>Execution Logs</div>
-          <div>
-            <MigrationLogViewer serverPath={process.env.REACT_APP_BASE_API_URL ?? ''} handleStepChange={handleStepChange}/>
           </div>
         </div>
       </div>
+
+      <div className="content-block">
+        <div className="content-header">Execution Logs</div>
+        <div>
+          <MigrationLogViewer
+            serverPath={process.env.REACT_APP_BASE_API_URL ?? ''}
+            handleStepChange={handleStepChange}
+          />
+        </div>
+      </div>
+    </div>
   );
 };
 
