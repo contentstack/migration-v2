@@ -4,18 +4,23 @@ import JSZip from 'jszip';
 import validator from '../validators';
 import config from '../config/index';
 import logger from '../utils/logger.js';
+import * as Cheerio from 'cheerio';
 
-
-const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: string, name :string) => {
+const handleFileProcessing = async (
+  fileExt: string,
+  zipBuffer: any,
+  cmsType: string,
+  name: string
+) => {
   if (fileExt === 'zip') {
     const zip = new JSZip();
-      await zip.loadAsync(zipBuffer);
-    if (await validator({ data: zip, type: cmsType, extension: fileExt })) {    
+    await zip.loadAsync(zipBuffer);
+    if (await validator({ data: zip, type: cmsType, extension: fileExt })) {
       const isSaved = await saveZip(zip, name);
       if (isSaved) {
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
-          message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
+          message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
         });
         return {
           status: HTTP_CODES?.OK,
@@ -26,7 +31,7 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
     } else {
       logger.warn('Validation error:', {
         status: HTTP_CODES?.UNAUTHORIZED,
-        message: HTTP_TEXTS?.VALIDATION_ERROR,
+        message: HTTP_TEXTS?.VALIDATION_ERROR
       });
       return {
         status: HTTP_CODES?.UNAUTHORIZED,
@@ -35,9 +40,11 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
       };
     }
   } else if (fileExt === 'xml') {
-    if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt }) ) {
-      const parsedJson = await parseXmlToJson(zipBuffer);
-      const isSaved = await saveJson(parsedJson,"data.json");
+    if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt })) {
+      const $ = Cheerio.load(zipBuffer, { xmlMode: true });
+      const fixedXml = $.xml();
+      const parsedJson = await parseXmlToJson(fixedXml);
+      const isSaved = await saveJson(parsedJson, `${name}.json`);
       if (isSaved) {
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
@@ -67,7 +74,7 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
     if (await validator({ data: jsonString, type: cmsType, extension: fileExt })) {
       logger.info('Validation success:', {
         status: HTTP_CODES?.OK,
-        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
+        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
       });
       return {
         status: HTTP_CODES?.OK,
@@ -77,7 +84,7 @@ const handleFileProcessing = async (fileExt: string, zipBuffer: any, cmsType: st
     } else {
       logger.warn('Validation error:', {
         status: HTTP_CODES?.UNAUTHORIZED,
-        message: HTTP_TEXTS?.VALIDATION_ERROR,
+        message: HTTP_TEXTS?.VALIDATION_ERROR
       });
       return {
         status: HTTP_CODES?.UNAUTHORIZED,

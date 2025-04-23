@@ -16,10 +16,12 @@ const getComponentObject = (
       //Insert Data , Summary component and status
       updatedStep = {
         ...updatedStep,
-      data: LoadOrganisation,
-      status:
-        isCompleted || isPrevStepLocked || isMigrationLocked ? StepStatus.COMPLETED : StepStatus.ACTIVE,
-      }
+        data: LoadOrganisation,
+        status:
+          isCompleted || isPrevStepLocked || isMigrationLocked
+            ? StepStatus.COMPLETED
+            : StepStatus.ACTIVE
+      };
       break;
     }
 
@@ -27,10 +29,12 @@ const getComponentObject = (
       //Insert Data , Summary component and status
       updatedStep = {
         ...updatedStep,
-      data:  LoadStacks,
-      status:
-        isCompleted || isPrevStepLocked || isMigrationLocked ? StepStatus.COMPLETED : StepStatus.ACTIVE,
-      }
+        data: LoadStacks,
+        status:
+          isCompleted || isPrevStepLocked || isMigrationLocked
+            ? StepStatus.COMPLETED
+            : StepStatus.ACTIVE
+      };
       break;
     }
 
@@ -48,7 +52,6 @@ export const getDestinationStackSteps = (
   isMigrationLocked: boolean,
   allSteps: IStep[]
 ) => {
- 
   return validateArray(allSteps)
     ? allSteps.map((step: IStep, index: number) =>
         getComponentObject(
