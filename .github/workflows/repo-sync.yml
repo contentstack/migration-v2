@@ -150,7 +150,6 @@ jobs:
                 # ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_SITECORE_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
-                # rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-sitecore/ ./upload-api/migration-sitecore/
@@ -244,6 +243,7 @@ jobs:
                     cat <<EOL > eslint.config.cjs
                 const js = require("@eslint/js");
                 const globals = require("globals");
+                const tsPlugin = require("@typescript-eslint/eslint-plugin");
                 const importPlugin = require("eslint-plugin-import");
                 module.exports = [
                 js.configs.recommended,
@@ -252,15 +252,21 @@ jobs:
                     ecmaVersion: "latest",
                     sourceType: "module",
                     globals: globals.node,
+                    parser: require("@typescript-eslint/parser"),
+                    },
+                    plugins: {
+                    "@typescript-eslint": tsPlugin,
+                    import: importPlugin,
                     },
                     rules: {
                     "no-unused-vars": "warn",
                     "no-console": "off",
-                    "@typescript-eslint/no-var-requires": 'off',
                     "@typescript-eslint/no-var-requires": "off",
                     "no-prototype-builtins": "off",
                     "@typescript-eslint/no-explicit-any": "off",
-                    "no-constant-condition": "off"
+                    "no-constant-condition": "off",
+                    "no-constant-binary-expression": "off",
+                    "import/no-unresolved": 'off',
                     }
                 }
                 ];
@@ -282,7 +288,6 @@ jobs:
                 ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_CONTENTFUL_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
-                # rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_CONTENTFUL_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-contentful/ ./upload-api/migration-contentful/
@@ -343,6 +348,7 @@ jobs:
                     cat <<EOL > eslint.config.cjs
                 const js = require("@eslint/js");
                 const globals = require("globals");
+                const tsPlugin = require("@typescript-eslint/eslint-plugin");
                 const importPlugin = require("eslint-plugin-import");
                 module.exports = [
                 js.configs.recommended,
@@ -351,15 +357,21 @@ jobs:
                     ecmaVersion: "latest",
                     sourceType: "module",
                     globals: globals.node,
+                    parser: require("@typescript-eslint/parser"),
+                    },
+                    plugins: {
+                    "@typescript-eslint": tsPlugin,
+                    import: importPlugin,
                     },
                     rules: {
                     "no-unused-vars": "warn",
                     "no-console": "off",
-                    "@typescript-eslint/no-var-requires": 'off',
                     "@typescript-eslint/no-var-requires": "off",
                     "no-prototype-builtins": "off",
                     "@typescript-eslint/no-explicit-any": "off",
-                    "no-constant-condition": "off"
+                    "no-constant-condition": "off",
+                    "no-constant-binary-expression": "off",
+                    "import/no-unresolved": 'off',
                     }
                 }
                 ];
@@ -381,7 +393,6 @@ jobs:
                 ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_WORDPRESS_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
-                # rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_WORDPRESS_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-wordpress/ ./upload-api/migration-wordpress/
