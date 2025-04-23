@@ -97,7 +97,9 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
     const cmsType = config?.cmsType?.toLowerCase();
 
     if (config?.isLocalPath) {
-      const fileName = config?.localPath?.split?.('/')?.pop?.();
+      const fileName = path.basename(config?.localPath || "");
+      //const fileName = config?.localPath?.replace(/\/$/, "")?.split?.('/')?.pop?.();
+
       if (!fileName) {
         res.send('Filename could not be determined from the local path.');
       }
@@ -105,7 +107,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
       if (fileName) {
         const name = fileName?.split?.('.')?.[0];
         const fileExt = fileName?.split('.')?.pop() ?? '';
-        const bodyStream = createReadStream(config?.localPath);
+        const bodyStream = createReadStream(config?.localPath?.replace(/\/$/, ""));
 
         bodyStream.on('error', (error: any) => {
           console.error(error);
@@ -134,15 +136,15 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
               throw new Error('No data collected from the stream.');
             }
 
-            const data = await handleFileProcessing(fileExt, xmlData, cmsType,name);
+            const data = await handleFileProcessing(fileExt, xmlData, cmsType, name);
             res.status(data?.status || 200).json(data);
             if (data?.status === 200) {
-              const filePath = path.join(__dirname, '..', '..', 'extracted_files', "data.json");
+              const filePath = path.join(__dirname, '..', '..', 'extracted_files', `${name}.json`);
               createMapper(filePath, projectId, app_token, affix, config);
             }
           });
         }
-        else{
+        else {
           // Create a writable stream to save the downloaded zip file
           let zipBuffer = Buffer.alloc(0);
 
@@ -160,18 +162,19 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
             if (!zipBuffer) {
               throw new Error('No data collected from the stream.');
             }
-            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,name);
+            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
             res.status(data?.status || 200).json(data);
             if (data?.status === 200) {
               const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
               createMapper(filePath, projectId, app_token, affix, config);
             }
           });
-        } 
+        }
+      }
     } else {
       const params = {
         Bucket: config?.awsData?.bucketName,
-        Key: config?.awsData?.buketKey
+        Key: config?.awsData?.bucketKey
       };
       const getObjectCommand = new GetObjectCommand(params);
       // Get the object from S3
@@ -181,11 +184,11 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
       //file ext from fileName
       const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
 
-      if (!s3File.Body) {
+      if (!s3File?.Body) {
         throw new Error('Empty response body from S3');
       }
 
-      const bodyStream: Readable = s3File.Body as Readable;
+      const bodyStream: Readable = s3File?.Body as Readable;
 
       // Create a writable stream to save the downloaded zip file
       const zipFileStream = createWriteStream(`${fileName}`);
@@ -211,7 +214,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
           throw new Error('No data collected from the stream.');
         }
 
-        const data = await handleFileProcessing(fileExt, zipBuffer, cmsType,fileName);
+        const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
         res.json(data);
         res.send('file valited sucessfully.');
         const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
@@ -219,8 +222,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
         createMapper(filePath, projectId, app_token, affix, config);
       });
     }
-
-  } }
+  }
   catch (err: any) {
     console.error('🚀 ~ router.get ~ err:', err);
   }
