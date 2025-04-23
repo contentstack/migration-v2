@@ -98,7 +98,7 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 # echo "Installing ESLint dependencies..."
-                npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
+                npm install --save-dev eslint eslint-plugin-import @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
@@ -127,7 +127,7 @@ jobs:
                     "@typescript-eslint/no-explicit-any": "off",
                     "no-constant-condition": "off",
                     "no-constant-binary-expression": "off",
-                    "import/no-unresolved": 'off',
+                    "import/no-unresolved": 'error',
                     }
                 }
                 ];
