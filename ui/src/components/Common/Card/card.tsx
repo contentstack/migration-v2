@@ -33,17 +33,24 @@ type CardProps = {
  * @param cardType - The type of the card.
  * @param idField - The field name for the card's ID. Defaults to 'id'.
  */
-const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id',disabled }: CardProps) => {
+const Card = ({
+  data,
+  selectedCard,
+  onCardClick,
+  cardType,
+  idField = 'id',
+  disabled
+}: CardProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
   const handleMouseEnter = () => {
     if (!newMigrationData?.legacy_cms?.uploadedFile?.isValidated) {
       if (selectedCard[idField] === data?.[idField]) {
         setIsHovered(true);
       }
-    } 
+    }
   };
 
   const handleMouseLeave = () => {
@@ -61,7 +68,9 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id',disabl
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`connector_list ${cardType === 'legacyCMS' ? 'trigger_list' : ''} ${disabled ? 'Card__disabled' : ''} `}
+      className={`connector_list ${cardType === 'legacyCMS' ? 'trigger_list' : ''} ${
+        disabled ? 'Card__disabled' : ''
+      } `}
       style={{ position: 'relative' }}
       onClick={handleClick}
     >
@@ -93,10 +102,9 @@ const Card = ({ data, selectedCard, onCardClick, cardType, idField = 'id',disabl
         )}
       </span>
 
-      <div className="service_icon">
-      </div>
+      <div className="service_icon"></div>
       <div className="centered-card-title">
-        <Paragraph variantStyle={'bold'} variant={'p2'} text={data.title}/>
+        <Paragraph variantStyle={'bold'} variant={'p2'} text={data.title} />
       </div>
     </div>
   );
