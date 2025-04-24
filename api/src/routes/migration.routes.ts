@@ -21,7 +21,7 @@ router.post(
   asyncRouter(migrationController.startTestMigration)
 );
 router.get(
-  "/get_audit_data/:orgId/:projectId/:stackId/:moduleName/:skip/:limit/:startIndex/:stopIndex/:searchText",
+  "/get_audit_data/:orgId/:projectId/:stackId/:moduleName/:skip/:limit/:startIndex/:stopIndex/:searchText/:filter",
   asyncRouter(migrationController.getAuditData)
 )
 /**

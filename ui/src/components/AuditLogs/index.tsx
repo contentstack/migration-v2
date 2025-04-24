@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useParams } from 'react-router';
-import { EmptyState, InfiniteScrollTable, Select } from '@contentstack/venus-components';
+import { Button, EmptyState, InfiniteScrollTable, Select } from '@contentstack/venus-components';
 // Redux
 import { RootState } from '../../store';
 // Service
@@ -12,10 +12,12 @@ import {
     StackOption,
     FileOption,
     TableDataItem,
-    TableColumn
+    TableColumn,
+    FilterOption
 } from './auditLogs.interface';
 
 import './index.scss';
+import AuditFilterModal from '../AuditFilterModal';
 
 const AuditLogs: React.FC = () => {
     const params = useParams<{ projectId?: string }>();
@@ -32,6 +34,11 @@ const AuditLogs: React.FC = () => {
     const [totalCounts, setTotalCounts] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [tableKey, setTableKey] = useState<number>(0);
+    const [filterV, setFilterV] = useState<string>('all');
+    const [filterValue, setFilterValue] = useState<FilterOption[]>([]);
+    const [isCursorInside, setIsCursorInside] = useState(false);
+    const [isFilterApplied, setIsFilterApplied] = useState(false);
+    const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
     const selectedOrganisation = useSelector(
         (state: RootState) => state?.authentication?.selectedOrganisation
@@ -83,12 +90,20 @@ const AuditLogs: React.FC = () => {
         setCurrentPage(1);
         setSearchText('');
         setTotalCounts(0);
+        // Reset filter values when file selection changes
+        setFilterValue([]);
+        setFilterV('all');
+        setIsFilterApplied(false);
     };
 
     const handleFileChange = async (selectedOption: FileOption | null) => {
         setSelectedFile(selectedOption);
         setCurrentPage(1);
         setSearchText('');
+        // Reset filter values when file selection changes
+        setFilterValue([]);
+        setFilterV('all');
+        setIsFilterApplied(false);
 
         if (selectedOption) {
             const columns = generateColumnsForFile(selectedOption.value);
@@ -101,15 +116,13 @@ const AuditLogs: React.FC = () => {
         }
     };
 
-
-
     const handleSearchChange = (value: string) => {
         setSearchText(value);
         setCurrentPage(1);
         setTableKey(prevKey => prevKey + 1);
     };
 
-    const generateColumnsForFile = (fileName: string): TableColumn[] => {
+    const generateColumnsForFile = (fileName: string) => {
         const renderCell = (value: any) => (
             <div>{value}</div>
         );
@@ -141,7 +154,8 @@ const AuditLogs: React.FC = () => {
                     disableSortBy: true,
                     disableResizing: false,
                     canDragDrop: true,
-                    width: 200
+                    width: 200,
+                    filter: ColumnFilter
                 },
                 {
                     Header: 'Missing Reference',
@@ -210,7 +224,7 @@ const AuditLogs: React.FC = () => {
                     disableSortBy: true,
                     disableResizing: false,
                     canDragDrop: true,
-                    width: 200
+                    width: 200,
                 },
                 {
                     Header: 'Display Type',
@@ -219,7 +233,8 @@ const AuditLogs: React.FC = () => {
                     disableSortBy: true,
                     disableResizing: false,
                     canDragDrop: true,
-                    width: 200
+                    width: 200,
+                    filter: ColumnFilter
                 },
                 {
                     Header: 'Missing Select Value',
@@ -238,20 +253,6 @@ const AuditLogs: React.FC = () => {
                     disableResizing: false,
                     canDragDrop: true,
                     width: 250
-                },
-                {
-                    Header: 'Fix Status',
-                    accessor: (data: TableDataItem) => {
-                        const status = data.fixStatus;
-                        return (
-                            <div>{status}</div>
-                        );
-                    },
-                    addToColumnSelector: true,
-                    disableSortBy: true,
-                    disableResizing: false,
-                    canDragDrop: true,
-                    width: 200
                 }
             ];
         }
@@ -261,6 +262,114 @@ const AuditLogs: React.FC = () => {
         }
     };
 
+    const ColumnFilter = () => {
+        const closeModal = () => {
+            setIsFilterDropdownOpen(false);
+        };
+
+        const openFilterDropdown = () => {
+            if (!isFilterDropdownOpen) {
+                setIsFilterDropdownOpen(true);
+            }
+        };
+
+        const handleClickOutside = () => {
+            if (!isCursorInside) {
+                closeModal();
+            }
+        };
+
+        useEffect(() => {
+            document.addEventListener('click', handleClickOutside, false);
+            return () => {
+                document.removeEventListener('click', handleClickOutside, false);
+            };
+        }, [isCursorInside]);
+
+        const iconProps = {
+            className: isFilterApplied
+                ? 'filterWithAppliedIcon Icon--v2 Icon--medium'
+                : 'defaultFilterIcon Icon--v2 Icon--medium',
+            withTooltip: true,
+            tooltipContent: 'Filter',
+            tooltipPosition: 'left'
+        };
+
+        // Method to update filter value
+        const updateValue = ({ value, isChecked }: { value: FilterOption; isChecked: boolean }) => {
+            try {
+                let filterValueCopy = [...filterValue];
+
+                if (!filterValueCopy.length && isChecked) {
+                    filterValueCopy.push(value);
+                } else if (isChecked) {
+                    // Remove the old value and keep updated one in case old value exists
+                    const updatedFilter = filterValueCopy.filter((v) => v.value !== value.value);
+                    filterValueCopy = [...updatedFilter, value];
+                } else if (!isChecked) {
+                    filterValueCopy = filterValueCopy.filter((v) => v.value !== value.value);
+                }
+
+                setFilterValue(filterValueCopy);
+            } catch (error) {
+                console.error('Error updating filter value:', error);
+            }
+        };
+
+        // Method to apply filter
+        const onApply = () => {
+            try {
+                if (!filterValue.length) {
+                    const newFilter = 'all';
+                    setFilterV(newFilter);
+                    fetchTableData({ filter: newFilter });
+                    closeModal();
+                    setIsFilterApplied(false);
+                    return;
+                }
+
+                const usersQueryArray = filterValue.map((item) => item.value);
+                const newFilter = usersQueryArray.length > 1 ? usersQueryArray.join('-') : usersQueryArray[0];
+
+                setFilterV(newFilter);
+                fetchTableData({ filter: newFilter });
+                setIsFilterApplied(true);
+                closeModal();
+            } catch (error) {
+                console.error('Error applying filter:', error);
+            }
+        };
+
+        return (
+            <div
+                onMouseEnter={() => {
+                    setIsCursorInside(true);
+                }}
+                onMouseLeave={() => {
+                    setIsCursorInside(false);
+                }}>
+                <Button
+                    onClick={openFilterDropdown}
+                    icon="v2-Filter"
+                    buttonType="tertiary"
+                    onlyIcon={true}
+                    version="v2"
+                    onlyIconHoverColor="secondary"
+                    iconProps={iconProps}
+                />
+                <AuditFilterModal
+                    isOpen={isFilterDropdownOpen}
+                    closeModal={closeModal}
+                    updateValue={updateValue}
+                    onApply={onApply}
+                    selectedLevels={filterValue}
+                    setFilterValue={setFilterValue}
+                    selectedFileType={selectedFile?.value || ''}
+                />
+            </div>
+        );
+    };
+
     // Fetch table data function for pagination and other table operations
     const fetchTableData = async ({
         skip = 0,
@@ -268,6 +377,7 @@ const AuditLogs: React.FC = () => {
         startIndex = 0,
         stopIndex = 30,
         searchText = 'null',
+        filter = filterV,
     }) => {
         if (!selectedStack || !selectedFile || !selectedOrganisation?.value) {
             return { data: [], count: 0 };
@@ -286,7 +396,8 @@ const AuditLogs: React.FC = () => {
                 limit,
                 startIndex,
                 stopIndex,
-                searchText
+                searchText,
+                filter
             );
 
             if (response.data) {
@@ -407,7 +518,7 @@ const AuditLogs: React.FC = () => {
                 customEmptyState={
                     <EmptyState
                         heading={selectedStack && selectedFile ? "No Matching Result Found" : "No Logs Found"}
-                        description={!selectedStack ? `Try executing Test Migration` : selectedStack && !selectedFile ? `Select Module to See the Logs` : 'Try Changing the Search Suery to find what you are looking for '}
+                        description={!selectedStack ? `Try executing Test Migration` : selectedStack && !selectedFile ? `Select Module to See the Logs` : 'Try Changing the Search Query to find what you are looking for'}
                         moduleIcon={(selectedStack && !selectedFile) || !selectedStack ? "NoDataEmptyState" : "NoSearchResult"}
                         type="secondary"
                         className="custom-empty-state"
@@ -415,7 +526,6 @@ const AuditLogs: React.FC = () => {
                 }
             />
         </div>
-
     );
 };
 
