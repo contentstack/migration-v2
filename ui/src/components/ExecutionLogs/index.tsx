@@ -286,13 +286,11 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         onSearchChangeEvent={(value: string) => setSearchText(value)}
         withExportCta={{
           component: (
-            <div className="select-container">
               <Select
-              width='250px'
-              maxWidth='300px'
+                width="250px"
                 version="v2"
-                options={stackIds}
                 value={selectedStackName}
+                options={stackIds}
                 placeholder={
                   selectedStackName === ''
                     ? stackIds.length > 0
@@ -306,7 +304,6 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
                   setSearchText('');
                 }}
               />
-            </div>
           ),
           showExportCta: true
         }}
