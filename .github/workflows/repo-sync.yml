@@ -87,7 +87,7 @@ jobs:
                 git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.SITECORE_REPO }}.git
                 cd migration-tool-sitecore
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-                git pull origin ${{ env.BRANCH }}
+                git pull --rebase origin ${{ env.BRANCH }}
 
                 # Cleanup step to remove unused or deleted file references
                 echo "Cleaning up unused or deleted file references..."
@@ -183,7 +183,7 @@ jobs:
                 git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.CONTENTFUL_REPO }}.git
                 cd migration-tool-contentful
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-                git pull origin ${{ env.BRANCH }}
+                git pull --rebase origin ${{ env.BRANCH }}
 
                 # Cleanup step to remove unused or deleted file references
                 echo "Cleaning up unused or deleted file references..."
@@ -288,7 +288,7 @@ jobs:
                 git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.WORDPRESS_REPO }}.git
                 cd migration-tool-wordpress
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-                git pull origin ${{ env.BRANCH }}
+                git pull --rebase origin ${{ env.BRANCH }}
 
                 # Cleanup step to remove unused or deleted file references
                 echo "Cleaning up unused or deleted file references..."
