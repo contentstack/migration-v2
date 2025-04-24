@@ -16,6 +16,7 @@ const { contentTypes: contentTypesConfig } = config.modules;
 
 const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
 
+
 /**
  * Create folders and files
  */
