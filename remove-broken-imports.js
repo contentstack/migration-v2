@@ -5,29 +5,31 @@ const exts = ['.js', '.ts', '.tsx'];
 const targetDirs = ['api', 'ui', 'upload-api'];
 
 function resolveImport(importPath, fileDir) {
+  // Absolute or relative path
   let basePath = path.resolve(fileDir, importPath);
 
-  // 1. Direct file with extension
-  if (fs.existsSync(basePath) && fs.statSync(basePath).isFile()) {
-    return true;
-  }
-
-  // 2. Try with extensions
-  for (const ext of exts) {
-    if (fs.existsSync(basePath + ext)) {
+  // 1. If import has extension, check directly
+  if (/\.[jt]sx?$/.test(importPath)) {
+    if (fs.existsSync(basePath) && fs.statSync(basePath).isFile()) {
       return true;
     }
-  }
-
-  // 3. Directory with index file
-  if (fs.existsSync(basePath) && fs.statSync(basePath).isDirectory()) {
+  } else {
+    // 2. Try with extensions
     for (const ext of exts) {
-      if (fs.existsSync(path.join(basePath, 'index' + ext))) {
+      if (fs.existsSync(basePath + ext) && fs.statSync(basePath + ext).isFile()) {
         return true;
       }
     }
+    // 3. Directory with index file
+    if (fs.existsSync(basePath) && fs.statSync(basePath).isDirectory()) {
+      for (const ext of exts) {
+        const idx = path.join(basePath, 'index' + ext);
+        if (fs.existsSync(idx) && fs.statSync(idx).isFile()) {
+          return true;
+        }
+      }
+    }
   }
-
   return false;
 }
 
@@ -35,10 +37,12 @@ function cleanImportsInFile(filePath) {
   let code = fs.readFileSync(filePath, 'utf-8');
   const fileDir = path.dirname(filePath);
 
+  // Handles both regular and type-only imports
   const importRegex = /^import\s+(type\s+)?[\s\S]*?from\s+['"](.*?)['"];?.*$/gm;
 
   let changed = false;
   code = code.replace(importRegex, (match, typeKeyword, importPath) => {
+    // Ignore node_modules and built-in modules
     if (!importPath.startsWith('.') && !importPath.startsWith('/')) return match;
 
     if (!resolveImport(importPath, fileDir)) {
