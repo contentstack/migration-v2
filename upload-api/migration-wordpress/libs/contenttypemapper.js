@@ -8,6 +8,7 @@ const { writeFile, writeFileAsync } = require('../utils/helper');
 const restrictedUid = require('../utils');
 
 
+
 const { contentTypes: contentTypesConfig } = config.modules;
 const contentTypesFile = path.join(
   process.cwd(),
