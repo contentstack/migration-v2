@@ -32,6 +32,7 @@ function startsWithNumber(str) {
 }
 
 const uidCorrector = (uid) => {
+  let append = '';
   if (startsWithNumber(uid)) {
     return `${append}_${_.replace(uid, new RegExp('[ -]', 'g'), '_')?.toLowerCase()}`?.replace?.(
       '$',
