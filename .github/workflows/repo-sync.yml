@@ -78,7 +78,6 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-sitecore == 'true' ||
@@ -195,7 +194,6 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-sitecore == 'true' ||
@@ -215,7 +213,6 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-contentful == 'true' ||
@@ -300,7 +297,6 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-contentful == 'true' ||
@@ -320,7 +316,6 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-wordpress == 'true' ||
@@ -378,7 +373,6 @@ jobs:
                 EOL
                 fi
 
-
                 # Remove unused imports and missing file references
                 echo "Running ESLint to remove unused imports..."
                 npm install eslint -g
@@ -405,7 +399,6 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-wordpress == 'true' ||
