@@ -184,7 +184,7 @@ jobs:
                 # npx prettier --write .
 
                 # eslint api/ ui/ upload-api/ --rule 'import/no-unresolved: error' --format compact | awk -F ':' '{print $1}' | sort -u | xargs -I {} sed -i '/import/d' {}
-                node scripts/remove-broken-imports.js
+                node remove-broken-imports.js
 
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
@@ -289,7 +289,7 @@ jobs:
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_CONTENTFUL_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-contentful/ ./upload-api/migration-contentful/
-                node scripts/remove-broken-imports.js
+                node remove-broken-imports.js
 
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
@@ -393,7 +393,7 @@ jobs:
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_WORDPRESS_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-wordpress/ ./upload-api/migration-wordpress/
-                node scripts/remove-broken-imports.js
+                node remove-broken-imports.js
                 
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
