@@ -164,6 +164,10 @@ jobs:
                     steps.file_changes.outputs.index == 'true'
                 )
             run: |
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to commit. Skipping PR creation."
+                    exit 0
+                fi
                 gh pr create --repo ${{ env.SITECORE_REPO }} \
                     --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
                     --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
@@ -272,6 +276,10 @@ jobs:
                     steps.file_changes.outputs.index == 'true'
                 )
             run: |
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to commit. Skipping PR creation."
+                    exit 0
+                fi
                 gh pr create --repo ${{ env.CONTENTFUL_REPO }} \
                     --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
                     --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
@@ -379,6 +387,10 @@ jobs:
                     steps.file_changes.outputs.index == 'true'
                 )
             run: |
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to commit. Skipping PR creation."
+                    exit 0
+                fi
                 gh pr create --repo ${{ env.WORDPRESS_REPO }} \
                     --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
                     --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
