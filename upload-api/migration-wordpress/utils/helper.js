@@ -6,6 +6,7 @@ var path = require('path');
 var mkdirp = require('mkdirp');
 const xml2js = require('xml2js');
 const chalk = require('chalk');
+
 /**
  * Internal module Dependencies.
  */
