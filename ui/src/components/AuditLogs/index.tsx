@@ -15,8 +15,6 @@ import {
     TableColumn
 } from './auditLogs.interface';
 
-// Import NoDataSvg similar to ExecutionLogs component
-import { NoDataFound } from '../../common/assets'
 import './index.scss';
 
 const AuditLogs: React.FC = () => {
@@ -103,54 +101,12 @@ const AuditLogs: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        if (selectedStack && selectedFile && selectedOrganisation?.value) {
-            fetchInitialData();
-        }
-    }, [selectedStack, selectedFile]);
+
 
     const handleSearchChange = (value: string) => {
         setSearchText(value);
         setCurrentPage(1);
         setTableKey(prevKey => prevKey + 1);
-    };
-
-    // Function to fetch initial data when selections change
-    const fetchInitialData = async () => {
-        if (!selectedStack || !selectedFile || !selectedOrganisation?.value) {
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const searchParam = searchText === '' ? 'null' : searchText;
-
-            const response = await getAuditData(
-                selectedOrganisation.value,
-                params?.projectId ?? '',
-                selectedStack.value,
-                selectedFile.value,
-                0,
-                15,
-                0,
-                15,
-                searchParam
-            );
-
-            if (response.data) {
-                setTableData(response.data.data || []);
-                setTotalCounts(response.data.totalCount || 0);
-            } else {
-                setTableData([]);
-                setTotalCounts(0);
-            }
-        } catch (error) {
-            console.error('Error fetching initial audit data:', error);
-            setTableData([]);
-            setTotalCounts(0);
-        } finally {
-            setLoading(false);
-        }
     };
 
     const generateColumnsForFile = (fileName: string): TableColumn[] => {
@@ -213,12 +169,10 @@ const AuditLogs: React.FC = () => {
                 {
                     Header: 'Fix Status',
                     accessor: (data: TableDataItem) => {
-                        const status = data.fixStatus || 'Fixed';
-                        const statusClass = status === 'Fixed' ? 'status-fixed' : 'status-not-fixed';
+                        const status = data.fixStatus;
+
                         return (
-                            <div className={`cell-content ${statusClass}`}>
-                                <div>{status}</div>
-                            </div>
+                            <div>{status}</div>
                         );
                     },
                     addToColumnSelector: true,
@@ -288,7 +242,7 @@ const AuditLogs: React.FC = () => {
                 {
                     Header: 'Fix Status',
                     accessor: (data: TableDataItem) => {
-                        const status = data.fixStatus || 'Fixed';
+                        const status = data.fixStatus;
                         return (
                             <div>{status}</div>
                         );
@@ -313,15 +267,13 @@ const AuditLogs: React.FC = () => {
         limit = 30,
         startIndex = 0,
         stopIndex = 30,
-        searchText: tableSearchText = null,
+        searchText = 'null',
     }) => {
         if (!selectedStack || !selectedFile || !selectedOrganisation?.value) {
             return { data: [], count: 0 };
         }
 
-        // Use component's searchText state if tableSearchText isn't provided
-        const finalSearchText = tableSearchText !== null ? tableSearchText : searchText;
-        const searchParam = finalSearchText === '' ? 'null' : finalSearchText;
+        searchText = searchText === '' ? 'null' : searchText;
 
         setLoading(true);
         try {
@@ -334,7 +286,7 @@ const AuditLogs: React.FC = () => {
                 limit,
                 startIndex,
                 stopIndex,
-                searchParam
+                searchText
             );
 
             if (response.data) {
