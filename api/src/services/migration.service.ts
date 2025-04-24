@@ -148,6 +148,7 @@ const getAuditData = async (req: Request): Promise<any> => {
   const startIndex = parseInt(req?.params?.startIndex);
   const stopIndex = startIndex + limit;
   const searchText = req?.params?.searchText;
+  const filter = req?.params?.filter;
   const srcFunc = "getAuditData";
 
   if (projectId.includes('..') || stackId.includes('..') || moduleName.includes('..')) {

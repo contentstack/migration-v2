@@ -34,7 +34,15 @@ export interface TableDataItem {
     ct_uid?: string;
     [key: string]: any;
 }
+export type DropdownOption = {
+    label: string;
+    value: string;
+};
 
+export type FilterOption = {
+    label: string;
+    value: string;
+};
 export interface TableColumn {
     Header: string;
     accessor: (data: TableDataItem) => JSX.Element;

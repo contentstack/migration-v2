@@ -20,9 +20,9 @@ export const getAllProjects = async (orgId: string) => {
     }
   }
 };
-export const getAuditData = async (orgId: string, projectId: string, stackId: string, moduleName: string, skip: number, limit: number, startIndex: number, stopIndex: number, searchText: string) => {
+export const getAuditData = async (orgId: string, projectId: string, stackId: string, moduleName: string, skip: number, limit: number, startIndex: number, stopIndex: number, searchText: string, filter: string) => {
   try {
-    return await getCall(`${API_VERSION}/migration/get_audit_data/${orgId}/${projectId}/${stackId}/${moduleName}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}`, options());
+    return await getCall(`${API_VERSION}/migration/get_audit_data/${orgId}/${projectId}/${stackId}/${moduleName}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}/${filter}`, options());
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Error in userSession: ${error.message}`);
