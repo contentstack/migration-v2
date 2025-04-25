@@ -14,7 +14,6 @@ import jsonRTE from "./contentful/jsonRTE.js";
 import { getAllLocales, getLogMessage } from "../utils/index.js";
 import customLogger from "../utils/custom-logger.utils.js";
 
-
 const {
   DATA,
   // DIR
