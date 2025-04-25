@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const exts = ['.js', '.ts', '.tsx'];
-const targetDirs = ['api'];
+const targetDirs = ['api','ui','upload-api'];
 
 function resolveImport(importPath, fileDir) {
   const absPath = path.resolve(fileDir, importPath);
