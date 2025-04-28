@@ -19,6 +19,16 @@
     width: calc(100% - 15rem);
 }
 
+.Table__head__column {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+}
+
+.Table__head {
+    height: auto;
+}
+
 .Table:has(.custom-empty-state) {
     height: 40.5rem;
 }

@@ -275,17 +275,9 @@ const AuditLogs: React.FC = () => {
 
         const handleClickOutside = () => {
             if (!isCursorInside) {
-                closeModal();
+                closeModal && closeModal();
             }
         };
-
-        useEffect(() => {
-            document.addEventListener('click', handleClickOutside, false);
-            return () => {
-                document.removeEventListener('click', handleClickOutside, false);
-            };
-        }, [isCursorInside]);
-
         const iconProps = {
             className: isFilterApplied
                 ? 'filterWithAppliedIcon Icon--v2 Icon--medium'
@@ -338,16 +330,20 @@ const AuditLogs: React.FC = () => {
             } catch (error) {
                 console.error('Error applying filter:', error);
             }
+
         };
+        useEffect(() => {
+            document.addEventListener('click', handleClickOutside, false);
+            return () => {
+                document.removeEventListener('click', handleClickOutside, false);
+            };
+        }
+            , [isCursorInside]);
 
         return (
             <div
-                onMouseEnter={() => {
-                    setIsCursorInside(true);
-                }}
-                onMouseLeave={() => {
-                    setIsCursorInside(false);
-                }}>
+
+            >
                 <Button
                     onClick={openFilterDropdown}
                     icon="v2-Filter"

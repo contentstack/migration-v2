@@ -59,10 +59,13 @@ const AuditFilterModal = ({
         setFilterValue([]);
     };
 
-    if (!isOpen) return null;
+    console.info("Filter modal render - isOpen:", isOpen);
+    console.info("Selected file type:", selectedFileType);
+    console.info("Filter options:", filterOptions);
 
+    // Always render the component, let the parent control visibility
     return (
-        <div className="tableFilterModalStories">
+        <div className="tableFilterModalStories" style={{ display: isOpen ? 'block' : 'none' }}>
             {/* Modal header */}
             <div className="tableFilterModalStories__header">
                 <span className="text-size">
