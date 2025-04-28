@@ -210,7 +210,17 @@ const getAuditData = async (req: Request): Promise<any> => {
 
     // Transform and flatten the data with sequential tuid
     let transformedData = transformAndFlattenData(fileData);
+    if (filter != "all") {
+      const filters = filter.split("-");
+      transformedData = transformedData.filter((log) => {
+        return filters.some((filter) => {
+          return (
+            log?.level?.toLowerCase()?.includes(filter?.toLowerCase())
+          );
+        });
+      });
 
+    }
     // Apply search filter if searchText is provided and not "null"
     if (searchText && searchText !== "null") {
       transformedData = transformedData.filter((item: any) => {
