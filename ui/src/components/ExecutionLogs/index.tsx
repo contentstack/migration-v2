@@ -19,11 +19,11 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
   const [loading, setLoading] = useState(true);
   const [totalCounts, setTotalCounts] = useState<number | 0>(0);
   const [searchText, setSearchText] = useState<string>('');
-  const [filterValue, setFilterValue] = useState<FilterOption[]>([]);
+  const [filterOption, setFilterOption] = useState<FilterOption[]>([]);
   const [isCursorInside, setIsCursorInside] = useState(false);
   const [isFilterApplied, setIsFilterApplied] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-  const [filterV, setFilterV] = useState<string>('all');
+  const [filterValue, setFilterValue] = useState<string>('all');
 
   const selectedOrganisation = useSelector(
     (state: RootState) => state?.authentication?.selectedOrganisation
@@ -69,7 +69,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
     //Method to maintain filter value
     const updateValue = ({ value, isChecked }: { value: FilterOption; isChecked: boolean }) => {
       try {
-        let filterValueCopy: FilterOption[] = [...filterValue];
+        let filterValueCopy: FilterOption[] = [...filterOption];
 
         if (!filterValueCopy.length && isChecked) {
           filterValueCopy.push(value);
@@ -81,7 +81,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
           filterValueCopy = filterValueCopy.filter((v) => v.value !== value.value);
         }
 
-        setFilterValue(filterValueCopy);
+        setFilterOption(filterValueCopy);
       } catch (error) {
         console.error('Error updating filter value:', error);
       }
@@ -90,19 +90,19 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
     // Method to handle Apply
     const onApply = () => {
       try {
-        if (!filterValue.length) {
+        if (!filterOption.length) {
           const newFilter = 'all';
-          setFilterV(newFilter);
+          setFilterValue(newFilter);
           fetchData({ filter: newFilter });
           closeModal();
           return;
         }
 
-        const usersQueryArray = filterValue.map((item) => item.value);
+        const usersQueryArray = filterOption.map((item) => item.value);
         const newFilter =
           usersQueryArray.length > 1 ? usersQueryArray.join('-') : usersQueryArray[0];
 
-        setFilterV(newFilter);
+        setFilterValue(newFilter);
         fetchData({ filter: newFilter });
         setIsFilterApplied(true);
         closeModal();
@@ -149,8 +149,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
           closeModal={closeModal}
           updateValue={updateValue}
           onApply={onApply}
-          selectedLevels={filterValue}
-          setFilterValue={setFilterValue}
+          selectedLevels={filterOption}
+          setFilterValue={setFilterOption}
         />
       </div>
     );
@@ -220,7 +220,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
     startIndex = 0,
     stopIndex = 30,
     searchText = 'null',
-    filter = filterV
+    filter = filterValue
   }) => {
     searchText = searchText === '' ? 'null' : searchText;
 
