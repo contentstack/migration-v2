@@ -21,7 +21,7 @@ const createMapper = async (
     }
 
     case 'wordpress': {
-      return createWordpressMapper(filePath, projectId, app_token, affix, config);
+      return createWordpressMapper(filePath, projectId, app_token, affix);
     }
 
     // case 'aem': {
