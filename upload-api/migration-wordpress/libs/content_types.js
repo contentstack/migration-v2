@@ -518,7 +518,7 @@ async function extractContentTypes(affix) {
 
     const isPresent = restrictedUid?.find((item) => item === affix);
     globalPrefix = isPresent ? affix : '';
-    const schemaJson = ContentTypesSchema.map(({ title, uid, schema, options },) => {
+    const schemaJson = ContentTypesSchema.map(({ title, uid, schema, options }) => {
       return generateSchema(title, uid, schema, options);
     });
 
