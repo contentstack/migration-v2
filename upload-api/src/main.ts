@@ -1,9 +1,9 @@
 import { cliux, messageHandler } from '@contentstack/cli-utilities';
 import isEmpty from 'lodash.isempty';
 
-const migFunction = () => {
-  console.log('test');
-};
+// const migFunction = () => {
+//   console.log('test');
+// };
 
 function inquireRequireFieldValidation(input: any): string | boolean {
   if (isEmpty(input)) {
