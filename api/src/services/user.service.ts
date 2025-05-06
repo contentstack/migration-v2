@@ -69,13 +69,17 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
       ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
       ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
 
+    const ownerOrgs = (res?.data?.user?.organizations || [])?.filter((org:any)=> org?.is_owner)
+    ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
+
+    const allOrgs = [...orgs, ...ownerOrgs]
     return {
       data: {
         user: {
           email: res?.data?.user?.email,
           first_name: res?.data?.user?.first_name,
           last_name: res?.data?.user?.last_name,
-          orgs: orgs,
+          orgs: allOrgs,
         },
       },
       status: res.status,
