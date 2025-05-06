@@ -79,7 +79,7 @@ const CardList = ({ project }: ProjectType) => {
                 <div className="ProjectCard__Staus-unit">
                   <span className="ProjectCard__stats-Title">Source</span>
                   <div className="ProjectCard__cms">
-                    {project?.legacy_cms?.cms ? project?.legacy_cms?.cms : '-'}
+                    {project?.legacy_cms?.cms ?? '-'}
                   </div>
                 </div>
                 <div className="ProjectCard__unit">
