@@ -30,7 +30,7 @@ const createContentfulMapper = async (
       },
       data: JSON.stringify(initialMapper)
     };
-    const { data, status } = await axios.request(req);
+    const { data} = await axios.request(req);
     if (data?.data?.content_mapper?.length) {
       logger.info('Validation success:', {
         status: HTTP_CODES?.OK,
