@@ -7,6 +7,8 @@ const config = require('../config');
 const { writeFile, writeFileAsync } = require('../utils/helper');
 const restrictedUid = require('../utils');
 
+
+
 const { contentTypes: contentTypesConfig } = config.modules;
 const contentTypesFile = path.join(
   process.cwd(),
@@ -32,6 +34,7 @@ function startsWithNumber(str) {
 }
 
 const uidCorrector = (uid) => {
+  let append = '';
   if (startsWithNumber(uid)) {
     return `${append}_${_.replace(uid, new RegExp('[ -]', 'g'), '_')?.toLowerCase()}`?.replace?.(
       '$',
