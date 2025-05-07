@@ -57,6 +57,7 @@ echo "Starting services in new terminals..."
 if [[ "$OSTYPE" == "darwin"* ]]; then
   # macOS
   osascript -e "tell application \"Terminal\" to do script \"
+  nvm use --delete-prefix v20.9.0 --silent
   source \$HOME/.nvm/nvm.sh && nvm use 21 &&
   cd '$SCRIPT_DIR/api' &&
   echo 'Cleaning API dependencies...' &&
@@ -65,6 +66,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   npm run dev
   \""
   osascript -e "tell application \"Terminal\" to do script \"
+  nvm use --delete-prefix v20.9.0 --silent
   source \$HOME/.nvm/nvm.sh && nvm use 21 &&
   cd '$SCRIPT_DIR/upload-api' &&
   echo 'Cleaning upload-api dependencies...' &&
@@ -74,6 +76,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   npm run start
   \""
   osascript -e "tell application \"Terminal\" to do script \"
+  nvm use --delete-prefix v20.9.0 --silent
   source \$HOME/.nvm/nvm.sh && nvm use 21 &&
   cd '$SCRIPT_DIR/ui' &&
   echo 'Cleaning UI dependencies...' &&
