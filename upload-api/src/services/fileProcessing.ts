@@ -1,5 +1,5 @@
 import { HTTP_TEXTS, HTTP_CODES } from '../constants';
-import { parseXmlToJson, saveJson, saveZip } from '../helper';
+import { parseXmlToJson, saveJson, saveZip, getDbConnection } from '../helper';
 import JSZip from 'jszip';
 import validator from '../validators';
 import config from '../config/index';
@@ -67,7 +67,44 @@ const handleFileProcessing = async (
         };
       }
     }
+  } else if (fileExt === 'sql') {
+    console.log('SQL file processing');
+    try {
+      // Get database connection
+      const dbConnection = await getDbConnection(config.mysql);
+
+      if (dbConnection) {
+        logger.info('Database connection success:', {
+          status: HTTP_CODES?.OK,
+          message: 'Successfully connected to database'
+        });
+        return {
+          status: HTTP_CODES?.OK,
+          message: 'Successfully connected to database',
+          file_details: config
+        };
+      } else {
+        logger.warn('Database connection error:', {
+          status: HTTP_CODES?.UNAUTHORIZED,
+          message: 'Failed to connect to database'
+        });
+        return {
+          status: HTTP_CODES?.UNAUTHORIZED,
+          message: 'Failed to connect to database',
+          file_details: config
+        };
+      }
+    } catch (error) {
+      logger.error('Database connection error:', error);
+      return {
+        status: HTTP_CODES?.SERVER_ERROR,
+        message: 'Failed to connect to database',
+        file_details: config
+      };
+    }
   } else {
+    console.log('File is not zip');
+
     // if file is not zip
     // Convert the buffer to a string assuming it's UTF-8 encoded
     const jsonString = Buffer?.from?.(zipBuffer)?.toString?.('utf8');
