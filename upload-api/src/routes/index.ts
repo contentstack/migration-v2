@@ -89,15 +89,48 @@ router.post('/upload', upload.single('file'), async function (req: Request, res:
 });
 
 // deepcode ignore NoRateLimitingForExpensiveWebOperation: <alredy implemetes>
-router.get('/validator', express.json(), fileOperationLimiter, async function (req: Request, res: Response) {
+router.get('/validator', express.json(), fileOperationLimiter, async function (req, res) {
   try {
-    const projectId: string | string[] = req?.headers?.projectid ?? "";
-    const app_token: string | string[] = req?.headers?.app_token ?? "";
-    const affix: string | string[] = req?.headers?.affix ?? "csm";
+    // Common parameters
+    const projectId = req?.headers?.projectid ?? '';
+    const app_token = req?.headers?.app_token ?? '';
+    const affix = req?.headers?.affix ?? 'csm';
     const cmsType = config?.cmsType?.toLowerCase();
+    const fileType = req.headers.filetype;
 
+    // Handle SQL connection separately, with early return
+    if (fileType === 'sql') {
+      console.log('Processing SQL database connection');
+      try {
+        const cmstype = Array.isArray(req.headers.cmstype)
+          ? req.headers.cmstype[0] || 'drupal'
+          : req.headers.cmstype || 'drupal';
+
+        const affixString = Array.isArray(affix) ? affix[0] || 'csm' : affix;
+
+        const result = await handleFileProcessing('sql', null, cmstype, affixString);
+        if (!result) {
+          return res.status(500).json({
+            status: 500,
+            message: 'File processing failed to return a result',
+            file_details: {}
+          });
+        }
+
+        return res.status(result.status).json(result);
+      } catch (error) {
+        console.error('SQL connection error:', error);
+        return res.status(500).json({
+          status: 500,
+          message: 'Failed to connect to database',
+          file_details: {}
+        });
+      }
+    }
+
+    // Only proceed to file handling if not a SQL request
     if (config?.isLocalPath) {
-      const fileName = path.basename(config?.localPath || "");
+      const fileName = path.basename(config?.localPath || '');
       //const fileName = config?.localPath?.replace(/\/$/, "")?.split?.('/')?.pop?.();
 
       if (!fileName) {
@@ -107,13 +140,13 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
       if (fileName) {
         const name = fileName?.split?.('.')?.[0];
         const fileExt = fileName?.split('.')?.pop() ?? '';
-        const bodyStream = createReadStream(config?.localPath?.replace(/\/$/, ""));
+        const bodyStream = createReadStream(config?.localPath?.replace(/\/$/, ''));
 
         bodyStream.on('error', (error: any) => {
           console.error(error);
           return res.status(500).json({
-            status: "error",
-            message: "Error reading file.",
+            status: 'error',
+            message: 'Error reading file.',
             file_details: config
           });
         });
@@ -143,8 +176,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
               createMapper(filePath, projectId, app_token, affix, config);
             }
           });
-        }
-        else {
+        } else {
           // Create a writable stream to save the downloaded zip file
           let zipBuffer = Buffer.alloc(0);
 
@@ -218,13 +250,14 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
         res.json(data);
         res.send('file valited sucessfully.');
         const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
-        console.log("🚀 ~ bodyStream.on ~ filePath:", filePath)
+        console.log('🚀 ~ bodyStream.on ~ filePath:', filePath);
         createMapper(filePath, projectId, app_token, affix, config);
       });
     }
-  }
-  catch (err: any) {
+  } catch (err) {
     console.error('🚀 ~ router.get ~ err:', err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ status: 500, message: 'Server error', error: errorMessage });
   }
 });
 
