@@ -10,7 +10,7 @@ import {
 } from '@contentstack/venus-components';
 import { jsonToHtml } from '@contentstack/json-rte-serializer';
 import HTMLReactParser from 'html-react-parser';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 // Redux
@@ -19,7 +19,7 @@ import useBlockNavigation from '../../hooks/userNavigation';
 
 // Services
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
-import { getAllProjects } from '../../services/api/project.service';
+import { createProject, getAllProjects } from '../../services/api/project.service';
 
 // Utilities
 import { CS_ENTRIES } from '../../utilities/constants';
@@ -41,6 +41,9 @@ import { NO_PROJECTS, NO_PROJECTS_SEARCH } from '../../common/assets';
 
 // styles
 import './index.scss';
+import { useDispatch } from 'react-redux';
+import { DEFAULT_NEW_MIGRATION } from '../../context/app/app.interface';
+import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 const Projects = () => {
   const [data, setData] = useState<ProjectsType>({});
@@ -69,6 +72,8 @@ const Projects = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   usePreventBackNavigation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const fetchProjects = async () => {
     setLoadStatus(true);
@@ -132,6 +137,20 @@ const Projects = () => {
   };
   useBlockNavigation(isModalOpen || true);
 
+  const createProjectCall = async(values : any) => {
+        const res:any = await createProject(selectedOrganisation?.uid || '', values);
+        if (res?.error) {
+          return res?.error;
+        }
+        if (res?.status === 201) {
+          const projectId = res?.data?.project?.id;
+          dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION))
+          navigate(`/projects/${projectId}/migration/steps/1`);
+          
+        }
+        return res;
+
+  }
   // Function for open modal
   const openModal = () => {
     setIsModalOpen(true);
@@ -144,6 +163,7 @@ const Projects = () => {
           }
           selectedOrg={selectedOrganisation}
           isOpen={setIsModalOpen}
+          createProject={createProjectCall}
           {...props}
         />
       ),
