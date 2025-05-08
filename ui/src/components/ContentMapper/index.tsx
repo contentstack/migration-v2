@@ -35,7 +35,7 @@ import { updateMigrationData, updateNewMigrationData } from '../../store/slice/m
 
 // Utilities
 import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping } from '../../utilities/constants';
-import { validateArray } from '../../utilities/functions';
+import { isEmptyString, validateArray } from '../../utilities/functions';
 import useBlockNavigation from '../../hooks/userNavigation';
 
 // Interface
@@ -291,6 +291,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const [isContentDeleted, setIsContentDeleted] = useState<boolean>(false);
   const [isCsCTypeUpdated, setsCsCTypeUpdated] = useState<boolean>(false);
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
+  const [activeFilter, setActiveFilter] = useState<string>('');
 
 
   /** ALL HOOKS Here */
@@ -1240,7 +1241,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
   //utility function to map the source cms field type to content type field type
   function checkConditions(fieldTypeToMatch: string | string[], value: ContentTypesSchema, data: FieldMapType) {
-    const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link','global_field','json','blocks']);  
+    const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link','global_field','json','blocks','taxonomy']);  
     switch (fieldTypeToMatch) {
       case 'text':
         return (
@@ -1373,7 +1374,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
     return OptionsForRow;
   };
-
   const SelectAccessorOfColumn = (data: FieldMapType) => {
     // Fetch options for the current row from Fields based on backupFieldType( empty stack options)
     const OptionsForEachRow = Fields?.[data?.backupFieldType]?.options;
@@ -1424,7 +1424,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
       //check if UID of souce field is matching to exsting content type field UID
       for (const value of contentTypeSchema) {
-        if (data?.uid === value?.uid || (data?.uid === value?.uid && data?.otherCmsType === value?.data_type)) {
+        if (data?.uid === value?.uid && data?.contentstackFieldType === value?.data_type) {
           OptionsForRow.push({ label: value?.display_name, value, isDisabled: false });
           break;
         }
@@ -1821,10 +1821,23 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           };
           dispatch(updateNewMigrationData(newMigrationDataObj));
           const resetCT = filteredContentTypes?.map?.(ct => 
+            ct?.id === selectedContentType?.id  ? { ...ct, status: data?.data?.status } : ct
+          )
+          
+          let filteredCT = resetCT;
+          if (!isEmptyString(activeFilter)) {
+            filteredCT = resetCT?.filter((ct) => 
+              CONTENT_MAPPING_STATUS?.[ct?.status] === activeFilter
+            );
+          }
+
+          const resetContentTypes = contentTypes?.map?.(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );
-          setFilteredContentTypes(resetCT);
-          setContentTypes(resetCT);
+          setFilteredContentTypes(filteredCT);
+          setContentTypes(resetContentTypes);
+          setCount(filteredCT?.length);
+
           Notification({
             notificationContent: { text: data?.message },
             notificationProps: {
@@ -2138,6 +2151,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // Function to filter content types as per the status
   const handleContentTypeFilter = (value: string, e: MouseOrKeyboardEvent) => {
+    setActiveFilter(value);
     const li_list = document.querySelectorAll('.filter-wrapper li');
     if(li_list) {
       li_list?.forEach((ele) => {
@@ -2240,7 +2254,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                             }
                           }}
                         >
-                          {CONTENT_MAPPING_STATUS[key] && <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span> }
+                          {CONTENT_MAPPING_STATUS[key] && <span className={`${activeFilter ===  CONTENT_MAPPING_STATUS[key] ? 'filter-status filtetButton-color' :'filter-status' }`}>{CONTENT_MAPPING_STATUS[key]}</span> }
                           {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
                         </button>
                       </li>
