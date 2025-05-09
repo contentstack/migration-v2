@@ -1,0 +1,185 @@
+@import '../../scss/variables';
+
+.service_list {
+  text-align: left;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 20px 10px !important
+}
+
+.title {
+  margin: 20px 0 5px;
+  padding: 0 8px;
+  color: $color-black-2121;
+  font-size: $size-font-large;
+  font-weight: $font-weight-semi-bold;
+  line-height: 21px;
+}
+.stackTitle {
+  color: $color-black-2121;
+  font-size: $size-font-large;
+  font-weight: $font-weight-semi-bold;
+  padding-bottom: 20px;
+}
+.pl-40 {
+  padding-left: $px-40;
+}
+.Dropdown-wrapper {
+  .css-b8ldur-Input {
+   margin: 0;
+   padding: 0;
+  }
+  .Select__v2 .Select__menu .Select__menu-list {
+    max-height: 130px;
+    padding-bottom: 0;
+  }
+  .Select__v2 .Select__menu {
+    max-width: 100%!important;
+  }
+}
+.stackselect {
+  min-width: 600px !important;
+  max-width: 600px !important;
+  border: 1px solid $color-brand-secondary-lightest;
+  border-radius: 4px;
+}
+.destination-stack-container {
+  padding: 20px;
+  .migration-vertical-stepper {
+    padding: 24px 30px;
+    border: 1px solid $color-brand-secondary-lightest;
+    border-radius: 4px;
+    background-color: $color-brand-white-base;
+    .description {
+      line-height: 24px;
+      font-family: $font-family-primary;
+    }
+    .step_block {
+      padding: 0 !important;
+      margin: 0;
+      background: none;
+      border: 0 none;
+      border-radius: 0;
+    }
+    .stepper-title {
+      margin: 20px 0 5px;
+      padding: 0 8px;
+      color: $color-black-2121;
+      font-size: $size-font-large;
+      font-weight: $font-weight-semi-bold;
+      line-height: 21px;
+    }
+    .orgWrapper, .title {
+      .asterisk_input::after {
+        content: '';
+        color: $color-stepper-title;
+        font-size: $size-font-large;
+        margin-left: 0 !important;
+        font-weight: 400;
+      }
+    }
+    .action-content-wrapper {
+      box-shadow: none;
+      border: 0 none;
+      border-radius: 0;
+      padding:0 !important;
+    }
+    .migration-vertical-stepper-container {
+      border-bottom: 0 none;
+    }
+    .orgInput {
+      max-width: 600px;
+      width: 100%;
+    }
+    .Select__menu {
+      // max-width: 430px;
+      width: 100%;
+      margin: 0;
+      padding: 0; 
+      .createStack {
+        background-color: $color-brand-white-base;
+        border-top: 1px solid $color-brand-secondary-lightest;
+        cursor: pointer;
+        font-size: 1rem;
+        color: $color-brand-primary-base;
+        font-weight: $font-weight-semi-bold;
+        line-height: 24px;
+        padding: 1rem;
+        width: 100%;
+      }
+      .Select__v2 .Select__menu .Select__menu-list .Select__option {
+        padding: 12px !important;
+        &:hover {
+          background: $color-base-white-10;
+          color: $color-brand-primary-base;
+        }
+      }
+      .Select__menu-list .Select__option--is-focused {
+        background-color: $color-brand-white-base;
+        &:hover {
+          background: $color-base-white-10;
+        }
+
+      }
+      .Select .Select__control .Select__value-container input, .Select__single-value input[text]{
+        font-size: 16px !important;
+        line-height: 24px !important;
+        color: $color-placeholder !important;
+        width: 100% !important;
+      }
+      .Select__option {
+        position: relative;
+        color: $color-font-base;
+        &.Select__option--is-selected {
+          &:hover {
+            color: $color-brand-primary-base;
+            &:focus {
+              color: $color-brand-primary-base;
+            }
+          }
+        }
+      }
+    }
+
+    .TextInput--disabled .TextInput__v2 {
+      background-color: #F9F8FF !important;
+    }
+    #Step2 {
+      .action-summary-wrapper {
+        background-color: $color-brand-white-base;
+        margin-left: 2px;
+        padding: 0 !important;
+      }
+    }
+    .errorMessage {
+      color: $color-brand-warning-medium;
+      font-size: $size-font-small;
+    }
+   
+
+  }
+}
+.action-summary-wrapper {
+  .Select .Select__control .Select__value-container.Select__value-container--has-value .Select__single-value input {
+    width: 100% !important;
+    background-color: $color-brand-white-base;
+    font-size: $size-font-xl;
+    color: $color-black-2121;
+    font-weight: $font-weight-regular;
+    line-height: 24px;
+  }
+  .TextInput--disabled .TextInput__v2 {
+    background-color: $color-base-white-5 !important;
+    color: $color-black-2121;
+  }
+}
+
+
+.locale-container {
+  display: flex;
+  background-color: $color-base-white-5;
+  height: $px-40;
+  align-items: center;
+  padding: $px-10;
+}

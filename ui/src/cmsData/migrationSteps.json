@@ -1,0 +1,242 @@
+{
+  "title": "Migration",
+  "page_heading": "",
+  "settings": "Settings",
+  "migration_steps_heading": "Migration Steps",
+  "steps": [
+    {
+      "source_cms_block": {
+        "step_title": "Legacy CMS",
+        "_metadata": { "uid": "cs455f1b84bcd3ac6a" },
+        "step_introduction": {
+          "uid": "db22409e4d7c4db8a53d426aee4ba950",
+          "_version": 11,
+          "attrs": {},
+          "children": [
+            {
+              "type": "p",
+              "attrs": { "style": {}, "redactor-attributes": {}, "dir": "ltr" },
+              "uid": "f4f59ae597494fd5bf9b40920a2e7e86",
+              "children": [{ "text": "Select source CMS for data migration." }]
+            }
+          ],
+          "type": "doc"
+        },
+        "actions": [
+          {
+            "title": "Select CMS",
+            "_metadata": { "uid": "cs36f89539afa87a2a" },
+            "description": {
+              "uid": "c92b60cc4dc642ff8c111509e555b2a3",
+              "_version": 11,
+              "attrs": {},
+              "children": [
+                {
+                  "type": "p",
+                  "attrs": { "style": {}, "redactor-attributes": {}, "dir": "ltr" },
+                  "uid": "475c654e24eb4019bda2071d909d674e",
+                  "children": [{ "text": "Select any one of the CMS" }]
+                }
+              ],
+              "type": "doc"
+            },
+            "label_for_document": "",
+            "note": {
+              "uid": "cdc7487e866643f9ab0ead243d72c288",
+              "_version": 11,
+              "attrs": {},
+              "children": [
+                {
+                  "type": "p",
+                  "attrs": {},
+                  "uid": "bf95e886fefa4659adbe49b304bd1a1b",
+                  "children": [{ "text": "" }]
+                }
+              ],
+              "type": "doc"
+            }
+          },
+          {
+            "title": "Select CMS File Format",
+            "_metadata": { "uid": "cse936d52f4e783e54" },
+            "description": {
+              "uid": "ae232bc5df3a4bdc88d86d35a2d04800",
+              "_version": 11,
+              "attrs": {},
+              "children": [
+                {
+                  "type": "p",
+                  "attrs": { "style": {}, "redactor-attributes": {}, "dir": "ltr" },
+                  "uid": "46cd728738c84d2b95a1c5c8a54d56a8",
+                  "children": [
+                    {
+                      "text": "Click to read the document and subsequently continue with the migration process"
+                    }
+                  ]
+                }
+              ],
+              "type": "doc"
+            },
+            "label_for_document": "",
+            "note": {
+              "uid": "aa1d3077f7a14e4b9788f293702b1350",
+              "_version": 11,
+              "attrs": {},
+              "children": [
+                {
+                  "type": "p",
+                  "attrs": { "style": {}, "redactor-attributes": {}, "dir": "ltr" },
+                  "uid": "e582fa83838c415297996ff5df6bd3d5",
+                  "children": [
+                    {
+                      "text": "Choose the respective file format in which data is exported from your current CMS."
+                    }
+                  ]
+                }
+              ],
+              "type": "doc"
+            }
+          }
+        ],
+        "cta": { "title": "", "url": "", "theme": null, "open_in_new_tab": false }
+      }
+    },
+    {
+      "content_mapping_block": {
+        "step_number": 3,
+        "_metadata": { "uid": "csb8d34991c70f94a8" },
+        "content_mapper": [
+          { "uid": "blt19a24c3bedc19786", "_content_type_uid": "content_mapping" }
+        ],
+        "step_title": "Content Mapping",
+        "step_introduction": {
+          "type": "doc",
+          "attrs": {},
+          "uid": "61fe617271fa4d87a7117760d9181e69",
+          "children": [
+            {
+              "type": "p",
+              "attrs": { "style": {}, "redactor-attributes": {}, "dir": "ltr" },
+              "uid": "9a6dbc02eff4492d81d5824a82f4c18e",
+              "children": [{ "text": "Review of content mapping on the target stack." }]
+            }
+          ],
+          "_version": 11
+        },
+        "content_types_heading": "Content Types",
+        "description": {
+          "type": "doc",
+          "attrs": {},
+          "uid": "29c6805ceda64615afcab845682e7ec0",
+          "children": [
+            {
+              "type": "p",
+              "attrs": {},
+              "uid": "565e417ed9ac4ec591b5a7d134b5ebe2",
+              "children": [
+                {
+                  "text": "Select Content type to remap existing fields with pre-defined Contentstack fields"
+                }
+              ]
+            },
+            {
+              "type": "p",
+              "attrs": {},
+              "uid": "660095e5f2ea4fa8a9706a4282273930",
+              "children": [{ "text": "" }]
+            },
+            {
+              "type": "p",
+              "attrs": { "style": {}, "redactor-attributes": {}, "dir": "ltr" },
+              "uid": "a5b15d5befd5456cbf43c4966498af45",
+              "children": [{ "text": "" }]
+            }
+          ],
+          "_version": 11
+        },
+        "cta": { "title": "Save", "type": "primary" },
+        "contentstack_fields": {
+          "title": "Contentstack Field Types",
+          "field_types": [
+            "Url",
+            "Single Line Textbox",
+            "Multi Line Textbox",
+            "Rich Text Editor",
+            "JSON Rich Text Editor",
+            "Boolean",
+            "Date",
+            "File",
+            "Link",
+            "Reference"
+          ]
+        }
+      }
+    },
+    {
+      "test_migration": {
+        "step_title": "Test Migration",
+        "step_number": 4
+      }
+    },
+    {
+      "migration_execution": {
+        "step_title": "Migration Execution",
+        "_metadata": { "uid": "csd1b57ee4b93373fb" },
+        "step_number": 5,
+        "migration_execution": [
+          { "uid": "blt875421bb12019625", "_content_type_uid": "migration_execution" }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "locale": "en-us",
+  "uid": "blt15647e513d7306ac",
+  "created_by": "bltb317ebe35429ebe6",
+  "updated_by": "blt7710245564fbf52b",
+  "created_at": "2024-01-10T13:11:45.507Z",
+  "updated_at": "2024-02-21T11:52:08.354Z",
+  "_version": 11,
+  "_in_progress": false,
+  "all_steps": [
+    {
+      "flow_id": "legacyCms",
+      "_metadata": { "uid": "cs424c30581f38ba95" },
+      "name": 1,
+      "title": "Legacy CMS",
+      "description": "Select Source CMS for data migration",
+      "group_name": "Global"
+    },
+    {
+      "flow_id": "destinationStacks",
+      "_metadata": { "uid": "csc1c9c0a371aecfb7" },
+      "name": 2,
+      "title": "Destination Stacks",
+      "description": "Select respective organisation and stack where data has to be migrated",
+      "group_name": "Stacks"
+    },
+    {
+      "flow_id": "contentMapping",
+      "_metadata": { "uid": "cs82c582021cc46a87" },
+      "name": 3,
+      "title": "Content Mapping",
+      "description": "Review of content mapping on the target stack",
+      "group_name": "Layout"
+    },
+    {
+      "flow_id": "testMigration",
+      "name": 4,
+      "title": "Test Migration",
+      "description": "Preview the migration process",
+      "group_name": "Layout"
+    },
+    {
+      "flow_id": "migrationExecution",
+      "_metadata": { "uid": "csb100b7a598d9c333" },
+      "name": 5,
+      "title": "Migration Execution",
+      "description": "Wait for the execution for migration complete.",
+      "group_name": "SeeDetails"
+    }
+  ]
+}
