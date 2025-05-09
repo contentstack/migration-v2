@@ -1,0 +1,15 @@
+{
+  "title": "500 Error",
+  "url": "/500",
+  "section_title": "Server Error",
+  "description": "<p>Oops! Something went wrong. Our server played trick on us.</p>",
+  "tags": [],
+  "locale": "en-us",
+  "uid": "bltcc6e54b848f637c4",
+  "created_by": "blt7710245564fbf52b",
+  "updated_by": "blt7710245564fbf52b",
+  "created_at": "2023-12-20T06:36:34.787Z",
+  "updated_at": "2023-12-20T06:36:34.787Z",
+  "_version": 1,
+  "_in_progress": false
+}
