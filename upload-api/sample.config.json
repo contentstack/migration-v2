@@ -1,0 +1,13 @@
+{
+  "cmsType": "",
+  "isLocalPath": false,
+  "awsData": {
+    "awsRegion": "",
+    "awsAccessKeyId": "",
+    "awsSecretAccessKey": "",
+    "awsSessionToken": "",
+    "bucketName": "",
+    "buketKey": ""
+  },
+  "localPath": ""
+}

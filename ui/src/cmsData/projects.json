@@ -1,0 +1,158 @@
+{
+  "title": "Projects",
+  "url": "/projects",
+  "heading": "Migration Projects",
+  "search_projects": "Search projects",
+  "cta": {
+    "title": "New Project",
+    "url": "",
+    "theme": "primary",
+    "open_in_new_tab": false,
+    "with_icon": true
+  },
+  "restore_cta": {
+    "open_in_new_tab": false,
+    "theme": "secondary",
+    "title": "Restore Projects",
+    "url": "",
+    "with_icon": false
+  },
+  "tags": [],
+  "locale": "en-us",
+  "uid": "blta1dbec2d70eaa448",
+  "created_by": "bltb317ebe35429ebe6",
+  "updated_by": "bltb317ebe35429ebe6",
+  "created_at": "2023-12-15T11:18:20.412Z",
+  "updated_at": "2024-02-01T13:46:57.454Z",
+  "_version": 7,
+  "_in_progress": false,
+  "emptystate": {
+    "cta": [
+      {
+        "title": "New Project",
+        "_metadata": {
+          "uid": "csf029579137a04f81"
+        },
+        "url": "",
+        "theme": "primary",
+        "with_icon": true,
+        "open_in_new_tab": false
+      }
+    ],
+    "description": {
+      "uid": "c876d3d577d549a99b3987a0ed5283c0",
+      "attrs": {},
+      "children": [
+        {
+          "type": "p",
+          "attrs": {
+            "style": {},
+            "redactor-attributes": {},
+            "dir": "ltr"
+          },
+          "uid": "5ff5db2c09b54cf994ac9c0684d9a9eb",
+          "children": [
+            {
+              "text": "Begin your content migration journey by creating a new project. Follow the steps to ensure a smooth and efficient transfer of your content."
+            }
+          ]
+        },
+        {
+          "type": "p",
+          "attrs": {
+            "style": {},
+            "redactor-attributes": {},
+            "dir": "ltr"
+          },
+          "uid": "9ecb9e032e8844f0be6414dd13e318a4",
+          "children": [
+            {
+              "text": "Happy migrating!"
+            }
+          ]
+        }
+      ],
+      "type": "doc",
+      "_version": 12
+    },
+    "heading": "Welcome to Content Migration!",
+    "help_text": {
+      "type": "doc",
+      "attrs": {},
+      "uid": "2444ef393da042808311f805cea774b1",
+      "children": [
+        {
+          "type": "p",
+          "attrs": {},
+          "uid": "cc8ad415b9864b9ba32255c45f7aadd0",
+          "children": [
+            {
+              "text": "New to Migration? Visit our "
+            },
+            {
+              "uid": "14208d06df0e46c3b7f1d37d99dcfc3a",
+              "type": "a",
+              "attrs": {
+                "url": "https://www.contentstack.com/docs/",
+                "target": "_blank"
+              },
+              "children": [
+                {
+                  "text": "documentation"
+                }
+              ]
+            },
+            {
+              "text": " site to learn more."
+            }
+          ]
+        }
+      ],
+      "_version": 11
+    },
+    "empty_search_description": {
+      "uid": "911e7fc98c954b72ba0cfeea4a0737d1",
+      "_version": 7,
+      "attrs": {},
+      "children": [
+        {
+          "type": "p",
+          "attrs": {
+            "style": {},
+            "redactor-attributes": {},
+            "dir": "ltr"
+          },
+          "uid": "abe73b9230a14732b851770356995ee8",
+          "children": [
+            {
+              "text": "Don't worry though, we're here to help. Try adjusting your search terms or check if you misspelled anything."
+            }
+          ]
+        }
+      ],
+      "type": "doc"
+    },
+    "empty_search_heading": "No results found for your search criteria"
+  },
+  "create_project_modal": {
+    "description": "Description",
+    "description_placeholder": "Enter a description",
+    "name": "Name",
+    "name_placeholder": "Enter project name",
+    "primary_cta": {
+      "open_in_new_tab": false,
+      "theme": "primary",
+      "title": "Create Project",
+      "url": "",
+      "with_icon": true
+    },
+    "secondary_cta": {
+      "open_in_new_tab": false,
+      "theme": "light",
+      "title": "Cancel",
+      "url": "",
+      "with_icon": false
+    },
+    "title": "New Project"
+  }
+}

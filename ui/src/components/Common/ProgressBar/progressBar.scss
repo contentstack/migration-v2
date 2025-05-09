@@ -1,0 +1,28 @@
+@import '../../../scss//variables';
+
+/**
+ * Styles for the ProgressBar component.
+ *
+ * The ProgressBar component displays a progress bar with a customizable bar and circle.
+ *
+ * @class ProgressBar
+ * @memberof components.Common
+ *
+ */
+.ProgressBar {
+	border-radius: $space-4;
+	
+	overflow: hidden;
+	&__bar {
+		
+		border-radius: inherit;
+		height: inherit;
+		transition: width 100ms linear;
+	}
+	&__circle{
+		stroke-width: 5%;
+		transform: rotate(-90deg);
+		transform-origin: 50% 50%;
+		transition: stroke-dashoffset 1s;
+	}
+}
