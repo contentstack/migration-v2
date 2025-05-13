@@ -32,7 +32,7 @@ interface EmptyState {
 export interface ProjectsObj {
   legacy_cms: LegacyCms;
   id: string;
-  uid:string;
+  uid: string;
   region: string;
   org_id: string;
   owner: string;
@@ -46,5 +46,7 @@ export interface ProjectsObj {
   updated_at: string;
   destination_stack_id: string;
   current_step: number;
+  isMigrationStarted: boolean;
+  isMigrationCompleted: boolean;
   // tags?: TagPill[];
 }

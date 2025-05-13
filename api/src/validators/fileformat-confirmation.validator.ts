@@ -10,10 +10,7 @@ export default checkSchema({
   fileformat_confirmation: {
     in: "body",
     isBoolean: {
-      errorMessage: VALIDATION_ERRORS.BOOLEAN_REQUIRED.replace(
-        "$",
-        "fileformat_confirmation"
-      ),
+      errorMessage: VALIDATION_ERRORS.BOOLEAN_REQUIRED.replace(/\$/g, "fileformat_confirmation"),
       bail: true,
     },
   },

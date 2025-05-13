@@ -6,7 +6,7 @@ const mkdirp = require('mkdirp');
 const path = require('path');
 const fs = require('fs');
 
- const readFile = function (filePath, parse) {
+const readFile = function (filePath, parse) {
   parse = typeof parse == 'undefined' ? true : parse;
   filePath = path.resolve(filePath);
   let data;
@@ -14,18 +14,18 @@ const fs = require('fs');
   return data;
 };
 
- const writeFile = function (filePath, data) {
+const writeFile = function (filePath, data) {
   filePath = path.resolve(filePath);
   data = typeof data == 'object' ? JSON.stringify(data) : data || '{}';
   fs.writeFileSync(filePath, data, 'utf-8');
 };
 
- const appendFile = function (filePath, data) {
+const appendFile = function (filePath, data) {
   filePath = path.resolve(filePath);
   fs.appendFileSync(filePath, data);
 };
 
- const makeDirectory = function () {
+const makeDirectory = function () {
   for (let key in arguments) {
     let dirname = path.resolve(arguments[key]);
     if (!fs.existsSync(dirname)) mkdirp.sync(dirname);

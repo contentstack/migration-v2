@@ -12,7 +12,7 @@ const read = require("fs-readdir-recursive");
 const helper = require("../utils/helper");
 const { MIGRATION_DATA_CONFIG } = require("../constants/index");
 const config = {
-  "data": "./"+MIGRATION_DATA_CONFIG.DATA,
+  "data": "./" + MIGRATION_DATA_CONFIG.DATA,
   "backup": "./backupMigrationData",
   "xml_filename": "",
   "sitecore_folder": "",
@@ -30,12 +30,21 @@ function ExtractFiles(sitecore_folder) {
   for (let i = 0; i < xml_folder.length; i++) {
     if (xml_folder?.[i]?.endsWith?.("xml")) {
       const xml_data = path?.join?.(sitecore_folder, xml_folder?.[i]);
-      const json_data = xml_data.replace('xml', '');
-      parseString(helper.readXMLFile(xml_data), { explicitArray: false }, function (err, result) {
+      const jsonFilePath = xml_data?.replace?.('xml', '');
+      parseString(helper?.readXMLFile?.(xml_data), { explicitArray: false }, function (err, result) {
         if (err) {
           console.error("failed to parse xml: ", err);
         } else {
-          const filePath = path.join(json_data, config?.json_filename);
+          const filePath = path.join(jsonFilePath, config?.json_filename);
+          try {
+            const jsonFileArray = read?.(jsonFilePath)?.filter?.((fileExt) => fileExt?.includes?.('.json')) ?? [];
+            for (const ext of jsonFileArray) {
+              const absolutePath = path?.resolve?.(path?.join?.(jsonFilePath, ext));
+              fs?.unlinkSync?.(absolutePath);
+            }
+          } catch (error) {
+            console.error("Error deleting file:", error);
+          }
           fs.writeFileSync(filePath, JSON.stringify(result, null, 4), "utf8");
         }
       })

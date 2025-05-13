@@ -11,6 +11,9 @@ const {
 } = MIGRATION_DATA_CONFIG;
 
 
+
+
+
 const assignFolderName = ({ path }) => {
   const spliter = "/sitecore";
   const newPath = path.split(spliter)?.[1];
