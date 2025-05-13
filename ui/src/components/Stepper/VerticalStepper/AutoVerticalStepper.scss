@@ -6,8 +6,6 @@
   justify-content: flex-start;
   border-bottom: 1px solid $color-brand-secondary-lightest;
   gap: 8px;
-
-
 }
 
 .migration-vertical-stepper .stepper-title {
@@ -15,7 +13,6 @@
   margin: 10px 8px 10px 20px;
   color: $color-font-base;
   line-height: 21px;
-
 }
 
 .migration-vertical-stepper .stepper-discription {
@@ -83,8 +80,8 @@
 }
 
 .action-summary-wrapper {
-   padding: $space-4 $space-24;
-   align-items: center;
+  padding: $space-4 $space-24;
+  align-items: center;
   //border: 1px solid $color-base-gray-40;
   //border-radius: var(--TermCount, 5px);
   //background: $color-brand-white-base;
@@ -103,11 +100,11 @@
   height: $space-24;
   margin-right: $space-10;
 }
-.step_block{
+.step_block {
   border-radius: 4px;
   border: 1px solid $color-brand-secondary-lightest;
   background-color: $color-brand-white-base;
-  padding:  24px 30px, 24px, 30px;
+  padding: 24px 30px, 24px, 30px;
   gap: 24px;
   margin-bottom: 40px;
 }
@@ -120,13 +117,13 @@
   }
 }
 .asterisk_input::after {
-  content:" *"; 
+  content: ' *';
   color: $color-brand-warning-medium;
-  margin: 2px 0px 0px -15px; 
-  font-size:medium; 
-  padding: 10px 5px 0 0 !important; 
-  padding-left: .25em;
+  margin: 2px 0px 0px -15px;
+  font-size: medium;
+  padding: 10px 5px 0 0 !important;
+  padding-left: 0.25em;
 }
-.required-text{
+.required-text {
   margin-left: -5px;
 }

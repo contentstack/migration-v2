@@ -135,7 +135,7 @@ const createProject = async (req: Request) => {
     //Add logic to create Project from DB
     await ProjectModelLowdb.read();
 
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects.push(projectData);
     });
 
@@ -204,7 +204,7 @@ const updateProject = async (req: Request) => {
 
   try {
     // Update the project fields
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].name = updateData?.name;
       data.projects[projectIndex].description = updateData?.description;
       if (
@@ -308,7 +308,7 @@ const updateLegacyCMS = async (req: Request) => {
   // }
 
   try {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].legacy_cms.cms = legacy_cms;
       data.projects[projectIndex].current_step = STEPPER_STEPS.LEGACY_CMS;
       data.projects[projectIndex].status = NEW_PROJECT_STATUS[0];
@@ -368,7 +368,7 @@ const updateAffix = async (req: Request) => {
     true
   )) as number;
 
-  ProjectModelLowdb.update((data: any) => {
+  await ProjectModelLowdb.update((data: any) => {
     data.projects[projectIndex].legacy_cms.affix = affix;
     data.projects[projectIndex].updated_at = new Date().toISOString();
   });
@@ -405,7 +405,7 @@ const affixConfirmation = async (req: Request) => {
     true
   )) as number;
 
-  ProjectModelLowdb.update((data: any) => {
+  await ProjectModelLowdb.update((data: any) => {
     data.projects[projectIndex].legacy_cms.affix_confirmation =
       affix_confirmation;
     data.projects[projectIndex].updated_at = new Date().toISOString();
@@ -477,7 +477,7 @@ const updateFileFormat = async (req: Request) => {
   // }
 
   try {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].legacy_cms.file_format = file_format;
       data.projects[projectIndex].legacy_cms.file_path = file_path;
       data.projects[projectIndex].legacy_cms.is_fileValid = is_fileValid;
@@ -546,7 +546,7 @@ const fileformatConfirmation = async (req: Request) => {
   )) as number;
 
   if (!fileformat_confirmation) {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].legacy_cms.file_format_confirmation =
         fileformat_confirmation;
       data.projects[projectIndex].updated_at = new Date().toISOString();
@@ -643,7 +643,7 @@ const updateDestinationStack = async (req: Request) => {
     if (!res.data.stacks.find((stack: any) => stack.api_key === stack_api_key))
       throw new BadRequestError(HTTP_TEXTS.DESTINATION_STACK_NOT_FOUND);
 
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].destination_stack_id = stack_api_key;
       data.projects[projectIndex].current_step =
         STEPPER_STEPS.DESTINATION_STACK;
@@ -713,11 +713,6 @@ const updateCurrentStep = async (req: Request) => {
     const isStepCompleted =
       project?.legacy_cms?.cms && project?.legacy_cms?.file_format;
 
-    console.info((project.status === NEW_PROJECT_STATUS[0] ||
-      !isStepCompleted ||
-      !project?.destination_stack_id ||
-      project?.content_mapper?.length === 0 ||
-      !project?.current_test_stack_id) || !project?.migration_execution);
 
     switch (project.current_step) {
       case STEPPER_STEPS.LEGACY_CMS: {
@@ -732,7 +727,7 @@ const updateCurrentStep = async (req: Request) => {
           throw new BadRequestError(HTTP_TEXTS.CANNOT_PROCEED_LEGACY_CMS);
         }
 
-        ProjectModelLowdb.update((data: any) => {
+        await ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.DESTINATION_STACK;
           data.projects[projectIndex].status =
@@ -760,7 +755,7 @@ const updateCurrentStep = async (req: Request) => {
           );
         }
 
-        ProjectModelLowdb.update((data: any) => {
+        await ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.CONTENT_MAPPING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
@@ -789,7 +784,7 @@ const updateCurrentStep = async (req: Request) => {
           );
         }
 
-        ProjectModelLowdb.update((data: any) => {
+        await ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.TESTING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
@@ -818,7 +813,7 @@ const updateCurrentStep = async (req: Request) => {
           );
         }
         
-        ProjectModelLowdb.update((data: any) => {
+        await ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
@@ -847,7 +842,7 @@ const updateCurrentStep = async (req: Request) => {
           );
         }
 
-        ProjectModelLowdb.update((data: any) => {
+        await ProjectModelLowdb.update((data: any) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[5];
@@ -913,7 +908,7 @@ const deleteProject = async (req: Request) => {
     await ContentTypesMapperModelLowdb.read();
     await FieldMapperModel.read();
     if (!isEmpty(content_mapper_id)) {
-      content_mapper_id.map((item: any) => {
+      content_mapper_id.map(async (item: any) => {
         const contentMapperData = ContentTypesMapperModelLowdb.chain
           .get("ContentTypesMappers")
           .find({ id: item, projectId: projectId })
@@ -940,17 +935,17 @@ const deleteProject = async (req: Request) => {
           .get("ContentTypesMappers")
           .findIndex({ id: item, projectId: projectId })
           .value();
-        ContentTypesMapperModelLowdb.update((Cdata: any) => {
+        await ContentTypesMapperModelLowdb.update((Cdata: any) => {
           delete Cdata.ContentTypesMappers[contentMapperID];
         });
       });
     }
     //delete Project
-    ProjectModelLowdb.update((Pdata: any) => {
+    await ProjectModelLowdb.update((Pdata: any) => {
       delete Pdata.projects[projectIndex];
     });
   } else {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].isDeleted = true;
     });
   }
@@ -1000,7 +995,7 @@ const revertProject = async (req: Request) => {
   if (!projects) {
     throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   } else {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].isDeleted = false;
     });
     logger.info(
@@ -1047,7 +1042,7 @@ const updateStackDetails = async (req: Request) => {
   )) as number;
 
   try {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].stackDetails = stack_details;
       data.projects[projectIndex].updated_at = new Date().toISOString();
     });
@@ -1109,7 +1104,7 @@ const updateContentMapper = async (req: Request) => {
   )) as number;
 
   try {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].mapperKeys = content_mapper;
       data.projects[projectIndex].updated_at = new Date().toISOString();
     });
@@ -1170,7 +1165,7 @@ const updateMigrationExecution = async (req: Request) => {
   try {
     
     // Update the project in the `ProjectModelLowdb` database
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].migration_execution = true; // Set migration execution to true
       data.projects[projectIndex].updated_at = new Date().toISOString(); // Update the `updated_at` timestamp
     });
@@ -1212,6 +1207,51 @@ const updateMigrationExecution = async (req: Request) => {
 };
 
 
+/**
+ * get the destination_stack_id of completed projects.
+ *
+ * @param req - The request object containing the parameters and body.
+ * @returns An object with the status and data of the update operation.
+ * @throws ExceptionFunction if an error occurs during the process.
+ */
+const getMigratedStacks =  async(req: Request) => {
+
+ const { token_payload } = req.body; 
+  const srcFunc = "getMigratedStacks"; 
+
+  try {
+    await ProjectModelLowdb.read();
+    const projects = ProjectModelLowdb.data?.projects || [];
+
+    // Map through projects to extract `destinationstack` key
+    const destinationStacks = projects.filter((project: any) => project?.status === 5 && project.current_step === 5)
+    .map((project: any) => project.destination_stack_id);
+
+    return {
+      status: HTTP_CODES.OK, 
+      destinationStacks
+    };
+    
+  } catch (error:any) {
+    // Log error message
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while while getting all destinationstack id's of projects",
+        token_payload,
+        error
+      )
+    );
+
+    // Throw a custom exception with the error details
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR, 
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR 
+    );
+    
+  }
+
+}
 
 export const projectService = {
   getAllProjects,
@@ -1229,5 +1269,6 @@ export const projectService = {
   revertProject,
   updateStackDetails,
   updateContentMapper,
-  updateMigrationExecution
+  updateMigrationExecution,
+  getMigratedStacks
 };

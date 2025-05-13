@@ -26,6 +26,7 @@
     ],
     "func-names": [0],
     "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-var-requires": "off",
     "no-prototype-builtins": "off",
     "@typescript-eslint/no-explicit-any": "off",
     "no-constant-condition": "off"

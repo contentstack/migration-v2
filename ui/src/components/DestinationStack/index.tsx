@@ -6,7 +6,7 @@ import { CircularLoader } from '@contentstack/venus-components';
 import { CS_ENTRIES } from '../../utilities/constants';
 import {
   DEFAULT_DESTINATION_STACK_DATA,
-  IDestinationStackComponent,
+  IDestinationStackComponent
 } from '../../context/app/app.interface';
 import './DestinationStack.scss';
 import { MigrationResponse } from '../../services/api/service.interface';
@@ -18,17 +18,17 @@ import { AutoVerticalStepperRef } from '../LegacyCms';
 type DestinationStackComponentProps = {
   isCompleted: boolean;
   projectData: MigrationResponse;
-  handleOnAllStepsComplete:(flag : boolean)=>void;
+  handleOnAllStepsComplete: (flag: boolean) => void;
 };
 
 const DestinationStackComponent = ({
   projectData,
   isCompleted,
   // handleStepChange,
-  handleOnAllStepsComplete,
+  handleOnAllStepsComplete
 }: DestinationStackComponentProps) => {
   /** ALL HOOKS HERE */
-  
+
   const [isMigrationLocked, setIsMigrationLocked] = useState<boolean>(false);
   const [stepperKey] = useState<string>('destination-Vertical-stepper');
   const [internalActiveStepIndex] = useState<number>(-1);
@@ -36,11 +36,11 @@ const DestinationStackComponent = ({
   const autoVerticalStepperComponent = useRef<AutoVerticalStepperRef>(null);
 
   /** ALL CONTEXT HERE */
-  const migrationData = useSelector((state:RootState)=>state?.migration?.migrationData);
-  const newMigrationData = useSelector((state:RootState)=>state?.migration?.newMigrationData);
+  const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const dispatch = useDispatch();
-  const [isLoading, setIsLoading] = useState<boolean>(newMigrationData?.isprojectMapped);
-
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isProjectMapped, setisProjectMapped] = useState<boolean>(newMigrationData?.isprojectMapped);
   const handleAllStepsComplete = (flag = false) => {
     handleOnAllStepsComplete(flag);
   };
@@ -93,29 +93,38 @@ const DestinationStackComponent = ({
         );
       }
     }
-  }, [internalActiveStepIndex]); 
+  }, [internalActiveStepIndex]);
+
+  useEffect(()=>{
+    setisProjectMapped(newMigrationData?.isprojectMapped);
+  },[newMigrationData?.isprojectMapped]);
+
   return (
     <>
-      {isLoading || newMigrationData?.isprojectMapped ? (
+      {isLoading || isProjectMapped ? (
         <div className="loader-container">
           <CircularLoader />
         </div>
       ) : (
         <div className="destination-stack-container">
-          <div className='stackTitle'>{migrationData?.destinationStackData?.title}</div>
-          <AutoVerticalStepper
-            key={stepperKey}
-            steps={getDestinationStackSteps(
-              isCompleted,
-              !isMigrationLocked,
-              migrationData?.destinationStackData?.all_steps
-            )}
-            description={migrationData?.destinationStackData?.description}
-            ref={autoVerticalStepperComponent}
-            isEdit={!isMigrationLocked}
-            isRequired={false}
-            handleOnAllStepsComplete={handleAllStepsComplete}
-          />
+          <div className="stackTitle">{migrationData?.destinationStackData?.title}</div>
+          <div className="row">
+            <div className="col-12">
+              <AutoVerticalStepper
+                key={stepperKey}
+                steps={getDestinationStackSteps(
+                  isCompleted,
+                  !isMigrationLocked,
+                  migrationData?.destinationStackData?.all_steps
+                )}
+                description={migrationData?.destinationStackData?.description}
+                ref={autoVerticalStepperComponent}
+                isEdit={!isMigrationLocked}
+                isRequired={false}
+                handleOnAllStepsComplete={handleAllStepsComplete}
+              />
+            </div>
+          </div>
         </div>
       )}
     </>

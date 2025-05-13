@@ -3,7 +3,6 @@ import './AutoVerticalStepper.scss';
 import { Heading } from '@contentstack/venus-components';
 import { IStep } from '../../../context/app/app.interface';
 
-
 export enum StepStatus {
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
@@ -14,9 +13,9 @@ type AutoVerticalStepperProps = {
   steps: IStep[];
   className?: string;
   description?: string;
-  stepComponentProps?: ()=>{};
+  stepComponentProps?: () => {};
   isEdit: boolean;
-  isRequired:boolean;
+  isRequired: boolean;
   handleOnAllStepsComplete: (flag: boolean) => void;
 };
 
@@ -43,10 +42,8 @@ const AutoVerticalStepper = React.forwardRef<
     } = props;
 
     const [stepStatus, setStepStatus] = useState(steps?.map((s: IStep) => s.status));
-    
 
     const handleStepChange = (stepIndex: number, closeStep = false) => {
-
       if (closeStep) {
         const data = stepStatus.map((s: string | undefined, i: number) => {
           if (i === stepIndex) {
@@ -55,7 +52,7 @@ const AutoVerticalStepper = React.forwardRef<
           return s;
         });
         setStepStatus(data);
-        
+
         handleOnAllStepsComplete(true);
       } else {
         const data: string[] = stepStatus.map((s: string | undefined, i: number) => {
@@ -71,15 +68,19 @@ const AutoVerticalStepper = React.forwardRef<
       }
     };
 
-    const StepperStepTitleCreator: (data: IStep,isRequired:boolean) => JSX.Element = (data: IStep, isRequired:boolean) => {
-      
+    const StepperStepTitleCreator: (data: IStep, isRequired: boolean) => JSX.Element = (
+      data: IStep,
+      isRequired: boolean
+    ) => {
       return (
         <>
           <div className="migration-vertical-stepper-container">
             <div>
-              <div className='orgWrapper'>
-                <Heading className='stepper-title' tagName='h3' text={data.title} />
-                {(isRequired || data?.isRequired) && <span className="required-text">(required)</span>  }    
+              <div className="orgWrapper">
+                <Heading className="stepper-title" tagName="h3" text={data.title} />
+                {(isRequired || data?.isRequired) && (
+                  <span className="required-text">(required)</span>
+                )}
                 {data?.ifReadonly && <span>(read only)</span>}
               </div>
               <span className="stepper-titleNote">{data.titleNote ? data.titleNote : ''}</span>
@@ -96,7 +97,7 @@ const AutoVerticalStepper = React.forwardRef<
         </>
       );
     };
-    
+
     const goToStep = (stepIndex: number) => {
       const data: string[] = stepStatus.map((s: string | undefined, i: number) => {
         if (s === StepStatus.ACTIVE && i !== stepIndex) {
@@ -108,14 +109,14 @@ const AutoVerticalStepper = React.forwardRef<
         if (i === stepIndex) {
           return StepStatus.ACTIVE;
         }
-        return s !== undefined ? s : '' ;
+        return s !== undefined ? s : '';
       });
       setStepStatus(data);
     };
 
     const summaryActivateStep = (e: React.MouseEvent<HTMLDivElement>) => {
       const index = e?.currentTarget?.getAttribute('data-step-index');
-      if(! index) return;
+      if (!index) return;
       handleOnAllStepsComplete(false);
       if (!index) return;
 
@@ -132,15 +133,13 @@ const AutoVerticalStepper = React.forwardRef<
       handleDynamicStepChange: (stepIndex, closeStep = false) =>
         handleStepChange(stepIndex, closeStep)
     }));
-    
-    return useMemo(() => {
 
+    return useMemo(() => {
       return (
         <div className={`migration-vertical-stepper  ${className}`}>
-          {props?.description && <div className='description'>{props?.description}</div>}
+          {props?.description && <div className="description">{props?.description}</div>}
           <ol className="Vertical">
             {steps?.map((step: IStep, index: number) => {
-                          
               return (
                 <li
                   id={step?.step_id}
@@ -185,14 +184,11 @@ const AutoVerticalStepper = React.forwardRef<
               );
             })}
           </ol>
-
-          </div>
-        
+        </div>
       );
-      
     }, [steps, stepStatus]);
   }
 );
 
-AutoVerticalStepper.displayName= 'AutoverticalStepper';
+AutoVerticalStepper.displayName = 'AutoverticalStepper';
 export default AutoVerticalStepper;

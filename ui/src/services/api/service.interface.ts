@@ -1,4 +1,4 @@
-import { FileDetails } from "../../context/app/app.interface";
+import { FileDetails } from '../../context/app/app.interface';
 
 export interface Error {
   code: number;
@@ -35,7 +35,7 @@ export interface MigrationResponse {
   destination_stack_id: string;
   current_step: number;
   isMigrationStarted: boolean;
-  isMigrationCompleted:boolean;
+  isMigrationCompleted: boolean;
   migration_execution: boolean;
 }
 
@@ -64,18 +64,17 @@ export const defaultMigrationResponse: MigrationResponse = {
   prefix: '',
   current_step: 1,
   isMigrationStarted: false,
-  isMigrationCompleted:false,
-  migration_execution: false,
+  isMigrationCompleted: false,
+  migration_execution: false
 };
 interface data {
-  file_details : FileDetails;
+  file_details: FileDetails;
   message: string;
-  status:number;
+  status: number;
 }
 export interface axiosResponse {
-  config ?:{};
+  config?: {};
   data?: data;
   status: number;
   statusText: string;
-
 }

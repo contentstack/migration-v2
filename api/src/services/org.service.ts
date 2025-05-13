@@ -8,6 +8,7 @@ import logger from "../utils/logger.js";
 import { HTTP_TEXTS, HTTP_CODES } from "../constants/index.js";
 import { ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { BadRequestError } from "../utils/custom-errors.utils.js";
+import ProjectModelLowdb from "../models/project-lowdb.js";
 
 /**
  * Retrieves all stacks based on the provided request.
@@ -38,7 +39,6 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
         },
       })
     );
-    // console.info(err, res);
     if (err) {
       logger.error(
         getLogMessage(
@@ -63,11 +63,20 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
         );
       });
     }
-    // const locale:any[]
-    // const locale = await getStackLocal(token_payload, stacks);
+    await ProjectModelLowdb?.read?.();
+    const testStacks = ProjectModelLowdb?.chain?.get?.("projects")?.flatMap?.("test_stacks")?.value?.();
+    if (testStacks?.length > 0) {
+      const filterStacks = [];
+      for (const stack of stacks ?? []) {
+        const isPresent = testStacks?.find?.((testStack: any) => testStack?.stackUid === stack?.api_key);
+        if (isPresent === undefined) {
+          filterStacks?.push(stack);
+        }
+      }
+      stacks = filterStacks;
+    }
     return {
       data: {
-        // stacks: locale,
         stacks,
       },
       status: res.status,
