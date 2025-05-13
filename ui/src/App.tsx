@@ -12,7 +12,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import AppLayout from './components/layout/AppLayout';
 import { useNetworkCheck } from './components/NetworkProvider';
 
-
 // Styles
 import '@contentstack/venus-components/build/main.css';
 import './scss/App.scss';
@@ -22,7 +21,7 @@ function App() {
 
   useEffect(() => {
     const selectModal = document.querySelector('.ReactModalPortal');
-    
+
     if (selectModal instanceof HTMLElement) {
       if (!isOnline) {
         // Hide the modal by setting display to none
@@ -37,7 +36,10 @@ function App() {
         <ErrorBoundary>
           <Suspense fallback={<FullPageLoader resourceName="Migration" />}>
             <Provider store={store}>
-              <PersistGate loading={<FullPageLoader resourceName="Migration" />} persistor={persistor}>
+              <PersistGate
+                loading={<FullPageLoader resourceName="Migration" />}
+                persistor={persistor}
+              >
                 <AppLayout>
                   <AppRouter />
                 </AppLayout>
@@ -46,7 +48,9 @@ function App() {
           </Suspense>
         </ErrorBoundary>
       ) : (
-        <div className='internetConnection'><h2>You lost the network connection!</h2></div>
+        <div className="internetConnection">
+          <h2>You lost the network connection!</h2>
+        </div>
       )}
     </>
   );

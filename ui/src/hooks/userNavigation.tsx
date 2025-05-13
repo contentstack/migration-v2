@@ -10,16 +10,14 @@ const useBlockNavigation = (isModalOpen: boolean) => {
     const handlePopState = (event: PopStateEvent) => {
       // If the modal is open, prevent navigation
       if (isModalOpen) {
-
         window.history.pushState(null, '', window.location.pathname);
         navigate(location.pathname);
       }
     };
 
-
     if (isModalOpen) {
       initialPathnameRef.current = location.pathname;
-      window.history.pushState(null, '', window.location.pathname); 
+      window.history.pushState(null, '', window.location.pathname);
       window.addEventListener('popstate', handlePopState);
     }
 

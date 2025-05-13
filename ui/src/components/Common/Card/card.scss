@@ -42,7 +42,7 @@
 .action_list,
 .trigger_list {
   //border: 1px solid $color-base-gray-40;
-  border: 1px solid #6C5CE766;
+  border: 1px solid #6c5ce766;
   border-radius: $px-6;
   flex: 0 10%;
   cursor: pointer;
@@ -78,6 +78,13 @@
  */
 .connector_list:hover {
   box-shadow: 0 3px $px-5 $px-2 rgb(215 215 215);
+}
+
+.connector_list.disabled-card {
+  &:hover {
+    box-shadow: none;
+    cursor: not-allowed;
+  }
 }
 
 /**
@@ -148,4 +155,8 @@
   p {
     color: $color-stepper-title;
   }
+}
+.Card__disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
