@@ -828,17 +828,18 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }, [tableData]);
 
   const getParentId = (uid: string) => {
-    return tableData?.find(i => i?.uid?.toLowerCase() === uid?.toLowerCase())?.id ?? ''
+    return tableData?.find((i) => i?.uid?.toLowerCase() === uid?.toLowerCase() && i?.backupFieldType?.toLowerCase() === 'group')?.id ?? ''
   }
 
   const modifiedObj = (obj: FieldMapType) => {
-    const {backupFieldType, uid, id} = obj ?? {}
+    const {backupFieldType, uid, id, _canSelect} = obj ?? {}
     const excludeArr = ["group"]
     return {
       id,
       backupFieldType,
       uid,
-      parentId : excludeArr?.includes?.(backupFieldType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0]?.toLowerCase())
+      parentId : excludeArr?.includes?.(backupFieldType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0]?.toLowerCase()),
+      _canSelect,
     }
   }
   
@@ -940,7 +941,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           })
         }
       }
-    } else if(latestRow?.parentId && !["title", "url"]?.includes?.(latestRow?.uid?.toLowerCase())){
+    } else if(latestRow?.parentId && latestRow?._canSelect === true){
       // Extract the group UID if item is child of any group
       const uidBeforeDot = latestRow?.uid?.split?.('.')?.[0]?.toLowerCase();
       const groupItem = tableData?.find((entry) => entry?.uid?.toLowerCase() === uidBeforeDot);   
