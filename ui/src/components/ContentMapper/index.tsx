@@ -766,11 +766,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       });
   }
 
-  const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean) => {
+  const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean, rowContentstackFieldUid: string) => {
     setIsDropDownChanged(checkBoxChanged);
     
     const newTableData = tableData?.map?.((row) => {
-      if (row?.uid === rowId) {
+      if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
 
         return { ...row, advanced: { ...row?.advanced, ...updatedSettings } };
       }
@@ -985,11 +985,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
 
   // Method for change select value
-  const handleValueChange = (value: FieldTypes, rowIndex: string) => {
+  const handleValueChange = (value: FieldTypes, rowIndex: string, rowContentstackFieldUid: string) => {
     setIsDropDownChanged(true);
     setFieldValue(value);
     const updatedRows: FieldMapType[] = selectedEntries?.map?.((row) => {
-      if (row?.uid === rowIndex) {
+      if (row?.uid === rowIndex && row?.contentstackFieldUid === rowContentstackFieldUid) {
         return { ...row, contentstackFieldType: value?.value };
       }
       return row;
@@ -1069,7 +1069,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           <Select
             id={data?.uid}
             value={initialOption || fieldValue}
-            onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid)}
+            onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid, data?.contentstackFieldUid)}
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
@@ -1129,7 +1129,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     );
   };
 
-  const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string) => {
+  const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string, contentstackFieldUid: string) => {
     setIsDropDownChanged(true);
     const previousSelectedValue = existingField[rowIndex]?.label;
     const groupArray = nestedList?.filter(item => 
@@ -1156,7 +1156,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     else {
       setIsFieldDeleted(false);
     }
-    
+    console.info("row index ---> ", rowIndex)
     setExistingField((prevOptions: ExistingFieldType) => ({
       ...prevOptions,
       [rowIndex]: { label: selectedValue?.label, value: selectedValue?.value }
@@ -1176,7 +1176,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
 
     const updatedRows: FieldMapType[] = tableData.map((row) => {
-      if (row?.uid === rowIndex) {
+      if (row?.uid === rowIndex && row?.contentstackFieldUid === contentstackFieldUid) {
         return {
           ...row,
           contentstackField: selectedValue?.label,
@@ -1569,9 +1569,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             value={(OptionsForRow?.length === 0 || existingField?.[data?.uid]?.label === undefined) ? OptionValue : existingField[data?.uid]}
             onChange={(selectedOption: FieldTypes) => {
               if (OptionsForRow?.length === 0) {
-                handleValueChange(selectedOption, data?.uid)
+                handleValueChange(selectedOption, data?.uid, data?.contentstackFieldUid)
               } else {
-                handleFieldChange(selectedOption, data?.uid)
+                handleFieldChange(selectedOption, data?.uid, data?.contentstackFieldUid)
               }
             }}
             placeholder="Select Field"
