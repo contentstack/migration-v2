@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { migrationService } from "../services/migration.service.js";
+import { migrationService } from "../services/migration.service.js"
 
 /**
  * Creates a test stack.
@@ -10,7 +10,7 @@ import { migrationService } from "../services/migration.service.js";
  */
 const createTestStack = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.createTestStack(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 
 /**
@@ -55,10 +55,22 @@ const getLogs = async (req: Request, res: Response): Promise<void> => {
   res.status(200).json(resp);
 };
 
+const saveLocales = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.createSourceLocales(req)
+  res.status(200).json(resp);
+}
+
+const saveMappedLocales = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.updateLocaleMapper(req);
+  res.status(200).json(resp);
+}
+
 export const migrationController = {
   createTestStack,
   deleteTestStack,
   startTestMigration,
   startMigration,
   getLogs,
+  saveLocales,
+  saveMappedLocales
 };

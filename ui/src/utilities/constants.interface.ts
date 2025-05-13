@@ -5,3 +5,7 @@ export interface ObjectType {
 export interface Image {
   url?: string;
 }
+
+export interface MigrationStatesValues {
+  [key: string]: boolean;
+}
