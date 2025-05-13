@@ -20,7 +20,6 @@ interface FlowBlockItemProps {
 }
 
 const FlowBlockItem: FC<FlowBlockItemProps> = (props: FlowBlockItemProps) => {
-
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
   const handleHoveredToggle = (flag: boolean) => () => {

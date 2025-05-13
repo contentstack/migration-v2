@@ -28,9 +28,9 @@ export default async (
 ) => {
   if (!validate(projectId)) {
     logger.error(
-      getLogMessage(srcFunc, HTTP_TEXTS.INVALID_ID.replace("$", "project"))
+      getLogMessage(srcFunc, HTTP_TEXTS.INVALID_ID.replace(/\$/g, "project"))
     );
-    throw new BadRequestError(HTTP_TEXTS.INVALID_ID.replace("$", "project"));
+    throw new BadRequestError(HTTP_TEXTS.INVALID_ID.replace(/\$/g, "project"));
   }
   try {
     await ProjectModel.read();

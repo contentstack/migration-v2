@@ -2,4 +2,6 @@ fileignoreconfig:
 - filename: .github/workflows/secrets-scan.yml
   ignore_detectors:
     - filecontent
+- filename: remove-broken-imports.js
+  checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
 version: "1.0"

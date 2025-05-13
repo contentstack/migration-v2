@@ -1,17 +1,17 @@
 @import '../../scss/variables';
 
 .mainheader {
-  [class*="Profile_card"] {
-    [class*="Dropdown__menu__list"] {
+  [class*='Profile_card'] {
+    [class*='Dropdown__menu__list'] {
       max-height: 203px;
       padding: 0;
     }
 
-    [class*="Dropdown__menu__list__item"] {
+    [class*='Dropdown__menu__list__item'] {
       pointer-events: none;
       padding: 0;
 
-      [class*="profile-card__logout"] {
+      [class*='profile-card__logout'] {
         pointer-events: all;
       }
     }

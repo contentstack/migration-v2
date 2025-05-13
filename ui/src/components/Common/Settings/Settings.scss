@@ -11,7 +11,8 @@
   .PageLayout {
     width: 100%;
   }
-  .PageLayout__head, .PageLayout__leftSidebar {
+  .PageLayout__head,
+  .PageLayout__leftSidebar {
     border-top: 0 none;
   }
   .PageLayout--primary {
@@ -21,8 +22,8 @@
         margin-left: 15rem;
         padding-top: $px-8;
       }
-    } 
-  } 
+    }
+  }
   .action-component-title {
     justify-content: space-between;
     width: calc(100vw - 326px);

@@ -22,7 +22,7 @@
   }
 
   &__intro {
-    background-image: url("../../../public/images/login_bg.webp");
+    background-image: url('../../../public/images/login_bg.webp');
     background-repeat: no-repeat;
     background-size: cover;
     height: 100vh;
@@ -61,7 +61,7 @@
     -webkit-box-direction: normal;
     -webkit-box-align: center;
     -ms-flex-align: center;
-    grid-row-gap: .5rem;
+    grid-row-gap: 0.5rem;
     align-items: center;
     display: -webkit-box;
     display: -ms-flexbox;
@@ -70,7 +70,7 @@
     flex-direction: column;
     left: 8%;
     position: absolute;
-    row-gap: .5rem;
+    row-gap: 0.5rem;
     top: 30%;
     z-index: 10;
 
@@ -79,7 +79,7 @@
       font-family: $font-family-secondary;
       font-size: 3.8rem;
       font-weight: $font-weight-extra-bold;
-      letter-spacing: .04em;
+      letter-spacing: 0.04em;
       line-height: 3.625rem;
       // max-width: $px-260;
       text-transform: uppercase;
