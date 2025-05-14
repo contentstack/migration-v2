@@ -27,6 +27,12 @@
   padding: 8px 16px;
 }
 
+.tableFilterModalStories__body{
+  overflow: scroll;
+  max-height: 250px;
+  overflow-x: hidden;
+}
+
 .Checkbox {
   display: flex;
   align-items: center;
@@ -65,10 +71,10 @@
 }
 
 .close-btn:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: scale(1.05);
   border-radius: 8px;
-  background-color: #f0f1f3; 
+  background-color: #f0f1f3;
   cursor: pointer;
   transition:
     box-shadow 0.2s ease,
