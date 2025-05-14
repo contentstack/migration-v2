@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   InfiniteScrollTable,
-  Dropdown,
   Button,
   EmptyState,
   Select
@@ -17,7 +16,7 @@ import { getMigrationLogs } from '../../services/api/migration.service';
 const ExecutionLogs = ({ projectId }: { projectId: string }) => {
   const [data, setData] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalCounts, setTotalCounts] = useState<number | 0>(0);
+  const [totalCounts, setTotalCounts] = useState<number>(0);
   const [searchText, setSearchText] = useState<string>('');
   const [filterOption, setFilterOption] = useState<FilterOption[]>([]);
   const [isCursorInside, setIsCursorInside] = useState(false);
@@ -29,25 +28,42 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
     (state: RootState) => state?.authentication?.selectedOrganisation
   );
 
-  const stacks = useSelector((state: RootState) => state?.migration?.newMigrationData?.testStacks);
+  const testStacks = useSelector(
+    (state: RootState) => state?.migration?.newMigrationData?.testStacks
+  );
+  console.info(testStacks.length)
+  const mainStack = useSelector(
+    (state: RootState) => state?.migration?.newMigrationData?.stackDetails
+  );
+  const migrationCompleted = useSelector(
+    (state: RootState) =>
+      state?.migration?.newMigrationData?.migration_execution?.migrationCompleted
+  );
 
-  const stackIds = stacks?.map((stack: StackIds) => ({
+  const stackIds = testStacks?.map((stack: StackIds) => ({
     label: stack?.stackName,
     value: stack?.stackUid
   }));
 
-  const [selectedStackId, setSelectedStackId] = useState<string>(
-    stackIds[stackIds.length - 1]?.value ?? ''
-  );
-  const [selectedStackName, setSelectedStackName] = useState<string>(
-    stackIds[stackIds.length - 1]?.label ?? ''
+  if (migrationCompleted) {
+    stackIds?.push({
+      label: mainStack?.label,
+      value: mainStack?.value
+    });
+  }
+
+  const [selectedStack, setSelectedStack] = useState<DropdownOption>(
+    {
+      label: stackIds[stackIds.length - 1]?.label ?? '' ,
+      value: stackIds[stackIds.length - 1]?.value ?? '' 
+    }
   );
 
   useEffect(() => {
-    if (selectedStackId) {
+    if (selectedStack) {
       fetchData({});
     }
-  }, [selectedStackId]);
+  }, [selectedStack]);
 
   const ColumnFilter = () => {
     const closeModal = () => {
@@ -224,7 +240,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
   }) => {
     searchText = searchText === '' ? 'null' : searchText;
 
-    if (!selectedStackId) {
+    if (!selectedStack) {
       setLoading(false);
       return;
     }
@@ -234,7 +250,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       const response = await getMigrationLogs(
         selectedOrganisation?.value || '',
         projectId,
-        selectedStackId,
+        selectedStack.value,
         skip,
         limit,
         startIndex,
@@ -265,7 +281,6 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       <InfiniteScrollTable
         tableHeight={590}
         itemSize={60}
-        TABLE_HEAD_HEIGHT={0}
         columns={columns}
         data={data}
         uniqueKey={'timestamp'}
@@ -275,7 +290,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         rowPerPageOptions={[10, 30, 50, 100]}
         minBatchSizeToFetch={30}
         v2Features={{
-          pagination: true
+          pagination: true,
+          isNewEmptyState : true
         }}
         isResizable={true}
         isRowSelect={false}
@@ -286,24 +302,18 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         onSearchChangeEvent={(value: string) => setSearchText(value)}
         withExportCta={{
           component: (
-              <Select
-                width="250px"
-                version="v2"
-                value={selectedStackName}
-                options={stackIds}
-                placeholder={
-                  selectedStackName === ''
-                    ? stackIds.length > 0
-                      ? 'Select Stack Id'
-                      : 'No stack created'
-                    : selectedStackName
-                }
-                onChange={(s: DropdownOption) => {
-                  setSelectedStackId(s.value);
-                  setSelectedStackName(s.label);
-                  setSearchText('');
-                }}
-              />
+            <Select
+              className='dropdown-wrapper'
+              width="250px"
+              version="v2"
+              value={testStacks.length ?  selectedStack : ''}
+              options={stackIds}
+              placeholder='Select a stack'
+              onChange={(s: DropdownOption) => {
+                setSelectedStack({label: s.label, value: s.value})
+                setSearchText('');
+              }}
+            />
           ),
           showExportCta: true
         }}
