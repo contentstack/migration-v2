@@ -8,10 +8,12 @@ export type LogEntry = {
 export type StackIds = {
   stackUid?: string;
   stackName?: string;
+  isMigrated?: boolean;
 };
 
+
 export type DropdownOption = {
-  label: string;
+  label: string ;
   value: string;
 };
 
