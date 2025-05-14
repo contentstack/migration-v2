@@ -32,6 +32,7 @@ const FilterModal = ({
         </div>
       </div>
       {/* Modal Body */}
+      <div className="tableFilterModalStories__body">
       <ul>
         {data.map((item) => (
           <li key={item.value}>
@@ -49,6 +50,7 @@ const FilterModal = ({
           </li>
         ))}
       </ul>
+      </div>
 
       {/* Modal Footer */}
       <div className="tableFilterModalStories__footer">

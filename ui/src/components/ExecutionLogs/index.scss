@@ -12,8 +12,6 @@
 }
 
 .dropdown-wrapper {
-  display: flex;
-  justify-content: center;
   margin-bottom: 8px;
 }
 
@@ -30,6 +28,11 @@
 .Table__head{
   height: auto;
 }
+
+.Table:has(.custom-empty-state) {
+    height: 40.5rem;
+}
+
 
 .custom-empty-state {
   .Icon--original {
