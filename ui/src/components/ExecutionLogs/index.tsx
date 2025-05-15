@@ -31,7 +31,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
   const testStacks = useSelector(
     (state: RootState) => state?.migration?.newMigrationData?.testStacks
   );
-  console.info(testStacks.length)
+
   const mainStack = useSelector(
     (state: RootState) => state?.migration?.newMigrationData?.stackDetails
   );
@@ -54,8 +54,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
 
   const [selectedStack, setSelectedStack] = useState<DropdownOption>(
     {
-      label: stackIds[stackIds.length - 1]?.label ?? '' ,
-      value: stackIds[stackIds.length - 1]?.value ?? '' 
+      label: stackIds[stackIds?.length - 1]?.label ?? '' ,
+      value: stackIds[stackIds?.length - 1]?.value ?? '' 
     }
   );
 
@@ -87,14 +87,14 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       try {
         let filterValueCopy: FilterOption[] = [...filterOption];
 
-        if (!filterValueCopy.length && isChecked) {
-          filterValueCopy.push(value);
+        if (!filterValueCopy?.length && isChecked) {
+          filterValueCopy?.push(value);
         } else if (isChecked) {
           // Remove the old value and keep updated one in case old value exists
-          const updatedFilter = filterValueCopy.filter((v) => v.value !== value.value);
+          const updatedFilter = filterValueCopy?.filter((v) => v?.value !== value?.value);
           filterValueCopy = [...updatedFilter, value];
         } else if (!isChecked) {
-          filterValueCopy = filterValueCopy.filter((v) => v.value !== value.value);
+          filterValueCopy = filterValueCopy?.filter((v) => v?.value !== value?.value);
         }
 
         setFilterOption(filterValueCopy);
@@ -106,7 +106,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
     // Method to handle Apply
     const onApply = () => {
       try {
-        if (!filterOption.length) {
+        if (!filterOption?.length) {
           const newFilter = 'all';
           setFilterValue(newFilter);
           fetchData({ filter: newFilter });
@@ -116,7 +116,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
 
         const usersQueryArray = filterOption.map((item) => item.value);
         const newFilter =
-          usersQueryArray.length > 1 ? usersQueryArray.join('-') : usersQueryArray[0];
+          usersQueryArray?.length > 1 ? usersQueryArray?.join('-') : usersQueryArray[0];
 
         setFilterValue(newFilter);
         fetchData({ filter: newFilter });
@@ -177,8 +177,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       Header: 'Timestamp',
       disableSortBy: true,
       accessor: (data: LogEntry) => {
-        if (data.timestamp) {
-          const date = new Date(data.timestamp);
+        if (data?.timestamp) {
+          const date = new Date(data?.timestamp);
           const options: Intl.DateTimeFormatOptions = {
             month: 'short',
             day: '2-digit',
@@ -198,7 +198,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       Header: 'Level',
       id: 'level',
       disableSortBy: true,
-      accessor: (data: LogEntry) => <div>{data.level}</div>,
+      accessor: (data: LogEntry) => <div>{data?.level}</div>,
       width: 150,
       filter: ColumnFilter
     },
@@ -208,7 +208,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       accessor: (data: LogEntry) => {
         return (
           <div>
-            <div>{data.message}</div>
+            <div>{data?.message}</div>
           </div>
         );
       },
@@ -220,7 +220,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       accessor: (data: LogEntry) => {
         return (
           <div>
-            <div>{data.methodName}</div>
+            <div>{data?.methodName}</div>
           </div>
         );
       },
@@ -250,7 +250,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       const response = await getMigrationLogs(
         selectedOrganisation?.value || '',
         projectId,
-        selectedStack.value,
+        selectedStack?.value,
         skip,
         limit,
         startIndex,
@@ -264,8 +264,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         setData([]);
         setTotalCounts(0);
       } else {
-        setData(response.data.logs);
-        setTotalCounts(response.data.total);
+        setData(response?.data.logs);
+        setTotalCounts(response?.data.total);
       }
     } catch (error) {
       console.error('Unexpected error while fetching logs:', error);
@@ -279,58 +279,61 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
   return (
     <div>
       <InfiniteScrollTable
-        tableHeight={590}
-        itemSize={60}
-        columns={columns}
-        data={data}
-        uniqueKey={'timestamp'}
-        fetchTableData={fetchData}
-        totalCounts={totalCounts}
-        loading={loading}
-        rowPerPageOptions={[10, 30, 50, 100]}
-        minBatchSizeToFetch={30}
-        v2Features={{
-          pagination: true,
-          isNewEmptyState : true
-        }}
-        isResizable={true}
-        isRowSelect={false}
-        columnSelector={false}
-        canSearch={true}
-        searchPlaceholder={'Search Execution Logs'}
-        searchValue={searchText}
-        onSearchChangeEvent={(value: string) => setSearchText(value)}
-        withExportCta={{
-          component: (
-            <Select
-              className='dropdown-wrapper'
-              width="250px"
-              version="v2"
-              value={testStacks.length ?  selectedStack : ''}
-              options={stackIds}
-              placeholder='Select a stack'
-              onChange={(s: DropdownOption) => {
-                setSelectedStack({label: s.label, value: s.value})
-                setSearchText('');
-              }}
-            />
-          ),
-          showExportCta: true
-        }}
-        customEmptyState={
-          <EmptyState
-            forPage="list"
-            heading={searchText === '' ? 'No Logs' : 'No matching results found!'}
-            description={
-              searchText === ''
-                ? 'Try Executing the Migration.'
-                : 'Try changing the search query to find what you are looking for.'
-            }
-            moduleIcon={searchText === '' ? 'NoDataEmptyState' : 'NoSearchResult'}
-            type="secondary"
-            className="custom-empty-state"
-          />
+      tableHeight={590}
+      itemSize={60}
+      columns={columns}
+      data={data ?? []}
+      uniqueKey={'timestamp'}
+      fetchTableData={fetchData}
+      totalCounts={totalCounts ?? 0}
+      loading={loading}
+      rowPerPageOptions={[10, 30, 50, 100]}
+      minBatchSizeToFetch={30}
+      v2Features={{
+        pagination: true,
+        isNewEmptyState: true
+      }}
+      isResizable={true}
+      isRowSelect={false}
+      columnSelector={false}
+      canSearch={true}
+      searchPlaceholder={'Search Execution Logs'}
+      searchValue={searchText ?? ''}
+      onSearchChangeEvent={(value: string) => setSearchText(value)}
+      withExportCta={{
+        component: (
+        <Select
+          className='dropdown-wrapper'
+          width="250px"
+          version="v2"
+          value={testStacks?.length ? selectedStack : ''}
+          options={stackIds ?? []}
+          placeholder='Select a stack'
+          onChange={(s: DropdownOption) => {
+          setSelectedStack({
+            label: s?.label ?? '',
+            value: s?.value ?? ''
+          });
+          setSearchText('');
+          }}
+        />
+        ),
+        showExportCta: true
+      }}
+      customEmptyState={
+        <EmptyState
+        forPage="list"
+        heading={searchText === '' ? 'No Logs' : 'No matching results found!'}
+        description={
+          searchText === ''
+          ? 'Try Executing the Migration.'
+          : 'Try changing the search query to find what you are looking for.'
         }
+        moduleIcon={searchText === '' ? 'NoDataEmptyState' : 'NoSearchResult'}
+        type="secondary"
+        className="custom-empty-state"
+        />
+      }
       />
     </div>
   );
