@@ -634,22 +634,26 @@ const startMigration = async (req: Request): Promise<any> => {
 };
 
 const getLogs = async (req: Request): Promise<any> => {
-  const projectId = path.basename(req?.params?.projectId);
-  const stackId = path.basename(req?.params?.stackId);
-  const limit = parseInt(req?.params?.limit);
-  const startIndex = parseInt(req?.params?.startIndex);
+  const projectId = req?.params?.projectId ? path.basename(req.params.projectId) : '';
+  const stackId = req?.params?.stackId ? path.basename(req.params.stackId) : '';
+  const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
+  const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;
   const stopIndex = startIndex + limit;
-  const searchText = req?.params?.searchText;
-  const filter = req?.params?.filter;
+  const searchText = req?.params?.searchText ?? null;
+  const filter = req?.params?.filter ?? 'all';
 
   const srcFunc = "getLogs";
 
-  if (projectId.includes("..") || stackId.includes("..")) {
+  if (!projectId || !stackId || projectId.includes("..") || stackId.includes("..")) {
     throw new BadRequestError("Invalid projectId or stackId");
   }
 
   try {
-    const mainPath = process.cwd().split("migration-v2")[0];
+    const mainPath = process.cwd()?.split("migration-v2")?.[0];
+    if (!mainPath) {
+      throw new BadRequestError("Invalid application path");
+    }
+
     const logsDir = path.join(mainPath, "migration-v2", "api", "logs");
     const loggerPath = path.join(logsDir, projectId, `${stackId}.log`);
     const absolutePath = path.resolve(loggerPath);
@@ -661,48 +665,46 @@ const getLogs = async (req: Request): Promise<any> => {
     if (fs.existsSync(absolutePath)) {
       const logs = await fs.promises.readFile(absolutePath, "utf8");
       let logEntries = logs
-        .split("\n")
-        .map((line) => {
+        ?.split("\n")
+        ?.map((line) => {
           try {
-            return JSON.parse(line);
+            return line ? JSON.parse(line) : null;
           } catch (error) {
             return null;
           }
         })
-        .filter((entry) => entry !== null);
+        ?.filter((entry) => entry !== null);
 
-      logEntries = logEntries.slice(1, logEntries.length - 2);
+      if (!logEntries?.length) {
+        return { logs: [], total: 0 };
+      }
 
-      if (filter != "all") {
-        const filters = filter.split("-");
-        logEntries = logEntries.filter((log) => {
-          return filters.some((filter) => {
-            return (
-              log?.level?.toLowerCase()?.includes(filter?.toLowerCase())
-            );
+      logEntries = logEntries?.slice(1, logEntries.length - 2);
+
+      if (filter !== "all") {
+        const filters = filter?.split("-") ?? [];
+        logEntries = logEntries?.filter((log) => {
+          return filters?.some((filter) => {
+            return log?.level?.toLowerCase()?.includes(filter?.toLowerCase() ?? '');
           });
         });
-
       }
 
-      if (searchText != "null") {
-        logEntries = logEntries.filter((log) => {
+      if (searchText !== "null") {
+        logEntries = logEntries?.filter((log) => {
           return (
-            log?.level?.toLowerCase()?.includes(searchText?.toLowerCase()) ||
-            log?.message?.toLowerCase()?.includes(searchText?.toLowerCase()) ||
-            log?.methodName
-              ?.toLowerCase()
-              ?.includes(searchText?.toLowerCase()) ||
-            log?.timestamp?.toLowerCase()?.includes(searchText?.toLowerCase())
+            log?.level?.toLowerCase()?.includes(searchText?.toLowerCase() ?? '') ||
+            log?.message?.toLowerCase()?.includes(searchText?.toLowerCase() ?? '') ||
+            log?.methodName?.toLowerCase()?.includes(searchText?.toLowerCase() ?? '') ||
+            log?.timestamp?.toLowerCase()?.includes(searchText?.toLowerCase() ?? '')
           );
         });
-        
       }
 
-      const paginatedLogs = logEntries.slice(startIndex, stopIndex);
+      const paginatedLogs = logEntries?.slice(startIndex, stopIndex) ?? [];
       return {
         logs: paginatedLogs,
-        total: logEntries.length,
+        total: logEntries?.length ?? 0,
       };
     } else {
       logger.error(getLogMessage(srcFunc, HTTP_TEXTS.LOGS_NOT_FOUND));

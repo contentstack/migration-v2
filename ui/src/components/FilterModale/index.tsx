@@ -38,13 +38,13 @@ const FilterModal = ({
           <li key={item.value}>
             <div className="tableFilterModalStories__suggestion-item">
               <Checkbox
-                checked={selectedLevels.some((v) => v.value === item.value)}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateValue({ value: item, isChecked: e.target.checked })
-                }
-                version="v2"
-                label={item.label}
-                className="text-size"
+              checked={selectedLevels?.some((v) => v?.value === item?.value) || false}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                updateValue?.({ value: item, isChecked: e?.target?.checked })
+              }
+              version="v2"
+              label={item?.label || ''}
+              className="text-size"
               />
             </div>
           </li>
