@@ -706,9 +706,9 @@ const mergeFields = async (schema1: any[], schema2: any[]): Promise<any[]> => {
           fld.uid === field2.uid &&
           fld.data_type === field2.data_type
       );
-      if (!exists) {
-        result.push(field2);
-      }
+     result?.push({
+      ...field2
+     });
 
     }
      
