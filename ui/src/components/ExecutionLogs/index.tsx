@@ -337,6 +337,9 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
             className="custom-empty-state"
           />
         }
+        moduleIcon={searchText === '' ? 'NoDataEmptyState' : 'NoSearchResult'}
+        type="secondary"
+        className="custom-empty-state"
       />
     </div>
   );
