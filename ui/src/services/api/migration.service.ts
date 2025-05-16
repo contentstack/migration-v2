@@ -1,5 +1,5 @@
 import { ObjectType } from '../../utilities/constants.interface';
-import { API_VERSION } from '../../utilities/constants';
+import { API_VERSION, EXECUTION_LOGS_ERROR_TEXT } from '../../utilities/constants';
 import { getDataFromLocalStorage } from '../../utilities/functions';
 import { getCall, postCall, putCall, patchCall } from './service';
 
@@ -349,9 +349,10 @@ export const getMigrationLogs = async (orgId: string, projectId: string, stackId
       );
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Error in userSession: ${error.message}`);
+      throw new Error(`${EXECUTION_LOGS_ERROR_TEXT.ERROR}: ${error.message}`);
     } else {
-      throw new Error('Unknown error in userSession');
+      throw new Error('Unknown ${EXECUTION_LOGS_ERROR_TEXT.ERROR}');
     }
   }
 }
+

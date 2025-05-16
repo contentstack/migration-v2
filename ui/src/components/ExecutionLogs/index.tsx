@@ -12,6 +12,7 @@ import './index.scss';
 
 import FilterModal from '../FilterModale';
 import { getMigrationLogs } from '../../services/api/migration.service';
+import { EXECUTION_LOGS_UI_TEXT } from '../../utilities/constants';
 
 const ExecutionLogs = ({ projectId }: { projectId: string }) => {
   const [data, setData] = useState<LogEntry[]>([]);
@@ -40,7 +41,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       state?.migration?.newMigrationData?.migration_execution?.migrationCompleted
   );
 
-  const stackIds = testStacks?.map((stack: StackIds) => ({
+  const stackIds = testStacks?.map?.((stack: StackIds) => ({
     label: stack?.stackName,
     value: stack?.stackUid
   }));
@@ -54,8 +55,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
 
   const [selectedStack, setSelectedStack] = useState<DropdownOption>(
     {
-      label: stackIds[stackIds?.length - 1]?.label ?? '' ,
-      value: stackIds[stackIds?.length - 1]?.value ?? '' 
+      label: stackIds?.[stackIds?.length - 1]?.label ?? '' ,
+      value: stackIds?.[stackIds?.length - 1]?.value ?? '' 
     }
   );
 
@@ -114,10 +115,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
           return;
         }
 
-        const usersQueryArray = filterOption.map((item) => item.value);
-        const newFilter =
-          usersQueryArray?.length > 1 ? usersQueryArray?.join('-') : usersQueryArray[0];
-
+        const usersQueryArray = filterOption?.map((item) => item?.value);
+        const newFilter = usersQueryArray?.length > 1 ? usersQueryArray?.join('-') : usersQueryArray?.[0];
         setFilterValue(newFilter);
         fetchData({ filter: newFilter });
         setIsFilterApplied(true);
@@ -136,8 +135,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
 
     const iconProps = {
       className: isFilterApplied
-        ? 'filterWithAppliedIcon Icon--v2 Icon--medium'
-        : 'defaultFilterIcon Icon--v2 Icon--medium',
+        ? EXECUTION_LOGS_UI_TEXT.FILTER_ICON.FILTER_ON
+        : EXECUTION_LOGS_UI_TEXT.FILTER_ICON.FILTER_OFF,
       withTooltip: true,
       tooltipContent: 'Filter',
       tooltipPosition: 'left'
@@ -187,7 +186,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
             minute: '2-digit',
             hour12: true
           };
-          const formatted = new Intl.DateTimeFormat('en-US', options).format(date);
+          const formatted = new Intl.DateTimeFormat('en-US', options)?.format(date);
           return <div>{formatted}</div>;
         }
         return <div>No Data Available</div>;
@@ -264,8 +263,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         setData([]);
         setTotalCounts(0);
       } else {
-        setData(response?.data.logs);
-        setTotalCounts(response?.data.total);
+        setData(response?.data?.logs);
+        setTotalCounts(response?.data?.total);
       }
     } catch (error) {
       console.error('Unexpected error while fetching logs:', error);
@@ -297,7 +296,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       isRowSelect={false}
       columnSelector={false}
       canSearch={true}
-      searchPlaceholder={'Search Execution Logs'}
+      searchPlaceholder={EXECUTION_LOGS_UI_TEXT.SEARCH_PLACEHOLDER}
       searchValue={searchText ?? ''}
       onSearchChangeEvent={(value: string) => setSearchText(value)}
       withExportCta={{
@@ -308,7 +307,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
           version="v2"
           value={testStacks?.length ? selectedStack : ''}
           options={stackIds ?? []}
-          placeholder='Select a stack'
+          placeholder={EXECUTION_LOGS_UI_TEXT.SELECT_PLACEHOLDER}
           onChange={(s: DropdownOption) => {
           setSelectedStack({
             label: s?.label ?? '',
@@ -323,13 +322,13 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       customEmptyState={
         <EmptyState
         forPage="list"
-        heading={searchText === '' ? 'No Logs' : 'No matching results found!'}
+        heading={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_MATCH} 
         description={
           searchText === ''
-          ? 'Try Executing the Migration.'
-          : 'Try changing the search query to find what you are looking for.'
+          ?  EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_LOGS
+          : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_RESULT
         }
-        moduleIcon={searchText === '' ? 'NoDataEmptyState' : 'NoSearchResult'}
+        moduleIcon={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_MATCH}
         type="secondary"
         className="custom-empty-state"
         />
