@@ -1,35 +1,36 @@
-import { Request } from 'express';
-import path from 'path';
-import ProjectModelLowdb from '../models/project-lowdb.js';
-import { config } from '../config/index.js';
-import { safePromise, getLogMessage } from '../utils/index.js';
-import https from '../utils/https.utils.js';
-import { LoginServiceType } from '../models/types.js';
-import getAuthtoken from '../utils/auth.utils.js';
-import logger from '../utils/logger.js';
+import { Request } from "express";
+import path from "path";
+import ProjectModelLowdb from "../models/project-lowdb.js";
+import { config } from "../config/index.js";
+import { safePromise, getLogMessage } from "../utils/index.js";
+import https from "../utils/https.utils.js";
+import { LoginServiceType } from "../models/types.js";
+import getAuthtoken from "../utils/auth.utils.js";
+import logger from "../utils/logger.js";
 import {
   HTTP_TEXTS,
   HTTP_CODES,
   LOCALE_MAPPER,
   STEPPER_STEPS,
   CMS,
-} from '../constants/index.js';
+} from "../constants/index.js";
 import {
   BadRequestError,
   ExceptionFunction,
-} from '../utils/custom-errors.utils.js';
-import { fieldAttacher } from '../utils/field-attacher.utils.js';
-import { siteCoreService } from './sitecore.service.js';
-import { wordpressService } from './wordpress.service.js';
-import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
-import { utilsCli } from './runCli.service.js';
-import customLogger from '../utils/custom-logger.utils.js';
-import { setLogFilePath } from '../server.js';
-import fs from 'fs';
-import { contentfulService } from './contentful.service.js';
-import { marketPlaceAppService } from './marketplace.service.js';
-import { extensionService } from './extension.service.js';
-import fsPromises from 'fs/promises';
+} from "../utils/custom-errors.utils.js";
+import { fieldAttacher } from "../utils/field-attacher.utils.js";
+import { siteCoreService } from "./sitecore.service.js";
+import { wordpressService } from "./wordpress.service.js";
+import { testFolderCreator } from "../utils/test-folder-creator.utils.js";
+import { utilsCli } from "./runCli.service.js";
+import customLogger from "../utils/custom-logger.utils.js";
+import { setLogFilePath } from "../server.js";
+import fs from "fs";
+import { contentfulService } from "./contentful.service.js";
+import { marketPlaceAppService } from "./marketplace.service.js";
+import { extensionService } from "./extension.service.js";
+import fsPromises from "fs/promises";
+import { matchesSearchText } from "../utils/search.util.js";
 // import { getSafePath } from "../utils/sanitize-path.utils.js";
 
 /**
@@ -40,11 +41,11 @@ import fsPromises from 'fs/promises';
  * @throws ExceptionFunction if there is an error creating the stack.
  */
 const createTestStack = async (req: Request): Promise<LoginServiceType> => {
-  const srcFun = 'createTestStack';
+  const srcFun = "createTestStack";
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
   const { name, token_payload } = req.body;
-  const description = 'This is a system-generated test stack.';
+  const description = "This is a system-generated test stack.";
   const testStackName = `${name}-Test`;
 
   try {
@@ -55,18 +56,18 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
 
     await ProjectModelLowdb.read();
     const projectData: any = ProjectModelLowdb.chain
-      .get('projects')
+      .get("projects")
       .find({ id: projectId })
       .value();
     const master_locale =
       projectData?.stackDetails?.master_locale ??
       Object?.keys?.(LOCALE_MAPPER?.masterLocale)?.[0];
     const testStackCount = projectData?.test_stacks?.length + 1;
-    const newName = testStackName + '-' + testStackCount;
+    const newName = testStackName + "-" + testStackCount;
 
     const [err, res] = await safePromise(
       https({
-        method: 'POST',
+        method: "POST",
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
@@ -101,12 +102,12 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     }
 
     const index = ProjectModelLowdb.chain
-      .get('projects')
+      .get("projects")
       .findIndex({ id: projectId })
       .value();
     if (index > -1) {
       ProjectModelLowdb.update((data: any) => {
-        data.projects[index].current_step = STEPPER_STEPS['TESTING'];
+        data.projects[index].current_step = STEPPER_STEPS["TESTING"];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
         data.projects[index].test_stacks.push({
           stackUid: res?.data?.stack?.api_key,
@@ -128,7 +129,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     logger.error(
       getLogMessage(
         srcFun,
-        'Error while creating a stack',
+        "Error while creating a stack",
         token_payload,
         error
       )
@@ -147,7 +148,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
  * @returns A promise that resolves to a LoginServiceType object.
  */
 const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
-  const srcFun = 'deleteTestStack';
+  const srcFun = "deleteTestStack";
   const projectId = req?.params?.projectId;
   const { token_payload, stack_key } = req.body;
 
@@ -159,7 +160,7 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
 
     const [err, res] = await safePromise(
       https({
-        method: 'DELETE',
+        method: "DELETE",
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
@@ -187,13 +188,13 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
     }
 
     const index = ProjectModelLowdb.chain
-      .get('projects')
+      .get("projects")
       .findIndex({ id: projectId })
       .value();
 
     if (index > -1) {
       ProjectModelLowdb.update((data: any) => {
-        data.projects[index].current_test_stack_id = '';
+        data.projects[index].current_test_stack_id = "";
         const stackIndex = data.projects[index].test_stacks.indexOf(stack_key);
         if (stackIndex > -1) {
           data.projects[index].test_stacks.splice(stackIndex, 1);
@@ -208,7 +209,7 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
     logger.error(
       getLogMessage(
         srcFun,
-        'Error while creating a stack',
+        "Error while creating a stack",
         token_payload,
         error
       )
@@ -231,7 +232,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
   const { region, user_id } = req?.body?.token_payload ?? {};
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
-    .get('projects')
+    .get("projects")
     .find({ id: projectId })
     .value();
   const packagePath = project?.extract_path;
@@ -241,19 +242,19 @@ const startTestMigration = async (req: Request): Promise<any> => {
     } = project;
     const loggerPath = path.join(
       process.cwd(),
-      'logs',
+      "logs",
       projectId,
       `${project?.current_test_stack_id}.log`
     );
     const message = getLogMessage(
-      'startTestMigration',
-      'Starting Test Migration...',
+      "startTestMigration",
+      "Starting Test Migration...",
       {}
     );
     await customLogger(
       projectId,
       project?.current_test_stack_id,
-      'info',
+      "info",
       message
     );
     await setLogFilePath(loggerPath);
@@ -265,17 +266,17 @@ const startTestMigration = async (req: Request): Promise<any> => {
         // Path to source logs
         const importLogsPath = path.join(
           process.cwd(),
-          'migration-data',
+          "migration-data",
           stackUid,
-          'logs',
-          'import'
+          "logs",
+          "import"
         );
 
         // Read error and success logs
-        const errorLogPath = path.join(importLogsPath, 'error.log');
-        const successLogPath = path.join(importLogsPath, 'success.log');
+        const errorLogPath = path.join(importLogsPath, "error.log");
+        const successLogPath = path.join(importLogsPath, "success.log");
 
-        let combinedLogs = '';
+        let combinedLogs = "";
 
         // Read and combine error logs
         if (
@@ -284,8 +285,8 @@ const startTestMigration = async (req: Request): Promise<any> => {
             .then(() => true)
             .catch(() => false)
         ) {
-          const errorLogs = await fsPromises.readFile(errorLogPath, 'utf8');
-          combinedLogs += errorLogs + '\n';
+          const errorLogs = await fsPromises.readFile(errorLogPath, "utf8");
+          combinedLogs += errorLogs + "\n";
         }
 
         // Read and combine success logs
@@ -295,14 +296,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
             .then(() => true)
             .catch(() => false)
         ) {
-          const successLogs = await fsPromises.readFile(successLogPath, 'utf8');
+          const successLogs = await fsPromises.readFile(successLogPath, "utf8");
           combinedLogs += successLogs;
         }
 
         // Write combined logs to test stack log file
         await fsPromises.appendFile(projectLogPath, combinedLogs);
       } catch (error) {
-        console.error('Error copying logs:', error);
+        console.error("Error copying logs:", error);
       }
     };
 
@@ -335,7 +336,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             destinationStackId: project?.current_test_stack_id,
             projectId,
             keyMapper: project?.mapperKeys,
-            project
+            project,
           });
           await siteCoreService?.createLocale(
             req,
@@ -351,24 +352,98 @@ const startTestMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
-          await wordpressService?.getAllAssets(file_path, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.createAssetFolderFile(file_path, project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllreference(file_path, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.extractChunks(file_path, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllAuthors(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.createLocale(
+            req,
+            project?.current_test_stack_id,
+            projectId,
+            project
+          );
+          await wordpressService?.getAllAssets(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.createAssetFolderFile(
+            file_path,
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.getAllreference(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.extractChunks(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.getAllAuthors(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
           //await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id, contentTypes)
-          await wordpressService?.getAllTerms(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractPosts(packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
-          await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
+          await wordpressService?.getAllTerms(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.getAllTags(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.getAllCategories(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractPosts(
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractGlobalFields(
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.createVersionFile(
+            project?.current_test_stack_id,
+            projectId
+          );
         }
         break;
       }
       case CMS.CONTENTFUL: {
-        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
+        const cleanLocalPath = file_path?.replace?.(/\/$/, "");
         await contentfulService?.createLocale(
           cleanLocalPath,
           project?.current_test_stack_id,
@@ -438,12 +513,12 @@ const startMigration = async (req: Request): Promise<any> => {
   const { region, user_id } = req?.body?.token_payload ?? {};
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
-    .get('projects')
+    .get("projects")
     .find({ id: projectId })
     .value();
 
   const index = ProjectModelLowdb.chain
-    .get('projects')
+    .get("projects")
     .findIndex({ id: projectId })
     .value();
   if (index > -1) {
@@ -459,7 +534,7 @@ const startMigration = async (req: Request): Promise<any> => {
     } = project;
     const loggerPath = path.join(
       process.cwd(),
-      'logs',
+      "logs",
       projectId,
       `${project?.destination_stack_id}.log`
     );
@@ -473,17 +548,17 @@ const startMigration = async (req: Request): Promise<any> => {
         // Path to source logs
         const importLogsPath = path.join(
           process.cwd(),
-          'migration-data',
+          "migration-data",
           stackUid,
-          'logs',
-          'import'
+          "logs",
+          "import"
         );
 
         // Read error and success logs
-        const errorLogPath = path.join(importLogsPath, 'error.log');
-        const successLogPath = path.join(importLogsPath, 'success.log');
+        const errorLogPath = path.join(importLogsPath, "error.log");
+        const successLogPath = path.join(importLogsPath, "success.log");
 
-        let combinedLogs = '';
+        let combinedLogs = "";
 
         // Read and combine error logs
         if (
@@ -492,8 +567,8 @@ const startMigration = async (req: Request): Promise<any> => {
             .then(() => true)
             .catch(() => false)
         ) {
-          const errorLogs = await fsPromises.readFile(errorLogPath, 'utf8');
-          combinedLogs += errorLogs + '\n';
+          const errorLogs = await fsPromises.readFile(errorLogPath, "utf8");
+          combinedLogs += errorLogs + "\n";
         }
 
         // Read and combine success logs
@@ -503,14 +578,14 @@ const startMigration = async (req: Request): Promise<any> => {
             .then(() => true)
             .catch(() => false)
         ) {
-          const successLogs = await fsPromises.readFile(successLogPath, 'utf8');
+          const successLogs = await fsPromises.readFile(successLogPath, "utf8");
           combinedLogs += successLogs;
         }
 
         // Write combined logs to stack log file
         await fsPromises.appendFile(projectLogPath, combinedLogs);
       } catch (error) {
-        console.error('Error copying logs:', error);
+        console.error("Error copying logs:", error);
       }
     };
 
@@ -544,7 +619,7 @@ const startMigration = async (req: Request): Promise<any> => {
             destinationStackId: project?.destination_stack_id,
             projectId,
             keyMapper: project?.mapperKeys,
-            project
+            project,
           });
           await siteCoreService?.createLocale(
             req,
@@ -560,24 +635,98 @@ const startMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
-          await wordpressService?.getAllAssets(file_path, packagePath, project?.destination_stack_id, projectId,)
-          await wordpressService?.createAssetFolderFile(file_path, project?.destination_stack_id, projectId)
-          await wordpressService?.getAllreference(file_path, packagePath, project?.destination_stack_id, projectId)
-          await wordpressService?.extractChunks(file_path, packagePath, project?.destination_stack_id, projectId)
-          await wordpressService?.getAllAuthors(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.createLocale(
+            req,
+            project?.current_test_stack_id,
+            projectId,
+            project
+          );
+          await wordpressService?.getAllAssets(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.createAssetFolderFile(
+            file_path,
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.getAllreference(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.extractChunks(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.getAllAuthors(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
-          await wordpressService?.getAllTerms(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractGlobalFields(project?.destination_stack_id, projectId)
-          await wordpressService?.createVersionFile(project?.destination_stack_id, projectId);
+          await wordpressService?.getAllTerms(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.getAllTags(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.getAllCategories(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractPosts(
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractGlobalFields(
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.createVersionFile(
+            project?.destination_stack_id,
+            projectId
+          );
         }
         break;
       }
       case CMS.CONTENTFUL: {
-        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
+        const cleanLocalPath = file_path?.replace?.(/\/$/, "");
         await contentfulService?.createLocale(
           cleanLocalPath,
           project?.destination_stack_id,
@@ -633,32 +782,38 @@ const startMigration = async (req: Request): Promise<any> => {
   }
 };
 
+
 const getLogs = async (req: Request): Promise<any> => {
-  const projectId = req?.params?.projectId ? path.basename(req.params.projectId) : '';
-  const stackId = req?.params?.stackId ? path.basename(req.params.stackId) : '';
+  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId) : "";
+  const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : "";
   const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
   const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;
   const stopIndex = startIndex + limit;
   const searchText = req?.params?.searchText ?? null;
-  const filter = req?.params?.filter ?? 'all';
+  const filter = req?.params?.filter ?? "all";
 
   const srcFunc = "getLogs";
 
-  if (!projectId || !stackId || projectId.includes("..") || stackId.includes("..")) {
+  if (
+    !projectId ||
+    !stackId ||
+    projectId?.includes("..") ||
+    stackId?.includes("..")
+  ) {
     throw new BadRequestError("Invalid projectId or stackId");
   }
 
   try {
-    const mainPath = process.cwd()?.split("migration-v2")?.[0];
+    const mainPath = process?.cwd()?.split("migration-v2")?.[0];
     if (!mainPath) {
       throw new BadRequestError("Invalid application path");
     }
 
-    const logsDir = path.join(mainPath, "migration-v2", "api", "logs");
-    const loggerPath = path.join(logsDir, projectId, `${stackId}.log`);
-    const absolutePath = path.resolve(loggerPath);
+    const logsDir = path?.join(mainPath, "migration-v2", "api", "logs");
+    const loggerPath = path?.join(logsDir, projectId, `${stackId}.log`);
+    const absolutePath = path?.resolve(loggerPath);
 
-    if (!absolutePath.startsWith(logsDir)) {
+    if (!absolutePath?.startsWith(logsDir)) {
       throw new BadRequestError("Access to this file is not allowed.");
     }
 
@@ -668,40 +823,37 @@ const getLogs = async (req: Request): Promise<any> => {
         ?.split("\n")
         ?.map((line) => {
           try {
-            return line ? JSON.parse(line) : null;
+            return line ? JSON?.parse(line) : null;
           } catch (error) {
             return null;
           }
         })
-        ?.filter((entry) => entry !== null);
+        ?.filter?.((entry) => entry !== null);
 
       if (!logEntries?.length) {
         return { logs: [], total: 0 };
       }
 
-      logEntries = logEntries?.slice(1, logEntries.length - 2);
+      logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
 
       if (filter !== "all") {
         const filters = filter?.split("-") ?? [];
         logEntries = logEntries?.filter((log) => {
           return filters?.some((filter) => {
-            return log?.level?.toLowerCase()?.includes(filter?.toLowerCase() ?? '');
+            return log?.level
+              ?.toLowerCase()
+              ?.includes?.(filter?.toLowerCase() ?? "");
           });
         });
       }
 
-      if (searchText !== "null") {
-        logEntries = logEntries?.filter((log) => {
-          return (
-            log?.level?.toLowerCase()?.includes(searchText?.toLowerCase() ?? '') ||
-            log?.message?.toLowerCase()?.includes(searchText?.toLowerCase() ?? '') ||
-            log?.methodName?.toLowerCase()?.includes(searchText?.toLowerCase() ?? '') ||
-            log?.timestamp?.toLowerCase()?.includes(searchText?.toLowerCase() ?? '')
-          );
-        });
+      if (searchText && searchText !== "null") {
+        logEntries = logEntries?.filter?.((log) =>
+          matchesSearchText(log, searchText)
+        );
       }
 
-      const paginatedLogs = logEntries?.slice(startIndex, stopIndex) ?? [];
+      const paginatedLogs = logEntries?.slice?.(startIndex, stopIndex) ?? [];
       return {
         logs: paginatedLogs,
         total: logEntries?.length ?? 0,
@@ -734,7 +886,7 @@ export const createSourceLocales = async (req: Request) => {
     // Find the project with the specified projectId
     await ProjectModelLowdb?.read?.();
     const index = ProjectModelLowdb?.chain
-      ?.get?.('projects')
+      ?.get?.("projects")
       ?.findIndex?.({ id: projectId })
       ?.value?.();
     if (index > -1) {
@@ -749,11 +901,11 @@ export const createSourceLocales = async (req: Request) => {
     }
   } catch (err: any) {
     console.error(
-      '🚀 ~ createSourceLocales ~ err:',
+      "🚀 ~ createSourceLocales ~ err:",
       err?.response?.data ?? err,
       err
     );
-    logger.warn('Bad Request', {
+    logger.warn("Bad Request", {
       status: HTTP_CODES?.BAD_REQUEST,
       message: HTTP_TEXTS?.INTERNAL_ERROR,
     });
@@ -779,7 +931,7 @@ export const updateLocaleMapper = async (req: Request) => {
     // Find the project with the specified projectId
     await ProjectModelLowdb?.read?.();
     const index = ProjectModelLowdb?.chain
-      ?.get?.('projects')
+      ?.get?.("projects")
       ?.findIndex?.({ id: projectId })
       ?.value?.();
     if (index > -1) {
@@ -796,11 +948,11 @@ export const updateLocaleMapper = async (req: Request) => {
     }
   } catch (err: any) {
     console.error(
-      '🚀 ~ updateLocaleMapper ~ err:',
+      "🚀 ~ updateLocaleMapper ~ err:",
       err?.response?.data ?? err,
       err
     );
-    logger.warn('Bad Request', {
+    logger.warn("Bad Request", {
       status: HTTP_CODES?.BAD_REQUEST,
       message: HTTP_TEXTS?.INTERNAL_ERROR,
     });
