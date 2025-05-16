@@ -11,8 +11,7 @@ import {
   Textarea,
   PageLayout,
   Notification,
-  cbModal,
-  ClipBoard
+  cbModal
 } from '@contentstack/venus-components';
 
 // Redux
@@ -24,7 +23,7 @@ import { ModalObj } from '../../../components/Modal/modal.interface';
 
 // Service
 import { deleteProject, getProject, updateProject } from '../../../services/api/project.service';
-import { CS_ENTRIES } from '../../../utilities/constants';
+import { CS_ENTRIES, HTTP_CODES } from '../../../utilities/constants';
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 
 // Component
@@ -81,7 +80,7 @@ const Settings = () => {
         params?.projectId ?? ''
       );
 
-      if (status === 200) {
+      if (status === HTTP_CODES.OK) {
         setProjectName(data?.name);
         setProjectDescription(data?.description);
         setProjectId(params?.projectId ?? '');
@@ -111,7 +110,7 @@ const Settings = () => {
       projectData
     );
 
-    if (status === 200) {
+    if (status === HTTP_CODES.OK) {
       Notification({
         notificationContent: { text: 'Project Updated Successfully' },
         notificationProps: {
@@ -136,7 +135,7 @@ const Settings = () => {
     //setIsLoading(true);
     const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
 
-    if (response?.status === 200) {
+    if (response?.status === HTTP_CODES.OK) {
       //setIsLoading(false);
       closeModal();
       dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
@@ -194,7 +193,7 @@ const Settings = () => {
           <div className="flex-center">
             <div className="flex-v-center Button__mt-regular Button__visible">
               <Icon
-                icon="Delete"
+                icon={cmsData?.project?.delete_project?.icon ?? ''}
                 version="v2"
                 data={cmsData?.project?.delete_project?.title}></Icon>
             </div>
@@ -250,7 +249,7 @@ const Settings = () => {
                     buttonType="primary"
                     aria-label="save for saving update"
                     version="v2"
-                    icon={'v2-Save'}
+                    icon={cmsData?.project?.save_project?.icon}
                     autoClose={5000}
                     label={'Success'}
                     onClick={handleUpdateProject}>
@@ -262,9 +261,7 @@ const Settings = () => {
           </div>
         )}
         {active === cmsData?.execution_logs?.title && (
-          <div>
             <ExecutionLog projectId={projectId} />
-          </div>
         )}
       </div>
     )
@@ -281,7 +278,7 @@ const Settings = () => {
           <div>
             <Icon
               version="v2"
-              icon={'LeftArrow'}
+              icon={cmsData?.project?.back_button ?? ''}
               size="medium"
               onClick={() => {
                 handleBack();
