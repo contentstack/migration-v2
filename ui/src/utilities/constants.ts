@@ -118,3 +118,42 @@ export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
   wordpress: '',
   drupal: ''
 };
+
+export const HTTP_CODES = {
+  OK: 200,
+  FORBIDDEN: 403,
+  BAD_REQUEST: 400,
+  NOT_FOUND: 404,
+  UNAUTHORIZED: 401,
+  TOO_MANY_REQS: 429,
+  SOMETHING_WRONG: 501,
+  MOVED_PERMANENTLY: 301,
+  SUPPORT_DOC: 294,
+  SERVER_ERROR: 500,
+  UNPROCESSABLE_CONTENT: 422,
+};
+
+export const EXECUTION_LOGS_UI_TEXT = {
+  SEARCH_PLACEHOLDER: 'Search Execution Logs',
+  SELECT_PLACEHOLDER: 'Select a stack',
+  EMPTY_STATE_DESCRIPTION: {
+    NO_RESULT: 'Try Changing the Search Query to find what you are looking for',
+    NO_LOGS: 'Try executing Test Migration'
+  },
+  EMPTY_STATE_HEADING: {
+    NO_LOGS: 'No Logs Found',
+    NO_MATCH: 'No Matching Result Found'
+  },
+  EMPTY_STATE_ICON: {
+    NO_LOGS:'NoDataEmptyState',
+    NO_MATCH: 'NoSearchResult'
+  },
+  FILTER_ICON: {
+    FILTER_ON: 'filterWithAppliedIcon Icon--v2 Icon--medium',
+    FILTER_OFF: 'defaultFilterIcon Icon--v2 Icon--medium'
+  }
+}
+
+export const EXECUTION_LOGS_ERROR_TEXT = {
+  ERROR: 'Error in Getting Migration Logs'
+}
