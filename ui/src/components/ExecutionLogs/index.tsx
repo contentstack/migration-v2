@@ -337,7 +337,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
             className="custom-empty-state"
           />
         }
-        moduleIcon={searchText === '' ? 'NoDataEmptyState' : 'NoSearchResult'}
+        moduleIcon={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_MATCH}
         type="secondary"
         className="custom-empty-state"
       />
