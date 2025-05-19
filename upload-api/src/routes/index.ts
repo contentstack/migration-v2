@@ -14,6 +14,8 @@ import { fileOperationLimiter } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import config from '../config/index';
 import createMapper from '../services/createMapper';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+// const { contentTypes, reference } = require('migration-sitecore');
 
 const router: Router = express.Router();
 // Use memory storage to avoid saving the file locally
@@ -229,6 +231,8 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
 });
 
 router.get('/config', async function (req: Request, res: Response) {
+  // await contentTypes("/Users/umesh.more/Documents/V2-Fresh/migration-v2/upload-api/extracted_files/package", "cm", config);
+  // await reference()
   res.json(config);
 });
 

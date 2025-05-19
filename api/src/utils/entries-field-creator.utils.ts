@@ -2,6 +2,7 @@ import _ from "lodash";
 import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { HTMLToJSON } from 'html-to-json-parser';
+import { convertCompactToISO } from "./index.js";
 
 const append = "a";
 
@@ -16,6 +17,14 @@ const uidCorrector = ({ uid }: any) => {
   return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
 }
 
+function isJSON(data: any) {
+  try {
+    JSON.parse(data);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 
 const attachJsonRte = ({ content = "" }: any) => {
@@ -173,7 +182,6 @@ const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any)
 
 
 
-
 export const entriesFieldCreator = async ({ field, content, idCorrector, allAssetJSON, contentTypes, entriesData, locale }: any) => {
 
   switch (field?.contentstackFieldType) {
@@ -183,9 +191,11 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
       return content;
     }
 
-    case 'json': {
-      const jsonData = attachJsonRte({ content })
-      return findAssestInJsoRte(jsonData, allAssetJSON, idCorrector);
+    case 'json':
+    case 'html': {
+      // const jsonData = attachJsonRte({ content })
+      return content;
+      // return findAssestInJsoRte(jsonData, allAssetJSON, idCorrector);
     }
 
     case 'dropdown': {
@@ -226,11 +236,13 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
       for (const item of fileData?.children ?? []) {
         if (item?.attrs?.['redactor-attributes']?.mediaid) {
           const assetUid = idCorrector({ id: item?.attrs?.['redactor-attributes']?.mediaid });
+          console.info("🚀 ~ entriesFieldCreator ~ assetUid:", assetUid, '====>', item?.attrs?.['redactor-attributes']?.mediaid, allAssetJSON?.[assetUid])
           return allAssetJSON?.[assetUid] ?? null;
         } else {
-          console.info('more', item?.attrs)
+          console.info('more', content, item?.attrs)
         }
       }
+      console.info('our=>>>', content)
       return null;
     }
 
@@ -272,7 +284,7 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
           })
         })
       } else {
-        console.info('test ====>');
+        console.info('No refs are there');
       }
       return refs;
     }
@@ -319,6 +331,21 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
 
     case 'boolean': {
       return typeof content === 'string' && content === '1' ? true : false;
+    }
+
+    case 'extension': {
+      if (['PrioVisiblityList', 'BetPicker', 'JSON', 'json', 'BwinTable', 'BettingOfferEx', 'JsonField'].includes(field?.otherCmsType)) {
+        if (isJSON(content)) {
+          return JSON.parse(content);
+        } else {
+          return {};
+        }
+      }
+      return content;
+    }
+
+    case 'isodate': {
+      return convertCompactToISO(content);
     }
 
     default: {

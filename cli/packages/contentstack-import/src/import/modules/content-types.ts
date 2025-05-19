@@ -177,7 +177,12 @@ export default class ContentTypesImport extends BaseClass {
       log(this.importConfig, `'${uid}' updated with references`, 'success');
     };
     const onReject = ({ error, apiData: { uid } }: any) => {
-      log(this.importConfig, formatError(error), 'error');
+      const message = `${formatError(error)} - ${uid}`;
+      log(this.importConfig, message, 'error');
+      log(this.importConfig, `'${uid}' Errr updated with references`, 'success');
+      console.info("🚀 ~ ContentTypesImport ~ onReject ~ uid:", uid);
+      console.log("🚀 ~ ContentTypesImport ~ onReject ~ uid:", uid);
+      console.debug("🚀 ~ ContentTypesImport ~ onReject ~ uid:", uid);
       throw new Error(`Content type '${uid}' update error`);
     };
     return await this.makeConcurrentCall({

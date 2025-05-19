@@ -11,6 +11,18 @@ const configChecker = path?.join('content', 'Common', 'Configuration');
 const append = 'a';
 let config = {};
 
+
+function getUniqueFieldMappingsByUID(fieldMappings) {
+  const seen = new Set();
+  return fieldMappings.filter(item => {
+    if (seen.has(item.uid)) {
+      return false;
+    }
+    seen.add(item.uid);
+    return true;
+  });
+}
+
 const {
   DATA_MAPPER_DIR,
   DATA_MAPPER_CONFIG_FILE,
@@ -30,6 +42,20 @@ const createTemplate = ({ components }) => {
 function startsWithNumber(str) {
   return /^\d/.test(str);
 }
+
+const isNotEmptyBraces = (s) => /^\{[^{}]*\}$/.test(s);
+
+function isLikelyTemplatePath(value) {
+  if (typeof value !== 'string') return false;
+
+  const normalized = value.trim().toLowerCase();
+
+  return (
+    normalized.startsWith('/sitecore/')
+  );
+}
+
+const splitByPipe = (s) => s.includes('|') ? s.split('|') : [s];
 
 const uidCorrector = ({ uid }) => {
   if (startsWithNumber(uid)) {
@@ -52,7 +78,7 @@ const templatesComponents = ({ path: newPath }) => {
         const innerField = [];
         const components = helper.readFile(path?.join?.(newPath?.[i]?.pth, allPaths?.[j]));
         const data = components?.item?.$ ?? {};
-        components?.item?.fields?.field.forEach((item) => {
+        components?.item?.fields?.field?.forEach?.((item) => {
           if (item?.$?.key === 'type' || item?.$?.key === 'source' || item?.$?.key === extraField) {
             innerField.push({
               content: item.content,
@@ -114,14 +140,21 @@ const ContentTypeSchema = ({
   choices = [],
   sourLet,
   sitecoreKey,
-  affix
+  affix,
 }) => {
   const isPresent = restrictedUid?.find((item) => item === uid);
   if (isPresent) {
     uid = `${affix}_${uid}`;
   }
   switch (type) {
-    case 'Single-Line Text': {
+    case 'SmartLink':
+    case 'text':
+    case 'Translate Single Line Test':
+    case 'Single-Line Text':
+    case 'Page Preview':
+    case 'password':
+    case 'Query Datasource':
+    case 'Password': {
       return {
         id: id,
         uid: sitecoreKey,
@@ -135,7 +168,10 @@ const ContentTypeSchema = ({
         advanced: { default_value: default_value !== '' ? default_value : null }
       };
     }
-    case 'Checkbox': {
+    case 'checkbox':
+    case 'Tristate':
+    case 'Checkbox':
+    case 'ComfirmCheckbox': {
       default_value = default_value === '1' ? true : false;
       return {
         id: id,
@@ -150,7 +186,8 @@ const ContentTypeSchema = ({
         advanced: { default_value: default_value !== '' ? default_value : null }
       };
     }
-    case 'Rich Text': {
+    case 'Rich Text':
+    case 'Rich Text Translate Test': {
       return {
         id: id,
         uid: sitecoreKey,
@@ -158,8 +195,8 @@ const ContentTypeSchema = ({
         otherCmsType: type,
         contentstackField: name,
         contentstackFieldUid: uid,
-        contentstackFieldType: 'json',
-        backupFieldType: 'json',
+        contentstackFieldType: 'html',
+        backupFieldType: 'html',
         backupFieldUid: uid,
         advanced: { default_value: default_value !== '' ? default_value : null }
       };
@@ -183,7 +220,12 @@ const ContentTypeSchema = ({
         }
       };
     }
-    case 'Image': {
+    case 'Icon':
+    case 'icon':
+    case 'File':
+    case 'Attachment':
+    case 'Image':
+    case 'server file': {
       return {
         id: id,
         uid: sitecoreKey,
@@ -197,6 +239,7 @@ const ContentTypeSchema = ({
         advanced: { default_value: default_value !== '' ? default_value : null }
       };
     }
+    case 'link':
     case 'General Link':
     case 'Internal Link': {
       return {
@@ -212,8 +255,11 @@ const ContentTypeSchema = ({
         advanced: { default_value: default_value !== '' ? default_value : null }
       };
     }
-
-    case 'Multi-Line Text': {
+    case 'memo':
+    case 'DataSectionSelector':
+    case 'Query Builder':
+    case 'Multi-Line Text':
+    case 'security': {
       return {
         id: id,
         uid: sitecoreKey,
@@ -243,7 +289,8 @@ const ContentTypeSchema = ({
         advanced: { default_value: default_value !== '' ? default_value : null }
       };
     }
-
+    case 'datetime':
+    case 'Datetime':
     case 'Date':
     case 'Time': {
       return {
@@ -281,34 +328,87 @@ const ContentTypeSchema = ({
       }
       break;
     }
-    case 'Treelist': {
+    case 'Treelist':
+    case 'RelativeTreelist':
+    case 'tree list':
+    case 'TreelistEx':
+    case 'Multilist with Search':
+    case 'DropTree': {
+      // console.info("🚀 ~ sourLet: =>>>", type, sourLet)
       if (sourLet?.key !== 'source') {
-        return {
-          id: id,
-          uid: sitecoreKey,
-          otherCmsField: name,
-          otherCmsType: type,
-          contentstackField: name,
-          contentstackFieldUid: uid,
-          contentstackFieldType: 'reference',
-          backupFieldUid: uid,
-          backupFieldType: 'reference'
-        };
+        // return {
+        //   id: id,
+        //   uid: sitecoreKey,
+        //   otherCmsField: name,
+        //   otherCmsType: type,
+        //   contentstackField: name,
+        //   contentstackFieldUid: uid,
+        //   contentstackFieldType: 'reference',
+        //   backupFieldUid: uid,
+        //   backupFieldType: 'reference'
+        // };
       }
       break;
     }
-    default: {
+    case 'Bwin Name Value List Unsorted':
+    case 'Bwin Name Value List Sorted':
+    case 'BettingOfferEx':
+    case 'JsonField':
+    case 'BwinLink':
+    case 'BwinTable':
+    case 'JSON':
+    case 'BwinVideo':
+    case 'Rules':
+    case 'BetPicker':
+    case 'Custom':
+    case 'Json':
+    case 'PrioVisiblityList':
+    case 'User and Role List':
+    case 'layout':
+    case 'Layout': {
       return {
-        id,
+        id: id,
         uid: sitecoreKey,
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
         contentstackFieldUid: uid,
-        contentstackFieldType: 'reference',
+        contentstackFieldType: 'extension',
         backupFieldUid: uid,
-        backupFieldType: 'reference'
+        backupFieldType: 'extension'
       };
+    }
+
+    case 'Name Value List':
+    case 'KeyValueLookup':
+    case 'Version Link':
+    case 'Rendering Datasource':
+    case 'LottieAttachment':
+    case 'LotteImage':
+    case 'checklist':
+    case 'IFrameEx':
+    case 'Thumbnail':
+    case 'GraphQL':
+    case 'Datasource':
+    case 'Security':
+    case 'Template Field Source':
+    case 'Grouped Droplink': {
+      break;
+    }
+
+    default: {
+      console.info(type);
+      // return {
+      //   id,
+      //   uid: sitecoreKey,
+      //   otherCmsField: name,
+      //   otherCmsType: type,
+      //   contentstackField: name,
+      //   contentstackFieldUid: uid,
+      //   contentstackFieldType: 'reference',
+      //   backupFieldUid: uid,
+      //   backupFieldType: 'reference'
+      // };
     }
   }
 };
@@ -381,9 +481,8 @@ const groupFlat = (data, item) => {
         uid: `${item?.meta?.key}.${element?.uid}`,
         otherCmsField: `${item?.meta?.name} > ${element?.otherCmsField}`,
         contentstackField: `${item?.meta?.name} > ${element?.contentstackField}`,
-        contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${
-          element?.contentstackFieldUid
-        }`,
+        contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid
+          }`,
         backupFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`
       };
       flat?.push(obj);
@@ -448,7 +547,32 @@ const contentTypeMapper = ({
           }
           if (item?.key === 'source') {
             sourLet = item;
-            if (compType?.content === 'Droplink') {
+            if (compType?.content === 'Multilist' || compType?.content === 'Checklist') {
+              if (isLikelyTemplatePath(item?.content)) {
+                const sourcePath = path?.join?.(sitecore_folder, 'items', 'master', item?.content);
+                if (!sourcePath?.endsWith('xml')) {
+                  const readAppPath = read?.(sourcePath);
+                  if (readAppPath?.length) {
+                    readAppPath?.forEach?.((newPath) => {
+                      if (newPath?.endsWith?.('data.json')) {
+                        // const data = helper.readFile(
+                        //   path?.join?.(sourcePath, newPath)
+                        // );
+                        // console.info("umesh", data)
+                      }
+                    })
+                  }
+                }
+              } else if (isNotEmptyBraces(item?.content)) {
+                const refNameSplit = splitByPipe(item?.content)
+                const uniqueSpilt = [...new Set(refNameSplit)];
+                contentTypeKeyMapper({
+                  template: { id: content_type?.contentstackUid },
+                  contentType: { uid: { name, uid: field?.key, unique: uniqueSpilt } },
+                  contentTypeKey: 'treeListRef'
+                });
+              }
+            } else if (compType?.content === 'Droplink') {
               if (sourceTree) {
                 if (item?.content?.includes(configChecker)) {
                   sourceType = makeUnique({ data: sourceTree?.[item?.content] });
@@ -457,16 +581,41 @@ const contentTypeMapper = ({
                     advanced = true;
                   }
                 } else {
-                  console.log(
-                    '🚀 ~ file: contenttypes.js:305 ~ field?.fields?.forEach ~ item?.content:',
-                    item?.content
-                  );
+                  if (isLikelyTemplatePath(item?.content)) {
+                    const sourcePath = path?.join?.(sitecore_folder, 'items', 'master', item?.content);
+                    if (!sourcePath?.endsWith('xml')) {
+                      const resultData = [];
+                      read?.(sourcePath)?.forEach?.((newPath) => {
+                        if (newPath?.endsWith?.('data.json')) {
+                          const data = helper.readFile(
+                            path?.join?.(sourcePath, newPath)
+                          );
+                          const getLastSegment = path => path?.trim().replace(/\/+$/, '').split('/').pop();
+                          if (data?.item?.$?.name !== getLastSegment(sourcePath)) {
+                            resultData?.push({ key: data?.item?.$?.name, value: data?.item?.$?.id })
+                          }
+                        }
+                      })
+                      // sourceType = makeUnique({ data: resultData });
+                    }
+                  }
+                  // console.log(
+                  //   '🚀 ~ file: contenttypes.js:305 ~ field?.fields?.forEach ~ item?.content:',
+                  //   sitecore_folder, item
+                  // );
                 }
               } else {
-                console.log(
-                  '🚀 ~ file: contenttypes.js:371 ~ field?.fields?.forEach ~ compType:',
-                  compType?.standardValues?.key
-                );
+                if (isNotEmptyBraces(item?.content)) {
+                  const refNameSplit = splitByPipe(item?.content)
+                  const uniqueSpilt = [...new Set(refNameSplit)];
+                  contentTypeKeyMapper({
+                    template: { id: content_type?.contentstackUid },
+                    contentType: { uid: { name, uid: field?.key, unique: uniqueSpilt } },
+                    contentTypeKey: 'treeListRef'
+                  });
+                } else {
+                  console.log('out', item?.content)
+                }
               }
             } else {
               if (source) {
@@ -526,6 +675,55 @@ const contentTypeMapper = ({
                     advanced = true;
                   }
                 }
+              } else {
+                if (compType?.content === 'Droplist') {
+                  if (isNotEmptyBraces(item?.content)) {
+                    const templateSourcePath = path?.join?.(sitecore_folder, 'items', 'master', 'sitecore', 'templates');
+                    const readArrayPath = read?.(templateSourcePath);
+                    const contentPath = readArrayPath?.find?.((ele) => ele?.includes?.(item?.content) && ele?.includes('data.json'));
+                    if (contentPath) {
+                      const contentPathChild = contentPath?.split?.(item?.content)?.[0];
+                      const allPathOfChild = readArrayPath?.filter((element) => element?.includes?.(contentPathChild) && element?.includes?.('data.json'));
+                      const resultData = [];
+                      allPathOfChild?.forEach((newPath) => {
+                        const data = helper.readFile(
+                          path?.join?.(templateSourcePath, newPath)
+                        );
+                        if (data?.item?.$?.id !== item?.content) {
+                          resultData?.push({ key: data?.item?.$?.name, value: data?.item?.$?.key })
+                        }
+                      })
+                      sourceType = makeUnique({ data: resultData });
+                    }
+                  } else {
+                    const sourcePath = path?.join?.(sitecore_folder, 'items', 'master', item?.content);
+                    if (!sourcePath?.endsWith('xml')) {
+                      const resultData = [];
+                      read?.(sourcePath)?.forEach?.((newPath) => {
+                        if (newPath?.endsWith?.('data.json')) {
+                          const data = helper.readFile(
+                            path?.join?.(sourcePath, newPath)
+                          );
+                          const getLastSegment = path => path?.trim().replace(/\/+$/, '').split('/').pop();
+                          if (data?.item?.$?.name !== getLastSegment(sourcePath)) {
+                            resultData?.push({ key: data?.item?.$?.name, value: data?.item?.$?.key })
+                          }
+                        }
+                      })
+                      sourceType = makeUnique({ data: resultData });
+                    }
+                  }
+                } else {
+                  if (isNotEmptyBraces(item?.content)) {
+                    const refNameSplit = splitByPipe(item?.content)
+                    const uniqueSpilt = [...new Set(refNameSplit)];
+                    contentTypeKeyMapper({
+                      template: { id: content_type?.contentstackUid },
+                      contentType: { uid: { name, uid: field?.key, unique: uniqueSpilt } },
+                      contentTypeKey: 'treeListRef'
+                    });
+                  }
+                }
               }
             }
           }
@@ -535,7 +733,7 @@ const contentTypeMapper = ({
             }
           }
         });
-        if (compType?.content !== 'Droptree') {
+        if ((!['Droplink', 'Multilist', 'Checklist', 'Droptree']?.includes?.(compType?.content)) && compType?.content) {
           groupSchema?.schema?.push(
             ContentTypeSchema({
               name,
@@ -586,7 +784,7 @@ const contentTypeMapper = ({
       });
     }
   });
-  return mainSchema;
+  return getUniqueFieldMappingsByUID(mainSchema);
 };
 
 const contentTypeMaker = ({ template, basePath, sitecore_folder, affix }) => {

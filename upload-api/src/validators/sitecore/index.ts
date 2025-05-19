@@ -1,6 +1,9 @@
+
 /*
 sitecore Validator
  */
+
+import path from "path";
 interface items {
   files: object;
 }
@@ -16,7 +19,9 @@ async function sitecoreValidator({ data }: props) {
     const configuration: any[] = [];
     let blob: any[] = [];
     let mediaLibrary: any[] = [];
-    for (const filename of Object.keys(data?.files)) {
+    for (const filenameRaw of Object.keys(data?.files)) {
+      // Normalize and convert to POSIX format (forward slashes)
+      const filename = path?.posix?.normalize?.(filenameRaw.replace(/\\/g, '/'));
       if (filename.includes('/templates') && !filename.includes('properties/items/master/sitecore/templates')) {
         templates?.push(filename);
       }
@@ -33,13 +38,16 @@ async function sitecoreValidator({ data }: props) {
       if (filename?.includes('/media library')) {
         mediaLibrary?.push(filename);
       }
+      // Early exit optimization
+      if (templates.length > 0 && content.length > 0) break;
     }
     templates = await Promise.all(templates);
     content = await Promise.all(content);
     blob = await Promise.all(blob);
     mediaLibrary = await Promise.all(mediaLibrary);
+    // && blob?.length > 0 && mediaLibrary?.length > 0
 
-    if (templates?.length > 0 && content?.length > 0 && blob?.length > 0 && mediaLibrary?.length > 0) {
+    if (templates?.length > 0 && content?.length > 0) {
       return true;
     }
     return false;

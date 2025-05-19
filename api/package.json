@@ -6,7 +6,7 @@
   "scripts": {
     "build": "npx tsc",
     "start": "NODE_ENV=production node dist/server.js",
-    "dev": "NODE_ENV=production tsx watch ./src/server.ts",
+    "dev": "NODE_ENV=production tsx watch --max-old-space-size=8192  ./src/server.ts",
     "prettify": "prettier --write .",
     "windev": "SET NODE_ENV=production&& tsx watch ./src/server.ts",
     "winstart": "SET NODE_ENV=production&& node dist/server.js",
@@ -32,6 +32,7 @@
     "axios": "^1.8.2",
     "chokidar": "^3.6.0",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.3.1",
     "express": "^4.21.0",
     "express-validator": "^7.0.1",

@@ -46,18 +46,21 @@ function ExtractRef() {
   );
   const globalFieldUids = [];
   const contentTypesPaths = read(contentFolderPath);
-  if (contentTypesPaths?.length && basePages && contentTypeKeys && treeListRef) {
+  if (contentTypesPaths?.length && (basePages || contentTypeKeys || treeListRef)) {
     contentTypesPaths?.forEach((item) => {
       const contentType = helper.readFile(path?.join?.(contentFolderPath, `${item}`));
       if (contentType?.id || contentType?.contentstackUid) {
-        const refTree = treeListRef[contentType?.contentstackUid];
+        const refTree = treeListRef?.[contentType?.contentstackUid];
         if (refTree?.unique?.length) {
           const contentTypesPathsMaped = contentTypesPaths?.map((item) =>
             item?.replace?.('.json', '')
           );
-          refTree.unique = refTree?.unique?.map((item) => uidCorrector({ uid: item }));
-          const uids = contentTypesPathsMaped?.filter((item) => refTree?.unique?.includes(item));
-          if (uids?.length) {
+          // refTree.unique = refTree?.unique?.map((item) => uidCorrector({ uid: item }));
+          // const uids = contentTypesPathsMaped?.filter((item) => refTree?.unique?.includes(item));
+          const uids = [];
+          refTree?.unique?.forEach((item) => uids?.push(contentTypeKeys?.[item]))
+          console.info(uids)
+          if (uids?.length && uids?.[0] !== undefined) {
             let newUid = uidCorrector({ uid: refTree?.uid });
             const isPresent = restrictedUid?.find((item) => item === newUid);
             if (isPresent) {
@@ -78,7 +81,7 @@ function ExtractRef() {
             contentType.fieldMapping.push(schemaObject);
           }
         }
-        const itHasBasePresent = basePages[contentType?.id];
+        const itHasBasePresent = basePages?.[contentType?.id];
         if (itHasBasePresent?.content) {
           const references = itHasBasePresent?.content?.split('|');
           if (references?.length) {
@@ -146,13 +149,17 @@ function ExtractRef() {
     });
     if (allGlobalFiels?.length) {
       allGlobalFiels?.forEach((item) => {
-        const schemaData = [];
-        item?.fieldMapping?.forEach?.((schema) => {
-          if (!['title', 'url']?.includes(schema?.contentstackFieldUid)) {
-            schemaData?.push(schema);
-          }
-        });
-        item.fieldMapping = schemaData;
+        if (item?.fieldMapping) {
+          const schemaData = [];
+          item?.fieldMapping?.forEach?.((schema) => {
+            if (!['title', 'url']?.includes(schema?.contentstackFieldUid)) {
+              schemaData?.push(schema);
+            }
+          });
+          item.fieldMapping = schemaData;
+        } else {
+          console.warn(`Item does not have fieldMapping:`, item);
+        }
       });
       helper.writeFile(
         path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, GLOBAL_FIELDS_DIR_NAME),

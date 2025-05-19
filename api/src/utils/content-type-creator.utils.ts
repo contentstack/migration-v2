@@ -33,6 +33,15 @@ interface ContentType {
   schema: any[]; // Replace `any` with the specific type if known
 }
 
+const createMockOption = (field: any) => {
+  if (field?.advanced?.default_value) {
+    const dropvalue = field?.advanced?.default_value;
+    return [{ key: dropvalue, value: dropvalue }];
+  }
+  return [{ key: 'NF', value: "NF" }];
+}
+
+
 function extractFieldName(input: string): string {
   // Extract text inside parentheses (e.g., "JSON Editor-App")
   const match = input.match(/\(([^)]+)\)/);
@@ -112,7 +121,7 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any) => {
+const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, ctType }: any) => {
   switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
@@ -211,13 +220,14 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
     }
 
     case 'dropdown': {
+      const optionsBypass = createMockOption(field);
       const data = {
         "data_type": ['dropdownNumber', 'radioNumber', 'ratingNumber'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
         "display_type": "dropdown",
         "enum": {
           "advanced": advanced,
-          choices: field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }],
+          choices: field?.advanced?.options?.length ? field?.advanced?.options : optionsBypass,
         },
         "multiple": field?.advanced?.multiple ?? false,
         uid: field?.uid,
@@ -420,15 +430,18 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
 
 
     case 'global_field': {
-      return {
-        "data_type": "global_field",
-        "display_name": field?.title,
-        "reference_to": field?.refrenceTo,
-        "uid": field?.uid,
-        "mandatory": field?.advanced?.mandatory ?? false,
-        "multiple": field?.advanced?.multiple ?? false,
-        "unique": field?.advanced?.unique ?? false
+      if (ctType !== 'global_field') {
+        return {
+          "data_type": "global_field",
+          "display_name": field?.title,
+          "reference_to": field?.refrenceTo,
+          "uid": field?.uid,
+          "mandatory": field?.advanced?.mandatory ?? false,
+          "multiple": field?.advanced?.multiple ?? false,
+          "unique": field?.advanced?.unique ?? false
+        }
       }
+      break;
     }
 
     case "reference": {
@@ -537,10 +550,53 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
           "non_localizable": field.advanced?.nonLocalizable ?? false,
           "data_type": "json",
         }
+      } else {
+        if (['PrioVisiblityList', 'BetPicker', 'JSON', 'json', 'BwinTable', 'BettingOfferEx', 'JsonField'].includes(field?.otherCmsType)) {
+          const extensionUid = 'blt630e1ed1fec35ca6';
+          saveAppMapper({
+            marketPlacePath,
+            data: { extensionUid },
+            fileName: CUSTOM_MAPPER_FILE_NAME
+          });
+          return {
+            "display_name": field?.title,
+            "uid": field?.uid,
+            "extension_uid": extensionUid,
+            "field_metadata": {
+              "extension": true
+            },
+            "config": {},
+            "multiple": field?.advanced?.multiple ?? false,
+            "mandatory": field?.advanced?.mandatory ?? false,
+            "unique": field?.advanced?.unique ?? false,
+            "non_localizable": field.advanced?.nonLocalizable ?? false,
+            "data_type": "json",
+          }
+        } else {
+          const extensionUid = 'blt5c7e1aaac4579a4a';
+          saveAppMapper({
+            marketPlacePath,
+            data: { extensionUid },
+            fileName: CUSTOM_MAPPER_FILE_NAME
+          });
+          return {
+            "display_name": field?.title,
+            "uid": field?.uid,
+            "extension_uid": extensionUid,
+            "field_metadata": {
+              "extension": true
+            },
+            "config": {},
+            "multiple": field?.advanced?.multiple ?? false,
+            "mandatory": field?.advanced?.mandatory ?? false,
+            "unique": field?.advanced?.unique ?? false,
+            "non_localizable": field?.advanced?.nonLocalizable ?? false,
+            "data_type": "json",
+          }
+        }
       }
       break;
     }
-
     default: {
       if (field?.contentstackFieldType) {
         return {
@@ -728,7 +784,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           uid: extractValue(element?.contentstackFieldUid, item?.contentstackFieldUid, '.'),
           title: extractValue(element?.contentstackField, item?.contentstackField, ' >')?.trim(),
         }
-        const schema: any = convertToSchemaFormate({ field, marketPlacePath });
+        const schema: any = convertToSchemaFormate({ field, marketPlacePath, ctType: contentType?.type });
         if (typeof schema === 'object' && Array.isArray(group?.schema) && element?.isDeleted === false) {
           group.schema.push(schema);
         }
@@ -741,7 +797,8 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           title: item?.contentstackField,
           uid: item?.contentstackFieldUid
         },
-        marketPlacePath
+        marketPlacePath,
+        ctType: contentType?.type
       });
       if (dt && item?.isDeleted === false) {
         ct?.schema?.push(dt);

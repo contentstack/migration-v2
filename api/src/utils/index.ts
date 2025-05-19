@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from "path";
 import { mkdirp } from 'mkdirp';
+import { parse, formatISO } from 'date-fns';
 
 import { config } from "../config/index.js";
 import https from "../utils/https.utils.js";
@@ -100,12 +101,19 @@ export async function createDirectoryAndFile(filePath: string, sourceFile: strin
   }
 }
 
-export async function getAllLocales (){
-  const [err, data] =  await safePromise(
+export async function getAllLocales() {
+  const [err, data] = await safePromise(
     https({
       method: "GET",
       url: `${config.CS_API.NA}/locales?include_all=true`,
     })
   );
   return [err, data?.data?.locales];
+}
+
+
+
+export function convertCompactToISO(input: string) {
+  const parsedDate = parse(input, "yyyyMMdd'T'HHmmssX", new Date());
+  return formatISO(parsedDate); // Returns full ISO string
 }

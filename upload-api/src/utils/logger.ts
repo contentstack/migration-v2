@@ -7,7 +7,8 @@ const logger = createLogger({
   transports: [
     // - Write all logs with importance level of `info` or less to `combined.log`
     new transports.File({ filename: 'combine.log' }),
-    new transports.Console({})
+    // new transports.Console({})
+    new transports.Console({ level: 'info' })
   ]
 });
 

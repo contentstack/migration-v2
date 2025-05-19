@@ -26,33 +26,49 @@ const config = {
  */
 
 function ExtractFiles(sitecore_folder) {
-  const xml_folder = read(sitecore_folder)
+  const xml_folder = read(sitecore_folder);
+
   for (let i = 0; i < xml_folder.length; i++) {
-    if (xml_folder?.[i]?.endsWith?.("xml")) {
-      const xml_data = path?.join?.(sitecore_folder, xml_folder?.[i]);
-      const jsonFilePath = xml_data?.replace?.('xml', '');
-      parseString(helper?.readXMLFile?.(xml_data), { explicitArray: false }, function (err, result) {
+    const file = xml_folder[i];
+
+    // Only process .xml files
+    if (file?.endsWith?.(".xml")) {
+      const xml_data_path = path?.join?.(sitecore_folder, file);
+      const xml_content = helper?.readXMLFile?.(xml_data_path);
+
+      // Skip empty or non-XML content
+      if (!xml_content?.trim?.().startsWith?.("<")) {
+        console.warn(`⛔ Skipping non-XML content: ${file}`);
+        continue;
+      }
+
+      const jsonFilePath = xml_data_path?.replace?.(/\.xml$/, '');
+      parseString(xml_content, { explicitArray: false }, function (err, result) {
         if (err) {
-          console.error("failed to parse xml: ", err);
-        } else {
-          const filePath = path.join(jsonFilePath, config?.json_filename);
-          try {
-            const jsonFileArray = read?.(jsonFilePath)?.filter?.((fileExt) => fileExt?.includes?.('.json')) ?? [];
-            for (const ext of jsonFileArray) {
-              const absolutePath = path?.resolve?.(path?.join?.(jsonFilePath, ext));
-              fs?.unlinkSync?.(absolutePath);
-            }
-          } catch (error) {
-            console.error("Error deleting file:", error);
-          }
-          fs.writeFileSync(filePath, JSON.stringify(result, null, 4), "utf8");
+          console.error("❌ Failed to parse XML:", err);
+          return;
         }
-      })
+
+        const filePath = path.join(jsonFilePath, config?.json_filename);
+
+        try {
+          // Delete existing .json files in that directory
+          const jsonFileArray = read?.(jsonFilePath)?.filter?.(f => f?.endsWith?.(".json")) ?? [];
+          for (const jsonFile of jsonFileArray) {
+            const absolutePath = path.resolve(path.join(jsonFilePath, jsonFile));
+            fs?.unlinkSync?.(absolutePath);
+          }
+
+          // Write the parsed XML as JSON
+          fs?.writeFileSync?.(filePath, JSON.stringify(result, null, 4), "utf8");
+
+        } catch (error) {
+          console.error("⚠️ Error deleting or writing file:", error);
+        }
+      });
     }
   }
 }
-
-
 
 
 module.exports = ExtractFiles;

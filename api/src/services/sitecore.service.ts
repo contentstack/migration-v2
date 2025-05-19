@@ -19,7 +19,7 @@ const {
   EXPORT_INFO_FILE,
   ASSETS_DIR_NAME,
   ASSETS_FILE_NAME,
-  ASSETS_SCHEMA_FILE
+  ASSETS_SCHEMA_FILE,
 } = MIGRATION_DATA_CONFIG;
 
 const idCorrector = ({ id }: any) => {
@@ -62,6 +62,13 @@ const mapLocales = ({ masterLocale, locale, locales }: any) => {
 }
 
 
+const getFolderName = ({ assetPath }: any) => {
+  const name = assetPath?.split("/")
+  if (name?.length) {
+    return name[name?.length - 2]
+  }
+}
+
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
   fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
@@ -102,22 +109,139 @@ const uidCorrector = ({ uid }: any) => {
   return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
 }
 
+function validFolderName(inputName: string) {
+  const validName: string = inputName?.replace(/[^a-zA-Z0-9-_]/g, '_');
+  return validName;
+}
+
+
+const createFolder = async (assetsSave) => {
+  // const xml_folder = read?.(folderName);
+  // if (xml_folder?.length) {
+  // const allFolderJSON: any = [];
+  // xml_folder?.forEach?.((item) => {
+  //   if (item?.includes?.("media library")) {
+  //     if (item?.endsWith?.("data.json")) {
+  //       const folderRaw = item?.split?.("media library")?.[1]
+  //       if (folderRaw) {
+  //         const folderSplite = folderRaw?.split("/");
+  //         if (folderSplite) {
+  //           folderSplite?.forEach?.((key, index) => {
+  //             const exclude = ["1", "en", "2", "3", "4", "5", "6"]
+  //             if (key !== "" && !key?.includes(".json") && !exclude?.includes(key)) {
+  //               if (index === 1) {
+  //                 allFolderJSON?.push({ name: key, isAsseteUid: key?.includes?.("{"), parentName: null })
+  //               } else {
+  //                 allFolderJSON?.push({ name: key, isAsseteUid: key?.includes?.("{"), parentName: folderSplite?.[index - 1] })
+  //               }
+  //             }
+  //           })
+  //         }
+  //       }
+  //     }
+  //   }
+  // })
+  // const obj: any = {};
+  // const uids: any = {};
+  // if (allFolderJSON?.length) {
+  //   allFolderJSON?.forEach((item: any) => {
+  //     if (!item?.isAsseteUid) {
+  //       obj[item?.name] = {
+  //         parentName: item?.parentName
+  //       }
+  //     } else {
+  //       if (uids?.[item?.parentName]) {
+  //         uids[item?.parentName]?.push(item?.name)
+  //       } else {
+  //         uids[item?.parentName] = [item?.name]
+  //       }
+  //     }
+  //   })
+  // }
+  // const finalObject: any = [];
+  // if (Object?.keys?.(obj)?.length && Object?.keys(uids)?.length) {
+  //   for (const [key, value] of Object?.entries(obj) ?? {}) {
+  //     finalObject?.push({
+  //       name: key,
+  //       assetsUids: uids?.[key] ?? [],
+  //       uid: uuidv4(),
+  //       ...value ?? {}
+  //     })
+  //   }
+  // }
+  // const folders: any = [];
+  // if (finalObject?.length) {
+  //   finalObject?.forEach((item: any) => {
+  //     const obj = {
+  //       "urlPath": `/assets/${item?.uid}`,
+  //       "uid": item?.uid,
+  //       "content_type": "application/vnd.contenstack.folder",
+  //       "tags": [],
+  //       "name": validFolderName(item?.name),
+  //       "is_dir": true,
+  //       "parent_uid": null
+  //     }
+  //     const isPresent = finalObject?.find((ele: any) => item?.parentName === ele?.name)
+  //     if (isPresent) {
+  //       obj.parent_uid = isPresent?.uid
+  //     }
+  //     folders?.push(obj)
+  //   })
+  // }
+  const newFolder = [];
+  // if (newFolder?.length === (0 || undefined)) {
+  //   newFolder = folders
+  // }
+  newFolder?.push({
+    "urlPath": `/assets/6f4d3c25-1b6e-4a5b-93fd-9ec71fa470ed`,
+    "uid": '6f4d3c25-1b6e-4a5b-93fd-9ec71fa470ed',
+    "content_type": "application/vnd.contenstack.folder",
+    "tags": [],
+    "name": 'sitecore',
+    "is_dir": true,
+    "parent_uid": null
+  })
+  if (newFolder?.length) {
+    if (!fs.existsSync(path.join(process.cwd(), assetsSave))) {
+      fs.mkdirSync(path.join(process.cwd(), assetsSave), { recursive: true });
+    }
+    await fs.promises.writeFile(
+      path.join(
+        process.cwd(),
+        assetsSave,
+        "folders.json",
+      ),
+      JSON.stringify(newFolder, null, 4),
+    );
+    return newFolder;
+  } else {
+    console.info("folders are not found.")
+    return [];
+  }
+  // }
+}
+
+
+
+
 const cretaeAssets = async ({ packagePath, baseDir, destinationStackId, projectId }: any) => {
   const srcFunc = 'cretaeAssets';
   const assetsSave = path.join(baseDir, ASSETS_DIR_NAME);
   const allAssetJSON: any = {};
+  // const folderDirPath: any = path.join(packagePath, 'items', 'master', 'sitecore');
   const folderName: any = path.join(packagePath, 'items', 'master', 'sitecore', 'media library');
+  await createFolder(assetsSave);
   const entryPath = read?.(folderName);
   for await (const file of entryPath) {
-    if (file?.endsWith('data.json')) {
-      const data: any = await fs.promises.readFile(path.join(folderName, file), 'utf8');
+    if (file?.endsWith?.('data.json')) {
+      const data: any = await fs?.promises?.readFile?.(path?.join?.(folderName, file), 'utf8');
       const jsonAsset = JSON.parse(data);
       const assetPath = AssetsPathSpliter({ path: file, id: jsonAsset?.item?.$?.id });
-      // const folder = getFolderName({ assetPath });
+      // const currentFolderName = getFolderName({ assetPath });
       const mestaData: any = {};
       mestaData.uid = idCorrector({ id: jsonAsset?.item?.$?.id });
       jsonAsset?.item?.fields?.field?.forEach?.((field: any) => {
-        if (field?.$?.key === "blob" && field?.$?.type === "attachment") {
+        if (field?.$?.key?.toLowerCase?.() === "blob" && field?.$?.type?.toLowerCase?.() === "attachment") {
           mestaData.id = field?.content?.replace(/[{}]/g, "")?.toLowerCase();
         }
         if (field?.$?.key === "extension") {
@@ -174,7 +298,11 @@ const cretaeAssets = async ({ packagePath, baseDir, destinationStackId, projectI
             {}
           )
           await customLogger(projectId, destinationStackId, 'info', message);
-          allAssetJSON[mestaData?.uid].parent_uid = '2146b0cee522cc3a38d'
+          // const parentUid: { uid: string } = folders?.find((item: any) => item?.name === currentFolderName)
+          // if (parentUid) {
+          // sitecore 9 folder create  uid
+          allAssetJSON[mestaData?.uid].parent_uid = '6f4d3c25-1b6e-4a5b-93fd-9ec71fa470ed';
+          // }
         } else {
           const message = getLogMessage(
             srcFunc,
@@ -186,6 +314,9 @@ const cretaeAssets = async ({ packagePath, baseDir, destinationStackId, projectI
       }
     }
   }
+  // if (!fs.existsSync(path.join(process.cwd(), assetsSave))) {
+  //   fs.mkdirSync(path.join(process.cwd(), assetsSave), { recursive: true });
+  // }
   const fileMeta = { "1": ASSETS_SCHEMA_FILE };
   fs.writeFileSync(
     path.join(
@@ -285,7 +416,7 @@ const createEntry = async ({ packagePath, contentTypes, master_locale, destinati
               }
             }
             entryObj.publish_details = [];
-            if (Object.keys?.(entryObj)?.length > 1) {
+            if (Object.keys?.(entryObj)?.length > 2) {
               entryLocale[uid] = unflatten(entryObj) ?? {};
               const message = getLogMessage(
                 srcFunc,
