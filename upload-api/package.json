@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "npm --prefix migration-aem run build && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node build/index.js",
+    "start": "npm run build &&tsc && node build/index.js",
     "validation": "tsc && node build/main.js",
     "prettify": "prettier --write .",
     "lint": "eslint .",
@@ -51,6 +52,7 @@
     "migration-contentful": "file:migration-contentful",
     "migration-sitecore": "file:migration-sitecore",
     "migration-wordpress": "file:migration-wordpress",
+    "migration-aem": "file:migration-aem",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^2.7.0",
     "nodemon": "^3.1.9",
