@@ -8,11 +8,9 @@ import { RootState } from '../../store';
 import { getAuditData } from '../../services/api/project.service';
 // Interfaces
 import {
-    FileData,
     StackOption,
     FileOption,
     TableDataItem,
-    TableColumn,
     FilterOption
 } from './auditLogs.interface';
 import './index.scss';
@@ -20,19 +18,15 @@ import AuditFilterModal from '../AuditFilterModal';
 const AuditLogs: React.FC = () => {
     const params = useParams<{ projectId?: string }>();
     const [loading, setLoading] = useState<boolean>(false);
-    const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
     const [selectedStack, setSelectedStack] = useState<StackOption | null>(null);
     const [stackOptions, setStackOptions] = useState<StackOption[]>([]);
     const [selectedFile, setSelectedFile] = useState<FileOption | null>(null);
     const [fileOptions, setFileOptions] = useState<FileOption[]>([]);
-    const [fileContent, setFileContent] = useState<FileData | null>(null);
     const [searchText, setSearchText] = useState<string>('');
-    const [tableColumns, setTableColumns] = useState<TableColumn[]>([]);
     const [tableData, setTableData] = useState<TableDataItem[]>([]);
     const [totalCounts, setTotalCounts] = useState<number>(0);
-    const [currentPage, setCurrentPage] = useState<number>(1);
     const [tableKey, setTableKey] = useState<number>(0);
-    const [filterV, setFilterV] = useState<string>('all');
+    const [filterOption, setFilterOption] = useState<string>('all');
     const [filterValue, setFilterValue] = useState<FilterOption[]>([]);
     const [isCursorInside, setIsCursorInside] = useState(true);
     const [isFilterApplied, setIsFilterApplied] = useState(false);
@@ -42,13 +36,23 @@ const AuditLogs: React.FC = () => {
         (state: RootState) => state?.authentication?.selectedOrganisation
     );
     const stacks = useSelector((state: RootState) => state?.migration?.newMigrationData?.testStacks);
+    const isMigDone = useSelector((state: RootState) => state?.migration?.newMigrationData?.migration_execution?.migrationCompleted);
+    const label1 = useSelector((state: RootState) => state?.migration?.newMigrationData?.stackDetails?.label);
+    const value1 = useSelector((state: RootState) => state?.migration?.newMigrationData?.stackDetails?.value);
     useEffect(() => {
         if (stacks && stacks.length > 0) {
             const formattedOptions: StackOption[] = stacks.map((stack: any) => ({
-                label: stack.name || stack.stackName || stack.stackUid || '',
-                value: stack.stackUid || '',
+                label: stack.stackName,
+                value: stack.stackUid,
                 ...stack
             }));
+            if (isMigDone && label1 && value1) {
+                formattedOptions.push({
+                    label: label1,
+                    value: value1,
+                    ...stacks
+                });
+            }
             setStackOptions(formattedOptions);
             if (!selectedStack) {
                 setSelectedStack(formattedOptions[stacks.length - 1]);
@@ -64,7 +68,6 @@ const AuditLogs: React.FC = () => {
                 { label: 'Entries', value: 'Entries_Select_feild' }
             ];
             setFileOptions(predefinedOptions);
-            setInitialLoadComplete(true);
         }
     };
     const handleStackChange = async (selectedOption: StackOption | null) => {
@@ -76,15 +79,11 @@ const AuditLogs: React.FC = () => {
     };
     const resetFileSelection = () => {
         setSelectedFile(null);
-        setFileContent(null);
         setTableData([]);
-        setTableColumns([]);
-        setCurrentPage(1);
         setSearchText('');
         setTotalCounts(0);
-        // Reset filter values when file selection changes
         setFilterValue([]);
-        setFilterV('all');
+        setFilterOption('all');
         setIsFilterApplied(false);
     };
     const fetchTableData = async ({
@@ -93,7 +92,7 @@ const AuditLogs: React.FC = () => {
         startIndex = 0,
         stopIndex = 30,
         searchText = 'null',
-        filter = filterV
+        filter = filterOption
     }) => {
         if (!selectedStack || !selectedFile || !selectedOrganisation?.value) {
             return { data: [], count: 0 };
@@ -138,24 +137,17 @@ const AuditLogs: React.FC = () => {
         setSelectedFile(selectedOption);
         console.info('selectedOption', selectedOption);
         setDropDownOptions(selectedOption?.value);
-        setCurrentPage(1);
         setSearchText('');
-        // Reset filter values when file selection changes
         setFilterValue([]);
-        setFilterV('all');
+        setFilterOption('all');
         setIsFilterApplied(false);
         if (selectedOption) {
-            // const columns = generateColumnsForFile(selectedOption.value);
-            // setTableColumns(columns);
+
             setTableKey((prevKey) => prevKey + 1);
-        } else {
-            setFileContent(null);
-            setTableColumns([]);
         }
     };
     const handleSearchChange = (value: string) => {
         setSearchText(value);
-        setCurrentPage(1);
         setTableKey((prevKey) => prevKey + 1);
     };
     const ColumnFilter = () => {
@@ -171,11 +163,7 @@ const AuditLogs: React.FC = () => {
             setIsFilterDropdownOpen(true);
             console.info('isFilterDropdownOpen', isFilterDropdownOpen);
         };
-        // const handleClickOutside = () => {
-        //   if (!isCursorInside) {
-        //     closeModal && closeModal();
-        //   }
-        // };
+
         const iconProps = {
             className: isFilterApplied
                 ? 'filterWithAppliedIcon Icon--v2 Icon--medium'
@@ -191,7 +179,6 @@ const AuditLogs: React.FC = () => {
                 if (!filterValueCopy.length && isChecked) {
                     filterValueCopy.push(value);
                 } else if (isChecked) {
-                    // Remove the old value and keep updated one in case old value exists
                     const updatedFilter = filterValueCopy.filter((v) => v.value !== value.value);
                     filterValueCopy = [...updatedFilter, value];
                 } else if (!isChecked) {
@@ -207,12 +194,11 @@ const AuditLogs: React.FC = () => {
                 closeModal && closeModal();
             }
         };
-        // Method to apply filter
         const onApply = () => {
             try {
                 if (!filterValue.length) {
                     const newFilter = 'all';
-                    setFilterV(newFilter);
+                    setFilterOption(newFilter);
                     fetchTableData({ filter: newFilter });
                     closeModal();
                     setIsFilterApplied(false);
@@ -221,7 +207,7 @@ const AuditLogs: React.FC = () => {
                 const usersQueryArray = filterValue.map((item) => item.value);
                 const newFilter =
                     usersQueryArray.length > 1 ? usersQueryArray.join('-') : usersQueryArray[0];
-                setFilterV(newFilter);
+                setFilterOption(newFilter);
                 fetchTableData({ filter: newFilter });
                 setIsFilterApplied(true);
                 closeModal();
@@ -259,16 +245,16 @@ const AuditLogs: React.FC = () => {
                     onApply={onApply}
                     selectedLevels={filterValue}
                     setFilterValue={setFilterValue}
-                    selectedFileType={selectedFile?.value || ''}
+                    selectedFileType={selectedFile?.value}
                 />
             </div>
         );
     };
-    const renderCell = (value: any) => <div>{value}</div>;
+    const renderCell = (value: any) => <div>{value ?? '-'}</div>;
     const contentTypeHeader = [
         {
             Header: 'Title',
-            accessor: (data: TableDataItem) => renderCell(data.name || data.ct_uid || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.name),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -277,7 +263,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Field Name',
-            accessor: (data: TableDataItem) => renderCell(data.display_name || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.display_name),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -286,7 +272,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Field Type',
-            accessor: (data: TableDataItem) => renderCell(data.data_type || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.data_type),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -297,11 +283,12 @@ const AuditLogs: React.FC = () => {
         {
             Header: 'Missing Reference',
             accessor: (data: TableDataItem) => {
-                const missing = data.missingRefs
-                    ? typeof data.missingRefs === 'string'
+                const missing = Array.isArray(data.missingRefs)
+                    ? data.missingRefs.join(', ')
+                    : typeof data.missingRefs === 'string'
                         ? data.missingRefs
-                        : data.missingRefs.join(', ')
-                    : '-';
+                        : '-';
+
                 return renderCell(missing);
             },
             addToColumnSelector: true,
@@ -312,7 +299,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Tree Structure',
-            accessor: (data: TableDataItem) => renderCell(data.treeStr || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.treeStr),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -321,10 +308,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Fix Status',
-            accessor: (data: TableDataItem) => {
-                const status = data.fixStatus;
-                return <div>{status}</div>;
-            },
+            accessor: (data: TableDataItem) => renderCell(data.fixStatus),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -335,7 +319,7 @@ const AuditLogs: React.FC = () => {
     const entryHeader = [
         {
             Header: 'Entry UID',
-            accessor: (data: TableDataItem) => renderCell(data.uid || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.uid),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -344,7 +328,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Name',
-            accessor: (data: TableDataItem) => renderCell(data.name || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.name),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -353,7 +337,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Display Name',
-            accessor: (data: TableDataItem) => renderCell(data.display_name || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.display_name),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -362,7 +346,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Display Type',
-            accessor: (data: TableDataItem) => renderCell(data.display_type || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.display_type),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -372,7 +356,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Missing Select Value',
-            accessor: (data: TableDataItem) => renderCell(data.missingCTSelectFieldValues || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.missingCTSelectFieldValues),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -381,7 +365,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Tree Structure',
-            accessor: (data: TableDataItem) => renderCell(data.treeStr || '-'),
+            accessor: (data: TableDataItem) => renderCell(data.treeStr ?? '-'),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
