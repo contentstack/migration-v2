@@ -266,8 +266,8 @@ const startTestMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
-    await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
-    await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
+    // await testFolderCreator?.({ destinationStackId: project?.current_test_stack_id });
+    // await utilsCli?.runCli(region, user_id, project?.current_test_stack_id, projectId, true, loggerPath);
   }
 }
 
@@ -418,8 +418,10 @@ const getLogs = async (req: Request): Promise<any> => {
 export const createSourceLocales = async (req: Request) => {
 
   const projectId = req?.params?.projectId;
+  if (typeof req.body === "string") {
+    req.body = JSON.parse(req.body);
+  }
   const locales = req?.body?.locale;
-  console.info("🚀 ~ createSourceLocales ~ locales:", locales);
 
   try {
     // Find the project with the specified projectId

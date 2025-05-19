@@ -23,9 +23,9 @@ const createLocaleSource = async ({ app_token, localeData, projectId }: { app_to
       app_token,
       'Content-Type': 'application/json'
     },
-    data: {
+    data: JSON.stringify({
       locale: Array?.from?.(localeData) ?? []
-    },
+    }),
   };
   const mapRes = await axios?.request?.(mapperConfig);
   if (mapRes?.status == 200) {
@@ -40,6 +40,7 @@ const createLocaleSource = async ({ app_token, localeData, projectId }: { app_to
     });
   }
 }
+
 
 const createSitecoreMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: object) => {
   try {
@@ -70,15 +71,17 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
+        maxContentLength: Infinity,
         url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
         headers: {
           app_token,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         data: JSON.stringify(fieldMapping),
+        timeout: 120000,
       };
 
-      const {data, status} = await axios.request(config);
+      const { data, status } = await axios.request(config);
 
       if (data?.data?.content_mapper?.length) {
         deleteFolderSync(infoMap?.path);

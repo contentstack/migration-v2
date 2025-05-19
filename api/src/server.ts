@@ -20,6 +20,8 @@ import chokidar from "chokidar";
 import { Server } from "socket.io";
 import fs from "fs";
 import path from "path";
+import { Request, Response, NextFunction } from 'express';
+import { IncomingMessage } from 'http';
 
 // Initialize file watcher for the log file
 const watcher = chokidar.watch(config.LOG_FILE_PATH, {
@@ -76,9 +78,28 @@ try {
   // Enable CORS for all origins
   app.use(cors({ origin: "*" }));
 
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    let size = 0;
+    const rawReq = req as IncomingMessage;
+    console.info(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+    rawReq.on('data', (chunk: Buffer) => {
+      size += chunk?.length;
+    });
+
+    rawReq.on('end', () => {
+      console.info(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+      console.info(`→ Path: ${req.path}`);
+      console.info(`→ Body size: ${size} bytes`);
+    });
+
+    next();
+  });
+
   // Parsing request bodies
-  app.use(express.urlencoded({ extended: false, limit: "10mb" }));
-  app.use(express.json({ limit: "10mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+  app.use(express.json({ limit: "50mb" }));
+
 
   // Custom middleware for logging and request headers
   app.use(loggerMiddleware);
@@ -125,31 +146,31 @@ try {
       try {
         const fileStats = await fs.promises.stat(path);
 
-      // Read the entire file if there is an update (new logs or changes)
-      const stream = fs.createReadStream(path, { start: fileOffset });
-      let fileData = '';
+        // Read the entire file if there is an update (new logs or changes)
+        const stream = fs.createReadStream(path, { start: fileOffset });
+        let fileData = '';
 
-      stream.on('data', (chunk) => {
-        fileData += chunk.toString(); // Collect the file data as a string
-      });
+        stream.on('data', (chunk) => {
+          fileData += chunk.toString(); // Collect the file data as a string
+        });
 
-      stream.on('end', () => {
-        // Emit the file content in chunks
-        let index = 0;
-        while (index < fileData?.length) {
-          const chunk = fileData?.slice(index, index + CHUNK_SIZE); // Get the next chunk
-          
-          io.emit('logUpdate', chunk);  
-          index += CHUNK_SIZE; // Move to the next chunk
-        }
+        stream.on('end', () => {
+          // Emit the file content in chunks
+          let index = 0;
+          while (index < fileData?.length) {
+            const chunk = fileData?.slice(index, index + CHUNK_SIZE); // Get the next chunk
 
-        // Update the file offset for the next read
-        fileOffset = fileStats.size;
-      });
+            io.emit('logUpdate', chunk);
+            index += CHUNK_SIZE; // Move to the next chunk
+          }
 
-      stream.on('error', (err) => {
-        console.error('Error reading log file:', err);
-      });
+          // Update the file offset for the next read
+          fileOffset = fileStats.size;
+        });
+
+        stream.on('error', (err) => {
+          console.error('Error reading log file:', err);
+        });
       } catch (error) {
         logger.error(`Error emitting log data: ${error}`);
       }
