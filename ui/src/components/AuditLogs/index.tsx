@@ -14,6 +14,7 @@ import {
     FilterOption
 } from './auditLogs.interface';
 import './index.scss';
+import { auditLogsConstants } from '../../utilities/constants';
 import AuditFilterModal from '../AuditFilterModal';
 const AuditLogs: React.FC = () => {
     const params = useParams<{ projectId?: string }>();
@@ -161,13 +162,12 @@ const AuditLogs: React.FC = () => {
                 setIsFilterDropdownOpen(true);
             }
             setIsFilterDropdownOpen(true);
-            console.info('isFilterDropdownOpen', isFilterDropdownOpen);
         };
 
         const iconProps = {
             className: isFilterApplied
-                ? 'filterWithAppliedIcon Icon--v2 Icon--medium'
-                : 'defaultFilterIcon Icon--v2 Icon--medium',
+                ? auditLogsConstants.filterIcon.filterOn
+                : auditLogsConstants.filterIcon.filterOff,
             withTooltip: true,
             tooltipContent: 'Filter',
             tooltipPosition: 'left'
@@ -186,7 +186,7 @@ const AuditLogs: React.FC = () => {
                 }
                 setFilterValue(filterValueCopy);
             } catch (error) {
-                console.error('Error updating filter value:', error);
+                // console.error('Error updating filter value:', error);
             }
         };
         const handleClickOutside = () => {
@@ -383,7 +383,7 @@ const AuditLogs: React.FC = () => {
                     options={stackOptions}
                     width="220px"
                     maxWidth="220px"
-                    placeholder="Select Stack"
+                    placeholder={auditLogsConstants.placeholders.selectStack}
                     isSearchable
                     version="v2"
                     isDisabled={loading}
@@ -397,7 +397,7 @@ const AuditLogs: React.FC = () => {
                     options={fileOptions}
                     width="220px"
                     maxWidth="220px"
-                    placeholder="Select Module"
+                    placeholder={auditLogsConstants.placeholders.selectModule}
                     isSearchable
                     version="v2"
                     isDisabled={loading || !selectedStack || fileOptions.length === 0}
@@ -428,7 +428,7 @@ const AuditLogs: React.FC = () => {
                 isRowSelect={false}
                 columnSelector={false}
                 canSearch={true}
-                searchPlaceholder={'Search Audit Logs'}
+                searchPlaceholder={auditLogsConstants.placeholders.searchLogs}
                 searchValue={searchText}
                 onSearchChangeEvent={handleSearchChange}
                 withExportCta={{
@@ -437,18 +437,18 @@ const AuditLogs: React.FC = () => {
                 }}
                 customEmptyState={
                     <EmptyState
-                        heading={selectedStack && selectedFile ? 'No Matching Result Found' : 'No Logs Found'}
+                        heading={selectedStack && selectedFile ? auditLogsConstants.noResult : auditLogsConstants.noLogs}
                         description={
                             !selectedStack
-                                ? `Try executing Test Migration`
+                                ? auditLogsConstants.executeTestMigration
                                 : selectedStack && !selectedFile
-                                    ? `Select Module to See the Logs`
-                                    : 'Try Changing the Search Query to find what you are looking for'
+                                    ? auditLogsConstants.selectModuleMessage
+                                    : auditLogsConstants.queryChangeMessage
                         }
                         moduleIcon={
                             (selectedStack && !selectedFile) || !selectedStack
-                                ? 'NoDataEmptyState'
-                                : 'NoSearchResult'
+                                ? auditLogsConstants.emptyStateIcon.noLogs
+                                : auditLogsConstants.emptyStateIcon.noMatch
                         }
                         type="secondary"
                         className="custom-empty-state"
