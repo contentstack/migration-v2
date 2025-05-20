@@ -60,7 +60,7 @@ router.post(
 );
 
 router.get(
-  "/get_migration_logs/:orgId/:projectId/:stackId",
+  "/get_migration_logs/:orgId/:projectId/:stackId/:skip/:limit/:startIndex/:stopIndex/:searchText/:filter",
   asyncRouter(migrationController.getLogs)
 
 )
