@@ -118,3 +118,25 @@ export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
   wordpress: '',
   drupal: ''
 };
+export const auditLogsConstants = {
+  executeTestMigration: 'Try executing Test Migration',
+  selectModuleMessage: 'Select Module to See the Logs',
+  queryChangeMessage: 'Try Changing the Search Query to find what you are looking for',
+  noResult: 'No Matching Result Found',
+  noLogs: 'No Logs Found',
+  filterIcon: {
+    filterOn: 'filterWithAppliedIcon Icon--v2 Icon--medium',
+    filterOff: 'filterWithAppliedIcon Icon--v2 Icon--medium Icon--disabled'
+  },
+
+  placeholders: {
+    selectStack: 'Select Stack',
+    selectModule: 'Select Module',
+    searchLogs: 'Search Audit Logs',
+  },
+
+  emptyStateIcon: {
+    noLogs: 'NoDataEmptyState',
+    noMatch: 'NoSearchResult'
+  }
+};
