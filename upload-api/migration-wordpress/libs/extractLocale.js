@@ -23,8 +23,7 @@ const extractLocale = (path) => {
     const items = jsonData?.rss?.channel?.item || [];
     items.forEach((item) => {
       if (item['wp:postmeta']) {
-        const postMeta = Array.isArray(item['wp:postmeta'])
-          ? item['wp:postmeta']
+        const postMeta = Array.isArray(item['wp:postmeta'])? item['wp:postmeta']
           : [item['wp:postmeta']];
         postMeta.forEach((meta) => {
           if (meta['wp:meta_key']?.toLowerCase() === 'language' && meta['wp:meta_value']) {

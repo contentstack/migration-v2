@@ -21,6 +21,7 @@ export interface Icons {
   custom?: string;
   tag?: string;
   experience_container?: string;
+  extension?: string;
 }
 export interface SchemaProps {
   contentType?: string;
