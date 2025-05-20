@@ -169,7 +169,7 @@ const Fields: MappingFields = {
     options: {
       'Reference':'reference'
     },
-    type: 'reference',
+    type: '',
   },
   'dropdown': {
     label:'Dropdown',
@@ -205,12 +205,12 @@ const Fields: MappingFields = {
   'app':{
     label: 'Marketplace app',
     options: {'Marketplace app':'app'},
-    type:'app'
+    type:''
   },
   'extension':{
     label: 'Extension',
     options: {'Extension':'extension'},
-    type:'extension'
+    type:''
   }
 
 }
@@ -1240,7 +1240,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
   //utility function to map the source cms field type to content type field type
   function checkConditions(fieldTypeToMatch: string | string[], value: ContentTypesSchema, data: FieldMapType) {
-    const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link','global_field']);  
+    const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link','global_field','json','blocks']);  
     switch (fieldTypeToMatch) {
       case 'text':
         return (
@@ -1266,7 +1266,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       case 'isodate':
         return value?.data_type === 'isodate';
       case 'json':
-        return value?.data_type === 'json';
+        return value?.data_type === 'json' && value?.field_metadata?.allow_json_rte;
       // case 'enum':
       //   return 'enum' in value;
       case 'radio':
@@ -1586,8 +1586,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown'||
          (data?.backupFieldType !== 'extension' && 
           data?.backupFieldType !== 'app' && 
-          data?.otherCmsField !== 'title' &&
-          data?.otherCmsField !== 'url')) && (
+          data?.backupFieldUid !== 'title' &&
+          data?.backupFieldUid !== 'url')) && (
           <div className='advanced-setting-button'>
             <Tooltip
               content="Advanced properties" 

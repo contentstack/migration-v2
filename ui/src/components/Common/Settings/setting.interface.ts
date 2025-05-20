@@ -10,6 +10,7 @@ interface IProject {
   save_project: CTA;
   email: string;
   description_placeholder: string;
+  back_button: string;
 }
 /**
  * Represents a Call to Action (CTA) object.
@@ -20,6 +21,7 @@ interface CTA {
   title: string;
   url: string;
   with_icon: boolean;
+  icon: string 
 }
 interface IExecutionLogs {
   title: string;
