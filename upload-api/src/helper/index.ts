@@ -2,7 +2,7 @@ import rateLimit from "express-rate-limit";
 import fs from "fs";
 import path from "path";
 import xml2js from 'xml2js'
-import { HTTP_TEXTS, HTTP_CODES, MIGRATION_DATA_CONFIG } from '../constants';
+import { HTTP_TEXTS, HTTP_CODES} from '../constants';
 import logger from "../utils/logger";
 
 const getFileName = (params: { Key: string }) => {

@@ -6,7 +6,7 @@ const { extractContentTypes, contentTypeMaker, extractLocale } = require('migrat
 
 
 
-const createWordpressMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: object) => {
+const createWordpressMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[]) => {
   try {
     
     const localeData = await extractLocale(filePath);
@@ -31,7 +31,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
         },
         data: JSON.stringify(fieldMapping),
       };
-      const {data, status} = await axios.request(config);
+      const {data} = await axios.request(config);
       if (data?.data?.content_mapper?.length) {
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,

@@ -23,7 +23,7 @@ async function aemValidator({ data }: ValidatorProps) {
     for (const fileName of fileNames) {
       const file: any = data?.files?.[fileName];
       if (!file?.dir) {
-        const content = await file.async('string');
+        // const content = await file.async('string');
         if (`content.${test}.root`) {
           return true;
         }

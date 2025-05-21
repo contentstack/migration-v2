@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import Config from '../../models/wordpress.json';
 import * as Cheerio from 'cheerio';
 

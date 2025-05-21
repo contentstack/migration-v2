@@ -68,9 +68,13 @@ const login = async (req: Request): Promise<LoginServiceType> => {
       };
     } else {
       const orgs = (res?.data?.user?.organizations || [])
-        ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
+        ?.filter((org: any) => org?.org_roles?.some((item: any) => item?.admin))
         ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
-      if (!orgs.length) {
+
+      const ownerOrgs = (res?.data?.user?.organizations || [])?.filter((org:any)=> org?.is_owner)
+      ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
+
+      if (!orgs?.length && ! ownerOrgs?.length) {
         throw new BadRequestError(HTTP_TEXTS.ADMIN_LOGIN_ERROR);
       }
     }
