@@ -36,7 +36,7 @@ const idArray = require('../utils/restrictedKeyWords');
  */
 const uidCorrector = (uid, prefix) => {
   let newId = uid;
-  if (idArray.includes(uid)) {
+  if (idArray.includes(uid) || uid.startsWith('_ids') || uid.endsWith('_ids')) {
     newId = uid.replace(uid, `${prefix}_${uid}`);
     newId = newId.replace(/[^a-zA-Z0-9]+/g, '_');
   }
