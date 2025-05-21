@@ -1200,7 +1200,7 @@ const updateContentMapper = async (req: Request) => {
   )) as number;
 
   try {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].mapperKeys = content_mapper;
       data.projects[projectIndex].updated_at = new Date().toISOString();
     });
