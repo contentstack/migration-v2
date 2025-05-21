@@ -78,7 +78,6 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-sitecore == 'true' ||
@@ -88,7 +87,7 @@ jobs:
                 git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.SITECORE_REPO }}.git
                 cd migration-tool-sitecore
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-                git pull origin ${{ env.BRANCH }}
+                git pull --rebase origin ${{ env.BRANCH }}
 
                 # Cleanup step to remove unused or deleted file references
                 echo "Cleaning up unused or deleted file references..."
@@ -98,8 +97,7 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 # echo "Installing ESLint dependencies..."
-                npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
-
+                npm install --save-dev eslint eslint-plugin-import @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
@@ -107,6 +105,7 @@ jobs:
                     const js = require("@eslint/js");
                     const globals = require("globals");
                     const tsPlugin = require("@typescript-eslint/eslint-plugin");
+                    const importPlugin = require("eslint-plugin-import");
 
                 module.exports = [
                 js.configs.recommended,
@@ -119,6 +118,7 @@ jobs:
                     },
                     plugins: {
                     "@typescript-eslint": tsPlugin,
+                    import: importPlugin,
                     },
                     rules: {
                     "no-unused-vars": "warn",
@@ -128,6 +128,7 @@ jobs:
                     "@typescript-eslint/no-explicit-any": "off",
                     "no-constant-condition": "off",
                     "no-constant-binary-expression": "off",
+                    "import/no-unresolved": 'off',
                     }
                 }
                 ];
@@ -139,52 +140,15 @@ jobs:
                 npm install eslint -g
                 eslint . --fix --ignore-pattern "cli/**"
 
-                # echo "Running autoflake to remove unused imports..."
-                # pip install autoflake
-                # autoflake --remove-all-unused-imports --recursive --in-place .
-
-                # echo "Running ts-prune to remove unused file references..."
-                # npm install -g ts-prune
-                # ts-prune | awk '{print $1}' | xargs rm -f
-
                 rsync -av --delete ${{ env.RSYNC_SITECORE_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
-                rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_SITECORE_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-sitecore/ ./upload-api/migration-sitecore/
-
-                # Ensure tsconfig.json exists, create a default one if missing
-                # if [ ! -f "tsconfig.json" ]; then
-                #     echo "Creating default tsconfig.json..."
-                #     cat <<EOL > tsconfig.json
-                # {
-                #     "compilerOptions": {
-                #     "target": "ES6",
-                #     "module": "CommonJS",
-                #     "strict": true,
-                #     "esModuleInterop": true,
-                #     "skipLibCheck": true,
-                #     "forceConsistentCasingInFileNames": true
-                #     },
-                #     "include": ["src/**/*"],
-                #     "exclude": ["node_modules", "dist"]
-                # }
-                # EOL
-                # fi
-
-                # Remove unused imports
-                # npx ts-remove-unused-imports api/
-                # npx ts-remove-unused-imports ui/
-                # npx ts-remove-unused-imports upload-api/
-
-                # Remove missing imports
-                # npx ts-prune | grep -E '^(api/|ui/|upload-api/)/' | awk '{print $1}' | xargs -I {} sed -i '/import/d' {}
-
-                # # Format code
-                # npx prettier --write .
-
-                # eslint api/ ui/ upload-api/ --rule 'import/no-unresolved: error' --format compact | awk -F ':' '{print $1}' | sort -u | xargs -I {} sed -i '/import/d' {}
-
+                node remove-broken-imports.js
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to commit. Skipping push."
+                    exit 0
+                fi
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
                 git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
@@ -194,13 +158,16 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-sitecore == 'true' ||
                     steps.file_changes.outputs.index == 'true'
                 )
             run: |
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to commit. Skipping PR creation."
+                    exit 0
+                fi
                 gh pr create --repo ${{ env.SITECORE_REPO }} \
                     --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
                     --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
@@ -214,7 +181,6 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-contentful == 'true' ||
@@ -224,7 +190,7 @@ jobs:
                 git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.CONTENTFUL_REPO }}.git
                 cd migration-tool-contentful
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-                git pull origin ${{ env.BRANCH }}
+                git pull --rebase origin ${{ env.BRANCH }}
 
                 # Cleanup step to remove unused or deleted file references
                 echo "Cleaning up unused or deleted file references..."
@@ -234,14 +200,16 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 echo "Installing ESLint dependencies..."
-                npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
+                npm install --save-dev eslint eslint-plugin-import @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
+
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
                 const js = require("@eslint/js");
                 const globals = require("globals");
-
+                const tsPlugin = require("@typescript-eslint/eslint-plugin");
+                const importPlugin = require("eslint-plugin-import");
                 module.exports = [
                 js.configs.recommended,
                 {
@@ -249,15 +217,21 @@ jobs:
                     ecmaVersion: "latest",
                     sourceType: "module",
                     globals: globals.node,
+                    parser: require("@typescript-eslint/parser"),
+                    },
+                    plugins: {
+                    "@typescript-eslint": tsPlugin,
+                    import: importPlugin,
                     },
                     rules: {
                     "no-unused-vars": "warn",
                     "no-console": "off",
-                    "@typescript-eslint/no-var-requires": 'off',
                     "@typescript-eslint/no-var-requires": "off",
                     "no-prototype-builtins": "off",
                     "@typescript-eslint/no-explicit-any": "off",
-                    "no-constant-condition": "off"
+                    "no-constant-condition": "off",
+                    "no-constant-binary-expression": "off",
+                    "import/no-unresolved": 'off',
                     }
                 }
                 ];
@@ -279,10 +253,14 @@ jobs:
                 ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_CONTENTFUL_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
-                rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_CONTENTFUL_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-contentful/ ./upload-api/migration-contentful/
+                node remove-broken-imports.js
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to commit. Skipping push."
+                    exit 0
+                fi
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
                 git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
@@ -292,13 +270,16 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-contentful == 'true' ||
                     steps.file_changes.outputs.index == 'true'
                 )
             run: |
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to commit. Skipping PR creation."
+                    exit 0
+                fi
                 gh pr create --repo ${{ env.CONTENTFUL_REPO }} \
                     --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
                     --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
@@ -312,7 +293,6 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-wordpress == 'true' ||
@@ -322,7 +302,7 @@ jobs:
                 git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ env.WORDPRESS_REPO }}.git
                 cd migration-tool-wordpress
                 git checkout -b sync-from-migration-v2-${{ github.event.pull_request.number }}
-                git pull origin ${{ env.BRANCH }}
+                git pull --rebase origin ${{ env.BRANCH }}
 
                 # Cleanup step to remove unused or deleted file references
                 echo "Cleaning up unused or deleted file references..."
@@ -332,14 +312,16 @@ jobs:
                 git gc --prune=now  # Garbage collect and prune unreachable objects
 
                 echo "Installing ESLint dependencies..."
-                npm install --save-dev eslint @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
+                npm install --save-dev eslint eslint-plugin-import @eslint/js globals @typescript-eslint/eslint-plugin @typescript-eslint/parser
+
 
                 if [ ! -f "eslint.config.cjs" ]; then
                     echo "Creating default ESLint config..."
                     cat <<EOL > eslint.config.cjs
                 const js = require("@eslint/js");
                 const globals = require("globals");
-
+                const tsPlugin = require("@typescript-eslint/eslint-plugin");
+                const importPlugin = require("eslint-plugin-import");
                 module.exports = [
                 js.configs.recommended,
                 {
@@ -347,21 +329,26 @@ jobs:
                     ecmaVersion: "latest",
                     sourceType: "module",
                     globals: globals.node,
+                    parser: require("@typescript-eslint/parser"),
+                    },
+                    plugins: {
+                    "@typescript-eslint": tsPlugin,
+                    import: importPlugin,
                     },
                     rules: {
                     "no-unused-vars": "warn",
                     "no-console": "off",
-                    "@typescript-eslint/no-var-requires": 'off',
                     "@typescript-eslint/no-var-requires": "off",
                     "no-prototype-builtins": "off",
                     "@typescript-eslint/no-explicit-any": "off",
-                    "no-constant-condition": "off"
+                    "no-constant-condition": "off",
+                    "no-constant-binary-expression": "off",
+                    "import/no-unresolved": 'off',
                     }
                 }
                 ];
                 EOL
                 fi
-
 
                 # Remove unused imports and missing file references
                 echo "Running ESLint to remove unused imports..."
@@ -377,10 +364,14 @@ jobs:
                 ts-prune | awk '{print $1}' | xargs rm -f
 
                 rsync -av --delete ${{ env.RSYNC_WORDPRESS_API_SRC_SERVICES_EXCLUDES }} ../api/ ./api/
-                rsync -av --delete ../cli/ ./cli/
                 rsync -av --delete ../ui/ ./ui/
                 rsync -av --delete ${{ env.RSYNC_WORDPRESS_UPLOAD_API_SRC_EXCLUDES }} ../upload-api/src/ ./upload-api/src/
                 rsync -av --delete ../upload-api/migration-wordpress/ ./upload-api/migration-wordpress/
+                node remove-broken-imports.js
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to commit. Skipping push."
+                    exit 0
+                fi
                 git add .
                 git commit -m "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}"
                 git push origin sync-from-migration-v2-${{ github.event.pull_request.number }}
@@ -390,13 +381,16 @@ jobs:
                 env.merged == 'true' &&
                 (
                     steps.file_changes.outputs.api == 'true' ||
-                    steps.file_changes.outputs.cli == 'true' ||
                     steps.file_changes.outputs.ui == 'true' ||
                     steps.file_changes.outputs.upload-api == 'true' ||
                     steps.file_changes.outputs.migration-wordpress == 'true' ||
                     steps.file_changes.outputs.index == 'true'
                 )
             run: |
+                if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to commit. Skipping PR creation."
+                    exit 0
+                fi
                 gh pr create --repo ${{ env.WORDPRESS_REPO }} \
                     --title "Sync changes from migration-v2 PR #${{ github.event.pull_request.number }}" \
                     --body "This PR syncs changes from migration-v2:\n${{ github.event.pull_request.html_url }}" \
