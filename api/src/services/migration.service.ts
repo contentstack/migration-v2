@@ -172,42 +172,14 @@ const getAuditData = async (req: Request): Promise<any> => {
       throw new BadRequestError("Audit log path not found");
     }
 
-    const files = fs.readdirSync(auditLogPath);
-    const jsonFiles = files.filter(file => file.endsWith('.json'));
 
-    let fileData = null;
-    let fileName = null;
-
-    for (const file of jsonFiles) {
-      const fileModuleName = file.replace('.json', '');
-
-      if (fileModuleName === moduleName) {
-        const filePath = path.resolve(auditLogPath, file); // Resolve path
-        if (!filePath.startsWith(auditLogPath)) {
-          throw new BadRequestError("Invalid file path");
-        }
-
-        try {
-          const content = fs.readFileSync(filePath, 'utf8');
-          fileData = JSON.parse(content);
-          fileName = file;
-          break;
-        } catch (err) {
-          logger.warn(
-            getLogMessage(
-              srcFunc,
-              `Failed to parse JSON file for module ${moduleName}: ${file}`
-            )
-          );
-          fileData = {
-            error: 'Failed to parse file',
-          };
-          fileName = file;
-          break;
-        }
-      }
+    // Read and parse the JSON file for the module
+    const filePath = path.resolve(auditLogPath, `${moduleName}.json`);
+    let fileData;
+    if (fs.existsSync(filePath)) {
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      fileData = JSON.parse(fileContent);
     }
-
 
     // If no matching module was found
     if (!fileData) {
