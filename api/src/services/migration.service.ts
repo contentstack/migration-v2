@@ -177,7 +177,7 @@ const getAuditData = async (req: Request): Promise<any> => {
     const filePath = path.resolve(auditLogPath, `${moduleName}.json`);
     let fileData;
     if (fs.existsSync(filePath)) {
-      const fileContent = fs.readFileSync(filePath, 'utf8');
+      const fileContent = await fsPromises.readFile(filePath, 'utf8');
       fileData = JSON.parse(fileContent);
     }
 
