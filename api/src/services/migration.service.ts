@@ -167,7 +167,7 @@ const getAuditData = async (req: Request): Promise<any> => {
       throw new BadRequestError("Migration data not found for this stack");
     }
 
-    const auditLogPath = path.join(logsDir, stackFolder, "logs", "audit", "audit-report");
+    const auditLogPath = path.resolve(logsDir, stackFolder, "logs", "audit", "audit-report");
     if (!fs.existsSync(auditLogPath)) {
       throw new BadRequestError("Audit log path not found");
     }
@@ -182,7 +182,11 @@ const getAuditData = async (req: Request): Promise<any> => {
       const fileModuleName = file.replace('.json', '');
 
       if (fileModuleName === moduleName) {
-        const filePath = path.join(auditLogPath, file);
+        const filePath = path.resolve(auditLogPath, file); // Resolve path
+        if (!filePath.startsWith(auditLogPath)) {
+          throw new BadRequestError("Invalid file path");
+        }
+
         try {
           const content = fs.readFileSync(filePath, 'utf8');
           fileData = JSON.parse(content);
@@ -203,6 +207,7 @@ const getAuditData = async (req: Request): Promise<any> => {
         }
       }
     }
+
 
     // If no matching module was found
     if (!fileData) {
