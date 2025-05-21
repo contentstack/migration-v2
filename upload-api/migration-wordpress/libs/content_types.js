@@ -16,6 +16,7 @@ const { contentTypes: contentTypesConfig } = config.modules;
 
 const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
 
+
 /**
  * Create folders and files
  */
@@ -31,8 +32,7 @@ var globalPrefix = '';
 const generateUid = (suffix) => {
   const isPresent = restrictedUid?.find((item) => item === globalPrefix);
 
-  return isPresent
-    ? `${globalPrefix
+  return isPresent ? `${globalPrefix
         .replace(/^\d+/, '')
         .replace(/[^a-zA-Z0-9]+/g, '_')
         .replace(/(^_+)|(_+$)/g, '')
@@ -518,8 +518,7 @@ async function extractContentTypes(affix) {
 
     const isPresent = restrictedUid?.find((item) => item === affix);
     globalPrefix = isPresent ? affix : '';
-    const schemaJson = ContentTypesSchema.map(({ title, uid, schema, options }, index) => {
-      //console.log(`Mapping item at index ${index}:`, generateSchema(title, uid, schema, options));
+    const schemaJson = ContentTypesSchema.map(({ title, uid, schema, options }) => {
       return generateSchema(title, uid, schema, options);
     });
 
