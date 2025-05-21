@@ -12,36 +12,38 @@ import './index.scss';
 // Function for get icons
 const getTopLevelIcons = (field: FieldMapType) => {
   const icons: Icons = {
-    title: 'StarSmall',
-    text: 'SingleLineTextSmall',
-    multitext: 'MultiLineTextSmall',
-    rte: 'RichTextEditorSmall',
-    jsonRte: 'SuperchargedRte',
-    markdown: 'MarkdownSmall',
-    select: 'SelectSmall',
-    number: 'NumberSmall',
-    boolean: 'BooleanSmall',
-    isodate: 'DateSmall',
-    file: 'FileSmall',
-    reference: 'ReferenceSmall',
-    group: 'GroupSmall',
-    global_field: 'GlobalSmall',
-    blocks: 'ModularBlocksSmall',
-    link: 'LinkSmall',
+    title: 'Title',
+    text: 'SingleLineText',
+    multitext: 'MultiLineText',
+    rte: 'RichTextEditor',
+    jsonRte: 'JsonRichTextEditor',
+    markdown: 'Markdown',
+    select: 'Select',
+    number: 'Number',
+    boolean: 'Boolean',
+    isodate: 'Date',
+    file: 'File',
+    reference: 'Reference',
+    group: 'Group',
+    global_field: 'Global',
+    blocks: 'ModularBlocks',
+    link: 'Link',
     bullet: 'Bullet',
-    custom: 'CustomSmall',
-    tag: 'TagSmall',
-    experience_container: 'PersonalizationLogoGreySmall'
+    custom: 'Custom',
+    tag: 'Tag',
+    extension: 'Extension'
   };
 
   if (
-    field?.contentstackFieldType === 'Single Line Textbox' ||
-    field?.contentstackFieldType === 'single_line_text'
+    field?.contentstackFieldType === 'text'
   ) {
     return icons['title'];
   }
 
-  if (field?.contentstackFieldType === 'URL' || field?.contentstackFieldType === 'url') {
+  if (field?.contentstackFieldType === 'url') {
+    return icons['text'];
+  }
+  if (field?.contentstackFieldType === 'single_line_text') {
     return icons['text'];
   }
 
@@ -58,14 +60,11 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['select'];
   }
 
-  if (field?.contentstackFieldType === 'Date') {
+  if (field?.contentstackFieldType === 'isodate') {
     return icons['isodate'];
   }
 
-  if (
-    field?.contentstackFieldType === 'Multi Line Textbox' ||
-    field?.contentstackFieldType === 'multi_line_text'
-  ) {
+  if (field?.contentstackFieldType === 'multi_line_text') {
     return icons['multitext'];
   }
 
@@ -76,11 +75,11 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['rte'];
   }
 
-  if (
-    field?.contentstackFieldType === 'JSON Rich Text Editor' ||
-    field?.contentstackFieldType === 'json'
-  ) {
+  if (field?.contentstackFieldType === 'json') {
     return icons['jsonRte'];
+  }
+  if (field?.contentstackFieldType === 'file') {
+    return icons['file'];
   }
 
   if (field?.contentstackFieldType === 'Link') {
@@ -97,6 +96,14 @@ const getTopLevelIcons = (field: FieldMapType) => {
 
   if (!field?.contentstackFieldType) {
     return icons['blocks'];
+  }
+
+  if (field?.contentstackFieldType === 'app') {
+    return icons['custom'];
+  }
+
+  if (field?.contentstackFieldType === 'extension') {
+    return icons['extension'];
   }
 
   return icons[field?.contentstackFieldType as keyof Icons];
@@ -180,7 +187,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
                   {hasNestedValue(field) && (
                     <Icon className={`chevron ${index ? '' : 'close'} `} icon="ChevronExtraSmall" />
                   )}
-                  <Icon icon={getTopLevelIcons(field) as string} className="field-icon" />
+                  <Icon icon={getTopLevelIcons(field) as string} className="field-icon" version='v2' size='small' />
                 </span>
                 <span className="field-title">
                   {getChildFieldName(field?.otherCmsField, item?.otherCmsField)}
@@ -222,7 +229,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
                   >
                     <span className={`icons ${hasNested ? 'nested' : ''}`}>
                       {hasNested && <Icon className={'chevron'} icon="ChevronExtraSmall" />}
-                      <Icon className={'fieldicon'} icon={getTopLevelIcons(item) as string} />
+                      <Icon className={'fieldicon'} icon={getTopLevelIcons(item) as string} version='v2' size='small' />
                     </span>
                     <span className={`field-title`}>{item?.otherCmsField}</span>
                   </button>
