@@ -35,6 +35,7 @@ const idArray = require('../utils/restrictedKeyWords');
  * // Outputs: 'prefix_my_special_id'
  */
 const uidCorrector = (uid, prefix) => {
+  console.log('uidCorrector', uid, prefix);
   let newId = uid;
   if (idArray.includes(uid)) {
     newId = uid.replace(uid, `${prefix}_${uid}`);
@@ -62,7 +63,8 @@ const uidCorrector = (uid, prefix) => {
  *
  * // Outputs: an array of content type objects, each containing metadata and field mappings.
  */
-const createInitialMapper = async () => {
+const createInitialMapper = async (affix="") => {
+  console.log('Creating initial mapper for content types...',config,affix);
   try {
     const initialMapper = [];
     const files = await fs.readdir(
@@ -82,7 +84,7 @@ const createInitialMapper = async () => {
         otherCmsTitle: title,
         otherCmsUid: data[0]?.contentfulID,
         contentstackTitle: title.charAt(0).toUpperCase() + title.slice(1),
-        contentstackUid: uidCorrector(data[0]?.contentUid),
+        contentstackUid: uidCorrector(data[0]?.contentUid,affix),
         type: 'content_type',
         fieldMapping: []
       };
