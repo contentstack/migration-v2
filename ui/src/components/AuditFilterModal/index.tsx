@@ -10,6 +10,9 @@ import { FilterOption } from '../AuditLogs/auditLogs.interface';
 import { auditLogsConstants } from '../../utilities/constants';
 import { AuditFilterModalProps } from './auditlog.interface';
 
+const getKey = (index: number) => {
+    return `audit-filter-${index}`;
+}
 const AuditFilterModal = ({
     isOpen,
     closeModal,
@@ -74,24 +77,28 @@ const AuditFilterModal = ({
                 </div>
             </div>
 
-            <div className="tableFilterModalStories__body">
-                <ul>
-                    {filterOptions.map((item, index) => (
-                        <li key={`${index?.toString()}`}>
+            <div className="tableFilterModalStories__list">
+                {filterOptions?.length > 0 ? (
+                    filterOptions.map((item, index) => (
+                        <div key={getKey(index)} >
                             <div className="tableFilterModalStories__suggestion-item">
                                 <Checkbox
-                                    checked={selectedLevels?.some((v) => v?.value === item?.value) || false}
+                                    checked={selectedLevels?.some((v) => v?.value === item?.value)}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                        updateValue?.({ value: item, isChecked: e?.target?.checked })
+                                        updateValue({ value: item, isChecked: e?.target?.checked })
                                     }
                                     version="v2"
-                                    label={item?.label || ''}
+                                    label={item?.label}
                                     className="text-size"
                                 />
                             </div>
-                        </li>
-                    ))}
-                </ul>
+                        </div>
+                    ))
+                ) : (
+                    <div className="tableFilterModalStories__no-data">
+                        {auditLogsConstants?.filterModal?.noFilterAvailabe}
+                    </div>
+                )}
             </div>
 
             <div className="tableFilterModalStories__footer">
