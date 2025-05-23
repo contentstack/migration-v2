@@ -77,7 +77,7 @@ const AuditFilterModal = ({
             <div className="tableFilterModalStories__list">
                 {filterOptions?.length > 0 ? (
                     filterOptions.map((item, index) => (
-                        <div key={'item' + index?.toString()?.replace(/[^a-zA-Z0-9_.\s-]/g, '')} >
+                        <div key={'item' + index} >
                             <div className="tableFilterModalStories__suggestion-item">
                                 <Checkbox
                                     checked={selectedLevels?.some((v) => v?.value === item?.value)}
