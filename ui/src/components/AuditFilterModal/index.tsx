@@ -10,9 +10,6 @@ import { FilterOption } from '../AuditLogs/auditLogs.interface';
 import { auditLogsConstants } from '../../utilities/constants';
 import { AuditFilterModalProps } from './auditlog.interface';
 
-const getKey = (index: number) => {
-    return `audit-filter-${index}`;
-}
 const AuditFilterModal = ({
     isOpen,
     closeModal,
@@ -80,7 +77,7 @@ const AuditFilterModal = ({
             <div className="tableFilterModalStories__list">
                 {filterOptions?.length > 0 ? (
                     filterOptions.map((item, index) => (
-                        <div key={getKey(index)} >
+                        <div key={'item' + index} >
                             <div className="tableFilterModalStories__suggestion-item">
                                 <Checkbox
                                     checked={selectedLevels?.some((v) => v?.value === item?.value)}
