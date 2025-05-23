@@ -207,7 +207,6 @@ const getAuditData = async (req: Request): Promise<any> => {
           );
         });
       });
-
     }
     if (searchText && searchText !== null && searchText !== "null") {
       transformedData = transformedData?.filter((item: any) => {
