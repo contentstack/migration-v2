@@ -76,21 +76,20 @@ const AuditFilterModal = ({
 
             <div className="tableFilterModalStories__list">
                 {filterOptions?.length > 0 ? (
-                    filterOptions.map((item, index) => (
-                        <div
-                            key={item.value} className="tableFilterModalStories__item-wrapper">
+                    filterOptions.map((item,) => (
+                        <li key={item.value}>
                             <div className="tableFilterModalStories__suggestion-item">
                                 <Checkbox
-                                    checked={selectedLevels?.some((v) => v?.value === item?.value)}
+                                    checked={selectedLevels.some((v) => v.value === item.value)}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                        updateValue({ value: item, isChecked: e?.target?.checked })
+                                        updateValue({ value: item, isChecked: e.target.checked })
                                     }
                                     version="v2"
-                                    label={item?.label}
+                                    label={item.label}
                                     className="text-size"
                                 />
                             </div>
-                        </div>
+                        </li>
                     ))
                 ) : (
                     <div className="tableFilterModalStories__no-data">
