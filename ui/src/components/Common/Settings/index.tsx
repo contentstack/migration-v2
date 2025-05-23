@@ -262,12 +262,11 @@ const Settings = () => {
           </div>
         )}
         {active === cmsData?.execution_logs?.title && (
-            <ExecutionLog projectId={projectId} />
+          <ExecutionLog projectId={projectId} />
         )}
         {active === "AuditLogs" &&
-          <div>
-            <AuditLogs />
-          </div>
+          <AuditLogs />
+
         }
       </div>
     )

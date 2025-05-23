@@ -7,6 +7,7 @@ import https from "../utils/https.utils.js";
 import { LoginServiceType } from "../models/types.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
+import { GET_AUDT_DATA } from "../constants/index.js";
 import {
   HTTP_TEXTS,
   HTTP_CODES,
@@ -118,11 +119,10 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     }
     return {
       data: {
-        data: res.data,
-        url: `${config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
-          }/stack/${res.data.stack.api_key}/dashboard`,
+        data: res?.data,
+        url: `${config?.CS_URL[token_payload?.region as keyof typeof config.CS_URL]}/stack/${res?.data?.stack?.api_key}/dashboard`,
       },
-      status: res.status,
+      status: res?.status,
     };
   } catch (error: any) {
     logger.error(
@@ -142,8 +142,8 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
 };
 
 const getAuditData = async (req: Request): Promise<any> => {
-  const projectId = path.basename(req?.params?.projectId);
-  const stackId = path.basename(req?.params?.stackId);
+  const projectId = path?.basename(req?.params?.projectId);
+  const stackId = path?.basename(req?.params?.stackId);
   const moduleName = path.basename(req?.params?.moduleName);
   const limit = parseInt(req?.params?.limit);
   const startIndex = parseInt(req?.params?.startIndex);
@@ -157,8 +157,8 @@ const getAuditData = async (req: Request): Promise<any> => {
   }
 
   try {
-    const mainPath = process.cwd().split("migration-v2")[0];
-    const logsDir = path.join(mainPath, "migration-v2", "api", "migration-data");
+    const mainPath = process?.cwd()?.split?.(GET_AUDT_DATA?.MIGRATION)?.[0];
+    const logsDir = path.join(mainPath, GET_AUDT_DATA?.MIGRATION, GET_AUDT_DATA?.API_DIR, GET_AUDT_DATA?.MIGRATION_DATA_DIR);
 
     const stackFolders = fs.readdirSync(logsDir);
 
@@ -167,67 +167,55 @@ const getAuditData = async (req: Request): Promise<any> => {
       throw new BadRequestError("Migration data not found for this stack");
     }
 
-    const auditLogPath = path.resolve(logsDir, stackFolder, "logs", "audit", "audit-report");
+    const auditLogPath = path.resolve(logsDir, stackFolder, GET_AUDT_DATA?.LOGS_DIR, GET_AUDT_DATA?.AUDIT_DIR, GET_AUDT_DATA?.AUDIT_REPORT);
     if (!fs.existsSync(auditLogPath)) {
       throw new BadRequestError("Audit log path not found");
     }
 
 
     // Read and parse the JSON file for the module
-    const filePath = path.resolve(auditLogPath, `${moduleName}.json`);
+    const filePath = path?.resolve(auditLogPath, `${moduleName}.json`);
     let fileData;
     if (fs.existsSync(filePath)) {
       const fileContent = await fsPromises.readFile(filePath, 'utf8');
-      fileData = JSON.parse(fileContent);
+      try {
+        if (typeof fileContent === 'string') {
+          fileData = JSON.parse(fileContent);
+        }
+      } catch (error) {
+        logger.error(`Error parsing JSON from file ${filePath}:`, error);
+        throw new BadRequestError('Invalid JSON format in audit file');
+      }
     }
 
-    // If no matching module was found
     if (!fileData) {
       throw new BadRequestError(`No audit data found for module: ${moduleName}`);
     }
-    // Transform and flatten the data with sequential tuid
-    const filterKey = moduleName === 'Entries_Select_feild' ? 'display_type' : 'data_type';
-    console.info("🚀 ~ getAuditData ~ filterKey:", filterKey)
-
     let transformedData = transformAndFlattenData(fileData);
-    // console.info(transformedData)
-    if (filter != "all") {
+    if (filter != GET_AUDT_DATA?.FILTERALL) {
       const filters = filter.split("-");
-      moduleName === 'Entries_Select_feild' ? transformedData = transformedData.filter((log) => {
+      transformedData = transformedData.filter((log) => {
         return filters.some((filter) => {
-          //eslint-disable-next-line
-          console.log("🚀 ~ getAuditData ~ filter:", log)
           return (
             log?.display_type?.toLowerCase()?.includes(filter?.toLowerCase())
           );
         });
-      }) : transformedData = transformedData.filter((log) => {
-        return filters.some((filter) => {
-          return (
-            log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase())
-          );
-        });
       });
-
     }
-    // Apply search filter if searchText is provided and not "null"
-    if (searchText && searchText !== "null") {
-      transformedData = transformedData.filter((item: any) => {
-        // Adjust these fields based on your actual audit data structure
+    if (searchText && searchText !== null && searchText !== "null") {
+      transformedData = transformedData?.filter((item: any) => {
         return Object.values(item).some(value =>
           value &&
           typeof value === 'string' &&
-          value.toLowerCase().includes(searchText.toLowerCase())
+          value?.toLowerCase?.()?.includes(searchText.toLowerCase())
         );
       });
     }
-
-    // Apply pagination
-    const paginatedData = transformedData.slice(startIndex, stopIndex);
+    const paginatedData = transformedData?.slice?.(startIndex, stopIndex);
 
     return {
       data: paginatedData,
-      totalCount: transformedData.length
+      totalCount: transformedData?.length
     };
 
   } catch (error: any) {
@@ -257,36 +245,32 @@ const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: num
       // If data is already an array, use it directly
       data.forEach((item, index) => {
         flattenedItems.push({
-          ...item,
-          uid: item.uid || `item-${index}`
+          ...item ?? {},
+          uid: item?.uid || `item-${index}`
         });
       });
     } else if (typeof data === 'object' && data !== null) {
-      // Process object data
       Object.entries(data).forEach(([key, value]) => {
         if (Array.isArray(value)) {
-          // If property contains an array, flatten each item
           value.forEach((item, index) => {
-            flattenedItems.push({
-              ...item,
+            flattenedItems?.push({
+              ...item ?? {},
               parentKey: key,
               uid: item.uid || `${key}-${index}`
             });
           });
         } else if (typeof value === 'object' && value !== null) {
-          // If property contains an object, add it as an item
-          flattenedItems.push({
+          flattenedItems?.push({
             ...value,
             key,
-            uid: (value as any).uid || key
+            uid: (value as any)?.uid || key
           });
         }
       });
     }
 
-    // Add sequential tuid to each item
     return flattenedItems.map((item, index) => ({
-      ...item,
+      ...item ?? {},
       id: index + 1
     }));
   } catch (error) {
