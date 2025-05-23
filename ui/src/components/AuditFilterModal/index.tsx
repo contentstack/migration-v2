@@ -46,10 +46,10 @@ const AuditFilterModal = ({
 
     useEffect(() => {
         if (isOpen && modalRef.current) {
-            const modalElement = modalRef?.current;
-            const rect = modalElement?.getBoundingClientRect();
-            const viewportHeight = window?.innerHeight;
-            const viewportWidth = window?.innerWidth;
+            const modalElement = modalRef.current;
+            const rect = modalElement.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
 
             if (rect.bottom > viewportHeight) {
                 modalElement.classList.add('position-bottom');
@@ -74,10 +74,10 @@ const AuditFilterModal = ({
                 </div>
             </div>
 
-            <ul>
+            <div className="tableFilterModalStories__list">
                 {filterOptions?.length > 0 ? (
                     filterOptions.map((item) => (
-                        <li key={item?.value}>
+                        <div key={item.value} className="tableFilterModalStories__item-wrapper">
                             <div className="tableFilterModalStories__suggestion-item">
                                 <Checkbox
                                     checked={selectedLevels?.some((v) => v?.value === item?.value)}
@@ -89,14 +89,14 @@ const AuditFilterModal = ({
                                     className="text-size"
                                 />
                             </div>
-                        </li>
+                        </div>
                     ))
                 ) : (
                     <div className="tableFilterModalStories__no-data">
                         {auditLogsConstants?.filterModal?.noFilterAvailabe}
                     </div>
                 )}
-            </ul>
+            </div>
 
             <div className="tableFilterModalStories__footer">
                 <Button
