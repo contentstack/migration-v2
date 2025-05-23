@@ -1,6 +1,6 @@
 import { FilterOption } from "../AuditLogs/auditLogs.interface";
 
-export type FilterModaleProps = {
+export type AuditFilterModalProps = {
     isOpen: boolean;
     closeModal: () => void;
     updateValue: (params: { value: FilterOption; isChecked: boolean }) => void;

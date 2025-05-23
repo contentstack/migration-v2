@@ -41,10 +41,10 @@ const AuditLogs: React.FC = () => {
     const label1 = useSelector((state: RootState) => state?.migration?.newMigrationData?.stackDetails?.label);
     const value1 = useSelector((state: RootState) => state?.migration?.newMigrationData?.stackDetails?.value);
     useEffect(() => {
-        if (stacks && stacks.length > 0) {
+        if (stacks && stacks?.length > 0) {
             const formattedOptions: StackOption[] = stacks.map((stack: any) => ({
-                label: stack.stackName,
-                value: stack.stackUid,
+                label: stack?.stackName,
+                value: stack?.stackUid,
                 ...stack
             }));
             if (isMigDone && label1 && value1) {
@@ -113,13 +113,12 @@ const AuditLogs: React.FC = () => {
                 searchText,
                 filter
             );
-            if (response.data) {
-                // Only update the state if this is not being called as part of table's internal operations
-                setTableData(response.data.data || []);
-                setTotalCounts(response.data.totalCount || 0);
+            if (response?.data) {
+                setTableData(response?.data?.data || []);
+                setTotalCounts(response?.data?.totalCount || 0);
                 return {
-                    data: response.data.data || [],
-                    count: response.data.totalCount || 0
+                    data: response?.data?.data || [],
+                    count: response?.data?.totalCount || 0
                 };
             }
             return { data: [], count: 0 };
@@ -245,7 +244,7 @@ const AuditLogs: React.FC = () => {
                     onApply={onApply}
                     selectedLevels={filterValue}
                     setFilterValue={setFilterValue}
-                    selectedFileType={selectedFile?.value}
+                    selectedFileType={selectedFile?.value ?? ''}
                 />
             </div>
         );
@@ -410,7 +409,7 @@ const AuditLogs: React.FC = () => {
         <div className="audit-logs-Table">
             <InfiniteScrollTable
                 key={tableKey}
-                tableHeight={570}
+                tableHeight={580}
                 itemSize={80}
                 data={tableData}
                 columns={dropDownOptions == 'content-types' || dropDownOptions == 'global-fields' ? contentTypeHeader : entryHeader}

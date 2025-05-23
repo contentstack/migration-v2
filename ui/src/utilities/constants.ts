@@ -177,5 +177,10 @@ export const auditLogsConstants = {
   emptyStateIcon: {
     noLogs: 'NoDataEmptyState',
     noMatch: 'NoSearchResult'
+  },
+  filterModal: {
+    noFilterAvailabe: 'No Filters Available',
+    clearAll: 'Clear All',
+    apply: 'Apply'
   }
 };
