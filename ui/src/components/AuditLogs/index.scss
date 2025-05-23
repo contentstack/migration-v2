@@ -22,24 +22,7 @@
     justify-content: space-between;
 }
 
-.Table__head {
-    height: auto;
-}
 
 .Table:has(.custom-empty-state) {
     height: 40.5rem;
-}
-
-.custom-empty-state {
-    .Icon--original {
-        width: 240px !important;
-        height: auto !important;
-        max-width: 100%;
-        display: block;
-        margin: 0 auto;
-    }
-}
-
-.TablePanel__list-count flex-v-center {
-    display: none;
 }
