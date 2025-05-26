@@ -51,7 +51,7 @@ const deleteTestStack = async (req: Request, res: Response): Promise<void> => {
 };
 const getAuditData = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.getAuditData(req);
-  res.status(resp?.status).json(resp);
+  res.status(200).json(resp);
 };
 const getLogs = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.getLogs(req);
