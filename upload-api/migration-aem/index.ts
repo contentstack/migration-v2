@@ -1,7 +1,7 @@
 
 import convertContentType from "./libs/contentType";
 
-convertContentType("bsidb")
+convertContentType("/Users/umesh.more/Documents/aem_data_structure")
 
 export {
   convertContentType
