@@ -192,15 +192,22 @@ const getAuditData = async (req: Request): Promise<any> => {
       throw new BadRequestError(`No audit data found for module: ${moduleName}`);
     }
     let transformedData = transformAndFlattenData(fileData);
-    if (filter != GET_AUDT_DATA?.FILTERALL) {
+    if (filter != GET_AUDT_DATA.FILTERALL) {
       const filters = filter.split("-");
-      transformedData = transformedData.filter((log) => {
+      moduleName === 'Entries_Select_feild' ? transformedData = transformedData.filter((log) => {
         return filters.some((filter) => {
           return (
             log?.display_type?.toLowerCase()?.includes(filter?.toLowerCase())
           );
         });
+      }) : transformedData = transformedData.filter((log) => {
+        return filters.some((filter) => {
+          return (
+            log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase())
+          );
+        });
       });
+
     }
     if (searchText && searchText !== null && searchText !== "null") {
       transformedData = transformedData?.filter((item: any) => {
