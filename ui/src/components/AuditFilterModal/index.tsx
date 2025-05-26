@@ -27,7 +27,8 @@ const AuditFilterModal = ({
         if (selectedFileType?.includes?.('content-types') || selectedFileType?.includes?.('global-fields')) {
             return [
                 { label: 'global_field', value: 'global_field' },
-                { label: 'reference', value: 'reference' }
+                { label: 'reference', value: 'reference' },
+                { label: 'group', value: 'group' },
             ];
         }
 
@@ -77,7 +78,7 @@ const AuditFilterModal = ({
             <div className="tableFilterModalStories__list">
                 {filterOptions?.length > 0 ? (
                     filterOptions.map((item, index) => (
-                        <div key={'item' + index?.toString()?.replace(/[^a-zA-Z0-9_.\s-]/g, '')} >
+                        <div key={''} >
                             <div className="tableFilterModalStories__suggestion-item">
                                 <Checkbox
                                     checked={selectedLevels?.some((v) => v?.value === item?.value)}
