@@ -7,7 +7,7 @@ import https from "../utils/https.utils.js";
 import { LoginServiceType } from "../models/types.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
-import { GET_AUDT_DATA } from "../constants/index.js";
+import { GET_AUIDT_DATA } from "../constants/index.js";
 import {
   HTTP_TEXTS,
   HTTP_CODES,
@@ -135,7 +135,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     );
 
     throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.message || HTTP_TEXTS?.INTERNAL_ERROR,
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
@@ -152,22 +152,22 @@ const getAuditData = async (req: Request): Promise<any> => {
   const filter = req?.params?.filter;
   const srcFunc = "getAuditData";
 
-  if (projectId.includes('..') || stackId.includes('..') || moduleName.includes('..')) {
+  if (projectId?.includes('..') || stackId?.includes('..') || moduleName?.includes('..')) {
     throw new BadRequestError("Invalid projectId, stackId, or moduleName");
   }
 
   try {
-    const mainPath = process?.cwd()?.split?.(GET_AUDT_DATA?.MIGRATION)?.[0];
-    const logsDir = path.join(mainPath, GET_AUDT_DATA?.MIGRATION, GET_AUDT_DATA?.API_DIR, GET_AUDT_DATA?.MIGRATION_DATA_DIR);
+    const mainPath = process?.cwd()?.split?.(GET_AUIDT_DATA?.MIGRATION)?.[0];
+    const logsDir = path.join(mainPath, GET_AUIDT_DATA?.MIGRATION, GET_AUIDT_DATA?.API_DIR, GET_AUIDT_DATA?.MIGRATION_DATA_DIR);
 
     const stackFolders = fs.readdirSync(logsDir);
 
-    const stackFolder = stackFolders.find(folder => folder.startsWith(stackId));
+    const stackFolder = stackFolders?.find(folder => folder?.startsWith?.(stackId));
     if (!stackFolder) {
       throw new BadRequestError("Migration data not found for this stack");
     }
 
-    const auditLogPath = path.resolve(logsDir, stackFolder, GET_AUDT_DATA?.LOGS_DIR, GET_AUDT_DATA?.AUDIT_DIR, GET_AUDT_DATA?.AUDIT_REPORT);
+    const auditLogPath = path?.resolve(logsDir, stackFolder, GET_AUIDT_DATA?.LOGS_DIR, GET_AUIDT_DATA?.AUDIT_DIR, GET_AUIDT_DATA?.AUDIT_REPORT);
     if (!fs.existsSync(auditLogPath)) {
       throw new BadRequestError("Audit log path not found");
     }
@@ -176,11 +176,11 @@ const getAuditData = async (req: Request): Promise<any> => {
     // Read and parse the JSON file for the module
     const filePath = path?.resolve(auditLogPath, `${moduleName}.json`);
     let fileData;
-    if (fs.existsSync(filePath)) {
+    if (fs?.existsSync(filePath)) {
       const fileContent = await fsPromises.readFile(filePath, 'utf8');
       try {
         if (typeof fileContent === 'string') {
-          fileData = JSON.parse(fileContent);
+          fileData = JSON?.parse(fileContent);
         }
       } catch (error) {
         logger.error(`Error parsing JSON from file ${filePath}:`, error);
@@ -192,16 +192,16 @@ const getAuditData = async (req: Request): Promise<any> => {
       throw new BadRequestError(`No audit data found for module: ${moduleName}`);
     }
     let transformedData = transformAndFlattenData(fileData);
-    if (filter != GET_AUDT_DATA.FILTERALL) {
-      const filters = filter.split("-");
-      moduleName === 'Entries_Select_feild' ? transformedData = transformedData.filter((log) => {
-        return filters.some((filter) => {
+    if (filter != GET_AUIDT_DATA?.FILTERALL) {
+      const filters = filter?.split("-");
+      moduleName === 'Entries_Select_feild' ? transformedData = transformedData?.filter((log) => {
+        return filters?.some((filter) => {
           return (
             log?.display_type?.toLowerCase()?.includes(filter?.toLowerCase())
           );
         });
-      }) : transformedData = transformedData.filter((log) => {
-        return filters.some((filter) => {
+      }) : transformedData = transformedData?.filter((log) => {
+        return filters?.some((filter) => {
           return (
             log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase())
           );
@@ -211,10 +211,10 @@ const getAuditData = async (req: Request): Promise<any> => {
     }
     if (searchText && searchText !== null && searchText !== "null") {
       transformedData = transformedData?.filter((item: any) => {
-        return Object.values(item).some(value =>
+        return Object?.values(item)?.some(value =>
           value &&
           typeof value === 'string' &&
-          value?.toLowerCase?.()?.includes(searchText.toLowerCase())
+          value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
         );
       });
     }
@@ -248,22 +248,22 @@ const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: num
     const flattenedItems: Array<{ [key: string]: any }> = [];
 
     // Handle the data based on its structure
-    if (Array.isArray(data)) {
+    if (Array?.isArray(data)) {
       // If data is already an array, use it directly
       data.forEach((item, index) => {
-        flattenedItems.push({
+        flattenedItems?.push({
           ...item ?? {},
           uid: item?.uid || `item-${index}`
         });
       });
     } else if (typeof data === 'object' && data !== null) {
-      Object.entries(data).forEach(([key, value]) => {
+      Object?.entries?.(data)?.forEach(([key, value]) => {
         if (Array.isArray(value)) {
           value.forEach((item, index) => {
             flattenedItems?.push({
               ...item ?? {},
               parentKey: key,
-              uid: item.uid || `${key}-${index}`
+              uid: item?.uid || `${key}-${index}`
             });
           });
         } else if (typeof value === 'object' && value !== null) {
@@ -276,7 +276,7 @@ const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: num
       });
     }
 
-    return flattenedItems.map((item, index) => ({
+    return flattenedItems?.map((item, index) => ({
       ...item ?? {},
       id: index + 1
     }));

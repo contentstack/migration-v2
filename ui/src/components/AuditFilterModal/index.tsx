@@ -46,18 +46,18 @@ const AuditFilterModal = ({
     };
 
     useEffect(() => {
-        if (isOpen && modalRef.current) {
-            const modalElement = modalRef.current;
-            const rect = modalElement.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            const viewportWidth = window.innerWidth;
+        if (isOpen && modalRef?.current) {
+            const modalElement = modalRef?.current;
+            const rect = modalElement?.getBoundingClientRect();
+            const viewportHeight = window?.innerHeight;
+            const viewportWidth = window?.innerWidth;
 
             if (rect.bottom > viewportHeight) {
-                modalElement.classList.add('position-bottom');
+                modalElement?.classList?.add('position-bottom');
             }
 
             if (rect.right > viewportWidth) {
-                modalElement.classList.add('position-right');
+                modalElement?.classList?.add('position-right');
             }
         }
     }, [isOpen]);
