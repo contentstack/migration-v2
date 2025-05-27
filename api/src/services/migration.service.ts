@@ -248,12 +248,12 @@ const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: num
     const flattenedItems: Array<{ [key: string]: any }> = [];
 
     // Handle the data based on its structure
-    if (Array?.isArray(data)) {
+    if (Array.isArray(data)) {
       // If data is already an array, use it directly
       data.forEach((item, index) => {
-        flattenedItems?.push({
+        flattenedItems.push({
           ...item ?? {},
-          uid: item?.uid || `item-${index}`
+          uid: item.uid || `item-${index}`
         });
       });
     } else if (typeof data === 'object' && data !== null) {
@@ -267,7 +267,7 @@ const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: num
             });
           });
         } else if (typeof value === 'object' && value !== null) {
-          flattenedItems?.push({
+          flattenedItems.push({
             ...value,
             key,
             uid: (value as any)?.uid || key
