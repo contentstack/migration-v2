@@ -982,6 +982,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     });  
 
     setRowIds(selectedObj);
+    setTableData(updatedTableData);
     setSelectedEntries(updatedTableData);
   };
 
