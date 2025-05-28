@@ -533,8 +533,14 @@ const Migration = () => {
 
     const hasNonEmptyMapping =
       newMigrationData?.destination_stack?.localeMapping &&
-      Object.values(newMigrationData?.destination_stack?.localeMapping)?.every(
-        (value) => value !== '' && value !== null && value !== undefined
+      Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
+        ([key, value]: [string, any]) =>
+          key !== '' &&
+          key !== null &&
+          key !== undefined &&
+          value !== '' &&
+          value !== null &&
+          value !== undefined
       );
 
     const master_locale: LocalesType = {};
