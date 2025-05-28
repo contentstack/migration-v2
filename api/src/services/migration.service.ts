@@ -522,7 +522,7 @@ const startMigration = async (req: Request): Promise<any> => {
     .findIndex({ id: projectId })
     .value();
   if (index > -1) {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[index].isMigrationStarted = true;
     });
   }
@@ -538,6 +538,18 @@ const startMigration = async (req: Request): Promise<any> => {
       projectId,
       `${project?.destination_stack_id}.log`
     );
+    const message = getLogMessage(
+      'start Migration',
+      'Starting Migration...',
+      {}
+    );
+    await customLogger(
+      projectId,
+      project?.destination_stack_id,
+      'info',
+      message
+    );
+
     await setLogFilePath(loggerPath);
 
     const copyLogsToStack = async (
