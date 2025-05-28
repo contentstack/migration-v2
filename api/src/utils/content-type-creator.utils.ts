@@ -713,6 +713,19 @@ const mergeFields = async (schema1: any[], schema2: any[]): Promise<any[]> => {
     }
      
   }
+
+  for (const field1 of schema1) {
+    const isMatched = schema2.some(
+      (field2) =>
+        field1.uid === field2.uid &&
+        field1.data_type === field2.data_type
+    );
+
+    if (!isMatched) {
+      result.push(field1);
+    }
+  }
+
   return result;
 }
 
