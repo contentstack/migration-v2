@@ -286,7 +286,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         itemSize={60}
         columns={columns}
         data={data ?? []}
-        uniqueKey={''}
+        uniqueKey={'id'}
         fetchTableData={fetchData}
         totalCounts={totalCounts ?? 0}
         loading={loading}
