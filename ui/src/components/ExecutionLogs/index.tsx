@@ -300,7 +300,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         isRowSelect={false}
         columnSelector={false}
         canSearch={true}
-        searchPlaceholder={EXECUTION_LOGS_UI_TEXT.SEARCH_PLACEHOLDER}
+        searchPlaceholder={EXECUTION_LOGS_UI_TEXT?.SEARCH_PLACEHOLDER}
         searchValue={searchText ?? ''}
         onSearchChangeEvent={(value: string) => setSearchText(value)}
         withExportCta={{
@@ -311,7 +311,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
               version="v2"
               value={testStacks?.length ? selectedStack : ''}
               options={stackIds ?? []}
-              placeholder={EXECUTION_LOGS_UI_TEXT.SELECT_PLACEHOLDER}
+              placeholder={EXECUTION_LOGS_UI_TEXT?.SELECT_PLACEHOLDER}
               onChange={(s: DropdownOption) => {
                 setSelectedStack({
                   label: s?.label ?? '',
@@ -326,13 +326,13 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         customEmptyState={
           <EmptyState
             forPage="list"
-            heading={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_MATCH}
+            heading={searchText === '' ? EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_HEADING?.NO_LOGS : EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_HEADING?.NO_MATCH}
             description={
               searchText === ''
-                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_LOGS
-                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_RESULT
+                ? EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_DESCRIPTION?.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_DESCRIPTION?.NO_RESULT
             }
-            moduleIcon={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_MATCH}
+            moduleIcon={searchText === '' ? EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_ICON?.NO_LOGS : EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_ICON?.NO_MATCH}
             type="secondary"
             className="custom-empty-state"
           />
