@@ -145,7 +145,7 @@ export const EXECUTION_LOGS_UI_TEXT = {
     NO_MATCH: 'No Matching Result Found'
   },
   EMPTY_STATE_ICON: {
-    NO_LOGS:'NoDataEmptyState',
+    NO_LOGS: 'NoDataEmptyState',
     NO_MATCH: 'NoSearchResult'
   },
   FILTER_ICON: {
@@ -157,3 +157,30 @@ export const EXECUTION_LOGS_UI_TEXT = {
 export const EXECUTION_LOGS_ERROR_TEXT = {
   ERROR: 'Error in Getting Migration Logs'
 }
+export const auditLogsConstants = {
+  executeTestMigration: 'Try executing Test Migration',
+  selectModuleMessage: 'Select Module to See the Logs',
+  queryChangeMessage: 'Try Changing the Search Query to find what you are looking for',
+  noResult: 'No Matching Result Found',
+  noLogs: 'No Logs Found',
+  filterIcon: {
+    filterOn: 'filterWithAppliedIcon Icon--v2 Icon--medium',
+    filterOff: 'filterWithAppliedIcon Icon--v2 Icon--medium Icon--disabled'
+  },
+
+  placeholders: {
+    selectStack: 'Select Stack',
+    selectModule: 'Select Module',
+    searchLogs: 'Search Audit Logs',
+  },
+
+  emptyStateIcon: {
+    noLogs: 'NoDataEmptyState',
+    noMatch: 'NoSearchResult'
+  },
+  filterModal: {
+    noFilterAvailabe: 'No Filters Available',
+    clearAll: 'Clear All',
+    apply: 'Apply'
+  }
+};

@@ -21,7 +21,7 @@ interface CTA {
   title: string;
   url: string;
   with_icon: boolean;
-  icon: string 
+  icon: string
 }
 interface IExecutionLogs {
   title: string;
@@ -33,5 +33,6 @@ interface IExecutionLogs {
 export interface Setting {
   project?: IProject;
   execution_logs?: IExecutionLogs;
+  audit_logs?: IExecutionLogs;
   title?: string;
 }
