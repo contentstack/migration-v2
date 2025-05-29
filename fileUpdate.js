@@ -96,7 +96,7 @@ const typeSwitcher = async (type) => {
 
 const XMLMigration = async () => {
   const typeOfcms = await cliux.inquire({
-    choices: ['sitecore', 'contentful'],
+    choices: ['sitecore', 'contentful', 'wordpress'],
     type: 'list',
     name: 'value',
     message: 'Choose the option to proceed with your legacy CMS:'
