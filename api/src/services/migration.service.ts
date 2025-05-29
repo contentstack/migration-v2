@@ -925,7 +925,6 @@ const startMigration = async (req: Request): Promise<any> => {
   }
 };
 
-
 const getLogs = async (req: Request): Promise<any> => {
   const projectId = req?.params?.projectId ? path?.basename(req.params.projectId) : "";
   const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : "";
@@ -934,9 +933,7 @@ const getLogs = async (req: Request): Promise<any> => {
   const stopIndex = startIndex + limit;
   const searchText = req?.params?.searchText ?? null;
   const filter = req?.params?.filter ?? "all";
-
   const srcFunc = "getLogs";
-
   if (
     !projectId ||
     !stackId ||
@@ -945,40 +942,44 @@ const getLogs = async (req: Request): Promise<any> => {
   ) {
     throw new BadRequestError("Invalid projectId or stackId");
   }
-
   try {
     const mainPath = process?.cwd()?.split("migration-v2")?.[0];
     if (!mainPath) {
       throw new BadRequestError("Invalid application path");
     }
-
     const logsDir = path?.join(mainPath, "migration-v2", "api", "logs");
     const loggerPath = path?.join(logsDir, projectId, `${stackId}.log`);
     const absolutePath = path?.resolve(loggerPath);
-
     if (!absolutePath?.startsWith(logsDir)) {
       throw new BadRequestError("Access to this file is not allowed.");
     }
-
     if (fs.existsSync(absolutePath)) {
+      let index = 0;
       const logs = await fs.promises.readFile(absolutePath, "utf8");
       let logEntries = logs
         ?.split("\n")
         ?.map((line) => {
           try {
-            return line ? JSON?.parse(line) : null;
+            const parsedLine = JSON?.parse(line)
+            parsedLine['id'] = index;
+            ++index;
+            return parsedLine ? parsedLine : null;
           } catch (error) {
             return null;
           }
         })
         ?.filter?.((entry) => entry !== null);
-
       if (!logEntries?.length) {
         return { logs: [], total: 0 };
       }
-
+      const filterOptions = Array.from(new Set(logEntries.map((log) => log.level)));
+      const auditStartIndex = logEntries.findIndex(log => log.message.includes("Starting audit process"));
+      const auditEndIndex = logEntries.findIndex(log => log.message.includes("Audit process completed"));
+      logEntries = [
+        ...logEntries.slice(0, auditStartIndex),
+        ...logEntries.slice(auditEndIndex + 1)
+      ]
       logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
-
       if (filter !== "all") {
         const filters = filter?.split("-") ?? [];
         logEntries = logEntries?.filter((log) => {
@@ -989,17 +990,16 @@ const getLogs = async (req: Request): Promise<any> => {
           });
         });
       }
-
       if (searchText && searchText !== "null") {
         logEntries = logEntries?.filter?.((log) =>
           matchesSearchText(log, searchText)
         );
       }
-
       const paginatedLogs = logEntries?.slice?.(startIndex, stopIndex) ?? [];
       return {
         logs: paginatedLogs,
         total: logEntries?.length ?? 0,
+        filterOptions: filterOptions,
       };
     } else {
       logger.error(getLogMessage(srcFunc, HTTP_TEXTS.LOGS_NOT_FOUND));
