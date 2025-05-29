@@ -361,3 +361,4 @@ upload-api/extracted_files
 *copy*
 **/package-lock.json
 .qodo
+talisman_html_report
