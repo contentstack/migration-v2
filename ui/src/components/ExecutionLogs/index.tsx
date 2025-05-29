@@ -26,8 +26,13 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
   const [filterValue, setFilterValue] = useState<string>('all');
 
   const selectedOrganisation = useSelector(
+
+
     (state: RootState) => state?.authentication?.selectedOrganisation
   );
+
+
+
 
   const testStacks = useSelector(
     (state: RootState) => state?.migration?.newMigrationData?.testStacks
@@ -281,7 +286,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         itemSize={60}
         columns={columns}
         data={data ?? []}
-        uniqueKey={'timestamp'}
+        uniqueKey={''}
         fetchTableData={fetchData}
         totalCounts={totalCounts ?? 0}
         loading={loading}
