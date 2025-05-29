@@ -55,8 +55,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
 
   const [selectedStack, setSelectedStack] = useState<DropdownOption>(
     {
-      label: stackIds?.[stackIds?.length - 1]?.label ?? '' ,
-      value: stackIds?.[stackIds?.length - 1]?.value ?? '' 
+      label: stackIds?.[stackIds?.length - 1]?.label ?? '',
+      value: stackIds?.[stackIds?.length - 1]?.value ?? ''
     }
   );
 
@@ -276,63 +276,62 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
   };
 
   return (
-    <div>
+    <div className='table-height'>
       <InfiniteScrollTable
-      tableHeight={590}
-      itemSize={60}
-      columns={columns}
-      data={data ?? []}
-      uniqueKey={'timestamp'}
-      fetchTableData={fetchData}
-      totalCounts={totalCounts ?? 0}
-      loading={loading}
-      rowPerPageOptions={[10, 30, 50, 100]}
-      minBatchSizeToFetch={30}
-      v2Features={{
-        pagination: true,
-        isNewEmptyState: true
-      }}
-      isResizable={true}
-      isRowSelect={false}
-      columnSelector={false}
-      canSearch={true}
-      searchPlaceholder={EXECUTION_LOGS_UI_TEXT.SEARCH_PLACEHOLDER}
-      searchValue={searchText ?? ''}
-      onSearchChangeEvent={(value: string) => setSearchText(value)}
-      withExportCta={{
-        component: (
-        <Select
-          className='dropdown-wrapper'
-          width="250px"
-          version="v2"
-          value={testStacks?.length ? selectedStack : ''}
-          options={stackIds ?? []}
-          placeholder={EXECUTION_LOGS_UI_TEXT.SELECT_PLACEHOLDER}
-          onChange={(s: DropdownOption) => {
-          setSelectedStack({
-            label: s?.label ?? '',
-            value: s?.value ?? ''
-          });
-          setSearchText('');
-          }}
-        />
-        ),
-        showExportCta: true
-      }}
-      customEmptyState={
-        <EmptyState
-        forPage="list"
-        heading={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_MATCH} 
-        description={
-          searchText === ''
-          ?  EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_LOGS
-          : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_RESULT
+        itemSize={60}
+        columns={columns}
+        data={data ?? []}
+        uniqueKey={'timestamp'}
+        fetchTableData={fetchData}
+        totalCounts={totalCounts ?? 0}
+        loading={loading}
+        rowPerPageOptions={[10, 30, 50, 100]}
+        minBatchSizeToFetch={30}
+        v2Features={{
+          pagination: true,
+          isNewEmptyState: true
+        }}
+        isResizable={true}
+        isRowSelect={false}
+        columnSelector={false}
+        canSearch={true}
+        searchPlaceholder={EXECUTION_LOGS_UI_TEXT.SEARCH_PLACEHOLDER}
+        searchValue={searchText ?? ''}
+        onSearchChangeEvent={(value: string) => setSearchText(value)}
+        withExportCta={{
+          component: (
+            <Select
+              className='dropdown-wrapper'
+              width="250px"
+              version="v2"
+              value={testStacks?.length ? selectedStack : ''}
+              options={stackIds ?? []}
+              placeholder={EXECUTION_LOGS_UI_TEXT.SELECT_PLACEHOLDER}
+              onChange={(s: DropdownOption) => {
+                setSelectedStack({
+                  label: s?.label ?? '',
+                  value: s?.value ?? ''
+                });
+                setSearchText('');
+              }}
+            />
+          ),
+          showExportCta: true
+        }}
+        customEmptyState={
+          <EmptyState
+            forPage="list"
+            heading={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_MATCH}
+            description={
+              searchText === ''
+                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_RESULT
+            }
+            moduleIcon={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_MATCH}
+            type="secondary"
+            className="custom-empty-state"
+          />
         }
-        moduleIcon={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_MATCH}
-        type="secondary"
-        className="custom-empty-state"
-        />
-      }
       />
     </div>
   );

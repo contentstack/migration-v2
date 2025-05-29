@@ -16,13 +16,21 @@
     width: calc(100% - 15rem);
 }
 
-.Table__head__column {
-    align-items: center;
-    display: flex;
-    justify-content: space-between;
+.PageLayout__body {
+    .table-height {
+        .Table {
+            height: calc(100vh - 12.75rem) !important;
+        }
+
+        .Table.TableWithPaginated {
+            .Table__body {
+                height: calc(100vh - 20rem) !important;
+            }
+        }
+    }
 }
 
-
-.Table:has(.custom-empty-state) {
-    height: 40.5rem;
+.TablePagination {
+    position: sticky;
+    bottom: 0px;
 }
