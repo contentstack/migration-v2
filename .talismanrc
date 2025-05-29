@@ -5,3 +5,7 @@ fileignoreconfig:
 - filename: remove-broken-imports.js
   checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
 version: "1.0"
+fileignoreconfig:
+- filename: upload-api/migration-aem/libs/contentType/contentTypeMapper.ts
+  checksum: 18d65d55e67d23d6f9ac705cdc13538e27ff0e5c1d175a9288ea189b4e0f4237
+version: "1.0"
