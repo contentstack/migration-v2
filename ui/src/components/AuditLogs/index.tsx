@@ -33,6 +33,7 @@ const AuditLogs: React.FC = () => {
     const [isFilterApplied, setIsFilterApplied] = useState(false);
     const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
     const [dropDownOptions, setDropDownOptions] = useState<string>();
+    // const [tableHeight, setTableHeight] = useState<number>(window.innerHeight);
     const selectedOrganisation = useSelector(
         (state: RootState) => state?.authentication?.selectedOrganisation
     );
@@ -87,6 +88,16 @@ const AuditLogs: React.FC = () => {
         setFilterOption('all');
         setIsFilterApplied(false);
     };
+    // useEffect(() => {
+    //     const handleResize = () => {
+    //         setTableHeight(window.innerHeight - 275);
+    //     };
+    //     // console.info(window.innerHeight)
+    //     // console.info(tableHeight)
+    //     window.addEventListener("resize", handleResize);
+    //     handleResize();
+    //     return () => window.removeEventListener("resize", handleResize);
+    // }, [window.innerHeight]);
     const fetchTableData = async ({
         skip = 0,
         limit = 30,
@@ -380,8 +391,6 @@ const AuditLogs: React.FC = () => {
                     value={selectedStack}
                     onChange={handleStackChange}
                     options={stackOptions}
-                    width="220px"
-                    maxWidth="220px"
                     placeholder={auditLogsConstants.placeholders.selectStack}
                     isSearchable
                     version="v2"
@@ -394,8 +403,6 @@ const AuditLogs: React.FC = () => {
                     value={selectedFile}
                     onChange={handleFileChange}
                     options={fileOptions}
-                    width="220px"
-                    maxWidth="220px"
                     placeholder={auditLogsConstants.placeholders.selectModule}
                     isSearchable
                     version="v2"
@@ -406,10 +413,9 @@ const AuditLogs: React.FC = () => {
         </div>
     );
     return (
-        <div className="audit-logs-Table">
+        <div className='table-height'>
             <InfiniteScrollTable
                 key={tableKey}
-                tableHeight={580}
                 itemSize={80}
                 data={tableData}
                 columns={dropDownOptions == 'content-types' || dropDownOptions == 'global-fields' ? contentTypeHeader : entryHeader}
