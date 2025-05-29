@@ -1,0 +1,36 @@
+.select-container {
+    display: flex;
+
+    .select-wrapper {
+        display: flex;
+        margin-left: 1rem;
+
+    }
+}
+
+.Search-input-show {
+    margin-bottom: 4px;
+}
+
+.PageLayout--primary .PageLayout__leftSidebar+.PageLayout__content .PageLayout__body {
+    width: calc(100% - 15rem);
+}
+
+.PageLayout__body {
+    .table-height {
+        .Table {
+            height: calc(100vh - 12.75rem) !important;
+        }
+
+        .Table.TableWithPaginated {
+            .Table__body {
+                height: calc(100vh - 20rem) !important;
+            }
+        }
+    }
+}
+
+.TablePagination {
+    position: sticky;
+    bottom: 0px;
+}
