@@ -35,6 +35,7 @@ import { useDispatch } from 'react-redux';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { DEFAULT_NEW_MIGRATION } from '../../../context/app/app.interface';
 import ExecutionLog from '../../../components/ExecutionLogs';
+import AuditLogs from '../../AuditLogs';
 
 /**
  * Renders the Settings component.
@@ -261,8 +262,12 @@ const Settings = () => {
           </div>
         )}
         {active === cmsData?.execution_logs?.title && (
-            <ExecutionLog projectId={projectId} />
+          <ExecutionLog projectId={projectId} />
         )}
+        {active === cmsData?.audit_logs?.title &&
+          <AuditLogs />
+
+        }
       </div>
     )
   };
@@ -312,6 +317,17 @@ const Settings = () => {
           onClick={() => {
             setActive(cmsData?.execution_logs?.title);
             setCurrentHeader(cmsData?.execution_logs?.title);
+          }}
+          version="v2"
+        />
+        <ListRow
+          rightArrow={true}
+          active={active === cmsData?.audit_logs?.title}
+          content={cmsData?.audit_logs?.title}
+          leftIcon={<Icon icon="Stacks" version="v2" />}
+          onClick={() => {
+            setActive(cmsData?.audit_logs?.title);
+            setCurrentHeader(cmsData?.audit_logs?.title);
           }}
           version="v2"
         />
