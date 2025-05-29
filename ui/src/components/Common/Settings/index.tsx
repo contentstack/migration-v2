@@ -264,7 +264,7 @@ const Settings = () => {
         {active === cmsData?.execution_logs?.title && (
           <ExecutionLog projectId={projectId} />
         )}
-        {active === "AuditLogs" &&
+        {active === cmsData?.audit_logs?.title &&
           <AuditLogs />
 
         }
@@ -322,12 +322,12 @@ const Settings = () => {
         />
         <ListRow
           rightArrow={true}
-          active={active === "AuditLogs"}
-          content={"AuditLogs"}
+          active={active === cmsData?.audit_logs?.title}
+          content={cmsData?.audit_logs?.title}
           leftIcon={<Icon icon="Stacks" version="v2" />}
           onClick={() => {
-            setActive("AuditLogs");
-            setCurrentHeader("AuditLogs");
+            setActive(cmsData?.audit_logs?.title);
+            setCurrentHeader(cmsData?.audit_logs?.title);
           }}
           version="v2"
         />

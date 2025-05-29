@@ -7,7 +7,7 @@ import https from "../utils/https.utils.js";
 import { LoginServiceType } from "../models/types.js";
 import getAuthtoken from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
-import { GET_AUIDT_DATA } from "../constants/index.js";
+import { GET_AUDIT_DATA } from "../constants/index.js";
 import {
   HTTP_TEXTS,
   HTTP_CODES,
@@ -157,8 +157,8 @@ const getAuditData = async (req: Request): Promise<any> => {
   }
 
   try {
-    const mainPath = process?.cwd()?.split?.(GET_AUIDT_DATA?.MIGRATION)?.[0];
-    const logsDir = path.join(mainPath, GET_AUIDT_DATA?.MIGRATION, GET_AUIDT_DATA?.API_DIR, GET_AUIDT_DATA?.MIGRATION_DATA_DIR);
+    const mainPath = process?.cwd()?.split?.(GET_AUDIT_DATA?.MIGRATION)?.[0];
+    const logsDir = path.join(mainPath, GET_AUDIT_DATA?.MIGRATION, GET_AUDIT_DATA?.API_DIR, GET_AUDIT_DATA?.MIGRATION_DATA_DIR);
 
     const stackFolders = fs.readdirSync(logsDir);
 
@@ -167,7 +167,7 @@ const getAuditData = async (req: Request): Promise<any> => {
       throw new BadRequestError("Migration data not found for this stack");
     }
 
-    const auditLogPath = path?.resolve(logsDir, stackFolder, GET_AUIDT_DATA?.LOGS_DIR, GET_AUIDT_DATA?.AUDIT_DIR, GET_AUIDT_DATA?.AUDIT_REPORT);
+    const auditLogPath = path?.resolve(logsDir, stackFolder, GET_AUDIT_DATA?.LOGS_DIR, GET_AUDIT_DATA?.AUDIT_DIR, GET_AUDIT_DATA?.AUDIT_REPORT);
     if (!fs.existsSync(auditLogPath)) {
       throw new BadRequestError("Audit log path not found");
     }
@@ -192,7 +192,7 @@ const getAuditData = async (req: Request): Promise<any> => {
       throw new BadRequestError(`No audit data found for module: ${moduleName}`);
     }
     let transformedData = transformAndFlattenData(fileData);
-    if (filter != GET_AUIDT_DATA?.FILTERALL) {
+    if (filter != GET_AUDIT_DATA?.FILTERALL) {
       const filters = filter?.split("-");
       moduleName === 'Entries_Select_feild' ? transformedData = transformedData?.filter((log) => {
         return filters?.some((filter) => {
@@ -222,7 +222,8 @@ const getAuditData = async (req: Request): Promise<any> => {
 
     return {
       data: paginatedData,
-      totalCount: transformedData?.length
+      totalCount: transformedData?.length,
+      status: HTTP_CODES?.OK
     };
 
   } catch (error: any) {
@@ -250,16 +251,16 @@ const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: num
     // Handle the data based on its structure
     if (Array.isArray(data)) {
       // If data is already an array, use it directly
-      data.forEach((item, index) => {
-        flattenedItems.push({
+      data?.forEach((item, index) => {
+        flattenedItems?.push({
           ...item ?? {},
-          uid: item.uid || `item-${index}`
+          uid: item?.uid || `item-${index}`
         });
       });
     } else if (typeof data === 'object' && data !== null) {
       Object?.entries?.(data)?.forEach(([key, value]) => {
         if (Array.isArray(value)) {
-          value.forEach((item, index) => {
+          value?.forEach((item, index) => {
             flattenedItems?.push({
               ...item ?? {},
               parentKey: key,
@@ -267,7 +268,7 @@ const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: num
             });
           });
         } else if (typeof value === 'object' && value !== null) {
-          flattenedItems.push({
+          flattenedItems?.push({
             ...value,
             key,
             uid: (value as any)?.uid || key
@@ -972,9 +973,9 @@ const getLogs = async (req: Request): Promise<any> => {
       if (!logEntries?.length) {
         return { logs: [], total: 0 };
       }
-      const filterOptions = Array.from(new Set(logEntries.map((log) => log.level)));
-      const auditStartIndex = logEntries.findIndex(log => log.message.includes("Starting audit process"));
-      const auditEndIndex = logEntries.findIndex(log => log.message.includes("Audit process completed"));
+      const filterOptions = Array?.from(new Set(logEntries?.map((log) => log?.level)));
+      const auditStartIndex = logEntries?.findIndex?.(log => log?.message?.includes("Starting audit process"));
+      const auditEndIndex = logEntries?.findIndex?.(log => log?.message?.includes("Audit process completed"));
       logEntries = [
         ...logEntries.slice(0, auditStartIndex),
         ...logEntries.slice(auditEndIndex + 1)
@@ -1000,6 +1001,7 @@ const getLogs = async (req: Request): Promise<any> => {
         logs: paginatedLogs,
         total: logEntries?.length ?? 0,
         filterOptions: filterOptions,
+        status: HTTP_CODES?.OK
       };
     } else {
       logger.error(getLogMessage(srcFunc, HTTP_TEXTS.LOGS_NOT_FOUND));

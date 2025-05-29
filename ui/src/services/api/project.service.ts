@@ -25,7 +25,7 @@ export const getAuditData = async (orgId: string, projectId: string, stackId: st
     return await getCall(`${API_VERSION}/migration/get_audit_data/${orgId}/${projectId}/${stackId}/${moduleName}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}/${filter}`, options());
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Error in userSession: ${error.message}`);
+      throw new Error(`Error in userSession: ${error?.message}`);
     } else {
       throw new Error('Unknown error in userSession');
     }

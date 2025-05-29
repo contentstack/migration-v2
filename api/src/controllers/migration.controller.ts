@@ -51,11 +51,11 @@ const deleteTestStack = async (req: Request, res: Response): Promise<void> => {
 };
 const getAuditData = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.getAuditData(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 const getLogs = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.getLogs(req);
-  res.status(200).json(resp);
+  res.status(resp?.status).json(resp);
 };
 
 const saveLocales = async (req: Request, res: Response): Promise<void> => {
