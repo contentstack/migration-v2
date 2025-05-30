@@ -534,10 +534,8 @@ const Migration = () => {
     const hasNonEmptyMapping =
       newMigrationData?.destination_stack?.localeMapping &&
       Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
-        ([key, value]: [string, any]) =>
-          key !== '' &&
-          key !== null &&
-          key !== undefined &&
+        ([label, value]: [string, string]) =>
+          Boolean(label?.trim()) &&
           value !== '' &&
           value !== null &&
           value !== undefined
