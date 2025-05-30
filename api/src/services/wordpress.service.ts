@@ -2456,6 +2456,17 @@ async function extractPosts( packagePath: string, destinationStackId: string, pr
       // Process the current chunk
       const chunkPostData = await processChunkData(chunkData, filename, isLastChunk, contenttype);
       postdataCombined = { ...postdataCombined, ...chunkPostData };
+
+      const seenTitles = new Map();
+      Object?.entries(postdataCombined)?.forEach(([uid, item]:any) => {
+        const originalTitle = item?.title;
+      
+        if (seenTitles.has(originalTitle)) {
+          item.title = `${originalTitle} - ${item?.uid}`;
+        }
+        seenTitles.set(item?.title, true);
+      });
+
       const message = getLogMessage(
         srcFunc,
         `${filename.split(".").slice(0, -1).join(".")} has been successfully transformed.`,
