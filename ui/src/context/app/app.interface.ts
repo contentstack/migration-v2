@@ -176,7 +176,7 @@ export interface IDestinationStack {
   stackArray: IDropDown[];
   migratedStacks: string[];
   sourceLocale: string[];
-  localeMapping: {};
+  localeMapping: Record<string, string>;
   csLocale: string[];
 }
 export interface IContentMapper {
