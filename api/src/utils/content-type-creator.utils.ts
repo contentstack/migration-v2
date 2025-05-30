@@ -75,8 +75,8 @@ const arrangGroups = ({ schema, newStack }: any) => {
     if (item?.contentstackFieldType === 'group') {
       const groupSchema: any = { ...item, schema: [] }
       if (item?.contentstackFieldUid?.includes('.')) {
-        const parts = item.contentstackFieldUid.split('.');
-        groupSchema.contentstackFieldUid = parts[parts.length - 1];
+        const parts = item?.contentstackFieldUid?.split('.');
+        groupSchema.contentstackFieldUid = parts?.[parts?.length - 1];
       }
       schema?.forEach((et: any) => {
         if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`) ||
@@ -668,12 +668,12 @@ const mergeArrays = (a: any[], b: any[]): any[] => {
   const result = [...a];
 
   for (const field of b) {
-    const exists = result.some(f =>
+    const exists = result?.some(f =>
       f?.uid === field?.uid &&
       f?.data_type === field?.data_type
     );
     if (!exists) {
-      result.push(field);
+      result?.push(field);
     }
   }
 
@@ -684,27 +684,27 @@ const mergeFields = async (schema1: any[], schema2: any[]): Promise<any[]> => {
   const result: any[] = [];
 
   for (const field2 of schema2) {
-    if (field2.data_type === 'group') {
+    if (field2?.data_type === 'group') {
       const machingGroup = findGroupByUid(schema1, field2?.uid);
       if(machingGroup){
        const schema = await mergeArrays(machingGroup?.schema ?? [],field2?.schema ?? [] );
-        result.push({
+        result?.push({
           ...field2,
           schema: schema
         });
       }
       else{
-        result.push({
+        result?.push({
           ...field2,
          schema:  await mergeFields(schema1, field2?.schema)
         })
       }
     }
     else{
-      const exists = schema1.find(
+      const exists = schema1?.find(
         (fld) =>
-          fld.uid === field2.uid &&
-          fld.data_type === field2.data_type
+          fld?.uid === field2?.uid &&
+          fld?.data_type === field2?.data_type
       );
      result?.push({
       ...field2
@@ -715,14 +715,14 @@ const mergeFields = async (schema1: any[], schema2: any[]): Promise<any[]> => {
   }
 
   for (const field1 of schema1) {
-    const isMatched = schema2.some(
+    const isMatched = schema2?.some(
       (field2) =>
-        field1.uid === field2.uid &&
-        field1.data_type === field2.data_type
+        field1?.uid === field2?.uid &&
+        field1?.data_type === field2?.data_type
     );
 
     if (!isMatched) {
-      result.push(field1);
+      result?.push(field1);
     }
   }
 
@@ -736,9 +736,9 @@ const findGroupByUid = (
   excludeRef: any = null
 ): any | undefined => {
   for (const field of schema) {
-    if (field.data_type === 'group') {
-      if (field.uid === uid && field !== excludeRef) return field;
-      const nested = findGroupByUid(field.schema ?? [], uid, excludeRef);
+    if (field?.data_type === 'group') {
+      if (field?.uid === uid && field !== excludeRef) return field;
+      const nested = findGroupByUid(field?.schema ?? [], uid, excludeRef);
       if (nested) return nested;
     }
   }
