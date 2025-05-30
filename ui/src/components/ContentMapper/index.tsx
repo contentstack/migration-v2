@@ -1133,7 +1133,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string, contentstackFieldUid: string, backupFieldUid: string) => {
     setIsDropDownChanged(true);
-    const previousSelectedValue = existingField[backupFieldUid]?.label;
+    const previousSelectedValue = existingField?.[backupFieldUid]?.label;
     const groupArray = nestedList?.filter(item => 
       item?.child?.some(e => e?.id)
     )
@@ -1142,16 +1142,16 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
        for(const item of groupArray?.[0]?.child ?? []){
         deletedExstingField[item?.backupFieldUid] = {
           label:item?.uid,
-          value:existingField[item?.backupFieldUid]
+          value:existingField?.[item?.backupFieldUid]
 
         }
         setIsFieldDeleted(true);
-        const index = selectedOptions?.indexOf(existingField[item?.backupFieldUid]?.value?.label);
+        const index = selectedOptions?.indexOf(existingField?.[item?.backupFieldUid]?.value?.label);
         
         if(index > -1){
           selectedOptions?.splice(index,1 );
         }
-        delete existingField[item?.backupFieldUid]    
+        delete existingField?.[item?.backupFieldUid]    
         
        }
     }
