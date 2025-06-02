@@ -100,15 +100,15 @@ const DestinationStackComponent = ({
     setisProjectMapped(newMigrationData?.isprojectMapped);
   },[newMigrationData?.isprojectMapped]);
 
-    useEffect(()=>{
-     if(! isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value ) 
-       ){
-        handleAllStepsComplete(true);
-      }
-      else{
-        handleAllStepsComplete(false);
-      }
-    },[newMigrationData])
+  useEffect(()=>{
+    if(! isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value ) 
+      ){
+      handleAllStepsComplete(true);
+    }
+    else{
+      handleAllStepsComplete(false);
+    }
+  },[newMigrationData?.destination_stack?.selectedStack])
 
   return (
     <>
