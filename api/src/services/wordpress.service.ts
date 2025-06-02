@@ -2458,13 +2458,13 @@ async function extractPosts( packagePath: string, destinationStackId: string, pr
       postdataCombined = { ...postdataCombined, ...chunkPostData };
 
       const seenTitles = new Map();
-      Object?.entries(postdataCombined)?.forEach(([uid, item]:any) => {
+      Object?.entries?.(postdataCombined)?.forEach?.(([uid, item]:any) => {
         const originalTitle = item?.title;
       
-        if (seenTitles.has(originalTitle)) {
+        if (seenTitles?.has(originalTitle)) {
           item.title = `${originalTitle} - ${item?.uid}`;
         }
-        seenTitles.set(item?.title, true);
+        seenTitles?.set?.(item?.title, true);
       });
 
       const message = getLogMessage(
