@@ -1,4 +1,3 @@
-version: "1.0.1-beta"
 
 fileignoreconfig:
   - filename: .github/workflows/secrets-scan.yml
@@ -13,11 +12,12 @@ ignoreconfig:
   - filename: .github/workflows/secrets-scan.yml
     ignore_detectors:
       - filecontent
-      
+
   - filename: ui/package-lock.json
     ignore_detectors:
       - Base64Detector
 
   - filename: ui/src/components/ContentMapper/index.tsx
     checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
-
+    
+version: "1.0.1-beta"
