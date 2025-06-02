@@ -12,4 +12,4 @@ ignoreconfig:
 
   - filename: ui/src/components/ContentMapper/index.tsx
     checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
-version: "“1.0.1-beta”"
+version: "1.0.1-beta"
