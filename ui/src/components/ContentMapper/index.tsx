@@ -2255,7 +2255,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                             }
                           }}
                         >
-                          {CONTENT_MAPPING_STATUS[key] && <span className={`${activeFilter ===  CONTENT_MAPPING_STATUS[key] ? 'filter-status filterButton-color ' :'filter-status' }`}>{CONTENT_MAPPING_STATUS[key]}</span> }
+                          {CONTENT_MAPPING_STATUS[key] && <span className={`${activeFilter ===  CONTENT_MAPPING_STATUS[key] ? 'filter-status filterButton-color' :'filter-status' }`}>{CONTENT_MAPPING_STATUS[key]}</span> }
                           {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
                         </button>
                       </li>
