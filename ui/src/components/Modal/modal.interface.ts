@@ -9,7 +9,7 @@ export interface ProjectModalProps {
   selectedOrg: IDropDown;
   closeModal: () => void;
   isOpen: (flag: boolean) => void;
-  createProject: (values : FormData)=> void
+  createProject: (values : FormData)=> Promise<CreateProjectResponse>
 }
 export interface SettingsModalProps {
   selectedOrg: IDropDown;
@@ -22,4 +22,18 @@ export interface SettingsModalProps {
 
 export interface FormData {
   name?: string;
+}
+
+export interface Project {
+  name: string;
+  id: string;
+  status: string;
+  created_at: string;   
+  modified_at: string;  
+}
+
+export interface CreateProjectResponse {
+  status: "success";
+  message: string;
+  project: Project;
 }
