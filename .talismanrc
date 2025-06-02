@@ -11,6 +11,5 @@ ignoreconfig:
       - Base64Detector
 
   - filename: ui/src/components/ContentMapper/index.tsx
-    checksum: 938aaf193e830bade84f9d8d385e55942269c3f2e7be82939994d64d76df3fa6
-    
-version: "1.0"
+    checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
+version: "“1.0.1-beta”"

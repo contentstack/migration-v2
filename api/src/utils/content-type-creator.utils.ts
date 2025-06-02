@@ -82,7 +82,7 @@ const arrangGroups = ({ schema, newStack }: any) => {
         if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`) ||
           (newStack === false && et?.uid?.includes(`${item?.uid}.`))) {
             const target = groupSchema?.contentstackFieldUid;
-            const index = et?.contentstackFieldUid?.indexOf(target);
+            const index = et?.contentstackFieldUid?.indexOf?.(target);
 
             if (index > 0) {
               et.contentstackFieldUid = et?.contentstackFieldUid?.substring(index);
