@@ -7,6 +7,7 @@ ignoreconfig:
   - filename: ui/package-lock.json
     ignore_detectors:
       - Base64Detector
+
   - filename: ui/src/components/ContentMapper/index.tsx
     checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
   - filename: api/src/services/wordpress.service.ts
