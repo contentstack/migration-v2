@@ -111,7 +111,7 @@ const Mapper = ({
 
     // const validLabels = cmsLocaleOptions?.map((item)=> item?.label);
 
-    const existingMasterID = Object?.keys(selectedMappings || {})?.find((key) =>
+    const existingMasterID = Object?.keys?.(selectedMappings || {})?.find((key) =>
       key?.includes('-master_locale')
     );
 
@@ -140,7 +140,7 @@ const Mapper = ({
       const existingLabel = existingMasterID;
       const expectedLabel = `${locale?.label}-master_locale`;
 
-      const isLabelMismatch = existingLabel && existingLabel.localeCompare(expectedLabel) !== 0;
+      const isLabelMismatch = existingLabel && existingLabel?.localeCompare(expectedLabel) !== 0;
       if(locale?.value === 'master_locale'){
         if (!updatedExistingField?.[index]) {
           updatedExistingField[index] = {
@@ -179,7 +179,7 @@ const Mapper = ({
   ) => {
     const selectedLocaleKey = selectedValue?.value;
 
-    let existingLabel = existingField[index];
+    let existingLabel = existingField?.[index];
     if (!selectedValue?.label) {
       setselectedCsOption((prevSelected) =>
         prevSelected?.filter((item) => item !== existingField?.[index]?.label)
