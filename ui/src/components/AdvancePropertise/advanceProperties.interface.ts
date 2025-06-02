@@ -25,7 +25,7 @@ export interface SchemaProps {
    * @param value - The advanced settings.
    * @param checkBoxChanged - Indicates whether the checkbox has changed.
    */
-  updateFieldSettings: (rowId: string, value: Advanced, checkBoxChanged: boolean) => void;
+  updateFieldSettings: (rowId: string, value: Advanced, checkBoxChanged: boolean, rowContentstackFieldUid: string) => void;
 
   /**
    * Indicates whether the field is localized.
