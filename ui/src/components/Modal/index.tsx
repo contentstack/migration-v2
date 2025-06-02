@@ -19,7 +19,6 @@ import { ProjectModalProps, FormData } from './modal.interface';
 
 // Services
 import { useState } from 'react';
-import { createProject } from '../../services/api/project.service';
 
 const Modal = (props: ProjectModalProps) => {
   const {

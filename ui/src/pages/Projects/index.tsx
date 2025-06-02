@@ -27,7 +27,7 @@ import { validateObject } from '../../utilities/functions';
 
 // Interfaces
 import { ProjectsType, ProjectsObj } from './projects.interface';
-import { ModalObj } from '../../components/Modal/modal.interface';
+import { CreateProjectResponse, ModalObj, FormData } from '../../components/Modal/modal.interface';
 import { CTA } from '../Home/home.interface';
 import usePreventBackNavigation from '../../hooks/usePreventBackNavigation';
 
@@ -137,8 +137,8 @@ const Projects = () => {
   };
   useBlockNavigation(isModalOpen || true);
 
-  const createProjectCall = async(values : any) => {
-        const res:any = await createProject(selectedOrganisation?.uid || '', values);
+  const createProjectCall = async(values : FormData): Promise<CreateProjectResponse> => {
+        const res = await createProject(selectedOrganisation?.uid || '', values);
         if (res?.error) {
           return res?.error;
         }
