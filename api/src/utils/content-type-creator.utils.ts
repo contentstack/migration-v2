@@ -685,9 +685,9 @@ const mergeFields = async (schema1: any[], schema2: any[]): Promise<any[]> => {
 
   for (const field2 of schema2) {
     if (field2?.data_type === 'group') {
-      const machingGroup = findGroupByUid(schema1, field2?.uid);
-      if(machingGroup){
-       const schema = await mergeArrays(machingGroup?.schema ?? [],field2?.schema ?? [] );
+      const matchingGroup = findGroupByUid(schema1, field2?.uid);
+      if(matchingGroup){
+       const schema =  mergeArrays(matchingGroup?.schema ?? [],field2?.schema ?? [] );
         result?.push({
           ...field2,
           schema: schema
