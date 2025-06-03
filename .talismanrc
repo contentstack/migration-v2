@@ -1,11 +1,23 @@
+ignoreconfig:
+  - filename: .github/workflows/secrets-scan.yml
+    ignore_detectors:
+      - filecontent
+
+  - filename: remove-broken-imports.js
+    checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
+
+  - filename: ui/package-lock.json
+    ignore_detectors:
+      - Base64Detector
+
+  - filename: ui/src/components/ContentMapper/index.tsx
+    checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
+
+  - filename: upload-api/migration-aem/libs/contentType/contentTypeMapper.ts
+    checksum: 18d65d55e67d23d6f9ac705cdc13538e27ff0e5c1d175a9288ea189b4e0f4237
+
 fileignoreconfig:
-- filename: .github/workflows/secrets-scan.yml
-  ignore_detectors:
-    - filecontent
-- filename: remove-broken-imports.js
-  checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
-version: "1.0"
-fileignoreconfig:
-- filename: upload-api/migration-aem/libs/contentType/contentTypeMapper.ts
-  checksum: 18d65d55e67d23d6f9ac705cdc13538e27ff0e5c1d175a9288ea189b4e0f4237
-version: "1.0"
+  - filename: upload-api/migration-aem/libs/contentType/types/contentTypeMapper.interface.ts
+    checksum: 82dc52cf97e1370b913525104aa9d2c818ea1a72603e5631235ac021bf1cc71a
+
+version: "1.0.1-beta"
