@@ -295,8 +295,8 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
                     ) : (
                       <div
                         style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry logs-bg">
-                        <div className="log-number">{index}</div>
+                        className="log-entry"
+                      >
                         <div className="log-time">
                           {timestamp
                             ? new Date(timestamp)?.toTimeString()?.split(' ')[0]
