@@ -19,7 +19,6 @@ import { ProjectModalProps, FormData } from './modal.interface';
 
 // Services
 import { useState } from 'react';
-import { createProject } from '../../services/api/project.service';
 
 const Modal = (props: ProjectModalProps) => {
   const {
@@ -34,23 +33,17 @@ const Modal = (props: ProjectModalProps) => {
       title
     },
     selectedOrg,
-    isOpen
+    isOpen,
+    createProject
   } = props;
 
   const [inputValue, setInputValue] = useState<boolean>(false);
 
-  const handleSubmit = async (values: FormData): Promise<boolean> => {
+  const handleSubmit = async (values: FormData)=> {
     // const payload = {name: values?.name, description: values?.description || ''}
 
-    const res = await createProject(selectedOrg?.uid || '', values);
-    if (res?.error) {
-      return res?.error;
-    }
-    if (res?.status === 201) {
-      const projectId = res?.data?.project?.id;
-      window.location.href = `/projects/${projectId}/migration/steps/1`;
-    }
-    return res;
+    const result = await createProject(values);
+    return result;
   };
 
   const nameValidation = (value: string) => {

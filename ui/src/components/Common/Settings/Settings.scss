@@ -3,18 +3,22 @@
 #setting-page {
   display: flex;
   width: 100%;
+
   .SectionHeader {
     color: $color-stepper-title;
     font-weight: $font-weight-semi-bold;
     margin-bottom: 2rem;
   }
+
   .PageLayout {
     width: 100%;
   }
+
   .PageLayout__head,
   .PageLayout__leftSidebar {
-    border-top: 0 none;
+    border-top: 1px solid $color-base-gray-40;
   }
+
   .PageLayout--primary {
     .PageLayout__content {
       .PageLayout__body {
@@ -24,10 +28,12 @@
       }
     }
   }
+
   .action-component-title {
     justify-content: space-between;
     width: calc(100vw - 326px);
   }
+
   .content-block {
     margin-right: 0;
     padding: 1.5rem;
@@ -97,6 +103,7 @@
 .PageLayout__leftSidebar {
   background-color: #f7f9fc !important;
 }
+
 .ListRowV2--active {
   background-color: #fff;
   border-left: 0.125rem solid;
@@ -104,7 +111,7 @@
   font-weight: 600;
 }
 
-.back-button{
+.back-button {
   cursor: pointer;
-  margin-bottom: 20px ;
+  margin-bottom: 20px;
 }
