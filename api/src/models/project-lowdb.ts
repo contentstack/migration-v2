@@ -71,10 +71,10 @@ interface Project {
   isNewStack: boolean;
   newStackId: string;
   stackDetails: [];
-  mapperKeys: {};
+  mapperKeys: object;
   extract_path: string;
   isMigrationStarted: boolean;
-  isMigrationCompleted:boolean;
+  isMigrationCompleted: boolean;
   migration_execution: boolean;
 }
 
