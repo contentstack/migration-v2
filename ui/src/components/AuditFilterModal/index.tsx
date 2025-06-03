@@ -77,8 +77,10 @@ const AuditFilterModal = ({
 
             <div className="tableFilterModalStories__list">
                 {filterOptions?.length > 0 ? (
-                    filterOptions.map((item, index) => (
-                        <div key={''} >
+                    filterOptions.map((item) => {
+                        const uid = item?.value
+                        return (
+                        <div key={uid} >
                             <div className="tableFilterModalStories__suggestion-item">
                                 <Checkbox
                                     checked={selectedLevels?.some((v) => v?.value === item?.value)}
@@ -91,7 +93,7 @@ const AuditFilterModal = ({
                                 />
                             </div>
                         </div>
-                    ))
+                    )})
                 ) : (
                     <div className="tableFilterModalStories__no-data">
                         {auditLogsConstants?.filterModal?.noFilterAvailabe}
