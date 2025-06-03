@@ -12,4 +12,9 @@ ignoreconfig:
 
   - filename: ui/src/components/ContentMapper/index.tsx
     checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
+
+fileignoreconfig:
+  - filename: ui/package-lock.json
+    checksum: cee38557d8dcaca78c40053e67e5448820c17b29c146595f10b5c7c4f0cb01bc
+
 version: "1.0.1-beta"
