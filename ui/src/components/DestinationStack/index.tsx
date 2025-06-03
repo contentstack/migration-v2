@@ -14,6 +14,7 @@ import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { RootState } from '../../store';
 import { updateMigrationData } from '../../store/slice/migrationDataSlice';
 import { AutoVerticalStepperRef } from '../LegacyCms';
+import { isEmptyString } from '../../utilities/functions';
 
 type DestinationStackComponentProps = {
   isCompleted: boolean;
@@ -98,6 +99,16 @@ const DestinationStackComponent = ({
   useEffect(()=>{
     setisProjectMapped(newMigrationData?.isprojectMapped);
   },[newMigrationData?.isprojectMapped]);
+
+  useEffect(()=>{
+    if(! isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value ) 
+      ){
+      handleAllStepsComplete(true);
+    }
+    else{
+      handleAllStepsComplete(false);
+    }
+  },[newMigrationData?.destination_stack?.selectedStack])
 
   return (
     <>

@@ -24,8 +24,9 @@ export interface SchemaProps {
    * @param rowId - The ID of the row.
    * @param value - The advanced settings.
    * @param checkBoxChanged - Indicates whether the checkbox has changed.
+   * @param rowContentstackFieldUid - Uid to get correct row from tableData
    */
-  updateFieldSettings: (rowId: string, value: Advanced, checkBoxChanged: boolean) => void;
+  updateFieldSettings: (rowId: string, value: Advanced, checkBoxChanged: boolean, rowContentstackFieldUid: string) => void;
 
   /**
    * Indicates whether the field is localized.
