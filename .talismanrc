@@ -9,6 +9,10 @@ ignoreconfig:
       - Base64Detector
 
   - filename: ui/src/components/ContentMapper/index.tsx
+    checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
+  - filename: api/src/services/wordpress.service.ts
+    checksum: 24f3cf7587ccdd439e837a70cd4e13c4a63a9b6f6c211a91de10a278dbbf23e4
+version: "1.0.1-beta"
     checksum: 938aaf193e830bade84f9d8d385e55942269c3f2e7be82939994d64d76df3fa6
     
 version: "1.0"
