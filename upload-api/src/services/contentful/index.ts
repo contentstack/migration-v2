@@ -19,7 +19,7 @@ const createContentfulMapper = async (
     const fetchedLocales: [] = await extractLocale(cleanLocalPath);
 
     await extractContentTypes(cleanLocalPath, affix);
-    const initialMapper = await createInitialMapper();
+    const initialMapper = await createInitialMapper(affix);
     const req = {
       method: 'post',
       maxBodyLength: Infinity,
