@@ -207,7 +207,6 @@ const getAuditData = async (req: Request): Promise<any> => {
           );
         });
       });
-
     }
     if (searchText && searchText !== null && searchText !== "null") {
       transformedData = transformedData?.filter((item: any) => {
@@ -937,6 +936,7 @@ const startMigration = async (req: Request): Promise<any> => {
     );
   }
 };
+
 
 const getLogs = async (req: Request): Promise<any> => {
   const projectId = req?.params?.projectId ? path?.basename(req.params.projectId) : "";
