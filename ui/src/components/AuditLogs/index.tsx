@@ -416,6 +416,7 @@ const AuditLogs: React.FC = () => {
         <div className='table-height'>
             <InfiniteScrollTable
                 key={tableKey}
+                tableHeight={570}
                 itemSize={80}
                 data={tableData}
                 columns={dropDownOptions == 'content-types' || dropDownOptions == 'global-fields' ? contentTypeHeader : entryHeader}

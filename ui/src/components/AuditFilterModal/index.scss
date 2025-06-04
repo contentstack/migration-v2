@@ -14,8 +14,18 @@
     font-family: 'Inter', sans-serif;
 }
 
+.tableFilterModalStories.position-bottom {
+    top: auto !important;
+    bottom: 0px !important;
+}
+
+.tableFilterModalStories.position-right {
+    left: auto !important;
+    right: 0px !important;
+}
+
 .tableFilterModalStories__header {
-    padding: 16px 16px;
+    padding: 16px;
     color: #3d3f4c;
     border-bottom: 1px solid #e5e7eb;
     display: flex;
@@ -25,6 +35,12 @@
 
 .tableFilterModalStories__suggestion-item {
     padding: 8px 16px;
+}
+
+.tableFilterModalStories__no-data {
+    padding: 8px 16px;
+    color: #6b7280;
+    font-size: $size-font-medium;
 }
 
 .Checkbox {
@@ -62,6 +78,10 @@
     justify-content: center;
     width: 32px;
     height: 32px;
+    cursor: pointer;
+    transition:
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
 }
 
 .close-btn:hover {
