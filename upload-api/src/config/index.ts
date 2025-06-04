@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: 'contentful',
+  cmsType: 'wordpress',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
@@ -12,5 +12,5 @@ export default {
     bucketName: '',
     bucketKey: ''
   },
-  localPath: 'your-local-legacy-cms-path',
+  localPath: '/Users/shobhit.upadhyay/Downloads/blogpost.xml',
 };
