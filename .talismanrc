@@ -2,12 +2,13 @@ ignoreconfig:
   - filename: .github/workflows/secrets-scan.yml
     ignore_detectors:
       - filecontent
-
   - filename: remove-broken-imports.js
     checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
-
   - filename: ui/package-lock.json
     ignore_detectors:
       - Base64Detector
-
-version: "1.0"
+  - filename: ui/src/components/ContentMapper/index.tsx
+    checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
+  - filename: api/src/services/wordpress.service.ts
+    checksum: 24f3cf7587ccdd439e837a70cd4e13c4a63a9b6f6c211a91de10a278dbbf23e4
+version: "1.0.1-beta"
