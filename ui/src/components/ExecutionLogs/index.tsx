@@ -17,7 +17,6 @@ import { EXECUTION_LOGS_UI_TEXT } from '../../utilities/constants';
 import LogModal from '../Common/Modal/LogModal/LogModal';
 import { useParams } from 'react-router';
 
-
 const ExecutionLogs = () => {
   const [data, setData] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +31,11 @@ const ExecutionLogs = () => {
 
   const { projectId } = useParams<{ projectId: string }>();
 
+  const v2Features = {
+    pagination: true,
+    isNewEmptyState: true,
+    tableRowAction: true
+  };
 
   const selectedOrganisation = useSelector(
     (state: RootState) => state?.authentication?.selectedOrganisation
@@ -61,12 +65,10 @@ const ExecutionLogs = () => {
     });
   }
 
-  const [selectedStack, setSelectedStack] = useState<DropdownOption>(
-    {
-      label: stackIds?.[stackIds?.length - 1]?.label ?? '' ,
-      value: stackIds?.[stackIds?.length - 1]?.value ?? '' 
-    }
-  );
+  const [selectedStack, setSelectedStack] = useState<DropdownOption>({
+    label: stackIds?.[stackIds?.length - 1]?.label ?? '',
+    value: stackIds?.[stackIds?.length - 1]?.value ?? ''
+  });
 
   useEffect(() => {
     if (selectedStack) {
@@ -125,7 +127,8 @@ const ExecutionLogs = () => {
         setIsFilterApplied(true);
 
         const usersQueryArray = selectedFilterOption?.map?.((item) => item?.value);
-        const newFilter = usersQueryArray?.length > 1 ? usersQueryArray?.join('-') : usersQueryArray?.[0];
+        const newFilter =
+          usersQueryArray?.length > 1 ? usersQueryArray?.join('-') : usersQueryArray?.[0];
         setFilterValue(newFilter);
         fetchData({ filter: newFilter });
         closeModal();
@@ -158,8 +161,7 @@ const ExecutionLogs = () => {
         onMouseLeave={() => {
           setIsCursorInside(false);
         }}
-        className="filter-button"
-       >
+        className="filter-button">
         <Button
           onClick={openFilterDropdown}
           icon="v2-Filter"
@@ -182,21 +184,19 @@ const ExecutionLogs = () => {
     );
   };
 
-
-   const onClose = () => {
-    console.info('on modal close')
-  }
+  const onClose = () => {
+    console.info('on modal close');
+  };
 
   const handleModaleClick = (data: LogEntry) => {
     cbModal({
-      component: (props: any) => <LogModal props={{...props}} data={data}/>,
+      component: (props: any) => <LogModal props={{ ...props }} data={data} />,
       modalProps: {
         onClose,
-        shouldCloseOnOverlayClick: true,
+        shouldCloseOnOverlayClick: true
       }
-    },
-  )
-  }
+    });
+  };
 
   const columns = [
     {
@@ -220,21 +220,21 @@ const ExecutionLogs = () => {
           const formatted = new Intl.DateTimeFormat('en-US', options)?.format(date);
           return <div>{formatted}</div>;
         }
-        return <div className='center-dash'> - </div>;
-      },
+        return <div className="center-dash"> - </div>;
+      }
     },
     {
       Header: 'Level',
       width: 150,
       id: 'level',
       disableSortBy: true,
-       disableResizing: false,
+      disableResizing: false,
       addToColumnSelector: true,
       accessor: (data: LogEntry) => {
         if (data?.level) {
-          return <div>{data?.level}</div>
+          return <div>{data?.level}</div>;
         }
-        return <div className='center-dash'> - </div>
+        return <div className="center-dash"> - </div>;
       },
       filter: ColumnFilter
     },
@@ -243,33 +243,28 @@ const ExecutionLogs = () => {
       width: 560,
       id: 'message',
       disableSortBy: true,
-       disableResizing: false,
+      disableResizing: false,
       addToColumnSelector: true,
       accessor: (data: LogEntry) => {
         if (data?.message) {
-          return (
-            <div className='message-cell'>{data?.message}</div>
-        );
+          return <div className="message-cell">{data?.message}</div>;
         }
-        return <div className='center-dash'> - </div>
-      },
+        return <div className="center-dash"> - </div>;
+      }
     },
     {
       Header: 'Method Name',
       width: 200,
-      id:'methodName',
+      id: 'methodName',
       disableSortBy: true,
-       disableResizing: false,
+      disableResizing: false,
       addToColumnSelector: true,
       accessor: (data: LogEntry) => {
-       if (data?.methodName) {
-         return (
-            <div>{data?.methodName}</div>
-        );
-       }
-       return <div className='center-dash'> - </div>
-      },
-
+        if (data?.methodName) {
+          return <div>{data?.methodName}</div>;
+        }
+        return <div className="center-dash"> - </div>;
+      }
     }
   ];
 
@@ -310,10 +305,12 @@ const ExecutionLogs = () => {
       } else {
         setData(response?.data?.logs);
         setTotalCounts(response?.data?.total);
-        setFilterOptions(response?.data?.filterOptions?.map?.((item: string) => ({
-          label: item,
-          value: item
-        })) || []);
+        setFilterOptions(
+          response?.data?.filterOptions?.map?.((item: string) => ({
+            label: item,
+            value: item
+          })) || []
+        );
       }
     } catch (error) {
       console.error('Unexpected error while fetching logs:', error);
@@ -325,74 +322,80 @@ const ExecutionLogs = () => {
   };
 
   return (
-    <div className='executionTable-height'>
+    <div className="executionTable-height">
       <InfiniteScrollTable
-      itemSize={60}
-      columns={columns}
-      data={data ?? []}
-      uniqueKey={'id'}
-      fetchTableData={fetchData}
-      totalCounts={totalCounts ?? 0}
-      loading={loading}
-      rowPerPageOptions={[10, 30, 50, 100]}
-      minBatchSizeToFetch={30}
-      v2Features={{
-        pagination: true,
-        isNewEmptyState: true,
-        tableRowAction: true,
-      }}
-      isRowSelect={false}
-      isResizable={false}
-      columnSelector={false}
-      canSearch={true}
-      searchPlaceholder={EXECUTION_LOGS_UI_TEXT.SEARCH_PLACEHOLDER}
-      searchValue={searchText ?? ''}
-      onSearchChangeEvent={(value: string) => setSearchText(value)}
-      withExportCta={{
-        component: (
-          <Select
-          className='dropdown-wrapper'
-          width="250px"
-          version="v2"
-          value={testStacks?.length ? selectedStack : ''}
-          options={stackIds ?? []}
-          placeholder={EXECUTION_LOGS_UI_TEXT.SELECT_PLACEHOLDER}
-          onChange={(s: DropdownOption) => {
-            setSelectedStack({
-              label: s?.label ?? '',
-              value: s?.value ?? ''
-            });
-            setSearchText('');
-          }}
+        itemSize={60}
+        columns={columns}
+        data={data ?? []}
+        uniqueKey={'id'}
+        fetchTableData={fetchData}
+        totalCounts={totalCounts ?? 0}
+        loading={loading}
+        rowPerPageOptions={[10, 30, 50, 100]}
+        minBatchSizeToFetch={30}
+        v2Features={v2Features}
+        isRowSelect={false}
+        isResizable={false}
+        columnSelector={false}
+        canSearch={true}
+        searchPlaceholder={EXECUTION_LOGS_UI_TEXT.SEARCH_PLACEHOLDER}
+        searchValue={searchText ?? ''}
+        onSearchChangeEvent={(value: string) => setSearchText(value)}
+        withExportCta={{
+          component: (
+            <Select
+              className="dropdown-wrapper"
+              width="250px"
+              version="v2"
+              value={testStacks?.length ? selectedStack : ''}
+              options={stackIds ?? []}
+              placeholder={EXECUTION_LOGS_UI_TEXT.SELECT_PLACEHOLDER}
+              onChange={(s: DropdownOption) => {
+                setSelectedStack({
+                  label: s?.label ?? '',
+                  value: s?.value ?? ''
+                });
+                setSearchText('');
+              }}
+            />
+          ),
+          showExportCta: true
+        }}
+        customEmptyState={
+          <EmptyState
+            forPage="list"
+            heading={
+              searchText === ''
+                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_MATCH
+            }
+            description={
+              searchText === ''
+                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_RESULT
+            }
+            moduleIcon={
+              searchText === ''
+                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_MATCH
+            }
+            type="secondary"
+            className="custom-empty-state"
           />
-        ),
-        showExportCta: true
-      }}
-      customEmptyState={
-        <EmptyState
-        forPage="list"
-        heading={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_MATCH} 
-        description={
-          searchText === ''
-          ?  EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_LOGS
-          : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_RESULT
         }
-        moduleIcon={searchText === '' ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_LOGS : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_MATCH}
-        type="secondary"
-        className="custom-empty-state"
-        />
-      }
-      onRowClick = {(e: LogEntry)=>{handleModaleClick(e)} }
-      tableRowActionList = {[
-        {
-          title: 'View Log',
-          action: () => {
-            // This action is handled in the onRowClick method
-          },
-        }
-      ]}
+        onRowClick={(e: LogEntry) => {
+          handleModaleClick(e);
+        }}
+        tableRowActionList={[
+          {
+            title: 'View Log',
+            action: () => {
+              // This action is handled in the onRowClick method
+            }
+          }
+        ]}
       />
-      </div>
+    </div>
   );
 };
 
