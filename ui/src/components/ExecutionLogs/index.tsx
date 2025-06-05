@@ -17,6 +17,7 @@ import { EXECUTION_LOGS_UI_TEXT } from '../../utilities/constants';
 import LogModal from '../Common/Modal/LogModal/LogModal';
 import { useParams } from 'react-router';
 
+
 const ExecutionLogs = () => {
   const [data, setData] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,19 +185,21 @@ const ExecutionLogs = () => {
     );
   };
 
-  const onClose = () => {
-    console.info('on modal close');
-  };
+
+   const onClose = () => {
+    console.info('on modal close')
+  }
 
   const handleModaleClick = (data: LogEntry) => {
     cbModal({
-      component: (props: any) => <LogModal props={{ ...props }} data={data} />,
+      component: (props: any) => <LogModal props={{...props}} data={data}/>,
       modalProps: {
         onClose,
-        shouldCloseOnOverlayClick: true
+        shouldCloseOnOverlayClick: true,
       }
-    });
-  };
+    },
+  )
+  }
 
   const columns = [
     {
@@ -322,7 +325,7 @@ const ExecutionLogs = () => {
   };
 
   return (
-    <div className="executionTable-height">
+    <div className='executionTable-height'>
       <InfiniteScrollTable
         itemSize={60}
         columns={columns}
@@ -395,7 +398,7 @@ const ExecutionLogs = () => {
           }
         ]}
       />
-    </div>
+      </div>
   );
 };
 
