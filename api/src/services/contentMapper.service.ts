@@ -66,10 +66,6 @@ const putTestData = async (req: Request) => {
     */
     await FieldMapperModel.read();
 
-    if (!Array.isArray(contentTypes)) {
-      throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_INVALID);
-    }
-
     contentTypes.map((type: any, index: any) => {
       const fieldIds: string[] = [];
       const fields = Array?.isArray?.(type?.fieldMapping) ? type?.fieldMapping?.filter((field: any) => field)?.map?.((field: any) => {
