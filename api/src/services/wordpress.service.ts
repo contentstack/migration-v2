@@ -2338,7 +2338,7 @@ async function processChunkData(
   try {
     const writePromises = [];
 
-    const filteredChunk = chunkData.filter((item:any) => item["wp:post_type"] === "post" && ["publish", "inherit", "draft"].includes(item["wp:status"]));
+    const filteredChunk = chunkData?.filter((item:any) => item["wp:post_type"] === "post" && ["publish", "inherit", "draft"]?.includes(item["wp:status"]));
     for (const data of filteredChunk) {
       writePromises.push(
         limit(async () => {
