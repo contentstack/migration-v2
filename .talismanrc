@@ -10,9 +10,6 @@ fileignoreconfig:
   - filename: ui/package-lock.json
     checksum: cee38557d8dcaca78c40053e67e5448820c17b29c146595f10b5c7c4f0cb01bc
 
-  - filename: upload-api/migration-aem/package-lock.json
-    checksum: c484c3c5ea519b8b5f5fbfdc7f6b6a2976182c930fd04d82acc36d2fe759882c
-
   - filename: upload-api/migration-wordpress/package-lock.json
     checksum: e7bc3b55717473a91e0d5021ea5a96564df19ab8d066a7c11a280547d9531942
 
