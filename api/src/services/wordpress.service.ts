@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -58,6 +60,7 @@ let termsFolderPath = path.join(
   MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
 );
 let tagsFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.TAG_DIR_NAME);
+let pagesFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.PAGES_DIR_NAME);
 let categoriesFolderPath = path.join(
   entrySave,
   MIGRATION_DATA_CONFIG.CATEGORIES_DIR_NAME
@@ -104,8 +107,7 @@ async function mapContentTypeToEntry(contentType: any, data: any) {
         break;
       case "html":
         formattedValue =
-          fieldValue && typeof fieldValue === "object"
-            ? await convertJsonToHtml(fieldValue)
+          fieldValue && typeof fieldValue === "object" ? await convertJsonToHtml(fieldValue)
             : fieldValue;
         break;
       case "json":    
@@ -319,8 +321,7 @@ async function startingDirAssests(destinationStackId: string) {
 function toCheckUrl(url : string, baseSiteUrl: string) {
 
   const validPattern = /^(https?:\/\/|www\.)/;
-  return validPattern.test(url)
-    ? url
+  return validPattern.test(url) ? url
     : `${baseSiteUrl}${url.replace(/^\/+/, "")}`;
 }
 
@@ -826,7 +827,7 @@ async function startingDirAuthors(
         console.error(`Error creating/writing file for locale ${loc}:`, err);
       }
     }
-  }
+}
 
 const filePath = false;
 async function saveAuthors(authorDetails: any[], destinationStackId: string, projectId: string, contentType: any, master_locale:string, locales:object) {
@@ -844,7 +845,7 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
   
         const authordataEntry: any = {
           uid: uid,
-          title: data["wp:author_login"],
+          title: data["wp:author_display_name"] || data["wp:author_login"],
           url: url,
           email: data["wp:author_email"],
           first_name: data["wp:author_first_name"],
@@ -1467,6 +1468,141 @@ const ContentTypesSchema = [
       singleton: false,
     },
   },
+  {
+  title: 'Pages',
+  uid: 'pages',
+  schema: [
+    {
+      display_name: 'Title',
+      uid: 'title',
+      data_type: 'text',
+      field_metadata: { _default: true, version: 1 },
+      unique: false,
+      mandatory: true,
+      multiple: false,
+      non_localizable: false
+    },
+    {
+      display_name: 'URL',
+      uid: 'url',
+      data_type: 'text',
+      field_metadata: { _default: true, version: 1 },
+      unique: true,
+      mandatory: false,
+      multiple: false,
+      non_localizable: false
+    },
+    {
+      display_name: 'Slug',
+      uid: 'slug',
+      data_type: 'text',
+      field_metadata: { _default: true, version: 1 },
+      unique: false,
+      mandatory: false,
+      multiple: false,
+      non_localizable: false
+    },
+    {
+      data_type: 'json',
+      display_name: 'Body',
+      uid: 'full_description',
+      field_metadata: {
+        allow_json_rte: true,
+        embed_entry: true,
+        description: '',
+        default_value: '',
+        multiline: false,
+        rich_text_type: 'advanced',
+        options: [],
+        ref_multiple_content_types: true
+      },
+      format: '',
+      error_messages: { format: '' },
+      reference_to: ['sys_assets'],
+      multiple: false,
+      non_localizable: false,
+      unique: false,
+      mandatory: false
+    },
+    {
+      data_type: 'text',
+      display_name: 'Excerpt',
+      uid: 'excerpt',
+      field_metadata: {
+        description: '',
+        default_value: '',
+        multiline: true,
+        version: 1
+      },
+      format: '',
+      error_messages: { format: '' },
+      mandatory: false,
+      multiple: false,
+      non_localizable: false,
+      unique: false
+    },
+    {
+      data_type: 'file',
+      display_name: 'Featured Image',
+      uid: 'featured_image',
+      field_metadata: { description: '', rich_text_type: 'standard' },
+      unique: false,
+      mandatory: false,
+      multiple: true,
+      non_localizable: false
+    },
+    {
+      data_type: 'isodate',
+      display_name: 'Date',
+      uid: 'date',
+      startDate: null,
+      endDate: null,
+      field_metadata: { description: '', default_value: {} },
+      mandatory: false,
+      multiple: false,
+      non_localizable: false,
+      unique: false
+    },
+    {
+      data_type: 'reference',
+      display_name: 'author',
+      reference_to: ['authors'],
+      field_metadata: {
+        ref_multiple: true,
+        ref_multiple_content_types: true
+      },
+      uid: 'author',
+      unique: false,
+      mandatory: false,
+      multiple: false,
+      non_localizable: false
+    },
+    {
+      data_type: 'reference',
+      display_name: 'related_pages',
+      reference_to: ['pages'],
+      field_metadata: {
+        ref_multiple: true,
+        ref_multiple_content_types: true
+      },
+      uid: 'related_pages',
+      unique: false,
+      mandatory: false,
+      multiple: false,
+      non_localizable: false
+    }
+  ],
+  options: {
+    is_page: true,
+    title: 'title',
+    sub_title: [],
+    url_pattern: '/:title',
+    _version: 1,
+    url_prefix: '/pages/',
+    description: 'Schema for Pages',
+    singleton: false
+  }
+}
 ];
 
 async function extractContentTypes(projectId: string,destinationStackId: string) {
@@ -2197,36 +2333,18 @@ async function processChunkData(
 ) {
   const postdata: any = {};
   const formattedPosts: any = {};
-  let postdataCombined = {}
-  
+  let postdataCombined = {};
+
   try {
     const writePromises = [];
 
-    const typeArray = [
-      "page",
-      "wp_global_styles",
-      "wp_block",
-      "attachment",
-      "amp_validated_url",
-    ];
-    const statusArray = ["publish", "inherit"];
-    const isValidPostType = (postType: string) => !typeArray.includes(postType);
-    const isValidStatus = (status: string) => statusArray.includes(status);
-
-    // iterate over data of each file
-    for (const data of chunkData) {
+    const filteredChunk = chunkData?.filter((item:any) => item["wp:post_type"] === "post" && ["publish", "inherit", "draft"]?.includes(item["wp:status"]));
+    for (const data of filteredChunk) {
       writePromises.push(
         limit(async () => {
-          // necessary validations
-          if (!isValidPostType(data["wp:post_type"])) return;
-          if (!isValidStatus(data["wp:status"])) return;
+          const { postCategories, postTags, postTerms } = extractPostCategories(data["category"]);
 
-          // get categories, tags, terms array
-          const { postCategories, postTags, postTerms } = extractPostCategories(
-            data["category"]
-          );
-
-          // get author array
+          // Extract author
           const postAuthor = extractPostAuthor(data["dc:creator"]);
 
           const dom = new JSDOM(
@@ -2237,20 +2355,31 @@ async function processChunkData(
           );
           const htmlDoc = dom.window.document.querySelector("body");
           const jsonValue = htmlToJson(htmlDoc);
-          const postDate = new Date(data["wp:post_date_gmt"])?.toISOString();
+
+          // Format date safely
+          let postDate: string | null = null;
+          try {
+            const parsed = new Date(data["wp:post_date_gmt"]);
+            if (!isNaN(parsed.getTime())) {
+              postDate = parsed.toISOString();
+            }
+          } catch (error) {
+            console.error(`Error parsing date for post ${data["wp:post_id"]}:`, error);
+          }
 
           const base = blog_base_url?.split("/")?.filter(Boolean);
           const blogname = base[base?.length - 1];
           const url = data["link"]?.split(blogname)[1];
-          const uid = `posts_${data["wp:post_id"]}`
-          const customId = idCorrector(uid)
+          const uid = `posts_${data["wp:post_id"]}`;
+          const customId = idCorrector(uid);
+
           postdata[customId] = {
             title: data["title"] || `Posts - ${data["wp:post_id"]}`,
             uid: customId,
             url: url,
             date: postDate,
             full_description: jsonValue,
-            excerpt: data["excerpt:encoded"]
+            excerpt: (data["excerpt:encoded"] || "")
               .replace(/<!--.*?-->/g, "")
               .replace(/&lt;!--?\s+\/?wp:.*?--&gt;/g, ""),
             author: postAuthor,
@@ -2258,11 +2387,10 @@ async function processChunkData(
             terms: postTerms,
             tag: postTags,
             featured_image: '',
-            publish_details:[]
+            publish_details: [],
           };
-        
-         
-          for (const [key, value] of Object.entries(postdata as {[key: string]: any})) {
+
+          for (const [key, value] of Object.entries(postdata as { [key: string]: any })) {
             const customId = idCorrector(value?.uid);
             formattedPosts[customId] = {
               ...formattedPosts[customId],
@@ -2271,20 +2399,19 @@ async function processChunkData(
             };
             formattedPosts[customId].publish_details = [];
           }
-          const formatted_posts =  await featuredImageMapping(
+
+          const formattedPostsWithImage = await featuredImageMapping(
             `posts_${data["wp:post_id"]}`,
             data,
             formattedPosts
           );
-          postdataCombined = { ...postdataCombined, ...formatted_posts };
 
+          postdataCombined = { ...postdataCombined, ...formattedPostsWithImage };
         })
       );
     }
-    
-    // Wait for all write promises to complete and store the results
+
     const results: any = await Promise.all(writePromises);
-    // check if all promises resolved successfully
     const allSuccess = results.every(
       (result: any) => typeof result !== "object" || result?.success
     );
@@ -2293,10 +2420,9 @@ async function processChunkData(
       console.info("last data");
     }
 
-    return postdataCombined
+    return postdataCombined;
   } catch (error) {
-    console.error(error);
-    console.error("Error saving posts", error);
+    console.error("❌ Error saving posts:", error);
     return { success: false, message: error };
   }
 }
@@ -2391,6 +2517,303 @@ async function extractPosts( packagePath: string, destinationStackId: string, pr
 }
 
 /************  end of Posts module functions *********/
+
+/************ Start of Pages module functions *********/
+
+async function startingDirPages(
+  ct: string,
+  master_locale: string,
+  locales: object
+) {
+  const localeKeys = getKeys(locales);
+  const pagesFolderName = ct || MIGRATION_DATA_CONFIG.PAGES_DIR_NAME;
+
+  // Ensure global consistency if using `pageFolderPath`
+  pagesFolderPath = path.join(entrySave, pagesFolderName, master_locale);
+  const masterFilePath = path.join(pagesFolderPath, `${master_locale}.json`);
+
+  try {
+    await fs.promises.access(pagesFolderPath);
+  } catch {
+    await fs.promises.mkdir(pagesFolderPath, { recursive: true });
+    await fs.promises.writeFile(masterFilePath, "{}");
+  }
+
+  // Read the master locale data
+  let masterData = "{}";
+  try {
+    masterData = await fs.promises.readFile(masterFilePath, "utf-8");
+  } catch (err) {
+    console.error("Error reading master locale file for pages:", err);
+  }
+
+  // Create folders and files for other locales
+  for (const loc of localeKeys) {
+    if (loc === master_locale) continue;
+
+    const localeFolderPath = path.join(entrySave, pagesFolderName, loc);
+    const localeFilePath = path.join(localeFolderPath, `${loc}.json`);
+
+    try {
+      await fs.promises.mkdir(localeFolderPath, { recursive: true });
+      await fs.promises.writeFile(localeFilePath, masterData);
+    } catch (error) {
+      console.error(`❌ Error creating/writing file for locale ${loc}:`, error);
+    }
+  }
+}
+
+
+const extractPageAuthor = (authorTitle: string) => {
+  const pageAuthor: any[] = [];
+
+  const processedAffix = 'authors';
+  const authorFileContent = fs.readFileSync(path.join(process.cwd(), authorsFilePath), 'utf-8');
+  const authorDataParsed = JSON.parse(authorFileContent);
+
+  Object.keys(authorDataParsed).forEach((key) => {
+    const cleanedAuthorTitle = authorTitle.split(',').join('').trim();
+    if (cleanedAuthorTitle === authorDataParsed[key].title) {
+      pageAuthor.push({ uid: key, _content_type_uid: processedAffix });
+    }
+  });
+
+  return pageAuthor;
+};
+
+const extractPageParent = (parentId?: string): any[] => {
+  if (!parentId || parentId === "0") return [];
+
+  return [
+    {
+      uid: `pages_${parentId}`,
+      _content_type_uid:'pages',
+    }
+  ];
+}
+
+async function handlePagesChunkData(
+  items: any[],
+  contenttype: any
+): Promise<Record<string, any>> {
+  const pagedata: any = {};
+  const formattedPages: any = {};
+  let pageDataCombined = {};
+  console.info("Processing pages chunk data...");
+
+  try {
+    const writePromises = [];
+  
+  const allowedPageTypes = ['page'];
+  const allowedStatuses = ['publish', 'inherit', 'draft'];
+  const isValidPostType = (postType: string) => allowedPageTypes.includes(postType);
+  const isValidStatus = (status: string) => allowedStatuses.includes(status);
+
+
+  if (!Array.isArray(contenttype?.fieldMapping)) {
+    console.error('Invalid contenttype schema for pages:', contenttype);
+    return {};
+  }
+
+  for (const item of items){
+    writePromises.push(
+      limit(async () => {
+        if (!isValidPostType(item['wp:post_type'])) {
+          return;
+        }
+
+        if (!isValidStatus(item['wp:status'])) {
+          return;
+        }
+
+        const authorRef = extractPageAuthor(item['dc:creator']);
+        const parentRef = extractPageParent(item['wp:post_parent']);
+
+        const dom = new JSDOM(
+            item["content:encoded"]
+              .replace(/<!--.*?-->/g, "")
+              .replace(/&lt;!--?\s+\/?wp:.*?--&gt;/g, ""),
+            { virtualConsole }
+          );
+        const htmlDoc = dom.window.document.querySelector('body');
+        const body = htmlToJson(htmlDoc);
+
+        const uid = `pages_${item['wp:post_id']}`;
+        const customId = idCorrector(uid);
+
+        pagedata[customId] = {
+          uid: customId,
+          title: item['title'] || 'Untitled',
+          url: item["link"]?.replace(blog_base_url, '') || '/',
+          slug: item['wp:post_name'] || `page-${item['wp:post_id']}`,
+          excerpt: item['excerpt:encoded'] || '',
+          full_description: body,
+          Author : authorRef || [],
+          related_pages: parentRef || [],
+          featured_image: '',
+          date: item['wp:post_date_gmt'] && !item['wp:post_date_gmt'].startsWith("0000") ? new Date(item['wp:post_date_gmt']).toISOString() : null,
+          publish_details: [],
+        };
+        for (const [key, value] of Object.entries(pagedata as {[key: string]: any})) {
+            const customId = idCorrector(value?.uid);
+            formattedPages[customId] = {
+              ...formattedPages[customId],
+              uid: customId,
+              ...(await mapContentTypeToEntry(contenttype, value)),
+            };
+            formattedPages[customId].publish_details = [];
+          }
+          const formatted_posts =  await featuredImageMapping(
+            `pages_${item["wp:post_id"]}`,
+            item,
+            formattedPages
+          );
+          pageDataCombined = { ...pageDataCombined, ...formatted_posts };
+      })
+    );
+  }
+  // Wait for all write promises to complete and store the results
+    const results: any = await Promise.all(writePromises);
+    // check if all promises resolved successfully
+    const allSuccess = results.every(
+      (result: any) => typeof result !== "object" || result?.success
+    );
+
+    if (allSuccess) {
+      console.info("last data");
+    }
+
+    return pageDataCombined
+  } catch (error) {
+    console.error(error);
+    console.error("Error saving pages", error);
+    return { success: false, message: error };
+  }
+}
+
+
+async function extractPages(
+  packagePath: string,
+  destinationStackId: string,
+  projectId: string,
+  contentTypes: any,
+  keyMapper: any,
+  master_locale: string,
+  project: any
+) {
+  const srcFunc = "extractPages";
+  const ct = keyMapper?.["pages"];
+  const contenttype = contentTypes?.find((item: any) => item?.otherCmsUid === "pages");
+
+
+  if (!contenttype) {
+    const msg = getLogMessage(srcFunc, "Missing content type schema for 'pages'");
+    await customLogger(projectId, destinationStackId, "error", msg);
+    return;
+  }
+
+  try {
+    await startingDirPages(ct, master_locale, project?.locales);
+
+    const alldata: any = await fs.promises.readFile(packagePath, "utf8");
+    const alldataParsed = JSON.parse(alldata);
+    blog_base_url =
+      alldataParsed?.rss?.channel["wp:base_blog_url"] ||
+      alldataParsed?.channel["wp:base_blog_url"] ||
+      "";
+
+    const chunkFiles = fs.readdirSync(chunksDir);
+    const lastChunk = chunkFiles[chunkFiles.length - 1];
+
+    let pagedataCombined: Record<string, any> = {};
+
+    for (const filename of chunkFiles) {
+      const filePath = path.join(chunksDir, filename);
+      const data: any = fs.readFileSync(filePath);
+      const chunkData = JSON.parse(data);
+
+
+      console.info(`Processing chunk: ${filename} — ${chunkData.length} items`);
+
+      const isLastChunk = filename === lastChunk;
+
+      const chunkPages = await handlePagesChunkData(chunkData, contenttype);
+
+      console.info(
+        `${filename} → Mapped entries: ${Object.keys(chunkPages).length}`
+      );
+
+      pagedataCombined = { ...pagedataCombined, ...chunkPages };
+
+      const message = getLogMessage(
+        srcFunc,
+        `${filename.split(".").slice(0, -1).join(".")} has been successfully transformed.`,
+        {}
+      );
+      await customLogger(projectId, destinationStackId, "info", message);
+    }
+
+    const pagesFolderName = ct || MIGRATION_DATA_CONFIG.PAGES_DIR_NAME;
+    pagesFolderPath = path.join(entrySave, pagesFolderName, master_locale);
+
+    // Write master locale entries
+    await writeFileAsync(
+      path.join(pagesFolderPath, `${master_locale}.json`),
+      Object.keys(pagedataCombined).length ? pagedataCombined : {},
+      4
+    );
+
+    await writeFileAsync(
+      path.join(pagesFolderPath, `index.json`),
+      { "1": `${master_locale}.json` },
+      4
+    );
+
+    // Write to other locales
+    const localeKeys = getKeys(project?.locales);
+    for (const loc of localeKeys) {
+      if (loc === master_locale) continue;
+
+      const localeFolderPath = path.join(entrySave, pagesFolderName, loc);
+      const indexPath = path.join(localeFolderPath, "index.json");
+
+      try {
+        await fs.promises.writeFile(
+          indexPath,
+          JSON.stringify({ "1": `${loc}.json` }, null, 4)
+        );
+      } catch (err) {
+        console.error(`Error writing index.json for locale ${loc}:`, err);
+      }
+
+      await writeFileAsync(
+        path.join(localeFolderPath, `${loc}.json`),
+        Object.keys(pagedataCombined).length ? pagedataCombined : {},
+        4
+      );
+    }
+
+    if (Object.keys(pagedataCombined).length === 0) {
+      console.warn("⚠️ No page entries were written. Check filtering or chunk content.");
+    }
+
+    return;
+  } catch (error) {
+    const message = getLogMessage(
+      srcFunc,
+      `Error while transforming the pages.`,
+      {},
+      error
+    );
+    await customLogger(projectId, destinationStackId, "error", message);
+    return;
+  }
+}
+
+
+
+/************  end of Pages module functions *********/
+
 
 /************  Start of Global fields module functions *********/
 async function copyFolder(src: string, dest: string) {
@@ -2499,6 +2922,7 @@ export const wordpressService = {
   getAllTags,
   getAllCategories,
   extractPosts,
+  extractPages,
   extractGlobalFields,
   createVersionFile
 };
