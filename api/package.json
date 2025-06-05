@@ -16,14 +16,14 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/contentstack-expert-services/migration-v2-node-server.git"
+    "url": "git+https://github.com/contentstack/migration-v2.git"
   },
   "author": "Contentstack",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/contentstack-expert-services/migration-v2-node-server/issues"
+    "url": "https://github.com/contentstack/migration-v2.git/issues"
   },
-  "homepage": "https://github.com/contentstack-expert-services/migration-v2-node-server#readme",
+  "homepage": "https://github.com/contentstack/migration-v2.git#readme",
   "dependencies": {
     "@contentstack/cli": "^1.40.4",
     "@contentstack/cli-utilities": "^1.11.1",
