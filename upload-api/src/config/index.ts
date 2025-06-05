@@ -12,5 +12,5 @@ export default {
     bucketName: '',
     bucketKey: ''
   },
-  localPath: process.env.LOCAL_PATH || '',
+  localPath: 'your-local-legacy-cms-path', 
 };
