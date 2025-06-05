@@ -954,15 +954,16 @@ const getLogs = async (req: Request): Promise<any> => {
     if (!absolutePath?.startsWith(logsDir)) {
       throw new BadRequestError("Access to this file is not allowed.");
     }
-    if (fs.existsSync(absolutePath)) {
+    if (fs?.existsSync(absolutePath)) {
       let index = 0;
-      const logs = await fs.promises.readFile(absolutePath, "utf8");
+      const logs = await fs?.promises?.readFile?.(absolutePath, "utf8");
       let logEntries = logs
         ?.split("\n")
         ?.map((line) => {
           try {
             const parsedLine = JSON?.parse(line)
-            parsedLine['id'] = index;
+            parsedLine && (parsedLine['id'] = index);
+
             ++index;
             return parsedLine ? parsedLine : null;
           } catch (error) {

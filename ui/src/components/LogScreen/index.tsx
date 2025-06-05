@@ -17,6 +17,7 @@ import './index.scss';
 import { MAGNIFY, DEMAGNIFY } from '../../common/assets';
 import { saveStateToLocalStorage } from '../../utilities/functions';
 import { LogEntry } from './MigrationLogViewer';
+import { useNavigate } from 'react-router';
 
 // Define log styles for different levels
 const logStyles: { [key: string]: React.CSSProperties } = {
@@ -235,21 +236,40 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
     }
   }, [isLogsLoading, migratedStack?.isMigrated]);
 
+  const navigate = useNavigate();
+
+  const handleLinkClick = () => {
+    const activeTabState: INewMigration = {
+      ...newMigrationData,
+      settings: {
+        active_state: 'Execution Logs'
+      }
+    };
+    dispatch(updateNewMigrationData(activeTabState));
+    navigate(`/projects/${projectId}/settings`);
+  };
+
   return (
     <div className="logs-wrapper">
       {/* Logs container */}
       <div
         className="logs-container"
         style={{ height: '400px', overflowY: 'auto' }}
-        ref={logsContainerRef}
-      >
+        ref={logsContainerRef}>
         {migratedStack?.isMigrated ? (
-          <div className="log-entry text-center">
-            <div className="log-message">
-              Test Migration is completed for stack{' '}
-              <Link href={newMigrationData?.test_migration?.stack_link} target="_blank">
-                <strong>{migratedStack?.stackName}</strong>
-              </Link>
+          <div>
+            <div className="log-entry text-center">
+              <div className="log-message">
+                Test Migration is completed for stack{' '}
+                <Link href={newMigrationData?.test_migration?.stack_link} target="_blank">
+                  <strong>{migratedStack?.stackName}</strong>
+                </Link>
+                .You can view logs
+                <Link target="_self" className="ml-5" cbOnClick={handleLinkClick}>
+                  <strong>here</strong>
+                </Link>
+                .
+              </div>
             </div>
           </div>
         ) : (
@@ -259,8 +279,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
               transform: `scale(${zoomLevel})`,
               transformOrigin: 'top left',
               transition: 'transform 0.1s ease'
-            }}
-          >
+            }}>
             {logs?.map((log, index) => {
               try {
                 const { level, timestamp, message } = log;
@@ -270,15 +289,13 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
                     {message === 'Migration logs will appear here once the process begins.' ? (
                       <div
                         style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry text-center"
-                      >
+                        className="log-entry text-center">
                         <div className="log-message">{message}</div>
                       </div>
                     ) : (
                       <div
                         style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry logs-bg"
-                      >
+                        className="log-entry logs-bg">
                         <div className="log-number">{index}</div>
                         <div className="log-time">
                           {timestamp

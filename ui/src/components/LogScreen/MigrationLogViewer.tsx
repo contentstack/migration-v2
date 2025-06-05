@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Icon, cbModal, Link } from '@contentstack/venus-components';
 import io from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 
 // Redux files
 import { RootState } from '../../store';
@@ -59,14 +59,11 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   const [zoomLevel, setZoomLevel] = useState(1);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector(
-    (state: RootState) => state?.authentication?.selectedOrganisation
-  );
   const user = useSelector((state: RootState) => state?.authentication?.user);
 
   const dispatch = useDispatch();
 
-  const { projectId = '' } = useParams();
+  const { projectId } = useParams();
 
   const stackLink = `${CS_URL[user?.region]}/stack/${
     newMigrationData?.stackDetails?.value
@@ -225,20 +222,39 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     });
   }, [logs]);
 
+  const navigate = useNavigate();
+
+  const handleLinkClick = () => {
+    const activeTabState: INewMigration = {
+      ...newMigrationData,
+      settings: {
+        active_state: 'Execution Logs',
+      }
+    };
+    dispatch(updateNewMigrationData(activeTabState));
+    navigate(`/projects/${projectId}/settings`)
+  };
+
   return (
     <div className="logs-wrapper">
       <div
         className="logs-container"
         style={{ height: '400px', overflowY: 'auto' }}
-        ref={logsContainerRef}
-      >
+        ref={logsContainerRef}>
         {newMigrationData?.migration_execution?.migrationCompleted ? (
-          <div className="log-entry text-center">
-            <div className="log-message">
-              Migration Execution process is completed in the selected stack
-              <Link href={stackLink} target="_blank" className="ml-5">
-                <strong>{newMigrationData?.stackDetails?.label}</strong>
-              </Link>
+          <div>
+            <div className="log-entry text-center">
+              <div className="log-message">
+                Migration Execution process is completed in the selected stack
+                <Link href={stackLink} target="_blank" className="ml-5">
+                  <strong>{newMigrationData?.stackDetails?.label}</strong>
+                </Link>
+                .You can view logs
+                <Link target="_self" className="ml-5" cbOnClick={handleLinkClick}>
+                  <strong>here</strong>
+                </Link>
+                .
+              </div>
             </div>
           </div>
         ) : (
@@ -248,8 +264,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
               transform: `scale(${zoomLevel})`,
               transformOrigin: 'top left',
               transition: 'transform 0.1s ease'
-            }}
-          >
+            }}>
             {logs.map((log, index) => {
               try {
                 //const logObject = JSON.parse(log);
@@ -261,8 +276,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                   <div
                     key={`${index?.toString}`}
                     style={logStyles[level || ''] || logStyles.info}
-                    className="log-entry text-center"
-                  >
+                    className="log-entry text-center">
                     <div className="log-message">
                       Migration has already done in selected stack. Please create a new project.
                     </div>
@@ -276,15 +290,13 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                     {message === 'Migration logs will appear here once the process begins.' ? (
                       <div
                         style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry text-center"
-                      >
+                        className="log-entry text-center">
                         <div className="log-message">{message}</div>
                       </div>
                     ) : (
                       <div
                         style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry logs-bg"
-                      >
+                        className="log-entry logs-bg">
                         <div className="log-number">{index}</div>
                         <div className="log-time">
                           {timestamp

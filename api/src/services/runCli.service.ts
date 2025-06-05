@@ -206,34 +206,6 @@ export const runCli = async (
       // Debug which log path is being used
       console.info(`Log path for CLI commands: ${transformePath}`);
 
-      // Test writing all log levels directly to the file
-      try {
-        const testLogs = [
-          {
-            level: 'info',
-            message: 'TEST INFO LOG',
-            timestamp: new Date().toISOString(),
-          },
-          {
-            level: 'warn',
-            message: 'TEST WARNING LOG',
-            timestamp: new Date().toISOString(),
-          },
-          {
-            level: 'error',
-            message: 'TEST ERROR LOG',
-            timestamp: new Date().toISOString(),
-          },
-        ];
-
-        for (const log of testLogs) {
-          fs.appendFileSync(transformePath, JSON.stringify(log) + '\n');
-        }
-        console.info('Test logs written successfully');
-      } catch (err) {
-        console.error('Failed to write test logs:', err);
-      }
-
       // Make sure to set the global.currentLogFile to the project log file
       // This is the key part - setting the log file path to the migration service log file
       await setLogFilePath(transformePath);
