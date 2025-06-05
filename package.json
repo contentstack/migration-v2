@@ -14,14 +14,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/contentstack/migration-v2"
+    "url": "git+https://github.com/contentstack/migration-v2.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/contentstack/migration-v2/issues"
+    "url": "https://github.com/contentstack/migration-v2.git/issues"
   },
-  "homepage": "https://github.com/contentstack/migration-v2#readme",
+  "homepage": "https://github.com/contentstack/migration-v2.git#readme",
   "devDependencies": {
     "@types/estree": "^1.0.7",
     "@types/express": "^5.0.1",
