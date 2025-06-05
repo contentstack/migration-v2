@@ -2,14 +2,28 @@ ignoreconfig:
   - filename: .github/workflows/secrets-scan.yml
     ignore_detectors:
       - filecontent
-
   - filename: remove-broken-imports.js
     checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
-
   - filename: ui/package-lock.json
     ignore_detectors:
       - Base64Detector
-
   - filename: ui/src/components/ContentMapper/index.tsx
     checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
+  - filename: api/src/services/wordpress.service.ts
+    checksum: 24f3cf7587ccdd439e837a70cd4e13c4a63a9b6f6c211a91de10a278dbbf23e4
 version: "1.0.1-beta"
+
+fileignoreconfig:
+- filename: ui/package-lock.json
+  checksum: dcb09583feb62c9000ea89fb380a562baa3c9dfac72bc8c68357c7bfd6374fe4
+- filename: api/src/utils/content-type-creator.utils.ts
+  checksum: 672ce6b09cb7993fbe6dbad2ed78082ba140b9b68026771ebe056bcdcabdc40c
+- filename: api/src/services/migration.service.ts
+  checksum: 5459ca2e9c6f8067f9acae91bd8af126aef893e8baaccc8a05ad6bd7162e994f
+- filename: ui/src/components/AuditLogs/auditLogs.interface.ts
+  checksum: e9ba5046479507dd11a369246fb7779edfac00ae5df859cc1ba81ed7d61be19b
+- filename: ui/src/components/ContentMapper/index.tsx
+  checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
+- filename: ui/src/components/AuditLogs/index.tsx
+  checksum: 8cad311f527241fcb0fd587da28bbe776e0147a3da0d372ceb447b0076a5aeba
+version: "1.0"
