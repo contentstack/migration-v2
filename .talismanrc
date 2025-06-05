@@ -6,6 +6,27 @@ fileignoreconfig:
       - filecontent
   - filename: remove-broken-imports.js
     checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
-fileignoreconfig:    
-- filename: ui/package-lock.json
-  checksum: cee38557d8dcaca78c40053e67e5448820c17b29c146595f10b5c7c4f0cb01bc
+
+  - filename: ui/package-lock.json
+    checksum: cee38557d8dcaca78c40053e67e5448820c17b29c146595f10b5c7c4f0cb01bc
+
+  - filename: upload-api/migration-aem/package-lock.json
+    checksum: c484c3c5ea519b8b5f5fbfdc7f6b6a2976182c930fd04d82acc36d2fe759882c
+
+  - filename: upload-api/migration-wordpress/package-lock.json
+    checksum: e7bc3b55717473a91e0d5021ea5a96564df19ab8d066a7c11a280547d9531942
+
+  - filename: upload-api/migration-sitecore/package-lock.json
+    checksum: 473898e601dd760e847a6d7c91c407c3f2b91e60c8982857cfaf34c7eee1dbc2
+
+  - filename: package-lock.json
+    checksum: 839b29ba75b658cf5cb306e9a244a3271c93f501342a9e0d54d77a7427e31a79
+
+  - filename: upload-api/package-lock.json
+    checksum: d1c39e6da36b1dff181379c83af3329edf7fe80c5d5323a809294d6e09171920
+
+  - filename: api/package-lock.json
+    checksum: 4a2952fce3edf5140fc624a7a3a2dc3c099d1c7ac2725ca8e3aa67c087582be4
+
+  - filename: upload-api/src/helper/index.ts
+    checksum: beef34c30cc18c55d66df0124e8bfb69899be9aaef074252afe291c93d4c0f77
