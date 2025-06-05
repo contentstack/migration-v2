@@ -12,5 +12,5 @@ export default {
     bucketName: '',
     bucketKey: ''
   },
-  localPath: '/Users/shobhit.upadhyay/Downloads/blogpost.xml',
+  localPath: process.env.LOCAL_PATH || '',
 };
