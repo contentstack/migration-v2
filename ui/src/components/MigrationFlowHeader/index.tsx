@@ -105,7 +105,7 @@ const MigrationFlowHeader = ({
     params?.stepId === '1' &&
     newMigrationData?.legacy_cms?.projectStatus === 3
 
-  const isFileValidated = newMigrationData?.isContentMapperGenerated ? false : newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
+  const isFileValidated = newMigrationData?.isContentMapperGenerated ? true : newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
   return (
     <div className="d-flex align-items-center justify-content-between migration-flow-header">
       <div className="d-flex align-items-center">
