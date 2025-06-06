@@ -5,7 +5,8 @@ import {
   Button,
   EmptyState,
   Select,
-  cbModal
+  cbModal,
+  Icon
 } from '@contentstack/venus-components';
 import { RootState } from '../../store';
 import { DropdownOption, FilterOption, LogEntry, StackIds } from './executionlog.interface';
@@ -146,8 +147,8 @@ const ExecutionLogs = () => {
 
     const iconProps = {
       className: isFilterApplied
-        ? EXECUTION_LOGS_UI_TEXT.FILTER_ICON.FILTER_ON
-        : EXECUTION_LOGS_UI_TEXT.FILTER_ICON.FILTER_OFF,
+        ? EXECUTION_LOGS_UI_TEXT?.FILTER_ICON?.FILTER_ON
+        : EXECUTION_LOGS_UI_TEXT?.FILTER_ICON?.FILTER_OFF,
       withTooltip: true,
       tooltipContent: 'Filter',
       tooltipPosition: 'left'
@@ -338,7 +339,7 @@ const ExecutionLogs = () => {
         isResizable={false}
         columnSelector={false}
         canSearch={true}
-        searchPlaceholder={EXECUTION_LOGS_UI_TEXT.SEARCH_PLACEHOLDER}
+        searchPlaceholder={EXECUTION_LOGS_UI_TEXT?.SEARCH_PLACEHOLDER}
         searchValue={searchText ?? ''}
         onSearchChangeEvent={(value: string) => setSearchText(value)}
         withExportCta={{
@@ -349,7 +350,7 @@ const ExecutionLogs = () => {
               version="v2"
               value={testStacks?.length ? selectedStack : ''}
               options={stackIds ?? []}
-              placeholder={EXECUTION_LOGS_UI_TEXT.SELECT_PLACEHOLDER}
+              placeholder={EXECUTION_LOGS_UI_TEXT?.SELECT_PLACEHOLDER}
               onChange={(s: DropdownOption) => {
                 setSelectedStack({
                   label: s?.label ?? '',
@@ -366,31 +367,37 @@ const ExecutionLogs = () => {
             forPage="list"
             heading={
               searchText === ''
-                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_LOGS
-                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_MATCH
+                ? EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_HEADING?.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_HEADING?.NO_MATCH
             }
             description={
               searchText === ''
-                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_LOGS
-                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_RESULT
+                ? EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_DESCRIPTION?.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_DESCRIPTION?.NO_RESULT
             }
             moduleIcon={
               searchText === ''
-                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_LOGS
-                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_MATCH
+                ? EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_ICON?.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_ICON?.NO_MATCH
             }
             type="secondary"
             className="custom-empty-state"
           />
         }
-        onRowClick={(e: LogEntry) => {
-          handleModaleClick(e);
-        }}
         tableRowActionList={[
           {
-            title: 'View Log',
-            action: () => {
-              // This action is handled in the onRowClick method
+            title: (
+              <div className='table-row-action'>
+                <Icon
+                  version="v2"
+                  icon={EXECUTION_LOGS_UI_TEXT?.VIEW_LOG?.VIEW_ICON}
+                  size="medium"
+                />
+                <span className="text-size">{EXECUTION_LOGS_UI_TEXT?.VIEW_LOG?.VIEW_TEXT}</span>
+              </div>
+            ),
+            action: (event:React.MouseEvent<HTMLElement>,logEntry:LogEntry) => {
+              handleModaleClick(logEntry);
             }
           }
         ]}

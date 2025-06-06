@@ -354,14 +354,14 @@ const Settings = () => {
           <PageHeader
             testId="header"
             className="action-component-title"
-            title={{ label: currentHeader }}
+            title={{ label: active_state }}
             actions={pageActions}
           />
         ) : (
           <PageHeader
             testId="header"
             className="action-component-title"
-            title={{ label: currentHeader }}
+            title={{ label: active_state }}
           />
         )}
       </div>
