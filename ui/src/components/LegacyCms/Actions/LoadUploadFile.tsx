@@ -39,8 +39,8 @@ const FileComponent = ({ fileDetails }: Props) => {
   return (
     <div>
       {fileDetails?.isLocalPath &&
-      (!isEmptyString(fileDetails?.localPath) ||
-        !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
+        (!isEmptyString(fileDetails?.localPath) ||
+          !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
         <div className="file-container">
           <Paragraph tagName="p" variant="p1" text={`Local Path: ${fileDetails?.localPath}`} />
         </div>
@@ -79,10 +79,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const [isValidationAttempted, setIsValidationAttempted] = useState<boolean>(false);
   const [isDisabled, setIsDisabled] = useState<boolean>(
     newMigrationData?.legacy_cms?.uploadedFile?.isValidated ||
-      isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)
+    isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)
   );
   const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
-  const [cmsType, setCmsType]= useState('');
+  const [cmsType, setCmsType] = useState('');
   const [fileDetails, setFileDetails] = useState(newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details);
   const [fileExtension, setFileExtension] = useState<string>('');
   const [progressPercentage, setProgressPercentage] = useState<number>(0);
@@ -138,9 +138,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               }
             },
             cmsType: data?.cmsType
-            
           }
-        }
+        },
       };
 
       dispatch(updateNewMigrationData(newMigrationDataObj));
@@ -148,8 +147,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       if (status === 200) {
         setIsValidated(true);
         setValidationMessage('File validated successfully.');
-
         setIsDisabled(true);
+
 
         if (
           !isEmptyString(newMigrationData?.legacy_cms?.affix) &&
@@ -219,35 +218,35 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const getConfigDetails = async () => {
     try {
       //setIsConfigLoading(true);
-  
-    if (!isEmptyString(fileDetails?.localPath) && newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath !== fileDetails?.localPath && !isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)) {
-      setIsDisabled(false); 
-      setShowMessage(true);
-      setValidationMessage('');
-      
-    }
-    
-      const extension = getFileExtension(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '');     
+
+      if (!isEmptyString(fileDetails?.localPath) && newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath !== fileDetails?.localPath && !isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)) {
+        setIsDisabled(false);
+        setShowMessage(true);
+        setValidationMessage('');
+
+      }
+
+      const extension = getFileExtension(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '');
       setCmsType(newMigrationData?.legacy_cms?.uploadedFile?.cmsType);
       //setFileDetails(data);
       setFileExtension(extension);
 
-      
-      const { all_cms = [] } = migrationData?.legacyCMSData || {}; 
-      let filteredCmsData:ICMSType[] = all_cms;
+
+      const { all_cms = [] } = migrationData?.legacyCMSData || {};
+      let filteredCmsData: ICMSType[] = all_cms;
       if (newMigrationData?.legacy_cms?.uploadedFile?.cmsType) {
         filteredCmsData = all_cms?.filter((cms: ICMSType) => cms?.parent?.toLowerCase() === newMigrationData?.legacy_cms?.uploadedFile?.cmsType?.toLowerCase());
       }
-   
+
       const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.some((format: ICardType) => {
         const isValid = format?.fileformat_id?.toLowerCase() === extension;
         return isValid;
       });
 
-      
+
       //setIsFormatValid(isFormatValid); 
       setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
-      if(!isFormatValid){
+      if (!isFormatValid) {
         setValidationMessage('');
         dispatch(updateNewMigrationData({
           ...newMigrationData,
@@ -260,29 +259,29 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           }
         }))
 
-      } 
+      }
 
-    
-    //}
-  // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
-  //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
-  //   {     
-  //     setIsValidated(false);
-  //     setValidationMessage('file format is not appropriate');
-  //     setIsValidationAttempted(true);
-  //     setShowMessage(true);
-  //     setIsLoading(false);
-  //     setIsDisabled(true);
-  //   }
-     setIsConfigLoading(false);
-      
+
+      //}
+      // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
+      //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
+      //   {     
+      //     setIsValidated(false);
+      //     setValidationMessage('file format is not appropriate');
+      //     setIsValidationAttempted(true);
+      //     setShowMessage(true);
+      //     setIsLoading(false);
+      //     setIsDisabled(true);
+      //   }
+      setIsConfigLoading(false);
+
     } catch (error) {
       return error;
     }
   };
 
   useEffect(() => {
-      getConfigDetails();   
+    getConfigDetails();
   }, []);
 
   useEffect(() => {
@@ -361,11 +360,11 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     if (newMigrationData?.legacy_cms?.uploadedFile?.reValidate) {
       setValidationMessage('');
     }
-    if(!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
+    if (!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate) {
       setIsDisabled(false);
     }
     setReValidate(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
-   
+
     // else{
     //   setIsValidated(false);
     // }
@@ -385,12 +384,11 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   const sanitizedCmsType = cmsType?.toLowerCase().replace(/[^\w\s-]/g, '');
 
   const documentationUrl = VALIDATION_DOCUMENTATION_URL?.[sanitizedCmsType];
-  
+
   const validationClassName = isValidated ? 'success' : 'error';
 
-  const containerClassName = `validation-container ${
-    isValidationAttempted && !isValidated ? 'error-container pb-2' : ''
-  }`;
+  const containerClassName = `validation-container ${isValidationAttempted && !isValidated ? 'error-container pb-2' : ''
+    }`;
 
   return (
     <div className="row">
@@ -447,7 +445,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             loadingColor="#6c5ce7"
             version="v2"
             disabled={!(reValidate || (!isDisabled && !isEmptyString(newMigrationData?.legacy_cms?.affix)))}
-          > 
+          >
             Validate File
           </Button>
         </div>

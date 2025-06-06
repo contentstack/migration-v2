@@ -23,7 +23,9 @@ fileignoreconfig:
 - filename: ui/src/components/AuditLogs/auditLogs.interface.ts
   checksum: e9ba5046479507dd11a369246fb7779edfac00ae5df859cc1ba81ed7d61be19b
 - filename: ui/src/components/ContentMapper/index.tsx
-  checksum: 6743142fce18f945d55fc61d7d774118db400b72ccc7a0b5e089ccc8aed20340
+  checksum: 3c61df8594c7caa4a9ade15dd92bde13bd138f96d13b958fc6ab00653d61dc7c
 - filename: ui/src/components/AuditLogs/index.tsx
   checksum: 8cad311f527241fcb0fd587da28bbe776e0147a3da0d372ceb447b0076a5aeba
+- filename: ui/src/pages/Migration/index.tsx
+  checksum: 071e202c4ddb87138771f9c7542c48d974ff55f88a6c51a2d9b672c8114fa334
 version: "1.0"

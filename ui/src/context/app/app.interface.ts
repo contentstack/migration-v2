@@ -195,6 +195,7 @@ export interface INewMigration {
   content_mapping: IContentMapper;
   test_migration: ITestMigration;
   isprojectMapped: boolean;
+  isContentMapperGenerated: boolean;
   stackDetails: IDropDown;
   migration_execution: IMigrationExecutionStep;
   project_current_step: number;
@@ -376,6 +377,7 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   content_mapping: DEFAULT_CONTENT_MAPPER,
   test_migration: DEFAULT_TEST_MIGRATION,
   isprojectMapped: true,
+  isContentMapperGenerated: false,
   stackDetails: DEFAULT_DROPDOWN,
   testStacks: [],
   migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP,
