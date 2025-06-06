@@ -16,7 +16,7 @@
 
   .PageLayout__head,
   .PageLayout__leftSidebar {
-    border-top: 1px solid $color-base-gray-40;
+    border-top: 1 solid $color-base-gray-40;
   }
 
   .PageLayout--primary {
@@ -115,3 +115,7 @@
   cursor: pointer;
   margin-bottom: 20px;
 }
+
+.PageLayout--primary--v2 .PageLayout__body--left-drawer {
+  position: relative;
+} 

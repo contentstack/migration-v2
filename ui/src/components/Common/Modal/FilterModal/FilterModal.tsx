@@ -2,8 +2,9 @@ import { Button, Checkbox, Icon, Radio, Search, Tooltip } from '@contentstack/ve
 import React, { useEffect, useState } from 'react';
 
 import WordWrapper from '../../WordWrapper/WordWrapper';
-import { IFilterStatusType, IFilterType } from './filterModal.interface';
+
 import './FilterModal.scss';
+import { IFilterStatusType, IFilterType } from './filterModal.interface';
 
 /**
  * Props for the FilterModal component.
