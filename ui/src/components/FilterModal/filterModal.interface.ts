@@ -6,5 +6,6 @@ export type FilterModaleProps = {
   updateValue: (params: { value: FilterOption; isChecked: boolean }) => void;
   onApply: () => void;
   selectedLevels: FilterOption[];
-  setFilterValue: (levels: FilterOption[]) => void;
+  setSelectedFilterOption: (levels: FilterOption[]) => void;
+  filterOptions: FilterOption[]
 };

@@ -1,12 +1,7 @@
 import { Button, ButtonGroup, Checkbox, Icon } from '@contentstack/venus-components';
-import './index.scss';
-import { FilterOption } from '../ExecutionLogs/executionlog.interface';
-import { FilterModaleProps } from './filtermodale.interface';
+import './FilterModal.scss';
+import { FilterModaleProps } from './filterModal.interface';
 
-const data: FilterOption[] = [
-  { label: 'info', value: 'info' },
-  { label: 'error', value: 'error' }
-];
 
 const FilterModal = ({
   isOpen,
@@ -14,10 +9,12 @@ const FilterModal = ({
   updateValue,
   onApply,
   selectedLevels,
-  setFilterValue
+  setSelectedFilterOption,
+  filterOptions
 }: FilterModaleProps) => {
   const clearAll = () => {
-    setFilterValue([]);
+    setSelectedFilterOption([]);
+    
   };
 
   if (!isOpen) return null;
@@ -34,11 +31,11 @@ const FilterModal = ({
       {/* Modal Body */}
       <div className="tableFilterModalStories__body">
       <ul>
-        {data.map((item) => (
+        {filterOptions?.map?.((item) => (
           <li key={item.value}>
             <div className="tableFilterModalStories__suggestion-item">
               <Checkbox
-              checked={selectedLevels?.some((v) => v?.value === item?.value) || false}
+              checked={selectedLevels?.some?.((v) => v?.value === item?.value) || false}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 updateValue?.({ value: item, isChecked: e?.target?.checked })
               }
