@@ -4,35 +4,42 @@ import {
   InfiniteScrollTable,
   Button,
   EmptyState,
-  Select
+  Select,
+  cbModal
 } from '@contentstack/venus-components';
 import { RootState } from '../../store';
 import { DropdownOption, FilterOption, LogEntry, StackIds } from './executionlog.interface';
 import './index.scss';
 
-import FilterModal from '../FilterModale';
 import { getMigrationLogs } from '../../services/api/migration.service';
 import { EXECUTION_LOGS_UI_TEXT } from '../../utilities/constants';
+import LogModal from '../Common/Modal/LogModal/LogModal';
+import { useParams } from 'react-router';
+import FilterModal from '../FilterModal/FilterModal';
 
-const ExecutionLogs = ({ projectId }: { projectId: string }) => {
+const ExecutionLogs = () => {
   const [data, setData] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCounts, setTotalCounts] = useState<number>(0);
   const [searchText, setSearchText] = useState<string>('');
-  const [filterOption, setFilterOption] = useState<FilterOption[]>([]);
+  const [selectedFilterOption, setSelectedFilterOption] = useState<FilterOption[]>([]);
   const [isCursorInside, setIsCursorInside] = useState(false);
   const [isFilterApplied, setIsFilterApplied] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [filterValue, setFilterValue] = useState<string>('all');
+  const [filterOptions, setFilterOptions] = useState<FilterOption[]>([]);
+
+  const { projectId } = useParams<{ projectId: string }>();
+
+  const v2Features = {
+    pagination: true,
+    isNewEmptyState: true,
+    tableRowAction: true
+  };
 
   const selectedOrganisation = useSelector(
-
-
     (state: RootState) => state?.authentication?.selectedOrganisation
   );
-
-
-
 
   const testStacks = useSelector(
     (state: RootState) => state?.migration?.newMigrationData?.testStacks
@@ -58,12 +65,10 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
     });
   }
 
-  const [selectedStack, setSelectedStack] = useState<DropdownOption>(
-    {
-      label: stackIds?.[stackIds?.length - 1]?.label ?? '',
-      value: stackIds?.[stackIds?.length - 1]?.value ?? ''
-    }
-  );
+  const [selectedStack, setSelectedStack] = useState<DropdownOption>({
+    label: stackIds?.[stackIds?.length - 1]?.label ?? '',
+    value: stackIds?.[stackIds?.length - 1]?.value ?? ''
+  });
 
   useEffect(() => {
     if (selectedStack) {
@@ -91,7 +96,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
     //Method to maintain filter value
     const updateValue = ({ value, isChecked }: { value: FilterOption; isChecked: boolean }) => {
       try {
-        let filterValueCopy: FilterOption[] = [...filterOption];
+        let filterValueCopy: FilterOption[] = [...selectedFilterOption];
 
         if (!filterValueCopy?.length && isChecked) {
           filterValueCopy?.push(value);
@@ -103,7 +108,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
           filterValueCopy = filterValueCopy?.filter((v) => v?.value !== value?.value);
         }
 
-        setFilterOption(filterValueCopy);
+        setSelectedFilterOption(filterValueCopy);
       } catch (error) {
         console.error('Error updating filter value:', error);
       }
@@ -112,19 +117,20 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
     // Method to handle Apply
     const onApply = () => {
       try {
-        if (!filterOption?.length) {
+        if (!selectedFilterOption?.length) {
           const newFilter = 'all';
           setFilterValue(newFilter);
           fetchData({ filter: newFilter });
           closeModal();
           return;
         }
+        setIsFilterApplied(true);
 
-        const usersQueryArray = filterOption?.map((item) => item?.value);
-        const newFilter = usersQueryArray?.length > 1 ? usersQueryArray?.join('-') : usersQueryArray?.[0];
+        const usersQueryArray = selectedFilterOption?.map?.((item) => item?.value);
+        const newFilter =
+          usersQueryArray?.length > 1 ? usersQueryArray?.join('-') : usersQueryArray?.[0];
         setFilterValue(newFilter);
         fetchData({ filter: newFilter });
-        setIsFilterApplied(true);
         closeModal();
       } catch (error) {
         console.error('Error applying filter:', error);
@@ -154,7 +160,8 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         }}
         onMouseLeave={() => {
           setIsCursorInside(false);
-        }}>
+        }}
+        className="filter-button">
         <Button
           onClick={openFilterDropdown}
           icon="v2-Filter"
@@ -169,17 +176,36 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
           closeModal={closeModal}
           updateValue={updateValue}
           onApply={onApply}
-          selectedLevels={filterOption}
-          setFilterValue={setFilterOption}
+          selectedLevels={selectedFilterOption}
+          setSelectedFilterOption={setSelectedFilterOption}
+          filterOptions={filterOptions}
         />
       </div>
     );
   };
 
+  const onClose = () => {
+    console.info('on modal close');
+  };
+
+  const handleModaleClick = (data: LogEntry) => {
+    cbModal({
+      component: (props: any) => <LogModal props={{ ...props }} data={data} />,
+      modalProps: {
+        onClose,
+        shouldCloseOnOverlayClick: true
+      }
+    });
+  };
+
   const columns = [
     {
       Header: 'Timestamp',
+      width: 250,
+      id: 'timestamp',
       disableSortBy: true,
+      disableResizing: false,
+      addToColumnSelector: true,
       accessor: (data: LogEntry) => {
         if (data?.timestamp) {
           const date = new Date(data?.timestamp);
@@ -194,42 +220,51 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
           const formatted = new Intl.DateTimeFormat('en-US', options)?.format(date);
           return <div>{formatted}</div>;
         }
-        return <div>No Data Available</div>;
-      },
-      width: 240
+        return <div className="center-dash"> - </div>;
+      }
     },
     {
       Header: 'Level',
+      width: 150,
       id: 'level',
       disableSortBy: true,
-      accessor: (data: LogEntry) => <div>{data?.level}</div>,
-      width: 150,
+      disableResizing: false,
+      addToColumnSelector: true,
+      accessor: (data: LogEntry) => {
+        if (data?.level) {
+          return <div>{data?.level}</div>;
+        }
+        return <div className="center-dash"> - </div>;
+      },
       filter: ColumnFilter
     },
     {
       Header: 'Message',
+      width: 560,
+      id: 'message',
       disableSortBy: true,
+      disableResizing: false,
+      addToColumnSelector: true,
       accessor: (data: LogEntry) => {
-        return (
-          <div>
-            <div>{data?.message}</div>
-          </div>
-        );
-      },
-      width: 550
+        if (data?.message) {
+          return <div className="message-cell">{data?.message}</div>;
+        }
+        return <div className="center-dash"> - </div>;
+      }
     },
     {
       Header: 'Method Name',
+      width: 180,
+      id: 'methodName',
       disableSortBy: true,
+      disableResizing: false,
+      addToColumnSelector: true,
       accessor: (data: LogEntry) => {
-        return (
-          <div>
-            <div>{data?.methodName}</div>
-          </div>
-        );
-      },
-
-      width: 200
+        if (data?.methodName) {
+          return <div>{data?.methodName}</div>;
+        }
+        return <div className="center-dash"> - </div>;
+      }
     }
   ];
 
@@ -253,7 +288,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
     try {
       const response = await getMigrationLogs(
         selectedOrganisation?.value || '',
-        projectId,
+        projectId ?? '',
         selectedStack?.value,
         skip,
         limit,
@@ -270,6 +305,12 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
       } else {
         setData(response?.data?.logs);
         setTotalCounts(response?.data?.total);
+        setFilterOptions(
+          response?.data?.filterOptions?.map?.((item: string) => ({
+            label: item,
+            value: item
+          })) || []
+        );
       }
     } catch (error) {
       console.error('Unexpected error while fetching logs:', error);
@@ -281,7 +322,7 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
   };
 
   return (
-    <div className='table-height'>
+    <div className="executionTable-height">
       <InfiniteScrollTable
         itemSize={60}
         columns={columns}
@@ -292,26 +333,23 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         loading={loading}
         rowPerPageOptions={[10, 30, 50, 100]}
         minBatchSizeToFetch={30}
-        v2Features={{
-          pagination: true,
-          isNewEmptyState: true
-        }}
-        isResizable={true}
+        v2Features={v2Features}
         isRowSelect={false}
+        isResizable={false}
         columnSelector={false}
         canSearch={true}
-        searchPlaceholder={EXECUTION_LOGS_UI_TEXT?.SEARCH_PLACEHOLDER}
+        searchPlaceholder={EXECUTION_LOGS_UI_TEXT.SEARCH_PLACEHOLDER}
         searchValue={searchText ?? ''}
         onSearchChangeEvent={(value: string) => setSearchText(value)}
         withExportCta={{
           component: (
             <Select
-              className='dropdown-wrapper'
+              className="dropdown-wrapper"
               width="250px"
               version="v2"
               value={testStacks?.length ? selectedStack : ''}
               options={stackIds ?? []}
-              placeholder={EXECUTION_LOGS_UI_TEXT?.SELECT_PLACEHOLDER}
+              placeholder={EXECUTION_LOGS_UI_TEXT.SELECT_PLACEHOLDER}
               onChange={(s: DropdownOption) => {
                 setSelectedStack({
                   label: s?.label ?? '',
@@ -326,17 +364,36 @@ const ExecutionLogs = ({ projectId }: { projectId: string }) => {
         customEmptyState={
           <EmptyState
             forPage="list"
-            heading={searchText === '' ? EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_HEADING?.NO_LOGS : EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_HEADING?.NO_MATCH}
+            heading={
+              searchText === ''
+                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_HEADING.NO_MATCH
+            }
             description={
               searchText === ''
-                ? EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_DESCRIPTION?.NO_LOGS
-                : EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_DESCRIPTION?.NO_RESULT
+                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_DESCRIPTION.NO_RESULT
             }
-            moduleIcon={searchText === '' ? EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_ICON?.NO_LOGS : EXECUTION_LOGS_UI_TEXT?.EMPTY_STATE_ICON?.NO_MATCH}
+            moduleIcon={
+              searchText === ''
+                ? EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_LOGS
+                : EXECUTION_LOGS_UI_TEXT.EMPTY_STATE_ICON.NO_MATCH
+            }
             type="secondary"
             className="custom-empty-state"
           />
         }
+        onRowClick={(e: LogEntry) => {
+          handleModaleClick(e);
+        }}
+        tableRowActionList={[
+          {
+            title: 'View Log',
+            action: () => {
+              // This action is handled in the onRowClick method
+            }
+          }
+        ]}
       />
     </div>
   );

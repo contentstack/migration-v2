@@ -17,6 +17,7 @@ import './index.scss';
 import { MAGNIFY, DEMAGNIFY } from '../../common/assets';
 import { saveStateToLocalStorage } from '../../utilities/functions';
 import { LogEntry } from './MigrationLogViewer';
+import { useNavigate } from 'react-router';
 
 // Define log styles for different levels
 const logStyles: { [key: string]: React.CSSProperties } = {
@@ -235,6 +236,19 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
     }
   }, [isLogsLoading, migratedStack?.isMigrated]);
 
+    const navigate = useNavigate();
+
+  const handleLinkClick = () => {
+    const activeTabState: INewMigration = {
+      ...newMigrationData,
+      settings: {
+        active_state: 'Execution Logs'
+      }
+    };
+    dispatch(updateNewMigrationData(activeTabState));
+    navigate(`/projects/${projectId}/settings`);
+  };
+
   return (
     <div className="logs-wrapper">
       {/* Logs container */}
@@ -244,12 +258,19 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
         ref={logsContainerRef}
       >
         {migratedStack?.isMigrated ? (
-          <div className="log-entry text-center">
-            <div className="log-message">
-              Test Migration is completed for stack{' '}
-              <Link href={newMigrationData?.test_migration?.stack_link} target="_blank">
-                <strong>{migratedStack?.stackName}</strong>
-              </Link>
+          <div>
+            <div className="log-entry text-center">
+              <div className="log-message">
+                Test Migration is completed for stack{' '}
+                <Link href={newMigrationData?.test_migration?.stack_link} target="_blank">
+                  <strong>{migratedStack?.stackName}</strong>
+                </Link>
+                .You can view logs
+                <Link target="_self" className="ml-5" cbOnClick={handleLinkClick}>
+                  <strong>here</strong>
+                </Link>
+                .
+              </div>
             </div>
           </div>
         ) : (
