@@ -101,6 +101,7 @@ export const HTTP_TEXTS = {
   LOGS_NOT_FOUND: "Sorry, no logs found for requested stack migration.",
   MIGRATION_EXECUTION_KEY_UPDATED:
     "Project's migration execution key updated successfully",
+  CONTENT_TYPE_INVALID: "Invalid contentTypes: Expected an array."
 };
 
 export const HTTP_RESPONSE_HEADERS = {
@@ -177,7 +178,7 @@ export const LOCALE_MAPPER: any = {
   masterLocale: {
     "en-us": "en",
   },
-  locales:{fr: "fr-fr",}
+  locales: { fr: "fr-fr", }
 };
 export const CHUNK_SIZE = 1048576;
 

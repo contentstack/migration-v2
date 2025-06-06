@@ -358,5 +358,5 @@ upload-api/sitecoreMigrationData
 upload-api/cmsMigrationData
 upload-api/extracted_files
 *copy*
-**/package-lock.json
 .qodo
+.vscode
