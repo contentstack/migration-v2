@@ -1,13 +1,13 @@
-import path from 'path';
-import fs from 'fs';
-import { spawn } from 'child_process';
-import { v4 } from 'uuid';
-import { copyDirectory, createDirectoryAndFile } from '../utils/index.js';
-import { CS_REGIONS, MIGRATION_DATA_CONFIG } from '../constants/index.js';
-import ProjectModelLowdb from '../models/project-lowdb.js';
-import AuthenticationModel from '../models/authentication.js';
+import path from "path";
+import fs from "fs";
+import { spawn } from "child_process";
+import { v4 } from "uuid";
+import { copyDirectory, createDirectoryAndFile } from "../utils/index.js";
+import { CS_REGIONS, MIGRATION_DATA_CONFIG } from "../constants/index.js";
+import ProjectModelLowdb from "../models/project-lowdb.js";
+import AuthenticationModel from "../models/authentication.js";
 // import watchLogs from '../utils/watch.utils.js';
-import { setLogFilePath } from '../server.js';
+import { setLogFilePath } from "../server.js";
 
 /**
  * Represents a test stack with migration status
@@ -16,7 +16,7 @@ interface TestStack {
   stackUid: string;
   isMigrated: boolean;
 }
-import utilitiesHandler from '@contentstack/cli-utilities';
+import utilitiesHandler from "@contentstack/cli-utilities";
 
 /**
  * Determines log level based on message content without removing ANSI codes
@@ -26,20 +26,20 @@ const determineLogLevel = (text: string): string => {
 
   // Check for errors first - be more aggressive in detection
   if (
-    lowerText.includes('error') ||
-    lowerText.includes('failed') ||
-    lowerText.includes('exception') ||
-    lowerText.includes('not found')
+    lowerText.includes("error") ||
+    lowerText.includes("failed") ||
+    lowerText.includes("exception") ||
+    lowerText.includes("not found")
   ) {
-    return 'error';
+    return "error";
   }
   // Then check for warnings
-  else if (lowerText.includes('warn') || lowerText.includes('warning')) {
-    return 'warn';
+  else if (lowerText.includes("warn") || lowerText.includes("warning")) {
+    return "warn";
   }
   // Default to info
   else {
-    return 'info';
+    return "info";
   }
 };
 
@@ -47,8 +47,9 @@ const determineLogLevel = (text: string): string => {
  * Strips ANSI color codes from text to create clean logs
  */
 const stripAnsiCodes = (text: string): string => {
+  const ESC = "\u001b";
   // This regex removes all ANSI escape sequences (color codes)
-  return text.replace(/\u001b\[\d+m/g, '');
+  return text.replace(new RegExp(`${ESC}\\[[0-9;]*m`, "g"), "");
 };
 
 /**
@@ -64,7 +65,7 @@ const runCommand = (
     const cmdProcess = spawn(command, args, { shell: true });
 
     // For stdout handler
-    cmdProcess.stdout.on('data', (data) => {
+    cmdProcess.stdout.on("data", (data) => {
       const output = data.toString();
       process.stdout.write(output); // Keep colors in console
 
@@ -78,15 +79,15 @@ const runCommand = (
             message: cleanedOutput.trim(),
             timestamp: new Date().toISOString(),
           };
-          fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + '\n');
+          fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + "\n");
         } catch (err) {
-          console.error('Error writing to log file:', err);
+          console.error("Error writing to log file:", err);
         }
       }
     });
 
     // For stderr handler
-    cmdProcess.stderr.on('data', (data) => {
+    cmdProcess.stderr.on("data", (data) => {
       const output = data.toString();
       process.stderr.write(output); // Keep colors in console
 
@@ -95,31 +96,31 @@ const runCommand = (
           // Clean the output by removing ANSI color codes
           const cleanedOutput = stripAnsiCodes(output);
           const logEntry = {
-            level: 'error',
+            level: "error",
             message: cleanedOutput.trim(),
             timestamp: new Date().toISOString(),
           };
-          fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + '\n');
+          fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + "\n");
         } catch (err) {
-          console.error('Error writing stderr to log file:', err);
+          console.error("Error writing stderr to log file:", err);
         }
       }
     });
 
-    cmdProcess.on('close', (code) => {
+    cmdProcess.on("close", (code) => {
       if (code === 0) resolve();
       else {
         // Log the error to the log file
         if (logFilePath) {
           try {
             const logEntry = {
-              level: 'error',
+              level: "error",
               message: `Command failed with exit code ${code}`,
               timestamp: new Date().toISOString(),
             };
-            fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + '\n');
+            fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + "\n");
           } catch (err) {
-            console.error('Error writing close event to log file:', err);
+            console.error("Error writing close event to log file:", err);
           }
         }
         reject(new Error(`Command failed with exit code ${code}`));
@@ -148,27 +149,27 @@ export const runCli = async (
   try {
     // Format region string for CLI compatibility
     const regionPresent =
-      CS_REGIONS.find((item) => item === rg) ?? 'NA'.replace(/_/g, '-');
-    const regionCli = regionPresent.replace(/_/g, '-');
+      CS_REGIONS.find((item) => item === rg) ?? "NA".replace(/_/g, "-");
+    const regionCli = regionPresent.replace(/_/g, "-");
 
     // Fetch user authentication data
     await AuthenticationModel.read();
     const userData = AuthenticationModel.chain
-      .get('users')
+      .get("users")
       .find({ region: regionPresent, user_id })
       .value();
 
     // Configure CLI with region settings
     await runCommand(
-      'npx',
-      ['@contentstack/cli', 'config:set:region', `${regionCli}`],
+      "npx",
+      ["@contentstack/cli", "config:set:region", `${regionCli}`],
       transformePath
     ); // Pass the log file path here
 
     // Set up authentication configuration for CLI
-    utilitiesHandler.configHandler.set('authtoken', userData.authtoken);
-    utilitiesHandler.configHandler.set('email', userData.email);
-    utilitiesHandler.configHandler.set('authorisationType', 'BASIC');
+    utilitiesHandler.configHandler.set("authtoken", userData.authtoken);
+    utilitiesHandler.configHandler.set("email", userData.email);
+    utilitiesHandler.configHandler.set("authorisationType", "BASIC");
 
     if (userData?.authtoken && stack_uid) {
       // Set up paths for backup and source data
@@ -210,28 +211,28 @@ export const runCli = async (
       try {
         const testLogs = [
           {
-            level: 'info',
-            message: 'TEST INFO LOG',
+            level: "info",
+            message: "TEST INFO LOG",
             timestamp: new Date().toISOString(),
           },
           {
-            level: 'warn',
-            message: 'TEST WARNING LOG',
+            level: "warn",
+            message: "TEST WARNING LOG",
             timestamp: new Date().toISOString(),
           },
           {
-            level: 'error',
-            message: 'TEST ERROR LOG',
+            level: "error",
+            message: "TEST ERROR LOG",
             timestamp: new Date().toISOString(),
           },
         ];
 
         for (const log of testLogs) {
-          fs.appendFileSync(transformePath, JSON.stringify(log) + '\n');
+          fs.appendFileSync(transformePath, JSON.stringify(log) + "\n");
         }
-        console.info('Test logs written successfully');
+        console.info("Test logs written successfully");
       } catch (err) {
-        console.error('Failed to write test logs:', err);
+        console.error("Failed to write test logs:", err);
       }
 
       // Make sure to set the global.currentLogFile to the project log file
@@ -242,63 +243,63 @@ export const runCli = async (
 
       // Execute the stack import command
       await runCommand(
-        'npx',
+        "npx",
         [
-          '@contentstack/cli',
-          'cm:stacks:import',
-          '-k',
+          "@contentstack/cli",
+          "cm:stacks:import",
+          "-k",
           stack_uid,
-          '-d',
-          sourcePath.includes(' ') ? `"${sourcePath}"` : sourcePath,
-          '--backup-dir',
-          backupPath.includes(' ') ? `"${backupPath}"` : backupPath,
-          '--yes',
+          "-d",
+          sourcePath.includes(" ") ? `"${sourcePath}"` : sourcePath,
+          "--backup-dir",
+          backupPath.includes(" ") ? `"${backupPath}"` : backupPath,
+          "--yes",
         ],
         transformePath
       ); // Pass the log file path here
 
       // After the import command completes
-      console.info('Import command completed successfully');
+      console.info("Import command completed successfully");
 
       // Write the completion message ONCE in the format the UI expects
       if (isTest) {
         const directLogEntry = {
-          level: 'info',
-          message: 'Test Migration Process Completed',
+          level: "info",
+          message: "Test Migration Process Completed",
           timestamp: new Date().toISOString(),
         };
 
         // Write to the transform path (main log file) - ONLY ONCE
         fs.appendFileSync(
           transformePath,
-          JSON.stringify(directLogEntry) + '\n'
+          JSON.stringify(directLogEntry) + "\n"
         );
 
         // Also write to backup log path if different
         if (loggerPath && loggerPath !== transformePath) {
-          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
+          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + "\n");
         }
 
-        console.info('Added test completion message to logs');
+        console.info("Added test completion message to logs");
       } else {
         const directLogEntry = {
-          level: 'info',
-          message: 'Migration Process Completed',
+          level: "info",
+          message: "Migration Process Completed",
           timestamp: new Date().toISOString(),
         };
 
         // Write to the transform path (main log file) - ONLY ONCE
         fs.appendFileSync(
           transformePath,
-          JSON.stringify(directLogEntry) + '\n'
+          JSON.stringify(directLogEntry) + "\n"
         );
 
         // Also write to backup log path if different
         if (loggerPath && loggerPath !== transformePath) {
-          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
+          fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + "\n");
         }
 
-        console.info('Added migration completion message to logs');
+        console.info("Added migration completion message to logs");
       }
 
       // Keep the project status update code:
@@ -315,7 +316,7 @@ export const runCli = async (
       // Make sure we have the latest data
       await ProjectModelLowdb.read();
       const projectIndex = ProjectModelLowdb.chain
-        .get('projects')
+        .get("projects")
         .findIndex({ id: projectId })
         .value();
 
@@ -324,22 +325,22 @@ export const runCli = async (
       // Debug: Log the full project data to verify it exists
       try {
         const project = ProjectModelLowdb.chain
-          .get('projects')
+          .get("projects")
           .find({ id: projectId })
           .value();
-        console.info(`Project found: ${project ? 'Yes' : 'No'}`);
+        console.info(`Project found: ${project ? "Yes" : "No"}`);
         if (project) {
           console.info(
             `Current migration status: started=${project.isMigrationStarted}, completed=${project.isMigrationCompleted}`
           );
         }
       } catch (err) {
-        console.error('Error reading project data:', err);
+        console.error("Error reading project data:", err);
       }
 
       // Handle test migration updates
       if (projectIndex > -1 && isTest) {
-        console.info('Updating test migration status');
+        console.info("Updating test migration status");
         const project = ProjectModelLowdb.data.projects[projectIndex];
 
         // Initialize test_stacks if needed
@@ -360,8 +361,10 @@ export const runCli = async (
       // Update project status for non-test migrations
       if (projectIndex > -1 && !isTest) {
         // Direct modification might be more reliable
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted = true;
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted = false;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted =
+          true;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
+          false;
         ProjectModelLowdb.data.projects[projectIndex].current_step = 5;
         ProjectModelLowdb.data.projects[projectIndex].status = 5;
         await ProjectModelLowdb.write();
@@ -370,10 +373,10 @@ export const runCli = async (
         );
       }
     } else {
-      console.info('User not found.');
+      console.info("User not found.");
     }
   } catch (error) {
-    console.error('🚀 ~ runCli ~ error:', error);
+    console.error("🚀 ~ runCli ~ error:", error);
   }
 };
 
