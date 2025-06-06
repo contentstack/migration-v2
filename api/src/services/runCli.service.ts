@@ -47,8 +47,9 @@ const determineLogLevel = (text: string): string => {
  * Strips ANSI color codes from text to create clean logs
  */
 const stripAnsiCodes = (text: string): string => {
+  const ESC = '\u001b';
   // This regex removes all ANSI escape sequences (color codes)
-  return text.replace(/\u001b\[\d+m/g, '');
+  return text.replace(new RegExp(`${ESC}\\[\\d+m`, 'g'), '');
 };
 
 /**
