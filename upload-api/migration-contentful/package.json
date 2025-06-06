@@ -1,5 +1,5 @@
 {
-  "name": "migration-contentful",
+  "name": "migration-v2-contentful",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
