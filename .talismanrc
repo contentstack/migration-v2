@@ -23,7 +23,7 @@ fileignoreconfig:
     checksum: 9e8466f0364fc4fe485897e2d71d03da604923ecaab10a0de70a789ce676e98c
 
   - filename: api/package-lock.json
-    checksum: 4a2952fce3edf5140fc624a7a3a2dc3c099d1c7ac2725ca8e3aa67c087582be4
+    checksum: 9d10dd6e4d514645c0d14188cc359e71ec6f9f528d1ccea94b94695546a7d4be
 
   - filename: upload-api/src/helper/index.ts
     checksum: beef34c30cc18c55d66df0124e8bfb69899be9aaef074252afe291c93d4c0f77
