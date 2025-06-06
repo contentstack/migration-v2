@@ -151,6 +151,10 @@ export const EXECUTION_LOGS_UI_TEXT = {
   FILTER_ICON: {
     FILTER_ON: 'filterWithAppliedIcon Icon--v2 Icon--medium',
     FILTER_OFF: 'defaultFilterIcon Icon--v2 Icon--medium'
+  },
+  VIEW_LOG:{
+    VIEW_ICON: 'Eye',
+    VIEW_TEXT: 'View Log'
   }
 }
 

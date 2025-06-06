@@ -77,3 +77,14 @@
 		}
 	}
 }
+
+.table-row-action {
+  display: flex;
+  gap: 16px;
+  .text-size{
+    padding-top: 1px;
+  }
+  .VerticalActionTooltip__actions{
+    width: 100px !important;
+  }
+}
