@@ -83,6 +83,7 @@ const MigrationFlowHeader = ({
     params?.stepId <= '2' &&
     newMigrationData?.project_current_step?.toString() !== params?.stepId;
 
+  const isStepOneandNotMapped = params?.stepId === '1' && newMigrationData?.isContentMapperGenerated && newMigrationData?.legacy_cms?.projectStatus === 3 && newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
   const isExecutionStarted =
     finalExecutionStarted ||
     newMigrationData?.migration_execution?.migrationStarted ||
@@ -94,6 +95,17 @@ const MigrationFlowHeader = ({
       newMigrationData?.destination_stack?.selectedStack?.value
     );
 
+  // New validation conditions
+  const isProjectStatusOne = newMigrationData?.legacy_cms?.projectStatus === 1;
+  const isPreviousStepDisabled = params?.stepId &&
+    parseInt(params?.stepId) < newMigrationData?.project_current_step &&
+    !isProjectStatusOne;
+
+  const isProjectStatusThreeAndMapperNotGenerated =
+    params?.stepId === '1' &&
+    newMigrationData?.legacy_cms?.projectStatus === 3
+
+  const isFileValidated = newMigrationData?.isContentMapperGenerated ? false : newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
   return (
     <div className="d-flex align-items-center justify-content-between migration-flow-header">
       <div className="d-flex align-items-center">
@@ -112,7 +124,13 @@ const MigrationFlowHeader = ({
         aria-label="Save and Continue"
         isLoading={isLoading || newMigrationData?.isprojectMapped}
         disabled={
-          isStep4AndNotMigrated || isStepInvalid || isExecutionStarted || destinationStackMigrated
+          isProjectStatusThreeAndMapperNotGenerated ?
+            isFileValidated :
+            isPreviousStepDisabled ||
+            isStep4AndNotMigrated ||
+            isStepInvalid ||
+            isExecutionStarted ||
+            destinationStackMigrated
         }
       >
         {stepValue}
