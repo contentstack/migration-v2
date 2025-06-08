@@ -307,7 +307,7 @@ const ExecutionLogs = () => {
         setData(response?.data?.logs);
         setTotalCounts(response?.data?.total);
         setFilterOptions(
-          response?.data?.filterOptions?.map?.((item: string) => ({
+          response?.data?.filterOptions?.map((item: string) => ({
             label: item,
             value: item
           })) || []
