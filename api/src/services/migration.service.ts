@@ -984,7 +984,7 @@ const getLogs = async (req: Request): Promise<any> => {
     if (!absolutePath?.startsWith(logsDir)) {
       throw new BadRequestError("Access to this file is not allowed.");
     }
-    if (fs?.existsSync(absolutePath)) {
+    if (fs.existsSync(absolutePath)) {
       let index = 0;
       const logs = await fs?.promises?.readFile?.(absolutePath, "utf8");
       let logEntries = logs

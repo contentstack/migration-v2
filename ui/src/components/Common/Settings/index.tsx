@@ -156,7 +156,7 @@ const Settings = () => {
 
   const handleBack = () => {
     navigate(`/projects/${params?.projectId}/migration/steps/${currentStep}`);
-    dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
+    dispatch(updateNewMigrationData({...newMigrationData, settings: DEFAULT_NEW_MIGRATION.settings }));
   };
 
   const handleClick = () => {
