@@ -80,7 +80,7 @@ const putTestData = async (req: Request) => {
       });
       if (
         Array?.isArray?.(contentType) &&
-        typeof index === "number" &&
+        Number?.isInteger?.(index) &&
         index >= 0 &&
         index < contentType?.length
       ) {
