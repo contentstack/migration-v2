@@ -31,6 +31,7 @@ import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 import { CS_ENTRIES, CS_URL } from '../../utilities/constants';
 import { isEmptyString, validateArray } from '../../utilities/functions';
 import useBlockNavigation from '../../hooks/userNavigation';
+import { useWarnOnRefresh } from '../../hooks/useWarnOnRefresh';
 
 // Interface
 import { defaultMigrationResponse, MigrationResponse } from '../../services/api/service.interface';
@@ -99,11 +100,37 @@ const Migration = () => {
 
   const saveRef = useRef<ContentTypeSaveHandles>(null);
   const newMigrationDataRef = useRef(newMigrationData);
+  const [isSaved, setIsSaved] = useState<boolean>(false);
 
   useEffect(() => {
     fetchData();
   }, [params?.stepId, params?.projectId, selectedOrganisation?.value]);
 
+  useWarnOnRefresh(isSaved);
+
+  useEffect(()=>{
+    const hasNonEmptyMapping =
+    newMigrationData?.destination_stack?.localeMapping &&
+    Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
+      ([label, value]: [string, string]) =>
+        Boolean(label?.trim()) &&
+        value !== '' &&
+        value !== null &&
+        value !== undefined
+    );
+    if(legacyCMSRef?.current && !isCompleted && newMigrationData?.project_current_step === 1){
+      setIsSaved(true);    
+    }
+    else if ((isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) && newMigrationData?.project_current_step === 2)){
+     setIsSaved(true);
+    }
+    else if(newMigrationData?.content_mapping?.isDropDownChanged){
+      setIsSaved(true);
+    }
+    else{
+      setIsSaved(false);
+    }
+  },[isCompleted, newMigrationData])
   /**
  * Dispatches the isprojectMapped key to redux
  */
@@ -217,10 +244,11 @@ const Migration = () => {
 
 // funcrion to form upload object from config response
   const getFileInfo = (data: FileDetails) => {
+
     const newMigrationDataObj = {
           name: data?.localPath,
           url: data?.localPath,
-          isValidated: data?.localPath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath ? false : newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+          isValidated: false,
           file_details: {
             isLocalPath: data?.isLocalPath,
             cmsType: data?.cmsType,
