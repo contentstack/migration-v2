@@ -49,7 +49,7 @@ const determineLogLevel = (text: string): string => {
 const stripAnsiCodes = (text: string): string => {
   const ESC = '\u001b';
   // This regex removes all ANSI escape sequences (color codes)
-    return text.replace(new RegExp(`${ESC}\\[[0-9;]*m`, 'g'), '');
+    return text?.replace(new RegExp(`${ESC}\\[[0-9;]*m`, 'g'), '');
 };
 
 /**
