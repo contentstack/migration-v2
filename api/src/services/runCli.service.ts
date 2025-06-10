@@ -47,8 +47,9 @@ const determineLogLevel = (text: string): string => {
  * Strips ANSI color codes from text to create clean logs
  */
 const stripAnsiCodes = (text: string): string => {
+  const ESC = '\u001b';
   // This regex removes all ANSI escape sequences (color codes)
-  return text.replace(/\u001b\[\d+m/g, '');
+    return text?.replace(new RegExp(`${ESC}\\[[0-9;]*m`, 'g'), '');
 };
 
 /**
@@ -205,34 +206,6 @@ export const runCli = async (
 
       // Debug which log path is being used
       console.info(`Log path for CLI commands: ${transformePath}`);
-
-      // Test writing all log levels directly to the file
-      try {
-        const testLogs = [
-          {
-            level: 'info',
-            message: 'TEST INFO LOG',
-            timestamp: new Date().toISOString(),
-          },
-          {
-            level: 'warn',
-            message: 'TEST WARNING LOG',
-            timestamp: new Date().toISOString(),
-          },
-          {
-            level: 'error',
-            message: 'TEST ERROR LOG',
-            timestamp: new Date().toISOString(),
-          },
-        ];
-
-        for (const log of testLogs) {
-          fs.appendFileSync(transformePath, JSON.stringify(log) + '\n');
-        }
-        console.info('Test logs written successfully');
-      } catch (err) {
-        console.error('Failed to write test logs:', err);
-      }
 
       // Make sure to set the global.currentLogFile to the project log file
       // This is the key part - setting the log file path to the migration service log file
