@@ -185,9 +185,7 @@ const ExecutionLogs = () => {
     );
   };
 
-  const onClose = () => {
-    console.info('on modal close');
-  };
+  const onClose = () => undefined;
 
   const handleModaleClick = (data: LogEntry) => {
     cbModal({
