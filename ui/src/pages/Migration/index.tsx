@@ -124,7 +124,7 @@ const Migration = () => {
     else if ((isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) && newMigrationData?.project_current_step === 2)){
      setIsSaved(true);
     }
-    else if(newMigrationData?.content_mapping?.isDropDownChanged){
+    else if(newMigrationData?.content_mapping?.isDropDownChanged && (newMigrationData?.project_current_step === 3 || newMigrationData?.project_current_step === 4)){
       setIsSaved(true);
     }
     else{
