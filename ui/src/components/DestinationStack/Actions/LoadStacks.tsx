@@ -86,6 +86,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const [placeholder] = useState<string>('Select a stack');
   const [localePlaceholder, setlocalePlaceholder ] = useState<string>('Master Locale will be set after stack selection');
   const newMigrationDataRef = useRef(newMigrationData);
+  const [isStackLoading, setIsStackLoading] = useState<boolean>(true);
 
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
@@ -111,6 +112,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const handleOnSave = async (data: Stack) => {
     try {
       // Post data to backend
+      setIsStackLoading(true);
       const resp = await createStacksInOrg(selectedOrganisation?.value, {
         ...data,
         master_locale: data?.locale
@@ -146,13 +148,14 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         const newMigrationDataObj: INewMigration = {
           ...newMigrationData,
           destination_stack: {
-            ...newMigrationData.destination_stack,
+            ...newMigrationData?.destination_stack,
             selectedStack: newCreatedStack,
             stackArray: updatedStackArray
           }
         };
 
         dispatch(updateNewMigrationData(newMigrationDataObj));
+        setIsStackLoading(false);
         // call for Step Change
         props.handleStepChange(props?.currentStep, true);
 
@@ -356,7 +359,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         </div>
       </div>
 
-      {newMigrationData?.destination_stack?.selectedStack?.value && (
+      {(!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) || !isStackLoading) && (
         <div className="language-mapper">
           <div className="info-lang">
             <div className="stackTitle language-title">Language Mapping</div>
@@ -374,7 +377,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           </div>
           <LanguageMapper
           uid={selectedStack?.uid ?? ''}
-          stack={selectedStack ?? DEFAULT_DROPDOWN} />
+          stack={newMigrationData?.destination_stack?.selectedStack ?? DEFAULT_DROPDOWN} />
         </div>
       )}
     </div>

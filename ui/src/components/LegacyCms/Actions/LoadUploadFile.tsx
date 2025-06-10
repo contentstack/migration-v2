@@ -26,7 +26,7 @@ interface UploadState {
   fileFormat?: string;
   isConfigLoading: boolean;
   isLoading: boolean;
-  isValidated: boolean;
+  isValidated?: boolean;
   isDisabled?: boolean;
   processing: string;
   progressPercentage: number;
@@ -190,7 +190,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         {
           isLoading,
           isConfigLoading,
-          isValidated,
+          //isValidated,
           validationMessgae,
           isDisabled,
           cmsType,
@@ -290,7 +290,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     if (savedState) {
       setIsLoading(savedState.isLoading);
       setIsConfigLoading(savedState.isConfigLoading);
-      setIsValidated(savedState?.isValidated);
+      //setIsValidated(savedState?.isValidated);
       setValidationMessage(savedState?.validationMessage);
       //setIsDisabled(savedState?.isDisabled);
       setCmsType(savedState.cmsType);
@@ -315,7 +315,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       {
         isLoading,
         isConfigLoading,
-        isValidated,
+        //isValidated,
         validationMessgae,
         //isDisabled,
         cmsType,
@@ -331,7 +331,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   }, [
     isLoading,
     isConfigLoading,
-    isValidated,
+    //isValidated,
     validationMessgae,
     //isDisabled,
     cmsType,

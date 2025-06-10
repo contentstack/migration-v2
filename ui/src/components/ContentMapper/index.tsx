@@ -272,7 +272,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   const [searchContentType, setSearchContentType] = useState('');
 
-  const [rowIds, setRowIds] = useState({});
+  const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
   const [selectedEntries, setSelectedEntries] = useState<FieldMapType[]>([]);
   const [contentTypeSchema, setContentTypeSchema] = useState<ContentTypesSchema[] | undefined>([]);
   const [showFilter, setShowFilter] = useState<boolean>(false);
@@ -292,6 +292,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const [isCsCTypeUpdated, setsCsCTypeUpdated] = useState<boolean>(false);
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
   const [activeFilter, setActiveFilter] = useState<string>('');
+  const [isAllCheck, setIsAllCheck] = useState<boolean>(false);
 
 
   /** ALL HOOKS Here */
@@ -361,6 +362,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
     
     if (newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || ''] === otherContentType?.id) {
+      setIsAllCheck(false);
       tableData?.forEach((row) => {
         contentTypeSchema?.forEach((schema) => {
           
@@ -432,7 +434,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }, [tableData, otherContentType]);
 
   useEffect(() => {
-    if (isUpdated) {     
+    if (isUpdated) {
+      setIsAllCheck(false);     
       setTableData(updatedRows);
       setExistingField(updatedExstingField);
       setSelectedOptions(updatedSelectedOptions);
@@ -440,6 +443,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setIsUpdated(false);
     }
     else{
+      setIsAllCheck(false);
       setExistingField({});
       setSelectedOptions([]);
 
@@ -449,15 +453,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   // To make all the fields checked
   useEffect(() => {
     const selectedId = tableData?.reduce<UidMap>((acc, item) => {
-      if(!item?.isDeleted) {
+      if(!item?.isDeleted && isAllCheck) {
         acc[item?.id] = true;
 
       }
       return acc;
     }, {});
-    
-    setRowIds(selectedId);
-  }, [tableData]);
+    isAllCheck && setRowIds(selectedId);
+  }, [tableData, isAllCheck]);
 
   // To fetch existing content types or global fields as per the type
   useEffect(() => {
@@ -542,6 +545,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   },[contentTypeSchema]);
   useEffect(() => {
     if (existingField && isCsCTypeUpdated) {
+      setIsAllCheck(false)
       const matchedKeys = new Set<string>();
 
       contentTypeSchema?.forEach((item) => {
@@ -672,7 +676,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setItemStatusMap({ ...itemStatusMap });
       
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
-      
+      setIsAllCheck(true);
       setTableData(validTableData ?? []);
       setSelectedEntries(validTableData ?? []);
       setTotalCounts(validTableData?.length);
@@ -718,6 +722,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       setTableData([...tableData, ...validTableData ?? tableData]);
       setTotalCounts([...tableData, ...validTableData ?? tableData]?.length);
       setIsLoading(false)
+      setIsAllCheck(true);
     } catch (error) {
       console.error('loadMoreItems -> error', error);
     }
@@ -749,6 +754,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
 
   const openContentType = (i: number) => {
+      setIsAllCheck(true);
       setIsFieldDeleted(false);
       setActive(i);
       const otherTitle = filteredContentTypes?.[i]?.contentstackUid;
@@ -821,6 +827,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // add row ids with their data to rowHistoryObj
   useEffect(() => {
+    setIsAllCheck(false);
     Object.keys(rowHistoryObj)?.forEach(key => delete rowHistoryObj[key]);
     tableData?.forEach(item => { 
       rowHistoryObj[item?.id] = [{checked: true, at: Date.now(), ...modifiedObj(item)}]
@@ -887,6 +894,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
   const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
     const selectedObj: UidMap = {};
+    setIsAllCheck(false);
   
     singleSelectedRowIds?.forEach((uid: string) => {
       const isId = selectedEntries?.some((item) => item?.id === uid);
@@ -973,7 +981,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     }
    
-    const updatedTableData = tableData?.map?.((tableItem) => {
+    const updatedTableData = selectedEntries?.map?.((tableItem) => {
       // Mark the item as deleted if not found in selectedData
       return {
         ...tableItem,
@@ -982,13 +990,13 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     });  
 
     setRowIds(selectedObj);
-    setTableData(updatedTableData);
     setSelectedEntries(updatedTableData);
   };
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string, rowContentstackFieldUid: string) => {
     setIsDropDownChanged(true);
+    setIsAllCheck(false);
     setFieldValue(value);
     const updatedRows: FieldMapType[] = selectedEntries?.map?.((row) => {
       if (row?.uid === rowIndex && row?.contentstackFieldUid === rowContentstackFieldUid) {
@@ -1011,8 +1019,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
 
   const handleDropDownChange = (value: FieldTypes) => {
+    setIsAllCheck(false);
     (value?.id !== otherContentType?.id) && setsCsCTypeUpdated(true);
-    
     setOtherContentType(value);
   };
 
@@ -1133,6 +1141,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string, contentstackFieldUid: string, backupFieldUid: string) => {
     setIsDropDownChanged(true);
+    setIsAllCheck(false);
     const previousSelectedValue = existingField?.[backupFieldUid]?.label;
     const groupArray = nestedList?.filter(item => 
       item?.child?.some(e => e?.id)
@@ -1503,6 +1512,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         if (!updatedSelectedOptions?.includes?.(newValue)) {
           updatedSelectedOptions.push(newValue);  
         }
+        setIsAllCheck(false);
         setIsUpdated(true);   
       }
     
@@ -1620,6 +1630,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
  
   const handleSaveContentType = async () => {
     setisLoadingSaveButton(true);
+    setIsAllCheck(false);
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
     if (
