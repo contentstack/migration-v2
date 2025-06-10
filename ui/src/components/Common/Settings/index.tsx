@@ -55,7 +55,7 @@ const Settings = () => {
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
-  const active_state = newMigrationData?.settings.active_state;
+  const active_state = newMigrationData?.settings?.active_state;
 
   const currentStep = useSelector(
     (state: RootState) => state?.migration?.newMigrationData?.project_current_step
@@ -156,7 +156,7 @@ const Settings = () => {
 
   const handleBack = () => {
     navigate(`/projects/${params?.projectId}/migration/steps/${currentStep}`);
-    dispatch(updateNewMigrationData({...newMigrationData, settings: DEFAULT_NEW_MIGRATION.settings }));
+    dispatch(updateNewMigrationData({...newMigrationData, settings: DEFAULT_NEW_MIGRATION?.settings }));
   };
 
   const handleClick = () => {
