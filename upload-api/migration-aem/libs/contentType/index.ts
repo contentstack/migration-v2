@@ -12,7 +12,7 @@ const convertContentType: IConvertContentType = async (dirPath) => {
   for await (const fileName of templateFiles) {
     const filePath = path.join(templatesDir, fileName);
     const templateData = await readFiles(filePath);
-    await contentTypeMappers({ templateData, affix: "cms" });
+    return await contentTypeMappers({ templateData, affix: "cms" });
   }
 }
 

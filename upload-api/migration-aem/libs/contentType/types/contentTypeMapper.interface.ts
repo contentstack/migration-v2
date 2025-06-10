@@ -12,6 +12,11 @@ interface IItemSchema {
   // Add other properties if needed
 }
 
+interface IContentTypeSchemaParams {
+  type: string;
+}
+
+
 interface IContentTypeProcessorParams {
   itemSchema: IItemSchema;
   affix: string;
@@ -27,5 +32,5 @@ export interface IcontentTypeProcessor {
 
 
 export interface IContentTypeSchemaBuilder {
-  (params: IContentTypeProcessorParams): any;
+  (params: IContentTypeSchemaParams): any;
 }

@@ -21,3 +21,23 @@ export const readFiles: IReadFiles = async (filePath: string) => {
   return fileData;
 }
 
+
+
+/**
+ * Extracts the last segment of a component path from a given string.
+ *
+ * Searches for a substring that matches the pattern `components/...` and returns
+ * the last path segment after the final `/`. If no such pattern is found, returns `null`.
+ *
+ * @param line - The input string to search for a component path.
+ * @returns The last segment of the matched component path, or `null` if no match is found.
+ */
+
+export const extractComponentPath = (line: string): string | null => {
+  const match = line.match(/components(?:\/[\w-]+)+/);
+  if (!match) return line;
+
+  // Get the last element after the last '/'
+  const parts = match[0].split('/');
+  return parts[parts.length - 1];
+}
