@@ -5,6 +5,9 @@ fileignoreconfig:
     ignore_detectors:
       - filecontent
 
+  - filename: upload-api/src/helper/index.ts
+    checksum: b0727e318bc71779719238a54a290f56b38b30d6794f3f85e5ef7c941ff9a672
+
   - filename: upload-api/package-lock.json
     checksum: 0a1c735670c6197ed8104addca39834c6f42ef9bd003b6d059f258791807bc9a
 
