@@ -2,7 +2,7 @@ import rateLimit from "express-rate-limit";
 import fs from "fs";
 import path from "path";
 import xml2js from 'xml2js'
-import { HTTP_TEXTS, HTTP_CODES } from '../constants';
+import { HTTP_TEXTS, HTTP_CODES, MACOSX_FOLDER } from '../constants';
 import logger from "../utils/logger";
 
 const getFileName = (params: { Key: string }) => {
@@ -32,7 +32,7 @@ const saveZip = async (zip: any, name: string) => {
         }
         const filePath = path.join(__dirname, '..', '..', 'extracted_files', newFilePath);
 
-        if (!filePath.includes("__MACOSX")) {
+        if (!filePath.includes(MACOSX_FOLDER)) {
           await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
           const content = await file.async('nodebuffer');
           await fs.promises.writeFile(filePath, content);
