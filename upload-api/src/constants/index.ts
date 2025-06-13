@@ -78,4 +78,4 @@ export const MIGRATION_DATA_CONFIG = {
   EXPORT_INFO_FILE: 'export-info.json'
 };
 
-export const MACOSX_FOLDER = '"__MACOSX"'
+export const MACOSX_FOLDER = '__MACOSX'
