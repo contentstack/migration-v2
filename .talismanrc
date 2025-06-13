@@ -1,9 +1,16 @@
-version: "1.0.0-beta"
+version: "1.0.1"
 
 fileignoreconfig:
   - filename: .github/workflows/secrets-scan.yml
     ignore_detectors:
       - filecontent
+
+  - filename: api/package-lock.json
+    checksum: b138361349fedf9b1de905073f9b31cb0fcef6d976f8f74df0caedab59ca0147
+
+  - filename: upload-api/src/helper/index.ts
+    checksum: 0768be6ef3a286029bc5dbb6681c0956594c0d537e58cdf5ca7242814d1c3681
+
   - filename: remove-broken-imports.js
     checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
 

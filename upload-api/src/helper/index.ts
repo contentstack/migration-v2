@@ -17,28 +17,24 @@ const getFileName = (params: { Key: string }) => {
 const saveZip = async (zip: any, name: string) => {
   try {
     const newMainFolderName = name;
-    const keys = Object?.keys(zip.files);
-
-    const topLevelFolder = keys?.map(key => key?.split('/')?.[0])?.filter?.(folder => folder && !folder?.includes('__MACOSX'))?.[0]; // pick first valid folder
-
-    const hasTopLevelFolder = keys.every(key => key?.startsWith(`${topLevelFolder}/`));
+    const keys = Object.keys(zip.files);
 
     for await (const filename of keys) {
-      const file = zip?.files?.[filename];
-      if (!file?.dir) {
+      const file = zip.files[filename];
+      if (!file.dir) {
+        // Prepend only if not already present
         let newFilePath = filename;
-
-        if (hasTopLevelFolder) {
-          newFilePath = filename?.replace(new RegExp(`^${topLevelFolder}/`), `${newMainFolderName}/`);
-        } else {
-          newFilePath = path?.join(newMainFolderName, filename);
+        if (
+          !filename.startsWith(newMainFolderName + path.sep) &&
+          !filename.startsWith(newMainFolderName + '/')
+        ) {
+          newFilePath = path.join(newMainFolderName, filename);
         }
+        const filePath = path.join(__dirname, '..', '..', 'extracted_files', newFilePath);
 
-        const filePath = path?.join(__dirname, '..', '..', 'extracted_files', newFilePath);
-
-        if (!(filePath.includes("__MACOSX"))) {
-          await fs.promises.mkdir(path?.dirname(filePath), { recursive: true });
-          const content = await file?.async('nodebuffer');
+        if (!filePath.includes("__MACOSX")) {
+          await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+          const content = await file.async('nodebuffer');
           await fs.promises.writeFile(filePath, content);
         }
       }
@@ -54,6 +50,7 @@ const saveZip = async (zip: any, name: string) => {
     return false;
   }
 };
+
 
 const saveJson = async (jsonContent: string, fileName: string) => {
   try {
