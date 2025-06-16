@@ -273,3 +273,12 @@ export const MIGRATION_DATA_CONFIG = {
 
   EXPORT_INFO_FILE: "export-info.json",
 };
+export const GET_AUDIT_DATA = {
+  MIGRATION: "migration-v2",
+  API_DIR: "api",
+  MIGRATION_DATA_DIR: "migration-data",
+  LOGS_DIR: "logs",
+  AUDIT_DIR: "audit",
+  AUDIT_REPORT: "audit-report",
+  FILTERALL: "all",
+}

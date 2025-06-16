@@ -29,6 +29,9 @@
   "execution_logs": {
     "title": "Execution Logs"
   },
+  "audit_logs": {
+    "title": "Audit Logs"
+  },
   "tags": [],
   "locale": "en-us",
   "uid": "blt96cda740c3157d20",
