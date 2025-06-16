@@ -253,7 +253,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                 <Link href={stackLink} target="_blank" className="ml-5">
                   <strong>{newMigrationData?.stackDetails?.label}</strong>
                 </Link>
-                .You can view logs
+                . You can view logs
                 <Link target="_self" className="ml-5" cbOnClick={handleLinkClick}>
                   <strong>here</strong>
                 </Link>

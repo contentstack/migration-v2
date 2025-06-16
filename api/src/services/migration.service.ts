@@ -685,10 +685,14 @@ const getLogs = async (req: Request): Promise<any> => {
       const filterOptions = Array?.from(new Set(logEntries?.map((log) => log?.level)));
       const auditStartIndex = logEntries?.findIndex?.(log => log?.message?.includes("Starting audit process"));
       const auditEndIndex = logEntries?.findIndex?.(log => log?.message?.includes("Audit process completed"));
-      logEntries = [
-        ...logEntries.slice(0, auditStartIndex),
-        ...logEntries.slice(auditEndIndex + 1)
-      ]
+      if (auditStartIndex === -1 || auditEndIndex === -1) {
+        logger.warn("Audit markers not found in logs. Skipping audit-related slicing.");
+      } else {
+        logEntries = [
+          ...logEntries.slice(0, auditStartIndex),
+          ...logEntries.slice(auditEndIndex + 1)
+        ];
+      }
       logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
       if (filter !== "all") {
         const filters = filter?.split("-") ?? [];
