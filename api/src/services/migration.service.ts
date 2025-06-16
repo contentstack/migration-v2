@@ -652,11 +652,11 @@ const getLogs = async (req: Request): Promise<any> => {
     throw new BadRequestError("Invalid projectId or stackId");
   }
   try {
-    const mainPath = process?.cwd()?.split("migration-v2")?.[0];
+    const mainPath = process?.cwd();
     if (!mainPath) {
       throw new BadRequestError("Invalid application path");
     }
-    const logsDir = path?.join(mainPath, "migration-v2", "api", "logs");
+    const logsDir = path?.join(mainPath, "logs");
     const loggerPath = path?.join(logsDir, projectId, `${stackId}.log`);
     const absolutePath = path?.resolve(loggerPath);
     if (!absolutePath?.startsWith(logsDir)) {
