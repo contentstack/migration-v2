@@ -1,6 +1,15 @@
 version: "1.0.0-beta"
 
 fileignoreconfig:
+  - filename: ui/src/components/AuditLogs/auditLogs.interface.ts
+    checksum: 8eaf7502faeaa062a42ee5629f12ba1e8b961b8b8e0d209c4680c59c8de6269c
+
+  - filename: api/src/services/migration.service.ts
+    checksum: bd5374b31c0fad4a266bc9affdcf595f71456edb68b075c1fdfba762f7462e38
+
+  - filename: ui/src/components/AuditLogs/index.tsx
+    checksum: e1402f3cd5b96328d5e1d1e5f2a7fa5179858d6133db831b1b96714eb0f8c260
+    
   - filename: .github/workflows/secrets-scan.yml
     ignore_detectors:
       - filecontent
@@ -40,3 +49,4 @@ fileignoreconfig:
 
   - filename: upload-api/src/helper/index.ts
     checksum: beef34c30cc18c55d66df0124e8bfb69899be9aaef074252afe291c93d4c0f77
+
