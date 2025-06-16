@@ -1,6 +1,5 @@
-// Libraries
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
 import {
   Icon,
@@ -24,7 +23,7 @@ import { ModalObj } from '../../../components/Modal/modal.interface';
 
 // Service
 import { deleteProject, getProject, updateProject } from '../../../services/api/project.service';
-import { CS_ENTRIES } from '../../../utilities/constants';
+import { CS_ENTRIES, HTTP_CODES } from '../../../utilities/constants';
 import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 
 // Component
@@ -32,9 +31,9 @@ import DeleteProjectModal from '../DeleteProjectModal';
 
 //stylesheet
 import './Settings.scss';
-import { useDispatch } from 'react-redux';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import { DEFAULT_NEW_MIGRATION } from '../../../context/app/app.interface';
+import { DEFAULT_NEW_MIGRATION, INewMigration } from '../../../context/app/app.interface';
+import ExecutionLog from '../../../components/ExecutionLogs';
 
 /**
  * Renders the Settings component.
@@ -44,17 +43,25 @@ const Settings = () => {
   const params: Params<string> = useParams();
 
   const [cmsData, setCmsData] = useState<Setting>();
-  const [active, setActive] = useState<string>();
   const [currentHeader, setCurrentHeader] = useState<string>();
   const [projectName, setProjectName] = useState('');
+
   const [projectDescription, setProjectDescription] = useState('');
 
   const selectedOrganisation = useSelector(
     (state: RootState) => state?.authentication?.selectedOrganisation
   );
 
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+
+  const active_state = newMigrationData?.settings?.active_state;
+
+  const currentStep = useSelector(
+    (state: RootState) => state?.migration?.newMigrationData?.project_current_step
+  );
+
   const navigate = useNavigate();
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,7 +69,6 @@ const Settings = () => {
       getCMSDataFromFile(CS_ENTRIES.SETTING)
         .then((data) => {
           setCmsData(data);
-          setActive(data?.project?.title);
           setCurrentHeader(data?.project?.title);
         })
         .catch((err) => {
@@ -75,7 +81,7 @@ const Settings = () => {
         params?.projectId ?? ''
       );
 
-      if (status === 200) {
+      if (status === HTTP_CODES.OK) {
         setProjectName(data?.name);
         setProjectDescription(data?.description);
       }
@@ -104,7 +110,7 @@ const Settings = () => {
       projectData
     );
 
-    if (status === 200) {
+    if (status === HTTP_CODES.OK) {
       Notification({
         notificationContent: { text: 'Project Updated Successfully' },
         notificationProps: {
@@ -124,29 +130,33 @@ const Settings = () => {
       });
     }
   };
-   const handleDeleteProject = async (closeModal: ()=> void): Promise<void> => {
-      //setIsLoading(true);
-      const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
-  
-      if (response?.status === 200) {
-        //setIsLoading(false);
-        closeModal();
-        dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
-        setTimeout(() => {
-          navigate('/projects');
-        }, 800);
-        setTimeout(() => {
-          Notification({
-            notificationContent: { text: response?.data?.data?.message },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'success'
-          });
-        }, 1200);
-      }
-    };
+
+  const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
+    const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
+
+    if (response?.status === HTTP_CODES?.OK) {
+      closeModal();
+      dispatch(updateNewMigrationData(newMigrationData));
+      setTimeout(() => {
+        navigate('/projects');
+      }, 800);
+      setTimeout(() => {
+        Notification({
+          notificationContent: { text: response?.data?.data?.message },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: true
+          },
+          type: 'success'
+        });
+      }, 1200);
+    }
+  };
+
+  const handleBack = () => {
+    navigate(`/projects/${params?.projectId}/migration/steps/${currentStep}`);
+    dispatch(updateNewMigrationData({...newMigrationData, settings: DEFAULT_NEW_MIGRATION?.settings }));
+  };
 
   const handleClick = () => {
     cbModal({
@@ -178,15 +188,13 @@ const Settings = () => {
           class="Button Button--secondary Button--size-large Button--icon-alignment-left Button--v2"
           aria-label="Delete Project for deleting project"
           type="button"
-          onClick={handleClick}
-        >
+          onClick={handleClick}>
           <div className="flex-center">
             <div className="flex-v-center Button__mt-regular Button__visible">
               <Icon
-                icon="Delete"
+                icon={cmsData?.project?.delete_project?.icon ?? ''}
                 version="v2"
-                data={cmsData?.project?.delete_project?.title}
-              ></Icon>
+                data={cmsData?.project?.delete_project?.title}></Icon>
             </div>
           </div>
         </Button>
@@ -197,7 +205,7 @@ const Settings = () => {
   const content = {
     component: (
       <div>
-        {active === cmsData?.project?.title && (
+        {active_state === cmsData?.project?.title && (
           <div className="content-block">
             <div data-test-id="cs-stack-setting-general" className="stack-settings__heading">
               {cmsData?.project?.general}
@@ -214,8 +222,7 @@ const Settings = () => {
                         aria-label="projectname"
                         version="v2"
                         value={projectName}
-                        onChange={handleProjectNameChange}
-                      ></TextInput>
+                        onChange={handleProjectNameChange}></TextInput>
                     </div>
                   </div>
                 </div>
@@ -241,11 +248,10 @@ const Settings = () => {
                     buttonType="primary"
                     aria-label="save for saving update"
                     version="v2"
-                    icon={'v2-Save'}
+                    icon={cmsData?.project?.save_project?.icon}
                     autoClose={5000}
                     label={'Success'}
-                    onClick={handleUpdateProject}
-                  >
+                    onClick={handleUpdateProject}>
                     {cmsData?.project?.save_project?.title}
                   </Button>
                 </div>
@@ -253,7 +259,7 @@ const Settings = () => {
             </div>
           </div>
         )}
-        {active === cmsData?.execution_logs?.title && <div></div>}
+        {active_state === cmsData?.execution_logs?.title && <ExecutionLog />}
       </div>
     )
   };
@@ -265,19 +271,56 @@ const Settings = () => {
           data-testid="cs-section-header"
           className="SectionHeader SectionHeader--extra-bold SectionHeader--medium SectionHeader--black SectionHeader--v2"
           aria-label={cmsData?.title}
-          aria-level={1}
-        >
+          aria-level={1}>
+          <div>
+            <Icon
+              version="v2"
+              icon={cmsData?.project?.back_button ?? ''}
+              size="medium"
+              onClick={() => {
+                handleBack();
+              }}
+              withTooltip={true}
+              tooltipContent={'Back'}
+              tooltipPosition="right"
+              className="back-button"
+            />
+          </div>
           {cmsData?.title}
         </div>
 
         <ListRow
           rightArrow={true}
-          active={active === cmsData?.project?.title}
+          active={active_state === cmsData?.project?.title}
           content={cmsData?.project?.title}
           leftIcon={<Icon icon="Stacks" version="v2" />}
           onClick={() => {
-            setActive(cmsData?.project?.title);
             setCurrentHeader(cmsData?.project?.title);
+            const activeTabState: INewMigration = {
+              ...newMigrationData,
+              settings: {
+                active_state: cmsData?.project?.title ?? ''
+              }
+            };
+            dispatch(updateNewMigrationData(activeTabState));
+          }}
+          version="v2"
+        />
+
+        <ListRow
+          rightArrow={true}
+          active={active_state === cmsData?.execution_logs?.title}
+          content={cmsData?.execution_logs?.title}
+          leftIcon={<Icon icon="ExecutionLog" version="v2" />}
+          onClick={() => {
+            setCurrentHeader(cmsData?.execution_logs?.title);
+            const activeTabState: INewMigration = {
+              ...newMigrationData,
+              settings: {
+                active_state: cmsData?.execution_logs?.title ?? ''
+              }
+            };
+            dispatch(updateNewMigrationData(activeTabState));
           }}
           version="v2"
         />
@@ -288,18 +331,18 @@ const Settings = () => {
   const header = {
     component: (
       <div>
-        {active === cmsData?.project?.title ? (
+        {active_state === cmsData?.project?.title ? (
           <PageHeader
             testId="header"
             className="action-component-title"
-            title={{ label: currentHeader }}
+            title={{ label: active_state }}
             actions={pageActions}
           />
         ) : (
           <PageHeader
             testId="header"
             className="action-component-title"
-            title={{ label: currentHeader }}
+            title={{ label: active_state }}
           />
         )}
       </div>
