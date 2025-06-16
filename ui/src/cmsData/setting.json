@@ -12,15 +12,19 @@
       "theme": "secondary",
       "title": "Delete Project",
       "url": "",
-      "with_icon": true
+      "with_icon": true,
+      "icon": "Delete"
     },
     "save_project": {
       "open_in_new_tab": false,
       "theme": "primary",
       "title": "Save",
       "url": "",
-      "with_icon": true
-    }
+      "with_icon": true,
+      "icon": "v2-Save"
+    },
+    "back_button": "LeftArrow"
+
   },
   "execution_logs": {
     "title": "Execution Logs"
