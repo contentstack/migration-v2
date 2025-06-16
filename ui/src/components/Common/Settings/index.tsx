@@ -81,7 +81,7 @@ const Settings = () => {
         params?.projectId ?? ''
       );
 
-      if (status === HTTP_CODES.OK) {
+      if (status === HTTP_CODES?.OK) {
         setProjectName(data?.name);
         setProjectDescription(data?.description);
       }
@@ -110,7 +110,7 @@ const Settings = () => {
       projectData
     );
 
-    if (status === HTTP_CODES.OK) {
+    if (status === HTTP_CODES?.OK) {
       Notification({
         notificationContent: { text: 'Project Updated Successfully' },
         notificationProps: {
@@ -136,7 +136,7 @@ const Settings = () => {
 
     if (response?.status === HTTP_CODES?.OK) {
       closeModal();
-      dispatch(updateNewMigrationData(newMigrationData));
+      dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
       setTimeout(() => {
         navigate('/projects');
       }, 800);

@@ -680,7 +680,7 @@ const getLogs = async (req: Request): Promise<any> => {
         })
         ?.filter?.((entry) => entry !== null);
       if (!logEntries?.length) {
-        return { logs: [], total: 0 };
+        return { logs: [], total: 0, filterOptions: [], status: HTTP_CODES?.OK };
       }
       const filterOptions = Array?.from(new Set(logEntries?.map((log) => log?.level)));
       const auditStartIndex = logEntries?.findIndex?.(log => log?.message?.includes("Starting audit process"));
