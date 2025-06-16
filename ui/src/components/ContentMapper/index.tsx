@@ -35,7 +35,7 @@ import { updateMigrationData, updateNewMigrationData } from '../../store/slice/m
 
 // Utilities
 import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping } from '../../utilities/constants';
-import { validateArray } from '../../utilities/functions';
+import { isEmptyString, validateArray } from '../../utilities/functions';
 import useBlockNavigation from '../../hooks/userNavigation';
 
 // Interface
@@ -291,6 +291,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const [isContentDeleted, setIsContentDeleted] = useState<boolean>(false);
   const [isCsCTypeUpdated, setsCsCTypeUpdated] = useState<boolean>(false);
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
+  const [activeFilter, setActiveFilter] = useState<string>('');
 
 
   /** ALL HOOKS Here */
@@ -1821,10 +1822,22 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           };
           dispatch(updateNewMigrationData(newMigrationDataObj));
           const resetCT = filteredContentTypes?.map?.(ct => 
+            ct?.id === selectedContentType?.id  ? { ...ct, status: data?.data?.status } : ct
+          )
+          
+          let filteredCT = resetCT;
+          if (!isEmptyString(activeFilter)) {
+            filteredCT = resetCT?.filter((ct) => 
+              CONTENT_MAPPING_STATUS?.[ct?.status] === activeFilter
+            );
+          }
+
+          const resetContentTypes = contentTypes?.map?.(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );
-          setFilteredContentTypes(resetCT);
-          setContentTypes(resetCT);
+          setFilteredContentTypes(filteredCT);
+          setContentTypes(resetContentTypes);
+          setCount(filteredCT?.length);
           Notification({
             notificationContent: { text: data?.message },
             notificationProps: {
@@ -2138,6 +2151,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // Function to filter content types as per the status
   const handleContentTypeFilter = (value: string, e: MouseOrKeyboardEvent) => {
+    setActiveFilter(value);
     const li_list = document.querySelectorAll('.filter-wrapper li');
     if(li_list) {
       li_list?.forEach((ele) => {
@@ -2240,7 +2254,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                             }
                           }}
                         >
-                          {CONTENT_MAPPING_STATUS[key] && <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span> }
+                          {CONTENT_MAPPING_STATUS[key] && <span className={`${activeFilter ===  CONTENT_MAPPING_STATUS[key] ? 'filter-status filterButton-color' :'filter-status' }`}>{CONTENT_MAPPING_STATUS[key]}</span> }
                           {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
                         </button>
                       </li>
