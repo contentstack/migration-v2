@@ -1,0 +1,95 @@
+.Search-input-show {
+  margin-bottom: 8px;
+  width: 300px;
+}
+.Search .Search__search-icon {
+  top: calc(50% - 10px);
+  width: 20px;
+}
+
+.Search .Search__input.regular-corners {
+  margin-left: 8px;
+}
+
+.dropdown-wrapper {
+  margin-bottom: 8px;
+}
+
+.PageLayout--primary .PageLayout__leftSidebar + .PageLayout__content .PageLayout__body {
+  width: calc(100% - 15.4rem);
+}
+
+.Table__head__column {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+
+.Table:has(.custom-empty-state) {
+  height: 40.5rem;
+}
+
+.custom-empty-state {
+  .Icon--original {
+    width: 207px !important;
+    height: auto !important;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+  }
+}
+
+.select-container {
+  margin-bottom: 8px;
+}
+
+.center-dash {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+}
+
+.Table__head__row {
+  height: 60px !important;
+} 
+
+.Table{
+  padding-bottom:20px
+}
+
+.message-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.PageLayout__body  {
+	.executionTable-height {
+		.Table__body {
+			height: calc(100vh - 11rem) !important;
+		}
+		.Table.TableWithPaginated {
+			.Table__body {
+				height: calc(100vh - 11rem) !important;
+			}
+		}
+	}
+}
+
+.table-row-action {
+  display: flex;
+  gap: 16px;
+  .text-size{
+    padding-top: 1px;
+  }
+  .VerticalActionTooltip__actions{
+    width: 100px !important;
+  }
+}
+
+.TablePagination {
+    position: sticky;
+    bottom: 0px;
+}

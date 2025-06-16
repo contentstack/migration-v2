@@ -30,6 +30,7 @@ import { contentfulService } from './contentful.service.js';
 import { marketPlaceAppService } from './marketplace.service.js';
 import { extensionService } from './extension.service.js';
 import fsPromises from 'fs/promises';
+import { matchesSearchText } from '../utils/search.util.js';
 // import { getSafePath } from "../utils/sanitize-path.utils.js";
 
 /**
@@ -634,36 +635,83 @@ const startMigration = async (req: Request): Promise<any> => {
 };
 
 const getLogs = async (req: Request): Promise<any> => {
-  const projectId = path.basename(req?.params?.projectId);
-  const stackId = path.basename(req?.params?.stackId);
-  const srcFunc = 'getLogs';
-
-  if (projectId.includes('..') || stackId.includes('..')) {
-    throw new BadRequestError('Invalid projectId or stackId');
+  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId) : "";
+  const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : "";
+  const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
+  const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;
+  const stopIndex = startIndex + limit;
+  const searchText = req?.params?.searchText ?? null;
+  const filter = req?.params?.filter ?? "all";
+  const srcFunc = "getLogs";
+  if (
+    !projectId ||
+    !stackId ||
+    projectId?.includes("..") ||
+    stackId?.includes("..")
+  ) {
+    throw new BadRequestError("Invalid projectId or stackId");
   }
-
   try {
-    const logsDir = path.join(process.cwd(), 'logs');
-    const loggerPath = path.join(logsDir, projectId, `${stackId}.log`);
-    const absolutePath = path.resolve(loggerPath); // Resolve the absolute path
-
-    if (!absolutePath.startsWith(logsDir)) {
-      throw new BadRequestError('Access to this file is not allowed.');
+    const mainPath = process?.cwd()?.split("migration-v2")?.[0];
+    if (!mainPath) {
+      throw new BadRequestError("Invalid application path");
     }
-
+    const logsDir = path?.join(mainPath, "migration-v2", "api", "logs");
+    const loggerPath = path?.join(logsDir, projectId, `${stackId}.log`);
+    const absolutePath = path?.resolve(loggerPath);
+    if (!absolutePath?.startsWith(logsDir)) {
+      throw new BadRequestError("Access to this file is not allowed.");
+    }
     if (fs.existsSync(absolutePath)) {
-      const logs = await fs.promises.readFile(absolutePath, 'utf8');
-      const logEntries = logs
-        .split('\n')
-        .map((line) => {
+      let index = 0;
+      const logs = await fs?.promises?.readFile?.(absolutePath, "utf8");
+      let logEntries = logs
+        ?.split("\n")
+        ?.map((line) => {
           try {
-            return JSON.parse(line);
+            const parsedLine = JSON?.parse(line)
+            parsedLine && (parsedLine['id'] = index);
+
+            ++index;
+            return parsedLine ? parsedLine : null;
           } catch (error) {
             return null;
           }
         })
-        .filter((entry) => entry !== null);
-      return logEntries;
+        ?.filter?.((entry) => entry !== null);
+      if (!logEntries?.length) {
+        return { logs: [], total: 0 };
+      }
+      const filterOptions = Array?.from(new Set(logEntries?.map((log) => log?.level)));
+      const auditStartIndex = logEntries?.findIndex?.(log => log?.message?.includes("Starting audit process"));
+      const auditEndIndex = logEntries?.findIndex?.(log => log?.message?.includes("Audit process completed"));
+      logEntries = [
+        ...logEntries.slice(0, auditStartIndex),
+        ...logEntries.slice(auditEndIndex + 1)
+      ]
+      logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
+      if (filter !== "all") {
+        const filters = filter?.split("-") ?? [];
+        logEntries = logEntries?.filter((log) => {
+          return filters?.some((filter) => {
+            return log?.level
+              ?.toLowerCase()
+              ?.includes?.(filter?.toLowerCase() ?? "");
+          });
+        });
+      }
+      if (searchText && searchText !== "null") {
+        logEntries = logEntries?.filter?.((log) =>
+          matchesSearchText(log, searchText)
+        );
+      }
+      const paginatedLogs = logEntries?.slice?.(startIndex, stopIndex) ?? [];
+      return {
+        logs: paginatedLogs,
+        total: logEntries?.length ?? 0,
+        filterOptions: filterOptions,
+        status: HTTP_CODES?.OK
+      };
     } else {
       logger.error(getLogMessage(srcFunc, HTTP_TEXTS.LOGS_NOT_FOUND));
       throw new BadRequestError(HTTP_TEXTS.LOGS_NOT_FOUND);

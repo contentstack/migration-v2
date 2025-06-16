@@ -1,5 +1,5 @@
 import { ObjectType } from '../../utilities/constants.interface';
-import { API_VERSION } from '../../utilities/constants';
+import { API_VERSION, EXECUTION_LOGS_ERROR_TEXT } from '../../utilities/constants';
 import { getDataFromLocalStorage } from '../../utilities/functions';
 import { getCall, postCall, putCall, patchCall } from './service';
 
@@ -338,5 +338,20 @@ export const updateLocaleMapper = async(projectId: string, data: any) => {
       `${API_VERSION}/migration/updateLocales/${projectId}`, data, options);
   } catch (error) {
     return error;
+  }
+}
+
+export const getMigrationLogs = async (orgId: string, projectId: string, stackId: string, skip:number , limit:number  , startIndex:number, stopIndex:number,searchText:string, filter: string ) => {
+  try {
+      return await getCall(
+        `${API_VERSION}/migration/get_migration_logs/${orgId}/${projectId}/${stackId}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}/${filter}`,
+        options
+      );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${EXECUTION_LOGS_ERROR_TEXT.ERROR}: ${error.message}`);
+    } else {
+      throw new Error('Unknown ${EXECUTION_LOGS_ERROR_TEXT.ERROR}');
+    }
   }
 }
