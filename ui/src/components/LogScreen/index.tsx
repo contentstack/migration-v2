@@ -265,7 +265,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
                 <Link href={newMigrationData?.test_migration?.stack_link} target="_blank">
                   <strong>{migratedStack?.stackName}</strong>
                 </Link>
-                .You can view logs
+                . You can view logs
                 <Link target="_self" className="ml-5" cbOnClick={handleLinkClick}>
                   <strong>here</strong>
                 </Link>
