@@ -103,3 +103,13 @@
   color: #6c5ce7 !important;
   font-weight: 600;
 }
+
+
+.back-button {
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.PageLayout--primary--v2 .PageLayout__body--left-drawer {
+  display: none;
+} 
