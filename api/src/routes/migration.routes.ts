@@ -65,7 +65,7 @@ router.get(
 )
 router.get(
   "/get_audit_data/:orgId/:projectId/:stackId/:moduleName/:skip/:limit/:startIndex/:stopIndex/:searchText/:filter",
-  asyncRouter(migrationController.getAuditData)
+  asyncRouter(migrationController?.getAuditData)
 )
 /**
  * Route for updating the source locales from legacy CMS

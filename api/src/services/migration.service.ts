@@ -665,7 +665,7 @@ const getAuditData = async (req: Request): Promise<any> => {
     const filePath = path?.resolve(auditLogPath, `${moduleName}.json`);
     let fileData;
     if (fs?.existsSync(filePath)) {
-      const fileContent = await fsPromises.readFile(filePath, 'utf8');
+      const fileContent = await fsPromises?.readFile(filePath, 'utf8');
       try {
         if (typeof fileContent === 'string') {
           fileData = JSON?.parse(fileContent);
@@ -723,8 +723,8 @@ const getAuditData = async (req: Request): Promise<any> => {
       )
     );
     throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+      error?.message || HTTP_TEXTS?.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES?.SERVER_ERROR
     );
   }
 };
@@ -854,14 +854,14 @@ const getLogs = async (req: Request): Promise<any> => {
         status: HTTP_CODES?.OK
       };
     } else {
-      logger.error(getLogMessage(srcFunc, HTTP_TEXTS.LOGS_NOT_FOUND));
-      throw new BadRequestError(HTTP_TEXTS.LOGS_NOT_FOUND);
+      logger.error(getLogMessage(srcFunc, HTTP_TEXTS?.LOGS_NOT_FOUND));
+      throw new BadRequestError(HTTP_TEXTS?.LOGS_NOT_FOUND);
     }
   } catch (error: any) {
-    logger.error(getLogMessage(srcFunc, HTTP_TEXTS.LOGS_NOT_FOUND, error));
+    logger.error(getLogMessage(srcFunc, HTTP_TEXTS?.LOGS_NOT_FOUND, error));
     throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+      error?.message || HTTP_TEXTS?.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES?.SERVER_ERROR
     );
   }
 };
