@@ -56,7 +56,7 @@ const AuditLogs: React.FC = () => {
             }
             setStackOptions(formattedOptions);
             if (!selectedStack) {
-                setSelectedStack(formattedOptions[stacks.length - 1]);
+                setSelectedStack(formattedOptions[stacks?.length - 1]);
                 updateFileOptionsForStack(formattedOptions[0]);
             }
         }
@@ -165,8 +165,8 @@ const AuditLogs: React.FC = () => {
 
         const iconProps = {
             className: isFilterApplied
-                ? auditLogsConstants.filterIcon.filterOn
-                : auditLogsConstants.filterIcon.filterOff,
+                ? auditLogsConstants?.filterIcon?.filterOn
+                : auditLogsConstants?.filterIcon?.filterOff,
             withTooltip: true,
             tooltipContent: 'Filter',
             tooltipPosition: 'left'
@@ -178,10 +178,10 @@ const AuditLogs: React.FC = () => {
                 if (!filterValueCopy.length && isChecked) {
                     filterValueCopy.push(value);
                 } else if (isChecked) {
-                    const updatedFilter = filterValueCopy.filter((v) => v.value !== value.value);
+                    const updatedFilter = filterValueCopy.filter((v) => v?.value !== value?.value);
                     filterValueCopy = [...updatedFilter, value];
                 } else if (!isChecked) {
-                    filterValueCopy = filterValueCopy.filter((v) => v.value !== value.value);
+                    filterValueCopy = filterValueCopy.filter((v) => v?.value !== value?.value);
                 }
                 setFilterValue(filterValueCopy);
             } catch (error) {
@@ -195,7 +195,7 @@ const AuditLogs: React.FC = () => {
         };
         const onApply = () => {
             try {
-                if (!filterValue.length) {
+                if (!filterValue?.length) {
                     const newFilter = 'all';
                     setFilterOption(newFilter);
                     fetchTableData({ filter: newFilter });
@@ -205,7 +205,7 @@ const AuditLogs: React.FC = () => {
                 }
                 const usersQueryArray = filterValue.map((item) => item.value);
                 const newFilter =
-                    usersQueryArray.length > 1 ? usersQueryArray.join('-') : usersQueryArray[0];
+                    usersQueryArray?.length > 1 ? usersQueryArray.join('-') : usersQueryArray[0];
                 setFilterOption(newFilter);
                 fetchTableData({ filter: newFilter });
                 setIsFilterApplied(true);
@@ -253,7 +253,7 @@ const AuditLogs: React.FC = () => {
     const contentTypeHeader = [
         {
             Header: 'Title',
-            accessor: (data: TableDataItem) => renderCell(data.name),
+            accessor: (data: TableDataItem) => renderCell(data?.name),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -262,7 +262,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Field Name',
-            accessor: (data: TableDataItem) => renderCell(data.display_name),
+            accessor: (data: TableDataItem) => renderCell(data?.display_name),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -271,7 +271,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Field Type',
-            accessor: (data: TableDataItem) => renderCell(data.data_type),
+            accessor: (data: TableDataItem) => renderCell(data?.data_type),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -282,7 +282,7 @@ const AuditLogs: React.FC = () => {
         {
             Header: 'Missing Reference',
             accessor: (data: TableDataItem) => {
-                const missing = Array.isArray(data.missingRefs)
+                const missing = Array.isArray(data?.missingRefs)
                     ? data.missingRefs.join(', ')
                     : typeof data?.missingRefs === 'string'
                         ? data?.missingRefs
@@ -298,7 +298,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Tree Structure',
-            accessor: (data: TableDataItem) => renderCell(data.treeStr),
+            accessor: (data: TableDataItem) => renderCell(data?.treeStr),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -307,7 +307,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Fix Status',
-            accessor: (data: TableDataItem) => renderCell(data.fixStatus),
+            accessor: (data: TableDataItem) => renderCell(data?.fixStatus),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -318,7 +318,7 @@ const AuditLogs: React.FC = () => {
     const entryHeader = [
         {
             Header: 'Entry UID',
-            accessor: (data: TableDataItem) => renderCell(data.uid),
+            accessor: (data: TableDataItem) => renderCell(data?.uid),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -327,7 +327,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Name',
-            accessor: (data: TableDataItem) => renderCell(data.name),
+            accessor: (data: TableDataItem) => renderCell(data?.name),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -336,7 +336,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Display Name',
-            accessor: (data: TableDataItem) => renderCell(data.display_name),
+            accessor: (data: TableDataItem) => renderCell(data?.display_name),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -345,7 +345,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Display Type',
-            accessor: (data: TableDataItem) => renderCell(data.display_type),
+            accessor: (data: TableDataItem) => renderCell(data?.display_type),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -355,7 +355,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Missing Select Value',
-            accessor: (data: TableDataItem) => renderCell(data.missingCTSelectFieldValues),
+            accessor: (data: TableDataItem) => renderCell(data?.missingCTSelectFieldValues),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -364,7 +364,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Tree Structure',
-            accessor: (data: TableDataItem) => renderCell(data.treeStr ?? '-'),
+            accessor: (data: TableDataItem) => renderCell(data?.treeStr ?? '-'),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -395,7 +395,7 @@ const AuditLogs: React.FC = () => {
                     placeholder={auditLogsConstants.placeholders.selectModule}
                     isSearchable
                     version="v2"
-                    isDisabled={loading || !selectedStack || fileOptions.length === 0}
+                    isDisabled={loading || !selectedStack || fileOptions?.length === 0}
                     className="select-box"
                 />
             </div>
@@ -422,7 +422,7 @@ const AuditLogs: React.FC = () => {
                 isRowSelect={false}
                 columnSelector={false}
                 canSearch={true}
-                searchPlaceholder={auditLogsConstants.placeholders.searchLogs}
+                searchPlaceholder={auditLogsConstants?.placeholders?.searchLogs}
                 searchValue={searchText}
                 onSearchChangeEvent={handleSearchChange}
                 withExportCta={{
@@ -431,18 +431,18 @@ const AuditLogs: React.FC = () => {
                 }}
                 customEmptyState={
                     <EmptyState
-                        heading={selectedStack && selectedFile ? auditLogsConstants.noResult : auditLogsConstants.noLogs}
+                        heading={selectedStack && selectedFile ? auditLogsConstants?.noResult : auditLogsConstants?.noLogs}
                         description={
                             !selectedStack
-                                ? auditLogsConstants.executeTestMigration
+                                ? auditLogsConstants?.executeTestMigration
                                 : selectedStack && !selectedFile
-                                    ? auditLogsConstants.selectModuleMessage
-                                    : auditLogsConstants.queryChangeMessage
+                                    ? auditLogsConstants?.selectModuleMessage
+                                    : auditLogsConstants?.queryChangeMessage
                         }
                         moduleIcon={
                             (selectedStack && !selectedFile) || !selectedStack
-                                ? auditLogsConstants.emptyStateIcon.noLogs
-                                : auditLogsConstants.emptyStateIcon.noMatch
+                                ? auditLogsConstants?.emptyStateIcon?.noLogs
+                                : auditLogsConstants?.emptyStateIcon?.noMatch
                         }
                         type="secondary"
                         className="custom-empty-state"
