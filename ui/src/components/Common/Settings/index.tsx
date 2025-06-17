@@ -132,11 +132,9 @@ const Settings = () => {
     }
   };
   const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
-    //setIsLoading(true);
     const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
 
-    if (response?.status === 200) {
-      //setIsLoading(false);
+    if (response?.status === HTTP_CODES?.OK) {
       closeModal();
       dispatch(updateNewMigrationData(DEFAULT_NEW_MIGRATION));
       setTimeout(() => {
