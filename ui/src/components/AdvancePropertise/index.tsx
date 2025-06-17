@@ -147,7 +147,8 @@ const AdvancePropertise = (props: SchemaProps) => {
         title: currentToggleStates?.title,
         url: currentToggleStates?.url
       },
-      checkBoxChanged
+      checkBoxChanged,
+      props?.data?.contentstackFieldUid
     );
   };
 
@@ -189,7 +190,8 @@ const AdvancePropertise = (props: SchemaProps) => {
         title: currentToggleStates?.title,
         url: currentToggleStates?.url
       },
-      checkBoxChanged
+      checkBoxChanged,
+      props?.data?.contentstackFieldUid
     );
   };
 
@@ -215,7 +217,8 @@ const AdvancePropertise = (props: SchemaProps) => {
         embedObject: currentToggleStates?.embedObject,
         embedObjects: embedObjectsLabels
       },
-      true
+      true,
+      props?.data?.contentstackFieldUid
     );
   };
 
@@ -251,7 +254,8 @@ const AdvancePropertise = (props: SchemaProps) => {
         embedObjects: embedObjectsLabels,
         options: options
       },
-      true
+      true,
+      props?.data?.contentstackFieldUid
     );
   };
   const handleRemoveDefalutValue = (index: number) => {
@@ -280,7 +284,8 @@ const AdvancePropertise = (props: SchemaProps) => {
         embedObjects: embedObjectsLabels,
         options: options
       },
-      true
+      true,
+      props?.data?.contentstackFieldUid
     );
   };
 
@@ -583,7 +588,8 @@ const AdvancePropertise = (props: SchemaProps) => {
                             validationRegex: toggleStates?.validationRegex ?? '',
                             embedObjects: embedObject
                           },
-                          true
+                          true,
+                          props?.data?.contentstackFieldUid
                         );
                       }}
                       options={option}
