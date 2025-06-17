@@ -34,6 +34,7 @@ import './Settings.scss';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { DEFAULT_NEW_MIGRATION, INewMigration } from '../../../context/app/app.interface';
 import ExecutionLog from '../../../components/ExecutionLogs';
+import AuditLogs from '../../AuditLogs';
 
 /**
  * Renders the Settings component.
@@ -130,7 +131,6 @@ const Settings = () => {
       });
     }
   };
-
   const handleDeleteProject = async (closeModal: () => void): Promise<void> => {
     const response = await deleteProject(selectedOrganisation?.value, params?.projectId ?? '');
 
@@ -155,8 +155,9 @@ const Settings = () => {
 
   const handleBack = () => {
     navigate(`/projects/${params?.projectId}/migration/steps/${currentStep}`);
-    dispatch(updateNewMigrationData({...newMigrationData, settings: DEFAULT_NEW_MIGRATION?.settings }));
+    dispatch(updateNewMigrationData({ ...newMigrationData, settings: DEFAULT_NEW_MIGRATION?.settings }));
   };
+
 
   const handleClick = () => {
     cbModal({
@@ -259,6 +260,10 @@ const Settings = () => {
             </div>
           </div>
         )}
+        {active_state === cmsData?.audit_logs?.title &&
+          <AuditLogs />
+
+        }
         {active_state === cmsData?.execution_logs?.title && <ExecutionLog />}
       </div>
     )
@@ -318,6 +323,23 @@ const Settings = () => {
               ...newMigrationData,
               settings: {
                 active_state: cmsData?.execution_logs?.title ?? ''
+              }
+            };
+            dispatch(updateNewMigrationData(activeTabState));
+          }}
+          version="v2"
+        />
+        <ListRow
+          rightArrow={true}
+          active={active_state === cmsData?.audit_logs?.title}
+          content={cmsData?.audit_logs?.title}
+          leftIcon={<Icon icon="Audit" version="v2" />}
+          onClick={() => {
+            setCurrentHeader(cmsData?.audit_logs?.title);
+            const activeTabState: INewMigration = {
+              ...newMigrationData,
+              settings: {
+                active_state: cmsData?.audit_logs?.title ?? ''
               }
             };
             dispatch(updateNewMigrationData(activeTabState));
