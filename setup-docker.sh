@@ -41,8 +41,9 @@ set_env_var() {
   VAR_NAME="$1"
   VAR_VALUE="$2"
   if grep -q "^${VAR_NAME}=" "$ENV_PATH" 2>/dev/null; then
-    # Update existing variable
-    sed -i '' "s|^${VAR_NAME}=.*|${VAR_NAME}=${VAR_VALUE}|" "$ENV_PATH"
+    # Update existing variable (cross-platform)
+    sed -i.bak "s|^${VAR_NAME}=.*|${VAR_NAME}=${VAR_VALUE}|" "$ENV_PATH"
+    rm -f "$ENV_PATH.bak"
   else
     # Append new variable
     echo "${VAR_NAME}=${VAR_VALUE}" >> "$ENV_PATH"
