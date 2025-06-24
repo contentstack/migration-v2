@@ -119,6 +119,35 @@ export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
   drupal: ''
 };
 
+
+export const auditLogsConstants = {
+  executeTestMigration: 'Try executing Test Migration',
+  selectModuleMessage: 'Select Module to See the Logs',
+  queryChangeMessage: 'Try Changing the Search Query to find what you are looking for',
+  noResult: 'No Matching Result Found',
+  noLogs: 'No Logs Found',
+  filterIcon: {
+    filterOn: 'filterWithAppliedIcon Icon--v2 Icon--medium',
+    filterOff: 'filterWithAppliedIcon Icon--v2 Icon--medium Icon--disabled'
+  },
+
+  placeholders: {
+    selectStack: 'Select Stack',
+    selectModule: 'Select Module',
+    searchLogs: 'Search Audit Logs',
+  },
+
+  emptyStateIcon: {
+    noLogs: 'NoDataEmptyState',
+    noMatch: 'NoSearchResult'
+  },
+  filterModal: {
+    noFilterAvailabe: 'No Filters Available',
+    clearAll: 'Clear All',
+    apply: 'Apply'
+  }
+};
+
 export const HTTP_CODES = {
   OK: 200,
   FORBIDDEN: 403,
@@ -152,7 +181,7 @@ export const EXECUTION_LOGS_UI_TEXT = {
     FILTER_ON: 'filterWithAppliedIcon Icon--v2 Icon--medium',
     FILTER_OFF: 'defaultFilterIcon Icon--v2 Icon--medium'
   },
-  VIEW_LOG:{
+  VIEW_LOG: {
     VIEW_ICON: 'Eye',
     VIEW_TEXT: 'View Log'
   }
