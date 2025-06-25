@@ -52,7 +52,7 @@ fileignoreconfig:
 
   - filename: api/src/services/migration.service.ts
     checksum: f37809ddd67b8ad143d7d9fbb2c305f7c9150a8eec1f3325724fca576c736656
-    
+
   - filename: ui/src/components/AuditLogs/index.tsx
-    checksum: e63f46a5ebadc25ad6b173d63f3def56b14a50d48f56f4c76458bb304b74d127
+    checksum: 51ce05f66ac49023452f200e587389e55c88357102a61e77eb468d0e02b52846
 
