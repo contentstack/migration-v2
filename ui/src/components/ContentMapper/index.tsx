@@ -35,7 +35,7 @@ import { updateMigrationData, updateNewMigrationData } from '../../store/slice/m
 
 // Utilities
 import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping } from '../../utilities/constants';
-import { validateArray } from '../../utilities/functions';
+import { isEmptyString, validateArray } from '../../utilities/functions';
 import useBlockNavigation from '../../hooks/userNavigation';
 
 // Interface
@@ -291,6 +291,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   const [isContentDeleted, setIsContentDeleted] = useState<boolean>(false);
   const [isCsCTypeUpdated, setsCsCTypeUpdated] = useState<boolean>(false);
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
+  const [activeFilter, setActiveFilter] = useState<string>('');
 
 
   /** ALL HOOKS Here */
@@ -367,7 +368,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             if (!updatedSelectedOptions?.includes?.(schema?.display_name)) {
               updatedSelectedOptions.push(schema?.display_name);  
             }
-            updatedExstingField[row?.uid] = {
+            updatedExstingField[row?.backupFieldUid] = {
               label: schema?.display_name,
               value: schema
             };
@@ -381,7 +382,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                   if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name}`)) {
                     updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name}`);  
                   }
-                  updatedExstingField[row?.uid] = {
+                  updatedExstingField[row?.backupFieldUid] = {
                     label: `${schema?.display_name} > ${childSchema?.display_name}`,
                     value: childSchema
                   }
@@ -396,7 +397,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                       if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`)) {
                         updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`);  
                       }
-                      updatedExstingField[row?.uid] = {
+                      updatedExstingField[row?.backupFieldUid] = {
                         label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`,
                         value: nestedSchema
                       }
@@ -411,7 +412,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                           if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`)) {
                             updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`);  
                           }
-                          updatedExstingField[row?.uid] = {
+                          updatedExstingField[row?.backupFieldUid] = {
                             label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`,
                             value: nestedChild
                           }
@@ -765,11 +766,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       });
   }
 
-  const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean) => {
+  const updateFieldSettings = (rowId: string, updatedSettings: Advanced, checkBoxChanged: boolean, rowContentstackFieldUid: string) => {
     setIsDropDownChanged(checkBoxChanged);
     
     const newTableData = tableData?.map?.((row) => {
-      if (row?.uid === rowId) {
+      if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
 
         return { ...row, advanced: { ...row?.advanced, ...updatedSettings } };
       }
@@ -984,11 +985,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
 
   // Method for change select value
-  const handleValueChange = (value: FieldTypes, rowIndex: string) => {
+  const handleValueChange = (value: FieldTypes, rowIndex: string, rowContentstackFieldUid: string) => {
     setIsDropDownChanged(true);
     setFieldValue(value);
     const updatedRows: FieldMapType[] = selectedEntries?.map?.((row) => {
-      if (row?.uid === rowIndex) {
+      if (row?.uid === rowIndex && row?.contentstackFieldUid === rowContentstackFieldUid) {
         return { ...row, contentstackFieldType: value?.value };
       }
       return row;
@@ -1068,7 +1069,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           <Select
             id={data?.uid}
             value={initialOption || fieldValue}
-            onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid)}
+            onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid, data?.contentstackFieldUid)}
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
@@ -1128,27 +1129,27 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     );
   };
 
-  const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string) => {
+  const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string, contentstackFieldUid: string, backupFieldUid: string) => {
     setIsDropDownChanged(true);
-    const previousSelectedValue = existingField[rowIndex]?.label;
+    const previousSelectedValue = existingField[backupFieldUid]?.label;
     const groupArray = nestedList?.filter(item => 
       item?.child?.some(e => e?.id)
     )
     
     if(groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray?.[0]?.uid === rowIndex){
        for(const item of groupArray?.[0]?.child ?? []){
-        deletedExstingField[item?.uid] = {
+        deletedExstingField[item?.backupFieldUid] = {
           label:item?.uid,
-          value:existingField[item?.uid]
+          value:existingField[item?.backupFieldUid]
 
         }
         setIsFieldDeleted(true);
-        const index = selectedOptions?.indexOf(existingField[item?.uid]?.value?.label);
+        const index = selectedOptions?.indexOf(existingField[item?.backupFieldUid]?.value?.label);
         
         if(index > -1){
           selectedOptions?.splice(index,1 );
         }
-        delete existingField[item?.uid]    
+        delete existingField[item?.backupFieldUid]    
         
        }
     }
@@ -1158,7 +1159,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     
     setExistingField((prevOptions: ExistingFieldType) => ({
       ...prevOptions,
-      [rowIndex]: { label: selectedValue?.label, value: selectedValue?.value }
+      [backupFieldUid]: { label: selectedValue?.label, value: selectedValue?.value }
     }));
 
     //add selected option to array if it is not mapped to any other field
@@ -1175,7 +1176,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   
 
     const updatedRows: FieldMapType[] = tableData.map((row) => {
-      if (row?.uid === rowIndex) {
+      if (row?.uid === rowIndex && row?.contentstackFieldUid === backupFieldUid) {
         return {
           ...row,
           contentstackField: selectedValue?.label,
@@ -1245,9 +1246,9 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       case 'text':
         return (
           (value?.uid  !== 'title' && 
-          data?.uid !== 'title') &&
+          data?.backupFieldUid !== 'title') &&
           (value?.uid !== 'url' && 
-          data?.uid !== 'url') &&
+          data?.backupFieldUid !== 'url') &&
           !fieldTypes.has(value?.data_type ?? '') &&
           !value?.field_metadata?.multiline &&
           !value?.enum &&
@@ -1309,11 +1310,11 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     if (value?.data_type === 'group') {
 
       // Check and process the group itself
-      if (data?.otherCmsType === 'Group' && checkConditions('Group', value, data)) {
+      if (data?.backupFieldType === 'group' && checkConditions('Group', value, data)) {
         OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
       }
 
-      const existingLabel = existingField[groupArray?.[0]?.uid]?.label ?? '';
+      const existingLabel = existingField[groupArray?.[0]?.backupFieldUid]?.label ?? '';
       const lastLabelSegment = existingLabel.includes('>')
         ? existingLabel?.split('>')?.pop()?.trim()
         : existingLabel;
@@ -1324,7 +1325,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           for (const item of array) {
             const fieldTypeToMatch = Fields[item?.backupFieldType as keyof Mapping]?.type;
             if (item?.id === data?.id) {
-              for (const key of existingField[groupArray?.[0]?.uid]?.value?.schema || []) {
+              for (const key of existingField[groupArray?.[0]?.backupFieldUid]?.value?.schema || []) {
                  
                 if (checkConditions(fieldTypeToMatch, key, item)) {                            
                   OptionsForRow.push(getMatchingOption(key, true, `${updatedDisplayName} > ${key?.display_name}` || '', `${uid}.${key?.uid}`));
@@ -1424,7 +1425,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
       //check if UID of souce field is matching to exsting content type field UID
       for (const value of contentTypeSchema) {
-        if (data?.uid === value?.uid || (data?.uid === value?.uid && data?.otherCmsType === value?.data_type)) {
+        if (data?.uid === value?.uid && data?.backupFieldType === value?.data_type) {
           OptionsForRow.push({ label: value?.display_name, value, isDisabled: false });
           break;
         }
@@ -1459,7 +1460,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       ))
       {
         updatedRows = updatedRows.map((row: FieldMapType) => {
-          if (row?.uid === data?.uid) {
+          if (row?.uid === data?.uid && row?.backupFieldType === data?.backupFieldType) {
             return {
               ...row,
               contentstackField: OptionsForRow?.[0]?.value?.display_name ?? '',
@@ -1477,7 +1478,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         });        
 
         // Disable option if it's not already in existingField
-        if (!existingField[data?.uid] && OptionsForRow?.[0]) {         
+        if (!existingField[data?.backupFieldUid] && OptionsForRow?.[0]) {         
           OptionsForRow[0].isDisabled = true;
         }
         const newLabel = OptionsForRow?.[0]?.value?.display_name;
@@ -1495,7 +1496,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             ...updatedExstingField,
             [data?.uid]: { label: newLabel, value: newvalue }
           };
-          existingField[data?.uid] = { label: newLabel, value: newvalue }
+          existingField[data?.backupFieldUid] = { label: newLabel, value: newvalue }
         }
 
         const newValue: string = OptionsForRow?.[0]?.value?.display_name;
@@ -1526,7 +1527,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
     
     const OptionValue: FieldTypes =
-      OptionsForRow?.length === 1 && (existingField[data?.uid] ||  updatedExstingField[data?.uid] ) &&
+      OptionsForRow?.length === 1 && (existingField[data?.backupFieldUid] ||  updatedExstingField[data?.backupFieldUid] ) &&
       (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' || OptionsForRow?.[0]?.value?.data_type === 'group' || OptionsForRow?.[0]?.value?.data_type === 'reference' 
         
       )
@@ -1536,7 +1537,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           isDisabled: true
         }
         : (OptionsForRow?.length === 0 || (OptionsForRow?.length > 0 && OptionsForRow?.every((item)=>item?.isDisabled) 
-          && (!existingField[data?.uid]?.label || ! updatedExstingField[data?.uid]?.label ) ))
+          && (!existingField[data?.backupFieldUid]?.label || ! updatedExstingField[data?.backupFieldUid]?.label ) ))
           ? {
             label: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
             value: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
@@ -1566,18 +1567,18 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       <div className="table-row">
         <div className="select">
           <Select
-            value={(OptionsForRow?.length === 0 || existingField?.[data?.uid]?.label === undefined) ? OptionValue : existingField[data?.uid]}
+            value={(OptionsForRow?.length === 0 || existingField?.[data?.backupFieldUid]?.label === undefined) ? OptionValue : existingField[data?.backupFieldUid]}
             onChange={(selectedOption: FieldTypes) => {
               if (OptionsForRow?.length === 0) {
-                handleValueChange(selectedOption, data?.uid)
+                handleValueChange(selectedOption, data?.uid, data?.backupFieldUid)
               } else {
-                handleFieldChange(selectedOption, data?.uid)
+                handleFieldChange(selectedOption, data?.uid, data?.contentstackFieldUid,data?.backupFieldUid)
               }
             }}
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
-            isClearable={selectedOptions?.includes?.(existingField?.[data?.uid]?.label ?? '')}
+            isClearable={selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
             options={adjustedOptions}
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
             menuPlacement="auto"
@@ -1599,7 +1600,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             >
               <Button
                 buttonType="light"
-                disabled={(contentTypeSchema && existingField[data?.uid]) || newMigrationData?.project_current_step > 4}
+                disabled={(contentTypeSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 4}
               >
                 <Icon
                   version={'v2'}
@@ -1821,10 +1822,22 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           };
           dispatch(updateNewMigrationData(newMigrationDataObj));
           const resetCT = filteredContentTypes?.map?.(ct => 
+            ct?.id === selectedContentType?.id  ? { ...ct, status: data?.data?.status } : ct
+          )
+          
+          let filteredCT = resetCT;
+          if (!isEmptyString(activeFilter)) {
+            filteredCT = resetCT?.filter((ct) => 
+              CONTENT_MAPPING_STATUS?.[ct?.status] === activeFilter
+            );
+          }
+
+          const resetContentTypes = contentTypes?.map?.(ct => 
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );
-          setFilteredContentTypes(resetCT);
-          setContentTypes(resetCT);
+          setFilteredContentTypes(filteredCT);
+          setContentTypes(resetContentTypes);
+          setCount(filteredCT?.length);
           Notification({
             notificationContent: { text: data?.message },
             notificationProps: {
@@ -2138,6 +2151,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   // Function to filter content types as per the status
   const handleContentTypeFilter = (value: string, e: MouseOrKeyboardEvent) => {
+    setActiveFilter(value);
     const li_list = document.querySelectorAll('.filter-wrapper li');
     if(li_list) {
       li_list?.forEach((ele) => {
@@ -2240,7 +2254,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
                             }
                           }}
                         >
-                          {CONTENT_MAPPING_STATUS[key] && <span className='filter-status'>{CONTENT_MAPPING_STATUS[key]}</span> }
+                          {CONTENT_MAPPING_STATUS[key] && <span className={`${activeFilter ===  CONTENT_MAPPING_STATUS[key] ? 'filter-status filterButton-color' :'filter-status' }`}>{CONTENT_MAPPING_STATUS[key]}</span> }
                           {STATUS_ICON_Mapping[key] && <Icon size="small" icon={STATUS_ICON_Mapping[key]} className={STATUS_ICON_Mapping[key] === 'CheckedCircle' ? 'mapped-icon' : ''} />}
                         </button>
                       </li>
