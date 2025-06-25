@@ -26,7 +26,7 @@ const AuditLogs: React.FC = () => {
     const [searchText, setSearchText] = useState<string>('');
     const [tableData, setTableData] = useState<TableDataItem[]>([]);
     const [totalCounts, setTotalCounts] = useState<number>(0);
-    const [tableKey, setTableKey] = useState<number>(0);
+    const [tableUid, setTableUid] = useState<number>(0);
     const [filterOption, setFilterOption] = useState<string>('all');
     const [filterValue, setFilterValue] = useState<FilterOption[]>([]);
     const [isCursorInside, setIsCursorInside] = useState(true);
@@ -143,12 +143,12 @@ const AuditLogs: React.FC = () => {
         setFilterOption('all');
         setIsFilterApplied(false);
         if (selectedOption) {
-            setTableKey((prevKey) => prevKey + 1);
+            setTableUid((prevUid) => prevUid + 1);
         }
     };
     const handleSearchChange = (value: string) => {
         setSearchText(value);
-        setTableKey((prevKey) => prevKey + 1);
+        setTableUid((prevUid) => prevUid + 1);
     };
     const ColumnFilter = () => {
         const closeModal = () => {
@@ -404,7 +404,7 @@ const AuditLogs: React.FC = () => {
     return (
         <div className='table-height'>
             <InfiniteScrollTable
-                key={tableKey}
+                key={tableUid}
                 itemSize={80}
                 data={tableData}
                 columns={dropDownOptions == 'content-types' || dropDownOptions == 'global-fields' ? contentTypeHeader : entryHeader}
