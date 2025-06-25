@@ -50,3 +50,9 @@ fileignoreconfig:
   - filename: upload-api/src/helper/index.ts
     checksum: beef34c30cc18c55d66df0124e8bfb69899be9aaef074252afe291c93d4c0f77
 
+  - filename: api/src/services/migration.service.ts
+    checksum: f37809ddd67b8ad143d7d9fbb2c305f7c9150a8eec1f3325724fca576c736656
+    
+  - filename: ui/src/components/AuditLogs/index.tsx
+    checksum: e63f46a5ebadc25ad6b173d63f3def56b14a50d48f56f4c76458bb304b74d127
+

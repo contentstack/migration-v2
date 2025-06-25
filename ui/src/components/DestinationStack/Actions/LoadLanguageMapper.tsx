@@ -364,7 +364,7 @@ const Mapper = ({
                     hideSelectedOptions={true}
                     isClearable={true}
                     isDisabled={true} // Ensure it's disabled
-                    className="select-container"
+                    //className="select-container"
                     noOptionsMessage={() => ''}
                     menuPlacement="auto"
                   />
@@ -387,7 +387,7 @@ const Mapper = ({
                 hideSelectedOptions={true}
                 isClearable={true}
                 isDisabled={isDisabled}
-                className="select-container"
+                //className="select-container"
                 menuPlacement="auto"
               />
             )}
@@ -436,7 +436,7 @@ const Mapper = ({
                 hideSelectedOptions={true}
                 isClearable={true}
                 isDisabled={isDisabled}
-                className="select-container"
+                //className="select-container"
                 menuPlacement="auto"
               />
             }
