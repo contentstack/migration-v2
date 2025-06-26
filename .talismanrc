@@ -1,6 +1,15 @@
 version: "1.0.0-beta"
 
 fileignoreconfig:
+  - filename: ui/src/components/AuditLogs/auditLogs.interface.ts
+    checksum: 8eaf7502faeaa062a42ee5629f12ba1e8b961b8b8e0d209c4680c59c8de6269c
+
+  - filename: api/src/services/migration.service.ts
+    checksum: bd5374b31c0fad4a266bc9affdcf595f71456edb68b075c1fdfba762f7462e38
+
+  - filename: ui/src/components/AuditLogs/index.tsx
+    checksum: e1402f3cd5b96328d5e1d1e5f2a7fa5179858d6133db831b1b96714eb0f8c260
+    
   - filename: .github/workflows/secrets-scan.yml
     ignore_detectors:
       - filecontent
@@ -40,3 +49,14 @@ fileignoreconfig:
 
   - filename: upload-api/src/helper/index.ts
     checksum: beef34c30cc18c55d66df0124e8bfb69899be9aaef074252afe291c93d4c0f77
+
+  - filename: api/src/services/migration.service.ts
+    checksum: f37809ddd67b8ad143d7d9fbb2c305f7c9150a8eec1f3325724fca576c736656
+
+  - filename: ui/src/components/AuditLogs/index.tsx
+    checksum: 51ce05f66ac49023452f200e587389e55c88357102a61e77eb468d0e02b52846
+
+  - filename: ui/src/components/ContentMapper/index.tsx
+    checksum: b5f66e808ecf4461ccb5c4fde937da1e6d9e640a2521d6d85858a22261df6571
+
+
