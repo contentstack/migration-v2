@@ -1,6 +1,6 @@
 import { FilterOption } from "../ExecutionLogs/executionlog.interface";
 
-export type FilterModaleProps = {
+export type FilterModalProps = {
   isOpen: boolean;
   closeModal: () => void;
   updateValue: (params: { value: FilterOption; isChecked: boolean }) => void;

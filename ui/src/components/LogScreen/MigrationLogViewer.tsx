@@ -1,6 +1,6 @@
 // Libraries
 import React, { useEffect, useState, useRef } from 'react';
-import { Icon, cbModal, Link } from '@contentstack/venus-components';
+import { Icon, Link, Notification } from '@contentstack/venus-components';
 import io from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router';
@@ -204,19 +204,13 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
            */
           //await updateCurrentStepData(selectedOrganisation.value, projectId);
 
-          return cbModal({
-            component: (props: ModalObj) => (
-              <MigrationCompletionModal
-                {...props}
-                isopen={setIsModalOpen}
-                data={newMigrationData?.stackDetails}
-                stackLink={stackLink}
-              />
-            ),
-            modalProps: {
-              size: 'xsmall',
-              shouldCloseOnOverlayClick: false
-            }
+          Notification({
+            notificationContent: { text: message },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'success'
           });
         }
       } catch (error) {
