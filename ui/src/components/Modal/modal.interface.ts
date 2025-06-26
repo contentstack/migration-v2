@@ -34,7 +34,7 @@ export interface Project {
 }
 
 export interface CreateProjectResponse {
-  status: "success";
+  status: number;
   message: string;
   project: Project;
 }

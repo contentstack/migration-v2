@@ -97,7 +97,7 @@ const AuditFilterModal = ({
                     })
                 ) : (
                     <div className="tableFilterModalStories__no-data">
-                        {auditLogsConstants?.filterModal?.noFilterAvailabe}
+                        {auditLogsConstants?.filterModal?.noFilterAvailable}
                     </div>
                 )}
             </div>

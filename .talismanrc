@@ -56,3 +56,7 @@ fileignoreconfig:
   - filename: ui/src/components/AuditLogs/index.tsx
     checksum: 51ce05f66ac49023452f200e587389e55c88357102a61e77eb468d0e02b52846
 
+  - filename: ui/src/components/ContentMapper/index.tsx
+    checksum: b5f66e808ecf4461ccb5c4fde937da1e6d9e640a2521d6d85858a22261df6571
+
+
