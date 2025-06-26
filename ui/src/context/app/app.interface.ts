@@ -176,7 +176,7 @@ export interface IDestinationStack {
   stackArray: IDropDown[];
   migratedStacks: string[];
   sourceLocale: string[];
-  localeMapping: {};
+  localeMapping: Record<string, string>;
   csLocale: string[];
 }
 export interface IContentMapper {
@@ -187,6 +187,11 @@ export interface IContentMapper {
   otherCmsTitle?: string;
   contentTypeList: ContentTypeList[];
 }
+
+export interface ISetting {
+  active_state: string;
+}
+
 export interface INewMigration {
   testStacks: TestStacks[];
   mapperKeys: ContentTypeMap;
@@ -198,6 +203,7 @@ export interface INewMigration {
   stackDetails: IDropDown;
   migration_execution: IMigrationExecutionStep;
   project_current_step: number;
+  settings:ISetting;
 }
 
 export interface TestStacks {
@@ -364,6 +370,10 @@ export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   isMigrationComplete: false
 };
 
+export const DEFAULT_SETTING: ISetting = {
+  active_state: 'General'
+};
+
 export const DEFAULT_MIGRATION_EXECUTION_STEP: IMigrationExecutionStep = {
   migrationStarted: false,
   migrationCompleted: false
@@ -379,7 +389,8 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   stackDetails: DEFAULT_DROPDOWN,
   testStacks: [],
   migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP,
-  project_current_step: 0
+  project_current_step: 0,
+  settings: DEFAULT_SETTING,
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {

@@ -13,6 +13,7 @@ import {
   LOCALE_MAPPER,
   STEPPER_STEPS,
   CMS,
+  GET_AUDIT_DATA
 } from '../constants/index.js';
 import {
   BadRequestError,
@@ -30,6 +31,7 @@ import { contentfulService } from './contentful.service.js';
 import { marketPlaceAppService } from './marketplace.service.js';
 import { extensionService } from './extension.service.js';
 import fsPromises from 'fs/promises';
+import { matchesSearchText } from '../utils/search.util.js';
 // import { getSafePath } from "../utils/sanitize-path.utils.js";
 
 /**
@@ -118,9 +120,8 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     return {
       data: {
         data: res.data,
-        url: `${
-          config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
-        }/stack/${res.data.stack.api_key}/dashboard`,
+        url: `${config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
+          }/stack/${res.data.stack.api_key}/dashboard`,
       },
       status: res.status,
     };
@@ -447,7 +448,7 @@ const startMigration = async (req: Request): Promise<any> => {
     .findIndex({ id: projectId })
     .value();
   if (index > -1) {
-    ProjectModelLowdb.update((data: any) => {
+    await ProjectModelLowdb.update((data: any) => {
       data.projects[index].isMigrationStarted = true;
     });
   }
@@ -462,6 +463,17 @@ const startMigration = async (req: Request): Promise<any> => {
       'logs',
       projectId,
       `${project?.destination_stack_id}.log`
+    );
+    const message = getLogMessage(
+      'start Migration',
+      'Starting Migration...',
+      {}
+    );
+    await customLogger(
+      projectId,
+      project?.destination_stack_id,
+      'info',
+      message
     );
     await setLogFilePath(loggerPath);
 
@@ -632,47 +644,235 @@ const startMigration = async (req: Request): Promise<any> => {
     );
   }
 };
+const getAuditData = async (req: Request): Promise<any> => {
+  const projectId = path?.basename(req?.params?.projectId);
+  const stackId = path?.basename(req?.params?.stackId);
+  const moduleName = path.basename(req?.params?.moduleName);
+  const limit = parseInt(req?.params?.limit);
+  const startIndex = parseInt(req?.params?.startIndex);
+  const stopIndex = startIndex + limit;
+  const searchText = req?.params?.searchText;
+  const filter = req?.params?.filter;
+  const srcFunc = "getAuditData";
 
-const getLogs = async (req: Request): Promise<any> => {
-  const projectId = path.basename(req?.params?.projectId);
-  const stackId = path.basename(req?.params?.stackId);
-  const srcFunc = 'getLogs';
-
-  if (projectId.includes('..') || stackId.includes('..')) {
-    throw new BadRequestError('Invalid projectId or stackId');
+  if (projectId?.includes('..') || stackId?.includes('..') || moduleName?.includes('..')) {
+    throw new BadRequestError("Invalid projectId, stackId, or moduleName");
   }
 
   try {
-    const logsDir = path.join(process.cwd(), 'logs');
-    const loggerPath = path.join(logsDir, projectId, `${stackId}.log`);
-    const absolutePath = path.resolve(loggerPath); // Resolve the absolute path
+    const mainPath = process?.cwd()
+    const logsDir = path.join(mainPath, GET_AUDIT_DATA?.MIGRATION_DATA_DIR);
 
-    if (!absolutePath.startsWith(logsDir)) {
-      throw new BadRequestError('Access to this file is not allowed.');
+    const stackFolders = fs.readdirSync(logsDir);
+
+    const stackFolder = stackFolders?.find(folder => folder?.startsWith?.(stackId));
+    if (!stackFolder) {
+      throw new BadRequestError("Migration data not found for this stack");
+    }
+    const auditLogPath = path?.resolve(logsDir, stackFolder, GET_AUDIT_DATA?.LOGS_DIR, GET_AUDIT_DATA?.AUDIT_DIR, GET_AUDIT_DATA?.AUDIT_REPORT);
+    if (!fs.existsSync(auditLogPath)) {
+      throw new BadRequestError("Audit log path not found");
+    }
+    const filePath = path?.resolve(auditLogPath, `${moduleName}.json`);
+    let fileData;
+    if (fs?.existsSync(filePath)) {
+      const fileContent = await fsPromises?.readFile(filePath, 'utf8');
+      try {
+        if (typeof fileContent === 'string') {
+          fileData = JSON?.parse(fileContent);
+        }
+      } catch (error) {
+        logger.error(`Error parsing JSON from file ${filePath}:`, error);
+        throw new BadRequestError('Invalid JSON format in audit file');
+      }
     }
 
+    if (!fileData) {
+      throw new BadRequestError(`No audit data found for module: ${moduleName}`);
+    }
+    let transformedData = transformAndFlattenData(fileData);
+    if (filter != GET_AUDIT_DATA?.FILTERALL) {
+      const filters = filter?.split("-");
+      moduleName === 'Entries_Select_feild' ? transformedData = transformedData?.filter((log) => {
+        return filters?.some((filter) => {
+          return (
+            log?.display_type?.toLowerCase()?.includes(filter?.toLowerCase())
+          );
+        });
+      }) : transformedData = transformedData?.filter((log) => {
+        return filters?.some((filter) => {
+          return (
+            log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase())
+          );
+        });
+      });
+
+    }
+    if (searchText && searchText !== null && searchText !== "null") {
+      transformedData = transformedData?.filter((item: any) => {
+        return Object?.values(item)?.some(value =>
+          value &&
+          typeof value === 'string' &&
+          value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
+        );
+      });
+    }
+    const paginatedData = transformedData?.slice?.(startIndex, stopIndex);
+
+    return {
+      data: paginatedData,
+      totalCount: transformedData?.length,
+      status: HTTP_CODES?.OK
+    };
+
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error getting audit log data for module: ${moduleName}`,
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS?.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES?.SERVER_ERROR
+    );
+  }
+};
+/**
+ * Transforms and flattens nested data structure into an array of items
+ * with sequential tuid values
+ */
+const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: number }> => {
+  try {
+    const flattenedItems: Array<{ [key: string]: any }> = [];
+    if (Array.isArray(data)) {
+      data?.forEach((item, index) => {
+        flattenedItems?.push({
+          ...item ?? {},
+          uid: item?.uid || `item-${index}`
+        });
+      });
+    } else if (typeof data === 'object' && data !== null) {
+      Object?.entries?.(data)?.forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value?.forEach((item, index) => {
+            flattenedItems?.push({
+              ...item ?? {},
+              parentKey: key,
+              uid: item?.uid || `${key}-${index}`
+            });
+          });
+        } else if (typeof value === 'object' && value !== null) {
+          flattenedItems?.push({
+            ...value,
+            key,
+            uid: (value as any)?.uid || key
+          });
+        }
+      });
+    }
+
+    return flattenedItems?.map((item, index) => ({
+      ...item ?? {},
+      id: index + 1
+    }));
+  } catch (error) {
+    console.error('Error transforming data:', error);
+    return [];
+  }
+};
+const getLogs = async (req: Request): Promise<any> => {
+  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId) : "";
+  const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : "";
+  const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
+  const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;
+  const stopIndex = startIndex + limit;
+  const searchText = req?.params?.searchText ?? null;
+  const filter = req?.params?.filter ?? "all";
+  const srcFunc = "getLogs";
+  if (
+    !projectId ||
+    !stackId ||
+    projectId?.includes("..") ||
+    stackId?.includes("..")
+  ) {
+    throw new BadRequestError("Invalid projectId or stackId");
+  }
+  try {
+    const mainPath = process?.cwd();
+    if (!mainPath) {
+      throw new BadRequestError("Invalid application path");
+    }
+    const logsDir = path?.join(mainPath, "logs");
+    const loggerPath = path?.join(logsDir, projectId, `${stackId}.log`);
+    const absolutePath = path?.resolve(loggerPath);
+    if (!absolutePath?.startsWith(logsDir)) {
+      throw new BadRequestError("Access to this file is not allowed.");
+    }
     if (fs.existsSync(absolutePath)) {
-      const logs = await fs.promises.readFile(absolutePath, 'utf8');
-      const logEntries = logs
-        .split('\n')
-        .map((line) => {
+      let index = 0;
+      const logs = await fs?.promises?.readFile?.(absolutePath, "utf8");
+      let logEntries = logs
+        ?.split("\n")
+        ?.map((line) => {
           try {
-            return JSON.parse(line);
+            const parsedLine = JSON?.parse(line)
+            parsedLine && (parsedLine['id'] = index);
+
+            ++index;
+            return parsedLine ? parsedLine : null;
           } catch (error) {
             return null;
           }
         })
-        .filter((entry) => entry !== null);
-      return logEntries;
+        ?.filter?.((entry) => entry !== null);
+      if (!logEntries?.length) {
+        return { logs: [], total: 0, filterOptions: [], status: HTTP_CODES?.OK };
+      }
+      const filterOptions = Array?.from(new Set(logEntries?.map((log) => log?.level)));
+      const auditStartIndex = logEntries?.findIndex?.(log => log?.message?.includes("Starting audit process"));
+      const auditEndIndex = logEntries?.findIndex?.(log => log?.message?.includes("Audit process completed"));
+      if (auditStartIndex === -1 || auditEndIndex === -1) {
+        logger.warn("Audit markers not found in logs. Skipping audit-related slicing.");
+      } else {
+        logEntries = [
+          ...logEntries.slice(0, auditStartIndex),
+          ...logEntries.slice(auditEndIndex + 1)
+        ];
+      }
+      logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
+      if (filter !== "all") {
+        const filters = filter?.split("-") ?? [];
+        logEntries = logEntries?.filter((log) => {
+          return filters?.some((filter) => {
+            return log?.level
+              ?.toLowerCase()
+              ?.includes?.(filter?.toLowerCase() ?? "");
+          });
+        });
+      }
+      if (searchText && searchText !== "null") {
+        logEntries = logEntries?.filter?.((log) =>
+          matchesSearchText(log, searchText)
+        );
+      }
+      const paginatedLogs = logEntries?.slice?.(startIndex, stopIndex) ?? [];
+      return {
+        logs: paginatedLogs,
+        total: logEntries?.length ?? 0,
+        filterOptions: filterOptions,
+        status: HTTP_CODES?.OK
+      };
     } else {
-      logger.error(getLogMessage(srcFunc, HTTP_TEXTS.LOGS_NOT_FOUND));
-      throw new BadRequestError(HTTP_TEXTS.LOGS_NOT_FOUND);
+      logger.error(getLogMessage(srcFunc, HTTP_TEXTS?.LOGS_NOT_FOUND));
+      throw new BadRequestError(HTTP_TEXTS?.LOGS_NOT_FOUND);
     }
   } catch (error: any) {
-    logger.error(getLogMessage(srcFunc, HTTP_TEXTS.LOGS_NOT_FOUND, error));
+    logger.error(getLogMessage(srcFunc, HTTP_TEXTS?.LOGS_NOT_FOUND, error));
     throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+      error?.message || HTTP_TEXTS?.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES?.SERVER_ERROR
     );
   }
 };
@@ -777,4 +977,5 @@ export const migrationService = {
   getLogs,
   createSourceLocales,
   updateLocaleMapper,
+  getAuditData
 };

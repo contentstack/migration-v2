@@ -12,7 +12,10 @@ const createTestStack = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.createTestStack(req);
   res.status(resp?.status).json(resp);
 };
-
+const getAuditData = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.getAuditData(req);
+  res.status(resp?.status).json(resp);
+};
 /**
  * Start Test Migartion.
  *
@@ -72,5 +75,6 @@ export const migrationController = {
   startMigration,
   getLogs,
   saveLocales,
-  saveMappedLocales
+  saveMappedLocales,
+  getAuditData
 };
