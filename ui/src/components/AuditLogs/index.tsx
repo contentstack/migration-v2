@@ -66,7 +66,7 @@ const AuditLogs: React.FC = () => {
             const predefinedOptions: FileOption[] = [
                 { label: 'Content Types', value: 'content-types' },
                 { label: 'Global Fields', value: 'global-fields' },
-                { label: 'Entries', value: 'Entries_Select_feild' }
+                { label: 'Entries', value: 'Entries_Select_field' }
             ];
             setFileOptions(predefinedOptions);
         }

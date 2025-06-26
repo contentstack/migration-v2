@@ -142,7 +142,7 @@ export const auditLogsConstants = {
     noMatch: 'NoSearchResult'
   },
   filterModal: {
-    noFilterAvailabe: 'No Filters Available',
+    noFilterAvailable: 'No Filters Available',
     clearAll: 'Clear All',
     apply: 'Apply'
   }

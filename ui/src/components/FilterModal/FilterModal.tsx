@@ -1,6 +1,6 @@
 import { Button, ButtonGroup, Checkbox, Icon } from '@contentstack/venus-components';
 import './FilterModal.scss';
-import { FilterModaleProps } from './filterModal.interface';
+import { FilterModalProps } from './filterModal.interface';
 
 const FilterModal = ({
   isOpen,
@@ -10,7 +10,7 @@ const FilterModal = ({
   selectedLevels,
   setSelectedFilterOption,
   filterOptions
-}: FilterModaleProps) => {
+}: FilterModalProps) => {
   const clearAll = () => {
     setSelectedFilterOption([]);
   };
