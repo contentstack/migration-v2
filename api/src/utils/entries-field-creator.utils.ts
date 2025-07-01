@@ -76,12 +76,7 @@ export function unflatten(table: Table): any {
 
 const htmlConverter = async ({ content = "" }: any) => {
   const dom = `<div>${content}</div>`;
-  const result = HTMLToJSON(dom, true);
-  if (result instanceof Promise) {
-    return await result;
-  } else {
-    return result; // Return directly if not a promise
-  }
+  return await Promise.resolve(HTMLToJSON(dom, true));
 }
 
 const getAssetsUid = ({ url }: any) => {
