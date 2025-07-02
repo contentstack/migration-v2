@@ -47,7 +47,7 @@ const Card = <T extends ICardType = ICardType>({
 
   const handleMouseEnter = () => {
     if (!newMigrationData?.legacy_cms?.uploadedFile?.isValidated) {
-      if (selectedCard[idField] === data?.[idField]) {
+      if (selectedCard?.[idField] === data?.[idField]) {
         setIsHovered(true);
       }
     }
@@ -82,10 +82,11 @@ const Card = <T extends ICardType = ICardType>({
         disabled ? 'Card__disabled' : ''
       } `}
       style={{ position: 'relative' }}
+      aria-label={`Select CMS`}
     >
-      {data.description && (
+      {data?.description && (
         <div style={{ position: 'absolute' }}>
-          <Tooltip content={data.description} position="top-start" showArrow={false} version="v2">
+          <Tooltip content={data?.description} position="top-start" showArrow={false} version="v2">
             {isHovered ? (
               <span className="connector-help">
                 <Icon size="mini" className={''} icon="Information" version="v2" />
@@ -104,7 +105,7 @@ const Card = <T extends ICardType = ICardType>({
           top: '-5px'
         }}
       >
-        {isHovered || selectedCard[idField] === data?.[idField] ? (
+        {isHovered || selectedCard?.[idField] === data?.[idField] ? (
           <Radio checked={selectedCard?.id === data?.id} disabled={!isHovered} />
         ) : (
           <></>
@@ -113,7 +114,7 @@ const Card = <T extends ICardType = ICardType>({
 
       <div className="service_icon"></div>
       <div className="centered-card-title">
-        <Paragraph variantStyle={'bold'} variant={'p2'} text={data.title} />
+        <Paragraph variantStyle={'bold'} variant={'p2'} text={data?.title} />
       </div>
     </div>
   );

@@ -78,7 +78,8 @@
  */
 .connector_list {
   &:hover,
-  &:focus {
+  &:focus,
+  &:focus-visible {
     box-shadow: 0 3px $px-5 $px-2 rgb(215 215 215);
   }
 }
