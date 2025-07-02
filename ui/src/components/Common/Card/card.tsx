@@ -64,17 +64,23 @@ const Card = <T extends ICardType = ICardType>({
     }
   };
 
+  // Accessibility: Enable keyboard navigation for card selection
+  const handleKeyboardActivation = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const ENTER_KEY = 'Enter';
+    const SPACE_KEY = ' ';
+    
+    if (event.key === ENTER_KEY || event.key === SPACE_KEY) {
+      event.preventDefault(); // Prevent page scrolling on space
+      handleClick(event);
+    }
+  };
+
   return (
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault(); // Prevent page scrolling on space
-          handleClick(e);
-        }
-      }}
+      onKeyDown={handleKeyboardActivation}
       role="button" // or "radio" if it's part of a group 
       tabIndex={0}
       className={`connector_list ${cardType === 'legacyCMS' ? 'trigger_list' : ''} ${
