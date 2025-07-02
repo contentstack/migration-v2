@@ -64,17 +64,6 @@ const Card = <T extends ICardType = ICardType>({
     }
   };
 
-  // Accessibility: Enable keyboard navigation for card selection
-  const handleKeyboardActivation = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const ENTER_KEY = 'Enter';
-    const SPACE_KEY = ' ';
-    
-    if (event.key === ENTER_KEY || event.key === SPACE_KEY) {
-      event.preventDefault(); // Prevent page scrolling on space
-      handleClick(event);
-    }
-  };
-
   return (
     <div
       onMouseEnter={handleMouseEnter}
