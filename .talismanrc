@@ -60,6 +60,6 @@ fileignoreconfig:
     checksum: b5f66e808ecf4461ccb5c4fde937da1e6d9e640a2521d6d85858a22261df6571
 
   - filename: ui/src/components/Common/Card/card.tsx
-    checksum: 5d43c4e978a3b51b339ffbe645e0db397f4f01b3063454afb37344b3460fa02b
+    checksum: 6c6194f6b8f470ad107e59f2c4247647bdaa804e458c06b007cf9e074aabac69
 
 
