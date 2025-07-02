@@ -1,7 +1,7 @@
 // Libraries
-import { Icon, Paragraph, Radio, Tooltip } from '@contentstack/venus-components';
-import { MouseEvent, useState } from 'react';
+import {useState } from 'react';
 import { useSelector } from 'react-redux';
+import { Icon, Paragraph, Radio, Tooltip } from '@contentstack/venus-components';
 
 // Redux Store
 import { RootState } from '../../../store';
@@ -15,11 +15,11 @@ import './card.scss';
 /**
  * Props for the Card component.
  */
-type CardProps = {
-  data: ICardType;
+type CardProps<T extends ICardType = ICardType> = {
+  data: T;
   idField?: string;
-  onCardClick?: (T: any) => unknown;
-  selectedCard: ICardType;
+  onCardClick?: (data: T) => void | Promise<void>;
+  selectedCard: T;
   cardType?: string;
   disabled: boolean;
 };
@@ -33,14 +33,14 @@ type CardProps = {
  * @param cardType - The type of the card.
  * @param idField - The field name for the card's ID. Defaults to 'id'.
  */
-const Card = ({
+const Card = <T extends ICardType = ICardType>({
   data,
   selectedCard,
   onCardClick,
   cardType,
   idField = 'id',
   disabled
-}: CardProps) => {
+}: CardProps<T>) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
@@ -57,7 +57,7 @@ const Card = ({
     setIsHovered(false);
   };
 
-  const handleClick = (event: MouseEvent<HTMLDivElement>) => {
+  const handleClick = (event: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => {
     if (newMigrationData?.project_current_step <= 1) {
       event.preventDefault(); // Prevent the default action
       onCardClick?.(data);
@@ -68,11 +68,19 @@ const Card = ({
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault(); // Prevent page scrolling on space
+          handleClick(e);
+        }
+      }}
+      role="button" // or "radio" if it's part of a group 
+      tabIndex={0}
       className={`connector_list ${cardType === 'legacyCMS' ? 'trigger_list' : ''} ${
         disabled ? 'Card__disabled' : ''
       } `}
       style={{ position: 'relative' }}
-      onClick={handleClick}
     >
       {data.description && (
         <div style={{ position: 'absolute' }}>
