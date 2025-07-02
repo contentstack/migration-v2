@@ -80,7 +80,13 @@ const Card = <T extends ICardType = ICardType>({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
-      onKeyDown={handleKeyboardActivation}
+      // Accessibility: Handle keyboard activation (Enter/Space) for interactive card
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault(); // Prevent page scrolling on space
+          handleClick(e);
+        }
+      }}
       role="button" // or "radio" if it's part of a group 
       tabIndex={0}
       className={`connector_list ${cardType === 'legacyCMS' ? 'trigger_list' : ''} ${
