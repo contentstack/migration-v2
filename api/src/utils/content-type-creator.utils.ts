@@ -5,7 +5,7 @@ import customLogger from './custom-logger.utils.js';
 import { getLogMessage } from './index.js';
 import { LIST_EXTENSION_UID, MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import { contentMapperService } from "../services/contentMapper.service.js";
-import appMeta from '../constants/app/index.json';
+import appMeta from '../constants/app/index.json' with {"type": "json"};
 
 const {
   GLOBAL_FIELDS_FILE_NAME,
