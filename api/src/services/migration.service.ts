@@ -654,7 +654,6 @@ const getAuditData = async (req: Request): Promise<any> => {
   const searchText = req?.params?.searchText;
   const filter = req?.params?.filter;
   const srcFunc = "getAuditData";
-
   if (projectId?.includes('..') || stackId?.includes('..') || moduleName?.includes('..')) {
     throw new BadRequestError("Invalid projectId, stackId, or moduleName");
   }
@@ -673,17 +672,64 @@ const getAuditData = async (req: Request): Promise<any> => {
     if (!fs.existsSync(auditLogPath)) {
       throw new BadRequestError("Audit log path not found");
     }
-    const filePath = path?.resolve(auditLogPath, `${moduleName}.json`);
+    let filePath = path?.resolve(auditLogPath, `${moduleName}.json`);
     let fileData;
-    if (fs?.existsSync(filePath)) {
-      const fileContent = await fsPromises?.readFile(filePath, 'utf8');
-      try {
-        if (typeof fileContent === 'string') {
-          fileData = JSON?.parse(fileContent);
+    // Special fallback logic for Entries_Select_feild
+    if (moduleName === 'Entries_Select_feild') {
+      const entriesSelectFieldPath = filePath;
+      const entriesPath = path?.resolve(auditLogPath, `entries.json`);
+      const entriesSelectFieldExists = fs?.existsSync(entriesSelectFieldPath);
+      const entriesExists = fs?.existsSync(entriesPath);
+      let combinedData: any[] = [];
+      const addToCombined = (parsed: any) => {
+        if (Array.isArray(parsed)) {
+          combinedData = combinedData.concat(parsed);
+        } else if (parsed && typeof parsed === 'object') {
+          Object.values(parsed).forEach(val => {
+            if (Array.isArray(val)) {
+              combinedData = combinedData.concat(val);
+            } else if (val && typeof val === 'object') {
+              combinedData.push(val);
+            }
+          });
         }
-      } catch (error) {
-        logger.error(`Error parsing JSON from file ${filePath}:`, error);
-        throw new BadRequestError('Invalid JSON format in audit file');
+      };
+      if (entriesSelectFieldExists) {
+        const fileContent = await fsPromises?.readFile(entriesSelectFieldPath, 'utf8');
+        try {
+          if (typeof fileContent === 'string') {
+            const parsed = JSON?.parse(fileContent);
+            addToCombined(parsed);
+          }
+        } catch (error) {
+          logger.error(`Error parsing JSON from file ${entriesSelectFieldPath}:`, error);
+          throw new BadRequestError('Invalid JSON format in audit file');
+        }
+      }
+      if (entriesExists) {
+        const fileContent = await fsPromises?.readFile(entriesPath, 'utf8');
+        try {
+          if (typeof fileContent === 'string') {
+            const parsed = JSON?.parse(fileContent);
+            addToCombined(parsed);
+          }
+        } catch (error) {
+          logger.error(`Error parsing JSON from file ${entriesPath}:`, error);
+          throw new BadRequestError('Invalid JSON format in audit file');
+        }
+      }
+      fileData = combinedData;
+    } else {
+      if (fs?.existsSync(filePath)) {
+        const fileContent = await fsPromises?.readFile(filePath, 'utf8');
+        try {
+          if (typeof fileContent === 'string') {
+            fileData = JSON?.parse(fileContent);
+          }
+        } catch (error) {
+          logger.error(`Error parsing JSON from file ${filePath}:`, error);
+          throw new BadRequestError('Invalid JSON format in audit file');
+        }
       }
     }
 
@@ -691,22 +737,44 @@ const getAuditData = async (req: Request): Promise<any> => {
       throw new BadRequestError(`No audit data found for module: ${moduleName}`);
     }
     let transformedData = transformAndFlattenData(fileData);
-    if (filter != GET_AUDIT_DATA?.FILTERALL) {
-      const filters = filter?.split("-");
-      moduleName === 'Entries_Select_feild' ? transformedData = transformedData?.filter((log) => {
-        return filters?.some((filter) => {
-          return (
-            log?.display_type?.toLowerCase()?.includes(filter?.toLowerCase())
+    console.log(transformedData);
+    if (moduleName === 'Entries_Select_feild') {
+      if (filter != GET_AUDIT_DATA?.FILTERALL) {
+        const filters = filter?.split("-");
+        transformedData = transformedData?.filter((log) => {
+          return filters?.some((filter) => {
+            return (
+              log?.display_type?.toLowerCase()?.includes(filter?.toLowerCase()) ||
+              log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase())
+            );
+          });
+        });
+      }
+      if (searchText && searchText !== null && searchText !== "null") {
+        transformedData = transformedData?.filter((item) => {
+          return Object?.values(item)?.some(value =>
+            value &&
+            typeof value === 'string' &&
+            value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
           );
         });
-      }) : transformedData = transformedData?.filter((log) => {
+      }
+      const finalData = transformedData?.slice?.(startIndex, stopIndex);
+      return {
+        data: finalData,
+        totalCount: transformedData?.length,
+        status: HTTP_CODES?.OK
+      };
+    }
+    if (filter != GET_AUDIT_DATA?.FILTERALL) {
+      const filters = filter?.split("-");
+      transformedData = transformedData?.filter((log) => {
         return filters?.some((filter) => {
           return (
             log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase())
           );
         });
       });
-
     }
     if (searchText && searchText !== null && searchText !== "null") {
       transformedData = transformedData?.filter((item: any) => {
