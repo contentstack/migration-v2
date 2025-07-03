@@ -2,7 +2,8 @@ import _ from "lodash";
 import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 // @ts-ignore
-import { HTMLToJSON } from 'html-to-json-parser';
+import * as parser from 'html-to-json-parser';
+const HTMLToJSON = parser.default;
 
 const append = "a";
 
@@ -131,7 +132,7 @@ const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any)
         if (!uid?.match(urlRegex)) {
           let asset: any = {};
           if (uid?.includes('/')) {
-            for (const value of Object.values(allAssetJSON)) {
+            for (const value of Object.values(allAssetJSON) as { assetPath?: string }[]) {
               if (value?.assetPath === `${uid}/`) {
                 asset = value;
               }

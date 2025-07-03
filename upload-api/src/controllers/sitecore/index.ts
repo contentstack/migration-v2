@@ -67,26 +67,60 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           fieldMapping.contentTypes.push(element);
         }
       }
-      const config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
-        headers: {
-          app_token,
-          'Content-Type': 'application/json'
-        },
-        data: JSON.stringify(fieldMapping),
-      };
+      // const config = {
+      //   method: 'post',
+      //   maxBodyLength: Infinity,
+      //   url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
+      //   headers: {
+      //     app_token,
+      //     'Content-Type': 'application/json'
+      //   },
+      //   data: JSON.stringify(fieldMapping),
+      // };
+      const BATCH_SIZE = 30;
+      let allSucceeded = true;
 
-      const { data } = await axios.request(config);
+      for (let i = 0; i < fieldMapping.contentTypes.length; i += BATCH_SIZE) {
+        const batch = fieldMapping.contentTypes.slice(i, i + BATCH_SIZE);
+        const batchPayload = {
+          extractPath: filePath,
+          contentTypes: batch,
+        };
 
-      if (data?.data?.content_mapper?.length) {
+        const config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
+          headers: {
+            app_token,
+            'Content-Type': 'application/json'
+          },
+          data: JSON.stringify(batchPayload),
+        };
+
+        try {
+          const { data } = await axios.request(config);
+          if (!data?.data?.content_mapper?.length) {
+            allSucceeded = false;
+            logger.error('Batch failed validation!');
+          }
+        } catch (err) {
+          allSucceeded = false;
+          logger.error('Batch failed with error:', err);
+        }
+      }
+
+      //This runs after all batches
+      if (allSucceeded) {
         deleteFolderSync(infoMap?.path);
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.MAPPER_SAVED,
         });
+      } else {
+        logger.warn('Some batches failed, not deleting folder.');
       }
+
     }
   } catch (err: any) {
     console.error("🚀 ~ createSitecoreMapper ~ err:", err?.response?.data ?? err)

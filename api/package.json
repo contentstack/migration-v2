@@ -11,7 +11,13 @@
     "windev": "SET NODE_ENV=production&& tsx watch ./src/server.ts",
     "winstart": "SET NODE_ENV=production&& node dist/server.js",
     "lint:fix": "eslint --ext .ts --ignore-pattern './node_modules/' --ignore-pattern './dist/'",
-    "precommit": "npm run prettify && npm run lint:fix"
+    "precommit": "npm run prettify && npm run lint:fix",
+    "pm2:start": "npm run build && npx pm2 start ecosystem.config.cjs",
+    "pm2:start:prod": "npm run build && npx pm2 start ecosystem.config.cjs --env production",
+    "pm2:stop": "npx pm2 stop migration-api",
+    "pm2:restart": "npx pm2 restart migration-api",
+    "pm2:delete": "npx pm2 delete migration-api",
+    "pm2:logs": "npx pm2 logs migration-api"
   },
   "type": "module",
   "repository": {
@@ -48,6 +54,7 @@
     "mkdirp": "^3.0.1",
     "p-limit": "^6.2.0",
     "path-to-regexp": "^8.2.0",
+    "pm2": "^6.0.8",
     "router": "^2.0.0",
     "shelljs": "^0.9.0",
     "socket.io": "^4.7.5",

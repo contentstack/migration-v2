@@ -60,7 +60,7 @@ const createAppManifest = async ({ destinationStackId, region, userId, orgId }: 
     for await (const [key, value] of Object?.entries?.(groupUids) || {}) {
       const data: any = await getAppManifestAndAppConfig({ organizationUid: orgId, authtoken, region, manifestUid: key });
       data.manifest = removeKeys(data, KEYTOREMOVE);
-      const extensionUids: any = new Set(value) ?? [];
+      const extensionUids = Array.isArray(value) ? new Set(value) : new Set();
       const locations: any = [];
       for (const ext of extensionUids ?? []) {
         const seprateUid = ext?.split?.('-');
