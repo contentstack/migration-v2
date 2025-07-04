@@ -672,9 +672,8 @@ const getAuditData = async (req: Request): Promise<any> => {
     if (!fs.existsSync(auditLogPath)) {
       throw new BadRequestError("Audit log path not found");
     }
-    let filePath = path?.resolve(auditLogPath, `${moduleName}.json`);
+    const filePath = path?.resolve(auditLogPath, `${moduleName}.json`);
     let fileData;
-    // Special fallback logic for Entries_Select_feild
     if (moduleName === 'Entries_Select_feild') {
       const entriesSelectFieldPath = filePath;
       const entriesPath = path?.resolve(auditLogPath, `entries.json`);
@@ -737,7 +736,6 @@ const getAuditData = async (req: Request): Promise<any> => {
       throw new BadRequestError(`No audit data found for module: ${moduleName}`);
     }
     let transformedData = transformAndFlattenData(fileData);
-    console.log(transformedData);
     if (moduleName === 'Entries_Select_feild') {
       if (filter != GET_AUDIT_DATA?.FILTERALL) {
         const filters = filter?.split("-");
