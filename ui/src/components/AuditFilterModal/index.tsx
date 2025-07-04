@@ -29,14 +29,17 @@ const AuditFilterModal = ({
                 { label: 'global_field', value: 'global_field' },
                 { label: 'reference', value: 'reference' },
                 { label: 'group', value: 'group' },
+                { label: 'json', value: 'json' }
             ];
         }
 
-        if (selectedFileType?.includes?.('Entries')) {
-            return [{ label: 'dropdown', value: 'dropdown' }];
-        }
 
-        return [];
+
+        return [{ label: 'dropdown', value: 'dropdown' },
+        { label: "radio", value: "radio" },
+        { label: "reference", value: "reference" },
+        { label: "checkbox", value: 'checkbox' }
+        ];
     };
 
     const filterOptions = getFilterOptions();

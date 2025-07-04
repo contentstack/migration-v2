@@ -327,6 +327,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   + Create a new stack
                 </div>
               }
+              tabSelectsValue={true}
             />
             {isError && !isLoading && <div className="errorMessage">{errorMessage}</div>}
           </div>

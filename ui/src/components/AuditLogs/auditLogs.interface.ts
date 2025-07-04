@@ -32,6 +32,7 @@ export interface TableDataItem {
     missingCTSelectFieldValues?: string;
     parentKey?: string;
     ct_uid?: string;
+    _content_type_uid?: string;
 
 }
 export type DropdownOption = {

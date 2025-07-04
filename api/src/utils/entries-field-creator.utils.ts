@@ -1,6 +1,7 @@
 import _ from "lodash";
 import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
+// @ts-ignore
 import { HTMLToJSON } from 'html-to-json-parser';
 
 const append = "a";
@@ -75,7 +76,7 @@ export function unflatten(table: Table): any {
 
 const htmlConverter = async ({ content = "" }: any) => {
   const dom = `<div>${content}</div>`;
-  return await HTMLToJSON(dom, true);
+  return await Promise.resolve(HTMLToJSON(dom, true));
 }
 
 const getAssetsUid = ({ url }: any) => {

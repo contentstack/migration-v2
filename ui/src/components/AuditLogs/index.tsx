@@ -16,6 +16,9 @@ import {
 import './index.scss';
 import { auditLogsConstants } from '../../utilities/constants';
 import AuditFilterModal from '../AuditFilterModal';
+
+const renderCell = (value: any) => <div>{value ?? '-'}</div>;
+
 const AuditLogs: React.FC = () => {
     const params = useParams<{ projectId?: string }>();
     const [loading, setLoading] = useState<boolean>(false);
@@ -66,7 +69,7 @@ const AuditLogs: React.FC = () => {
             const predefinedOptions: FileOption[] = [
                 { label: 'Content Types', value: 'content-types' },
                 { label: 'Global Fields', value: 'global-fields' },
-                { label: 'Entries', value: 'Entries_Select_field' }
+                { label: 'Entries', value: 'Entries_Select_feild' }
             ];
             setFileOptions(predefinedOptions);
         }
@@ -136,7 +139,6 @@ const AuditLogs: React.FC = () => {
     };
     const handleFileChange = async (selectedOption: FileOption | null) => {
         setSelectedFile(selectedOption);
-        console.info('selectedOption', selectedOption);
         setDropDownOptions(selectedOption?.value);
         setSearchText('');
         setFilterValue([]);
@@ -152,12 +154,10 @@ const AuditLogs: React.FC = () => {
     };
     const ColumnFilter = () => {
         const closeModal = () => {
-            console.info(isFilterDropdownOpen);
             setIsFilterDropdownOpen(false);
         };
         const openFilterDropdown = () => {
             if (!isFilterDropdownOpen) {
-                console.info('openFilterDropdown');
                 setIsFilterDropdownOpen(true);
             }
             setIsFilterDropdownOpen(true);
@@ -249,34 +249,24 @@ const AuditLogs: React.FC = () => {
             </div>
         );
     };
-    const renderCell = (value: any) => <div>{value ?? '-'}</div>;
     const contentTypeHeader = [
         {
             Header: 'Title',
             accessor: (data: TableDataItem) => renderCell(data?.name),
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 150
         },
         {
             Header: 'Field Name',
             accessor: (data: TableDataItem) => renderCell(data?.display_name),
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 200
         },
         {
             Header: 'Field Type',
             accessor: (data: TableDataItem) => renderCell(data?.data_type),
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 200,
             filter: ColumnFilter
         },
         {
@@ -287,32 +277,22 @@ const AuditLogs: React.FC = () => {
                     : typeof data?.missingRefs === 'string'
                         ? data?.missingRefs
                         : '-';
-
                 return renderCell(missing);
             },
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 200
         },
         {
             Header: 'Tree Structure',
             accessor: (data: TableDataItem) => renderCell(data?.treeStr),
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 200
         },
         {
             Header: 'Fix Status',
             accessor: (data: TableDataItem) => renderCell(data?.fixStatus),
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 200
         }
     ];
     const entryHeader = [
@@ -339,37 +319,42 @@ const AuditLogs: React.FC = () => {
             accessor: (data: TableDataItem) => renderCell(data?.display_name),
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 200
         },
         {
             Header: 'Display Type',
-            accessor: (data: TableDataItem) => renderCell(data?.display_type),
+            accessor: (data: TableDataItem) => renderCell(data?.display_type || data?.data_type),
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 200,
             filter: ColumnFilter
         },
         {
-            Header: 'Missing Select Value',
-            accessor: (data: TableDataItem) => renderCell(data?.missingCTSelectFieldValues),
+            Header: 'Missing Value',
+            cssClass: "missing-val",
+            accessor: (data: TableDataItem) => {
+                if (data?.missingCTSelectFieldValues) {
+                    return renderCell(data?.missingCTSelectFieldValues);
+                }
+                if (typeof data?.missingRefs === 'object' && data?.missingRefs) {
+                    const ctUid = (data?.missingRefs as any)?.[0]?._content_type_uid;
+                    if (Array.isArray(ctUid)) {
+                        return renderCell(ctUid?.length > 0 ? ctUid?.join(', ') : null);
+                    } else if (typeof ctUid === 'string') {
+                        return renderCell(ctUid);
+                    }
+                }
+                return renderCell(null);
+            },
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 200
         },
         {
             Header: 'Tree Structure',
-            accessor: (data: TableDataItem) => renderCell(data?.treeStr ?? '-'),
+            width: 300,
+            accessor: (data: TableDataItem) => renderCell(data?.treeStr),
             addToColumnSelector: true,
             disableSortBy: true,
-            disableResizing: false,
-            canDragDrop: true,
-            width: 250
+            default: false,
+            cssClass: "tree-struct"
         }
     ];
 
