@@ -16,6 +16,9 @@ import {
 import './index.scss';
 import { auditLogsConstants } from '../../utilities/constants';
 import AuditFilterModal from '../AuditFilterModal';
+
+const renderCell = (value: any) => <div>{value ?? '-'}</div>;
+
 const AuditLogs: React.FC = () => {
     const params = useParams<{ projectId?: string }>();
     const [loading, setLoading] = useState<boolean>(false);
@@ -136,7 +139,6 @@ const AuditLogs: React.FC = () => {
     };
     const handleFileChange = async (selectedOption: FileOption | null) => {
         setSelectedFile(selectedOption);
-        console.info('selectedOption', selectedOption);
         setDropDownOptions(selectedOption?.value);
         setSearchText('');
         setFilterValue([]);
@@ -152,12 +154,10 @@ const AuditLogs: React.FC = () => {
     };
     const ColumnFilter = () => {
         const closeModal = () => {
-            console.info(isFilterDropdownOpen);
             setIsFilterDropdownOpen(false);
         };
         const openFilterDropdown = () => {
             if (!isFilterDropdownOpen) {
-                console.info('openFilterDropdown');
                 setIsFilterDropdownOpen(true);
             }
             setIsFilterDropdownOpen(true);
@@ -252,19 +252,19 @@ const AuditLogs: React.FC = () => {
     const contentTypeHeader = [
         {
             Header: 'Title',
-            accessor: (data: TableDataItem) => <div>{data?.name ?? '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.name),
             addToColumnSelector: true,
             disableSortBy: true,
         },
         {
             Header: 'Field Name',
-            accessor: (data: TableDataItem) => <div>{data?.display_name ?? '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.display_name),
             addToColumnSelector: true,
             disableSortBy: true,
         },
         {
             Header: 'Field Type',
-            accessor: (data: TableDataItem) => <div>{data?.data_type ?? '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.data_type),
             addToColumnSelector: true,
             disableSortBy: true,
             filter: ColumnFilter
@@ -277,20 +277,20 @@ const AuditLogs: React.FC = () => {
                     : typeof data?.missingRefs === 'string'
                         ? data?.missingRefs
                         : '-';
-                return <div>{missing ?? '-'}</div>;
+                return renderCell(missing);
             },
             addToColumnSelector: true,
             disableSortBy: true,
         },
         {
             Header: 'Tree Structure',
-            accessor: (data: TableDataItem) => <div>{data?.treeStr ?? '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.treeStr),
             addToColumnSelector: true,
             disableSortBy: true,
         },
         {
             Header: 'Fix Status',
-            accessor: (data: TableDataItem) => <div>{data?.fixStatus ?? '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.fixStatus),
             addToColumnSelector: true,
             disableSortBy: true,
         }
@@ -298,7 +298,7 @@ const AuditLogs: React.FC = () => {
     const entryHeader = [
         {
             Header: 'Entry UID',
-            accessor: (data: TableDataItem) => <div>{data?.uid ?? '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.uid),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -307,7 +307,7 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Name',
-            accessor: (data: TableDataItem) => <div>{data?.name ?? '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.name),
             addToColumnSelector: true,
             disableSortBy: true,
             disableResizing: false,
@@ -316,13 +316,13 @@ const AuditLogs: React.FC = () => {
         },
         {
             Header: 'Display Name',
-            accessor: (data: TableDataItem) => <div>{data?.display_name ?? '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.display_name),
             addToColumnSelector: true,
             disableSortBy: true,
         },
         {
             Header: 'Display Type',
-            accessor: (data: TableDataItem) => <div>{data?.display_type || data?.data_type || '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.display_type || data?.data_type),
             addToColumnSelector: true,
             disableSortBy: true,
             filter: ColumnFilter
@@ -332,17 +332,17 @@ const AuditLogs: React.FC = () => {
             cssClass: "missing-val",
             accessor: (data: TableDataItem) => {
                 if (data?.missingCTSelectFieldValues) {
-                    return <div>{data.missingCTSelectFieldValues ?? '-'}</div>;
+                    return renderCell(data?.missingCTSelectFieldValues);
                 }
                 if (typeof data?.missingRefs === 'object' && data?.missingRefs) {
-                    const ctUid = (data.missingRefs as any)[0]?._content_type_uid;
+                    const ctUid = (data?.missingRefs as any)?.[0]?._content_type_uid;
                     if (Array.isArray(ctUid)) {
-                        return <div>{ctUid.length > 0 ? ctUid.join(', ') : '-'}</div>;
+                        return renderCell(ctUid?.length > 0 ? ctUid?.join(', ') : null);
                     } else if (typeof ctUid === 'string') {
-                        return <div>{ctUid}</div>;
+                        return renderCell(ctUid);
                     }
                 }
-                return <div>-</div>;
+                return renderCell(null);
             },
             addToColumnSelector: true,
             disableSortBy: true,
@@ -350,7 +350,7 @@ const AuditLogs: React.FC = () => {
         {
             Header: 'Tree Structure',
             width: 300,
-            accessor: (data: TableDataItem) => <div>{data?.treeStr ?? '-'}</div>,
+            accessor: (data: TableDataItem) => renderCell(data?.treeStr),
             addToColumnSelector: true,
             disableSortBy: true,
             default: false,
