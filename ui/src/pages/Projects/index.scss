@@ -65,3 +65,34 @@
 .create-project-cta {
   line-height: $line-height-default;
 }
+.StackCardSkeleton {
+  border: 1px solid $color-brand-secondary-lightest;
+  .StackCard__heading {
+    margin-bottom: 2.125rem;
+    padding: 1.75rem 2rem .688rem;
+  }
+  .StackCard__content {
+    padding: 0 2rem calc(1.625rem + 1px);
+  }
+  .StackCard__footer {
+    border-top: 1px solid $color-brand-secondary-lightest;
+    border-radius: 0 0 .5rem .5rem;
+    display: flex;
+    height: 59.008px;
+    justify-content: flex-end;
+    padding: .9375rem 1.875rem;
+    position: relative;
+    svg {
+      &:nth-child(1), &:nth-child(2) {
+        display: none;
+      }
+    }
+  }
+  .StackCard__footer-button {
+    // background-color: $color-brand-primary-base;
+    border-radius: 0.5rem;
+    color: $color-brand-white-base;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+} 
