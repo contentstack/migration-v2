@@ -112,7 +112,7 @@ export const STATUS_ICON_Mapping: { [key: string]: string } = {
 
 export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
   sitecore:
-    'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/blt287e42b58e38e2b6/67ee3fb57c35f2e42c997000/sitecore.pdf',
+    'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/blt287e42b58e38e2b6/sitecore.pdf',
   contentful:
     'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/bltb14c2df7c5e202ba/67ee3fcdb509b76f5f308ac4/contentful.pdf',
   wordpress: '',
