@@ -27,7 +27,7 @@ async function sitecoreValidator({ data }: props) {
       if (filename.includes('/Configuration')) {
         configuration.push(filename);
       }
-      if (filename?.includes('/blob')) {
+      if (filename?.includes('blob')) {
         blob?.push(filename);
       }
       if (filename?.includes('/media library')) {
