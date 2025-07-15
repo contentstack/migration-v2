@@ -159,8 +159,9 @@ const createAssets = async ({
       const blobPath: any = path.join(packagePath, 'blob', 'master');
       const assetsPath = read(blobPath);
       if (assetsPath?.length) {
-        const isIdPresent = assetsPath?.find((ast) =>
-          ast?.includes(metaData?.id)
+        const isIdPresent = assetsPath?.find((ast) =>{
+          return ast?.includes(metaData?.id)
+        }
         );
         if (isIdPresent) {
           try {
@@ -384,22 +385,23 @@ const createEntry = async ({
                 }
               }
               entryObj.publish_details = [];
-              if (Object.keys?.(entryObj)?.length > 1) {
-                entryLocale[uid] = unflatten(entryObj) ?? {};
-                const message = getLogMessage(
-                  srcFunc,
-                  `Entry title "${entryObj?.title}"(${
-                    keyMapper?.[ctType?.contentstackUid] ??
+              if (entryObj?.title) {
+                if (Object.keys?.(entryObj)?.length > 1) {
+                  entryLocale[uid] = unflatten(entryObj) ?? {};
+                  const message = getLogMessage(
+                    srcFunc,
+                    `Entry title "${entryObj?.title}"(${keyMapper?.[ctType?.contentstackUid] ??
                     ctType?.contentstackUid
-                  }) in the ${newLocale} locale has been successfully transformed.`,
-                  {}
-                );
-                await customLogger(
-                  projectId,
-                  destinationStackId,
-                  'info',
-                  message
-                );
+                    }) in the ${newLocale} locale has been successfully transformed.`,
+                    {}
+                  );
+                  await customLogger(
+                    projectId,
+                    destinationStackId,
+                    'info',
+                    message
+                  );
+                }
               }
             }
           );
