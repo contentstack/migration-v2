@@ -1,15 +1,17 @@
 import express from "express";
 import { contentMapperController } from "../controllers/projects.contentMapper.controller.js";
 import { asyncRouter } from "../utils/async-router.utils.js";
+import multer  from 'multer';
 
 const router = express.Router({ mergeParams: true });
-
+const upload = multer({ storage: multer.memoryStorage() });
 /**
  * Developer End Point to create dummy data
  * @route POST /createDummyData/:projectId
  */
 router.post(
   "/createDummyData/:projectId",
+  upload.single('file'), 
   asyncRouter(contentMapperController.putTestData)
 );
 

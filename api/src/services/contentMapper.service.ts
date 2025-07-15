@@ -1,4 +1,4 @@
-import { Request } from "express";
+import { Request, Response } from "express";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
 import {
   BadRequestError,
@@ -24,6 +24,7 @@ import { v4 as uuidv4 } from "uuid";
 import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
 import { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 
+
 // Developer service to create dummy contentmapping data
 /**
  * Updates the test data for a given project.
@@ -31,10 +32,17 @@ import { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
  * @param req - The request object containing the project ID and content types.
  * @returns The updated project data.
  */
-const putTestData = async (req: Request) => {
+const putTestData = async (req: Request, res: Response) => {
   const projectId = req.params.projectId;
-  const contentTypes = req.body.contentTypes;
+  //const contentTypes = req.body.contentTypes;
+  const file = req.file as Express.Multer.File
+  // if (!req.file) {
+  //   return res.status(400).json({ error: 'File is missing' });
+  // }
 
+  const jsonString = file?.buffer?.toString('utf8');
+  const contentTypes = JSON?.parse(jsonString)?.contentTypes;
+  const extractPath = JSON?.parse(jsonString)?.extractPath;
   try {
 
     /*
@@ -104,7 +112,7 @@ const putTestData = async (req: Request) => {
       .value();
     if (index > -1 && contentIds?.length) {
       ProjectModelLowdb.data.projects[index].content_mapper = contentIds;
-      ProjectModelLowdb.data.projects[index].extract_path = req?.body?.extractPath;
+      ProjectModelLowdb.data.projects[index].extract_path = extractPath;
       await ProjectModelLowdb.write();
     } else {
       throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
@@ -116,7 +124,7 @@ const putTestData = async (req: Request) => {
       .value();
 
     return {
-      status: HTTP_CODES?.OK,
+      status: 200,
       data: pData
     }
 

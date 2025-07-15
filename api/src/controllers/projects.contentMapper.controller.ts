@@ -8,7 +8,7 @@ import { contentMapperService } from "../services/contentMapper.service.js";
  * @returns A Promise that resolves to void.
  */
 const putTestData = async (req: Request, res: Response): Promise<void> => {
-  const resp = await contentMapperService.putTestData(req);
+  const resp : any = await contentMapperService.putTestData(req, res);
   res.status(resp?.status).json(resp);
 };
 

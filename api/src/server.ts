@@ -82,7 +82,12 @@ try {
 
   // Parsing request bodies
   app.use(express.urlencoded({ extended: false, limit: '10mb' }));
-  app.use(express.json({ limit: '10mb' }));
+ app.use((req, res, next) => {
+  if (req.is('application/json')) {
+    return express.json()(req, res, next);
+  }
+  next();
+});
 
   // Custom middleware for logging and request headers
   app.use(loggerMiddleware);

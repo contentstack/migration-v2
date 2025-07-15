@@ -4,6 +4,7 @@ import path from 'path';
 import { deleteFolderSync } from "../../helper";
 import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
+import FormData from 'form-data';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { contentTypes, ExtractConfiguration, reference, ExtractFiles, extractLocales } = require('migration-sitecore');
@@ -43,6 +44,7 @@ const createLocaleSource = async ({ app_token, localeData, projectId }: { app_to
 
 const createSitecoreMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: object) => {
   try {
+    const formData = new FormData();
     const newPath = path.join(filePath, 'items');
     await ExtractFiles(newPath);
     const localeData = await extractLocales(path.join(newPath, 'master', 'sitecore', 'content'));
@@ -67,15 +69,17 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           fieldMapping.contentTypes.push(element);
         }
       }
+      const jsonBuffer = Buffer.from(JSON.stringify(fieldMapping), 'utf8');
+      formData.append('file', jsonBuffer, { filename: 'fieldMapping.json', contentType: 'application/json' });
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
         headers: {
           app_token,
-          'Content-Type': 'application/json'
+          //'Content-Type': 'application/json'
         },
-        data: JSON.stringify(fieldMapping),
+        data: formData,
       };
 
       const { data } = await axios.request(config);
