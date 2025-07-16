@@ -1,6 +1,7 @@
 import axios from "axios";
 import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS } from "../../constants";
+import FormData from 'form-data';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { extractContentTypes, contentTypeMaker, extractLocale } = require('migration-wordpress')
 
@@ -10,7 +11,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
   try {
     
     const localeData = await extractLocale(filePath);
-    
+    const formData = new FormData();
     await extractContentTypes(affix);
     const contentTypeData = await contentTypeMaker(affix)
     if(contentTypeData){
@@ -20,16 +21,17 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
         jsonfileContent.type = "content_type";
         fieldMapping?.contentTypes?.push(jsonfileContent);
       })
-    
+    const jsonBuffer = Buffer.from(JSON.stringify(fieldMapping), 'utf8');
+    formData.append('file', jsonBuffer, { filename: 'fieldMapping.json', contentType: 'application/json' });
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
         headers: {
           app_token,
-          'Content-Type': 'application/json'
+          //'Content-Type': 'application/json'
         },
-        data: JSON.stringify(fieldMapping),
+        data: formData
       };
       const {data} = await axios.request(config);
       if (data?.data?.content_mapper?.length) {

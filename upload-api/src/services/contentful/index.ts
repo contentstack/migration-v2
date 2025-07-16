@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import axios from 'axios';
-
+import FormData from 'form-data';
 import logger from '../../utils/logger';
 import { HTTP_CODES, HTTP_TEXTS } from '../../constants';
 import { Config } from '../../models/types';
@@ -14,21 +14,24 @@ const createContentfulMapper = async (
   config: Config
 ) => {
   try {
+    const formData = new FormData();
     const { localPath } = config;
     const cleanLocalPath = localPath?.replace?.(/\/$/, '');
     const fetchedLocales: [] = await extractLocale(cleanLocalPath);
 
     await extractContentTypes(cleanLocalPath, affix);
     const initialMapper = await createInitialMapper();
+    const jsonBuffer = Buffer.from(JSON.stringify(initialMapper), 'utf8');
+    formData.append('file', jsonBuffer, { filename: 'fieldMapping.json', contentType: 'application/json' });
     const req = {
       method: 'post',
       maxBodyLength: Infinity,
       url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
       headers: {
         app_token,
-        'Content-Type': 'application/json'
+        //'Content-Type': 'application/json'
       },
-      data: JSON.stringify(initialMapper)
+      data: formData
     };
     const { data} = await axios.request(req);
     if (data?.data?.content_mapper?.length) {
