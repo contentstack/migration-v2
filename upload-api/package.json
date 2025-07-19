@@ -47,7 +47,7 @@
     "migration-contentful": "file:migration-contentful",
     "migration-sitecore": "file:migration-sitecore",
     "migration-wordpress": "file:migration-wordpress",
-    "multer": "^2.0.0",
+    "multer": "^2.0.2",
     "node-fetch": "^2.7.0",
     "nodemon": "^3.1.9",
     "prettier": "^3.3.3",
