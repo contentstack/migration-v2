@@ -343,9 +343,9 @@ const AdvancePropertise = (props: SchemaProps) => {
 
   const option = validateArray(contentTypesList)
     ? contentTypesList?.map((option: ContentType) => ({
-        label: option?.contentstackTitle,
-        value: option?.contentstackUid
-      }))
+      label: option?.contentstackTitle,
+      value: option?.contentstackUid
+    }))
     : [{ label: contentTypesList, value: contentTypesList }];
 
   return (
@@ -432,53 +432,53 @@ const AdvancePropertise = (props: SchemaProps) => {
 
           {(props?.fieldtype === 'Single Line Textbox' ||
             props?.fieldtype === 'Multi Line Textbox') && (
-            <>
-              <Field>
-                <FieldLabel htmlFor="validation" version="v2">
-                  Default Value
-                </FieldLabel>
-                <Tooltip
-                  content={
-                    'Set a default field value for this field. The value will appear by default while creating an entry for this content type.'
-                  }
-                  position="right"
-                >
-                  <Icon icon="Question" size="small" version="v2" className="Help" />
-                </Tooltip>
-                <TextInput
-                  type="text"
-                  value={toggleStates?.default_value}
-                  placeholder="Enter value"
-                  version="v2"
-                  onChange={
-                    handleOnChange &&
-                    ((e: React.ChangeEvent<HTMLInputElement>) =>
-                      handleOnChange('default_value', e, true))
-                  }
-                />
-              </Field>
+              <>
+                <Field>
+                  <FieldLabel htmlFor="validation" version="v2">
+                    Default Value
+                  </FieldLabel>
+                  <Tooltip
+                    content={
+                      'Set a default field value for this field. The value will appear by default while creating an entry for this content type.'
+                    }
+                    position="right"
+                  >
+                    <Icon icon="Question" size="small" version="v2" className="Help" />
+                  </Tooltip>
+                  <TextInput
+                    type="text"
+                    value={toggleStates?.default_value}
+                    placeholder="Enter value"
+                    version="v2"
+                    onChange={
+                      handleOnChange &&
+                      ((e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleOnChange('default_value', e, true))
+                    }
+                  />
+                </Field>
 
-              <Field>
-                <FieldLabel htmlFor="validation" version="v2">
-                  Validation (Regex)
-                </FieldLabel>
-                <Tooltip content={'Define the validation for the field.'} position="right">
-                  <Icon icon="Question" size="small" version="v2" className="Help" />
-                </Tooltip>
-                <TextInput
-                  type="text"
-                  value={toggleStates?.validationRegex}
-                  placeholder="Enter value"
-                  version="v2"
-                  onChange={
-                    handleOnChange &&
-                    ((e: React.ChangeEvent<HTMLInputElement>) =>
-                      handleOnChange('validationRegex', e, true))
-                  }
-                />
-              </Field>
-            </>
-          )}
+                <Field>
+                  <FieldLabel htmlFor="validation" version="v2">
+                    Validation (Regex)
+                  </FieldLabel>
+                  <Tooltip content={'Define the validation for the field.'} position="right">
+                    <Icon icon="Question" size="small" version="v2" className="Help" />
+                  </Tooltip>
+                  <TextInput
+                    type="text"
+                    value={toggleStates?.validationRegex}
+                    placeholder="Enter value"
+                    version="v2"
+                    onChange={
+                      handleOnChange &&
+                      ((e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleOnChange('validationRegex', e, true))
+                    }
+                  />
+                </Field>
+              </>
+            )}
 
           {props?.fieldtype === 'Link' && (
             <>
@@ -555,36 +555,34 @@ const AdvancePropertise = (props: SchemaProps) => {
               <FieldLabel className="option-label" htmlFor="options" version="v2">
                 Referenced Content Type
               </FieldLabel>
-              <Tag tags={props?.data?.refrenceTo} isDisabled={true} version={'v2'} />
+              {/* {option?.length > 0 && ( */}
+              <Select
+                value={referencedCT}
+                isMulti={true}
+                onChange={(selectedOptions: ContentTypeOption[]) => {
+                  setReferencedCT(selectedOptions);
+                  const referencedArray = selectedOptions?.map((item: optionsType) => item?.value);
 
-              {option?.length > 0 && (
-                <Select
-                  value={referencedCT}
-                  isMulti={true}
-                  onChange={(selectedOptions: ContentTypeOption[]) => {
-                    setReferencedCT(selectedOptions);
-                    const referencedItem = selectedOptions?.map((item: optionsType) => item?.value);
-                    const referencedArray = [...(props?.data?.refrenceTo || []), ...referencedItem];
-              
-                    props?.updateFieldSettings(
-                      props?.rowId,
-                      {
-                        validationRegex: toggleStates?.validationRegex ?? '',
-                        referenedItems: referencedArray
-                      },
-                      true,
-                      props?.data?.contentstackFieldUid
-                    );
-                  }}
-                  options={option}
-                  placeholder="Add Content Type(s)"
-                  version="v2"
-                  isSearchable={true}
-                  isClearable={true}
-                  width="350px"
-                  maxMenuHeight={200}
-                />
-              )}
+                  props?.updateFieldSettings(
+                    props?.rowId,
+                    {
+                      ...props?.value,
+                      validationRegex: toggleStates?.validationRegex ?? '',
+                      referenedItems: referencedArray // <-- update only this property!
+                    },
+                    true,
+                    props?.data?.contentstackFieldUid
+                  );
+                }}
+                options={option ?? []}
+                placeholder="Add Content Type(s)"
+                version="v2"
+                isSearchable={true}
+                isClearable={true}
+                width="350px"
+                maxMenuHeight={200}
+              />
+              {/* )} */}
             </Field>
           )}
 
@@ -595,54 +593,54 @@ const AdvancePropertise = (props: SchemaProps) => {
             <div className="options-class">
               {(props?.fieldtype === 'HTML Rich text Editor' ||
                 props?.fieldtype === 'JSON Rich Text Editor') && (
-                <>
-                  <div className="ToggleWrap">
-                    <ToggleSwitch
-                      label="Embed Object(s)"
-                      labelColor="primary"
-                      labelPosition="right"
-                      checked={(ctValue?.length ?? 0) > 0 || toggleStates?.embedObject}
-                      onChange={
-                        handleToggleChange &&
-                        ((e: React.MouseEvent<HTMLElement>) =>
-                          handleToggleChange(
-                            'embedObject',
-                            (e.target as HTMLInputElement)?.checked,
-                            true
-                          ))
-                      }
-                    />
-                  </div>
+                  <>
+                    <div className="ToggleWrap">
+                      <ToggleSwitch
+                        label="Embed Object(s)"
+                        labelColor="primary"
+                        labelPosition="right"
+                        checked={(ctValue?.length ?? 0) > 0 || toggleStates?.embedObject}
+                        onChange={
+                          handleToggleChange &&
+                          ((e: React.MouseEvent<HTMLElement>) =>
+                            handleToggleChange(
+                              'embedObject',
+                              (e.target as HTMLInputElement)?.checked,
+                              true
+                            ))
+                        }
+                      />
+                    </div>
 
-                  {((ctValue && ctValue?.length > 0) || toggleStates?.embedObject) && (
-                    <Select
-                      value={ctValue}
-                      isMulti={true}
-                      onChange={(selectedOptions: ContentTypeOption[]) => {
-                        setCTValue(selectedOptions);
-                        const embedObject = selectedOptions?.map((item: optionsType) => item?.value); // Update the state with the selected options
-                        props?.updateFieldSettings(
-                          props?.rowId,
-                          {
-                            validationRegex: toggleStates?.validationRegex ?? '',
-                            embedObjects: embedObject
-                          },
-                          true,
-                          props?.data?.contentstackFieldUid
-                        );
-                      }}
-                      options={option}
-                      placeholder="Select Content Types"
-                      version="v2"
-                      isSearchable={true}
-                      isClearable={true}
-                      width="350px"
-                      maxMenuHeight={200}
+                    {((ctValue && ctValue?.length > 0) || toggleStates?.embedObject) && (
+                      <Select
+                        value={ctValue}
+                        isMulti={true}
+                        onChange={(selectedOptions: ContentTypeOption[]) => {
+                          setCTValue(selectedOptions);
+                          const embedObject = selectedOptions?.map((item: optionsType) => item?.value); // Update the state with the selected options
+                          props?.updateFieldSettings(
+                            props?.rowId,
+                            {
+                              validationRegex: toggleStates?.validationRegex ?? '',
+                              embedObjects: embedObject
+                            },
+                            true,
+                            props?.data?.contentstackFieldUid
+                          );
+                        }}
+                        options={option}
+                        placeholder="Select Content Types"
+                        version="v2"
+                        isSearchable={true}
+                        isClearable={true}
+                        width="350px"
+                        maxMenuHeight={200}
                       // isSelectAll={true}
-                    />
-                  )}
-                </>
-              )}
+                      />
+                    )}
+                  </>
+                )}
               {props?.fieldtype !== 'Global' && props?.fieldtype !== 'Boolean' && (
                 <div className="ToggleWrap">
                   <ToggleSwitch
