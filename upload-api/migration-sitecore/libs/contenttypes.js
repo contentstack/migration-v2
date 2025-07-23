@@ -111,7 +111,7 @@ const ContentTypeSchema = ({
   choices = [],
   sourLet,
   sitecoreKey,
-  affix
+  affix,
 }) => {
   const isPresent = restrictedUid?.find((item) => item === uid);
   if (isPresent) {
@@ -279,20 +279,18 @@ const ContentTypeSchema = ({
       break;
     }
     case 'Treelist': {
-      if (sourLet?.key !== 'source') {
-        return {
-          id: id,
-          uid: sitecoreKey,
-          otherCmsField: name,
-          otherCmsType: type,
-          contentstackField: name,
-          contentstackFieldUid: uid,
-          contentstackFieldType: 'reference',
-          backupFieldUid: uid,
-          backupFieldType: 'reference'
-        };
-      }
-      break;
+      return {
+        id: id,
+        uid: sitecoreKey,
+        otherCmsField: name,
+        otherCmsType: type,
+        contentstackField: name,
+        contentstackFieldUid: uid,
+        contentstackFieldType: 'reference',
+        backupFieldUid: uid,
+        backupFieldType: 'reference',
+        sourceKey: sourLet
+      };
     }
     default: {
       return {
@@ -361,7 +359,11 @@ function makeUnique({ data }) {
 
 const groupFlat = (data, item) => {
   const flat = [];
-  if (data?.data_type === 'group' && data?.schema?.[0] !== undefined) {
+  if (
+    data?.data_type === 'group' &&
+    Array.isArray(data?.schema) &&
+    data.schema.some(item => item !== undefined)
+  ) {
     const group = {
       uid: item?.meta?.key,
       otherCmsField: item?.meta?.name,
@@ -373,17 +375,17 @@ const groupFlat = (data, item) => {
     };
     flat?.push(group);
     data?.schema?.forEach((element) => {
-      const obj = {
-        ...element,
-        uid: `${item?.meta?.key}.${element?.uid}`,
-        otherCmsField: `${item?.meta?.name} > ${element?.otherCmsField}`,
-        contentstackField: `${item?.meta?.name} > ${element?.contentstackField}`,
-        contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${
-          element?.contentstackFieldUid
-        }`,
-        backupFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`
-      };
-      flat?.push(obj);
+      if (element !== undefined) {
+        const obj = {
+          ...element,
+          uid: `${item?.meta?.key}.${element?.uid}`,
+          otherCmsField: `${item?.meta?.name} > ${element?.otherCmsField}`,
+          contentstackField: `${item?.meta?.name} > ${element?.contentstackField}`,
+          contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`,
+          backupFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`
+        };
+        flat?.push(obj);
+      }
     });
   }
   return flat;
@@ -545,7 +547,7 @@ const contentTypeMapper = ({
               sourLet,
               sitecoreKey: field?.key,
               isFromMapper: true,
-              affix
+              affix,
             })
           );
         }
@@ -588,7 +590,7 @@ const contentTypeMapper = ({
 
 const contentTypeMaker = ({ template, basePath, sitecore_folder, affix }) => {
   const isPresent = restrictedUid?.find((item) => item === template?.key);
-  const correctedUid = isPresent ? `${affix}_${uidCorrector({ uid: template?.key })}`: uidCorrector({ uid: template?.key })
+  const correctedUid = isPresent ? `${affix}_${uidCorrector({ uid: template?.key })}` : uidCorrector({ uid: template?.key })
   const content_type = {
     id: template?.id,
     status: 1,
@@ -672,8 +674,7 @@ function ExtractContentTypes(sitecore_folder, affix, configData) {
     if (folder?.[i]?.includes('templates') && folder?.[i]?.endsWith('data.json')) {
       const data = helper?.readFile(path?.join?.(sitecore_folder, folder?.[i]));
       if (data?.item?.$?.template === 'template') {
-        const separator = path.sep;
-        templatePaths?.push(path?.join?.(sitecore_folder, folder?.[i])?.split(`${separator}{`)?.[0]);
+        templatePaths?.push(path?.join?.(sitecore_folder, folder?.[i])?.split('/{')?.[0]);
       }
     }
   }
