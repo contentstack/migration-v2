@@ -124,6 +124,7 @@ export interface UpdatedSettings {
 
   default_value?: string | boolean;
   options?: any[];
+  referenedItems?: string[];
 }
 
 /**

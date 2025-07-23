@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: process.env.CMS_TYPE || 'cmsType',
+  cmsType: 'sitecore',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
@@ -12,5 +12,5 @@ export default {
     bucketName: '',
     bucketKey: ''
   },
-  localPath: process.env.CONTAINER_PATH || 'your-local-legacy-cms-path',
+  localPath: '/Users/sayali.joshi/Downloads/package 45.zip',
 };

@@ -39,7 +39,7 @@ interface ContentTypeOption {
  * @returns The rendered component.
  */
 const AdvancePropertise = (props: SchemaProps) => {
-  // State for toggle states
+  // State for toggle state
   const [toggleStates, setToggleStates] = useState({
     minChars: props?.value?.minChars,
     maxChars: props?.value?.maxChars,
@@ -59,19 +59,27 @@ const AdvancePropertise = (props: SchemaProps) => {
     multiple: props?.value?.multiple,
     embedObjects: props?.value?.embedObjects,
     default_value: props?.value?.default_value,
-    option: props?.value?.options
+    option: props?.value?.options,
+    referenedItems: props?.value?.referenedItems || []
   });
 
   const embedObjects = props?.value?.embedObjects?.map((item: string) => ({
     label: item,
     value: item
   }));
+
+  const referencedItems = props?.value?.referenedItems?.map((item: string) => ({
+    label: item,
+    value: item
+  }));
+
   // State for content types
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   const [ctValue, setCTValue] = useState<ContentTypeOption[] | null>(embedObjects);
   const [embedObjectsLabels, setEmbedObjectsLabels] = useState<string[]>(
     props?.value?.embedObjects
   );
+  const [referencedCT, setReferencedCT] = useState<ContentTypeOption[] | null>(referencedItems || null);
   const [showOptions, setShowOptions] = useState<Record<number, boolean>>({});
   const [showIcon, setShowIcon] = useState<number>();
   const filterRef = useRef<HTMLDivElement | null>(null);
@@ -144,6 +152,7 @@ const AdvancePropertise = (props: SchemaProps) => {
         maxRange: currentToggleStates?.maxRange,
         minSize: currentToggleStates?.minSize,
         maxSize: currentToggleStates?.maxSize,
+        referenedItems: currentToggleStates?.referenedItems,
         title: currentToggleStates?.title,
         url: currentToggleStates?.url
       },
@@ -187,6 +196,7 @@ const AdvancePropertise = (props: SchemaProps) => {
         maxRange: currentToggleStates?.maxRange,
         minSize: currentToggleStates?.minSize,
         maxSize: currentToggleStates?.maxSize,
+        referenedItems: currentToggleStates?.referenedItems,
         title: currentToggleStates?.title,
         url: currentToggleStates?.url
       },
@@ -323,7 +333,7 @@ const AdvancePropertise = (props: SchemaProps) => {
 
   useEffect(() => {
     if (ctValue && Array.isArray(ctValue)) {
-      const labels = ctValue.map((item) => item.label);
+      const labels = ctValue?.map((item) => item?.label);
       setEmbedObjectsLabels(labels);
     }
   }, [ctValue]);
@@ -546,6 +556,35 @@ const AdvancePropertise = (props: SchemaProps) => {
                 Referenced Content Type
               </FieldLabel>
               <Tag tags={props?.data?.refrenceTo} isDisabled={true} version={'v2'} />
+
+              {option?.length > 0 && (
+                <Select
+                  value={referencedCT}
+                  isMulti={true}
+                  onChange={(selectedOptions: ContentTypeOption[]) => {
+                    setReferencedCT(selectedOptions);
+                    const referencedItem = selectedOptions?.map((item: optionsType) => item?.value);
+                    const referencedArray = [...(props?.data?.refrenceTo || []), ...referencedItem];
+              
+                    props?.updateFieldSettings(
+                      props?.rowId,
+                      {
+                        validationRegex: toggleStates?.validationRegex ?? '',
+                        referenedItems: referencedArray
+                      },
+                      true,
+                      props?.data?.contentstackFieldUid
+                    );
+                  }}
+                  options={option}
+                  placeholder="Add Content Type(s)"
+                  version="v2"
+                  isSearchable={true}
+                  isClearable={true}
+                  width="350px"
+                  maxMenuHeight={200}
+                />
+              )}
             </Field>
           )}
 
@@ -581,7 +620,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                       isMulti={true}
                       onChange={(selectedOptions: ContentTypeOption[]) => {
                         setCTValue(selectedOptions);
-                        const embedObject = selectedOptions.map((item: optionsType) => item?.value); // Update the state with the selected options
+                        const embedObject = selectedOptions?.map((item: optionsType) => item?.value); // Update the state with the selected options
                         props?.updateFieldSettings(
                           props?.rowId,
                           {
