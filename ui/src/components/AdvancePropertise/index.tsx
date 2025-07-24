@@ -317,6 +317,8 @@ const AdvancePropertise = (props: SchemaProps) => {
     });
   };
 
+
+
   const handleDrop = (index: number) => {
     if (draggedIndex === null) return;
 
@@ -574,7 +576,12 @@ const AdvancePropertise = (props: SchemaProps) => {
                     props?.data?.contentstackFieldUid
                   );
                 }}
-                options={option ?? []}
+                options={
+                  (Array.isArray(props?.data?.refrenceTo) && props?.data?.refrenceTo?.length) ? [props.data.refrenceTo.map((item: any) => ({
+                    label: item,
+                    value: item
+                  })), ...option]
+                    : option ?? []}
                 placeholder="Add Content Type(s)"
                 version="v2"
                 isSearchable={true}
