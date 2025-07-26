@@ -1,0 +1,33 @@
+version: "3.8"
+services:
+  api:
+    container_name: migration-api
+    build:
+      context: ./api
+    ports:
+      - "5001:5001"
+    restart: always
+    volumes:
+      - shared_data:/app/extracted_files
+
+  upload-api:
+    container_name: migration-upload-api
+    build:
+      context: ./upload-api
+    ports:
+      - "4002:4002"
+    restart: always
+    volumes:
+      - ${CMS_DATA_PATH}:${CONTAINER_PATH}
+      - shared_data:/app/extracted_files
+
+  ui:
+    container_name: migration-ui
+    build:
+      context: ./ui
+    ports:
+      - "3000:3000"
+    restart: always
+
+volumes:
+  shared_data:

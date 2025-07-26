@@ -22,7 +22,7 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
         contentType.fieldMapping = contentType?.fieldMapping?.map((fieldUid: any) => {
           const field = FieldMapperModel.chain
             .get("field_mapper")
-            .find({ id: fieldUid, projectId: projectId , contentTypeId: contentId})
+            .find({ id: fieldUid, projectId: projectId })
             .value()
           return field;
         })

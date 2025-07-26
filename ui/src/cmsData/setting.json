@@ -24,6 +24,7 @@
       "icon": "v2-Save"
     },
     "back_button": "LeftArrow"
+
   },
   "execution_logs": {
     "title": "Execution Logs"

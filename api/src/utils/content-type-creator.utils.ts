@@ -74,19 +74,9 @@ const arrangGroups = ({ schema, newStack }: any) => {
   schema?.forEach((item: any) => {
     if (item?.contentstackFieldType === 'group') {
       const groupSchema: any = { ...item, schema: [] }
-      if (item?.contentstackFieldUid?.includes('.')) {
-        const parts = item?.contentstackFieldUid?.split('.');
-        groupSchema.contentstackFieldUid = parts?.[parts?.length - 1];
-      }
       schema?.forEach((et: any) => {
         if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`) ||
           (newStack === false && et?.uid?.includes(`${item?.uid}.`))) {
-            const target = groupSchema?.contentstackFieldUid;
-            const index = et?.contentstackFieldUid?.indexOf?.(target);
-
-            if (index > 0) {
-              et.contentstackFieldUid = et?.contentstackFieldUid?.substring(index);
-            }
           groupSchema?.schema?.push(et);
         }
       })
@@ -122,7 +112,7 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, keyMapper }: any) => {
+const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any) => {
   switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
@@ -445,7 +435,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, keyMa
       return {
         data_type: "reference",
         display_name: field?.title,
-        reference_to: field?.refrenceTo?.map((item:string) => keyMapper[item] || item) ?? [],
+        reference_to: field?.refrenceTo ?? [],
         field_metadata: {
           ref_multiple: true,
           ref_multiple_content_types: true
@@ -664,98 +654,45 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
   }
 }
 
-const mergeArrays = (a: any[], b: any[]): any[] => {
-  const result = [...a];
-
-  for (const field of b) {
-    const exists = result?.some(f =>
-      f?.uid === field?.uid &&
-      f?.data_type === field?.data_type
+const mergeArrays = async (a: any[], b: any[]) => {
+  for await (const fieldGp of b) {
+    const exists = a.some(fld =>
+      fld?.uid === fieldGp?.uid &&
+      fld?.data_type === fieldGp?.data_type
     );
     if (!exists) {
-      result?.push(field);
+      a.push(fieldGp);
     }
   }
-
-  return result;
-};
-
-const mergeFields = async (schema1: any[], schema2: any[]): Promise<any[]> => {
-  const result: any[] = [];
-
-  for (const field2 of schema2) {
-    if (field2?.data_type === 'group') {
-      const matchingGroup = findGroupByUid(schema1, field2?.uid);
-      if(matchingGroup){
-       const schema =  mergeArrays(matchingGroup?.schema ?? [],field2?.schema ?? [] );
-        result?.push({
-          ...field2,
-          schema: schema
-        });
-      }
-      else{
-        result?.push({
-          ...field2,
-         schema:  await mergeFields(schema1, field2?.schema)
-        })
-      }
-    }
-    else{
-      const exists = schema1?.find(
-        (fld) =>
-          fld?.uid === field2?.uid &&
-          fld?.data_type === field2?.data_type
-      );
-     result?.push({
-      ...field2
-     });
-
-    }
-     
-  }
-
-  for (const field1 of schema1) {
-    const isMatched = schema2?.some(
-      (field2) =>
-        field1?.uid === field2?.uid &&
-        field1?.data_type === field2?.data_type
-    );
-
-    if (!isMatched) {
-      result?.push(field1);
-    }
-  }
-
-  return result;
+  return a;
 }
 
-
-const findGroupByUid = (
-  schema: any[],
-  uid: string,
-  excludeRef: any = null
-): any | undefined => {
-  for (const field of schema) {
-    if (field?.data_type === 'group') {
-      if (field?.uid === uid && field !== excludeRef) return field;
-      const nested = findGroupByUid(field?.schema ?? [], uid, excludeRef);
-      if (nested) return nested;
-    }
-  }
-  return undefined;
-};
-
 const mergeTwoCts = async (ct: any, mergeCts: any) => {
-  const merged :any = {
+  const ctData: any = {
+    ...ct,
     title: mergeCts?.title,
     uid: mergeCts?.uid,
     options: {
       "singleton": false,
-    },
-    schema: await mergeFields(ct?.schema ?? [], mergeCts?.schema ?? [])
-  };
-
-  return merged;
+    }
+  }
+  for await (const field of ctData?.schema ?? []) {
+    if (field?.data_type === 'group') {
+      const currentGroup = mergeCts?.schema?.find((grp: any) => grp?.uid === field?.uid &&
+        grp?.data_type === 'group');
+      const group = [];
+      for await (const fieldGp of currentGroup?.schema ?? []) {
+        const fieldNst = field?.schema?.find((fld: any) => fld?.uid === fieldGp?.uid &&
+          fld?.data_type === fieldGp?.data_type);
+        if (fieldNst === undefined) {
+          group?.push(fieldGp);
+        }
+      }
+      field.schema = [...field?.schema ?? [], ...group];
+    }
+  }
+  ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
+  return ctData;
 }
 
 export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
@@ -780,7 +717,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
         "display_name": item?.contentstackField,
         "field_metadata": {},
         "schema": [],
-        "uid": item?.contentstackFieldUid?.replace(/\./g, '_'),
+        "uid": item?.contentstackFieldUid,
         "multiple": false,
         "mandatory": false,
         "unique": false
@@ -791,7 +728,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           uid: extractValue(element?.contentstackFieldUid, item?.contentstackFieldUid, '.'),
           title: extractValue(element?.contentstackField, item?.contentstackField, ' >')?.trim(),
         }
-        const schema: any = convertToSchemaFormate({ field, marketPlacePath, keyMapper});
+        const schema: any = convertToSchemaFormate({ field, marketPlacePath });
         if (typeof schema === 'object' && Array.isArray(group?.schema) && element?.isDeleted === false) {
           group.schema.push(schema);
         }
@@ -804,8 +741,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           title: item?.contentstackField,
           uid: item?.contentstackFieldUid
         },
-        marketPlacePath,
-        keyMapper
+        marketPlacePath
       });
       if (dt && item?.isDeleted === false) {
         ct?.schema?.push(dt);

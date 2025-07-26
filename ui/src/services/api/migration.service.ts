@@ -351,8 +351,7 @@ export const getMigrationLogs = async (orgId: string, projectId: string, stackId
     if (error instanceof Error) {
       throw new Error(`${EXECUTION_LOGS_ERROR_TEXT.ERROR}: ${error.message}`);
     } else {
-      throw new Error('Unknown ${EXECUTION_LOGS_ERROR_TEXT.ERROR}');
+      throw new Error(`Unknown ${EXECUTION_LOGS_ERROR_TEXT.ERROR}`);
     }
   }
 }
-

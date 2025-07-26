@@ -4,6 +4,7 @@ import { ModalType } from '../../pages/Projects/projects.interface';
 export interface ModalObj {
   closeModal: () => void;
 }
+
 export interface ProjectModalProps {
   modalData: ModalType;
   selectedOrg: IDropDown;
@@ -33,7 +34,7 @@ export interface Project {
 }
 
 export interface CreateProjectResponse {
-  status: "success";
+  status: number;
   message: string;
   project: Project;
 }

@@ -45,7 +45,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
   try {
     const newPath = path.join(filePath, 'items');
     await ExtractFiles(newPath);
-    const localeData = await extractLocales(path.join(filePath, 'items', 'master', 'sitecore', 'content'));
+    const localeData = await extractLocales(path.join(newPath, 'master', 'sitecore', 'content'));
     await createLocaleSource?.({ app_token, localeData, projectId });
     await ExtractConfiguration(newPath);
     await contentTypes(newPath, affix, config);
@@ -78,7 +78,7 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
         data: JSON.stringify(fieldMapping),
       };
 
-      const {data} = await axios.request(config);
+      const { data } = await axios.request(config);
 
       if (data?.data?.content_mapper?.length) {
         deleteFolderSync(infoMap?.path);

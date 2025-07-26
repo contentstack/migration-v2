@@ -149,7 +149,6 @@ const AdvancePropertise = (props: SchemaProps) => {
       },
       checkBoxChanged,
       props?.data?.contentstackFieldUid
-
     );
   };
 

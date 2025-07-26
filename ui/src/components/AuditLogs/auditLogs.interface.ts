@@ -32,7 +32,8 @@ export interface TableDataItem {
     missingCTSelectFieldValues?: string;
     parentKey?: string;
     ct_uid?: string;
-    [key: string]: any;
+    _content_type_uid?: string;
+
 }
 export type DropdownOption = {
     label: string;

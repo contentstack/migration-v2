@@ -23,7 +23,7 @@ const appDetails = require('../utils/apps/appDetails.json')
  */
 const uidCorrector = (uid, affix) => {
   let newId = uid;
-  if (restrictedUid?.includes?.(uid) || uid?.startsWith?.('_ids') || uid?.endsWith?.('_ids')) {
+  if (restrictedUid?.includes?.(uid)) {
     newId = uid?.replace?.(uid, `${affix}_${uid}`);
     newId = newId?.replace?.(/[^a-zA-Z0-9]+/g, '_');
   }

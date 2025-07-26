@@ -78,24 +78,18 @@ const MigrationFlowHeader = ({
         stack?.stackUid === newMigrationData?.test_migration?.stack_api_key && stack?.isMigrated
     );
 
+  const isStepOneandNotMapped = params?.stepId === '1' && newMigrationData?.isContentMapperGenerated && newMigrationData?.legacy_cms?.projectStatus === 3 && newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
+
   const isStepInvalid =
     params?.stepId &&
     params?.stepId <= '2' &&
     newMigrationData?.project_current_step?.toString() !== params?.stepId;
 
-  const isStepOneandNotMapped = params?.stepId === '1' && newMigrationData?.isContentMapperGenerated && newMigrationData?.legacy_cms?.projectStatus === 3 && newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
   const isExecutionStarted =
     finalExecutionStarted ||
     newMigrationData?.migration_execution?.migrationStarted ||
     newMigrationData?.migration_execution?.migrationCompleted;
 
-  const destinationStackMigrated =
-    params?.stepId === '5' &&
-    newMigrationData?.destination_stack?.migratedStacks?.includes(
-      newMigrationData?.destination_stack?.selectedStack?.value
-    );
-
-  // New validation conditions
   const isProjectStatusOne = newMigrationData?.legacy_cms?.projectStatus === 1;
   const isPreviousStepDisabled = params?.stepId &&
     parseInt(params?.stepId) < newMigrationData?.project_current_step &&
@@ -104,8 +98,15 @@ const MigrationFlowHeader = ({
   const isProjectStatusThreeAndMapperNotGenerated =
     params?.stepId === '1' &&
     newMigrationData?.legacy_cms?.projectStatus === 3
+  
+  const destinationStackMigrated =
+    params?.stepId === '5' &&
+    newMigrationData?.destination_stack?.migratedStacks?.includes(
+      newMigrationData?.destination_stack?.selectedStack?.value
+    );
 
   const isFileValidated = newMigrationData?.isContentMapperGenerated ? true : newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
+
   return (
     <div className="d-flex align-items-center justify-content-between migration-flow-header">
       <div className="d-flex align-items-center">

@@ -37,88 +37,98 @@ const putTestData = async (req: Request) => {
 
   try {
 
-     /*
-  this code snippet is iterating over an array called contentTypes and 
-  transforming each element by adding a unique identifier (id) if it doesn't already exist. 
-  The transformed elements are then stored in the contentType variable, 
-  and the generated id values are pushed into the contentIds array.
-  */
-  await ContentTypesMapperModelLowdb.read();
-  const contentIds: any[] = [];
-  const contentType = contentTypes.map((item: any) => {
-    const id = item?.id?.replace(/[{}]/g, "")?.toLowerCase() || uuidv4();
-    item.id = id;
-    contentIds.push(id);
-    return { ...item, id, projectId };
-  });
-
-  /*
-  this code snippet iterates over an array of contentTypes and performs 
-  some operations on each element. 
-  It creates a new array called fields by mapping over the fieldMapping property of each type in contentTypes. 
-  It generates a unique identifier for each field, pushes it into the fieldIds array, 
-  and returns an object with additional properties. 
-  It then updates the field_mapper property of a data object using the FieldMapperModel.update() function. 
-  Finally, it updates the fieldMapping property of each type in the contentTypes array with the fieldIds array.
-  */
-  await FieldMapperModel.read();
-
-  contentTypes.map((type: any, index: any) => {
-    const fieldIds: string[] = [];
-    const fields = type?.fieldMapping?.filter((field: any) => field)?.map?.((field: any) => {
-      const id = field?.id ? field?.id?.replace(/[{}]/g, "")?.toLowerCase() : uuidv4();
-      field.id = id;
-      fieldIds.push(id);
-      return { id, projectId, contentTypeId: type?.id, isDeleted: false, ...field };
+    /*
+ this code snippet is iterating over an array called contentTypes and 
+ transforming each element by adding a unique identifier (id) if it doesn't already exist. 
+ The transformed elements are then stored in the contentType variable, 
+ and the generated id values are pushed into the contentIds array.
+ */
+    await ContentTypesMapperModelLowdb.read();
+    if (!Array?.isArray?.(contentTypes)) {
+      throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_INVALID);
+    }
+    const contentIds: any[] = [];
+    const contentType = contentTypes.map((item: any) => {
+      const id = item?.id?.replace(/[{}]/g, "")?.toLowerCase() || uuidv4();
+      item.id = id;
+      contentIds.push(id);
+      return { ...item, id, projectId };
     });
 
-    FieldMapperModel.update((data: any) => {
-      data.field_mapper = [...(data?.field_mapper ?? []), ...(fields ?? [])];
+    /*
+    this code snippet iterates over an array of contentTypes and performs 
+    some operations on each element. 
+    It creates a new array called fields by mapping over the fieldMapping property of each type in contentTypes. 
+    It generates a unique identifier for each field, pushes it into the fieldIds array, 
+    and returns an object with additional properties. 
+    It then updates the field_mapper property of a data object using the FieldMapperModel.update() function. 
+    Finally, it updates the fieldMapping property of each type in the contentTypes array with the fieldIds array.
+    */
+    await FieldMapperModel.read();
+
+    contentTypes.map((type: any, index: any) => {
+      const fieldIds: string[] = [];
+      const fields = Array?.isArray?.(type?.fieldMapping) ? type?.fieldMapping?.filter((field: any) => field)?.map?.((field: any) => {
+        const id = field?.id ? field?.id?.replace(/[{}]/g, "")?.toLowerCase() : uuidv4();
+        field.id = id;
+        fieldIds.push(id);
+        return { id, projectId, contentTypeId: type?.id, isDeleted: false, ...field };
+      }) : [];
+
+      FieldMapperModel.update((data: any) => {
+        data.field_mapper = [...(data?.field_mapper ?? []), ...(fields ?? [])];
+      });
+      if (
+        Array?.isArray?.(contentType) &&
+        Number?.isInteger?.(index) &&
+        index >= 0 &&
+        index < contentType?.length
+      ) {
+        contentType[index].fieldMapping = fieldIds;
+      }
     });
-    contentType[index].fieldMapping = fieldIds;
-  });
 
 
 
-  await ContentTypesMapperModelLowdb.update((data: any) => {
-    data.ContentTypesMappers = [
-      ...(data?.ContentTypesMappers ?? []),
-      ...contentType,
-    ];
-  });
+    await ContentTypesMapperModelLowdb.update((data: any) => {
+      data.ContentTypesMappers = [
+        ...(data?.ContentTypesMappers ?? []),
+        ...contentType,
+      ];
+    });
 
-  await ProjectModelLowdb.read();
-  const index = ProjectModelLowdb.chain
-    .get("projects")
-    .findIndex({ id: projectId })
-    .value();
-  if (index > -1 && contentIds?.length) {
-    ProjectModelLowdb.data.projects[index].content_mapper = contentIds;
-    ProjectModelLowdb.data.projects[index].extract_path = req?.body?.extractPath;
-    await ProjectModelLowdb.write();
-  } else {
-    throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
-  }
+    await ProjectModelLowdb.read();
+    const index = ProjectModelLowdb.chain
+      .get("projects")
+      .findIndex({ id: projectId })
+      .value();
+    if (index > -1 && contentIds?.length) {
+      ProjectModelLowdb.data.projects[index].content_mapper = contentIds;
+      ProjectModelLowdb.data.projects[index].extract_path = req?.body?.extractPath;
+      await ProjectModelLowdb.write();
+    } else {
+      throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
+    }
 
-  const pData = ProjectModelLowdb.chain
-    .get("projects")
-    .find({ id: projectId })
-    .value();
-  
-  return {
-    status: HTTP_CODES?.OK,
-    data: pData
-  }
-      
-  } catch (error:any) {
+    const pData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+
+    return {
+      status: HTTP_CODES?.OK,
+      data: pData
+    }
+
+  } catch (error: any) {
 
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
-    
+
   }
-  
+
 };
 
 /**
@@ -138,9 +148,9 @@ const getContentTypes = async (req: Request) => {
   try {
     await ProjectModelLowdb.read();
     const projectDetails = ProjectModelLowdb.chain
-    .get("projects")
-    .find({ id: projectId })
-    .value();
+      .get("projects")
+      .find({ id: projectId })
+      .value();
 
     if (isEmpty(projectDetails)) {
       logger.error(
@@ -185,15 +195,15 @@ const getContentTypes = async (req: Request) => {
       }
     }
 
-    return { 
+    return {
       status: HTTP_CODES?.OK,
-      count: totalCount, 
-      contentTypes: result 
+      count: totalCount,
+      contentTypes: result
     };
-    
-  } catch (error:any) {
-     // Log error message
-     logger.error(
+
+  } catch (error: any) {
+    // Log error message
+    logger.error(
       getLogMessage(
         sourceFn,
         "Error occurred while while getting contentTypes of projects",
@@ -205,10 +215,10 @@ const getContentTypes = async (req: Request) => {
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
-    
+
   }
 
-  
+
 };
 
 /**
@@ -269,11 +279,12 @@ const getFieldMapping = async (req: Request) => {
       }
     }
 
-    return { 
+    return {
       status: HTTP_CODES?.OK,
-      count: totalCount, 
-      fieldMapping: result };
-    
+      count: totalCount,
+      fieldMapping: result
+    };
+
   } catch (error: any) {
     // Log error message
     logger.error(
@@ -288,9 +299,9 @@ const getFieldMapping = async (req: Request) => {
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
-    
+
   }
-  
+
 };
 
 /**
@@ -352,7 +363,7 @@ const getExistingContentTypes = async (req: Request) => {
           headers,
         })
       );
-      
+
 
       selectedContentType = {
         title: res?.data?.content_type?.title,
@@ -466,7 +477,7 @@ const getExistingGlobalFields = async (req: Request) => {
     }
 
     return { globalFields: processedGlobalFields, selectedGlobalField };
-  } catch (error:any) {
+  } catch (error: any) {
     return {
       data: error.message || 'An unknown error occurred',
       status: 500,
@@ -614,7 +625,7 @@ const updateContentType = async (req: Request) => {
       };
     }
 
-    if (!isEmpty(fieldMapping)) {
+    if (Array?.isArray?.(fieldMapping) && !isEmpty(fieldMapping)) {
       await FieldMapperModel.read();
       fieldMapping.forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
@@ -765,10 +776,10 @@ const resetToInitialMapping = async (req: Request) => {
     await ContentTypesMapperModelLowdb.update((data: any) => {
       data.ContentTypesMappers[contentIndex].status = CONTENT_TYPE_STATUS[1];
     });
-    return { 
+    return {
       status: HTTP_CODES?.OK,
-      message: HTTP_TEXTS.RESET_CONTENT_MAPPING, 
-      data: contentTypeData 
+      message: HTTP_TEXTS.RESET_CONTENT_MAPPING,
+      data: contentTypeData
     };
 
   } catch (error: any) {

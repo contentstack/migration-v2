@@ -145,24 +145,6 @@ The following configuration is used in this project:
 
 - `localPath`: The local path to the extracted files. for example `/upload-api/extracted_files/package 45.zip`.
 
-## Cli
-
-Navigate to the project directory
-
-1. Install pnpm
-   Since pnpm is required, you need to install it globally if it's not already installed:
-
-```
-npm install -g pnpm
-```
-
-2. Run the Setup Script
-   Now, run the main setup script specified in the package.json:
-
-```
-npm run setup-repo
-```
-
 ## Scripts
 
 - `npm start`: Starts the main server by running index.js.
@@ -212,7 +194,7 @@ npm run setup-repo
 
 ## License
 
-This project is licensed under the ISC License.
+This project is licensed under the MIT License.
 
 ## Author
 

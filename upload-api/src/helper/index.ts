@@ -2,7 +2,7 @@ import rateLimit from "express-rate-limit";
 import fs from "fs";
 import path from "path";
 import xml2js from 'xml2js'
-import { HTTP_TEXTS, HTTP_CODES} from '../constants';
+import { HTTP_TEXTS, HTTP_CODES, MACOSX_FOLDER } from '../constants';
 import logger from "../utils/logger";
 
 const getFileName = (params: { Key: string }) => {
@@ -16,35 +16,29 @@ const getFileName = (params: { Key: string }) => {
 
 const saveZip = async (zip: any, name: string) => {
   try {
-    const newMainFolderName = name;  
-    const keys = Object?.keys(zip.files);
+    const newMainFolderName = name;
+    const keys = Object.keys(zip.files);
 
-        // Determine if there's a top-level folder in the ZIP archive
-        const hasTopLevelFolder = keys.some(key => key.startsWith('package 45/'));
+    for await (const filename of keys) {
+      const file = zip.files[filename];
+      if (!file.dir) {
+        // Prepend only if not already present
+        let newFilePath = filename;
+        if (
+          !filename.startsWith(newMainFolderName + path.sep) &&
+          !filename.startsWith(newMainFolderName + '/')
+        ) {
+          newFilePath = path.join(newMainFolderName, filename);
+        }
+        const filePath = path.join(__dirname, '..', '..', 'extracted_files', newFilePath);
 
-      for await (const filename of keys) {
-        const file = zip?.files?.[filename];
-        if (!file?.dir) { // Ignore directories
-          let newFilePath = filename;
-
-          if (hasTopLevelFolder) {
-            newFilePath = filename.replace(/^package 45\//, `${newMainFolderName}/`);
-          }
-
-          // Construct the full path where you want to save the file
-          const filePath = path.join(__dirname, '../../extracted_files', newFilePath);
-
-          // Ignore __MACOSX folder asynchronously
-          if (!(filePath.includes("__MACOSX"))) {
-            
-              // Ensure the directory exists asynchronously
-              await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-      
-              const content = await file.async('nodebuffer');
-              await fs.promises.writeFile(filePath, content);
-          }
+        if (!filePath.includes(MACOSX_FOLDER)) {
+          await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+          const content = await file.async('nodebuffer');
+          await fs.promises.writeFile(filePath, content);
         }
       }
+    }
 
     return true;
   } catch (err: any) {
@@ -60,7 +54,6 @@ const saveZip = async (zip: any, name: string) => {
 const saveJson = async (jsonContent: string, fileName: string) => {
   try {
     const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
-    
     // Ensure the directory exists asynchronously /extracted_files
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 
@@ -81,8 +74,8 @@ const saveJson = async (jsonContent: string, fileName: string) => {
 
 const cleanXml = (xml: string): string => {
   return xml
-    .replace(/<!--[\s\S]*?-->/g, '') 
-    .replace(/<!DOCTYPE[^>]*>/g, '') 
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<!DOCTYPE[^>]*>/g, '')
     .trim();
 };
 
@@ -91,16 +84,16 @@ const cleanXml = (xml: string): string => {
 // parse xml to json
 const parseXmlToJson = async (xml: any) => {
   try {
-   
+
     const xmldata = cleanXml(xml)
 
     const parser = new xml2js.Parser({
       attrkey: "attributes",
       charkey: "text",
       explicitArray: false,
-      trim: true,  
-      normalize: true, 
-      normalizeTags: true, 
+      trim: true,
+      normalize: true,
+      normalizeTags: true,
     });
     const data = await parser.parseStringPromise(xmldata);
     return data

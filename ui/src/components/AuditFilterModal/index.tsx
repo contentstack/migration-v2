@@ -29,14 +29,17 @@ const AuditFilterModal = ({
                 { label: 'global_field', value: 'global_field' },
                 { label: 'reference', value: 'reference' },
                 { label: 'group', value: 'group' },
+                { label: 'json', value: 'json' }
             ];
         }
 
-        if (selectedFileType?.includes?.('Entries')) {
-            return [{ label: 'dropdown', value: 'dropdown' }];
-        }
 
-        return [];
+
+        return [{ label: 'dropdown', value: 'dropdown' },
+        { label: "radio", value: "radio" },
+        { label: "reference", value: "reference" },
+        { label: "checkbox", value: 'checkbox' }
+        ];
     };
 
     const filterOptions = getFilterOptions();
@@ -80,23 +83,24 @@ const AuditFilterModal = ({
                     filterOptions.map((item) => {
                         const uid = item?.value
                         return (
-                        <div key={uid} >
-                            <div className="tableFilterModalStories__suggestion-item">
-                                <Checkbox
-                                    checked={selectedLevels?.some((v) => v?.value === item?.value)}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                        updateValue({ value: item, isChecked: e?.target?.checked })
-                                    }
-                                    version="v2"
-                                    label={item?.label}
-                                    className="text-size"
-                                />
+                            <div key={uid} >
+                                <div className="tableFilterModalStories__suggestion-item">
+                                    <Checkbox
+                                        checked={selectedLevels?.some((v) => v?.value === item?.value)}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                            updateValue({ value: item, isChecked: e?.target?.checked })
+                                        }
+                                        version="v2"
+                                        label={item?.label}
+                                        className="text-size"
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    )})
+                        )
+                    })
                 ) : (
                     <div className="tableFilterModalStories__no-data">
-                        {auditLogsConstants?.filterModal?.noFilterAvailabe}
+                        {auditLogsConstants?.filterModal?.noFilterAvailable}
                     </div>
                 )}
             </div>

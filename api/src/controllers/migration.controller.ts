@@ -12,7 +12,10 @@ const createTestStack = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.createTestStack(req);
   res.status(resp?.status).json(resp);
 };
-
+const getAuditData = async (req: Request, res: Response): Promise<void> => {
+  const resp = await migrationService.getAuditData(req);
+  res.status(resp?.status).json(resp);
+};
 /**
  * Start Test Migartion.
  *
@@ -49,13 +52,10 @@ const deleteTestStack = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.deleteTestStack(req);
   res.status(200).json(resp);
 };
-const getAuditData = async (req: Request, res: Response): Promise<void> => {
-  const resp = await migrationService.getAuditData(req);
-  res.status(resp?.status).json(resp);
-};
+
 const getLogs = async (req: Request, res: Response): Promise<void> => {
   const resp = await migrationService.getLogs(req);
-  res.status(resp?.status).json(resp);
+  res.status(200).json(resp);
 };
 
 const saveLocales = async (req: Request, res: Response): Promise<void> => {

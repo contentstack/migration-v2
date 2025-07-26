@@ -7,6 +7,7 @@ import { cbModal, Notification } from '@contentstack/venus-components';
 // Redux files
 import { RootState } from '../../store';
 import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
+import { useWarnOnRefresh } from '../../hooks/useWarnOnrefresh';
 
 // Services
 import {
@@ -100,9 +101,37 @@ const Migration = () => {
   const saveRef = useRef<ContentTypeSaveHandles>(null);
   const newMigrationDataRef = useRef(newMigrationData);
 
+  const [isSaved, setIsSaved] = useState<boolean>(false);
+
   useEffect(() => {
     fetchData();
   }, [params?.stepId, params?.projectId, selectedOrganisation?.value]);
+
+  useWarnOnRefresh(isSaved);
+
+  useEffect(()=>{
+    const hasNonEmptyMapping =
+    newMigrationData?.destination_stack?.localeMapping &&
+    Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
+      ([label, value]: [string, string]) =>
+        Boolean(label?.trim()) &&
+        value !== '' &&
+        value !== null &&
+        value !== undefined
+    );
+    if(legacyCMSRef?.current && !isCompleted && newMigrationData?.project_current_step === 1){
+      setIsSaved(true);    
+    }
+    else if ((isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) && newMigrationData?.project_current_step === 2)){
+     setIsSaved(true);
+    }
+    else if(newMigrationData?.content_mapping?.isDropDownChanged){
+      setIsSaved(true);
+    }
+    else{
+      setIsSaved(false);
+    }
+  },[isCompleted, newMigrationData])
 
   /**
  * Dispatches the isprojectMapped key to redux
@@ -111,9 +140,9 @@ const Migration = () => {
   //   dispatch(updateNewMigrationData({
   //     ...newMigrationDataRef?.current,
   //     isprojectMapped: isProjectMapper
-
+      
   //   }));
-
+    
   // },[isProjectMapper]);
 
 
@@ -200,11 +229,11 @@ const Migration = () => {
     const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
     return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
   };
-
+ 
   // funcrion to form file format object from config response
   const fetchFileFormat = (data: FileDetails) => {
     const filePath = data?.localPath?.toLowerCase();
-    const fileFormat = getFileExtension(filePath ?? '');
+    const fileFormat =  getFileExtension(filePath ?? '');
     const selectedFileFormatObj = {
       description: "",
       fileformat_id: fileFormat,
@@ -215,23 +244,23 @@ const Migration = () => {
     return selectedFileFormatObj;
   }
 
-  // funcrion to form upload object from config response
+// funcrion to form upload object from config response
   const getFileInfo = (data: FileDetails) => {
     const newMigrationDataObj = {
-      name: data?.localPath,
-      url: data?.localPath,
-      isValidated: data?.localPath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath ? false : newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
-      file_details: {
-        isLocalPath: data?.isLocalPath,
-        cmsType: data?.cmsType,
-        localPath: data?.localPath,
-        awsData: {
-          awsRegion: data?.awsData?.awsRegion,
-          bucketName: data?.awsData?.bucketName,
-          buketKey: data?.awsData?.buketKey
-        }
-      },
-      cmsType: data?.cmsType
+          name: data?.localPath,
+          url: data?.localPath,
+          isValidated: false,
+          file_details: {
+            isLocalPath: data?.isLocalPath,
+            cmsType: data?.cmsType,
+            localPath: data?.localPath,
+            awsData: {
+              awsRegion: data?.awsData?.awsRegion,
+              bucketName: data?.awsData?.bucketName,
+              buketKey: data?.awsData?.buketKey
+            }
+          },
+          cmsType: data?.cmsType  
     };
     return newMigrationDataObj;
   }
@@ -240,34 +269,34 @@ const Migration = () => {
    * Fetch the project data
    */
   const fetchProjectData = async () => {
-    if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
-    setIsProjectMapper(true);
-    const migrationData = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
-    const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId);
-    const { data } = await getConfig();
-    const fileFormat = fetchFileFormat(data);
-    const uploadObj = getFileInfo(data);
-
-    if (migrationData) {
-      setIsLoading(false);
-      setProjectData(migrationData?.data);
-    }
-    const projectData = migrationData?.data;
+  if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
+  setIsProjectMapper(true);
+  const migrationData = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
+  const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
+  const {data} = await getConfig();
+  const fileFormat =  fetchFileFormat(data);
+  const uploadObj = getFileInfo(data);
+ 
+  if (migrationData) {
+    setIsLoading(false);
+    setProjectData(migrationData?.data);
+  }
+  const projectData = migrationData?.data;
 
     const legacyCmsData: ILegacyCMSComponent = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
 
     const selectedCmsData: ICMSType = validateArray(legacyCmsData?.all_cms)
       ? legacyCmsData?.all_cms?.find(
-        (cms: ICMSType) => cms?.cms_id === projectData?.legacy_cms?.cms
-      ) ?? DEFAULT_CMS_TYPE
+          (cms: ICMSType) => cms?.cms_id === projectData?.legacy_cms?.cms
+        ) ?? DEFAULT_CMS_TYPE
       : DEFAULT_CMS_TYPE;
 
     const selectedFileFormatData: ICardType | undefined = validateArray(
       selectedCmsData?.allowed_file_formats
     )
       ? selectedCmsData.allowed_file_formats?.find(
-        (cms: ICardType) => cms?.fileformat_id === projectData?.legacy_cms?.file_format
-      )
+          (cms: ICardType) => cms?.fileformat_id === projectData?.legacy_cms?.file_format
+        )
       : fileFormat;
 
     const selectedOrganisationData = validateArray(organisationsList)
@@ -286,17 +315,18 @@ const Migration = () => {
     const existingContentTypes = await fetchExistingContentTypes();
     const existingGlobalFields = await fetchExistingGlobalFields();
 
-    const stackLink = `${CS_URL[projectData?.region]}/stack/${projectData?.current_test_stack_id
-      }/dashboard`;
+    const stackLink = `${CS_URL[projectData?.region]}/stack/${
+      projectData?.current_test_stack_id
+    }/dashboard`;
     const stackName = projectData?.test_stacks?.find(
       (stack: TestStacks) => stack?.stackUid === projectData?.current_test_stack_id
     )?.stackName;
 
     const masterLocaleEntries = projectData?.master_locale
       ? Object?.entries(projectData?.master_locale).map(([key, value]) => [
-        `${key}-master_locale`,
-        value
-      ])
+          `${key}-master_locale`,
+          value
+        ])
       : [];
 
     const locales = {
@@ -310,7 +340,7 @@ const Migration = () => {
         ...newMigrationData?.legacy_cms,
         selectedCms: selectedCmsData,
         selectedFileFormat: selectedFileFormatData,
-        affix: projectData?.legacy_cms?.affix,
+        affix:  projectData?.legacy_cms?.affix ,
         uploadedFile: projectData?.legacy_cms?.is_fileValid ? {
           ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
           file_details: {
@@ -627,7 +657,7 @@ const Migration = () => {
               const url = `/projects/${projectId}/migration/steps/4`;
               navigate(url, { replace: true });
 
-              await updateCurrentStepData(selectedOrganisation?.value, projectId);
+              await updateCurrentStepData(selectedOrganisation.value, projectId);
               handleStepChange(3);
             }}
             dropdownStateChange={changeDropdownState}
@@ -640,12 +670,12 @@ const Migration = () => {
       });
     } else {
 
-      const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
-      setIsLoading(false);
-      event.preventDefault();
-      handleStepChange(3);
-      const url = `/projects/${projectId}/migration/steps/4`;
-      navigate(url, { replace: true });
+      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+        setIsLoading(false);
+        event.preventDefault();
+        handleStepChange(3);
+        const url = `/projects/${projectId}/migration/steps/4`;
+        navigate(url, { replace: true });
 
     }
   };
@@ -656,13 +686,13 @@ const Migration = () => {
   const handleOnClickTestMigration = async () => {
     setIsLoading(false);
 
-    await updateMigrationKey(selectedOrganisation?.value, projectId);
+    await updateMigrationKey(selectedOrganisation.value, projectId);
 
-    const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
+    const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
     //if (res?.status === 200) {
-    handleStepChange(4);
-    const url = `/projects/${projectId}/migration/steps/5`;
-    navigate(url, { replace: true });
+      handleStepChange(4);
+      const url = `/projects/${projectId}/migration/steps/5`;
+      navigate(url, { replace: true });
     //}
   };
 

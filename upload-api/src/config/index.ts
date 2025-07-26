@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: 'sitecore',
+  cmsType: process.env.CMS_TYPE || 'cmsType',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
@@ -12,5 +12,5 @@ export default {
     bucketName: '',
     bucketKey: ''
   },
-  localPath: '/Users/samarp.jain/Desktop/package 45.zip',
+  localPath: process.env.CONTAINER_PATH || 'your-local-legacy-cms-path',
 };

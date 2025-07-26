@@ -101,6 +101,7 @@ export const HTTP_TEXTS = {
   LOGS_NOT_FOUND: "Sorry, no logs found for requested stack migration.",
   MIGRATION_EXECUTION_KEY_UPDATED:
     "Project's migration execution key updated successfully",
+  CONTENT_TYPE_INVALID: "Invalid contentTypes: Expected an array."
 };
 
 export const HTTP_RESPONSE_HEADERS = {
@@ -265,11 +266,6 @@ export const MIGRATION_DATA_CONFIG = {
   POSTS_FILE_NAME: "en-us.json",
   POSTS_MASTER_FILE: "posts.json",
 
-  PAGES_DIR_NAME: "pages",
-  PAGES_FOLDER_NAME: "en-us",
-  PAGES_FILE_NAME: "en-us.json",
-  PAGES_MASTER_FILE: "pages.json",
-  
   CHUNKS_DIR_NAME: "chunks",
 
   GLOBAL_FIELDS_DIR_NAME: "global_fields",
@@ -277,7 +273,6 @@ export const MIGRATION_DATA_CONFIG = {
 
   EXPORT_INFO_FILE: "export-info.json",
 };
-
 export const GET_AUDIT_DATA = {
   MIGRATION: "migration-v2",
   API_DIR: "api",
