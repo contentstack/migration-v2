@@ -545,7 +545,8 @@ const AdvancePropertise = (props: SchemaProps) => {
               <FieldLabel className="option-label" htmlFor="options" version="v2">
                 Referenced Content Type
               </FieldLabel>
-              <Tag tags={props?.data?.refrenceTo} isDisabled={true} version={'v2'} />
+              
+              <Tag tags={props?.data?.refrenceTo?.length ? props?.data?.refrenceTo : ['No content type is referred']} isDisabled={true} version={'v2'} />
             </Field>
           )}
 
