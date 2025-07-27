@@ -62,7 +62,7 @@ const uidCorrector = (uid, prefix) => {
  *
  * // Outputs: an array of content type objects, each containing metadata and field mappings.
  */
-const createInitialMapper = async (cleanLocalPath) => {
+const createInitialMapper = async (cleanLocalPath, affix) => {
   try {
     const alldata = readFile(cleanLocalPath);
     const { entries } = alldata;
@@ -85,7 +85,7 @@ const createInitialMapper = async (cleanLocalPath) => {
         otherCmsTitle: title,
         otherCmsUid: data[0]?.contentfulID,
         contentstackTitle: title.charAt(0).toUpperCase() + title.slice(1),
-        contentstackUid: uidCorrector(data[0]?.contentUid),
+        contentstackUid: uidCorrector(data[0]?.contentUid, affix),
         type: 'content_type',
         fieldMapping: []
       };
