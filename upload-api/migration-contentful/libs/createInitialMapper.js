@@ -62,8 +62,11 @@ const uidCorrector = (uid, prefix) => {
  *
  * // Outputs: an array of content type objects, each containing metadata and field mappings.
  */
-const createInitialMapper = async () => {
+const createInitialMapper = async (cleanLocalPath) => {
   try {
+    const alldata = readFile(cleanLocalPath);
+    const { entries } = alldata;
+
     const initialMapper = [];
     const files = await fs.readdir(
       path.resolve(process.cwd(), `${config.data}/${config.contentful.contentful}`)
@@ -110,7 +113,7 @@ const createInitialMapper = async () => {
           advanced: { mandatory: true }
         }
       ];
-      const contentstackFields = [...uidTitle, ...contentTypeMapper(data)]?.filter?.(
+      const contentstackFields = [...uidTitle, ...contentTypeMapper(data, entries)]?.filter?.(
         Boolean
       );
 
