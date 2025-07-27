@@ -39,7 +39,7 @@ const contentfulFolderPath = path.resolve(
  * @throws {Error} If an error occurs while processing or saving the content types, the error is thrown.
  * 
  */
-const saveContentType = (contentTypes, editorInterface, prefix) => {
+const saveContentType = (contentTypes, editorInterface, prefix, entries) => {
   try {
     const contentName = contentTypes.map((content) => {
       return content.sys.id.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -106,10 +106,10 @@ const extractContentTypes = async (filePath, prefix) => {
     }
     
     const alldata = readFile(filePath);
-    const { contentTypes, editorInterfaces } = alldata;
+    const { contentTypes, editorInterfaces, entries } = alldata;
 
     if (contentTypes && contentTypes.length > 0) {
-      saveContentType(contentTypes, editorInterfaces, prefix);
+      saveContentType(contentTypes, editorInterfaces, prefix, entries);
     } else {
       console.log("No content-type found");
     }
