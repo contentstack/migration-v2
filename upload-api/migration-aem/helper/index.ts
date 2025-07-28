@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { IReadFiles } from "./types/index.interface";
+import { MergeStrategy } from "./types/index.interface"
 
 
 /**
@@ -40,4 +41,120 @@ export const extractComponentPath = (line: string): string | null => {
   // Get the last element after the last '/'
   const parts = match[0].split('/');
   return parts[parts.length - 1];
+}
+
+
+/*
+ * Interface for merge strategy implementations
+ * Following Interface Segregation Principle (ISP)
+ */
+export class SchemaComponentMergeStrategy implements MergeStrategy {
+  canMerge(key: string, sourceValue: any, targetValue: any): boolean {
+    return !!sourceValue?.convertedSchema && !!targetValue?.convertedSchema;
+  }
+
+  merge(key: string, sourceValue: any, targetValue: any): any {
+    // Keep the most complete schema definition
+    if (Object.keys(sourceValue.convertedSchema).length >
+      Object.keys(targetValue.convertedSchema).length) {
+      return sourceValue;
+    }
+    return targetValue;
+  }
+}
+
+/**
+ * Default strategy for merging components
+ */
+export class DefaultMergeStrategy implements MergeStrategy {
+  canMerge(key: string, sourceValue: any, targetValue: any): boolean {
+    return true; // This is the fallback strategy
+  }
+
+  merge(key: string, sourceValue: any, targetValue: any): any {
+    return sourceValue; // Default to taking the newer value
+  }
+}
+
+/**
+ * Component merger following SOLID principles
+ * Open/Closed Principle (OCP) - open for extension with new strategies
+ * Dependency Inversion Principle (DIP) - depends on abstractions not implementations
+ */
+export class ComponentMerger {
+  private strategies: MergeStrategy[];
+
+  constructor(strategies?: MergeStrategy[]) {
+    // Default strategies if none provided
+    this.strategies = strategies || [
+      new SchemaComponentMergeStrategy(),
+      new DefaultMergeStrategy()
+    ];
+  }
+
+  /**
+   * Add a new merge strategy
+   * OCP - extend functionality without modifying existing code
+   */
+  addStrategy(strategy: MergeStrategy): void {
+    this.strategies.push(strategy);
+  }
+
+  /**
+   * Find the appropriate strategy for merging
+   */
+  private findStrategy(key: string, sourceValue: any, targetValue: any): MergeStrategy {
+    return this.strategies.find(strategy =>
+      strategy.canMerge(key, sourceValue, targetValue)
+    ) || this.strategies[this.strategies.length - 1]; // Default to last strategy
+  }
+
+  /**
+   * Merge a single key between two objects
+   * SRP - focused responsibility
+   */
+  private mergeKey(key: string, sourceValue: any, targetObject: any): void {
+    if (!targetObject[key]) {
+      // Key doesn't exist in target, simply add it
+      targetObject[key] = sourceValue;
+    } else {
+      // Find and apply the appropriate merge strategy
+      const strategy = this.findStrategy(key, sourceValue, targetObject[key]);
+      targetObject[key] = strategy.merge(key, sourceValue, targetObject[key]);
+    }
+  }
+
+  /**
+   * Merge objects together
+   * Public API for this class
+   */
+  merge(objects: Record<string, any>[]): Record<string, any> {
+    if (!objects.length) return {};
+
+    const result: Record<string, any> = {};
+
+    objects.forEach(obj => {
+      Object.keys(obj).forEach(key => {
+        this.mergeKey(key, obj[key], result);
+      });
+    });
+
+    return result;
+  }
+}
+
+/**
+ * Factory function to create a component merger
+ * Makes using the class easier without exposing implementation details
+ */
+export function createComponentMerger(strategies?: MergeStrategy[]): ComponentMerger {
+  return new ComponentMerger(strategies);
+}
+
+/**
+ * Convenience function that wraps the merger for simple use cases
+ */
+export function mergeComponentObjects(objects: Record<string, any>[]): Record<string, any> {
+  const merger = createComponentMerger();
+  return merger.merge(objects);
 }

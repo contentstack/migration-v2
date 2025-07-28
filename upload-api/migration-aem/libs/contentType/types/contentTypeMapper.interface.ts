@@ -1,3 +1,5 @@
+import ComponentTracker from "../../../componentMaker/componentTracker";
+
 interface IContentTypeMappersParams {
   templateData: any;
   affix: string;
@@ -20,6 +22,7 @@ interface IContentTypeSchemaParams {
 interface IContentTypeProcessorParams {
   itemSchema: IItemSchema;
   affix: string;
+  tracker: ComponentTracker;
 }
 
 export interface IContentTypeMappers {
