@@ -1,5 +1,13 @@
 import { ContentstackComponent } from '../fields';
-import { TextField, SelectField, BooleanField } from "../fields/contentstackFields"
+import { TextField, BooleanField, GroupField } from "../fields/contentstackFields"
+import { SchemaProperty } from './index.interface';
+
+
+const titleExclude = [
+  'dataLayer',
+  ':type',
+  'id',
+];
 
 export class TitleComponent extends ContentstackComponent {
 
@@ -35,28 +43,66 @@ export class TitleComponent extends ContentstackComponent {
     return false;
   }
 
+  static fieldTypeMap: Record<string, (key: string, schemaProp: SchemaProperty) => any> = {
+    string: (key, schemaProp) => new TextField({
+      uid: key,
+      displayName: key,
+      description: "",
+      defaultValue: schemaProp.value
+    }).toContentstack(),
+    boolean: (key, schemaProp) => new BooleanField({
+      uid: key,
+      displayName: key,
+      description: "",
+      defaultValue: schemaProp.value
+    }).toContentstack(),
+    integer: (key, schemaProp) => new TextField({
+      uid: key,
+      displayName: key,
+      description: "",
+      isNumber: true,
+      defaultValue: schemaProp.value
+    }).toContentstack(),
+    object: () => null,
+    array: () => null
+  };
+
   /**
    * Maps an AEM title component to Contentstack format with grouped properties
    */
-  static mapTitleToContentstack(component: any): any {
-    const componentIdField = new TextField({
-      uid: "component_id",
-      displayName: "Component ID",
-      description: "Unique identifier for the title component"
-    });
-    const contentText = new TextField({
-      uid: "text",
-      displayName: "Text Content",
-      description: "The text content",
+  static mapTitleToContentstack(component: any, parentKey: any): any {
+    const properties = component?.convertedSchema?.properties;
+    if (!properties) return [];
+
+    const fields: any[] = [];
+
+    for (const [key, value] of Object.entries(properties)) {
+      if (titleExclude.includes(key)) continue;
+      const schemaProp = value as SchemaProperty;
+      if (schemaProp?.type && TitleComponent.fieldTypeMap[schemaProp.type]) {
+        fields.push(TitleComponent.fieldTypeMap[schemaProp.type](key, schemaProp));
+      }
+    }
+
+    const hasTitleOrText = fields.some(f => ['title', 'text'].includes(f.uid));
+    if (!hasTitleOrText) {
+      fields.push(
+        new TextField({
+          uid: "text",
+          displayName: "text",
+          description: "",
+          required: false,
+          multiline: false
+        }).toContentstack()
+      );
+    }
+
+    return new GroupField({
+      uid: parentKey,
+      displayName: parentKey,
+      fields,
       required: false,
-      multiline: false
-    });
-    const linkDisabled = new BooleanField({
-      uid: "link_disabled",
-      displayName: "Link Disabled",
-      description: "Whether the title has linking disabled",
-      defaultValue: false
-    })
-    return [componentIdField.toContentstack(), contentText.toContentstack(), linkDisabled.toContentstack()]
+      multiple: false
+    }).toContentstack();
   }
 }

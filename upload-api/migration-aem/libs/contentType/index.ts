@@ -1,44 +1,40 @@
 import path from 'path';
 import read from 'fs-readdir-recursive';
-import { mergeComponentObjects, readFiles } from "../../helper/index";
+import { mergeComponentObjects, readFiles, writeJsonFile } from "../../helper/index";
 import { IConvertContentType } from "./types/index.interface";
 import contentTypeMappers from './contentTypeMapper';
 import { CONSTANTS } from "../../constant/index"
 import { TitleComponent } from './components/TitleComponent';
 import { TextComponent } from './components/TextComponent';
 import { NavigationComponent } from './components/NavigationComponent';
+import { SeparatorComponent } from './components/SeparatorComponent';
+import { SearchComponent } from './components/SearchComponent';
 
 
 // Update the function signature to accept either format
-function processTitleComponents(components: Record<string, any> | Record<string, any>[]): Record<string, any> | Record<string, any>[] {
+function processComponents(components: Record<string, any> | Record<string, any>[]): Record<string, any> | Record<string, any>[] {
   // If components is an array, map through it
   if (Array.isArray(components)) {
     return components.map(component => {
-      if (TitleComponent.isTitle(component)) {
-        return TitleComponent.mapTitleToContentstack(component);
-      }
       return component;
     });
   }
 
-  // If components is an object, process its properties
-  else {
-    const result: Record<string, any> = {};
-    for (const key in components) {
-      const component = components[key];
-      const mappingRules = [
-        () => TitleComponent.isTitle(component) && TitleComponent.mapTitleToContentstack(component),
-        () => TextComponent.isText(component) && TextComponent.mapTextToContentstack(component),
-        () => NavigationComponent.isNavigation(component) && NavigationComponent.mapNavigationTOContentstack(component, key),
-        () => NavigationComponent.isLanguageNavigation(component) && NavigationComponent.mapNavigationTOContentstack(component, key),
-        () => component
-      ];
-      result[key] = mappingRules.map(fn => fn()).find(Boolean);
-    }
-    console.info("🚀 ~ processTitleComponents ~ result:", result)
-
-    return result;
+  const result: Record<string, any> = {};
+  for (const key in components) {
+    const component = components[key];
+    const mappingRules = [
+      () => TitleComponent.isTitle(component) && TitleComponent.mapTitleToContentstack(component, key),
+      () => TextComponent.isText(component) && TextComponent.mapTextToContentstack(component),
+      () => NavigationComponent.isNavigation(component) && NavigationComponent.mapNavigationTOContentstack(component, key),
+      () => NavigationComponent.isLanguageNavigation(component) && NavigationComponent.mapNavigationTOContentstack(component, key),
+      () => SeparatorComponent.isSeparator(component) && SeparatorComponent.mapSeparatorToContentstack(component, key),
+      () => SearchComponent.isSearch(component) && SearchComponent.mapSearchToContentstack(component, key),
+      () => JSON.stringify({ key, component })
+    ];
+    result[key] = mappingRules.map(fn => fn()).find(Boolean);
   }
+  return result;
 }
 
 
@@ -54,9 +50,10 @@ const convertContentType: IConvertContentType = async (dirPath) => {
     allComponentData.push(trackerData);
   }
   const mergedComponents = mergeComponentObjects(allComponentData);
-  const contentstackComponents: any = processTitleComponents(mergedComponents);
+  const contentstackComponents: any = processComponents(mergedComponents);
+  await writeJsonFile(contentstackComponents, CONSTANTS.TMP_FILE);
 }
 
 
 
-export default convertContentType;
+export default convertContentType; 

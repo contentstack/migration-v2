@@ -47,7 +47,6 @@ export class TextComponent extends ContentstackComponent {
    */
   static mapTextToContentstack(component: any): any {
     const id = component?.convertedSchema?.properties?.id?.value || '';
-    const sitecoreKey = component?.convertedSchema?.properties?.id?.value || '';
     const name = 'text';
     const type = 'Rich Text';
     const uid = 'text';
@@ -57,14 +56,14 @@ export class TextComponent extends ContentstackComponent {
     if (isRichText) {
       return {
         id: id,
-        uid: sitecoreKey,
+        uid: name,
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
         contentstackFieldUid: uid,
         contentstackFieldType: 'json',
         backupFieldType: 'json',
-        backupFieldUid: uid,
+        backupFieldUid: 'json',
         advanced: { default_value: default_value !== '' ? default_value : null }
       };
     }
