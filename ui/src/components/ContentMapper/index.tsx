@@ -321,16 +321,13 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }, []);
 
   // Make title and url field non editable
- useEffect(() => {
-  tableData?.forEach((field) => {
-    if (field?.backupFieldType === 'reference' && field?.refrenceTo?.length === 0) {
-      field._canSelect = false;
-    } else if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
-      field._canSelect = true;
-    }
-  });
-}, [tableData]);
-
+  useEffect(() => {
+    tableData?.forEach((field) => {
+      if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
+        field._canSelect = true;
+      }
+    });
+  },[tableData]);
 
   useEffect(() => {
     const mappedContentType = contentModels && contentModels?.find((item)=> item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || '']);
@@ -814,15 +811,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     return (
       <div>
         <div className='d-flex align-items-center'>
-          <div className={`${data?.backupFieldType === 'text' || data?.backupFieldType === 'url' ? `cms-field w-auto` : `cms-field`}`}>{(data?.contentstackFieldType === 'reference' && data?.refrenceTo?.length === 0) ? 
-          <>
-            {data?.otherCmsField}
-            <Tooltip position='top' content='This field does not have a referenced content type and will not be migrated.' style={{marginLeft:'5px'}}>
-              <Icon version={'v2'} size='tiny' icon={'WarningBold'}></Icon>
-            </Tooltip>
-          </>
-          :
-          data?.otherCmsField}</div>
+          <div className={`${data?.backupFieldType === 'text' || data?.backupFieldType === 'url' ? `cms-field w-auto` : `cms-field`}`}>{data?.otherCmsField}</div>
           {(data?.backupFieldType === 'text' || data?.backupFieldType === 'url') && (
             <OutlineTag content='Default Field' className="ml-10" />
           )}
