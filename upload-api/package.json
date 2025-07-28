@@ -7,6 +7,7 @@
     "build": "npm --prefix migration-aem run build && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npm run build &&tsc && node build/index.js",
+    "startNew": "tsc && node build/index.js",
     "validation": "tsc && node build/main.js",
     "prettify": "prettier --write .",
     "lint": "eslint .",

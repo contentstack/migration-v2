@@ -2,7 +2,6 @@
 import { FC, ReactNode, useEffect } from 'react';
 import { Params, useLocation, useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
-
 import { getUserDetails } from '../../../store/slice/authSlice';
 
 // Component

@@ -145,29 +145,41 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
           });
         }
         else {
-          // Create a writable stream to save the downloaded zip file
-          let zipBuffer = Buffer.alloc(0);
+          const chunks: Buffer[] = [];
+          let totalLength = 0;
 
-          // Collect the data from the stream into a buffer
           bodyStream.on('data', (chunk) => {
             if (!Buffer.isBuffer(chunk)) {
               throw new Error('Expected chunk to be a Buffer');
-            } else {
-              zipBuffer = Buffer.concat([zipBuffer, chunk]);
+            }
+            chunks.push(chunk);
+            totalLength += chunk.length;
+          });
+
+          bodyStream.on('end', async () => {
+            try {
+              if (chunks.length === 0) {
+                return res.status(400).json({ error: 'No data collected from the stream.' });
+              }
+
+              const zipBuffer = Buffer.concat(chunks, totalLength);
+              const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
+
+              res.status(data?.status || 200).json(data);
+
+              if (data?.status === 200) {
+                const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+                createMapper(filePath, projectId, app_token, affix, config);
+              }
+            } catch (error) {
+              console.error('Processing error:', error);
+              res.status(500).json({ error: 'Failed to process file' });
             }
           });
 
-          //buffer fully stremd
-          bodyStream.on('end', async () => {
-            if (!zipBuffer) {
-              throw new Error('No data collected from the stream.');
-            }
-            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
-            res.status(data?.status || 200).json(data);
-            if (data?.status === 200) {
-              const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
-              createMapper(filePath, projectId, app_token, affix, config);
-            }
+          bodyStream.on('error', (error) => {
+            console.error('Stream error:', error);
+            res.status(500).json({ error: 'Stream processing failed' });
           });
         }
       }

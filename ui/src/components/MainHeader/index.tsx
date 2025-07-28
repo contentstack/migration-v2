@@ -33,6 +33,7 @@ import NotificationModal from '../Common/NotificationModal';
 // Styles
 import './index.scss';
 import useBlockNavigation from '../../hooks/userNavigation';
+import ChatbotButton from '../chatbot';
 
 const MainHeader = () => {
   const user = useSelector((state: RootState) => state?.authentication?.user);
@@ -195,6 +196,9 @@ const MainHeader = () => {
 
       {(location.pathname == '/projects' || location.pathname.includes('/projects/')) && (
         <div className="flex-end">
+          <div className="Dropdown-wrapper">
+            <ChatbotButton />
+          </div>
           <div className="Dropdown-wrapper">
             <Tooltip content={'Profile'} position="top">
               <Dropdown

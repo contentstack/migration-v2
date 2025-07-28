@@ -118,9 +118,8 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     return {
       data: {
         data: res.data,
-        url: `${
-          config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
-        }/stack/${res.data.stack.api_key}/dashboard`,
+        url: `${config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
+          }/stack/${res.data.stack.api_key}/dashboard`,
       },
       status: res.status,
     };

@@ -1,38 +1,33 @@
+import LoggerHandler from "../../componentMaker/componentHandler";
+import ComponentTracker from "../../componentMaker/componentTracker";
 import { extractComponentPath } from "../../helper";
-import { IContentTypeMappers, IcontentTypeProcessor, IContentTypeSchemaBuilder } from "./types/contentTypeMapper.interface";
+import { IContentTypeMappers, IcontentTypeProcessor } from "./types/contentTypeMapper.interface";
 
 
 
-const contentTypeSchemaBuilder: IContentTypeSchemaBuilder = async ({ type }) => {
-  switch (type) {
-
-  }
-}
 
 
-const contentTypeProcessor: IcontentTypeProcessor = async ({ itemSchema, affix }) => {
+const contentTypeProcessor: IcontentTypeProcessor = async ({ itemSchema, affix, tracker }) => {
   const fieldTypes: string[] | undefined = itemSchema?.[':itemsOrder'];
-  console.info("=================================>")
   for await (const field of fieldTypes ?? []) {
     const item = itemSchema?.[":items"]?.[field];
-    const type = extractComponentPath(item?.[":type"]);
-    console.info("🚀 ~ forawait ~ item:", type);
-    await contentTypeProcessor({ itemSchema: item, affix });
-    // const fieldItemsOrder = item?.[":itemsOrder"];
-    // console.info("🚀 ~ field:", item?.[":type"], fieldItemsOrder);
+    const type = extractComponentPath(item?.[":type"]) ?? null;
+    await contentTypeProcessor({ itemSchema: item, affix, tracker });
+    type && tracker.pushComponent({ component: type, props: item ?? {} })
   }
-
 }
 
 const contentTypeMappers: IContentTypeMappers = async ({ templateData, affix }) => {
+  const tracker = new ComponentTracker([
+    new LoggerHandler(),
+  ]);
   // The ':itemsOrder' key is from AEM template structure and not a secret
   for (const key of templateData?.[':itemsOrder'] ?? []) {
     // The ':items' key is from AEM template structure and not a secret
     const item = templateData?.[":items"]?.[key]
-    await contentTypeProcessor({ itemSchema: item, affix })
+    await contentTypeProcessor({ itemSchema: item, affix, tracker })
   }
-
-
+  return tracker;
 }
 
 
