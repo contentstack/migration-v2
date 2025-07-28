@@ -200,6 +200,7 @@ export interface INewMigration {
   content_mapping: IContentMapper;
   test_migration: ITestMigration;
   isprojectMapped: boolean;
+  isContentMapperGenerated: boolean;
   stackDetails: IDropDown;
   migration_execution: IMigrationExecutionStep;
   project_current_step: number;
@@ -391,6 +392,7 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP,
   project_current_step: 0,
   settings: DEFAULT_SETTING,
+  isContentMapperGenerated: false,
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {
