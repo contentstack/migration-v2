@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { IReadFiles } from "./types/index.interface";
 import { MergeStrategy } from "./types/index.interface"
 
@@ -157,4 +158,25 @@ export function createComponentMerger(strategies?: MergeStrategy[]): ComponentMe
 export function mergeComponentObjects(objects: Record<string, any>[]): Record<string, any> {
   const merger = createComponentMerger();
   return merger.merge(objects);
+}
+
+
+
+/**
+ * Writes the given data to a JSON file at the specified path.
+ * Ensures the directory exists before writing.
+ * @param data - The data to write.
+ * @param filePath - The file path to write to.
+ */
+export async function writeJsonFile(
+  data: any,
+  filePath: string = './contentstackComponents.json'
+): Promise<void> {
+  const dir = path.dirname(filePath);
+  try {
+    await fs.promises.mkdir(dir, { recursive: true });
+    await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (error) {
+    throw new Error(`Failed to write JSON file: ${error}`);
+  }
 }

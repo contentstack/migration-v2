@@ -65,7 +65,7 @@ export class TextField extends Field {
       contentstackFieldUid: this.uid,
       contentstackFieldType: `${fieldType}`,
       backupFieldType: fieldType,
-      backupFieldUid: this.uid,
+      backupFieldUid: fieldType,
       advanced: {
         default_value: this.defaultValue !== undefined ? this.defaultValue : null,
         description: this.description,
@@ -108,7 +108,7 @@ export class SelectField extends Field {
       contentstackFieldUid: this.uid,
       contentstackFieldType: this.multiple ? 'multi_select' : 'select',
       backupFieldType: 'select',
-      backupFieldUid: this.uid,
+      backupFieldUid: 'select',
       advanced: {
         default_value: this.defaultValue !== undefined ? this.defaultValue : null,
         description: this.description,
@@ -149,7 +149,7 @@ export class BooleanField extends Field {
       contentstackFieldUid: this.uid,
       contentstackFieldType: 'boolean',
       backupFieldType: 'boolean',
-      backupFieldUid: this.uid,
+      backupFieldUid: 'boolean',
       advanced: {
         default_value: this.defaultValue !== undefined ? this.defaultValue : null,
         description: this.description,
@@ -225,7 +225,7 @@ export class LinkField extends Field {
       contentstackFieldUid: uid,
       contentstackFieldType: 'link',
       backupFieldType: 'link',
-      backupFieldUid: uid,
+      backupFieldUid: 'link',
       advanced: { default_value: default_value !== '' ? default_value : null }
     };
   }
