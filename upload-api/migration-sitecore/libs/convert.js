@@ -30,7 +30,7 @@ function ExtractFiles(sitecore_folder) {
   for (let i = 0; i < xml_folder.length; i++) {
     if (xml_folder?.[i]?.endsWith?.("xml")) {
       const xml_data = path?.join?.(sitecore_folder, xml_folder?.[i]);
-      const jsonFilePath = xml_data?.replace?.('xml', '');
+      const jsonFilePath = xml_data?.replace?.(/xml$/, '');
       parseString(helper?.readXMLFile?.(xml_data), { explicitArray: false }, function (err, result) {
         if (err) {
           console.error("failed to parse xml: ", err);

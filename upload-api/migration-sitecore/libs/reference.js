@@ -46,11 +46,26 @@ function ExtractRef() {
   );
   const globalFieldUids = [];
   const contentTypesPaths = read(contentFolderPath);
-  if (contentTypesPaths?.length && basePages && contentTypeKeys && treeListRef) {
+  if (contentTypesPaths?.length || basePages || contentTypeKeys || treeListRef) {
     contentTypesPaths?.forEach((item) => {
       const contentType = helper.readFile(path?.join?.(contentFolderPath, `${item}`));
       if (contentType?.id || contentType?.contentstackUid) {
-        const refTree = treeListRef[contentType?.contentstackUid];
+        if (contentType?.fieldMapping?.length) {
+          for (const field of contentType?.fieldMapping ?? []) {
+            if (field?.contentstackFieldType === "reference" && field?.sourceKey) {
+              const matches = field?.sourceKey?.content?.match?.(/\{[A-F0-9-]{36}\}/gi);
+              const uids = [];
+              if (matches?.length) {
+                for (const uid of matches) {
+                  contentTypeKeys?.[uid] ? uids?.push(contentTypeKeys?.[uid]) : null
+                }
+              }
+              field.refrenceTo = uids;
+              delete field?.sourceKey;
+            }
+          }
+        }
+        const refTree = treeListRef?.[contentType?.contentstackUid];
         if (refTree?.unique?.length) {
           const contentTypesPathsMaped = contentTypesPaths?.map((item) =>
             item?.replace?.('.json', '')
@@ -78,7 +93,7 @@ function ExtractRef() {
             contentType.fieldMapping.push(schemaObject);
           }
         }
-        const itHasBasePresent = basePages[contentType?.id];
+        const itHasBasePresent = basePages?.[contentType?.id];
         if (itHasBasePresent?.content) {
           const references = itHasBasePresent?.content?.split('|');
           if (references?.length) {
