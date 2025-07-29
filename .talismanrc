@@ -61,5 +61,8 @@ fileignoreconfig:
 
   - filename: ui/src/components/Common/Card/card.tsx
     checksum: 6c6194f6b8f470ad107e59f2c4247647bdaa804e458c06b007cf9e074aabac69
+    
+  - filename: upload-api/src/config/index.ts
+    checksum: bd1465785804b3e3942d79f4424498bec838e5aba431c715eb419f3d39cf8d30
 
 
