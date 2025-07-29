@@ -362,6 +362,7 @@ const Migration = () => {
       testStacks: projectData?.test_stacks,
       isprojectMapped: false,
       project_current_step: projectData?.current_step,
+      isContentMapperGenerated: projectData?.content_mapper?.length > 0,
     };
 
     dispatch(updateNewMigrationData(projectMapper));
@@ -483,9 +484,21 @@ const Migration = () => {
 
       if (res?.status === 200) {
         setIsLoading(false);
-        handleStepChange(1);
-        const url = `/projects/${projectId}/migration/steps/2`;
-        navigate(url, { replace: true });
+        // Check if stack is already selected
+        if (newMigrationData?.destination_stack?.selectedStack?.value) {
+          const url = `/projects/${projectId}/migration/steps/3`;
+
+          await updateCurrentStepData(selectedOrganisation?.value, projectId);
+
+          handleStepChange(2);
+          navigate(url, { replace: true });
+        } else {
+          const url = `/projects/${projectId}/migration/steps/2`;
+          await updateCurrentStepData(selectedOrganisation?.value, projectId);
+
+          handleStepChange(1);
+          navigate(url, { replace: true });
+        }
       } else {
         setIsLoading(false);
         Notification({
