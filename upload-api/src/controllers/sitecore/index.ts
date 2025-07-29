@@ -1,4 +1,5 @@
-import axios from "axios";
+import axios, { AxiosResponse, AxiosError } from "axios";
+import http from 'http';
 import { readFileSync } from "fs";
 import path from 'path';
 import { deleteFolderSync } from "../../helper";
@@ -13,6 +14,13 @@ const {
   GLOBAL_FIELDS_DIR_NAME,
   GLOBAL_FIELDS_FILE_NAME
 } = MIGRATION_DATA_CONFIG;
+
+interface RequestParams {
+  payload: any;
+  projectId: string | string[];
+  app_token: string | string[];
+  endpoint?: string;
+}
 
 const createLocaleSource = async ({ app_token, localeData, projectId }: { app_token: string | string[], localeData: any, projectId: string | string[] }) => {
   const mapperConfig = {
@@ -41,11 +49,63 @@ const createLocaleSource = async ({ app_token, localeData, projectId }: { app_to
   }
 }
 
+
+/**
+ * Send an HTTP request with retry capability for handling transient network issues
+ * @param params Request parameters including payload and authentication
+ * @returns Promise with the axios response
+ */
+const sendRequestWithRetry = async <T = any>(params: RequestParams): Promise<AxiosResponse<T>> => {
+  const { payload, projectId, app_token, endpoint = 'mapper/createDummyData' } = params;
+  const maxRetries = 3;
+  let retries = 0;
+
+  while (retries < maxRetries) {
+    try {
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.NODE_BACKEND_API}/v2/${endpoint}/${projectId}`,
+        headers: {
+          app_token,
+          'Content-Type': 'application/json'
+        },
+        data: payload,
+        timeout: 240000, // 4-minute timeout
+        httpAgent: new http.Agent({
+          keepAlive: true,
+          maxSockets: 1
+        })
+      };
+
+      return await axios.request<T>(config);
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      retries++;
+      const delay = 2000 * retries; // Progressive backoff: 2s, 4s, 6s
+
+      logger.warn(`API request failed (attempt ${retries}/${maxRetries}): ${axiosError.code || axiosError.message}`, {
+        status: axiosError.response?.status || 'NETWORK_ERROR'
+      });
+
+      if (retries >= maxRetries) {
+        throw axiosError;
+      }
+
+      logger.info(`Retrying in ${delay / 1000} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  // This line is technically unreachable, but TypeScript requires a return
+  throw new Error("Maximum retries reached");
+};
+
 const createSitecoreMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: object) => {
   try {
     const newPath = path.join(filePath, 'items');
     await ExtractFiles(newPath);
-    const localeData = await extractLocales(path.join(newPath, 'master', 'sitecore', 'content'));
+    const localeData = await extractLocales(path.join(filePath, 'items', 'master', 'sitecore', 'content'));
     await createLocaleSource?.({ app_token, localeData, projectId });
     await ExtractConfiguration(newPath);
     await contentTypes(newPath, affix, config);
@@ -67,18 +127,23 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           fieldMapping.contentTypes.push(element);
         }
       }
-      const config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
-        headers: {
-          app_token,
-          'Content-Type': 'application/json'
-        },
-        data: JSON.stringify(fieldMapping),
-      };
+      // const config = {
+      //   method: 'post',
+      //   maxBodyLength: Infinity,
+      //   url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
+      //   headers: {
+      //     app_token,
+      //     'Content-Type': 'application/json'
+      //   },
+      //   data: JSON.stringify(fieldMapping),
+      // };
 
-      const { data } = await axios.request(config);
+      // const { data } = await axios.request(config);
+      const { data } = await sendRequestWithRetry({
+        payload: fieldMapping,
+        projectId,
+        app_token
+      });
 
       if (data?.data?.content_mapper?.length) {
         deleteFolderSync(infoMap?.path);
