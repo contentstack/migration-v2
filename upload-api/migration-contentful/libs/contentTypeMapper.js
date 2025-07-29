@@ -307,19 +307,21 @@ const contentTypeMapper = (data, entries) => {
               const entriesArray = Object.values(allEntries); 
               if (entriesArray?.length > 0) {
                 entriesArray.forEach((field) => {
-                  if (field[item?.id]) {
-                    const ids = Object.values(field[item?.id])
+                  if (field?.[item?.id]) {
+                    const ids = Object.values(field?.[item?.id])
                       .map(localeEntry => localeEntry?.sys?.id)
                       .filter(Boolean); 
                     const contentTypesRef = entries?.find((entry)=>{
-                      return entry?.sys?.id === ids[0];
+                      return entry?.sys?.id === ids?.[0];
                     })?.sys?.contentType?.sys?.id?.replace(/([A-Z])/g, "_$1")?.toLowerCase();
                     contentTypeRefs?.push(contentTypesRef)
                     
                   }
                 });
               }
+              console.info('contentTypeRefs', contentTypeRefs, contentTypeUid);
               return contentTypeRefs;
+
             }
            
             // Process validations and content names when data.items is not defined

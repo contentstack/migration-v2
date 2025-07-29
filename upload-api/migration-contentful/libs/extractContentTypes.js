@@ -111,7 +111,7 @@ const extractContentTypes = async (filePath, prefix) => {
     if (contentTypes && contentTypes.length > 0) {
       saveContentType(contentTypes, editorInterfaces, prefix, entries);
     } else {
-      console.log("No content-type found");
+      console.info("No content-type found");
     }
   } catch (error) {
     console.error("Error getting all content:", error);
