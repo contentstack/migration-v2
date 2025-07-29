@@ -86,6 +86,7 @@ export interface Advanced {
   options?: any[];
   minSize?: number;
   maxSize?: number;
+  referenedItems?: string[];
   title?: string;
   url?: string;
 }
@@ -206,4 +207,5 @@ export interface ModifiedField {
   backupFieldType: string;
   parentId: string;
   uid: string;
+  _canSelect?: boolean;
 }
