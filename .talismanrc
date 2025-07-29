@@ -62,7 +62,11 @@ fileignoreconfig:
   - filename: ui/src/components/Common/Card/card.tsx
     checksum: 6c6194f6b8f470ad107e59f2c4247647bdaa804e458c06b007cf9e074aabac69
   - filename: upload-api/migration-sitecore/libs/contenttypes.js
-    checksum: b30d7792e245cbf979d151677af4454b327271cc46ee3058f54ee6192d433638
+    checksum: b30d7792e245cbf979d151677af4454b327271  cc46ee3058f54ee6192d433638
   - filename: ui/src/components/ContentMapper/index.tsx
     checksum: b2f520ab58cd790b204f7dcc26f84606185ca0abd96162e2672d3497643e18e7
+    
+  - filename: upload-api/src/config/index.ts
+    checksum: bd1465785804b3e3942d79f4424498bec838e5aba431c715eb419f3d39cf8d30
+
 
