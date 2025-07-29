@@ -83,9 +83,9 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
         isUpdated: false,
         updateAt: '',
         otherCmsTitle: title,
-        otherCmsUid: data[0]?.contentfulID,
+        otherCmsUid: data?.[0]?.contentfulID,
         contentstackTitle: title.charAt(0).toUpperCase() + title.slice(1),
-        contentstackUid: uidCorrector(data[0]?.contentUid, affix),
+        contentstackUid: uidCorrector(data?.[0]?.contentUid, affix),
         type: 'content_type',
         fieldMapping: []
       };
