@@ -266,6 +266,11 @@ export const MIGRATION_DATA_CONFIG = {
   POSTS_FILE_NAME: "en-us.json",
   POSTS_MASTER_FILE: "posts.json",
 
+  PAGES_DIR_NAME: "pages",
+  PAGES_FOLDER_NAME: "en-us",
+  PAGES_FILE_NAME: "en-us.json",
+  PAGES_MASTER_FILE: "pages.json",
+
   CHUNKS_DIR_NAME: "chunks",
 
   GLOBAL_FIELDS_DIR_NAME: "global_fields",
