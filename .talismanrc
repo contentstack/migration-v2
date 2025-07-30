@@ -66,3 +66,10 @@ fileignoreconfig:
     checksum: bd1465785804b3e3942d79f4424498bec838e5aba431c715eb419f3d39cf8d30
 
 
+
+fileignoreconfig:
+- filename: api/src/services/migration.service.ts
+  checksum: abae249cacfab5c67e2d18a645c852649da2339954f26ae0f88c8698bdc016e6
+- filename: api/src/services/wordpress.service.ts
+  checksum: 95e532836194547682e791d0a231fb70e402be99260ac234e808eddb6e80c6af
+version: "1.0"
