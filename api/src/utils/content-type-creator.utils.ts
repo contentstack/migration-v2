@@ -112,7 +112,7 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any) => {
+const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, keyMapper }: any) => {
   switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
@@ -435,7 +435,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return {
         data_type: "reference",
         display_name: field?.title,
-        reference_to: field?.refrenceTo ?? [],
+        reference_to: field?.refrenceTo?.map((item:string) => keyMapper?.[item] || item) ?? [],
         field_metadata: {
           ref_multiple: true,
           ref_multiple_content_types: true
@@ -728,7 +728,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           uid: extractValue(element?.contentstackFieldUid, item?.contentstackFieldUid, '.'),
           title: extractValue(element?.contentstackField, item?.contentstackField, ' >')?.trim(),
         }
-        const schema: any = convertToSchemaFormate({ field, marketPlacePath });
+        const schema: any = convertToSchemaFormate({ field, marketPlacePath ,keyMapper});
         if (typeof schema === 'object' && Array.isArray(group?.schema) && element?.isDeleted === false) {
           group.schema.push(schema);
         }
@@ -741,7 +741,8 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
           title: item?.contentstackField,
           uid: item?.contentstackFieldUid
         },
-        marketPlacePath
+        marketPlacePath,
+        keyMapper
       });
       if (dt && item?.isDeleted === false) {
         ct?.schema?.push(dt);

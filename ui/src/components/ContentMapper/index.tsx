@@ -272,10 +272,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes?.[0]?.otherCmsUid);
 
   const [active, setActive] = useState<number | null>(0);
-
   const [searchContentType, setSearchContentType] = useState('');
-
-  const [rowIds, setRowIds] = useState({});
+  const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
   const [selectedEntries, setSelectedEntries] = useState<FieldMapType[]>([]);
   const [contentTypeSchema, setContentTypeSchema] = useState<ContentTypesSchema[] | undefined>([]);
   const [showFilter, setShowFilter] = useState<boolean>(false);
@@ -365,6 +363,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
 
     if (newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || ''] === otherContentType?.id) {
+      setIsAllCheck(false);
+
       tableData?.forEach((row) => {
         contentTypeSchema?.forEach((schema) => {
 
@@ -678,7 +678,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       setItemStatusMap({ ...itemStatusMap });
 
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
-      
+
+      setIsAllCheck(true);
       setTableData(validTableData ?? []);
       setSelectedEntries(validTableData ?? []);
       setTotalCounts(validTableData?.length);
@@ -723,7 +724,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       // eslint-disable-next-line no-unsafe-optional-chaining
       setTableData([...tableData, ...validTableData ?? tableData]);
       setTotalCounts([...tableData, ...validTableData ?? tableData]?.length);
-      setIsLoading(false)
+      setIsLoading(false);
+      setIsAllCheck(true);
+
     } catch (error) {
       console.error('loadMoreItems -> error', error);
     }
@@ -895,7 +898,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
     const selectedObj: UidMap = {};
-  
+
+    setIsAllCheck(false);
     singleSelectedRowIds?.forEach((uid: string) => {
       const isId = selectedEntries?.some((item) => item?.id === uid);
       if (isId) {
@@ -1019,7 +1023,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   const handleDropDownChange = (value: FieldTypes) => {
     (value?.id !== otherContentType?.id) && setsCsCTypeUpdated(true);
-    
+
+    setIsAllCheck(false);
     setOtherContentType(value);
   };
 
@@ -1433,7 +1438,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
       //check if UID of souce field is matching to exsting content type field UID
       for (const value of contentTypeSchema) {
-        if (data?.uid === value?.uid && data?.backupFieldType === value?.data_type) {
+        if (data?.uid === value?.uid && data?.backupFieldType === value?.data_type && fieldTypeToMatch) {
           OptionsForRow.push({ label: value?.display_name, value, isDisabled: false });
           break;
         }
@@ -1501,7 +1506,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       if (!hasMatchingEntry) {
         updatedExstingField = {
           ...updatedExstingField,
-          [data?.uid]: { label: newLabel, value: newvalue }
+          [data?.backupFieldUid]: { label: newLabel, value: newvalue }
         };
         existingField[data?.backupFieldUid] = { label: newLabel, value: newvalue }
       }
@@ -1575,12 +1580,13 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           ...option,
           isDisabled: selectedOptions?.includes?.(option?.label ?? '')
         }));
-
     return (
       <div className="table-row">
         <div className="select">
           <Select
-            value={(OptionsForRow?.length === 0 || existingField?.[data?.backupFieldUid]?.label === undefined) ? OptionValue : existingField[data?.backupFieldUid]}
+            value={(OptionsForRow?.length === 0 || (Fields[data?.contentstackFieldType]?.type !== existingField[data?.backupFieldUid]?.value?.data_type || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
+
+            existingField[data?.backupFieldUid]}
             onChange={(selectedOption: FieldTypes) => {
               if (OptionsForRow?.length === 0) {
                 handleValueChange(selectedOption, data?.uid, data?.backupFieldUid)
@@ -1591,7 +1597,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
-            isClearable={selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
+            isClearable={data?.backupFieldType === existingField[data?.backupFieldUid]?.value?.data_type && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
             options={adjustedOptions}
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
             menuPlacement="auto"
@@ -1714,10 +1720,19 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           const savedCT = filteredContentTypes?.map?.(ct =>
             ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
           );
+          let filteredCT = savedCT;
+          if (!isEmptyString(activeFilter)) {
+            filteredCT = savedCT?.filter((ct) =>
+              CONTENT_MAPPING_STATUS?.[ct?.status] === activeFilter
+            );
+          }
+          const savedContentTypes = contentTypes?.map?.(ct =>
+            ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
+          );
 
-          setFilteredContentTypes(savedCT);
-          setContentTypes(savedCT);
-
+          setFilteredContentTypes(filteredCT);
+          setContentTypes(savedContentTypes);
+          setCount(filteredCT?.length);
           try {
             otherContentType?.id && await updateContentMapper(orgId, projectID, { ...contentTypeMapped, [selectedContentType?.contentstackUid]: otherContentType?.id });
           } catch (err) {
@@ -2445,7 +2460,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                         ...newMigrationData?.legacy_cms,
                         uploadedFile: {
                           ...newMigrationData?.legacy_cms?.uploadedFile,
-                          reValidate: true
+                          reValidate: true,
+                          buttonClicked: true,
                         }
                       }
                     }
