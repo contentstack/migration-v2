@@ -74,6 +74,11 @@ type LocalesType = {
   [key: string]: any
 }
 
+/**
+ * Migration component to handle the migration process
+ * It includes steps like selecting legacy CMS, configuring destination stack,
+ * mapping content fields, running test migration, and executing final migration.
+ */
 const Migration = () => {
   const params: Params<string> = useParams();
   const { projectId = '' } = useParams();
@@ -247,6 +252,7 @@ const Migration = () => {
 // funcrion to form upload object from config response
   const getFileInfo = (data: FileDetails) => {
     const newMigrationDataObj = {
+        ...newMigrationData?.legacy_cms?.uploadedFile,
           name: data?.localPath,
           url: data?.localPath,
           isValidated: false,
@@ -353,7 +359,8 @@ const Migration = () => {
             isLocalPath: projectData?.legacy_cms?.is_localPath
           },
           isValidated: projectData?.legacy_cms?.is_fileValid,
-          reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
+          reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
+          buttonClicked: newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked ? true : false,
         } : uploadObj,
         isFileFormatCheckboxChecked: true,
         isRestictedKeywordCheckboxChecked: true,

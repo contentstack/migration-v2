@@ -15,4 +15,5 @@ export function useWarnOnRefresh(isUnsaved : boolean){
         window.removeEventListener('beforeunload', handleBeforeUnload);
     };
 }, [isUnsaved]);
+
 }

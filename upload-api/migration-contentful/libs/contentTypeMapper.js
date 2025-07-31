@@ -27,7 +27,7 @@ const uidCorrector = (uid, affix) => {
     newId = uid?.replace?.(uid, `${affix}_${uid}`);
     newId = newId?.replace?.(/[^a-zA-Z0-9]+/g, '_');
   }
-  return newId.replace(/([A-Z])/g, (match) => `_${match?.toLowerCase?.()}`);
+  return newId.replace(/([A-Z])/g, (match) => `${match?.toLowerCase?.()}`);
 };
 
 /**
@@ -319,7 +319,7 @@ const contentTypeMapper = (data, entries) => {
                   }
                 });
               }
-              console.info('contentTypeRefs', contentTypeRefs, contentTypeUid);
+  
               return contentTypeRefs;
 
             }
