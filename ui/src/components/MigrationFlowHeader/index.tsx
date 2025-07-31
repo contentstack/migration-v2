@@ -87,12 +87,14 @@ const MigrationFlowHeader = ({
 
   const isProjectStatusThreeAndMapperNotGenerated =
     params?.stepId === '1' &&
-    newMigrationData?.legacy_cms?.projectStatus === 3
+    newMigrationData?.legacy_cms?.projectStatus === 3 &&
+    newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked 
 
   const isStepInvalid =
     params?.stepId &&
     params?.stepId <= '2' &&
-    newMigrationData?.project_current_step?.toString() !== params?.stepId;
+    newMigrationData?.project_current_step?.toString() !== params?.stepId && 
+    parseInt(params?.stepId) < newMigrationData?.project_current_step;
 
   const isExecutionStarted =
     finalExecutionStarted ||
@@ -126,10 +128,9 @@ const MigrationFlowHeader = ({
         disabled={
           isProjectStatusThreeAndMapperNotGenerated ?
             isFileValidated :
-            isPreviousStepDisabled ||
-            isStep4AndNotMigrated ||
-            isStepInvalid ||
-            isExecutionStarted ||
+            isStep4AndNotMigrated || 
+            isStepInvalid || 
+            isExecutionStarted || 
             destinationStackMigrated
         }
       >
