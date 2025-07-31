@@ -40,7 +40,7 @@ const uidCorrector = (uid, prefix) => {
     newId = uid.replace(uid, `${prefix}_${uid}`);
     newId = newId.replace(/[^a-zA-Z0-9]+/g, '_');
   }
-  return newId.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`);
+  return newId.replace(/([A-Z])/g, (match) => `${match.toLowerCase()}`);
 };
 
 /**
