@@ -1586,8 +1586,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       <div className="table-row">
         <div className="select">
           <Select
-            value={(OptionsForRow?.length === 0 || (data?.backupFieldType !== existingField[data?.backupFieldUid]?.value?.data_type || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
-              
+            value={(OptionsForRow?.length === 0 || (Fields[data?.contentstackFieldType]?.type !== existingField[data?.backupFieldUid]?.value?.data_type || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
+
             existingField[data?.backupFieldUid]}
             onChange={(selectedOption: FieldTypes) => {
               if (OptionsForRow?.length === 0) {
@@ -2194,7 +2194,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
 
     const filteredCT = contentTypes?.filter((ct) => { return CONTENT_MAPPING_STATUS[ct?.status] === value });
-    console.info('content types --> ',filteredCT)
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
