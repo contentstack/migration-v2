@@ -2194,7 +2194,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     (e?.target as HTMLElement)?.closest('li')?.classList?.add('active-filter');
 
     const filteredCT = contentTypes?.filter((ct) => { return CONTENT_MAPPING_STATUS[ct?.status] === value });
-    console.info('content types --> ',filteredCT)
     if (value !== 'All') {
       setFilteredContentTypes(filteredCT);
       setCount(filteredCT?.length);
