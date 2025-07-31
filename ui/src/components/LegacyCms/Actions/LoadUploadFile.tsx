@@ -35,6 +35,7 @@ interface UploadState {
   fileDetails?: FileDetails;
 }
 
+
 const FileComponent = ({ fileDetails }: Props) => {
   return (
     <div>
@@ -122,6 +123,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         legacy_cms: {
           ...newMigrationDataRef?.current?.legacy_cms,
           uploadedFile: {
+            ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
             name: data?.file_details?.localPath || '',
             url: data?.file_details?.localPath,
             validation: data?.message,
@@ -186,6 +188,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       }, 1000);
 
       setIsLoading(false);
+
       saveStateToLocalStorage(
         {
           isLoading,
@@ -287,6 +290,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
   useEffect(() => {
     const savedState = getStateFromLocalStorage(projectId);
+    
     if (savedState) {
       setIsLoading(savedState.isLoading);
       setIsConfigLoading(savedState.isConfigLoading);
