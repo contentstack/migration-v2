@@ -293,7 +293,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const [isCsCTypeUpdated, setsCsCTypeUpdated] = useState<boolean>(false);
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
   const [activeFilter, setActiveFilter] = useState<string>('');
-  const [isAllCheck, setIsAllCheck] = useState<boolean>(false);
+   const [isAllCheck, setIsAllCheck] = useState<boolean>(false);
+
 
   /** ALL HOOKS Here */
   const { projectId = '' } = useParams();
@@ -547,7 +548,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   }, [contentTypeSchema]);
   useEffect(() => {
     if (existingField && isCsCTypeUpdated) {
-      setIsAllCheck(false);
       const matchedKeys = new Set<string>();
 
       contentTypeSchema?.forEach((item) => {
@@ -832,7 +832,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   // add row ids with their data to rowHistoryObj
   useEffect(() => {
-    setIsAllCheck(false);
     Object.keys(rowHistoryObj)?.forEach(key => delete rowHistoryObj[key]);
     tableData?.forEach(item => {
       rowHistoryObj[item?.id] = [{ checked: true, at: Date.now(), ...modifiedObj(item) }]
@@ -1002,7 +1001,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const handleValueChange = (value: FieldTypes, rowIndex: string, rowContentstackFieldUid: string) => {
     setIsDropDownChanged(true);
     setFieldValue(value);
-    setIsAllCheck(false);
     const updatedRows: FieldMapType[] = selectedEntries?.map?.((row) => {
       if (row?.uid === rowIndex && row?.contentstackFieldUid === rowContentstackFieldUid) {
         return { ...row, contentstackFieldType: value?.value };
@@ -1641,7 +1639,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   const handleSaveContentType = async () => {
     setisLoadingSaveButton(true);
-    setIsAllCheck(false);
     const orgId = selectedOrganisation?.uid;
     const projectID = projectId;
     if (
