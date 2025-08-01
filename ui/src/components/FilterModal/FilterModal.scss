@@ -12,6 +12,23 @@
   max-height: 350px;
   overflow: hidden;
   font-family: 'Inter', sans-serif;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+
+  &.position-bottom {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    margin-top: 0;
+    margin-bottom: 8px;
+  }
+
+  &.position-right {
+    left: auto;
+    right: 0;
+  }
+
 }
 
 .tableFilterModalStories__header {
@@ -25,12 +42,6 @@
 
 .tableFilterModalStories__suggestion-item {
   padding: 8px 16px;
-}
-
-.tableFilterModalStories__body{
-  overflow: scroll;
-  max-height: 250px;
-  overflow-x: hidden;
 }
 
 .Checkbox {

@@ -121,11 +121,11 @@ export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
 
 
 export const auditLogsConstants = {
-  executeTestMigration: 'Try executing Test Migration',
-  selectModuleMessage: 'Select Module to See the Logs',
-  queryChangeMessage: 'Try Changing the Search Query to find what you are looking for',
-  noResult: 'No Matching Result Found',
-  noLogs: 'No Logs Found',
+  executeTestMigration: 'Try executing the migration',
+  selectModuleMessage: 'Select a module to see the logs',
+  queryChangeMessage: 'Try changing the search query to find what you are looking for.',
+  noResult: 'No matching result found',
+  noLogs: 'No logs',
   filterIcon: {
     filterOn: 'filterWithAppliedIcon Icon--v2 Icon--medium',
     filterOff: 'filterWithAppliedIcon Icon--v2 Icon--medium Icon--disabled'
@@ -166,12 +166,12 @@ export const EXECUTION_LOGS_UI_TEXT = {
   SEARCH_PLACEHOLDER: 'Search Execution Logs',
   SELECT_PLACEHOLDER: 'Select a stack',
   EMPTY_STATE_DESCRIPTION: {
-    NO_RESULT: 'Try Changing the Search Query to find what you are looking for',
-    NO_LOGS: 'Try executing Test Migration'
+    NO_RESULT: 'Try changing the search query to find what you are looking for.',
+    NO_LOGS: 'Try executing the migration'
   },
   EMPTY_STATE_HEADING: {
-    NO_LOGS: 'No Logs Found',
-    NO_MATCH: 'No Matching Result Found'
+    NO_LOGS: 'No logs',
+    NO_MATCH: 'No matching result found'
   },
   EMPTY_STATE_ICON: {
     NO_LOGS: 'NoDataEmptyState',
