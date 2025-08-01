@@ -36,9 +36,9 @@ const FilterModal = ({
                 <div className="tableFilterModalStories__suggestion-item">
                   <Checkbox
                     checked={selectedLevels?.some?.((v) => v?.value === item?.value) || false}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       updateValue?.({ value: item, isChecked: e?.target?.checked })
-                    }
+                    }}
                     version="v2"
                     label={item?.label || ''}
                     className="text-size"
@@ -52,7 +52,7 @@ const FilterModal = ({
 
       {/* Modal Footer */}
       <div className="tableFilterModalStories__footer">
-        <Button buttonType="tertiary" version="v2" onClick={clearAll}>
+        <Button buttonType="tertiary" version="v2" onClick={clearAll} disabled={selectedLevels?.length === 0}>
           Clear All
         </Button>
         <ButtonGroup>
