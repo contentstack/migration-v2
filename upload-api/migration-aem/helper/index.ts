@@ -68,11 +68,11 @@ export class SchemaComponentMergeStrategy implements MergeStrategy {
  * Default strategy for merging components
  */
 export class DefaultMergeStrategy implements MergeStrategy {
-  canMerge(key: string, sourceValue: any, targetValue: any): boolean {
+  canMerge(): boolean {
     return true; // This is the fallback strategy
   }
 
-  merge(key: string, sourceValue: any, targetValue: any): any {
+  merge(sourceValue: any): any {
     return sourceValue; // Default to taking the newer value
   }
 }
@@ -180,3 +180,24 @@ export async function writeJsonFile(
     throw new Error(`Failed to write JSON file: ${error}`);
   }
 }
+
+/**
+ * Checks if the provided path is an image type (jpeg, jpg, png, gif, webp, svg).
+ * @param path - The string path to check.
+ * @returns True if the path is an image, false otherwise.
+ */
+export function isImageType(path: string): boolean {
+  return /\.(jpeg|jpg|png|gif|webp|svg)$/i.test(path);
+}
+
+
+export const uidCorrector = (uid: string) => {
+  // Replace spaces, hyphens, and colons with underscores, then lowercase
+  const newUid = uid.replace(/[ :-]/g, '_').toLowerCase();
+  // Remove all '$' characters
+  return newUid.replace(/\$/g, '');
+};
+
+export const isUrlPath = (str: string) => /^\/[a-zA-Z0-9\-/.]+$/.test(str);
+
+export const isHtmlString = (str: string): boolean => /<[a-z][\s\S]*>/i.test(str);
