@@ -230,3 +230,111 @@ export class LinkField extends Field {
     };
   }
 }
+
+export class ReferenceField extends Field {
+  refrenceTo: string[];
+  isDeleted: boolean;
+  backupFieldUid?: string;
+
+  constructor(config: {
+    uid: string;
+    displayName: string;
+    required?: boolean;
+    description?: string;
+    refrenceTo: string[];
+    isDeleted?: boolean;
+    backupFieldUid?: string;
+  }) {
+    super(config);
+    this.refrenceTo = config.refrenceTo;
+    this.isDeleted = config.isDeleted ?? false;
+    this.backupFieldUid = config.backupFieldUid ?? config.uid;
+  }
+
+  toContentstack() {
+    return {
+      uid: this.uid,
+      otherCmsField: this.displayName,
+      otherCmsType: this.displayName,
+      contentstackField: 'reference',
+      contentstackFieldUid: 'reference',
+      contentstackFieldType: 'reference',
+      isDeleted: this.isDeleted,
+      backupFieldType: 'reference',
+      backupFieldUid: this.uid,
+      refrenceTo: this.refrenceTo
+    };
+  }
+}
+
+export class ImageField extends Field {
+  defaultValue?: string;
+
+  constructor(config: {
+    uid: string;
+    displayName: string;
+    required?: boolean;
+    description?: string;
+    defaultValue?: string;
+  }) {
+    super(config);
+    this.defaultValue = config.defaultValue;
+  }
+
+  toContentstack() {
+    const id = this.generateId();
+    const uid = this.uid;
+    const name = this.displayName;
+    const type = 'image';
+    const default_value = this.defaultValue ?? '';
+
+    return {
+      id: id,
+      uid,
+      otherCmsField: name,
+      otherCmsType: type,
+      contentstackField: name,
+      contentstackFieldUid: uid,
+      contentstackFieldType: 'file',
+      backupFieldType: 'file',
+      backupFieldUid: uid,
+      advanced: { default_value: default_value !== '' ? default_value : null }
+    };
+  }
+}
+
+export class JsonField extends Field {
+  defaultValue?: string;
+
+  constructor(config: {
+    uid: string;
+    displayName: string;
+    required?: boolean;
+    description?: string;
+    defaultValue?: string;
+  }) {
+    super(config);
+    this.defaultValue = config.defaultValue;
+  }
+
+  toContentstack() {
+    const id = this.generateId();
+    const uid = this.uid;
+    const name = this.displayName;
+    const type = 'json';
+    const default_value = this.defaultValue ?? '';
+
+    return {
+      id: id,
+      uid: name,
+      otherCmsField: name,
+      otherCmsType: type,
+      contentstackField: name,
+      contentstackFieldUid: uid,
+      contentstackFieldType: 'json',
+      backupFieldType: 'json',
+      backupFieldUid: 'json',
+      advanced: { default_value: default_value !== '' ? default_value : null }
+    };
+  }
+}

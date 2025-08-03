@@ -1,8 +1,9 @@
+import contentTypes from './libs/contentType';
 
-import convertContentType from "./libs/contentType";
-
-convertContentType("/Users/umesh.more/Documents/aem_data_structure")
+const ct = contentTypes();
+ct.convert('/Users/umesh.more/Documents/aem_data_structure');
+// ct.create('/Users/umesh.more/Documents/aem_data_structure');
 
 export {
-  convertContentType
+  contentTypes
 }
