@@ -144,7 +144,10 @@ export const auditLogsConstants = {
   filterModal: {
     noFilterAvailable: 'No Filters Available',
     clearAll: 'Clear All',
-    apply: 'Apply'
+    apply: 'Apply',
+    displayType: 'Display Type',
+    selectFieldType: 'Select Field Data Type',
+    entries: 'Entries',
   }
 };
 

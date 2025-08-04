@@ -71,7 +71,7 @@ const AuditFilterModal = ({
         <div className="tableFilterModalStories" ref={modalRef}>
             <div className="tableFilterModalStories__header">
                 <span className="text-size">
-                    {selectedFileType?.includes?.('Entries') ? 'Display Type' : 'Select Field Data Type'}
+                    {selectedFileType?.includes?.(auditLogsConstants.filterModal.entries) ? auditLogsConstants.filterModal.displayType : auditLogsConstants.filterModal.selectFieldType}
                 </span>
                 <div className="close-btn">
                     <Icon version="v2" icon="CloseNoborder" size="medium" onClick={closeModal} />
