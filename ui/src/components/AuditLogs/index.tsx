@@ -72,7 +72,7 @@ const AuditLogs: React.FC = () => {
                 { label: 'Entries', value: 'Entries_Select_feild' }
             ];
             setFileOptions(predefinedOptions);
-            handleFileChange(predefinedOptions[0]);
+            handleFileChange(predefinedOptions?.[0]);
         }
     };
     const handleStackChange = async (selectedOption: StackOption | null) => {
