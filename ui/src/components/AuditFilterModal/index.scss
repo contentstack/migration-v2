@@ -20,7 +20,11 @@
     border-bottom: 1px solid #e5e7eb;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 12px;
+    .close-btn {
+        margin-left: auto;
+    }
 }
 
 .tableFilterModalStories__suggestion-item {
