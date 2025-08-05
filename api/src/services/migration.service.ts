@@ -32,6 +32,7 @@ import { marketPlaceAppService } from './marketplace.service.js';
 import { extensionService } from './extension.service.js';
 import fsPromises from 'fs/promises';
 import { matchesSearchText } from '../utils/search.util.js';
+import { taxonomyService } from './taxonomy.service.js';
 // import { getSafePath } from "../utils/sanitize-path.utils.js";
 
 /**
@@ -324,6 +325,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
     await extensionService?.createExtension({
       destinationStackId: project?.current_test_stack_id,
     });
+    await taxonomyService?.createTaxonomy({
+      orgId, 
+      projectId,
+      stackId:project?.destination_stack_id,
+      current_test_stack_id: project?.current_test_stack_id,
+      region,
+      userId: user_id,})
+    
     switch (cms) {
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
