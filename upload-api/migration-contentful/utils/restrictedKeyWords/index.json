@@ -67,5 +67,7 @@
   "uid",
   "update",
   "updated_at",
-  "updated_by"
+  "updated_by",
+  "title",
+  "url"
 ]
