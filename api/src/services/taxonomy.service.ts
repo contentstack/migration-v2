@@ -43,17 +43,17 @@ const getDescendantsTerm = async ( {authtoken,taxonomyUid, termUid, region, stac
             for (const term of terms) {
       // Push current term
       allTerms.push({
-        uid: term.uid,
-        name: term.name,
-        parent_uid: term.parent_uid,
+        uid: term?.uid,
+        name: term?.name,
+        parent_uid: term?.parent_uid,
       });
 
       // Recursively fetch deeper descendants
-      if (term.children_count > 0) {
+      if (term?.children_count > 0) {
         const nestedTerms = await getDescendantsTerm({
           authtoken,
           taxonomyUid,
-          termUid: term.uid,
+          termUid: term?.uid,
           region,
           stackId,
         });
@@ -65,7 +65,7 @@ const getDescendantsTerm = async ( {authtoken,taxonomyUid, termUid, region, stac
     }
         return allTerms; 
     } catch (error) {
-        console.error("🚀 ~ getDescendantsTerm ~ error:", error);
+        logger.error("🚀 ~ getDescendantsTerm ~ error:", error);
         throw error;
         
     }
@@ -92,16 +92,16 @@ const createTerms = async(
         for (const term of termsData || []) {
             if (term?.uid) {
                 allTerms.push({
-                uid: term.uid,
-                name: term.name,
-                parent_uid: term.parent_uid,
+                uid: term?.uid,
+                name: term?.name,
+                parent_uid: term?.parent_uid,
                 });
 
                 if (term?.children_count > 0) {
                 const nestedTerms = await getDescendantsTerm({
                     authtoken,
                     taxonomyUid,
-                    termUid: term.uid,
+                    termUid: term?.uid,
                     region,
                     stackId,
                 });
@@ -109,8 +109,6 @@ const createTerms = async(
                 if (Array.isArray(nestedTerms)) {
                     allTerms.push(...nestedTerms);
                 }
-
-                console.info("🚀 ~ createTerms ~ nestedTerms:", nestedTerms);
                 }
             }
         }
@@ -131,7 +129,7 @@ const createTerms = async(
     return allTerms;
         
     } catch (error) {
-        console.error("🚀 ~ createTaxonomy ~ error:", error);
+        logger.error("🚀 ~ createTaxonomy ~ error:", error);
         throw error;
         
     }
@@ -173,23 +171,25 @@ const createTaxonomy = async ({stackId,region,userId,current_test_stack_id} :
         }
     
         const taxonomiesDataObject: Record<string, any> = {};
-        res?.data?.taxonomies?.forEach(async (taxonomy: any) => {
-            if (taxonomy?.uid) {
-                taxonomiesDataObject[taxonomy.uid] = {
-                uid: taxonomy?.uid,
-                name: taxonomy?.name,
-                description: taxonomy?.description,
-                };
-                const singleTaxonomy: any= {};
-                singleTaxonomy['taxonomy']= {
-                uid: taxonomy?.uid,
-                name: taxonomy?.name,
-                description: taxonomy?.description,
+        if (res?.data?.taxonomies) {
+            for (const taxonomy of res.data.taxonomies) {
+                if (taxonomy?.uid) {
+                    taxonomiesDataObject[taxonomy.uid] = {
+                        uid: taxonomy?.uid,
+                        name: taxonomy?.name,
+                        description: taxonomy?.description,
+                    };
+                    const singleTaxonomy: any = {};
+                    singleTaxonomy['taxonomy'] = {
+                        uid: taxonomy?.uid,
+                        name: taxonomy?.name,
+                        description: taxonomy?.description,
+                    };
+                    singleTaxonomy['terms'] = await createTerms({ authtoken, taxonomyUid: taxonomy?.uid, region, stackId });
+                    await fs.promises.writeFile(path.join(taxonomiesPath, `${taxonomy?.uid}.json`), JSON.stringify(singleTaxonomy, null, 2));
                 }
-                singleTaxonomy['terms'] = await createTerms({authtoken,taxonomyUid: taxonomy?.uid,region, stackId});
-                await fs.promises.writeFile(path.join(taxonomiesPath, `${taxonomy?.uid}.json`), JSON.stringify(singleTaxonomy, null, 2));
             }
-        });
+        }
 
         const filePath = path.join(taxonomiesPath, TAXONOMIES_FILE_NAME);
         await fs.promises.writeFile(filePath, JSON.stringify(taxonomiesDataObject, null, 2));
@@ -197,7 +197,7 @@ const createTaxonomy = async ({stackId,region,userId,current_test_stack_id} :
         
 
     } catch (error) {
-    console.error("🚀 ~ createTaxonomy ~ error:", error);
+    logger.error("🚀 ~ createTaxonomy ~ error:", error);
     throw error;
   }
     
