@@ -74,9 +74,19 @@ const arrangGroups = ({ schema, newStack }: any) => {
   schema?.forEach((item: any) => {
     if (item?.contentstackFieldType === 'group') {
       const groupSchema: any = { ...item, schema: [] }
+      if (item?.contentstackFieldUid?.includes('.')) {
+        const parts = item?.contentstackFieldUid?.split('.');
+        groupSchema.contentstackFieldUid = parts?.[parts?.length - 1];
+      }
       schema?.forEach((et: any) => {
         if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`) ||
           (newStack === false && et?.uid?.includes(`${item?.uid}.`))) {
+            const target = groupSchema?.contentstackFieldUid;
+            const index = et?.contentstackFieldUid?.indexOf(target);
+
+            if (index > 0) {
+              et.contentstackFieldUid = et?.contentstackFieldUid?.substring?.(index);
+            }
           groupSchema?.schema?.push(et);
         }
       })
@@ -665,7 +675,19 @@ const mergeArrays = async (a: any[], b: any[]) => {
     }
   }
   return a;
-}
+};
+
+// Recursive search to find a group by uid anywhere in the schema
+const findGroupByUid = (schema: any[], uid: string): any | null => {
+  for (const field of schema) {
+    if (field?.data_type === 'group') {
+      if (field?.uid === uid) return field;
+      const nested = findGroupByUid(field?.schema ?? [], uid);
+      if (nested) return nested;
+    }
+  }
+  return null;
+};
 
 const mergeTwoCts = async (ct: any, mergeCts: any) => {
   const ctData: any = {
@@ -673,27 +695,31 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
     title: mergeCts?.title,
     uid: mergeCts?.uid,
     options: {
-      "singleton": false,
+      singleton: false,
     }
-  }
-  for await (const field of ctData?.schema ?? []) {
-    if (field?.data_type === 'group') {
-      const currentGroup = mergeCts?.schema?.find((grp: any) => grp?.uid === field?.uid &&
-        grp?.data_type === 'group');
-      const group = [];
-      for await (const fieldGp of currentGroup?.schema ?? []) {
-        const fieldNst = field?.schema?.find((fld: any) => fld?.uid === fieldGp?.uid &&
-          fld?.data_type === fieldGp?.data_type);
-        if (fieldNst === undefined) {
-          group?.push(fieldGp);
+  };
+
+  const mergeGroupSchema = async (targetSchema: any[], sourceSchema: any[]) => {
+    for await (const targetField of targetSchema) {
+      if (targetField?.data_type === 'group') {
+        const matchingSourceGroup = findGroupByUid(sourceSchema, targetField?.uid);
+        if (matchingSourceGroup) {
+          if (!Array.isArray(targetField?.schema)) targetField.schema = [];
+          if (!Array.isArray(matchingSourceGroup?.schema)) matchingSourceGroup.schema = [];
+
+          await mergeGroupSchema(targetField?.schema, matchingSourceGroup?.schema);
+          targetField.schema = await mergeArrays(targetField?.schema, matchingSourceGroup?.schema);
         }
       }
-      field.schema = [...field?.schema ?? [], ...group];
     }
-  }
-  ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
+  };
+
+  await mergeGroupSchema(ctData?.schema ?? [], mergeCts?.schema ?? []);
+  ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema ?? []);
+
   return ctData;
-}
+};
+
 
 export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
   const marketPlacePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, destinationStackId);

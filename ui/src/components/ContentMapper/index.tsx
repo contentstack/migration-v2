@@ -485,6 +485,71 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     };
   }, []);
 
+  const checkAndUpdateField = (
+  item: any,
+  value: any,
+  key: string,
+  parentLabel = ''
+) => {
+  // Construct label with group hierarchy
+  const currentLabel = parentLabel ? `${parentLabel} > ${item?.display_name}` : item?.display_name;
+
+  // Check for match
+  if (value?.value?.uid === item?.uid && value?.label === currentLabel) {
+    if (!updatedSelectedOptions?.includes?.(currentLabel)) {
+      updatedSelectedOptions?.push?.(currentLabel);
+    }
+
+    setSelectedOptions(updatedSelectedOptions);
+    setExistingField((prevOptions: ExistingFieldType) => ({
+      ...prevOptions,
+      [key]: { label: currentLabel, value: item },
+    }));
+
+    return true;
+  }
+
+  // Check children recursively
+  if (item?.data_type === 'group' && Array?.isArray(item?.schema)) {
+    for (const child of item.schema) {
+      const found = checkAndUpdateField(child, value, key, currentLabel);
+      if (found) return true;
+    }
+
+    // If no match and it was part of the label, remove it
+    if (
+      !item?.schema?.some((schema:any) => schema?.uid === value?.value?.uid) &&
+      value?.data_type !== 'group' &&
+      value?.label?.includes(item?.display_name)
+    ) {
+      setIsUpdated(true);
+      updatedRows = updatedRows?.map((row: FieldMapType) => {
+
+        if (row?.uid === key && row?.backupFieldType === value?.value?.data_type) {
+          return {
+            ...row,
+            contentstackField: row?.otherCmsField,
+            contentstackFieldUid: row?.backupFieldUid,
+            contentstackFieldType: row?.backupFieldType,
+            
+          };
+        }
+        return row;
+      });
+
+      setTableData(updatedRows);
+      setSelectedEntries(updatedRows)
+      setExistingField((prevOptions: ExistingFieldType) => {
+        const { [key]: _, ...rest } = prevOptions;
+        return { ...rest };
+      });
+      
+    }
+  }
+
+  return false;
+};
+
   // if exsting content type is changed in contentstack, reflect those changes for 
   // maaped fields
   useEffect(() => {
@@ -536,6 +601,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               }
             });
           }
+           checkAndUpdateField(item, value, key);
         }
       });
 
@@ -1255,7 +1321,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   //utility function to map the source cms field type to content type field type
   function checkConditions(fieldTypeToMatch: string | string[], value: ContentTypesSchema, data: FieldMapType) {
-    const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link', 'global_field', 'json', 'blocks']);
+    const fieldTypes = new Set(['number', 'isodate', 'file', 'reference', 'boolean', 'group', 'link', 'global_field', 'json', 'blocks','taxonomy']);
     switch (fieldTypeToMatch) {
       case 'text':
         return (
@@ -1539,9 +1605,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     }
 
     // Add 'Content Type(s)' as an option if not already present
-    if (!option?.some(opt => opt.label === 'Content Type(s)')) {
-      option.unshift({ label: 'Content Type(s)', value: 'Content Type(s)' });
-    }
+    // if (!option?.some(opt => opt.label === 'Content Type(s)')) {
+    //   option.unshift({ label: 'Content Type(s)', value: 'Content Type(s)' });
+    // }
 
 
     const OptionValue: FieldTypes =
@@ -1584,7 +1650,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       <div className="table-row">
         <div className="select">
           <Select
-            value={(OptionsForRow?.length === 0 || (Fields[data?.contentstackFieldType]?.type !== existingField[data?.backupFieldUid]?.value?.data_type || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
+            value={(OptionsForRow?.length === 0 || (Fields[data?.contentstackFieldType]?.type?.toLowerCase() !== existingField[data?.backupFieldUid]?.value?.data_type || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
 
             existingField[data?.backupFieldUid]}
             onChange={(selectedOption: FieldTypes) => {
@@ -1727,7 +1793,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             );
           }
           const savedContentTypes = contentTypes?.map?.(ct =>
-            ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
+            ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
           );
 
           setFilteredContentTypes(filteredCT);
