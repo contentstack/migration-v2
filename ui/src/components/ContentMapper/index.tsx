@@ -522,7 +522,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       value?.data_type !== 'group' &&
       value?.label?.includes(item?.display_name)
     ) {
-       setIsUpdated(true)
+      setIsUpdated(true);
       updatedRows = updatedRows?.map((row: FieldMapType) => {
 
         if (row?.uid === key && row?.backupFieldType === value?.value?.data_type) {

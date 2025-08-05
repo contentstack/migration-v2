@@ -127,7 +127,7 @@ const Migration = () => {
 
   useBlockNavigation(isModalOpen);
 
-  useEffect(()=>{
+  useEffect (()=>{
     const hasNonEmptyMapping =
     newMigrationData?.destination_stack?.localeMapping &&
     Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
@@ -150,7 +150,7 @@ const Migration = () => {
     else{
       setIsSaved(false);
     }
-  },[isCompleted, newMigrationData])
+  }, [isCompleted, newMigrationData])
 
   /**
    * Function to get exisiting content types list
