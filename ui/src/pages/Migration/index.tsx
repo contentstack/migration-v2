@@ -62,6 +62,7 @@ import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
 import { getMigratedStacks } from '../../services/api/project.service';
 import { getConfig } from '../../services/api/upload.service';
+import { useWarnOnRefresh } from '../../hooks/useWarnOnrefresh';
 
 type StepperComponentRef = {
   handleStepChange: (step: number) => void;
@@ -101,6 +102,7 @@ const Migration = () => {
 
   const [disableMigration, setDisableMigration] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState<boolean>(false);
 
   const saveRef = useRef<ContentTypeSaveHandles>(null);
   const newMigrationDataRef = useRef(newMigrationData);
@@ -109,6 +111,7 @@ const Migration = () => {
     fetchData();
   }, [params?.stepId, params?.projectId, selectedOrganisation?.value]);
 
+  useWarnOnRefresh(isSaved);
   /**
  * Dispatches the isprojectMapped key to redux
  */
@@ -123,6 +126,31 @@ const Migration = () => {
 
 
   useBlockNavigation(isModalOpen);
+
+  useEffect(()=>{
+    const hasNonEmptyMapping =
+    newMigrationData?.destination_stack?.localeMapping &&
+    Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
+      ([label, value]: [string, string]) =>
+        Boolean(label?.trim()) &&
+        value !== '' &&
+        value !== null &&
+        value !== undefined
+    );
+    //console.info("legacyCMSRef?.current ", legacyCMSRef?.current,legacyCMSRef?.current?.getInternalActiveStepIndex())
+    if(legacyCMSRef?.current && newMigrationData?.project_current_step === 1 && legacyCMSRef?.current?.getInternalActiveStepIndex() > -1){
+      setIsSaved(true);    
+    }
+    else if ((isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) && newMigrationData?.project_current_step === 2)){
+     setIsSaved(true);
+    }
+    else if(newMigrationData?.content_mapping?.isDropDownChanged){
+      setIsSaved(true);
+    }
+    else{
+      setIsSaved(false);
+    }
+  },[isCompleted, newMigrationData])
 
   /**
    * Function to get exisiting content types list
@@ -226,7 +254,7 @@ const Migration = () => {
         ...newMigrationData?.legacy_cms?.uploadedFile,
           name: data?.localPath,
           url: data?.localPath,
-          isValidated: data?.localPath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath ? false : newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+          isValidated: false,
           file_details: {
             isLocalPath: data?.isLocalPath,
             cmsType: data?.cmsType,
