@@ -68,6 +68,10 @@ fileignoreconfig:
     
   - filename: upload-api/src/config/index.ts
     checksum: bd1465785804b3e3942d79f4424498bec838e5aba431c715eb419f3d39cf8d30
+  - filename: ui/src/components/ContentMapper/index.tsx
+    checksum: 376fc21e84880c760fab7af4b1bb653f526548f962126c1db7551d036eab765d
+  - filename: api/src/services/taxonomy.service.ts
+    checksum: bd2344e7277b41c7eb29c50504c88debf9a86d198c2508dea90d9a98f53d89e9
 
 
 

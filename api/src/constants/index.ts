@@ -230,6 +230,8 @@ export const MIGRATION_DATA_CONFIG = {
   EXTENSION_APPS_FILE_NAME: "extensions.json",
   REFERENCES_DIR_NAME: "reference",
   REFERENCES_FILE_NAME: "reference.json",
+  TAXONOMIES_DIR_NAME: "taxonomies",
+  TAXONOMIES_FILE_NAME: "taxonomies.json",
 
   RTE_REFERENCES_DIR_NAME: "rteReference",
   RTE_REFERENCES_FILE_NAME: "rteReference.json",

@@ -32,6 +32,7 @@ import { marketPlaceAppService } from './marketplace.service.js';
 import { extensionService } from './extension.service.js';
 import fsPromises from 'fs/promises';
 import { matchesSearchText } from '../utils/search.util.js';
+import { taxonomyService } from './taxonomy.service.js';
 // import { getSafePath } from "../utils/sanitize-path.utils.js";
 
 /**
@@ -324,6 +325,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
     await extensionService?.createExtension({
       destinationStackId: project?.current_test_stack_id,
     });
+    await taxonomyService?.createTaxonomy({
+      orgId, 
+      projectId,
+      stackId:project?.destination_stack_id,
+      current_test_stack_id: project?.current_test_stack_id,
+      region,
+      userId: user_id,})
+    
     switch (cms) {
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
@@ -901,14 +910,6 @@ const getLogs = async (req: Request): Promise<any> => {
       const filterOptions = Array?.from(new Set(logEntries?.map((log) => log?.level)));
       const auditStartIndex = logEntries?.findIndex?.(log => log?.message?.includes("Starting audit process"));
       const auditEndIndex = logEntries?.findIndex?.(log => log?.message?.includes("Audit process completed"));
-      if (auditStartIndex === -1 || auditEndIndex === -1) {
-        logger.warn("Audit markers not found in logs. Skipping audit-related slicing.");
-      } else {
-        logEntries = [
-          ...logEntries.slice(0, auditStartIndex),
-          ...logEntries.slice(auditEndIndex + 1)
-        ];
-      }
       logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
       if (filter !== "all") {
         const filters = filter?.split("-") ?? [];

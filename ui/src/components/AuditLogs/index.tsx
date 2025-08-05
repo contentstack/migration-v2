@@ -72,6 +72,9 @@ const AuditLogs: React.FC = () => {
                 { label: 'Entries', value: 'Entries_Select_feild' }
             ];
             setFileOptions(predefinedOptions);
+            if (predefinedOptions?.length > 0) {
+                handleFileChange(predefinedOptions?.[0]);
+            }
         }
     };
     const handleStackChange = async (selectedOption: StackOption | null) => {
@@ -148,10 +151,7 @@ const AuditLogs: React.FC = () => {
             setTableUid((prevUid) => prevUid + 1);
         }
     };
-    const handleSearchChange = (value: string) => {
-        setSearchText(value);
-        setTableUid((prevUid) => prevUid + 1);
-    };
+
     const ColumnFilter = () => {
         const closeModal = () => {
             setIsFilterDropdownOpen(false);
@@ -408,8 +408,8 @@ const AuditLogs: React.FC = () => {
                 columnSelector={false}
                 canSearch={true}
                 searchPlaceholder={auditLogsConstants?.placeholders?.searchLogs}
-                searchValue={searchText}
-                onSearchChangeEvent={handleSearchChange}
+                searchValue={searchText ?? ''}
+                onSearchChangeEvent={(value: string) => setSearchText(value)}
                 withExportCta={{
                     component: exportCtaComponent,
                     showExportCta: true
