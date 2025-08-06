@@ -15,13 +15,14 @@ import {
   CustomEmbedComponent,
   ProductListingComponent,
   ButtonComponent,
-  TextBannerComponent
+  TextBannerComponent,
+  ImageComponent
 } from './components';
 import { mergeComponentObjects, readFiles, writeJsonFile } from "../../helper/index";
 
 
 // Import interface for the content type conversion function
-import { IConvertContentType } from "./types/index.interface";
+import { GroupKey, IConvertContentType } from "./types/index.interface";
 
 
 // Update the function signature to accept either format
@@ -50,7 +51,8 @@ function processComponents(components: Record<string, any> | Record<string, any>
       () => ProductListingComponent.isProductListing(component) && ProductListingComponent.mapProductListingToContentstack(component, key),
       () => ButtonComponent.isButton(component) && ButtonComponent.mapButtonToContentstack(component, key),
       () => TextBannerComponent.isTextBanner(component) && TextBannerComponent.mapTextBannerToContentstack(component, key),
-      () => component
+      () => ImageComponent.isImage(component) && ImageComponent.mapImageToContentstack(component, key),
+      () => null
     ];
     result[key] = mappingRules.map(fn => fn()).find(Boolean);
   }
@@ -75,23 +77,47 @@ const convertContentType: IConvertContentType = async (dirPath) => {
   await writeJsonFile(contentstackComponents, CONSTANTS.TMP_FILE);
 }
 
-const createContentType: IConvertContentType = async (dirPath) => {
-  const templatesDir = path.resolve(dirPath, CONSTANTS?.TEMPLATE_DIR);
+const arrangeContentModels = async (
+  templatesDir: string,
+  groupBy: GroupKey[]
+) => {
+  const arrangedCt: Record<string, any[]> = {};
   const templateFiles = read(templatesDir);
-  // const allComponentData: Record<string, any>[] = [];
+
   for await (const fileName of templateFiles) {
     const filePath = path.join(templatesDir, fileName);
-    const componentPath = path.resolve(CONSTANTS?.TMP_FILE);
-    const templateData = await readFiles(filePath);
-    const contentstackComponents = await readFiles(componentPath);
-    contentTypeMaker({ templateData, contentstackComponents, affix: "cms" })
+    const templateData: any = await readFiles(filePath);
+
+    for (const key of groupBy) {
+      const groupValue = templateData?.[key];
+      if (groupValue) {
+        if (!arrangedCt[groupValue]) {
+          arrangedCt[groupValue] = [];
+        }
+        arrangedCt[groupValue].push(templateData);
+        break; // Only group by the first matching key
+      }
+    }
   }
+  return arrangedCt;
+};
+
+
+const createContentType: IConvertContentType = async (dirPath) => {
+  const templatesDir = path.resolve(dirPath, CONSTANTS?.TEMPLATE_DIR);
+  const grouped = await arrangeContentModels(templatesDir, CONSTANTS.arrangeCTGroup as GroupKey[]);
+  // const allComponentData: Record<string, any>[] = [];
+  const componentPath = path.resolve(CONSTANTS?.TMP_FILE);
+  const contentstackComponents = await readFiles(componentPath);
+  await contentTypeMaker({ templateData: grouped, contentstackComponents, affix: "cms" })
 }
 
 const contentTypes = () => {
   return {
-    convert: convertContentType,
-    create: createContentType
+    convertAndCreate: async (dirPath: string) => {
+      await convertContentType(dirPath);
+      await createContentType(dirPath);
+    }
   };
 }
 

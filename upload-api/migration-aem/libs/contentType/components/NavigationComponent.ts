@@ -37,8 +37,8 @@ export class NavigationComponent extends ContentstackComponent {
     if (properties && typeof properties === 'object') {
       const typeField = properties[":type"];
       if (
-        (typeof typeField === "string" && typeField === "baem/components/languagenavigation") ||
-        (typeof typeField === "object" && typeField.value === "baem/components/languagenavigation")
+        (typeof typeField === "string" && typeField.includes("/components/languagenavigation")) ||
+        (typeof typeField === "object" && typeField.value?.includes("/components/languagenavigation"))
       ) {
         return true;
       }
@@ -130,13 +130,16 @@ export class NavigationComponent extends ContentstackComponent {
           );
         }
       }
-      return new GroupField({
-        uid: parentKey,
-        displayName: parentKey,
-        fields: componentsData,
-        required: false,
-        multiple: true
-      }).toContentstack();
+      return {
+        ...new GroupField({
+          uid: parentKey,
+          displayName: parentKey,
+          fields: componentsData,
+          required: false,
+          multiple: true
+        }).toContentstack(),
+        type: component?.convertedSchema?.properties?.[":type"]?.value
+      };
     }
     return [];
   }

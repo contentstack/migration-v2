@@ -13,9 +13,16 @@ import { MergeStrategy } from "./types/index.interface"
  */
 
 export const readFiles: IReadFiles = async (filePath: string) => {
+  try {
+    await fs.promises.access(filePath, fs.constants.F_OK);
+  } catch {
+    console.info(`File does not exist: ${filePath}`);
+    return null;
+  }
   const fileData = await fs.promises.readFile(filePath, 'utf8')
   if (!fileData) {
-    throw new Error('File content is empty or undefined');
+    console.info('File content is empty or undefined');
+    return null;
   }
   if (typeof fileData === 'string') {
     return JSON.parse(fileData);

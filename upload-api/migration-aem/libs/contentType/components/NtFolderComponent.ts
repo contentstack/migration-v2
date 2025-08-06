@@ -29,11 +29,14 @@ export class NtFolderComponent extends ContentstackComponent {
     const componentSchema = component?.convertedSchema;
     if (componentSchema?.type === 'object' && componentSchema?.properties) {
       componentSchema.properties[':type']
-      return new ReferenceField({
-        uid: parentKey,
-        displayName: parentKey,
-        refrenceTo: []
-      }).toContentstack();
+      return {
+        ...new ReferenceField({
+          uid: parentKey,
+          displayName: parentKey,
+          refrenceTo: []
+        }).toContentstack(),
+        type: component?.convertedSchema?.properties?.[":type"]?.value
+      };
     }
     return [];
   }

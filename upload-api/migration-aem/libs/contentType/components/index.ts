@@ -10,3 +10,4 @@ export { CustomEmbedComponent } from './CustomEmbedComponent';
 export { ProductListingComponent } from './ProductListingComponent';
 export { ButtonComponent } from './ButtonComponent';
 export { TextBannerComponent } from './TextBannerComponent';
+export { ImageComponent } from './ImageComponent';

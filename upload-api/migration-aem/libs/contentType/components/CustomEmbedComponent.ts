@@ -60,6 +60,7 @@ export class CustomEmbedComponent extends ContentstackComponent {
           backupFieldType: 'app',
           backupFieldUid: uidCorrector(parentKey),
           advanced: {},
+          type: component?.convertedSchema?.properties?.[":type"]?.value,
         }
       }
       return null;

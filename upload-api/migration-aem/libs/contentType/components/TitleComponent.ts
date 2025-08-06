@@ -97,12 +97,15 @@ export class TitleComponent extends ContentstackComponent {
       );
     }
 
-    return new GroupField({
-      uid: parentKey,
-      displayName: parentKey,
-      fields,
-      required: false,
-      multiple: false
-    }).toContentstack();
+    return {
+      ...new GroupField({
+        uid: parentKey,
+        displayName: parentKey,
+        fields,
+        required: false,
+        multiple: false
+      }).toContentstack(),
+      type: component.convertedSchema.properties[":type"]?.value,
+    };
   }
 }

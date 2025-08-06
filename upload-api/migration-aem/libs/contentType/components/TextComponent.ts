@@ -64,7 +64,8 @@ export class TextComponent extends ContentstackComponent {
         contentstackFieldType: 'json',
         backupFieldType: 'json',
         backupFieldUid: 'json',
-        advanced: { default_value: default_value !== '' ? default_value : null }
+        advanced: { default_value: default_value !== '' ? default_value : null },
+        type: component?.convertedSchema?.properties?.[":type"]?.value
       };
     }
     return null;
