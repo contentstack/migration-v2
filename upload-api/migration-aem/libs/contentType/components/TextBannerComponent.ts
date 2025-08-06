@@ -15,8 +15,8 @@ export class TextBannerComponent extends ContentstackComponent {
     if (properties && typeof properties === 'object') {
       const typeField = properties[":type"];
       if (
-        (typeof typeField === "string" && typeField.includes("baem/components/textbanner")) ||
-        (typeof typeField === "object" && typeField.value?.includes("baem/components/textbanner"))
+        (typeof typeField === "string" && typeField.includes("/components/textbanner")) ||
+        (typeof typeField === "object" && typeField.value?.includes("/components/textbanner"))
       ) {
         return true;
       }
@@ -94,13 +94,16 @@ export class TextBannerComponent extends ContentstackComponent {
           }
         }
       }
-      return new GroupField({
-        uid: parentKey,
-        displayName: parentKey,
-        fields,
-        required: false,
-        multiple: false
-      }).toContentstack();
+      return {
+        ...new GroupField({
+          uid: parentKey,
+          displayName: parentKey,
+          fields,
+          required: false,
+          multiple: false
+        }).toContentstack(),
+        type: component?.convertedSchema?.properties?.[":type"]?.value
+      };
     }
     return null;
   }

@@ -93,13 +93,16 @@ export class ButtonComponent extends ContentstackComponent {
           );
         }
       }
-      return componentsData?.length ? new GroupField({
-        uid: parentKey,
-        displayName: parentKey,
-        fields: componentsData,
-        required: false,
-        multiple: false
-      }).toContentstack() : null;
+      return componentsData?.length ? {
+        ... new GroupField({
+          uid: parentKey,
+          displayName: parentKey,
+          fields: componentsData,
+          required: false,
+          multiple: false
+        }).toContentstack(),
+        type: component?.convertedSchema?.properties?.[":type"]?.value,
+      } : null;
     }
   }
 }
