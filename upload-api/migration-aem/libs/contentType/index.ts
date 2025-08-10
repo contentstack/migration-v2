@@ -16,7 +16,8 @@ import {
   ProductListingComponent,
   ButtonComponent,
   TextBannerComponent,
-  ImageComponent
+  ImageComponent,
+  CarouselComponent
 } from './components';
 import { mergeComponentObjects, readFiles, writeJsonFile } from "../../helper/index";
 
@@ -52,7 +53,8 @@ function processComponents(components: Record<string, any> | Record<string, any>
       () => ButtonComponent.isButton(component) && ButtonComponent.mapButtonToContentstack(component, key),
       () => TextBannerComponent.isTextBanner(component) && TextBannerComponent.mapTextBannerToContentstack(component, key),
       () => ImageComponent.isImage(component) && ImageComponent.mapImageToContentstack(component, key),
-      () => null
+      () => CarouselComponent.isCarousel(component) && CarouselComponent.mapCarouselToContentstack(component, key),
+      () => null,
     ];
     result[key] = mappingRules.map(fn => fn()).find(Boolean);
   }
