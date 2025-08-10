@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { IReadFiles } from "./types/index.interface";
-import { MergeStrategy } from "./types/index.interface"
+import { MergeStrategy } from "./types/index.interface";
+import { v4 as uuidv4 } from "uuid";
 
 
 /**
@@ -199,12 +200,116 @@ export function isImageType(path: string): boolean {
 
 
 export const uidCorrector = (uid: string) => {
-  // Replace spaces, hyphens, and colons with underscores, then lowercase
-  const newUid = uid.replace(/[ :-]/g, '_').toLowerCase();
+  // Remove leading colon if present (e.g., ':items' becomes 'items')
+  let newUid = uid.replace(/^:/, '');
+
+  // Replace spaces, hyphens, and colons with underscores
+  newUid = newUid.replace(/[ :-]/g, '_');
+
   // Remove all '$' characters
-  return newUid.replace(/\$/g, '');
+  newUid = newUid.replace(/\$/g, '');
+
+  // Remove any character not alphanumeric or underscore
+  newUid = newUid.replace(/[^a-zA-Z0-9_]/g, '');
+
+  // Ensure starts with an alphabet, else prefix with 'a'
+  if (!/^[a-zA-Z]/.test(newUid)) {
+    newUid = 'a' + newUid;
+  }
+
+  return newUid;
 };
 
 export const isUrlPath = (str: string) => /^\/[a-zA-Z0-9\-/.]+$/.test(str);
 
 export const isHtmlString = (str: string): boolean => /<[a-z][\s\S]*>/i.test(str);
+
+
+export function findComponentByType(contentstackComponents: any, type: string, exclude: string[] = ['nt:folder']) {
+  return Object.entries(contentstackComponents ?? {}).find(
+    ([, csValue]: any) => {
+      const csType = (csValue as { [key: string]: any })['type'];
+      return csType === type && !exclude.includes(csType);
+    }
+  );
+}
+
+
+export function countComponentTypes(component: any, result: Record<string, number> = {}) {
+  if (!component || typeof component !== "object") return result;
+
+  // Check for ':type' at current level
+  const typeField = component[":type"]?.value;
+  if (typeField) {
+    result[typeField] = (result[typeField] || 0) + 1;
+  }
+
+  // Recursively check nested properties
+  for (const key in component) {
+    if (component[key] && typeof component[key] === "object") {
+      countComponentTypes(component[key], result);
+    }
+  }
+
+  return result;
+}
+
+
+export function findFirstComponentByType(schema: Record<string, any>, type: string): any | null {
+  if (!schema || typeof schema !== "object") return null;
+
+  // Check at current level
+  if (schema[":type"]?.value === type) {
+    return schema;
+  }
+
+  // Recursively check nested properties
+  for (const key in schema) {
+    if (schema[key] && typeof schema[key] === "object") {
+      const found = findFirstComponentByType(schema[key], type);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Converts kebab-case or snake_case to a human-readable title.
+ * Example: "page-content-full-width" => "Page content full width"
+ */
+export function toHumanTitle(str: string): string {
+  return str
+    .replace(/[-_]+/g, ' ')         // Replace - and _ with space
+    .replace(/\s+/g, ' ')           // Normalize spaces
+    .trim()                         // Remove leading/trailing spaces
+    .replace(/^./, c => c.toUpperCase()); // Capitalize first letter
+}
+
+export function createContentTypeObject({
+  otherCmsTitle,
+  otherCmsUid,
+  fieldMapping,
+  type = "content_type",
+  status = 1,
+  isUpdated = false
+}: {
+  otherCmsTitle: string;
+  otherCmsUid: string;
+  fieldMapping: string[];
+  type?: string;
+  status?: number;
+  isUpdated?: boolean;
+}) {
+  return {
+    id: uuidv4(),
+    status,
+    otherCmsTitle: toHumanTitle(otherCmsTitle),
+    otherCmsUid,
+    isUpdated,
+    contentstackTitle: toHumanTitle(otherCmsTitle),
+    contentstackUid: uidCorrector(otherCmsUid),
+    fieldMapping,
+    type
+  };
+}

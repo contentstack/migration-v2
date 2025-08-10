@@ -11,3 +11,4 @@ export { ProductListingComponent } from './ProductListingComponent';
 export { ButtonComponent } from './ButtonComponent';
 export { TextBannerComponent } from './TextBannerComponent';
 export { ImageComponent } from './ImageComponent';
+export { CarouselComponent } from './CarouselComponent';
