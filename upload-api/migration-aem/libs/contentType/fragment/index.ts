@@ -10,7 +10,7 @@ export const createFragmentComponent = async (
 ) => {
   const key = segmentData?.[0];
   if (!key) {
-    console.info('Fragment key does not exist.');
+    console.info('Fragment key does not exist. itemsOrder:', itemData?.[':itemsOrder']);
     return null;
   }
 

@@ -1,9 +1,10 @@
 import path from "path";
 import { CONSTANTS } from "../../constant";
 import { createContentTypeObject, findComponentByType, writeJsonFile } from "../../helper";
-import { isContainerComponent, isExperienceFragment, parseXFPath } from "../../helper/component.identifier";
+import { isContainerComponent, parseXFPath } from "../../helper/component.identifier";
 import { createFragmentComponent } from "./fragment";
 import { IContentTypeMaker } from "./types/createContentTypes.interface";
+import { ModularBlocksField } from "./fields/contentstackFields";
 
 
 async function processTemplateItems(itemsOrder: string[], items: any, contentstackComponents: any) {
@@ -23,9 +24,36 @@ async function processTemplateItems(itemsOrder: string[], items: any, contentsta
       const items = item?.[':items'];
       const conatinerSchema: any = await processTemplateItems(itemsOrder, items, contentstackComponents);
       if (conatinerSchema?.length) {
-        const obj: any = {}
-        obj[element] = conatinerSchema
-        schema?.push(obj);
+        const modularData = new ModularBlocksField({
+          uid: element,
+          displayName: element,
+          blocks: [],
+        }).toContentstack();
+        for (const object of conatinerSchema) {
+          if (object?.contentstackFieldType === 'group' ||
+            object?.contentstackFieldType === 'modular_blocks') {
+            const block: any = {
+              uid: object?.uid,
+              otherCmsField: object?.otherCmsField,
+              contentstackField: object?.contentstackField,
+              contentstackFieldUid: object?.contentstackFieldUid,
+              backupFieldUid: object?.backupFieldUid,
+              schema: object.schema,
+            }
+            modularData.blocks?.push(block);
+          } else if (object) {
+            const block: any = {
+              uid: object?.uid,
+              otherCmsField: object?.otherCmsField,
+              contentstackField: object?.contentstackField,
+              contentstackFieldUid: object?.contentstackFieldUid,
+              backupFieldUid: object?.backupFieldUid,
+              schema: object,
+            }
+            modularData.blocks?.push(block);
+          }
+        }
+        schema?.push(modularData);
       }
     } else {
       const [, csValue] = findComponentByType(contentstackComponents, type) ?? [];
@@ -46,21 +74,16 @@ const contentTypeMaker: IContentTypeMaker = async ({ templateData, affix, conten
   for await (const [key, value] of Object.entries(templateData ?? {})) {
     if (!Array.isArray(value)) return console.warn(`Value for key "${key}" is not an array:`, value);
     for await (const template of value) {
-      if (isExperienceFragment?.(template)?.isXF) {
-        // console.info("🚀 ~ contentTypeMaker ~ template:", template)
-      } else {
-        const itemsOrder = template?.[':items']?.root?.[':itemsOrder'];
-        const items = template?.[':items']?.root?.[':items'];
-        const Schema = await processTemplateItems(itemsOrder, items, contentstackComponents);
-        const contentTypeObject = createContentTypeObject({
-          otherCmsTitle: key,
-          otherCmsUid: key,
-          fieldMapping: Schema,
-        });
-        contentData?.push(contentTypeObject);
-      }
+      const itemsOrder = template?.[':items']?.root?.[':itemsOrder'];
+      const items = template?.[':items']?.root?.[':items'];
+      const Schema = await processTemplateItems(itemsOrder, items, contentstackComponents);
+      const contentTypeObject = createContentTypeObject({
+        otherCmsTitle: key,
+        otherCmsUid: key,
+        fieldMapping: Schema,
+      });
+      contentData?.push(contentTypeObject);
     }
-
   }
   const contentDataFilePath = path.resolve(CONSTANTS?.CONENT_DATA_FILE);
   // const mergedContentData = mergeContentTypeFieldMappings(contentData);

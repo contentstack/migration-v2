@@ -63,9 +63,9 @@ export class TextField extends Field {
       otherCmsType: 'text',
       contentstackField: this.displayName,
       contentstackFieldUid: this.uid,
-      contentstackFieldType: `${fieldType}`,
+      contentstackFieldType: fieldType,
       backupFieldType: fieldType,
-      backupFieldUid: fieldType,
+      backupFieldUid: this.uid,
       advanced: {
         default_value: this.defaultValue !== undefined ? this.defaultValue : null,
         description: this.description,
@@ -108,7 +108,7 @@ export class SelectField extends Field {
       contentstackFieldUid: this.uid,
       contentstackFieldType: this.multiple ? 'multi_select' : 'select',
       backupFieldType: 'select',
-      backupFieldUid: 'select',
+      backupFieldUid: this.uid,
       advanced: {
         default_value: this.defaultValue !== undefined ? this.defaultValue : null,
         description: this.description,
@@ -149,7 +149,7 @@ export class BooleanField extends Field {
       contentstackFieldUid: this.uid,
       contentstackFieldType: 'boolean',
       backupFieldType: 'boolean',
-      backupFieldUid: 'boolean',
+      backupFieldUid: this.uid,
       advanced: {
         default_value: this.defaultValue !== undefined ? this.defaultValue : null,
         description: this.description,
@@ -182,14 +182,21 @@ export class GroupField extends Field {
 
   toContentstack() {
     return {
-      data_type: 'group',
-      display_name: this.displayName,
-      field_metadata: {},
-      schema: this.fields.filter(Boolean),
+      id: this.generateId(),
+
       uid: this.uid,
-      multiple: this.multiple, // or true if you want to support multiple groups
-      mandatory: !!this.required,
-      unique: false
+      otherCmsField: this.displayName,
+      otherCmsType: 'group',
+      contentstackField: this.displayName,
+      contentstackFieldUid: this.uid,
+      contentstackFieldType: 'group',
+      backupFieldType: 'group',
+      backupFieldUid: this.uid,
+      schema: this.fields.filter(Boolean),
+      advanced: {
+        mandatory: !!this.required,
+        multiple: this.multiple,
+      }
     };
   }
 }
@@ -210,7 +217,6 @@ export class LinkField extends Field {
 
   toContentstack() {
     const id = this.generateId();
-    const sitecoreKey = this.uid;
     const name = this.displayName;
     const type = 'link';
     const uid = this.uid;
@@ -218,14 +224,14 @@ export class LinkField extends Field {
 
     return {
       id: id,
-      uid: sitecoreKey,
+      uid: uid,
       otherCmsField: name,
       otherCmsType: type,
       contentstackField: name,
       contentstackFieldUid: uid,
       contentstackFieldType: 'link',
       backupFieldType: 'link',
-      backupFieldUid: 'link',
+      backupFieldUid: uid,
       advanced: { default_value: default_value !== '' ? default_value : null }
     };
   }
@@ -326,15 +332,52 @@ export class JsonField extends Field {
 
     return {
       id: id,
-      uid: name,
+      uid: uid,
       otherCmsField: name,
       otherCmsType: type,
       contentstackField: name,
       contentstackFieldUid: uid,
       contentstackFieldType: 'json',
       backupFieldType: 'json',
-      backupFieldUid: 'json',
+      backupFieldUid: uid,
       advanced: { default_value: default_value !== '' ? default_value : null }
+    };
+  }
+}
+
+/**
+ * Modular Blocks field implementation
+ */
+export class ModularBlocksField extends Field {
+  multiple: boolean;
+  blocks: any[];
+
+  constructor(config: {
+    uid: string;
+    displayName: string;
+    required?: boolean;
+    description?: string;
+    blocks: any[];
+    multiple?: boolean;
+  }) {
+    super(config);
+    this.blocks = config.blocks;
+    this.multiple = config.multiple ?? true;
+  }
+
+  toContentstack() {
+    const id = this.generateId();
+    return {
+      id: id,
+      uid: this.uid,
+      otherCmsField: this.displayName,
+      otherCmsType: 'container',
+      blocks: this.blocks,
+      contentstackField: this.displayName,
+      contentstackFieldUid: this.uid,
+      contentstackFieldType: 'modular_blocks',
+      backupFieldType: 'modular_blocks',
+      backupFieldUid: this.uid,
     };
   }
 }
