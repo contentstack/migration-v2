@@ -65,22 +65,22 @@ export class CarouselComponent extends ContentstackComponent {
         ][] = [
             [ImageComponent, "isImage", (comp, isMultiple) => {
               const imageData = ImageComponent.mapImageToContentstack(comp, "image");
-              if (imageData && isMultiple) imageData.multiple = true;
+              if (imageData && isMultiple) imageData.advanced.multiple = true;
               if (imageData) schema.push(imageData);
             }],
             [TeaserComponent, "isTeaser", (comp, isMultiple) => {
               const teaserData = TeaserComponent.mapTeaserToContentstack(comp, "teaser");
-              if (teaserData && isMultiple) teaserData.multiple = true;
+              if (teaserData && isMultiple) teaserData.advanced.multiple = true;
               if (teaserData) schema.push(teaserData);
             }],
             [ButtonComponent, "isButton", (comp, isMultiple) => {
               const buttonData = ButtonComponent.mapButtonToContentstack(comp, "button");
-              if (buttonData && isMultiple) buttonData.multiple = true;
+              if (buttonData && isMultiple) buttonData.advanced.multiple = true;
               if (buttonData) schema.push(buttonData);
             }],
             [TextBannerComponent, "isTextBanner", (comp, isMultiple) => {
               const textBannerData = TextBannerComponent.mapTextBannerToContentstack(comp, "textBanner");
-              if (textBannerData && isMultiple) textBannerData.multiple = true;
+              if (textBannerData && isMultiple) textBannerData.advanced.multiple = true;
               if (textBannerData) schema.push(textBannerData);
             }],
             [TextComponent, "isText", (comp, isMultiple) => {

@@ -217,7 +217,7 @@ export const uidCorrector = (uid: string) => {
     newUid = 'a' + newUid;
   }
 
-  return newUid;
+  return newUid.toLowerCase();
 };
 
 export const isUrlPath = (str: string) => /^\/[a-zA-Z0-9\-/.]+$/.test(str);
@@ -296,7 +296,7 @@ export function createContentTypeObject({
 }: {
   otherCmsTitle: string;
   otherCmsUid: string;
-  fieldMapping: string[];
+  fieldMapping: any[];
   type?: string;
   status?: number;
   isUpdated?: boolean;
@@ -309,7 +309,7 @@ export function createContentTypeObject({
     isUpdated,
     contentstackTitle: toHumanTitle(otherCmsTitle),
     contentstackUid: uidCorrector(otherCmsUid),
+    type,
     fieldMapping,
-    type
   };
 }
