@@ -84,7 +84,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   const filterRef = useRef<HTMLDivElement | null>(null);
   const [options, setOptions] = useState(props?.value?.options || []);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-console.info("options for embed, ", embedObjects, referencedItems, props); 
+
   useEffect(() => {
     const defaultIndex = toggleStates?.option?.findIndex(
       (item: optionsType) => toggleStates?.default_value === item?.key
