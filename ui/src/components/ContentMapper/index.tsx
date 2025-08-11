@@ -1791,7 +1791,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             ct?.id === data?.data?.updatedContentType?.id ? { ...ct, status: data?.data?.updatedContentType?.status } : ct
           );
           let filteredCT = savedCT;
-          if (!isEmptyString(activeFilter)) {
+          if (!isEmptyString(activeFilter) && activeFilter !== 'All') {
             filteredCT = savedCT?.filter((ct) =>
               CONTENT_MAPPING_STATUS?.[ct?.status] === activeFilter
             );
@@ -1925,7 +1925,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           )
 
           let filteredCT = resetCT;
-          if (!isEmptyString(activeFilter)) {
+          if (!isEmptyString(activeFilter) && activeFilter !== 'All') {
             filteredCT = resetCT?.filter((ct) =>
               CONTENT_MAPPING_STATUS?.[ct?.status] === activeFilter
             );

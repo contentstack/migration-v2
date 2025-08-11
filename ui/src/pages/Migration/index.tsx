@@ -586,7 +586,8 @@ const Migration = () => {
           Boolean(label?.trim()) &&
           value !== '' &&
           value !== null &&
-          value !== undefined
+          value !== undefined && 
+          label !== 'undefined'
       );
 
     const master_locale: LocalesType = {};
