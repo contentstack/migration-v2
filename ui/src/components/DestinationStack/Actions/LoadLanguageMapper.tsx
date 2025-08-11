@@ -279,7 +279,6 @@ const Mapper = ({
       const updatedMappings = { ...prev };
 
       if (!selectedValue && !existingLabel?.value?.includes?.('-master_locale')) {
-        //const valueToKeep = updatedMappings[existingLabel?.value];
         delete updatedMappings?.[existingLabel?.value];
         //updatedMappings[""] = valueToKeep;
       }
@@ -295,11 +294,7 @@ const Mapper = ({
 
       return updatedMappings;
     });
-    // csLocaleKey &&
-    //   setSelectedMappings((prev) => ({
-    //     ...prev,
-    //     [csLocaleKey]: selectedValue?.label || ''
-    //   }));
+
   };
   const handleLanguageDeletaion = async (index: number, locale: { label: string; value: string }) => {
     // Remove item at index from existingField
@@ -338,7 +333,7 @@ const Mapper = ({
 
       // Rebuild object with new sequential keys
       const updatedOptions = Object?.fromEntries(
-        entries?.map(([_, value], newIndex) => [newIndex, value])
+        entries?.map(([_, value], index) => [index, value])
       );
 
       //sourceLocale = updatedOptions[index]?.label;
