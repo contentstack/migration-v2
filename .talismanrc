@@ -73,6 +73,12 @@ fileignoreconfig:
     checksum: bd2344e7277b41c7eb29c50504c88debf9a86d198c2508dea90d9a98f53d89e9
 
 
+  - filename: upload-api/migration-wordpress/package-lock.json
+    checksum: d8cba4136f09e4ce63370e5f48d3292a78fd5f317c186e6f44d4556196a3617e
+  - filename: upload-api/migration-sitecore/package-lock.json
+    checksum: 32579e06dde520acbde710f84684f738403a324a1cd0d6b342e21e423f4f8d96
+  - filename: upload-api/migration-contentful/package-lock.json
+    checksum: 1fec859f4d41e1acb5cdab8fdfba7c1978532a7f98f4fd26674153755f926d64
 
 fileignoreconfig:
 - filename: api/src/services/migration.service.ts
