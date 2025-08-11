@@ -12,7 +12,6 @@ import {
   Select,
   Radio,
   Button,
-  Tag
 } from '@contentstack/venus-components';
 
 // Service
@@ -68,7 +67,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     value: item
   }));
 
-  const referencedItems = props?.value?.referenedItems?.map((item: string) => ({
+  const referencedItems = props?.data?.refrenceTo?.map((item: string) => ({
     label: item,
     value: item
   }));
@@ -85,7 +84,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   const filterRef = useRef<HTMLDivElement | null>(null);
   const [options, setOptions] = useState(props?.value?.options || []);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-
+console.info("options for embed, ", embedObjects, referencedItems, props); 
   useEffect(() => {
     const defaultIndex = toggleStates?.option?.findIndex(
       (item: optionsType) => toggleStates?.default_value === item?.key
@@ -577,11 +576,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   );
                 }}
                 options={
-                  (Array.isArray(props?.data?.refrenceTo) && props?.data?.refrenceTo?.length) ? [props.data.refrenceTo.map((item: any) => ({
-                    label: item,
-                    value: item
-                  })), ...option]
-                    : option ?? []}
+                  option}
                 placeholder="Add Content Type(s)"
                 version="v2"
                 isSearchable={true}

@@ -325,7 +325,10 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
+      if(field?.backupFieldType === 'reference' &&  field?.refrenceTo?.length === 0) {
+        field._canSelect = false;
+      }
+      else if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
         field._canSelect = true;
       }
     });
@@ -645,21 +648,22 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         setSelectedOptions([]);
       }
       // Remove unmatched keys from existingField
-      setExistingField((prevOptions: ExistingFieldType) => {
-        const updatedOptions: ExistingFieldType = { ...prevOptions };
-        Object.keys(prevOptions).forEach((key) => {
-          if (matchedKeys?.has(key)) {
+      // setExistingField((prevOptions: ExistingFieldType) => {
+      //   const updatedOptions: ExistingFieldType = { ...prevOptions };
+      //   Object.keys(prevOptions).forEach((key) => {
+      //     if (matchedKeys?.has(key)) {
 
-            const index = selectedOptions?.indexOf(updatedOptions?.[key]?.label ?? '');
+      //       const index = selectedOptions?.indexOf(updatedOptions?.[key]?.label ?? '');
 
-            if (index > -1) {
-              selectedOptions?.splice(index, 1);
-            }
-            delete updatedOptions[key];
-          }
-        });
-        return updatedOptions;
-      });
+      //       if (index > -1) {
+      //         selectedOptions?.splice(index, 1);
+      //       }
+      //       delete updatedOptions[key];
+      //     }
+      //   });
+      //   console.info("updatedOptions", updatedOptions);
+      //   return updatedOptions;
+      // });
 
     }
 
