@@ -21,7 +21,7 @@ fileignoreconfig:
     checksum: 0a1c735670c6197ed8104addca39834c6f42ef9bd003b6d059f258791807bc9a
 
   - filename: api/package-lock.json
-    checksum: 164b1d73970f5aa71a165456f7f565b5babb1dcb22d6ca532cd31dbaa08765f5
+    checksum: cb5cdc9d39ba708ecfe89e1564ee5679b89cb88fd39ee6bb5c3531933e40b3ae
 
   - filename: upload-api/src/helper/index.ts
     checksum: 607097a9ebd99ad1433ba24b92253beb75a4873280130edfa7ce986fadfdefc8
@@ -30,7 +30,7 @@ fileignoreconfig:
     checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
 
   - filename: ui/package-lock.json
-    checksum: cee38557d8dcaca78c40053e67e5448820c17b29c146595f10b5c7c4f0cb01bc
+    checksum: 7c68bf60d1fe31ca0639b15a04b2b69bf69742e10a2eda26aa98646110820e14
 
   - filename: upload-api/migration-wordpress/package-lock.json
     checksum: e7bc3b55717473a91e0d5021ea5a96564df19ab8d066a7c11a280547d9531942
@@ -39,11 +39,10 @@ fileignoreconfig:
     checksum: 473898e601dd760e847a6d7c91c407c3f2b91e60c8982857cfaf34c7eee1dbc2
 
   - filename: package-lock.json
-    checksum: 839b29ba75b658cf5cb306e9a244a3271c93f501342a9e0d54d77a7427e31a79
+    checksum: 1d74d25f855dec66df83b67b63c0623df8b601c5fea3dd5f6972452558d7badc
 
   - filename: upload-api/package-lock.json
-    checksum: 9e8466f0364fc4fe485897e2d71d03da604923ecaab10a0de70a789ce676e98c
-
+    checksum: f565b9ea37401416666f6471fb26c91985f109f60a4f823b6121466568c1c199
   - filename: api/package-lock.json
     checksum: 9d10dd6e4d514645c0d14188cc359e71ec6f9f528d1ccea94b94695546a7d4be
 
