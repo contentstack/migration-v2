@@ -45,7 +45,7 @@ const createGlobalField = async ({
     }
     const filePath = path.join(process.cwd(),globalSave, GLOBAL_FIELDS_FILE_NAME);
     const globalfields = res?.data?.global_fields || [];
-    //const globalFieldSchema = await fs.promises.readFile(filePath, 'utf8');
+    
     let fileGlobalFields : any[]= []
     if (fs.existsSync(filePath)) {
     const globalFieldSchema = await fs.promises.readFile(filePath, 'utf8');
@@ -55,7 +55,7 @@ const createGlobalField = async ({
         console.error(`Error parsing JSON in ${filePath}:`, e);
     }
     }
-    //const fileGlobalFields = JSON.parse(globalFieldSchema);
+    
     const mergedGlobalFields = [
     ...globalfields,
     ...(fileGlobalFields?.filter(
