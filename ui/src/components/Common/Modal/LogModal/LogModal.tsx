@@ -16,7 +16,9 @@ export default function LogModal({ props, data }: LogModalProps) {
 
       <ModalBody className="modalBodyCustomClass">
         {data?.methodName && (<><h3>Method Name: {data?.methodName}</h3><br /></>)}
-        <p className='text'>{data?.message}</p>
+        <div className='log-modal'>
+          <p className='text'>{data?.message}</p>
+        </div>
       </ModalBody>
     </>
   );
