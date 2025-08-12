@@ -992,7 +992,7 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
     await writeFile(localeSave, LOCALE_FILE_NAME, allLocales)
     await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale)
     await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList)
-    await writeFile(globalFieldSave, GLOBAL_FIELDS_FILE_NAME, [])
+  
     const message = getLogMessage(
       srcFunc,
       `locales have been successfully transformed.`,

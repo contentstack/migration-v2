@@ -187,7 +187,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
             notificationContent: { text: message },
             notificationProps: {
               position: 'bottom-center',
-              hideProgressBar: false
+              hideProgressBar: true
             },
             type: 'success'
           });
@@ -260,7 +260,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
         {migratedStack?.isMigrated ? (
           <div>
             <div className="log-entry text-center">
-              <div className="log-message">
+              <div className="log-message generic-log-message">
                 Test Migration is completed for stack{' '}
                 <Link href={newMigrationData?.test_migration?.stack_link} target="_blank">
                   <strong>{migratedStack?.stackName}</strong>
@@ -293,7 +293,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
                         style={logStyles[level || ''] || logStyles.info}
                         className="log-entry text-center"
                       >
-                        <div className="log-message">{message}</div>
+                        <div className="log-message generic-log-message">{message}</div>
                       </div>
                     ) : (
                       <div

@@ -33,7 +33,8 @@ import { extensionService } from './extension.service.js';
 import fsPromises from 'fs/promises';
 import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
-// import { getSafePath } from "../utils/sanitize-path.utils.js";
+import { globalFieldServie } from './globalField.service.js';
+import { getSafePath } from '../utils/sanitize-path.utils.js';
 
 /**
  * Creates a test stack.
@@ -331,7 +332,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
       stackId:project?.destination_stack_id,
       current_test_stack_id: project?.current_test_stack_id,
       region,
-      userId: user_id,})
+      userId: user_id,
+    });
+    await globalFieldServie?.createGlobalField({
+      region,
+      user_id, 
+      stackId:project?.destination_stack_id,
+      current_test_stack_id: project?.current_test_stack_id,
+    });
     
     switch (cms) {
       case CMS.SITECORE_V8:
@@ -554,6 +562,20 @@ const startMigration = async (req: Request): Promise<any> => {
     await extensionService?.createExtension({
       destinationStackId: project?.destination_stack_id,
     });
+    await taxonomyService?.createTaxonomy({
+    orgId, 
+    projectId,
+    stackId:project?.destination_stack_id,
+    current_test_stack_id: project?.destination_stack_id,
+    region,
+    userId: user_id,
+    });
+    await globalFieldServie?.createGlobalField({
+      region,
+      user_id, 
+      stackId:project?.destination_stack_id,
+      current_test_stack_id: project?.destination_stack_id,
+    });
     switch (cms) {
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
@@ -705,7 +727,13 @@ const getAuditData = async (req: Request): Promise<any> => {
         }
       };
       if (entriesSelectFieldExists) {
-        const fileContent = await fsPromises?.readFile(entriesSelectFieldPath, 'utf8');
+        const safeEntriesSelectFieldPath = getSafePath(entriesSelectFieldPath);
+        // Ensure the sanitized path is within the auditLogPath directory
+        if (!safeEntriesSelectFieldPath.startsWith(auditLogPath)) {
+          throw new BadRequestError('Access to this file is not allowed.');
+        }
+       
+        const fileContent = await fsPromises?.readFile(safeEntriesSelectFieldPath, 'utf8');
         try {
           if (typeof fileContent === 'string') {
             const parsed = JSON?.parse(fileContent);
@@ -717,7 +745,12 @@ const getAuditData = async (req: Request): Promise<any> => {
         }
       }
       if (entriesExists) {
-        const fileContent = await fsPromises?.readFile(entriesPath, 'utf8');
+        const safeEntriesPath = getSafePath(entriesPath);
+        // Ensure the sanitized path is within the auditLogPath directory
+        if (!safeEntriesPath.startsWith(auditLogPath)) {
+          throw new BadRequestError('Access to this file is not allowed.');
+        }
+        const fileContent = await fsPromises?.readFile(safeEntriesPath, 'utf8');
         try {
           if (typeof fileContent === 'string') {
             const parsed = JSON?.parse(fileContent);
@@ -731,7 +764,19 @@ const getAuditData = async (req: Request): Promise<any> => {
       fileData = combinedData;
     } else {
       if (fs?.existsSync(filePath)) {
-        const fileContent = await fsPromises?.readFile(filePath, 'utf8');
+        const safeFilePath = getSafePath(filePath);
+        // Ensure the sanitized path is within the auditLogPath directory
+        if (!safeFilePath.startsWith(auditLogPath)) {
+          throw new BadRequestError('Access to this file is not allowed.');
+        }
+        // Prevent path traversal by checking for '..' and ensuring the path is within auditLogPath
+        if (
+          safeFilePath.includes('..') ||
+          !safeFilePath.startsWith(auditLogPath)
+        ) {
+          throw new BadRequestError('Path traversal detected or access to this file is not allowed.');
+        }
+        const fileContent = await fsPromises?.readFile(safeFilePath, 'utf8');
         try {
           if (typeof fileContent === 'string') {
             fileData = JSON?.parse(fileContent);
