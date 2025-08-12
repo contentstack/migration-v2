@@ -732,10 +732,6 @@ const getAuditData = async (req: Request): Promise<any> => {
         if (!safeEntriesSelectFieldPath.startsWith(auditLogPath)) {
           throw new BadRequestError('Access to this file is not allowed.');
         }
-        // Ensure the sanitized path is within the auditLogPath directory
-        if (!safeEntriesSelectFieldPath.startsWith(auditLogPath)) {
-          throw new BadRequestError('Access to this file is not allowed.');
-        }
         // Additional path traversal prevention
         if (!safeEntriesSelectFieldPath.startsWith(auditLogPath) || safeEntriesSelectFieldPath.includes('..')) {
           throw new BadRequestError('Access to this file is not allowed.');
