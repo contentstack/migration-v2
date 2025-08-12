@@ -34,6 +34,7 @@ import fsPromises from 'fs/promises';
 import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
+import { getSafePath } from '../utils/sanitize-path.utils.js';
 // import { getSafePath } from "../utils/sanitize-path.utils.js";
 
 /**
@@ -727,7 +728,20 @@ const getAuditData = async (req: Request): Promise<any> => {
         }
       };
       if (entriesSelectFieldExists) {
-        const fileContent = await fsPromises?.readFile(entriesSelectFieldPath, 'utf8');
+        const safeEntriesSelectFieldPath = getSafePath(entriesSelectFieldPath);
+        // Ensure the sanitized path is within the auditLogPath directory
+        if (!safeEntriesSelectFieldPath.startsWith(auditLogPath)) {
+          throw new BadRequestError('Access to this file is not allowed.');
+        }
+        // Ensure the sanitized path is within the auditLogPath directory
+        if (!safeEntriesSelectFieldPath.startsWith(auditLogPath)) {
+          throw new BadRequestError('Access to this file is not allowed.');
+        }
+        // Additional path traversal prevention
+        if (!safeEntriesSelectFieldPath.startsWith(auditLogPath) || safeEntriesSelectFieldPath.includes('..')) {
+          throw new BadRequestError('Access to this file is not allowed.');
+        }
+        const fileContent = await fsPromises?.readFile(safeEntriesSelectFieldPath, 'utf8');
         try {
           if (typeof fileContent === 'string') {
             const parsed = JSON?.parse(fileContent);
@@ -739,7 +753,12 @@ const getAuditData = async (req: Request): Promise<any> => {
         }
       }
       if (entriesExists) {
-        const fileContent = await fsPromises?.readFile(entriesPath, 'utf8');
+        const safeEntriesPath = getSafePath(entriesPath);
+        // Ensure the sanitized path is within the auditLogPath directory
+        if (!safeEntriesPath.startsWith(auditLogPath)) {
+          throw new BadRequestError('Access to this file is not allowed.');
+        }
+        const fileContent = await fsPromises?.readFile(safeEntriesPath, 'utf8');
         try {
           if (typeof fileContent === 'string') {
             const parsed = JSON?.parse(fileContent);
@@ -753,7 +772,19 @@ const getAuditData = async (req: Request): Promise<any> => {
       fileData = combinedData;
     } else {
       if (fs?.existsSync(filePath)) {
-        const fileContent = await fsPromises?.readFile(filePath, 'utf8');
+        const safeFilePath = getSafePath(filePath);
+        // Ensure the sanitized path is within the auditLogPath directory
+        if (!safeFilePath.startsWith(auditLogPath)) {
+          throw new BadRequestError('Access to this file is not allowed.');
+        }
+        // Prevent path traversal by checking for '..' and ensuring the path is within auditLogPath
+        if (
+          safeFilePath.includes('..') ||
+          !safeFilePath.startsWith(auditLogPath)
+        ) {
+          throw new BadRequestError('Path traversal detected or access to this file is not allowed.');
+        }
+        const fileContent = await fsPromises?.readFile(safeFilePath, 'utf8');
         try {
           if (typeof fileContent === 'string') {
             fileData = JSON?.parse(fileContent);
