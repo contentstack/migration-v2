@@ -208,7 +208,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
             notificationContent: { text: message },
             notificationProps: {
               position: 'bottom-center',
-              hideProgressBar: false
+              hideProgressBar: true
             },
             type: 'success'
           });
@@ -242,7 +242,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
         {newMigrationData?.migration_execution?.migrationCompleted ? (
           <div>
             <div className="log-entry text-center">
-              <div className="log-message">
+              <div className="log-message generic-log-message">
                 Migration Execution process is completed in the selected stack
                 <Link href={stackLink} target="_blank" className="ml-5">
                   <strong>{newMigrationData?.stackDetails?.label}</strong>
@@ -277,7 +277,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                     style={logStyles[level || ''] || logStyles.info}
                     className="log-entry text-center"
                   >
-                    <div className="log-message">
+                    <div className="log-message generic-log-message">
                       Migration has already done in selected stack. Please create a new project.
                     </div>
                   </div>
@@ -292,7 +292,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                         style={logStyles[level || ''] || logStyles.info}
                         className="log-entry text-center"
                       >
-                        <div className="log-message">{message}</div>
+                        <div className="log-message generic-log-message">{message}</div>
                       </div>
                     ) : (
                       <div
