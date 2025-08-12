@@ -325,7 +325,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if(field?.backupFieldType === 'reference' &&  field?.refrenceTo?.length === 0) {
+      if(field?.backupFieldType === 'reference' &&  field?.referenceTo?.length === 0) {
         field._canSelect = false;
       }
       else if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
@@ -850,8 +850,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     setIsDropDownChanged(checkBoxChanged);
     const newTableData = tableData?.map?.((row: any) => {
       if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
-        if (row?.refrenceTo) {
-          row.refrenceTo = updatedSettings?.referenedItems;
+        if (row?.referenceTo) {
+          row.referenceTo = updatedSettings?.referenedItems;
         }
         return { ...row, advanced: { ...row?.advanced, ...updatedSettings } };
       }
