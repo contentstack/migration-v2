@@ -81,6 +81,9 @@ fileignoreconfig:
     checksum: 1fec859f4d41e1acb5cdab8fdfba7c1978532a7f98f4fd26674153755f926d64
   - filename: ui/package-lock.json
     checksum: 4abcc89c75b7ddca8128fd72faafbb9b159f02611d96325bcd355283074ce287
+  - filename: ui/src/components/ContentMapper/index.scss
+    checksum: 46f8fde3b745feba40943f00d8d52714d0f320202c86b62f6c5ded73c2dbcf4c
+  
 
 fileignoreconfig:
 - filename: api/src/services/migration.service.ts
