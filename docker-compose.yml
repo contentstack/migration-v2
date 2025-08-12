@@ -8,6 +8,7 @@ services:
       - "5001:5001"
     restart: always
     volumes:
+      - ${CMS_DATA_PATH}:${CONTAINER_PATH}
       - shared_data:/app/extracted_files
 
   upload-api:
