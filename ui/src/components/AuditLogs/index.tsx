@@ -353,7 +353,6 @@ const AuditLogs: React.FC = () => {
           return renderCell(data?.missingCTSelectFieldValues);
         }
         if (typeof data?.missingRefs === 'object' && data?.missingRefs) {
-          console.info(data?.missingRefs);
           const ctUid = (data?.missingRefs as any)?.[0]?._content_type_uid;
           if (Array.isArray(ctUid)) {
             return renderCell(ctUid?.length > 0 ? ctUid?.join(', ') : null);
