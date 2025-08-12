@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.529.0",
-    "@contentstack/cli-utilities": "^1.5.12",
+    "@contentstack/cli-utilities": "^1.0.3",
     "axios": "^1.8.2",
     "chalk": "^4.1.2",
     "cheerio": "^1.0.0-rc.12",
@@ -41,7 +41,7 @@
     "dotenv": "^16.3.1",
     "express": "^5.0.0",
     "express-rate-limit": "^7.2.0",
-    "inquirer": "^9.2.15",
+    "inquirer": "^12.9.1",
     "jszip": "^3.10.1",
     "lodash.isempty": "^4.4.0",
     "migration-contentful": "file:migration-contentful",

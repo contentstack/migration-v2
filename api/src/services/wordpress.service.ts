@@ -2260,19 +2260,22 @@ function limitConcurrency(maxConcurrency: number) {
 }
 const limit = limitConcurrency(5);
 
-async function featuredImageMapping(postid: string, post: any, postdata: any) {
+async function featuredImageMapping(postid: string, post: any, postdata: any, assetsSchemaPath: string) {
   try {
-    const filePath = path.join(process.cwd(), assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
-   const fileContent = fs.readFileSync(filePath, 'utf8').trim();
+    // **THE FIX: Use the path argument directly, don't use the global variable**
+    const fileContent = fs.readFileSync(assetsSchemaPath, 'utf8').trim();
   
-   if (!fileContent) {
-    throw new Error(`File ${filePath} is empty or missing`);
-  }
-    const assetsId = JSON?.parse(fileContent);
-    if (!post["wp:postmeta"] || !assetsId) return;
+    if (!fileContent) {
+      // File is empty, so no assets have been processed. Nothing to map.
+      return postdata;
+    }
 
-    const postmetaArray = Array.isArray(post["wp:postmeta"]) ? post["wp:postmeta"]
-      : [post["wp:postmeta"]];
+    const assetsId = JSON.parse(fileContent);
+    if (!post["wp:postmeta"] || !assetsId) {
+      return postdata;
+    }
+
+    const postmetaArray = Array.isArray(post["wp:postmeta"]) ? post["wp:postmeta"] : [post["wp:postmeta"]];
 
     const assetsDetails = postmetaArray
       .filter((meta) => meta["wp:meta_key"] === "_thumbnail_id")
@@ -2283,14 +2286,17 @@ async function featuredImageMapping(postid: string, post: any, postdata: any) {
           (asset: any) => asset.uid === attachmentid
         );
       })
-      .filter(Boolean); // Filter out undefined matches
+      .filter(Boolean); 
     
-    if (assetsDetails?.length > 0) {
+    if (assetsDetails.length > 0 && postdata[postid]) {
+      // Assign the found asset object to the 'featured_image' field
       postdata[postid]["featured_image"] = assetsDetails[0];
     }
     return postdata;
   } catch (error) {
-    console.error(error);
+    console.error("Error during featured image mapping:", error);
+    // Return the original postdata if an error occurs to avoid losing the entry
+    return postdata;
   }
 }
 
@@ -2383,96 +2389,67 @@ async function processChunkData(
   isLastChunk: boolean,
   contenttype: any,
   authorsFilePath: string,
-  referencesFilePath: string
+  referencesFilePath: string,
+  assetsSchemaPath: string
 ) {
-  const postdata: any = {};
-  const formattedPosts: any = {};
-  let postdataCombined = {};
+  let postdataCombined: Record<string, any> = {};
 
   try {
-    const writePromises = [];
-
-    const filteredChunk = chunkData?.filter((item:any) => item["wp:post_type"] === "post" && ["publish", "inherit", "draft"]?.includes(item["wp:status"]));
-    for (const data of filteredChunk) {
-      writePromises.push(
-        limit(async () => {
-          const { postCategories, postTags, postTerms } = extractPostCategories(data["category"], referencesFilePath);
-
-
-          // Extract author
-          const postAuthor = extractPostAuthor(data["dc:creator"], authorsFilePath);
-
-          const dom = new JSDOM(
-            data["content:encoded"]
-              .replace(/<!--.*?-->/g, "")
-              .replace(/&lt;!--?\s+\/?wp:.*?--&gt;/g, ""),
-            { virtualConsole }
-          );
-          const htmlDoc = dom.window.document.querySelector("body");
-          const jsonValue = htmlToJson(htmlDoc);
-
-          // Format date safely
-          let postDate: string | null = null;
-          try {
-            const parsed = new Date(data["wp:post_date_gmt"]);
-            if (!isNaN(parsed.getTime())) {
-              postDate = parsed.toISOString();
-            }
-          } catch (error) {
-            console.error(`Error parsing date for post ${data["wp:post_id"]}:`, error);
-          }
-
-          const base = blog_base_url?.split("/")?.filter(Boolean);
-          const blogname = base[base?.length - 1];
-          const url = data["link"]?.split(blogname)[1];
-          const uid = `posts_${data["wp:post_id"]}`;
-          const customId = idCorrector(uid);
-
-          postdata[customId] = {
-            title: data["title"] || `Posts - ${data["wp:post_id"]}`,
-            uid: customId,
-            url: url,
-            date: postDate,
-            full_description: jsonValue,
-            excerpt: (data["excerpt:encoded"] || "")
-              .replace(/<!--.*?-->/g, "")
-              .replace(/&lt;!--?\s+\/?wp:.*?--&gt;/g, ""),
-            author: postAuthor,
-            category: postCategories,
-            terms: postTerms,
-            tag: postTags,
-            featured_image: '',
-            publish_details: [],
-          };
-
-          for (const [key, value] of Object.entries(postdata as { [key: string]: any })) {
-            const customId = idCorrector(value?.uid);
-            formattedPosts[customId] = {
-              ...formattedPosts[customId],
-              uid: customId,
-              ...(await mapContentTypeToEntry(contenttype, value)),
-            };
-            formattedPosts[customId].publish_details = [];
-          }
-
-          const formattedPostsWithImage = await featuredImageMapping(
-            `posts_${data["wp:post_id"]}`,
-            data,
-            formattedPosts
-          );
-
-          postdataCombined = { ...postdataCombined, ...formattedPostsWithImage };
-        })
-      );
-    }
-
-    const results: any = await Promise.all(writePromises);
-    const allSuccess = results.every(
-      (result: any) => typeof result !== "object" || result?.success
+    // This filter is good, it correctly selects only post-like items.
+    const filteredChunk = chunkData?.filter((item: any) => 
+      item["wp:post_type"] !== "page" && 
+      item["wp:post_type"] !== "attachment" && 
+      ["publish", "inherit", "draft"]?.includes(item["wp:status"])
     );
 
-    if (isLastChunk && allSuccess) {
-      console.info("last data");
+    // The main loop processes one item at a time.
+    for (const data of filteredChunk) {
+      const customId = idCorrector(`posts_${data["wp:post_id"]}`);
+
+      // Step 1: Resolve all references for the CURRENT post
+      const { postCategories, postTags, postTerms } = extractPostCategories(data["category"], referencesFilePath);
+      const postAuthor = extractPostAuthor(data["dc:creator"], authorsFilePath);
+      const jsonValue = htmlToJson(new JSDOM(data["content:encoded"].replace("//g", "").replace(/&lt;!--?\s+\/?wp:.*?--&gt;/g, "")).window.document.querySelector("body"));
+      let postDate = null;
+      if (data["wp:post_date_gmt"] && !data["wp:post_date_gmt"].startsWith("0000")) {
+        postDate = new Date(data["wp:post_date_gmt"]).toISOString();
+      }
+
+      // Step 2: Create a temporary object with all raw data for the CURRENT post
+      const rawPostData = {
+        title: data["title"] || `Posts - ${data["wp:post_id"]}`,
+        uid: customId,
+        url: data["link"]?.split(blog_base_url?.split("/").filter(Boolean).pop())[1],
+        date: postDate,
+        full_description: jsonValue,
+        excerpt: (data["excerpt:encoded"] || "").replace("//g", "").replace(/&lt;!--?\s+\/?wp:.*?--&gt;/g, ""),
+        author: postAuthor,
+        category: postCategories,
+        terms: postTerms,
+        tag: postTags,
+        featured_image: '',
+        publish_details: [],
+      };
+      
+      // Step 3: Create the final, formatted post object using mapContentTypeToEntry
+      let formattedPost = {
+        uid: customId,
+        ...(await mapContentTypeToEntry(contenttype, rawPostData)),
+        publish_details: [],
+      };
+
+      // Step 4: Map the featured image for ONLY the CURRENT post
+      const formattedPostWithImage = await featuredImageMapping(
+        customId, // Use the corrected ID
+        data,
+        { [customId]: formattedPost }, // Pass an object with only the current post
+        assetsSchemaPath
+      );
+      
+      // Step 5: Add the final, complete post to the combined results
+      if (formattedPostWithImage && formattedPostWithImage[customId]) {
+        postdataCombined[customId] = formattedPostWithImage[customId];
+      }
     }
 
     return postdataCombined;
@@ -2498,6 +2475,9 @@ async function extractPosts( packagePath: string, destinationStackId: string, pr
     referencesFolder = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.REFERENCES_DIR_NAME);
     const referencesFilePath = path.join(referencesFolder, MIGRATION_DATA_CONFIG.REFERENCES_FILE_NAME);
 
+    assetsSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME);
+    const assetsSchemaPath = path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
+
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     blog_base_url =
@@ -2515,7 +2495,7 @@ async function extractPosts( packagePath: string, destinationStackId: string, pr
       const chunkData = JSON.parse(data);
       const isLastChunk = filename === lastChunk;
 
-      const chunkPostData = await processChunkData(chunkData, filename, isLastChunk, contenttype, authorsFilePath, referencesFilePath);
+      const chunkPostData = await processChunkData(chunkData, filename, isLastChunk, contenttype, authorsFilePath, referencesFilePath, assetsSchemaPath);
       postdataCombined = { ...postdataCombined, ...chunkPostData };
 
       const seenTitles = new Map();
@@ -2656,7 +2636,8 @@ const extractPageParent = (parentId?: string): any[] => {
 async function handlePagesChunkData(
   items: any[],
   contenttype: any,
-  authorsFilePath: string
+  authorsFilePath: string,
+  assetsSchemaPath: string
 ): Promise<Record<string, any>> {
   const pageDataCombined: Record<string, any> = {};
 
@@ -2666,18 +2647,16 @@ async function handlePagesChunkData(
 
     for (const item of items) {
       if (!allowedPageTypes.includes(item['wp:post_type']) || !allowedStatuses.includes(item['wp:status'])) {
-        continue; // Skip items that aren't valid pages
+        continue; 
       }
 
       const uid = `pages_${item['wp:post_id']}`;
       const customId = idCorrector(uid);
 
-      // 1. Resolve references for the current item
       const authorRef = extractPageAuthor(item['dc:creator'], authorsFilePath);
       const parentRef = extractPageParent(item['wp:post_parent']);
       const body = htmlToJson(new JSDOM(item["content:encoded"].replace("//g", "").replace(/&lt;!--?\s+\/?wp:.*?--&gt;/g, "")).window.document.querySelector('body'));
 
-      // 2. Create a temporary object with all the raw data
       const rawPageData = {
         uid: customId,
         title: item['title'] || 'Untitled',
@@ -2701,9 +2680,10 @@ async function handlePagesChunkData(
 
 
       const formattedPageWithImage = await featuredImageMapping(
-        `pages_${item["wp:post_id"]}`,
+        customId,
         item,
-        { [customId]: formattedPage } 
+        { [customId]: formattedPage },
+        assetsSchemaPath
       );
 
 
@@ -2743,6 +2723,8 @@ async function extractPages(
     await startingDirPages(ct, master_locale, project?.locales);
     const authorsCtName = keyMapper?.["authors"] || MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
     const authorsFilePath = path.join(entrySave, authorsCtName, master_locale, `${master_locale}.json`);
+    assetsSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME);
+    const assetsSchemaPath = path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
     const alldata: any = await fs.promises.readFile(packagePath, "utf8");
     const alldataParsed = JSON.parse(alldata);
     blog_base_url =
@@ -2765,7 +2747,7 @@ async function extractPages(
 
       const isLastChunk = filename === lastChunk;
 
-      const chunkPages = await handlePagesChunkData(chunkData, contenttype, authorsFilePath);
+      const chunkPages = await handlePagesChunkData(chunkData, contenttype, authorsFilePath, assetsSchemaPath);
 
       console.info(
         `${filename} → Mapped entries: ${Object.keys(chunkPages).length}`
