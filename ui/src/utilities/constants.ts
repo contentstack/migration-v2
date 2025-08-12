@@ -65,7 +65,8 @@ export const CS_ENTRIES = {
     url: '500'
   },
   ERROR_HANDLER: 'error_handler',
-  ADD_STACK: 'add_stack'
+  ADD_STACK: 'add_stack',
+  UNMAPPED_LOCALE_KEY: 'undefined'
 };
 
 export const UPLOAD_FILE_RELATIVE_URL = process.env.REACT_APP_UPLOAD_SERVER;
