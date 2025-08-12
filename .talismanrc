@@ -79,6 +79,8 @@ fileignoreconfig:
     checksum: 32579e06dde520acbde710f84684f738403a324a1cd0d6b342e21e423f4f8d96
   - filename: upload-api/migration-contentful/package-lock.json
     checksum: 1fec859f4d41e1acb5cdab8fdfba7c1978532a7f98f4fd26674153755f926d64
+  - filename: ui/package-lock.json
+    checksum: 4abcc89c75b7ddca8128fd72faafbb9b159f02611d96325bcd355283074ce287
 
 fileignoreconfig:
 - filename: api/src/services/migration.service.ts
