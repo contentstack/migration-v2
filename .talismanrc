@@ -84,4 +84,8 @@ fileignoreconfig:
     checksum: abae249cacfab5c67e2d18a645c852649da2339954f26ae0f88c8698bdc016e6
   - filename: api/src/services/wordpress.service.ts
     checksum: 95e532836194547682e791d0a231fb70e402be99260ac234e808eddb6e80c6af
+  - filename: ui/src/utilities/constants.ts
+    checksum: faac1367b4d80e022d4b7a165f9d2ac8bfd428f1a91af849064992ae2b3d6b1f
+  - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
+    checksum: 988d93b93768ef0909305590ab0b89456333b9937ec12828edf23163f8640dfc
 version: "1.0"

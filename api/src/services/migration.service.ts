@@ -732,10 +732,7 @@ const getAuditData = async (req: Request): Promise<any> => {
         if (!safeEntriesSelectFieldPath.startsWith(auditLogPath)) {
           throw new BadRequestError('Access to this file is not allowed.');
         }
-        // Additional path traversal prevention
-        if (!safeEntriesSelectFieldPath.startsWith(auditLogPath) || safeEntriesSelectFieldPath.includes('..')) {
-          throw new BadRequestError('Access to this file is not allowed.');
-        }
+       
         const fileContent = await fsPromises?.readFile(safeEntriesSelectFieldPath, 'utf8');
         try {
           if (typeof fileContent === 'string') {

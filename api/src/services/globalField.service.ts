@@ -46,7 +46,7 @@ const createGlobalField = async ({
     const filePath = path.join(process.cwd(),globalSave, GLOBAL_FIELDS_FILE_NAME);
     const globalfields = res?.data?.global_fields || [];
     
-    let fileGlobalFields : any[]= []
+    let fileGlobalFields = []
     if (fs.existsSync(filePath)) {
     const globalFieldSchema = await fs.promises.readFile(filePath, 'utf8');
     try {
