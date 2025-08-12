@@ -6,9 +6,6 @@ fileignoreconfig:
 
   - filename: api/src/services/migration.service.ts
     checksum: bd5374b31c0fad4a266bc9affdcf595f71456edb68b075c1fdfba762f7462e38
-
-  - filename: ui/src/components/AuditLogs/index.tsx
-    checksum: e1402f3cd5b96328d5e1d1e5f2a7fa5179858d6133db831b1b96714eb0f8c260
     
   - filename: .github/workflows/secrets-scan.yml
     ignore_detectors:
@@ -53,7 +50,7 @@ fileignoreconfig:
     checksum: f37809ddd67b8ad143d7d9fbb2c305f7c9150a8eec1f3325724fca576c736656
 
   - filename: ui/src/components/AuditLogs/index.tsx
-    checksum: 51ce05f66ac49023452f200e587389e55c88357102a61e77eb468d0e02b52846
+    checksum: 8b78783b54935cc1e9721ab2b0b4daf768f5a1dbd96e6594e2eeb1d5fd45d90f
 
   - filename: ui/src/components/ContentMapper/index.tsx
     checksum: b5f66e808ecf4461ccb5c4fde937da1e6d9e640a2521d6d85858a22261df6571
@@ -83,11 +80,8 @@ fileignoreconfig:
     checksum: 4abcc89c75b7ddca8128fd72faafbb9b159f02611d96325bcd355283074ce287
   - filename: ui/src/components/ContentMapper/index.scss
     checksum: 46f8fde3b745feba40943f00d8d52714d0f320202c86b62f6c5ded73c2dbcf4c
-  
-
-fileignoreconfig:
-- filename: api/src/services/migration.service.ts
-  checksum: abae249cacfab5c67e2d18a645c852649da2339954f26ae0f88c8698bdc016e6
-- filename: api/src/services/wordpress.service.ts
-  checksum: 95e532836194547682e791d0a231fb70e402be99260ac234e808eddb6e80c6af
+  - filename: api/src/services/migration.service.ts
+    checksum: abae249cacfab5c67e2d18a645c852649da2339954f26ae0f88c8698bdc016e6
+  - filename: api/src/services/wordpress.service.ts
+    checksum: 95e532836194547682e791d0a231fb70e402be99260ac234e808eddb6e80c6af
 version: "1.0"
