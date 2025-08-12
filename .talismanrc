@@ -27,13 +27,13 @@ fileignoreconfig:
     checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
 
   - filename: ui/package-lock.json
-    checksum: 7c68bf60d1fe31ca0639b15a04b2b69bf69742e10a2eda26aa98646110820e14
+    checksum: 46f8fde3b745feba40943f00d8d52714d0f320202c86b62f6c5ded73c2dbcf4c
 
   - filename: upload-api/migration-wordpress/package-lock.json
-    checksum: e7bc3b55717473a91e0d5021ea5a96564df19ab8d066a7c11a280547d9531942
+    checksum: d8cba4136f09e4ce63370e5f48d3292a78fd5f317c186e6f44d4556196a3617e
 
   - filename: upload-api/migration-sitecore/package-lock.json
-    checksum: 473898e601dd760e847a6d7c91c407c3f2b91e60c8982857cfaf34c7eee1dbc2
+    checksum: 32579e06dde520acbde710f84684f738403a324a1cd0d6b342e21e423f4f8d96
 
   - filename: package-lock.json
     checksum: 1d74d25f855dec66df83b67b63c0623df8b601c5fea3dd5f6972452558d7badc
@@ -88,4 +88,7 @@ fileignoreconfig:
     checksum: faac1367b4d80e022d4b7a165f9d2ac8bfd428f1a91af849064992ae2b3d6b1f
   - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
     checksum: 988d93b93768ef0909305590ab0b89456333b9937ec12828edf23163f8640dfc
+    
+  - filename: api/src/services/globalField.service.ts
+    checksum: fbc0612dda1894fd55455c4adaa4b7016b01a73e5d4093a3a9dad471b434c2ec
 version: "1.0"
