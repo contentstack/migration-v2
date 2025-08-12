@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
+import {CS_ENTRIES} from '../../../utilities/constants';
 
 export type ExistingFieldType = {
   [key: string]: { label: string; value: string };
@@ -222,9 +223,9 @@ const Mapper = ({
       }
       else if (type === 'csLocale' && selectedLocaleKey) {
     
-        if(updatedMappings?.['undefined'] === existingLocale?.[index]?.label){
+        if(updatedMappings?.[CS_ENTRIES?.UNMAPPED_LOCALE_KEY] === existingLocale?.[index]?.label){
           updatedMappings[selectedLocaleKey] = existingLocale?.[index]?.label;
-          delete updatedMappings?.['undefined'];  
+          delete updatedMappings?.[CS_ENTRIES?.UNMAPPED_LOCALE_KEY];  
         }else{
         updatedMappings[selectedLocaleKey] = existingLocale?.[index]?.label
           ? existingLocale?.[index]?.label
