@@ -5,6 +5,7 @@ import { isContainerComponent, parseXFPath } from "../../helper/component.identi
 import { createFragmentComponent } from "./fragment";
 import { IContentTypeMaker } from "./types/createContentTypes.interface";
 import { ModularBlocksField } from "./fields/contentstackFields";
+import { processContentModels } from "../../helper/fieldMappings.merge";
 
 
 async function processTemplateItems(itemsOrder: string[], items: any, contentstackComponents: any) {
@@ -38,7 +39,7 @@ async function processTemplateItems(itemsOrder: string[], items: any, contentsta
               contentstackField: object?.contentstackField,
               contentstackFieldUid: object?.contentstackFieldUid,
               backupFieldUid: object?.backupFieldUid,
-              schema: object.schema,
+              schema: object?.contentstackFieldType === 'modular_blocks' ? [object] : object?.schema,
             }
             modularData.blocks?.push(block);
           } else if (object) {
@@ -86,8 +87,8 @@ const contentTypeMaker: IContentTypeMaker = async ({ templateData, affix, conten
     }
   }
   const contentDataFilePath = path.resolve(CONSTANTS?.CONENT_DATA_FILE);
-  // const mergedContentData = mergeContentTypeFieldMappings(contentData);
-  await writeJsonFile(contentData, contentDataFilePath);
+  const processData = processContentModels(contentData);
+  await writeJsonFile(processData, contentDataFilePath);
 }
 
 
