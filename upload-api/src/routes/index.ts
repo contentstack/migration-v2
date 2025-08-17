@@ -219,7 +219,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
 
         const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
         res.json(data);
-        res.send('file valited sucessfully.');
+        res.send('file validated successfully.');
         let filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
         if (data?.file !== undefined) {
           filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName, data?.file);
