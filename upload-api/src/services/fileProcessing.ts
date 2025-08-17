@@ -17,7 +17,7 @@ const handleFileProcessing = async (
     await zip.loadAsync(zipBuffer);
     if (await validator({ data: zip, type: cmsType, extension: fileExt })) {
       const isSaved = await saveZip(zip, name);
-      if (isSaved) {
+      if (isSaved?.isSaved) {
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
@@ -25,7 +25,8 @@ const handleFileProcessing = async (
         return {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
-          file_details: config
+          file_details: config,
+          file: isSaved?.filePath
         };
       }
     } else {
