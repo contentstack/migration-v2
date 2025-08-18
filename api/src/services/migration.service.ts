@@ -327,20 +327,20 @@ const startTestMigration = async (req: Request): Promise<any> => {
       destinationStackId: project?.current_test_stack_id,
     });
     await taxonomyService?.createTaxonomy({
-      orgId, 
+      orgId,
       projectId,
-      stackId:project?.destination_stack_id,
+      stackId: project?.destination_stack_id,
       current_test_stack_id: project?.current_test_stack_id,
       region,
       userId: user_id,
     });
     await globalFieldServie?.createGlobalField({
       region,
-      user_id, 
-      stackId:project?.destination_stack_id,
+      user_id,
+      stackId: project?.destination_stack_id,
       current_test_stack_id: project?.current_test_stack_id,
     });
-    
+
     switch (cms) {
       case CMS.SITECORE_V8:
       case CMS.SITECORE_V9:
@@ -361,6 +361,9 @@ const startTestMigration = async (req: Request): Promise<any> => {
             projectId,
             project
           );
+          await siteCoreService?.createEnvironment(
+            project?.current_test_stack_id
+          )
           await siteCoreService?.createVersionFile(
             project?.current_test_stack_id
           );
@@ -563,17 +566,17 @@ const startMigration = async (req: Request): Promise<any> => {
       destinationStackId: project?.destination_stack_id,
     });
     await taxonomyService?.createTaxonomy({
-    orgId, 
-    projectId,
-    stackId:project?.destination_stack_id,
-    current_test_stack_id: project?.destination_stack_id,
-    region,
-    userId: user_id,
+      orgId,
+      projectId,
+      stackId: project?.destination_stack_id,
+      current_test_stack_id: project?.destination_stack_id,
+      region,
+      userId: user_id,
     });
     await globalFieldServie?.createGlobalField({
       region,
-      user_id, 
-      stackId:project?.destination_stack_id,
+      user_id,
+      stackId: project?.destination_stack_id,
       current_test_stack_id: project?.destination_stack_id,
     });
     switch (cms) {
@@ -732,7 +735,7 @@ const getAuditData = async (req: Request): Promise<any> => {
         if (!safeEntriesSelectFieldPath.startsWith(auditLogPath)) {
           throw new BadRequestError('Access to this file is not allowed.');
         }
-       
+
         const fileContent = await fsPromises?.readFile(safeEntriesSelectFieldPath, 'utf8');
         try {
           if (typeof fileContent === 'string') {

@@ -22,32 +22,48 @@ interface RequestParams {
   endpoint?: string;
 }
 
-const createLocaleSource = async ({ app_token, localeData, projectId }: { app_token: string | string[], localeData: any, projectId: string | string[] }) => {
+const createLocaleSource = async ({
+  app_token,
+  localeData,
+  projectId,
+}: {
+  app_token: string | string[];
+  localeData: any;
+  projectId: string | string[];
+}) => {
   const mapperConfig = {
     method: 'post',
     maxBodyLength: Infinity,
     url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
     headers: {
       app_token,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: {
-      locale: Array?.from?.(localeData) ?? []
+      locale: Array.isArray(localeData) ? localeData : (localeData ? [localeData] : []),
     },
   };
-  const mapRes = await axios?.request?.(mapperConfig);
-  if (mapRes?.status == 200) {
-    logger.info('Legacy CMS', {
-      status: HTTP_CODES?.OK,
-      message: HTTP_TEXTS?.LOCALE_SAVED,
-    });
-  } else {
-    logger.warn('Legacy CMS  error:', {
-      status: HTTP_CODES?.UNAUTHORIZED,
-      message: HTTP_TEXTS?.LOCALE_FAILED,
+
+  try {
+    const mapRes = await axios.request(mapperConfig);
+    if (mapRes?.status === 200) {
+      logger.info('Legacy CMS', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.LOCALE_SAVED,
+      });
+    } else {
+      logger.warn('Legacy CMS error:', {
+        status: mapRes?.status,
+        message: HTTP_TEXTS?.LOCALE_FAILED,
+      });
+    }
+  } catch (error: any) {
+    logger.warn('Legacy CMS error:', {
+      status: error?.response?.status || HTTP_CODES?.UNAUTHORIZED,
+      message: error?.response?.data?.message || HTTP_TEXTS?.LOCALE_FAILED,
     });
   }
-}
+};
 
 
 /**
@@ -127,18 +143,6 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
           fieldMapping.contentTypes.push(element);
         }
       }
-      // const config = {
-      //   method: 'post',
-      //   maxBodyLength: Infinity,
-      //   url: `${process.env.NODE_BACKEND_API}/v2/mapper/createDummyData/${projectId}`,
-      //   headers: {
-      //     app_token,
-      //     'Content-Type': 'application/json'
-      //   },
-      //   data: JSON.stringify(fieldMapping),
-      // };
-
-      // const { data } = await axios.request(config);
       const { data } = await sendRequestWithRetry({
         payload: fieldMapping,
         projectId,
