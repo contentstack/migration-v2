@@ -21,6 +21,6 @@ USER nodeapp
 
 EXPOSE 4002
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 CMD ["npm", "run", "start"]
