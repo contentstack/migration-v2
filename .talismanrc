@@ -88,4 +88,6 @@ fileignoreconfig:
     checksum: faac1367b4d80e022d4b7a165f9d2ac8bfd428f1a91af849064992ae2b3d6b1f
   - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
     checksum: 988d93b93768ef0909305590ab0b89456333b9937ec12828edf23163f8640dfc
+  - filename: api/src/services/sitecore.service.ts
+    checksum: ceaed6417b1b6fd2581f547cbc7e871900ecbae5557496b26f025781f323ba82
 version: "1.0"

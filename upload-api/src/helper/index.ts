@@ -14,10 +14,22 @@ const getFileName = (params: { Key: string }) => {
   return obj;
 };
 
+/**
+ * Splits a file path and returns the first folder or file name.
+ * Example: "umesh/items/master/sitecore/content" => "umesh"
+ */
+function getFirstNameFromFilename(filename: string): string {
+  if (!filename) return '';
+  // Split by both Unix and Windows separators
+  const parts = filename.split(/[\\/]/);
+  return parts[0] || '';
+}
+
 const saveZip = async (zip: any, name: string) => {
   try {
     const newMainFolderName = name;
     const keys = Object.keys(zip.files);
+    let filePathSaved = undefined;
 
     for await (const filename of keys) {
       const file = zip.files[filename];
@@ -29,6 +41,9 @@ const saveZip = async (zip: any, name: string) => {
           !filename.startsWith(newMainFolderName + '/')
         ) {
           newFilePath = path.join(newMainFolderName, filename);
+          if (!filename?.includes?.(MACOSX_FOLDER)) {
+            filePathSaved = getFirstNameFromFilename(filename);
+          }
         }
         const filePath = path.join(__dirname, '..', '..', 'extracted_files', newFilePath);
 
@@ -40,14 +55,14 @@ const saveZip = async (zip: any, name: string) => {
       }
     }
 
-    return true;
+    return { isSaved: true, filePath: filePathSaved };
   } catch (err: any) {
     console.error(err);
     logger.info('Zipfile error:', {
       status: HTTP_CODES?.SERVER_ERROR,
       message: HTTP_TEXTS?.ZIP_FILE_SAVE,
     });
-    return false;
+    return { isSaved: false, filePath: undefined };
   }
 };
 
