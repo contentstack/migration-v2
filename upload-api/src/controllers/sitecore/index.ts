@@ -40,7 +40,7 @@ const createLocaleSource = async ({
       'Content-Type': 'application/json',
     },
     data: {
-      locale: Array.isArray(localeData) ? localeData : (localeData ? [localeData] : []),
+      locale: Array.isArray(localeData) ? localeData : Array.from(localeData ?? [])
     },
   };
 
@@ -120,6 +120,7 @@ const sendRequestWithRetry = async <T = any>(params: RequestParams): Promise<Axi
 const createSitecoreMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: object) => {
   try {
     const newPath = path.join(filePath, 'items');
+    console.log("🚀 ~ createSitecoreMapper ~ newPath:", newPath)
     await ExtractFiles(newPath);
     const localeData = await extractLocales(path.join(filePath, 'items', 'master', 'sitecore', 'content'));
     await createLocaleSource?.({ app_token, localeData, projectId });
