@@ -93,4 +93,6 @@ fileignoreconfig:
     checksum: fbc0612dda1894fd55455c4adaa4b7016b01a73e5d4093a3a9dad471b434c2ec
   - filename: api/src/services/sitecore.service.ts
     checksum: ceaed6417b1b6fd2581f547cbc7e871900ecbae5557496b26f025781f323ba82
+  - filename: api/src/services/globalField.service.ts
+    checksum: fbc0612dda1894fd55455c4adaa4b7016b01a73e5d4093a3a9dad471b434c2ec
 version: "1.0"
