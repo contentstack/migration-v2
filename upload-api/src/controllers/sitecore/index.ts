@@ -40,7 +40,7 @@ const createLocaleSource = async ({
       'Content-Type': 'application/json',
     },
     data: {
-      locale: Array.isArray(localeData) ? localeData : (localeData ? [localeData] : []),
+      locale: Array.isArray(localeData) ? localeData : Array.from(localeData ?? [])
     },
   };
 
