@@ -108,17 +108,16 @@ const arrangeContentModels = async (
 const createContentType: IConvertContentType = async (dirPath) => {
   const templatesDir = path.resolve(dirPath, CONSTANTS?.TEMPLATE_DIR);
   const grouped = await arrangeContentModels(templatesDir, CONSTANTS.arrangeCTGroup as GroupKey[]);
-  // const allComponentData: Record<string, any>[] = [];
   const componentPath = path.resolve(CONSTANTS?.TMP_FILE);
   const contentstackComponents = await readFiles(componentPath);
-  await contentTypeMaker({ templateData: grouped, contentstackComponents, affix: "cms" })
+  return await contentTypeMaker({ templateData: grouped, contentstackComponents, affix: "cms" })
 }
 
 const contentTypes = () => {
   return {
     convertAndCreate: async (dirPath: string) => {
       await convertContentType(dirPath);
-      await createContentType(dirPath);
+      return await createContentType(dirPath);
     }
   };
 }

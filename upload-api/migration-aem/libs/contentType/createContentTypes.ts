@@ -6,6 +6,7 @@ import { createFragmentComponent } from "./fragment";
 import { IContentTypeMaker } from "./types/createContentTypes.interface";
 import { ModularBlocksField } from "./fields/contentstackFields";
 import { processContentModels } from "../../helper/fieldMappings.merge";
+import { flattenContentTypes } from "../../helper/contentType.flatten";
 
 
 async function processTemplateItems(itemsOrder: string[], items: any, contentstackComponents: any) {
@@ -39,6 +40,7 @@ async function processTemplateItems(itemsOrder: string[], items: any, contentsta
               contentstackField: object?.contentstackField,
               contentstackFieldUid: object?.contentstackFieldUid,
               backupFieldUid: object?.backupFieldUid,
+              contentstackFieldType: 'modular_blocks_child',
               schema: object?.contentstackFieldType === 'modular_blocks' ? [object] : object?.schema,
             }
             modularData.blocks?.push(block);
@@ -49,7 +51,8 @@ async function processTemplateItems(itemsOrder: string[], items: any, contentsta
               contentstackField: object?.contentstackField,
               contentstackFieldUid: object?.contentstackFieldUid,
               backupFieldUid: object?.backupFieldUid,
-              schema: object,
+              contentstackFieldType: 'modular_blocks_child',
+              schema: [object],
             }
             modularData.blocks?.push(block);
           }
@@ -88,7 +91,9 @@ const contentTypeMaker: IContentTypeMaker = async ({ templateData, affix, conten
   }
   const contentDataFilePath = path.resolve(CONSTANTS?.CONENT_DATA_FILE);
   const processData = processContentModels(contentData);
-  await writeJsonFile(processData, contentDataFilePath);
+  const flattenData = flattenContentTypes(processData);
+  await writeJsonFile(flattenData, contentDataFilePath);
+  return flattenData ?? []
 }
 
 
