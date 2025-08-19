@@ -95,4 +95,17 @@ fileignoreconfig:
     checksum: ceaed6417b1b6fd2581f547cbc7e871900ecbae5557496b26f025781f323ba82
   - filename: api/src/services/globalField.service.ts
     checksum: fbc0612dda1894fd55455c4adaa4b7016b01a73e5d4093a3a9dad471b434c2ec
+  - filename: api/Dockerfile
+    checksum: fdede8746f4363c2df72f9d041dfc8940646503c63b4c2d90db722e1bdb349f6
+  - filename: ui/Dockerfile
+    checksum: 839201358eb3a422cfa54623f7b3153f7ea306ea2b358af17d5ebbab6a5003e0
+  - filename: upload-api/Dockerfile
+    checksum: b26f4860a8c18e1a777ff560b2e33168fba6359b92f5f4eca6aa64d7d83782e0
+  - filename: ui/package-lock.json
+    checksum: 00f48c5cca77f80913c0a339c82319564dd7e2cfe4de706ba0756e6aa1053445
+  - filename: upload-api/package-lock.json
+    checksum: 38d2188de3b4df88ed5e195c13b77ad7c469fe5c4d1265f1ffb868dbe3844ae1
+  - filename: api/package-lock.json
+    checksum: 09b36877f7e86bb806a9657f852a448dc32fa1dfb350d0fde5fd843c54a27bf0
+
 version: "1.0"
