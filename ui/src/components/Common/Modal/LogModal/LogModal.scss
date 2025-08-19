@@ -1,0 +1,15 @@
+@import '../../../../scss/variables';
+
+.text {
+  font-size: $size-font-medium;
+  line-height: $line-height-reset;
+  color: #3d3f4c;
+  text-transform: capitalize;
+}
+
+.log-modal {
+  word-break: break-word;
+  overflow-wrap: break-word ;
+  white-space: pre-wrap;
+  width: 100%;
+}

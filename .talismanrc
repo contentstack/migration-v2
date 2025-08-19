@@ -1,6 +1,12 @@
 version: "1.0.0-beta"
 
 fileignoreconfig:
+  - filename: ui/src/components/AuditLogs/auditLogs.interface.ts
+    checksum: 8eaf7502faeaa062a42ee5629f12ba1e8b961b8b8e0d209c4680c59c8de6269c
+
+  - filename: api/src/services/migration.service.ts
+    checksum: bd5374b31c0fad4a266bc9affdcf595f71456edb68b075c1fdfba762f7462e38
+    
   - filename: .github/workflows/secrets-scan.yml
     ignore_detectors:
       - filecontent
@@ -8,35 +14,82 @@ fileignoreconfig:
   - filename: upload-api/src/helper/index.ts
     checksum: b0727e318bc71779719238a54a290f56b38b30d6794f3f85e5ef7c941ff9a672
 
-  - filename: upload-api/package-lock.json
-    checksum: 0a1c735670c6197ed8104addca39834c6f42ef9bd003b6d059f258791807bc9a
-
-  - filename: api/package-lock.json
-    checksum: 164b1d73970f5aa71a165456f7f565b5babb1dcb22d6ca532cd31dbaa08765f5
-
   - filename: upload-api/src/helper/index.ts
     checksum: 607097a9ebd99ad1433ba24b92253beb75a4873280130edfa7ce986fadfdefc8
 
   - filename: remove-broken-imports.js
     checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
 
-  - filename: ui/package-lock.json
-    checksum: cee38557d8dcaca78c40053e67e5448820c17b29c146595f10b5c7c4f0cb01bc
-
   - filename: upload-api/migration-wordpress/package-lock.json
-    checksum: e7bc3b55717473a91e0d5021ea5a96564df19ab8d066a7c11a280547d9531942
+    checksum: d8cba4136f09e4ce63370e5f48d3292a78fd5f317c186e6f44d4556196a3617e
 
   - filename: upload-api/migration-sitecore/package-lock.json
-    checksum: 473898e601dd760e847a6d7c91c407c3f2b91e60c8982857cfaf34c7eee1dbc2
+    checksum: 32579e06dde520acbde710f84684f738403a324a1cd0d6b342e21e423f4f8d96
 
   - filename: package-lock.json
-    checksum: 839b29ba75b658cf5cb306e9a244a3271c93f501342a9e0d54d77a7427e31a79
-
-  - filename: upload-api/package-lock.json
-    checksum: 9e8466f0364fc4fe485897e2d71d03da604923ecaab10a0de70a789ce676e98c
-
-  - filename: api/package-lock.json
-    checksum: 9d10dd6e4d514645c0d14188cc359e71ec6f9f528d1ccea94b94695546a7d4be
+    checksum: 1d74d25f855dec66df83b67b63c0623df8b601c5fea3dd5f6972452558d7badc
 
   - filename: upload-api/src/helper/index.ts
     checksum: beef34c30cc18c55d66df0124e8bfb69899be9aaef074252afe291c93d4c0f77
+
+  - filename: api/src/services/migration.service.ts
+    checksum: f37809ddd67b8ad143d7d9fbb2c305f7c9150a8eec1f3325724fca576c736656
+
+  - filename: ui/src/components/AuditLogs/index.tsx
+    checksum: 8b78783b54935cc1e9721ab2b0b4daf768f5a1dbd96e6594e2eeb1d5fd45d90f
+
+  - filename: ui/src/components/ContentMapper/index.tsx
+    checksum: b5f66e808ecf4461ccb5c4fde937da1e6d9e640a2521d6d85858a22261df6571
+
+  - filename: ui/src/components/Common/Card/card.tsx
+    checksum: 6c6194f6b8f470ad107e59f2c4247647bdaa804e458c06b007cf9e074aabac69
+  - filename: upload-api/migration-sitecore/libs/contenttypes.js
+    checksum: b30d7792e245cbf979d151677af4454b327271  cc46ee3058f54ee6192d433638
+  - filename: ui/src/components/ContentMapper/index.tsx
+    checksum: b2f520ab58cd790b204f7dcc26f84606185ca0abd96162e2672d3497643e18e7
+    
+  - filename: upload-api/src/config/index.ts
+    checksum: bd1465785804b3e3942d79f4424498bec838e5aba431c715eb419f3d39cf8d30
+  - filename: ui/src/components/ContentMapper/index.tsx
+    checksum: 376fc21e84880c760fab7af4b1bb653f526548f962126c1db7551d036eab765d
+  - filename: api/src/services/taxonomy.service.ts
+    checksum: bd2344e7277b41c7eb29c50504c88debf9a86d198c2508dea90d9a98f53d89e9
+
+
+  - filename: upload-api/migration-wordpress/package-lock.json
+    checksum: d8cba4136f09e4ce63370e5f48d3292a78fd5f317c186e6f44d4556196a3617e
+  - filename: upload-api/migration-sitecore/package-lock.json
+    checksum: 32579e06dde520acbde710f84684f738403a324a1cd0d6b342e21e423f4f8d96
+  - filename: upload-api/migration-contentful/package-lock.json
+    checksum: 1fec859f4d41e1acb5cdab8fdfba7c1978532a7f98f4fd26674153755f926d64
+  - filename: ui/src/components/ContentMapper/index.scss
+    checksum: 46f8fde3b745feba40943f00d8d52714d0f320202c86b62f6c5ded73c2dbcf4c
+  - filename: api/src/services/migration.service.ts
+    checksum: abae249cacfab5c67e2d18a645c852649da2339954f26ae0f88c8698bdc016e6
+  - filename: api/src/services/wordpress.service.ts
+    checksum: 95e532836194547682e791d0a231fb70e402be99260ac234e808eddb6e80c6af
+  - filename: ui/src/utilities/constants.ts
+    checksum: faac1367b4d80e022d4b7a165f9d2ac8bfd428f1a91af849064992ae2b3d6b1f
+  - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
+    checksum: 988d93b93768ef0909305590ab0b89456333b9937ec12828edf23163f8640dfc
+    
+  - filename: api/src/services/globalField.service.ts
+    checksum: fbc0612dda1894fd55455c4adaa4b7016b01a73e5d4093a3a9dad471b434c2ec
+  - filename: api/src/services/sitecore.service.ts
+    checksum: ceaed6417b1b6fd2581f547cbc7e871900ecbae5557496b26f025781f323ba82
+  - filename: api/src/services/globalField.service.ts
+    checksum: fbc0612dda1894fd55455c4adaa4b7016b01a73e5d4093a3a9dad471b434c2ec
+  - filename: api/Dockerfile
+    checksum: fdede8746f4363c2df72f9d041dfc8940646503c63b4c2d90db722e1bdb349f6
+  - filename: ui/Dockerfile
+    checksum: 839201358eb3a422cfa54623f7b3153f7ea306ea2b358af17d5ebbab6a5003e0
+  - filename: upload-api/Dockerfile
+    checksum: b26f4860a8c18e1a777ff560b2e33168fba6359b92f5f4eca6aa64d7d83782e0
+  - filename: ui/package-lock.json
+    checksum: 00f48c5cca77f80913c0a339c82319564dd7e2cfe4de706ba0756e6aa1053445
+  - filename: upload-api/package-lock.json
+    checksum: 38d2188de3b4df88ed5e195c13b77ad7c469fe5c4d1265f1ffb868dbe3844ae1
+  - filename: api/package-lock.json
+    checksum: 09b36877f7e86bb806a9657f852a448dc32fa1dfb350d0fde5fd843c54a27bf0
+
+version: "1.0"

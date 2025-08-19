@@ -1,9 +1,9 @@
 // Libraries
 import React, { useEffect, useState, useRef } from 'react';
-import { Icon, cbModal, Link } from '@contentstack/venus-components';
+import { Icon, Link, Notification } from '@contentstack/venus-components';
 import io from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 
 // Redux files
 import { RootState } from '../../store';
@@ -204,19 +204,13 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
            */
           //await updateCurrentStepData(selectedOrganisation.value, projectId);
 
-          return cbModal({
-            component: (props: ModalObj) => (
-              <MigrationCompletionModal
-                {...props}
-                isopen={setIsModalOpen}
-                data={newMigrationData?.stackDetails}
-                stackLink={stackLink}
-              />
-            ),
-            modalProps: {
-              size: 'xsmall',
-              shouldCloseOnOverlayClick: false
-            }
+          Notification({
+            notificationContent: { text: message },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'success'
           });
         }
       } catch (error) {
@@ -224,6 +218,19 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       }
     });
   }, [logs]);
+
+  const navigate = useNavigate();
+
+  const handleLinkClick = () => {
+    const activeTabState: INewMigration = {
+      ...newMigrationData,
+      settings: {
+        active_state: 'Execution Logs',
+      }
+    };
+    dispatch(updateNewMigrationData(activeTabState));
+    navigate(`/projects/${projectId}/settings`)
+  };
 
   return (
     <div className="logs-wrapper">
@@ -233,12 +240,19 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
         ref={logsContainerRef}
       >
         {newMigrationData?.migration_execution?.migrationCompleted ? (
-          <div className="log-entry text-center">
-            <div className="log-message">
-              Migration Execution process is completed in the selected stack
-              <Link href={stackLink} target="_blank" className="ml-5">
-                <strong>{newMigrationData?.stackDetails?.label}</strong>
-              </Link>
+          <div>
+            <div className="log-entry text-center">
+              <div className="log-message generic-log-message">
+                Migration Execution process is completed in the selected stack
+                <Link href={stackLink} target="_blank" className="ml-5">
+                  <strong>{newMigrationData?.stackDetails?.label}</strong>
+                </Link>
+                . You can view logs
+                <Link target="_self" className="ml-5" cbOnClick={handleLinkClick}>
+                  <strong>here</strong>
+                </Link>
+                .
+              </div>
             </div>
           </div>
         ) : (
@@ -263,7 +277,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                     style={logStyles[level || ''] || logStyles.info}
                     className="log-entry text-center"
                   >
-                    <div className="log-message">
+                    <div className="log-message generic-log-message">
                       Migration has already done in selected stack. Please create a new project.
                     </div>
                   </div>
@@ -278,14 +292,13 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
                         style={logStyles[level || ''] || logStyles.info}
                         className="log-entry text-center"
                       >
-                        <div className="log-message">{message}</div>
+                        <div className="log-message generic-log-message">{message}</div>
                       </div>
                     ) : (
                       <div
                         style={logStyles[level || ''] || logStyles.info}
-                        className="log-entry logs-bg"
+                        className="log-entry"
                       >
-                        <div className="log-number">{index}</div>
                         <div className="log-time">
                           {timestamp
                             ? new Date(timestamp)?.toTimeString()?.split(' ')[0]

@@ -16,6 +16,7 @@ import { getSafePath } from '../utils/sanitize-path.utils.js';
 const append = 'a';
 const baseDirName = MIGRATION_DATA_CONFIG.DATA;
 const {
+  ENVIRONMENTS_DIR_NAME,
   ENTRIES_DIR_NAME,
   LOCALE_DIR_NAME,
   LOCALE_MASTER_LOCALE,
@@ -24,6 +25,7 @@ const {
   ASSETS_DIR_NAME,
   ASSETS_FILE_NAME,
   ASSETS_SCHEMA_FILE,
+  ENVIRONMENTS_FILE_NAME
 } = MIGRATION_DATA_CONFIG;
 
 const idCorrector = ({ id }: any) => {
@@ -159,8 +161,9 @@ const createAssets = async ({
       const blobPath: any = path.join(packagePath, 'blob', 'master');
       const assetsPath = read(blobPath);
       if (assetsPath?.length) {
-        const isIdPresent = assetsPath?.find((ast) =>
-          ast?.includes(metaData?.id)
+        const isIdPresent = assetsPath?.find((ast) => {
+          return ast?.includes(metaData?.id)
+        }
         );
         if (isIdPresent) {
           try {
@@ -306,8 +309,7 @@ const createEntry = async ({
     for await (const ctType of contentTypes) {
       const message = getLogMessage(
         srcFunc,
-        `Transforming entries of Content Type ${
-          keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
+        `Transforming entries of Content Type ${keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
         } has begun.`,
         {}
       );
@@ -384,28 +386,29 @@ const createEntry = async ({
                 }
               }
               entryObj.publish_details = [];
-              if (Object.keys?.(entryObj)?.length > 1) {
-                entryLocale[uid] = unflatten(entryObj) ?? {};
-                const message = getLogMessage(
-                  srcFunc,
-                  `Entry title "${entryObj?.title}"(${
-                    keyMapper?.[ctType?.contentstackUid] ??
+              if (entryObj?.title) {
+                if (Object.keys?.(entryObj)?.length > 1) {
+                  entryLocale[uid] = unflatten(entryObj) ?? {};
+                  const message = getLogMessage(
+                    srcFunc,
+                    `Entry title "${entryObj?.title}"(${keyMapper?.[ctType?.contentstackUid] ??
                     ctType?.contentstackUid
-                  }) in the ${newLocale} locale has been successfully transformed.`,
-                  {}
-                );
-                await customLogger(
-                  projectId,
-                  destinationStackId,
-                  'info',
-                  message
-                );
+                    }) in the ${newLocale} locale has been successfully transformed.`,
+                    {}
+                  );
+                  await customLogger(
+                    projectId,
+                    destinationStackId,
+                    'info',
+                    message
+                  );
+                }
               }
             }
           );
           const mapperCt: string =
             keyMapper?.[ctType?.contentstackUid] !== '' &&
-            keyMapper?.[ctType?.contentstackUid] !== undefined
+              keyMapper?.[ctType?.contentstackUid] !== undefined
               ? keyMapper?.[ctType?.contentstackUid]
               : ctType?.contentstackUid;
           const fileMeta = { '1': `${newLocale}.json` };
@@ -420,8 +423,7 @@ const createEntry = async ({
       } else {
         const message = getLogMessage(
           srcFunc,
-          `No entries found for the content type ${
-            keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
+          `No entries found for the content type ${keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
           }.`,
           {}
         );
@@ -528,9 +530,22 @@ const createVersionFile = async (destinationStackId: string) => {
   );
 };
 
+const createEnvironment = async (destinationStackId: string) => {
+  const baseDir = path.join(baseDirName, destinationStackId);
+  const environmentSave = path.join(baseDir, ENVIRONMENTS_DIR_NAME);
+  const environmentFile = path.join(environmentSave, ENVIRONMENTS_FILE_NAME);
+
+  // Ensure the directory exists
+  await fs.promises.mkdir(environmentSave, { recursive: true });
+
+  // Write an empty environments file (or replace {} with your actual data)
+  await fs.promises.writeFile(environmentFile, JSON.stringify({}), 'utf8');
+}
+
 export const siteCoreService = {
   createEntry,
   createAssets,
   createLocale,
   createVersionFile,
+  createEnvironment
 };

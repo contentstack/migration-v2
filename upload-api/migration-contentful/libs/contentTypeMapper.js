@@ -23,11 +23,11 @@ const appDetails = require('../utils/apps/appDetails.json')
  */
 const uidCorrector = (uid, affix) => {
   let newId = uid;
-  if (restrictedUid?.includes?.(uid)) {
+  if (restrictedUid?.includes?.(uid) || uid?.startsWith?.('_ids') || uid?.endsWith?.('_ids')) {
     newId = uid?.replace?.(uid, `${affix}_${uid}`);
     newId = newId?.replace?.(/[^a-zA-Z0-9]+/g, '_');
   }
-  return newId.replace(/([A-Z])/g, (match) => `_${match?.toLowerCase?.()}`);
+  return newId.replace(/([A-Z])/g, (match) => `${match?.toLowerCase?.()}`);
 };
 
 /**
@@ -210,7 +210,7 @@ const arrangeRte = (itemData, item) => {
  * - Date, Link, Array, Boolean, Object, and Location fields
  * - Special handling for complex types like Asset links, Entry links, and Geo-location fields.
  */
-const contentTypeMapper = (data) => {
+const contentTypeMapper = (data, entries) => {
   const schemaArray = data.reduce((acc, item) => {
     switch (item.type) {
       case 'RichText': {
@@ -298,6 +298,32 @@ const contentTypeMapper = (data) => {
                 .map((e) => e.replace(/([A-Z])/g, '_$1').toLowerCase());
             };
 
+            const processReferenceFromEntries = (entries, contentTypeUid) => {
+              const contentTypeRefs = [];
+              const allEntries = entries?.find((entry)=>{
+                return entry?.sys?.contentType?.sys?.id === contentTypeUid
+              });
+        
+              const entriesArray = Object.values(allEntries); 
+              if (entriesArray?.length > 0) {
+                entriesArray.forEach((field) => {
+                  if (field?.[item?.id]) {
+                    const ids = Object.values(field?.[item?.id])
+                      .map(localeEntry => localeEntry?.sys?.id)
+                      .filter(Boolean); 
+                    const contentTypesRef = entries?.find((entry)=>{
+                      return entry?.sys?.id === ids?.[0];
+                    })?.sys?.contentType?.sys?.id?.replace(/([A-Z])/g, "_$1")?.toLowerCase();
+                    contentTypeRefs?.push(contentTypesRef)
+                    
+                  }
+                });
+              }
+  
+              return contentTypeRefs;
+
+            }
+           
             // Process validations and content names when data.items is not defined
             if (!item?.items) {
               if (item?.validations?.length > 0) {
@@ -309,9 +335,7 @@ const contentTypeMapper = (data) => {
                   }
                 });
               } else {
-                referenceFields =
-                  item?.contentNames?.length < 25 ? item?.contentNames
-                    : item?.contentNames?.slice(0, 9);
+                referenceFields = processReferenceFromEntries(entries,item?.contentfulID);
               }
             } else {
               // Handle case when data.items is defined
@@ -326,9 +350,7 @@ const contentTypeMapper = (data) => {
                   }
                 });
               } else {
-                referenceFields =
-                  item.contentNames?.length < 25 ? item?.contentNames
-                    : item?.contentNames?.slice(0, 9);
+                referenceFields = processReferenceFromEntries(entries,item?.contentfulID);
               }
             }
             const refFieldData = createFieldObject(item, 'reference', 'reference', referenceFields)

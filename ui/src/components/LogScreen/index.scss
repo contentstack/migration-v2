@@ -45,7 +45,7 @@
   font-family: 'IBM Plex Mono', monospace;
   font-size: $size-font-large;
   font-weight: $font-weight-medium;
-  padding: 30px 20px;
+  padding: 5px 0;
   position: relative;
 
   &.logs-bg {
@@ -86,5 +86,8 @@
   .log-message {
     flex-grow: 1;
     padding: 0 $px-16;
+    &.generic-log-message {
+      padding: $px-16;
+    }
   }
 }

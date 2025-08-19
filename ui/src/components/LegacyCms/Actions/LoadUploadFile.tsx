@@ -26,7 +26,7 @@ interface UploadState {
   fileFormat?: string;
   isConfigLoading: boolean;
   isLoading: boolean;
-  isValidated: boolean;
+  isValidated?: boolean;
   isDisabled?: boolean;
   processing: string;
   progressPercentage: number;
@@ -34,6 +34,7 @@ interface UploadState {
   validationMessgae: string;
   fileDetails?: FileDetails;
 }
+
 
 const FileComponent = ({ fileDetails }: Props) => {
   return (
@@ -122,6 +123,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         legacy_cms: {
           ...newMigrationDataRef?.current?.legacy_cms,
           uploadedFile: {
+            ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
             name: data?.file_details?.localPath || '',
             url: data?.file_details?.localPath,
             validation: data?.message,
@@ -186,11 +188,12 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       }, 1000);
 
       setIsLoading(false);
+
       saveStateToLocalStorage(
         {
           isLoading,
           isConfigLoading,
-          isValidated,
+          //isValidated,
           validationMessgae,
           isDisabled,
           cmsType,
@@ -287,10 +290,11 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
   useEffect(() => {
     const savedState = getStateFromLocalStorage(projectId);
+    
     if (savedState) {
       setIsLoading(savedState.isLoading);
       setIsConfigLoading(savedState.isConfigLoading);
-      setIsValidated(savedState?.isValidated);
+      //setIsValidated(savedState?.isValidated);
       setValidationMessage(savedState?.validationMessage);
       //setIsDisabled(savedState?.isDisabled);
       setCmsType(savedState.cmsType);
@@ -315,7 +319,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       {
         isLoading,
         isConfigLoading,
-        isValidated,
+        //isValidated,
         validationMessgae,
         //isDisabled,
         cmsType,
@@ -331,7 +335,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   }, [
     isLoading,
     isConfigLoading,
-    isValidated,
+    //isValidated,
     validationMessgae,
     //isDisabled,
     cmsType,

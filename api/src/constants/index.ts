@@ -230,6 +230,8 @@ export const MIGRATION_DATA_CONFIG = {
   EXTENSION_APPS_FILE_NAME: "extensions.json",
   REFERENCES_DIR_NAME: "reference",
   REFERENCES_FILE_NAME: "reference.json",
+  TAXONOMIES_DIR_NAME: "taxonomies",
+  TAXONOMIES_FILE_NAME: "taxonomies.json",
 
   RTE_REFERENCES_DIR_NAME: "rteReference",
   RTE_REFERENCES_FILE_NAME: "rteReference.json",
@@ -266,6 +268,11 @@ export const MIGRATION_DATA_CONFIG = {
   POSTS_FILE_NAME: "en-us.json",
   POSTS_MASTER_FILE: "posts.json",
 
+  PAGES_DIR_NAME: "pages",
+  PAGES_FOLDER_NAME: "en-us",
+  PAGES_FILE_NAME: "en-us.json",
+  PAGES_MASTER_FILE: "pages.json",
+
   CHUNKS_DIR_NAME: "chunks",
 
   GLOBAL_FIELDS_DIR_NAME: "global_fields",
@@ -273,3 +280,12 @@ export const MIGRATION_DATA_CONFIG = {
 
   EXPORT_INFO_FILE: "export-info.json",
 };
+export const GET_AUDIT_DATA = {
+  MIGRATION: "migration-v2",
+  API_DIR: "api",
+  MIGRATION_DATA_DIR: "migration-data",
+  LOGS_DIR: "logs",
+  AUDIT_DIR: "audit",
+  AUDIT_REPORT: "audit-report",
+  FILTERALL: "all",
+}

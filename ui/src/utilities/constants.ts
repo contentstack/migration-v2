@@ -65,7 +65,8 @@ export const CS_ENTRIES = {
     url: '500'
   },
   ERROR_HANDLER: 'error_handler',
-  ADD_STACK: 'add_stack'
+  ADD_STACK: 'add_stack',
+  UNMAPPED_LOCALE_KEY: 'undefined'
 };
 
 export const UPLOAD_FILE_RELATIVE_URL = process.env.REACT_APP_UPLOAD_SERVER;
@@ -118,3 +119,78 @@ export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
   wordpress: '',
   drupal: ''
 };
+
+
+export const auditLogsConstants = {
+  executeTestMigration: 'Try executing the migration',
+  selectModuleMessage: 'Select a module to see the logs',
+  queryChangeMessage: 'Try changing the search query to find what you are looking for.',
+  noResult: 'No matching result found',
+  noLogs: 'No logs',
+  filterIcon: {
+    filterOn: 'filterWithAppliedIcon Icon--v2 Icon--medium',
+    filterOff: 'filterWithAppliedIcon Icon--v2 Icon--medium Icon--disabled'
+  },
+
+  placeholders: {
+    selectStack: 'Select Stack',
+    selectModule: 'Select Module',
+    searchLogs: 'Search Audit Logs',
+  },
+
+  emptyStateIcon: {
+    noLogs: 'NoDataEmptyState',
+    noMatch: 'NoSearchResult'
+  },
+  filterModal: {
+    noFilterAvailable: 'No Filters Available',
+    clearAll: 'Clear All',
+    apply: 'Apply',
+    displayType: 'Display Type',
+    selectFieldType: 'Select Field Data Type',
+    entries: 'Entries',
+  }
+};
+
+export const HTTP_CODES = {
+  OK: 200,
+  FORBIDDEN: 403,
+  BAD_REQUEST: 400,
+  NOT_FOUND: 404,
+  UNAUTHORIZED: 401,
+  TOO_MANY_REQS: 429,
+  SOMETHING_WRONG: 501,
+  MOVED_PERMANENTLY: 301,
+  SUPPORT_DOC: 294,
+  SERVER_ERROR: 500,
+  UNPROCESSABLE_CONTENT: 422,
+};
+
+export const EXECUTION_LOGS_UI_TEXT = {
+  SEARCH_PLACEHOLDER: 'Search Execution Logs',
+  SELECT_PLACEHOLDER: 'Select a stack',
+  EMPTY_STATE_DESCRIPTION: {
+    NO_RESULT: 'Try changing the search query to find what you are looking for.',
+    NO_LOGS: 'Try executing the migration'
+  },
+  EMPTY_STATE_HEADING: {
+    NO_LOGS: 'No logs',
+    NO_MATCH: 'No matching result found'
+  },
+  EMPTY_STATE_ICON: {
+    NO_LOGS: 'NoDataEmptyState',
+    NO_MATCH: 'NoSearchResult'
+  },
+  FILTER_ICON: {
+    FILTER_ON: 'filterWithAppliedIcon Icon--v2 Icon--medium',
+    FILTER_OFF: 'defaultFilterIcon Icon--v2 Icon--medium'
+  },
+  VIEW_LOG: {
+    VIEW_ICON: 'Eye',
+    VIEW_TEXT: 'View Log'
+  }
+}
+
+export const EXECUTION_LOGS_ERROR_TEXT = {
+  ERROR: 'Error in Getting Migration Logs'
+}

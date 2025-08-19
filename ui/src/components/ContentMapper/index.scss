@@ -155,6 +155,9 @@
     .Table__body__column {
       padding: 0 1.25rem;
     }
+    .Table-select-body {
+      width: 68px;
+    }
     .cms-field {
       // text-transform: capitalize;
       // overflow: hidden;
@@ -310,4 +313,8 @@ div .table-row {
 .field-count {
   font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
+}
+.filterButton-color{
+  color: $color-brand-primary-base;
+  font-weight: $font-weight-bold;
 }

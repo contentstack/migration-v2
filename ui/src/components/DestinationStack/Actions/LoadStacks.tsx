@@ -86,6 +86,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const [placeholder] = useState<string>('Select a stack');
   const [localePlaceholder, setlocalePlaceholder ] = useState<string>('Master Locale will be set after stack selection');
   const newMigrationDataRef = useRef(newMigrationData);
+  const [isStackLoading, setIsStackLoading] = useState<boolean>(true);
 
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
@@ -155,7 +156,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         dispatch(updateNewMigrationData(newMigrationDataObj));
         // call for Step Change
         props.handleStepChange(props?.currentStep, true);
-
+        setIsStackLoading(false);
         return true;
       }
     } catch (error) {
@@ -327,6 +328,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
                   + Create a new stack
                 </div>
               }
+              tabSelectsValue={true}
             />
             {isError && !isLoading && <div className="errorMessage">{errorMessage}</div>}
           </div>
@@ -356,7 +358,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         </div>
       </div>
 
-      {newMigrationData?.destination_stack?.selectedStack?.value && (
+      {newMigrationData?.destination_stack?.selectedStack?.value &&
+       (!isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) 
+       || !isStackLoading)
+      && (
         <div className="language-mapper">
           <div className="info-lang">
             <div className="stackTitle language-title">Language Mapping</div>
@@ -372,9 +377,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
               ></Icon>
             </Tooltip>
           </div>
+          
           <LanguageMapper
           uid={selectedStack?.uid ?? ''}
-          stack={selectedStack ?? DEFAULT_DROPDOWN} />
+          stack={newMigrationData?.destination_stack?.selectedStack ?? DEFAULT_DROPDOWN} />
         </div>
       )}
     </div>
