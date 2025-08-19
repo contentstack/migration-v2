@@ -1,0 +1,72 @@
+.select-container {
+  display: flex;
+
+  .select-wrapper {
+    display: flex;
+    margin-left: 1rem;
+  }
+}
+
+.Search-input-show {
+  margin-bottom: 4px;
+}
+
+.PageLayout--primary .PageLayout__leftSidebar + .PageLayout__content .PageLayout__body {
+  width: calc(100% - 15rem);
+}
+
+.Table__head__row {
+  height: 100% !important;
+}
+
+.PageLayout__body {
+  .table-height {
+    .Table {
+      height: calc(100vh - 12.75rem) !important;
+    }
+
+    .Table.TableWithPaginated {
+      .Table__body {
+        height: calc(100vh - 18.5rem) !important;
+      }
+    }
+  }
+}
+
+.custom-empty-state {
+  .Icon--original {
+    width: 207px !important;
+    height: auto !important;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+  }
+}
+
+.Table__head__column {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.TablePagination {
+  position: sticky;
+  bottom: 0;
+}
+
+.tree-struct {
+  width: 300px !important;
+}
+
+.missing-val {
+  width: 270px !important;
+}
+
+.tooltip-text {
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    vertical-align: middle;
+  }

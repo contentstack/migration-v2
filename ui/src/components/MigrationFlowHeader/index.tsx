@@ -78,10 +78,23 @@ const MigrationFlowHeader = ({
         stack?.stackUid === newMigrationData?.test_migration?.stack_api_key && stack?.isMigrated
     );
 
+  const isStepOneandNotMapped = params?.stepId === '1' && newMigrationData?.isContentMapperGenerated && newMigrationData?.legacy_cms?.projectStatus === 3 && newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
+
+  const isProjectStatusOne = newMigrationData?.legacy_cms?.projectStatus === 1;
+  const isPreviousStepDisabled = params?.stepId &&
+    parseInt(params?.stepId) < newMigrationData?.project_current_step &&
+    !isProjectStatusOne;
+
+  const isProjectStatusThreeAndMapperNotGenerated =
+    params?.stepId === '1' &&
+    newMigrationData?.legacy_cms?.projectStatus === 3 &&
+    newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked 
+
   const isStepInvalid =
     params?.stepId &&
     params?.stepId <= '2' &&
-    newMigrationData?.project_current_step?.toString() !== params?.stepId;
+    newMigrationData?.project_current_step?.toString() !== params?.stepId && 
+    parseInt(params?.stepId) < newMigrationData?.project_current_step;
 
   const isExecutionStarted =
     finalExecutionStarted ||
@@ -93,6 +106,7 @@ const MigrationFlowHeader = ({
     newMigrationData?.destination_stack?.migratedStacks?.includes(
       newMigrationData?.destination_stack?.selectedStack?.value
     );
+  const isFileValidated = newMigrationData?.isContentMapperGenerated ? true : newMigrationData?.legacy_cms?.uploadedFile?.reValidate;
 
   return (
     <div className="d-flex align-items-center justify-content-between migration-flow-header">
@@ -112,7 +126,12 @@ const MigrationFlowHeader = ({
         aria-label="Save and Continue"
         isLoading={isLoading || newMigrationData?.isprojectMapped}
         disabled={
-          isStep4AndNotMigrated || isStepInvalid || isExecutionStarted || destinationStackMigrated
+          isProjectStatusThreeAndMapperNotGenerated ?
+            isFileValidated :
+            isStep4AndNotMigrated || 
+            isStepInvalid || 
+            isExecutionStarted || 
+            destinationStackMigrated
         }
       >
         {stepValue}

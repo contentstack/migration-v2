@@ -120,7 +120,6 @@
         }
       }
       .Select__menu-list .Select__option--is-focused {
-        background-color: $color-brand-white-base;
         &:hover {
           background: $color-base-white-10;
         }
@@ -133,8 +132,6 @@
         width: 100% !important;
       }
       .Select__option {
-        position: relative;
-        color: $color-font-base;
         &.Select__option--is-selected {
           &:hover {
             color: $color-brand-primary-base;
@@ -255,4 +252,7 @@
 .info-language-mapper {
   margin-bottom: 120px;
   margin-top: 16px;
+}
+.delete-icon{
+  padding-left: 5px;
 }

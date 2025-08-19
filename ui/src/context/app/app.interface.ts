@@ -68,7 +68,8 @@ export interface IFile {
   file_details?: FileDetails;
   isValidated: boolean;
   reValidate: boolean;
-  cmsType: string
+  cmsType: string;
+  buttonClicked:boolean
 }
 
 export interface ICMSType extends ICardType {
@@ -176,7 +177,7 @@ export interface IDestinationStack {
   stackArray: IDropDown[];
   migratedStacks: string[];
   sourceLocale: string[];
-  localeMapping: {};
+  localeMapping: Record<string, string>;
   csLocale: string[];
 }
 export interface IContentMapper {
@@ -187,6 +188,11 @@ export interface IContentMapper {
   otherCmsTitle?: string;
   contentTypeList: ContentTypeList[];
 }
+
+export interface ISetting {
+  active_state: string;
+}
+
 export interface INewMigration {
   testStacks: TestStacks[];
   mapperKeys: ContentTypeMap;
@@ -195,9 +201,11 @@ export interface INewMigration {
   content_mapping: IContentMapper;
   test_migration: ITestMigration;
   isprojectMapped: boolean;
+  isContentMapperGenerated: boolean;
   stackDetails: IDropDown;
   migration_execution: IMigrationExecutionStep;
   project_current_step: number;
+  settings:ISetting;
 }
 
 export interface TestStacks {
@@ -311,6 +319,7 @@ export const DEFAULT_FILE: IFile = {
   isValidated: false,
   reValidate: false,
   cmsType: '',
+  buttonClicked: false
 };
 
 export const DEFAULT_CMS_TYPE: ICMSType = {
@@ -364,6 +373,10 @@ export const DEFAULT_TEST_MIGRATION: ITestMigration = {
   isMigrationComplete: false
 };
 
+export const DEFAULT_SETTING: ISetting = {
+  active_state: 'General'
+};
+
 export const DEFAULT_MIGRATION_EXECUTION_STEP: IMigrationExecutionStep = {
   migrationStarted: false,
   migrationCompleted: false
@@ -379,7 +392,9 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   stackDetails: DEFAULT_DROPDOWN,
   testStacks: [],
   migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP,
-  project_current_step: 0
+  project_current_step: 0,
+  settings: DEFAULT_SETTING,
+  isContentMapperGenerated: false,
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {

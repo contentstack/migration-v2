@@ -62,6 +62,7 @@ import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
 import { getMigratedStacks } from '../../services/api/project.service';
 import { getConfig } from '../../services/api/upload.service';
+import { useWarnOnRefresh } from '../../hooks/useWarnOnrefresh';
 
 type StepperComponentRef = {
   handleStepChange: (step: number) => void;
@@ -73,6 +74,11 @@ type LocalesType = {
   [key: string]: any
 }
 
+/**
+ * Migration component to handle the migration process
+ * It includes steps like selecting legacy CMS, configuring destination stack,
+ * mapping content fields, running test migration, and executing final migration.
+ */
 const Migration = () => {
   const params: Params<string> = useParams();
   const { projectId = '' } = useParams();
@@ -96,6 +102,7 @@ const Migration = () => {
 
   const [disableMigration, setDisableMigration] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState<boolean>(false);
 
   const saveRef = useRef<ContentTypeSaveHandles>(null);
   const newMigrationDataRef = useRef(newMigrationData);
@@ -104,6 +111,7 @@ const Migration = () => {
     fetchData();
   }, [params?.stepId, params?.projectId, selectedOrganisation?.value]);
 
+  useWarnOnRefresh(isSaved);
   /**
  * Dispatches the isprojectMapped key to redux
  */
@@ -118,6 +126,31 @@ const Migration = () => {
 
 
   useBlockNavigation(isModalOpen);
+
+  useEffect (()=>{
+    const hasNonEmptyMapping =
+    newMigrationData?.destination_stack?.localeMapping &&
+    Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
+      ([label, value]: [string, string]) =>
+        Boolean(label?.trim()) &&
+        value !== '' &&
+        value !== null &&
+        value !== undefined
+    );
+    //console.info("legacyCMSRef?.current ", legacyCMSRef?.current,legacyCMSRef?.current?.getInternalActiveStepIndex())
+    if(legacyCMSRef?.current && newMigrationData?.project_current_step === 1 && legacyCMSRef?.current?.getInternalActiveStepIndex() > -1){
+      setIsSaved(true);    
+    }
+    else if ((isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) && newMigrationData?.project_current_step === 2)){
+     setIsSaved(true);
+    }
+    else if(newMigrationData?.content_mapping?.isDropDownChanged){
+      setIsSaved(true);
+    }
+    else{
+      setIsSaved(false);
+    }
+  }, [isCompleted, newMigrationData])
 
   /**
    * Function to get exisiting content types list
@@ -218,9 +251,10 @@ const Migration = () => {
 // funcrion to form upload object from config response
   const getFileInfo = (data: FileDetails) => {
     const newMigrationDataObj = {
+        ...newMigrationData?.legacy_cms?.uploadedFile,
           name: data?.localPath,
           url: data?.localPath,
-          isValidated: data?.localPath !== newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath ? false : newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
+          isValidated: false,
           file_details: {
             isLocalPath: data?.isLocalPath,
             cmsType: data?.cmsType,
@@ -324,7 +358,8 @@ const Migration = () => {
             isLocalPath: projectData?.legacy_cms?.is_localPath
           },
           isValidated: projectData?.legacy_cms?.is_fileValid,
-          reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate
+          reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
+          buttonClicked: newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked ? true : false,
         } : uploadObj,
         isFileFormatCheckboxChecked: true,
         isRestictedKeywordCheckboxChecked: true,
@@ -362,6 +397,7 @@ const Migration = () => {
       testStacks: projectData?.test_stacks,
       isprojectMapped: false,
       project_current_step: projectData?.current_step,
+      isContentMapperGenerated: projectData?.content_mapper?.length > 0,
     };
 
     dispatch(updateNewMigrationData(projectMapper));
@@ -483,9 +519,21 @@ const Migration = () => {
 
       if (res?.status === 200) {
         setIsLoading(false);
-        handleStepChange(1);
-        const url = `/projects/${projectId}/migration/steps/2`;
-        navigate(url, { replace: true });
+        // Check if stack is already selected
+        if (newMigrationData?.destination_stack?.selectedStack?.value) {
+          const url = `/projects/${projectId}/migration/steps/3`;
+
+          await updateCurrentStepData(selectedOrganisation?.value, projectId);
+
+          handleStepChange(2);
+          navigate(url, { replace: true });
+        } else {
+          const url = `/projects/${projectId}/migration/steps/2`;
+          await updateCurrentStepData(selectedOrganisation?.value, projectId);
+
+          handleStepChange(1);
+          navigate(url, { replace: true });
+        }
       } else {
         setIsLoading(false);
         Notification({
@@ -533,8 +581,13 @@ const Migration = () => {
 
     const hasNonEmptyMapping =
       newMigrationData?.destination_stack?.localeMapping &&
-      Object.values(newMigrationData?.destination_stack?.localeMapping)?.every(
-        (value) => value !== '' && value !== null && value !== undefined
+      Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
+        ([label, value]: [string, string]) =>
+          Boolean(label?.trim()) &&
+          value !== '' &&
+          value !== null &&
+          value !== undefined && 
+          label !== 'undefined'
       );
 
     const master_locale: LocalesType = {};

@@ -1,20 +1,26 @@
-# Use an official Node.js runtime as a base image
-FROM --platform=linux/amd64 node:24.1.0-alpine3.22
+FROM node:24.4.1-alpine@sha256:820e86612c21d0636580206d802a726f2595366e1b867e564cbc652024151e8a
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
-# Install application dependencies
-RUN npm install
+RUN npm ci \
+    && addgroup -S nodeapp \
+    && adduser -S nodeapp -G nodeapp
 
-# Copy the application code to the container
 COPY . .
 
-# Expose the port your app will run on
-EXPOSE 3000
+RUN mkdir -p /app/build \
+    && mkdir -p /app/extracted_files \
+    && chown -R nodeapp:nodeapp /app
 
-# Define the command to run your application
-CMD ["node", "index.js"] 
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+USER nodeapp
+
+EXPOSE 4002
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+CMD ["npm", "run", "start"]
