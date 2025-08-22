@@ -1,0 +1,26 @@
+import path from "path";
+import read from 'fs-readdir-recursive';
+import { isExperienceFragment } from "../../helper/component.identifier";
+import { readFiles } from "../../helper";
+
+const validator = async (dirPath: string) => {
+  const templatesDir = path.resolve(dirPath);
+  const templateFiles = read(templatesDir);
+
+  const results = await Promise.all(
+    templateFiles.map(async (fileName: string) => {
+      const filePath = path.join(templatesDir, fileName);
+      const templateData: any = await readFiles(filePath);
+      const isFragment = isExperienceFragment(templateData)?.isXF;
+      const hasTemplateType = Boolean(templateData?.['templateType']);
+      const hasTemplateName = Boolean(templateData?.['templateName']);
+      const hasItems = Boolean(templateData?.[':items']);
+      return (hasTemplateType || hasTemplateName || isFragment) && hasItems;
+    })
+  );
+
+  return results;
+}
+
+
+export default validator;

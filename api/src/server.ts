@@ -158,7 +158,7 @@ try {
         logger.error(`Error emitting log data: ${error}`);
       }
     });
-    aemService.createAssets({})
+    // aemService.createAssets({})
   })();
 } catch (e) {
   logger.error('Error while starting the server!');

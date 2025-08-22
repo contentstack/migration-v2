@@ -64,7 +64,7 @@ function processComponents(components: Record<string, any> | Record<string, any>
 
 
 const convertContentType: IConvertContentType = async (dirPath) => {
-  const templatesDir = path.resolve(dirPath, CONSTANTS?.TEMPLATE_DIR);
+  const templatesDir = path.resolve(dirPath);
   const templateFiles = read(templatesDir);
   const allComponentData: Record<string, any>[] = [];
   for await (const fileName of templateFiles) {
@@ -106,7 +106,7 @@ const arrangeContentModels = async (
 
 
 const createContentType: IConvertContentType = async (dirPath) => {
-  const templatesDir = path.resolve(dirPath, CONSTANTS?.TEMPLATE_DIR);
+  const templatesDir = path.resolve(dirPath);
   const grouped = await arrangeContentModels(templatesDir, CONSTANTS.arrangeCTGroup as GroupKey[]);
   const componentPath = path.resolve(CONSTANTS?.TMP_FILE);
   const contentstackComponents = await readFiles(componentPath);
