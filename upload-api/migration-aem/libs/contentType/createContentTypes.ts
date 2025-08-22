@@ -1,6 +1,6 @@
 import path from "path";
 import { CONSTANTS } from "../../constant";
-import { createContentTypeObject, findComponentByType, writeJsonFile } from "../../helper";
+import { createContentTypeObject, ensureField, findComponentByType, writeJsonFile } from "../../helper";
 import { isContainerComponent, parseXFPath } from "../../helper/component.identifier";
 import { createFragmentComponent } from "./fragment";
 import { IContentTypeMaker } from "./types/createContentTypes.interface";
@@ -92,8 +92,30 @@ const contentTypeMaker: IContentTypeMaker = async ({ templateData, affix, conten
   const contentDataFilePath = path.resolve(CONSTANTS?.CONENT_DATA_FILE);
   const processData = processContentModels(contentData);
   const flattenData = flattenContentTypes(processData);
+  flattenData.forEach((schema: any) => {
+    ensureField(schema.fieldMapping, {
+      uid: 'url',
+      otherCmsField: 'url',
+      otherCmsType: 'text',
+      contentstackField: 'Url',
+      contentstackFieldUid: 'url',
+      contentstackFieldType: 'url',
+      backupFieldType: 'url',
+      backupFieldUid: 'url'
+    }, 'url');
+    ensureField(schema.fieldMapping, {
+      uid: 'title',
+      otherCmsField: 'title',
+      otherCmsType: 'text',
+      contentstackField: 'Title',
+      contentstackFieldUid: 'title',
+      contentstackFieldType: 'text',
+      backupFieldType: 'text',
+      backupFieldUid: 'title'
+    }, 'title');
+  });
   await writeJsonFile(flattenData, contentDataFilePath);
-  return flattenData ?? []
+  return flattenData ?? [];
 }
 
 

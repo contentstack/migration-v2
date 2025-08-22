@@ -1,13 +1,9 @@
 
 import axios, { AxiosResponse, AxiosError } from "axios";
 import http from 'http';
-// import { readFileSync } from "fs";
-// import path from 'path';
-// import { deleteFolderSync } from "../../helper";
 import logger from "../../utils/logger";
-// import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
-
-import { contentTypes } from 'migration-aem'
+import { HTTP_CODES, HTTP_TEXTS } from "../../constants";
+import { contentTypes, locales } from 'migration-aem';
 
 interface RequestParams {
   payload: any;
@@ -64,18 +60,74 @@ const sendRequestWithRetry = async <T = any>(params: RequestParams): Promise<Axi
 };
 
 
-const createAemMapper = async () => {
+const createLocaleSource = async ({
+  app_token,
+  localeData,
+  projectId,
+}: {
+  app_token: string | string[];
+  localeData: any;
+  projectId: string | string[];
+}) => {
   try {
-    // Initialize the contentTypes function
-    const ct = contentTypes();
+    const payload = {
+      locale: Array?.from?.(localeData) ?? [],
+    };
 
-    // Call convertAndCreate with the path to your AEM data structure
-    const ctData = await ct.convertAndCreate('/Users/umesh.more/Documents/aem_data_structure');
-    console.log("🚀 ~ createAemMapper ~ ctData:", ctData)
-    logger.info('AEM content types converted and created successfully');
+    const { status } = await sendRequestWithRetry({
+      payload,
+      projectId,
+      app_token,
+      endpoint: 'migration/localeMapper',
+    });
+
+    if (status === 200) {
+      logger.info('Legacy CMS', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.LOCALE_SAVED,
+      });
+    } else {
+      logger.warn('Legacy CMS error:', {
+        status: HTTP_CODES?.UNAUTHORIZED,
+        message: HTTP_TEXTS?.LOCALE_FAILED,
+      });
+    }
   } catch (error) {
-    logger.error('Error creating AEM mapper:', error);
+    logger.error('Legacy CMS error:', {
+      status: HTTP_CODES?.UNAUTHORIZED,
+      message: HTTP_TEXTS?.LOCALE_FAILED,
+      error,
+    });
     throw error;
+  }
+};
+
+
+const createAemMapper = async (filePath: string, projectId: string | string[], app_token: string | string[], affix?: string | string[]) => {
+  console.log("🚀 ~ createAemMapper ~ filePath:", filePath)
+  try {
+    const ct = contentTypes();
+    const localeData = await locales().processAndSave(filePath);
+    await createLocaleSource({ app_token, projectId, localeData });
+    const ctData = await ct.convertAndCreate(filePath);
+    const fieldMapping: any = { contentTypes: ctData, extractPath: filePath };
+    const { data } = await sendRequestWithRetry({
+      payload: fieldMapping,
+      projectId,
+      app_token
+    });
+    if (data?.data?.content_mapper?.length) {
+      logger.info('Validation success:', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.MAPPER_SAVED,
+      });
+    }
+  } catch (error: any) {
+    console.error("🚀 ~ createSitecoreMapper ~ err:", error?.response?.data ?? error);
+    logger.warn('Validation error:', {
+      status: HTTP_CODES?.UNAUTHORIZED,
+      message: HTTP_TEXTS?.VALIDATION_ERROR,
+    });
   }
 }
 

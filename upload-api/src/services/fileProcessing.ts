@@ -67,6 +67,28 @@ const handleFileProcessing = async (
         };
       }
     }
+  } else if (fileExt === 'folder') {
+    if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt })) {
+      logger.info('Validation success:', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
+      });
+      return {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
+        file_details: config
+      }
+    } else {
+      logger.warn('Validation error:', {
+        status: HTTP_CODES?.UNAUTHORIZED,
+        message: HTTP_TEXTS?.VALIDATION_ERROR
+      });
+      return {
+        status: HTTP_CODES?.UNAUTHORIZED,
+        message: HTTP_TEXTS?.VALIDATION_ERROR,
+        file_details: config
+      };
+    }
   } else {
     // if file is not zip
     // Convert the buffer to a string assuming it's UTF-8 encoded

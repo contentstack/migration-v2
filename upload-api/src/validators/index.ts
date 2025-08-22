@@ -18,7 +18,7 @@ const validator = ({ data, type, extension }: { data: any; type: string; extensi
       return wordpressValidator(data);
     }
 
-    case 'aem-zip': {
+    case 'aem-folder': {
       return aemValidator({ data });
     }
 

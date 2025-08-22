@@ -313,3 +313,21 @@ export function createContentTypeObject({
     fieldMapping,
   };
 }
+
+
+/**
+ * Ensures a field with the given UID exists in the schema array.
+ * If not present, prepends the provided field config.
+ */
+export function ensureField(
+  mainSchema: any[],
+  fieldConfig: Record<string, any>,
+  fieldUid: string
+) {
+  const found = mainSchema?.some(
+    (item) => item?.contentstackFieldUid?.toLowerCase?.() === fieldUid.toLowerCase()
+  );
+  if (!found) {
+    mainSchema.unshift(fieldConfig);
+  }
+}

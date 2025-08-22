@@ -13,7 +13,6 @@ import 'dotenv/config';
 import cors from 'cors';
 import helmet from 'helmet';
 import routes from './routes/index';
-import { createAemMapper } from './controllers/aem';
 
 const PORT = process.env.PORT;
 const app = express();
@@ -30,4 +29,3 @@ app.listen(PORT, () => {
   console.info(`Server is running at http://localhost:${PORT}`);
 });
 
-createAemMapper()
