@@ -159,7 +159,7 @@ const Login: FC<IProps> = () => {
       setDataInLocalStorage('app_token', response?.data?.app_token);
       
       // Clear any previous organization data to ensure fresh organization selection for new user
-      localStorage.removeItem('organization');
+      localStorage?.removeItem('organization');
       dispatch(clearOrganisationData());
       
       const authenticationObj = {
