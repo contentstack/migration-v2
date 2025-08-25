@@ -3,7 +3,7 @@ import { FC, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { getUserDetails, setAuthToken, setUser, clearOrganisationData } from '../../store/slice/authSlice';
+import { clearOrganisationData, getUserDetails, setAuthToken, setUser } from '../../store/slice/authSlice';
 import {
   Button,
   Field,
