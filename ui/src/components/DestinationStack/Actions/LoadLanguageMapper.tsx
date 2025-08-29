@@ -163,6 +163,13 @@ const Mapper = ({
           setSelectedMappings(updatedSelectedMappings);
           
         }
+        else if ( !isLabelMismatch && !isStackChanged ) {
+          const key = `${locale?.label}-master_locale`
+            updatedSelectedMappings = {
+            [key]: updatedSelectedMappings?.[`${locale?.label}-master_locale`] ? updatedSelectedMappings?.[`${locale?.label}-master_locale`] : '',
+          };
+          setSelectedMappings(updatedSelectedMappings);
+        }
       }        
     })
   
@@ -513,7 +520,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
   const [options, setoptions] = useState<{ label: string; value: string }[]>([]);
   const [cmsLocaleOptions, setcmsLocaleOptions] = useState<{ label: string; value: string }[]>([]);
   const [sourceLocales, setsourceLocales] = useState<{ label: string; value: string }[]>([]);
-  const [isLoading, setisLoading] = useState<boolean>(false);
+  const [isLoading, setisLoading] = useState<boolean>(true);
   const [currentStack, setCurrentStack] = useState<IDropDown>(stack);
   const [previousStack, setPreviousStack] = useState<IDropDown>();
   const [isStackChanged, setisStackChanged] = useState<boolean>(false);
@@ -618,6 +625,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
   //     return await getStackLocales(newMigrationData?.destination_stack?.selectedOrg?.value);
   //   };
   const addRowComp = () => {
+    setisStackChanged(false);
     setcmsLocaleOptions((prevList: { label: string; value: string }[]) => [
       ...prevList, // Keep existing elements
       {
@@ -628,6 +636,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
   };
 
   const handleDeleteLocale = (id: number, locale: { label: string; value: string }) => {
+    setisStackChanged(false);
     setcmsLocaleOptions((prevList) => {
       return prevList?.filter(
         (item: { label: string; value: string }) => item?.label !== locale?.label
