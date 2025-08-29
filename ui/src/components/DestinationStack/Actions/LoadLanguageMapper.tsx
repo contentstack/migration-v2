@@ -163,9 +163,10 @@ const Mapper = ({
           setSelectedMappings(updatedSelectedMappings);
           
         }
-        else if(!isLabelMismatch && !isStackChanged){
+        else if ( !isLabelMismatch && !isStackChanged ) {
+          const key = `${locale?.label}-master_locale`
             updatedSelectedMappings = {
-            [`${locale?.label}-master_locale`]: updatedSelectedMappings?.[`${locale?.label}-master_locale`] ?  updatedSelectedMappings?.[`${locale?.label}-master_locale`]: '',
+            [key]: updatedSelectedMappings?.[`${locale?.label}-master_locale`] ? updatedSelectedMappings?.[`${locale?.label}-master_locale`] : '',
           };
           setSelectedMappings(updatedSelectedMappings);
         }
