@@ -1,3 +1,6 @@
+import { v4 as uuidv4 } from 'uuid';
+
+
 /**
  * Base field class for Contentstack components
  */
@@ -23,7 +26,7 @@ export abstract class Field {
 
   // Generate a common ID based on the UID
   protected generateId(): string {
-    return `field-${this.uid}`;
+    return uuidv4();
   }
 }
 
@@ -183,7 +186,6 @@ export class GroupField extends Field {
   toContentstack() {
     return {
       id: this.generateId(),
-
       uid: this.uid,
       otherCmsField: this.displayName,
       otherCmsType: 'group',
@@ -262,8 +264,8 @@ export class ReferenceField extends Field {
       uid: this.uid,
       otherCmsField: this.displayName,
       otherCmsType: this.displayName,
-      contentstackField: 'reference',
-      contentstackFieldUid: 'reference',
+      contentstackField: this.displayName,
+      contentstackFieldUid: this.uid,
       contentstackFieldType: 'reference',
       isDeleted: this.isDeleted,
       backupFieldType: 'reference',

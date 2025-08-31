@@ -1,4 +1,5 @@
 import { ContentstackComponent } from '../fields';
+import { v4 as uuidv4 } from 'uuid';
 
 export class TextComponent extends ContentstackComponent {
   /**
@@ -46,7 +47,7 @@ export class TextComponent extends ContentstackComponent {
    * Maps a text component to Contentstack rich text schema format
    */
   static mapTextToContentstack(component: any): any {
-    const id = component?.convertedSchema?.properties?.id?.value || '';
+    const id = uuidv4();
     const name = 'text';
     const type = 'Rich Text';
     const uid = 'text';
@@ -55,7 +56,7 @@ export class TextComponent extends ContentstackComponent {
     const isRichText = this.processTextComponents(component);
     if (isRichText) {
       return {
-        id: id,
+        id,
         uid: name,
         otherCmsField: name,
         otherCmsType: type,

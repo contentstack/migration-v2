@@ -413,6 +413,9 @@ const startTestMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
+    await siteCoreService?.createVersionFile(
+      project?.current_test_stack_id
+    );
     await testFolderCreator?.({
       destinationStackId: project?.current_test_stack_id,
     });
