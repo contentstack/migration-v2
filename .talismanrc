@@ -93,5 +93,7 @@ fileignoreconfig:
     checksum: 09b36877f7e86bb806a9657f852a448dc32fa1dfb350d0fde5fd843c54a27bf0
   - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
     checksum: 4e9bd6dcdb08fab85a3d8200e0dffa0d003743ebbb42d5043228cfd46f7e91da
+  - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
+    checksum: 4e9bd6dcdb08fab85a3d8200e0dffa0d003743ebbb42d5043228cfd46f7e91da
 
 version: "1.0"
