@@ -234,9 +234,13 @@ const Mapper = ({
           updatedMappings[selectedLocaleKey] = existingLocale?.[index]?.label;
           delete updatedMappings?.[CS_ENTRIES?.UNMAPPED_LOCALE_KEY];  
         }else{
-        updatedMappings[selectedLocaleKey] = existingLocale?.[index]?.label
-          ? existingLocale?.[index]?.label
-          : '';
+           const oldlabel = Object?.keys?.(updatedMappings)?.[index - 1];
+           
+           // Delete old key and assign to new key
+          delete updatedMappings?.[oldlabel];
+          updatedMappings[selectedLocaleKey] = existingLocale?.[index]?.label
+            ? existingLocale?.[index]?.label
+            : '';
         }
       }
 
@@ -295,7 +299,7 @@ const Mapper = ({
       }
       else if (selectedLocaleKey) {
 
-        updatedMappings[existingLabel?.value] = selectedValue?.label
+        updatedMappings[existingLabel?.value ?? index] = selectedValue?.label
           ? selectedValue?.label
           : '';
       }
