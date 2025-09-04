@@ -234,10 +234,10 @@ const Mapper = ({
           updatedMappings[selectedLocaleKey] = existingLocale?.[index]?.label;
           delete updatedMappings?.[CS_ENTRIES?.UNMAPPED_LOCALE_KEY];  
         }else{
-           const oldKey = Object?.keys?.(updatedMappings)?.[index - 1];
+           const oldlabel = Object?.keys?.(updatedMappings)?.[index - 1];
            
            // Delete old key and assign to new key
-          delete updatedMappings?.[oldKey];
+          delete updatedMappings?.[oldlabel];
           updatedMappings[selectedLocaleKey] = existingLocale?.[index]?.label
             ? existingLocale?.[index]?.label
             : '';
