@@ -20,4 +20,8 @@ fileignoreconfig:
   - filename: upload-api/migration-aem/libs/contentType/types/contentTypeMapper.interface.ts
     checksum: 82dc52cf97e1370b913525104aa9d2c818ea1a72603e5631235ac021bf1cc71a
 
+fileignoreconfig:
+- filename: api/src/utils/content-type-creator.utils.ts
+  checksum: 2ded39a2b47f8feb057f8e088d7bc44be4c5c656cb0ff177ea582667b9edcbaf   
+
 version: "1.0.1-beta"
