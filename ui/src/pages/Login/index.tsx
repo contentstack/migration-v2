@@ -153,11 +153,10 @@ const Login: FC<IProps> = () => {
       setIsLoading(false);
       failtureNotification(response?.data?.error_message || response?.data?.error?.message);
     }
-
+    dispatch(clearAuthToken());
+    localStorage?.removeItem('app_token');
     if (response?.status === 200 && response?.data?.message === LOGIN_SUCCESSFUL_MESSAGE) {
       setIsLoading(false);
-      dispatch(clearAuthToken());
-      localStorage?.removeItem('app_token');
       setDataInLocalStorage('app_token', response?.data?.app_token);
       
       // Clear any previous organization data to ensure fresh organization selection for new user
