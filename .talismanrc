@@ -22,6 +22,10 @@ fileignoreconfig:
 
 fileignoreconfig:
 - filename: api/src/utils/content-type-creator.utils.ts
-  checksum: 2ded39a2b47f8feb057f8e088d7bc44be4c5c656cb0ff177ea582667b9edcbaf   
+  checksum: 2ded39a2b47f8feb057f8e088d7bc44be4c5c656cb0ff177ea582667b9edcbaf  
+- filename: api/src/services/migration.service.ts
+  checksum: f459c7ff7d979f1712e3da73ebedaaf3071629d7b1941e7257fb10b6d46ebbbd
+- filename: api/src/services/aem.service.ts
+  checksum: fdcb7ef88172cd8dc59d4911df95f58e3c00c8158b99a85d1d62c74e57706eb4 
 
 version: "1.0.1-beta"
