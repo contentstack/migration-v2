@@ -3,7 +3,7 @@ import { FC, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { clearOrganisationData, getUserDetails, setAuthToken, setUser } from '../../store/slice/authSlice';
+import { clearOrganisationData, getUserDetails, setAuthToken, setUser, clearAuthToken } from '../../store/slice/authSlice';
 import {
   Button,
   Field,
@@ -22,7 +22,7 @@ import {
   TFA_VIA_SMS_MESSAGE,
   CS_ENTRIES
 } from '../../utilities/constants';
-import { failtureNotification, setDataInLocalStorage } from '../../utilities/functions';
+import { clearLocalStorage, failtureNotification, setDataInLocalStorage } from '../../utilities/functions';
 
 // API Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -156,6 +156,8 @@ const Login: FC<IProps> = () => {
 
     if (response?.status === 200 && response?.data?.message === LOGIN_SUCCESSFUL_MESSAGE) {
       setIsLoading(false);
+      dispatch(clearAuthToken());
+      localStorage?.removeItem('app_token');
       setDataInLocalStorage('app_token', response?.data?.app_token);
       
       // Clear any previous organization data to ensure fresh organization selection for new user
