@@ -200,17 +200,14 @@ const saveOAuthToken = async (req: Request): Promise<void> => {
 
     const regionStr = Array.isArray(region) ? region[0] : region;
     const tokenUrl = CSAUTHHOST[regionStr as keyof typeof CSAUTHHOST];
-    const clientId = client_id
-    const clientSecret = client_secret
     const redirectUri = `${redirect_uri}/v2/auth/save-token`
-    if (!tokenUrl || !clientId || !clientSecret) {
+    if (!tokenUrl || !client_id || !client_secret) {
       throw new InternalServerError(`Configuration missing for region: ${region}`);
     }
-
     const formData = new URLSearchParams();
     formData.append('grant_type', 'authorization_code');
-    formData.append('client_id', clientId);
-    formData.append('client_secret', clientSecret);
+    formData.append('client_id', client_id);
+    formData.append('client_secret', client_secret);
     formData.append('redirect_uri', redirectUri);
     formData.append('code', code as string);
     formData.append('code_verifier', code_verifier);
@@ -220,8 +217,6 @@ const saveOAuthToken = async (req: Request): Promise<void> => {
         data: formData,
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
-
-    delete (req.session as any).code_verifier;
 
     const { access_token, refresh_token, organization_uid } = tokenResponse.data;
 
@@ -306,7 +301,7 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
       throw new Error('OAuth client_id or client_secret not found in app.json');
     }
 
-    console.info(`Refreshing token for user: ${userRecord.email} in region: ${userRecord.region}`);
+    logger.info(`Refreshing token for user: ${userRecord.email} in region: ${userRecord.region}`);
 
     const appUrl = CSAUTHHOST[userRecord.region] || CSAUTHHOST['NA'];
     const tokenEndpoint = `${appUrl}`;
@@ -340,11 +335,11 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
       }
     });
 
-    console.info(`Token refreshed successfully for user: ${userRecord.email}`);
+    logger.info(`Token refreshed successfully for user: ${userRecord.email}`);
     return access_token;
 
   } catch (error: any) {
-    console.error(`Token refresh failed for user ${userId}:`, error.response?.data || error.message);
+    logger.error(`Token refresh failed for user ${userId}:`, error.response?.data || error.message);
     throw new Error(`Failed to refresh token: ${error.response?.data?.error_description || error.message}`);
   }
 };
