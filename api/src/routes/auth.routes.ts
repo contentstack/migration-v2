@@ -40,4 +40,15 @@ router.post(
   asyncRouter(authController.RequestSms)
 );
 
+/**
+ * The new secure endpoint that the Launch proxy will call with a POST request
+ * to deliver the final access token. This is NOT for browser access.
+ * @route POST /v2/auth/save-token
+ */
+router.get(
+  "/save-token",
+  asyncRouter(authController.saveOAuthToken)
+);
+
+
 export default router;
