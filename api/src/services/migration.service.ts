@@ -30,6 +30,7 @@ import { contentfulService } from './contentful.service.js';
 import { marketPlaceAppService } from './marketplace.service.js';
 import { extensionService } from './extension.service.js';
 import fsPromises from 'fs/promises';
+import { aemService } from './aem.service.js';
 // import { getSafePath } from "../utils/sanitize-path.utils.js";
 
 /**
@@ -410,6 +411,18 @@ const startTestMigration = async (req: Request): Promise<any> => {
         );
         break;
       }
+      case CMS.AEM: {
+        await aemService.createEntry({
+          packagePath,
+          contentTypes,
+          master_locale: project?.stackDetails?.master_locale,
+          destinationStackId: project?.current_test_stack_id,
+          projectId,
+          keyMapper: project?.mapperKeys,
+          project
+        })
+        break;
+      }
       default:
         break;
     }
@@ -419,14 +432,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
     await testFolderCreator?.({
       destinationStackId: project?.current_test_stack_id,
     });
-    await utilsCli?.runCli(
-      region,
-      user_id,
-      project?.current_test_stack_id,
-      projectId,
-      true,
-      loggerPath
-    );
+    // await utilsCli?.runCli(
+    //   region,
+    //   user_id,
+    //   project?.current_test_stack_id,
+    //   projectId,
+    //   true,
+    //   loggerPath
+    // );
   }
 };
 

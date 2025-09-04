@@ -205,7 +205,7 @@ function getLastSegmentNew(str: string, separator: string): string {
   return segments[segments.length - 1].trim();
 }
 
-function buildSchemaTree(fields: any[], parentUid = '', parentType = ''): any[] {
+export function buildSchemaTree(fields: any[], parentUid = '', parentType = ''): any[] {
   // Build a lookup map for O(1) access
   const fieldMap = new Map<string, any>();
   fields.forEach(f => {

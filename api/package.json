@@ -6,7 +6,7 @@
   "scripts": {
     "build": "npx tsc",
     "start": "NODE_ENV=production node dist/server.js",
-    "dev": "NODE_ENV=production tsx ./src/server.ts",
+    "dev": "NODE_ENV=production tsx watch ./src/server.ts",
     "prettify": "prettier --write .",
     "windev": "SET NODE_ENV=production&& tsx watch ./src/server.ts",
     "winstart": "SET NODE_ENV=production&& node dist/server.js",
