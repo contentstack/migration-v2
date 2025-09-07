@@ -15,6 +15,9 @@ const teaserExclude = [
   // 'cq:panelTitle'
 ];
 
+function uidContainsNumber(uid: string): boolean {
+  return /\d/.test(uid);
+}
 
 
 export class TeaserComponent extends ContentstackComponent {
@@ -23,8 +26,14 @@ export class TeaserComponent extends ContentstackComponent {
     if (properties && typeof properties === 'object') {
       const typeField = properties[":type"];
       if (
-        (typeof typeField === "string" && typeField.includes("/components/teaser")) ||
-        (typeof typeField === "object" && typeField.value?.includes("/components/teaser"))
+        (typeof typeField === "string" &&
+          (/\/components\/(teaser|heroTeaser|overlayBoxTeaser)/.test(typeField) ||
+            typeField.includes("/productCategoryTeaserList"))
+        ) ||
+        (typeof typeField === "object" &&
+          (/\/components\/(teaser|heroTeaser|overlayBoxTeaser)/.test(typeField.value ?? "") ||
+            (typeField.value ?? "").includes("/productCategoryTeaserList"))
+        )
       ) {
         return true;
       }
@@ -60,6 +69,11 @@ export class TeaserComponent extends ContentstackComponent {
       defaultValue: schemaProp.value
     }).toContentstack(),
     object: (key, schemaProp) => {
+      const data = { convertedSchema: schemaProp }
+      const objectData = this.mapTeaserToContentstack(data, key);
+      if (objectData?.uid && (uidContainsNumber(objectData?.uid) === false) && objectData?.schema?.length) {
+        return objectData;
+      }
       const urlValue = schemaProp?.properties?.url?.value;
       if (urlValue !== undefined) {
         return new LinkField({
@@ -127,7 +141,7 @@ export class TeaserComponent extends ContentstackComponent {
           displayName: parentKey,
           fields: componentsData,
           required: false,
-          multiple: false
+          multiple: true
         }).toContentstack(),
         type: component?.convertedSchema?.properties?.[":type"]?.value
       } : null;

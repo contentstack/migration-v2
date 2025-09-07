@@ -64,7 +64,7 @@ async function processTemplateItems(itemsOrder: string[], items: any, contentsta
       if (csValue && typeof csValue === "object" && "type" in csValue) {
         schema?.push(csValue)
       } else {
-        console.info("🚀 ~ processTemplateItems ~ type: undefined", type);
+        console.info("🚀 ~ processTemplateItems ~ type:", type);
       }
     }
   }

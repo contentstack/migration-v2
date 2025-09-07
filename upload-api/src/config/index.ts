@@ -14,5 +14,5 @@ export default {
     "bucketName": "",
     "bucketKey": ""
   },
-  "localPath": "/Users/umesh.more/Documents/aem_data_structure/templates"
+  "localPath": "/Users/umesh.more/Documents/aem_data_structure/newTemp"
 };

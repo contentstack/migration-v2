@@ -8,18 +8,33 @@ export class TextComponent extends ContentstackComponent {
   static isText(component: any): boolean {
     if (component && typeof component === 'object') {
       // Direct properties format
-      if (component[":type"] && component[":type"].includes("/components/text")) {
+      if (
+        component[":type"] &&
+        (
+          component[":type"].includes("/components/text") ||
+          component[":type"].includes("/components/richText")
+        )
+      ) {
         return true;
       }
       // Properties object format
-      if (component.properties && component.properties[":type"]?.value?.includes("/components/text")) {
+      if (
+        component.properties &&
+        (
+          component.properties[":type"]?.value?.includes("/components/text") ||
+          component.properties[":type"]?.value?.includes("/components/richText")
+        )
+      ) {
         return true;
       }
       // Handle convertedSchema format
       if (
         component.convertedSchema &&
         component.convertedSchema.properties &&
-        component.convertedSchema.properties[":type"]?.value?.includes("/components/text")
+        (
+          component.convertedSchema.properties[":type"]?.value?.includes("/components/text") ||
+          component.convertedSchema.properties[":type"]?.value?.includes("/components/richText")
+        )
       ) {
         return true;
       }
@@ -53,7 +68,7 @@ export class TextComponent extends ContentstackComponent {
     const uid = 'text';
     const default_value = component?.convertedSchema?.properties?.text?.value || '';
 
-    const isRichText = this.processTextComponents(component);
+    const isRichText = this.processTextComponents(component) ?? this.isText(component);
     if (isRichText) {
       return {
         id,
