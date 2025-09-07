@@ -15,8 +15,16 @@ export class ProductListingComponent extends ContentstackComponent {
     if (properties && typeof properties === 'object') {
       const typeField = properties[":type"];
       if (
-        (typeof typeField === "string" && typeField.includes("/components/productlisting")) ||
-        (typeof typeField === "object" && typeField.value?.includes("/components/productlisting"))
+        (typeof typeField === "string" &&
+          (typeField.includes("/components/productlisting") ||
+            typeField.includes("/components/productTeaserListConfiguredProducts") ||
+            typeField.includes("/components/productTeaserListConfiguredCategory"))
+        ) ||
+        (typeof typeField === "object" &&
+          (typeField.value?.includes("/components/productlisting") ||
+            typeField.value?.includes("/components/productTeaserListConfiguredProducts") ||
+            typeField.value?.includes("/components/productTeaserListConfiguredCategory"))
+        )
       ) {
         return true;
       }

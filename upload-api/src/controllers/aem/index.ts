@@ -104,7 +104,6 @@ const createLocaleSource = async ({
 
 
 const createAemMapper = async (filePath: string, projectId: string | string[], app_token: string | string[], affix?: string | string[]) => {
-  console.log("🚀 ~ createAemMapper ~ filePath:", filePath)
   try {
     const ct = contentTypes();
     const localeData = await locales().processAndSave(filePath);

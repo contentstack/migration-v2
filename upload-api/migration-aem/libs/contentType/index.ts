@@ -17,7 +17,8 @@ import {
   ButtonComponent,
   TextBannerComponent,
   ImageComponent,
-  CarouselComponent
+  CarouselComponent,
+  BreadcrumbComponent
 } from './components';
 import { mergeComponentObjects, readFiles, writeJsonFile } from "../../helper/index";
 
@@ -39,6 +40,7 @@ function processComponents(components: Record<string, any> | Record<string, any>
   for (const key in components) {
     const component = components[key];
     const mappingRules = [
+      () => BreadcrumbComponent.isBreadcrumb(component) && BreadcrumbComponent.mapBreadcrumbToContentstack(component, key),
       () => TitleComponent.isTitle(component) && TitleComponent.mapTitleToContentstack(component, key),
       () => TextComponent.isText(component) && TextComponent.mapTextToContentstack(component),
       () => NavigationComponent.isNavigation(component) && NavigationComponent.mapNavigationTOContentstack(component, key),
@@ -54,13 +56,33 @@ function processComponents(components: Record<string, any> | Record<string, any>
       () => TextBannerComponent.isTextBanner(component) && TextBannerComponent.mapTextBannerToContentstack(component, key),
       () => ImageComponent.isImage(component) && ImageComponent.mapImageToContentstack(component, key),
       () => CarouselComponent.isCarousel(component) && CarouselComponent.mapCarouselToContentstack(component, key),
-      () => null,
+
     ];
     result[key] = mappingRules.map(fn => fn()).find(Boolean);
   }
   return result;
 }
 
+const mergeChildComponent = (contentstackComponents: any) => {
+  for (const [key, value] of Object.entries(contentstackComponents)) {
+    for (const child of Object.values(contentstackComponents)) {
+      const childWithType = child as { type: string };
+      const valueWithType = value as { type: string, schema: any[] };
+      if (
+        typeof childWithType?.type === "string" &&
+        typeof valueWithType?.type === "string"
+      ) {
+        const childKey = childWithType?.type?.split("/").pop()
+        if (childWithType?.type === `${valueWithType?.type}/${childKey}`) {
+          if (valueWithType?.schema) {
+            contentstackComponents?.[key]?.schema?.push(child)
+          }
+        }
+      }
+    }
+  }
+  return contentstackComponents;
+}
 
 
 const convertContentType: IConvertContentType = async (dirPath) => {
@@ -76,7 +98,8 @@ const convertContentType: IConvertContentType = async (dirPath) => {
   }
   const mergedComponents = mergeComponentObjects(allComponentData);
   const contentstackComponents: any = processComponents(mergedComponents);
-  await writeJsonFile(contentstackComponents, CONSTANTS.TMP_FILE);
+  const mergeChildData = mergeChildComponent(contentstackComponents);
+  await writeJsonFile(mergeChildData, CONSTANTS.TMP_FILE);
 }
 
 const arrangeContentModels = async (

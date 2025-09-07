@@ -261,8 +261,8 @@ const createEntry = async ({
       const templateUid = isEFragment?.isXF ? parseData?.title : parseData?.templateName ?? parseData?.templateType;
       const contentType = (contentTypes as ContentType[] | undefined)?.find?.((element) => element?.otherCmsUid === templateUid);
       const items = parseData?.[':items']?.root?.[':items'];
-      const data = containerCreator(contentType?.fieldMapping, items);
-      await fs.promises.writeFile(`./${templateUid}.json`, JSON.stringify(data, null, 2), 'utf-8');
+      containerCreator(contentType?.fieldMapping, items);
+      // await fs.promises.writeFile(`./${templateUid}.json`, JSON.stringify(data, null, 2), 'utf-8');
     }
   }
 }
