@@ -27,5 +27,7 @@ fileignoreconfig:
   checksum: f459c7ff7d979f1712e3da73ebedaaf3071629d7b1941e7257fb10b6d46ebbbd
 - filename: api/src/services/aem.service.ts
   checksum: fdcb7ef88172cd8dc59d4911df95f58e3c00c8158b99a85d1d62c74e57706eb4 
-
+- filename: api/src/services/aem.service.ts
+  checksum: ccda69fd5b37e23ba220da449e9729ccd273837f0259efb87b6f2996b86689ec
+  
 version: "1.0.1-beta"
