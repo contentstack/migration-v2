@@ -72,8 +72,8 @@ if [ -f "$JSON_FILE" ]; then
         NEW_URI="http://localhost:5001"
     fi
     
-    sed -i '' "s|\"redirect_uri\"[[:space:]]*:[[:space:]]*\"[^\"]*\"|\"redirect_uri\": \"$NEW_URI\"|g" "$JSON_FILE"
-    echo "✓ redirect_uri updated to $NEW_URI in $JSON_FILE"
+    sed -i '' "s|\"redirect_uri\"[[:space:]]*:[[:space:]]*\"[^\"]*\"|\"redirect_uri\": \"${NEW_URI}/v2/auth/save-token\"|g" "$JSON_FILE"
+    echo "✓ redirect_uri updated to ${NEW_URI}/v2/auth/save-token in $JSON_FILE"
 else
     echo "⚠ manifest.json file not found at: $JSON_FILE"
 fi
