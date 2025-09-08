@@ -200,15 +200,15 @@ const saveOAuthToken = async (req: Request): Promise<void> => {
 
     const regionStr = Array.isArray(region) ? region[0] : region;
     const tokenUrl = CSAUTHHOST[regionStr as keyof typeof CSAUTHHOST];
-    const redirectUri = `${redirect_uri}/v2/auth/save-token`
     if (!tokenUrl || !client_id || !client_secret) {
       throw new InternalServerError(`Configuration missing for region: ${region}`);
     }
+
     const formData = new URLSearchParams();
     formData.append('grant_type', 'authorization_code');
     formData.append('client_id', client_id);
     formData.append('client_secret', client_secret);
-    formData.append('redirect_uri', redirectUri);
+    formData.append('redirect_uri', redirect_uri);
     formData.append('code', code as string);
     formData.append('code_verifier', code_verifier);
     const tokenResponse = await https({
