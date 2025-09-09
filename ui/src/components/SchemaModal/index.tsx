@@ -106,6 +106,10 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['extension'];
   }
 
+  if (field?.contentstackFieldType === 'modular_blocks' || field?.contentstackFieldType === 'modular_blocks_child') {
+    return icons['blocks'];
+  }
+
   return icons[field?.contentstackFieldType as keyof Icons];
 };
 
@@ -115,11 +119,19 @@ const TreeView = ({ schema = [] }: schemaType) => {
   useEffect(() => {
     let groupId = '';
     const data: FieldMapType[] = [];
+    console.info('schema', schema);
     schema?.forEach((field) => {
-      if (field?.contentstackFieldType === 'group') {
+      if (
+        field?.contentstackFieldType === 'group' ||
+        field?.contentstackFieldType === 'modular_blocks'
+        
+      ) {
         groupId = field?.uid;
+        // const parentUid = field.uid.substring(0, field.uid.lastIndexOf('.'));
+      console.info('inside if', groupId);
         data?.push({ ...field, child: [] });
       } else if (field?.uid?.startsWith(groupId + '.')) {
+        console.info('inside else if', groupId, field?.uid);
         const obj = data[data?.length - 1];
         if (Object.hasOwn(obj, 'child')) {
           obj?.child?.push(field);

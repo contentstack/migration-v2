@@ -211,8 +211,17 @@ const Fields: MappingFields = {
     label: 'Extension',
     options: {'Extension':'extension'},
     type:''
+  },
+  'modular_blocks':{
+    label: 'Modular Blocks',
+    options: {'Modular Blocks':'modular_blocks'},
+    type:''
+  },
+  'modular_blocks_child':{
+    label: 'Block',
+    options: {'Block':'modular_blocks_child'},
+    type:''
   }
-
 }
 type contentMapperProps  = {
   handleStepChange: (currentStep: number) => void;
@@ -670,14 +679,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
       setItemStatusMap({ ...itemStatusMap });
       
-      const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
+      const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== null);
       
-      setTableData(validTableData ?? []);
-      setSelectedEntries(validTableData ?? []);
-      setTotalCounts(validTableData?.length);
-      setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item?.isDeleted))
+      setTableData(data?.fieldMapping ?? []);
+      setSelectedEntries(data?.fieldMapping ?? []);
+      setTotalCounts(data?.fieldMapping?.length);
+      setInitialRowSelectedData(data?.fieldMapping?.filter((item: FieldMapType) => !item?.isDeleted))
       setIsLoading(false);
-      generateSourceGroupSchema(validTableData);
+      generateSourceGroupSchema(data?.fieldMapping);
     } catch (error) {
       console.error('fetchData -> error', error);
     }
@@ -801,20 +810,78 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   };
 
   const accessorCall = (data: FieldMapType) => {
+    // Clean field name (remove parent hierarchy)
+    const cleanFieldName = data?.otherCmsField?.includes(' > ') 
+      ? data.otherCmsField.split(' > ').pop() 
+      : data?.otherCmsField;
+    
+    const tooltipContent = data?.otherCmsField?.includes(' > ') 
+      ? `Field: ${cleanFieldName} \nFull path: ${data.otherCmsField}`
+      : `Field: ${cleanFieldName}`;
+
+    // Simple checks for visual indicators
+    const isModularBlock = data?.contentstackFieldType === 'modular_blocks';
+    const isModularBlockChild = data?.contentstackFieldType === 'modular_blocks_child';
+    const isGroup = data?.contentstackFieldType === 'group';
+    
+    // Function to calculate nesting level from UID
+    const getNestingLevel = (uid: string): number => {
+      if (!uid || !uid.includes('.')) return 0;
+      return uid.split('.').length - 1;
+    };
+    
+    // Function to get nesting class based on level
+    const getNestingClass = (level: number): string => {
+      if (level === 0) return '';
+      if (level === 1) return 'child-row';
+      return `child-row-level-${level}`;
+    };
+    
+    // Calculate nesting level for proper indentation
+    const nestingLevel = getNestingLevel(data?.uid || '');
+    
+    // Count children only if this is a modular block parent
+    const childrenCount = isModularBlockChild ? 
+      tableData?.filter(item => item.uid?.startsWith(data.uid + '.')).length || 0 : 0;
+
     return (
-      <div>
-        <div className='d-flex align-items-center'>
-          <div className={`${data?.backupFieldType === 'text' || data?.backupFieldType === 'url' ? `cms-field w-auto` : `cms-field`}`}>{data?.otherCmsField}</div>
-          {(data?.backupFieldType === 'text' || data?.backupFieldType === 'url') && (
-            <OutlineTag content='Default Field' className="ml-10" />
-          )}
+      <Tooltip content={tooltipContent} position="top">
+        <div className={`table-row-content ${nestingLevel > 0 ? getNestingClass(nestingLevel) : ''}`} style={isModularBlock || isModularBlockChild || isGroup ? {borderLeft: '0 none'} : {}}>
+          <div className='d-flex align-items-center'>
+            {/* Indentation for child rows */}
+            {/* {isBlockChild && <div className="child-indent"></div>} */}
+            
+            {/* Parent indicator for modular blocks */}
+            {data?.contentstackFieldType === 'modular_blocks' && <Icon icon="ModularBlocks" size="small" className="mr-8 mt-1" />}
+
+            {isModularBlockChild && <Icon icon="ParentModularBlockIcon" size="small" className="mr-8 mt-1" />}
+            {isGroup && <Icon icon="Group" size="small" className="mr-8 mt-1" />}
+            
+            <div className={`${data?.backupFieldType === 'text' || data?.backupFieldType === 'url' ? `cms-field w-auto` : `cms-field`}`}>
+              {cleanFieldName}
+            </div>
+            
+            {(data?.backupFieldType === 'text' || data?.backupFieldType === 'url') && (
+              <OutlineTag content='Default Field' className="ml-10" />
+            )}
+            
+            {/* Show indicators for parent/child relationship */}
+            {isModularBlockChild && childrenCount > 0 && (
+              <OutlineTag content={`${childrenCount} fields`} className="ml-10" type="primary" />
+            )}
+            {/* {isBlockChild && (
+              <OutlineTag content='Child Field' className="ml-10" style={{backgroundColor: '#e8f5e8', color: '#2e7d32'}} />
+            )} */}
+          </div>
+          <InstructionText>
+            <div className={`${isModularBlock || isModularBlockChild || isGroup ? "instruction-text-indent" : ""}`}>
+              Type: {data?.otherCmsType}
+              <br />
+              UID: <span className="uid-text">{data?.uid}</span>
+            </div>
+          </InstructionText>
         </div>
-        <InstructionText>
-          Type: {data?.otherCmsType}
-          <br />
-          UID: {data?.uid}
-        </InstructionText>
-      </div>
+      </Tooltip>
     );
   };
 
@@ -1032,6 +1099,8 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     });
   };
+
+  // console.info('tableData', tableData);
   
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields?.[data?.backupFieldType]?.options ;
