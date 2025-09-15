@@ -27,7 +27,19 @@ const migrationSlice = createSlice({
       state.newMigrationData = action?.payload;
     },
     updateNewMigrationData: (state, action) => {
-      state.newMigrationData = { ...state?.newMigrationData, ...action?.payload };
+      // Deep merge for nested objects
+      state.newMigrationData = {
+        ...state?.newMigrationData,
+        ...action?.payload,
+        legacy_cms: {
+          ...state?.newMigrationData?.legacy_cms,
+          ...action?.payload?.legacy_cms,
+          uploadedFile: {
+            ...state?.newMigrationData?.legacy_cms?.uploadedFile,
+            ...action?.payload?.legacy_cms?.uploadedFile
+          }
+        }
+      };
     },
     setMigrationData: (state, action) => {
       state.migrationData = action?.payload;

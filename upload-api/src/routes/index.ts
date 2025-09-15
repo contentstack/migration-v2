@@ -10,7 +10,7 @@ import {
   UploadPartCommand
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
-import { fileOperationLimiter } from '../helper';
+import { fileOperationLimiter, getDbConnection } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import config from '../config/index';
 import createMapper from '../services/createMapper';
@@ -175,7 +175,42 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
         }
       }
     } else {
-      const params = {
+      if ( config?.isSQL )
+      {
+        const fileExt = 'sql';
+        const name = 'sql';
+
+        console.log('Processing SQL database connection');
+        // For SQL files, we don't need to read from S3, just validate the database connection
+        const result = await handleFileProcessing(fileExt, null, cmsType, name);
+         if (!result) {
+          console.error('File processing returned no result');
+          return res.status(500).json({
+            status: 500,
+            message: 'File processing failed to return a result',
+            file_details: config
+          });
+        }
+        
+        const filePath = '';
+        createMapper(filePath, projectId, app_token, affix, config);
+        
+        // Ensure we're sending back the complete file_details
+        const response = {
+          ...result,
+          file_details: {
+            ...result.file_details,
+            isSQL: config.isSQL,
+            mySQLDetails: config.mysql,  // Changed from mysql to mySQLDetails
+            drupalAssetsUrl: config.drupalAssetsUrl
+          }
+        };
+        
+        console.log('Sending SQL validation response:', JSON.stringify(response, null, 2));
+        return res.status(result.status).json(response);
+     } else
+     {
+        const params = {
         Bucket: config?.awsData?.bucketName,
         Key: config?.awsData?.bucketKey
       };
@@ -228,8 +263,16 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
       });
     }
   }
-  catch (err: any) {
+  } catch (err: any) {
     console.error('🚀 ~ router.get ~ err:', err);
+    // Only send error response if no response has been sent yet
+    if (!res.headersSent) {
+      res.status(500).json({
+        status: 500,
+        message: 'Internal server error',
+        error: err.message
+      });
+    }
   }
 });
 

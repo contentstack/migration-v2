@@ -503,8 +503,9 @@ const Migration = () => {
       await affixConfirmation(selectedOrganisation?.value, projectId, {
         affix_confirmation: true
       });
-      await updateFileFormatData(selectedOrganisation?.value, projectId, {
+      const fileFormatData = {
         file_format:
+          newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toString() ||
           newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats[0]?.fileformat_id?.toString(),
         file_path: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
         is_fileValid: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
@@ -513,31 +514,48 @@ const Migration = () => {
           awsRegion: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
           bucketName: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
           buketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.buketKey
-        }
-      });
-      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+        },
+        mySQLDetails: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.mySQLDetails
+      };
+      
+      console.info('🔍 === FILE FORMAT API CALL DEBUG ===');
+      console.info('📋 Sending fileFormatData:', fileFormatData);
+      console.info('📋 mySQLDetails:', newMigrationData?.legacy_cms?.uploadedFile?.file_details?.mySQLDetails);
+      console.info('=====================================');
+      
+      await updateFileFormatData(selectedOrganisation?.value, projectId, fileFormatData);
+      
+      // Check current project state before attempting step update
+      const currentProjectData = await getMigrationData(selectedOrganisation?.value, projectId);
+      const currentStep = currentProjectData?.data?.current_step;
+      
+      console.info(`🔍 Current project step: ${currentStep}, attempting to proceed...`);
+      
+      // Only call updateCurrentStepData if we're at step 1 (to avoid 400 error)
+      let res;
+      if (currentStep === 1) {
+        res = await updateCurrentStepData(selectedOrganisation.value, projectId);
+      } else {
+        console.info(`⚠️ Project already at step ${currentStep}, skipping step update`);
+        res = { status: 200 }; // Simulate success to continue flow
+      }
 
       if (res?.status === 200) {
         setIsLoading(false);
         // Check if stack is already selected
         if (newMigrationData?.destination_stack?.selectedStack?.value) {
           const url = `/projects/${projectId}/migration/steps/3`;
-
-          await updateCurrentStepData(selectedOrganisation?.value, projectId);
-
           handleStepChange(2);
           navigate(url, { replace: true });
         } else {
           const url = `/projects/${projectId}/migration/steps/2`;
-          await updateCurrentStepData(selectedOrganisation?.value, projectId);
-
           handleStepChange(1);
           navigate(url, { replace: true });
         }
       } else {
         setIsLoading(false);
         Notification({
-          notificationContent: { text: res?.data?.error?.message },
+          notificationContent: { text: res?.data?.error?.message || 'Failed to update project step' },
           type: 'error'
         });
       }

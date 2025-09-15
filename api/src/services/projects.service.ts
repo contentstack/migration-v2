@@ -2,6 +2,7 @@ import { Request } from "express";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
 import FieldMapperModel from "../models/FieldMapper.js";
+import { drupalService } from "./drupal.service.js";
 
 import {
   BadRequestError,
@@ -13,6 +14,7 @@ import {
   HTTP_CODES,
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
+  CMS,
 } from "../constants/index.js";
 import { config } from "../config/index.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
@@ -20,6 +22,7 @@ import getAuthtoken from "../utils/auth.utils.js";
 import https from "../utils/https.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
 import logger from "../utils/logger.js";
+import customLogger from "../utils/custom-logger.utils.js";
 // import { contentMapperService } from "./contentMapper.service.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -109,6 +112,16 @@ const createProject = async (req: Request) => {
         bucketName: "",
         buketKey: "",
       },
+      is_sql: false,
+      mySQLDetails: {
+        host: "",
+        user: "",
+        database:""
+      },
+      drupalAssetsUrl: {
+        base_url: "",
+        public_path: ""
+      }
     },
     content_mapper: [],
     execution_log: [],
@@ -435,6 +448,9 @@ const updateFileFormat = async (req: Request) => {
     is_localPath,
     is_fileValid,
     awsDetails,
+    is_sql,
+    mySQLDetails,
+    drupalAssetsUrl,
   } = req.body;
   const srcFunc = "updateFileFormat";
   const projectIndex = (await getProjectUtil(
@@ -491,6 +507,17 @@ const updateFileFormat = async (req: Request) => {
         awsDetails.bucketName;
       data.projects[projectIndex].legacy_cms.awsDetails.buketKey =
         awsDetails.buketKey;
+      data.projects[ projectIndex ].legacy_cms.is_sql = is_sql;
+      data.projects[projectIndex].legacy_cms.mySQLDetails.host =
+        mySQLDetails.host;
+      data.projects[projectIndex].legacy_cms.mySQLDetails.user =
+        mySQLDetails.user;
+      data.projects[projectIndex].legacy_cms.mySQLDetails.database =
+        mySQLDetails.database;
+      data.projects[projectIndex].legacy_cms.drupalAssetsUrl.base_url =
+        drupalAssetsUrl?.base_url || "";
+      data.projects[projectIndex].legacy_cms.drupalAssetsUrl.public_path =
+        drupalAssetsUrl?.public_path || "";
     });
 
     logger.info(
@@ -681,6 +708,113 @@ const updateDestinationStack = async (req: Request) => {
 };
 
 /**
+ * Generates dynamic queries for Drupal projects with retry logic
+ * @param project - The project object
+ * @param stackId - The stack ID to generate queries for
+ * @param projectId - The project ID
+ * @param stackType - Type of stack ('destination' or 'test')
+ * @param token_payload - Token payload for logging
+ * @returns Promise<boolean> - Success/failure of query generation
+ */
+const generateQueriesWithRetry = async (
+  project: any,
+  stackId: string,
+  projectId: string,
+  stackType: string,
+  token_payload: any
+): Promise<boolean> => {
+  const srcFunc = 'generateQueriesWithRetry';
+  const maxRetries = 3;
+
+  // Only generate queries for Drupal projects
+  if (project?.legacy_cms?.cms !== CMS.DRUPAL_V8) {
+    return true; // Skip for non-Drupal projects
+  }
+
+  if (!stackId) {
+    const message = getLogMessage(
+      srcFunc,
+      `No ${stackType} stack ID found, skipping query generation`,
+      token_payload
+    );
+    await customLogger(projectId, stackId || 'unknown', 'warn', message);
+    return true; // Skip if no stack ID
+  }
+
+  // Get database configuration from project
+  const dbConfig = {
+    host: project?.legacy_cms?.mySQLDetails?.host,
+    user: project?.legacy_cms?.mySQLDetails?.user,
+    password: project?.legacy_cms?.mySQLDetails?.password || '',
+    database: project?.legacy_cms?.mySQLDetails?.database,
+    port: project?.legacy_cms?.mySQLDetails?.port || 3306
+  };
+
+  const logMessage = getLogMessage(
+    srcFunc,
+    `Starting query generation for ${stackType} stack (${stackId})...`,
+    token_payload
+  );
+  await customLogger(projectId, stackId, 'info', logMessage);
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const attemptMessage = getLogMessage(
+        srcFunc,
+        `Query generation attempt ${attempt}/${maxRetries} for ${stackType} stack`,
+        token_payload
+      );
+      await customLogger(projectId, stackId, 'info', attemptMessage);
+
+      // Generate dynamic queries using the query service
+      await drupalService.createQuery(dbConfig, stackId, projectId);
+
+      const successMessage = getLogMessage(
+        srcFunc,
+        `Successfully generated queries for ${stackType} stack (${stackId}) on attempt ${attempt}`,
+        token_payload
+      );
+      await customLogger(projectId, stackId, 'info', successMessage);
+
+      return true; // Success
+    } catch (error: any) {
+      const errorMessage = getLogMessage(
+        srcFunc,
+        `Query generation attempt ${attempt}/${maxRetries} failed for ${stackType} stack: ${error.message}`,
+        token_payload,
+        error
+      );
+      await customLogger(projectId, stackId, 'error', errorMessage);
+
+      if (attempt === maxRetries) {
+        // Final attempt failed
+        const finalErrorMessage = getLogMessage(
+          srcFunc,
+          `Query generation failed after ${maxRetries} attempts for ${stackType} stack. Please try again.`,
+          token_payload,
+          error
+        );
+        await customLogger(projectId, stackId, 'error', finalErrorMessage);
+        return false; // All attempts failed
+      }
+
+      // Wait before retry (exponential backoff)
+      const retryDelay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+      const retryMessage = getLogMessage(
+        srcFunc,
+        `Retrying query generation in ${retryDelay / 1000} seconds...`,
+        token_payload
+      );
+      await customLogger(projectId, stackId, 'info', retryMessage);
+      
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
+  }
+
+  return false; // Should never reach here
+};
+
+/**
  * Updates the current step of a project based on the provided request.
  * @param req - The request object containing the parameters and body.
  * @returns The updated project object.
@@ -753,6 +887,63 @@ const updateCurrentStep = async (req: Request) => {
           throw new BadRequestError(
             HTTP_TEXTS.CANNOT_PROCEED_DESTINATION_STACK
           );
+        }
+
+        // ✅ NEW: Generate dynamic queries for both destination and test stacks (Drupal only)
+        if (project?.legacy_cms?.cms === CMS.DRUPAL_V8) {
+          const startMessage = getLogMessage(
+            srcFunc,
+            `Generating dynamic queries for Drupal project before proceeding to Content Mapping...`,
+            token_payload
+          );
+          await customLogger(projectId, project?.destination_stack_id, 'info', startMessage);
+
+          // Generate queries for destination stack
+          const destinationSuccess = await generateQueriesWithRetry(
+            project,
+            project?.destination_stack_id,
+            projectId,
+            'destination',
+            token_payload
+          );
+
+          // Generate queries for test stack (if exists)
+          let testSuccess = true;
+          if (project?.current_test_stack_id) {
+            testSuccess = await generateQueriesWithRetry(
+              project,
+              project?.current_test_stack_id,
+              projectId,
+              'test',
+              token_payload
+            );
+          }
+
+          // Check if query generation failed
+          if (!destinationSuccess || !testSuccess) {
+            const failedStacks = [];
+            if (!destinationSuccess) failedStacks.push('destination');
+            if (!testSuccess) failedStacks.push('test');
+            
+            const errorMessage = `Query generation failed for ${failedStacks.join(' and ')} stack(s). Something went wrong. Please try again.`;
+            
+            logger.error(
+              getLogMessage(
+                srcFunc,
+                errorMessage,
+                token_payload
+              )
+            );
+            
+            throw new BadRequestError(errorMessage);
+          }
+
+          const completeMessage = getLogMessage(
+            srcFunc,
+            `Dynamic queries successfully generated for all stacks. Proceeding to Content Mapping step.`,
+            token_payload
+          );
+          await customLogger(projectId, project?.destination_stack_id, 'info', completeMessage);
         }
 
         await ProjectModelLowdb.update((data: any) => {

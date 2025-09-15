@@ -137,14 +137,45 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                 awsRegion: data?.file_details?.awsData?.awsRegion,
                 bucketName: data?.file_details?.awsData?.bucketName,
                 buketKey: data?.file_details?.awsData?.buketKey
+              },
+              isSQL: data?.file_details?.isSQL,
+              mySQLDetails: {
+                host: data?.file_details?.mySQLDetails?.host,
+                user: data?.file_details?.mySQLDetails?.user,
+                password: data?.file_details?.mySQLDetails?.password,
+                database: data?.file_details?.mySQLDetails?.database,
+                port: data?.file_details?.mySQLDetails?.port
+              },
+              drupalAssetsUrl: {
+                base_url: data?.file_details?.drupalAssetsUrl?.base_url,
+                public_path: data?.file_details?.drupalAssetsUrl?.public_path
               }
             },
             cmsType: data?.cmsType
-            
           }
         }
       };
 
+      // For Drupal SQL files, ensure selectedFileFormat is set in the same update
+      if (status === 200 && data?.file_details?.isSQL && data?.file_details?.cmsType === 'drupal') {
+        console.info('🔧 === LOAD UPLOAD FILE DEBUG ===');
+        console.info('📋 Setting selectedFileFormat for Drupal SQL in combined update');
+        
+        // Add selectedFileFormat to the existing newMigrationDataObj
+        newMigrationDataObj.legacy_cms.selectedFileFormat = {
+          fileformat_id: 'sql',
+          title: 'SQL',
+          description: '',
+          group_name: 'sql',
+          isactive: true
+        };
+        
+        console.info('📋 Combined newMigrationDataObj:', newMigrationDataObj);
+        console.info('================================');
+      }
+
+      console.info('📋 Dispatching combined newMigrationDataObj:', newMigrationDataObj);
+      console.info('🔍 DEBUG: uploadedFile.isValidated in dispatch:', newMigrationDataObj.legacy_cms.uploadedFile.isValidated);
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
       if (status === 200) {
@@ -153,10 +184,13 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
         setIsDisabled(true);
 
+
+
         if (
           !isEmptyString(newMigrationData?.legacy_cms?.affix) &&
           !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
-          !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)
+          (data?.file_details?.isSQL || 
+           !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id))
         ) {
           props.handleStepChange(props?.currentStep, true);
         }
