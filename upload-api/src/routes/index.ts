@@ -108,6 +108,12 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
         if (isFile) {
           const name = fileName?.split?.('.')?.[0];
           const fileExt = fileName?.split('.')?.pop() ?? '';
+
+          // let fileExt = fileName?.split('.')?.pop() ?? '';
+          // // If the extracted extension is the same as the filename, it means there's no extension
+          // if (fileExt === fileName || !['zip', 'json', 'xml'].includes(fileExt.toLowerCase())) {
+          //   fileExt = 'directory';
+          // }
           const bodyStream = createReadStream(config?.localPath?.replace(/\/$/, ""));
 
           bodyStream.on('error', (error: any) => {
@@ -254,8 +260,18 @@ router.get('/config', async function (req: Request, res: Response) {
     typeof config.localPath === 'string' &&
     !config.localPath.endsWith('.zip')
   ) {
-    responseConfig.localPath = `${config.localPath}.zip`;
+    responseConfig.localPath = `${config.localPath}`;
   }
+  // const responseConfig = { ...config };
+  // if (
+  //   config?.cmsType === 'aem' &&
+  //   typeof config.localPath === 'string' &&
+  //   !config.localPath.endsWith('.zip')
+  // ) {
+  //   responseConfig.localPath = `${config.localPath}.zip`;
+  // }
+  // res.json(responseConfig);
+
   res.json(responseConfig);
 });
 

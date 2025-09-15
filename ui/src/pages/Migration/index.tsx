@@ -193,11 +193,15 @@ const Migration = () => {
 
     // Use regex to extract the file extension
     const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
-    const ext = match ? match?.[1]?.toLowerCase() : "";
+
+    // Check if it has a file extension (dot followed by 1-5 alphanumeric characters at the end)
+    const isDirectory = !/\.[a-zA-Z0-9]{1,5}$/.test(normalizedPath);
+    
+    const ext = match ? match?.[1]?.toLowerCase() : isDirectory ? "directory" : "";
 
     // const fileName = filePath?.split('/')?.pop();
     //const ext = fileName?.split('.')?.pop();
-    const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
+    const validExtensionRegex = /\.(pdf|zip|xml|json|directory|sql)$/i;
     return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
   };
  

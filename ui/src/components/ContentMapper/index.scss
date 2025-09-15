@@ -156,16 +156,19 @@
     //   height: auto!important;
     //   min-height: 80px;
       .Table-select-body {
-       >.checkbox-wrapper .Checkbox {
+       >.checkbox-wrapper {
         align-items: flex-start;
+       } .Checkbox {
+        align-items: flex-start;
+        padding-top: $space-16;
        }
       }
     }
     .Table__body__column {
       padding: 0 1.25rem;
-      &:not(:last-of-type) {
-        display: block;
-      }
+      // &:not(:last-of-type) {
+      //   display: block;
+      // }
     }
     .cms-field {
       // text-transform: capitalize;
