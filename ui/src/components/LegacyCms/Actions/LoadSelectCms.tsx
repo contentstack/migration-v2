@@ -104,6 +104,13 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         }
       };
 
+      // Debug logging for selectedFileFormat setting
+      console.info('🔧 === LOAD SELECT CMS DEBUG ===');
+      console.info('📋 filteredCmsData[0]:', filteredCmsData[0]);
+      console.info('📋 allowed_file_formats[0]:', filteredCmsData[0]?.allowed_file_formats[0]);
+      console.info('📋 selectedFileFormat being set:', newMigrationDataObj.legacy_cms.selectedFileFormat);
+      console.info('================================');
+
       //dispatch(updateNewMigrationData(newMigrationDataObj));
 
       setCmsData(filteredCmsData);

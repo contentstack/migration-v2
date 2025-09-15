@@ -22,6 +22,7 @@ import {
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
 import { siteCoreService } from './sitecore.service.js';
 import { wordpressService } from './wordpress.service.js';
+import { drupalService } from './drupal.service.js';
 import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
@@ -109,6 +110,47 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       .findIndex({ id: projectId })
       .value();
     if (index > -1) {
+      // ✅ NEW: Generate queries for new test stack (Drupal only)
+      const project = ProjectModelLowdb.data.projects[index];
+      if (project?.legacy_cms?.cms === CMS.DRUPAL_V8) {
+        try {
+          const startMessage = getLogMessage(
+            srcFun,
+            `Generating dynamic queries for new test stack (${res?.data?.stack?.api_key})...`,
+            token_payload
+          );
+          await customLogger(projectId, res?.data?.stack?.api_key, 'info', startMessage);
+
+          // Get database configuration from project
+          const dbConfig = {
+            host: project?.legacy_cms?.mySQLDetails?.host,
+            user: project?.legacy_cms?.mySQLDetails?.user,
+            password: project?.legacy_cms?.mySQLDetails?.password || '',
+            database: project?.legacy_cms?.mySQLDetails?.database,
+            port: project?.legacy_cms?.mySQLDetails?.port || 3306
+          };
+
+          // Generate dynamic queries for the new test stack
+          await drupalService.createQuery(dbConfig, res?.data?.stack?.api_key, projectId);
+
+          const successMessage = getLogMessage(
+            srcFun,
+            `Successfully generated queries for test stack (${res?.data?.stack?.api_key})`,
+            token_payload
+          );
+          await customLogger(projectId, res?.data?.stack?.api_key, 'info', successMessage);
+        } catch (error: any) {
+          const errorMessage = getLogMessage(
+            srcFun,
+            `Failed to generate queries for test stack: ${error.message}. Test migration may fail.`,
+            token_payload,
+            error
+          );
+          await customLogger(projectId, res?.data?.stack?.api_key, 'error', errorMessage);
+          // Don't throw error - let test stack creation succeed even if query generation fails
+        }
+      }
+
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_step = STEPPER_STEPS['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
@@ -433,6 +475,43 @@ const startTestMigration = async (req: Request): Promise<any> => {
         );
         break;
       }
+      case CMS.DRUPAL_V8: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306
+        };
+
+        // Get Drupal assets URL configuration from project
+        const drupalAssetsConfig = {
+          base_url: project?.legacy_cms?.drupalAssetsUrl?.base_url || "",
+          public_path: project?.legacy_cms?.drupalAssetsUrl?.public_path || "/sites/default/files/"
+        };
+
+        console.info('🔍 === DRUPAL TEST MIGRATION CONFIG ===');
+        console.info('📋 Database Config:', JSON.stringify(dbConfig, null, 2));
+        console.info('📋 Drupal Assets Config:', JSON.stringify(drupalAssetsConfig, null, 2));
+        console.info('📋 Project ID:', projectId);
+        console.info('📋 Test Stack ID:', project?.current_test_stack_id);
+        console.info('=====================================');
+
+        // Run Drupal migration services in proper order (following test-drupal-services sequence)
+        // NOTE: Dynamic queries are generated during Step 2→3 transition, no need for createQueryConfig
+        
+        // Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
+        await drupalService?.generateContentTypeSchemas(project?.current_test_stack_id, projectId);
+        
+        await drupalService?.createAssets(dbConfig, project?.current_test_stack_id, projectId, true, drupalAssetsConfig);
+        await drupalService?.createRefrence(dbConfig, project?.current_test_stack_id, projectId, true);
+        await drupalService?.createTaxonomy(dbConfig, project?.current_test_stack_id, projectId);
+        await drupalService?.createEntry(dbConfig, project?.current_test_stack_id, projectId, true, project?.stackDetails?.master_locale, project?.content_mapper || []);
+        await drupalService?.createLocale(dbConfig, project?.current_test_stack_id, projectId, project);
+        await drupalService?.createVersionFile(project?.current_test_stack_id, projectId);
+        break;
+      }
       default:
         break;
     }
@@ -665,6 +744,43 @@ const startMigration = async (req: Request): Promise<any> => {
           project?.destination_stack_id,
           projectId
         );
+        break;
+      }
+      case CMS.DRUPAL_V8: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306
+        };
+
+        // Get Drupal assets URL configuration from project
+        const drupalAssetsConfig = {
+          base_url: project?.legacy_cms?.drupalAssetsUrl?.base_url || "",
+          public_path: project?.legacy_cms?.drupalAssetsUrl?.public_path || "/sites/default/files/"
+        };
+
+        console.info('🔍 === DRUPAL FINAL MIGRATION CONFIG ===');
+        console.info('📋 Database Config:', JSON.stringify(dbConfig, null, 2));
+        console.info('📋 Drupal Assets Config:', JSON.stringify(drupalAssetsConfig, null, 2));
+        console.info('📋 Project ID:', projectId);
+        console.info('📋 Destination Stack ID:', project?.destination_stack_id);
+        console.info('=====================================');
+
+        // Run Drupal migration services in proper order (following test-drupal-services sequence)
+        // NOTE: Dynamic queries are generated during Step 2→3 transition, no need for createQueryConfig
+        
+        // Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
+        await drupalService?.generateContentTypeSchemas(project?.destination_stack_id, projectId);
+        
+        await drupalService?.createAssets(dbConfig, project?.destination_stack_id, projectId, false, drupalAssetsConfig);
+        await drupalService?.createRefrence(dbConfig, project?.destination_stack_id, projectId, false);
+        await drupalService?.createTaxonomy(dbConfig, project?.destination_stack_id, projectId);
+        await drupalService?.createLocale(dbConfig, project?.destination_stack_id, projectId, project);
+        await drupalService?.createEntry(dbConfig, project?.destination_stack_id, projectId, false, project?.stackDetails?.master_locale, project?.content_mapper || []);
+        await drupalService?.createVersionFile(project?.destination_stack_id, projectId);
         break;
       }
       default:
@@ -1004,6 +1120,13 @@ const getLogs = async (req: Request): Promise<any> => {
 export const createSourceLocales = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const locales = req?.body?.locale;
+  
+  console.log('🔍 DEBUG: createSourceLocales received:', {
+    projectId,
+    locales,
+    localesType: typeof locales,
+    localesArray: Array.isArray(locales)
+  });
 
   try {
     // Find the project with the specified projectId

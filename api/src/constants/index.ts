@@ -12,6 +12,7 @@ export const CMS = {
   SITECORE_V9: "sitecore v9",
   SITECORE_V10: "sitecore v10",
   WORDPRESS: "wordpress",
+  DRUPAL_V8: "drupal v8+",
   AEM: "aem",
 };
 export const MODULES = [

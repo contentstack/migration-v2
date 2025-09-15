@@ -1,0 +1,151 @@
+{
+    "title": "list",
+    "uid": "list",
+    "schema": [
+        {
+            "uid": "title",
+            "otherCmsField": "title",
+            "otherCmsType": "text",
+            "contentstackField": "title",
+            "contentstackFieldUid": "title",
+            "contentstackFieldType": "text",
+            "backupFieldType": "text",
+            "backupFieldUid": "title",
+            "advanced": {
+                "mandatory": true
+            }
+        },
+        {
+            "uid": "url",
+            "otherCmsField": "url",
+            "otherCmsType": "text",
+            "contentstackField": "Url",
+            "contentstackFieldUid": "url",
+            "contentstackFieldType": "url",
+            "backupFieldType": "url",
+            "backupFieldUid": "url",
+            "advanced": {
+                "mandatory": true
+            }
+        },
+        {
+            "uid": "field_formatted_title",
+            "otherCmsField": "Formatted Title",
+            "otherCmsType": "text_long",
+            "contentstackField": "Formatted Title",
+            "contentstackFieldUid": "field_formatted_title",
+            "contentstackFieldType": "json",
+            "backupFieldType": "html",
+            "backupFieldUid": "field_formatted_title",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_link",
+            "otherCmsField": "Link",
+            "otherCmsType": "link",
+            "contentstackField": "Link",
+            "contentstackFieldUid": "field_link",
+            "contentstackFieldType": "link",
+            "backupFieldType": "link",
+            "backupFieldUid": "field_link",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_links",
+            "otherCmsField": "Links",
+            "otherCmsType": "link",
+            "contentstackField": "Links",
+            "contentstackFieldUid": "field_links",
+            "contentstackFieldType": "link",
+            "backupFieldType": "link",
+            "backupFieldUid": "field_links",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_list_order",
+            "otherCmsField": "List Order",
+            "otherCmsType": "integer",
+            "contentstackField": "List Order",
+            "contentstackFieldUid": "field_list_order",
+            "contentstackFieldType": "number",
+            "backupFieldType": "number",
+            "backupFieldUid": "field_list_order",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "taxonomies",
+            "otherCmsField": "Taxonomy",
+            "otherCmsType": "taxonomy",
+            "contentstackField": "Taxonomy",
+            "contentstackFieldUid": "taxonomies",
+            "contentstackFieldType": "taxonomy",
+            "backupFieldType": "taxonomy",
+            "backupFieldUid": "taxonomies",
+            "advanced": {
+                "taxonomies": [
+                    {
+                        "taxonomy_uid": "list",
+                        "mandatory": false,
+                        "multiple": true,
+                        "non_localizable": false
+                    },
+                    {
+                        "taxonomy_uid": "tags",
+                        "mandatory": false,
+                        "multiple": true,
+                        "non_localizable": false
+                    }
+                ],
+                "mandatory": false,
+                "multiple": true,
+                "non_localizable": false,
+                "unique": false
+            }
+        }
+    ],
+    "description": "Schema for list",
+    "options": {
+        "is_page": true,
+        "singleton": false,
+        "sub_title": [],
+        "title": "title",
+        "url_pattern": "/:title",
+        "url_prefix": "/list/"
+    }
+}

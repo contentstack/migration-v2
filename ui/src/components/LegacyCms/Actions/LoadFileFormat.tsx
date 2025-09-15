@@ -60,7 +60,14 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
     
       const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : newMigrationData?.legacy_cms?.uploadedFile?.cmsType;
       const filePath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath?.toLowerCase();
-      const fileFormat: string =  newMigrationData?.legacy_cms?.selectedFileFormat?.title?.toLowerCase();
+      
+      // Get file format from selectedFileFormat or detect from upload response
+      let fileFormat: string = newMigrationData?.legacy_cms?.selectedFileFormat?.title?.toLowerCase();
+      
+      // If fileFormat is not set, try to detect from upload response
+      if (!fileFormat && newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isSQL) {
+        fileFormat = 'sql';
+      }
       if(! isEmptyString(selectedCard?.fileformat_id) && selectedCard?.fileformat_id !== fileFormat && newMigrationData?.project_current_step > 1){   
         setFileIcon(selectedCard?.title);
       } else {
@@ -72,16 +79,33 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           );
         }
 
-        const isFormatValid = filteredCmsData[0]?.allowed_file_formats?.find(
-          (format: ICardType) => {
-            const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();
-            return isValid;
-          }
-        );
+        // Special handling for Drupal SQL format
+        const isDrupal = cmsType?.toLowerCase() === 'drupal';
+        const isSQLFormat = fileFormat?.toLowerCase() === 'sql';
+        
+        let isFormatValid = false;
+        
+        if (isDrupal && isSQLFormat) {
+          // For Drupal, automatically accept SQL format
+          isFormatValid = true;
+        } else {
+          // For other CMS types, use the original validation logic
+          const foundFormat = filteredCmsData[0]?.allowed_file_formats?.find(
+            (format: ICardType) => {
+              const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();
+              return isValid;
+            }
+          );
+          isFormatValid = !!foundFormat;
+        }
 
         if (!isFormatValid) {
           setIsError(true);
           setError('File format does not support, please add the correct file format.');
+        } else {
+          // Clear any previous errors
+          setIsError(false);
+          setError('');
         }
     
         const selectedFileFormatObj = {
@@ -92,8 +116,12 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           title: fileFormat === 'zip' ? fileFormat?.charAt?.(0)?.toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase()
         }
         
-      
-        setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt?.(0).toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase());
+        // Set file icon based on format
+        if (isDrupal && isSQLFormat) {
+          setFileIcon('SQL');
+        } else {
+          setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt?.(0).toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase());
+        }
 
       }
     } catch (error) {

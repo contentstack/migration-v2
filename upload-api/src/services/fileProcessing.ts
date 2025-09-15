@@ -1,5 +1,5 @@
 import { HTTP_TEXTS, HTTP_CODES } from '../constants';
-import { parseXmlToJson, saveJson, saveZip } from '../helper';
+import { parseXmlToJson, saveJson, saveZip, getDbConnection } from '../helper';
 import JSZip from 'jszip';
 import validator from '../validators';
 import config from '../config/index';
@@ -68,7 +68,52 @@ const handleFileProcessing = async (
         };
       }
     }
-  } else {
+  }else if (fileExt === 'sql') {
+    console.log('SQL file processing');
+    try {
+      // Get database connection
+      const dbConnection = await getDbConnection(config.mysql);
+
+      if (dbConnection) {
+        await validator({ data: config, type: cmsType, extension: fileExt });
+        logger.info('Database connection success:', {
+          status: HTTP_CODES?.OK,
+          message: 'Successfully connected to database'
+        });
+        const successResponse = {
+          status: HTTP_CODES?.OK,
+          message: 'Successfully connected to database',
+          file_details: config
+        };
+        console.log('=== Sending response (sql success) ===');
+        console.log('Response object:', JSON.stringify(successResponse, null, 2));
+        return successResponse;
+      } else {
+        logger.warn('Database connection error:', {
+          status: HTTP_CODES?.UNAUTHORIZED,
+          message: 'Failed to connect to database'
+        });
+        const authErrorResponse = {
+          status: HTTP_CODES?.UNAUTHORIZED,
+          message: 'Failed to connect to database',
+          file_details: config
+        };
+        console.log('=== Sending response (sql auth error) ===');
+        console.log('Response object:', JSON.stringify(authErrorResponse, null, 2));
+        return authErrorResponse;
+      }
+    } catch (error) {
+      logger.error('Database connection error:', error);
+      console.log('=== Sending response (sql server error) ===');
+  const errorResponse = {
+    status: HTTP_CODES?.SERVER_ERROR,
+    message: 'Failed to connect to database',
+    file_details: config
+  };
+  console.log('Response object:', JSON.stringify(errorResponse, null, 2));
+  return errorResponse;
+    }
+  }else {
     // if file is not zip
     // Convert the buffer to a string assuming it's UTF-8 encoded
     const jsonString = Buffer?.from?.(zipBuffer)?.toString?.('utf8');

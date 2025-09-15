@@ -23,6 +23,14 @@ interface LegacyCMS {
     bucketName: string;
     buketKey: string;
   };
+  mySQLDetails: {
+    host: string;
+    user: string;
+    password?: string;
+    database: string;
+    port?: number;
+  };
+  is_sql: boolean;
   file_path: string;
   is_fileValid: boolean;
   is_localPath: boolean;

@@ -57,6 +57,18 @@ export interface FileDetails {
     buketKey?: string;
   };
   filePath?: string | undefined;
+  mySQLDetails?: {
+    host?: string;
+    user?: string;
+    password?: string;
+    database?: string;
+    port?: number;
+  };
+  drupalAssetsUrl?: {
+    base_url?: string;
+    public_path?: string;
+  };
+  isSQL?: boolean;
 }
 export interface IFile {
   id?: string;
@@ -314,7 +326,19 @@ export const DEFAULT_FILE: IFile = {
       awsRegion: '',
       bucketName: '',
       buketKey: ''
-    }
+    },
+    mySQLDetails: {
+      host: '',
+      user: '',
+      password: '',
+      database: '',
+      port: 0
+    },
+    drupalAssetsUrl: {
+      base_url: '',
+      public_path: ''
+    },
+    isSQL: false
   },
   isValidated: false,
   reValidate: false,

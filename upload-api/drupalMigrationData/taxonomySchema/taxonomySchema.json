@@ -1,0 +1,22 @@
+[
+  {
+    "uid": "list",
+    "name": "List"
+  },
+  {
+    "uid": "news",
+    "name": "News"
+  },
+  {
+    "uid": "pages",
+    "name": "Pages"
+  },
+  {
+    "uid": "tags",
+    "name": "Tags"
+  },
+  {
+    "uid": "videos",
+    "name": "Videos"
+  }
+]

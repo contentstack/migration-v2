@@ -1,0 +1,163 @@
+{
+    "title": "supporting material",
+    "uid": "supporting_material",
+    "schema": [
+        {
+            "uid": "title",
+            "otherCmsField": "title",
+            "otherCmsType": "text",
+            "contentstackField": "title",
+            "contentstackFieldUid": "title",
+            "contentstackFieldType": "text",
+            "backupFieldType": "text",
+            "backupFieldUid": "title",
+            "advanced": {
+                "mandatory": true
+            }
+        },
+        {
+            "uid": "url",
+            "otherCmsField": "url",
+            "otherCmsType": "text",
+            "contentstackField": "Url",
+            "contentstackFieldUid": "url",
+            "contentstackFieldType": "url",
+            "backupFieldType": "url",
+            "backupFieldUid": "url",
+            "advanced": {
+                "mandatory": true
+            }
+        },
+        {
+            "uid": "field_document_source",
+            "otherCmsField": "Document Source",
+            "otherCmsType": "link",
+            "contentstackField": "Document Source",
+            "contentstackFieldUid": "field_document_source",
+            "contentstackFieldType": "link",
+            "backupFieldType": "link",
+            "backupFieldUid": "field_document_source",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_document_upload",
+            "otherCmsField": "Document Upload",
+            "otherCmsType": "entity_reference",
+            "contentstackField": "Document Upload",
+            "contentstackFieldUid": "field_document_upload_target_id",
+            "contentstackFieldType": "reference",
+            "backupFieldType": "reference",
+            "backupFieldUid": "field_document_upload_target_id",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [
+                    "article",
+                    "fact",
+                    "featured_content",
+                    "file_tree",
+                    "institute",
+                    "in_the_news",
+                    "link",
+                    "list",
+                    "page",
+                    "partners"
+                ],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_media_type",
+            "otherCmsField": "Media Type",
+            "otherCmsType": "list_string",
+            "contentstackField": "Media Type",
+            "contentstackFieldUid": "field_media_type",
+            "contentstackFieldType": "single_line_text",
+            "backupFieldType": "multi_line_text",
+            "backupFieldUid": "field_media_type",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [
+                    "article",
+                    "fact",
+                    "featured_content",
+                    "file_tree",
+                    "institute",
+                    "in_the_news",
+                    "link",
+                    "list",
+                    "page",
+                    "partners"
+                ],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_press_kit",
+            "otherCmsField": "Press Kit",
+            "otherCmsType": "boolean",
+            "contentstackField": "Press Kit",
+            "contentstackFieldUid": "field_press_kit",
+            "contentstackFieldType": "boolean",
+            "backupFieldType": "boolean",
+            "backupFieldUid": "field_press_kit",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_publication_date",
+            "otherCmsField": "Publication Date",
+            "otherCmsType": "datetime",
+            "contentstackField": "Publication Date",
+            "contentstackFieldUid": "field_publication_date",
+            "contentstackFieldType": "isodate",
+            "backupFieldType": "isodate",
+            "backupFieldUid": "field_publication_date",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        }
+    ],
+    "description": "Schema for supporting material",
+    "options": {
+        "is_page": true,
+        "singleton": false,
+        "sub_title": [],
+        "title": "title",
+        "url_pattern": "/:title",
+        "url_prefix": "/supportingmaterial/"
+    }
+}

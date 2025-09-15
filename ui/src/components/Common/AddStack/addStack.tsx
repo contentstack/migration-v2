@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Form as FinalForm, Field as ReactFinalField } from 'react-final-form';
 import {
   ModalBody,
@@ -43,7 +43,8 @@ const AddStack = (props: any): JSX.Element => {
   const [isLoading, setIsLoading] = useState(true);
   const [allLocales, setAllLocales] = useState<IDropDown[]>([]);
   const [addStackCMSData, setAddStackCMSData] = useState<AddStackCMSData>(defaultAddStackCMSData);
-
+  const formRef = useRef<any>(null);
+  
   /**
    * Handles the form submission.
    * @param formData - The form data.
@@ -104,10 +105,27 @@ const AddStack = (props: any): JSX.Element => {
                 created_at: key
               }))
             : [];
+        
+        // Detect master locale from source CMS
+        const sourceLocales = props?.newMigrationData?.destination_stack?.sourceLocale || props?.sourceLocales || [];
+        const masterLocale = sourceLocales.length > 0 ? sourceLocales[0] : 'en-us';
+        
+        // Find matching Contentstack locale
+        const matchingLocale = rawMappedLocalesMapped.find(locale => 
+          locale.value === masterLocale || 
+          locale.value === `${masterLocale}-us` ||
+          locale.value === `${masterLocale}-${masterLocale}`
+        );
+        
         setAllLocales(rawMappedLocalesMapped);
+        
+        // Update form with correct master locale after locales are loaded
+        if (formRef.current && matchingLocale) {
+          formRef.current.change('locale', matchingLocale);
+        }
       })
       .catch((err: any) => {
-        console.error(err);
+        console.error('❌ Error fetching locales:', err);
       });
 
     window.addEventListener('popstate', props?.closeModal);
@@ -116,6 +134,25 @@ const AddStack = (props: any): JSX.Element => {
       window.removeEventListener('popstate', props?.closeModal);
     };
   }, []);
+  
+  // Effect to update form with master locale when allLocales are loaded
+  useEffect(() => {
+    if (allLocales.length > 0 && formRef.current) {
+      const sourceLocales = props?.newMigrationData?.destination_stack?.sourceLocale || props?.sourceLocales || [];
+      const masterLocale = sourceLocales.length > 0 ? sourceLocales[0] : 'en-us';
+      
+      // Find matching Contentstack locale
+      const matchingLocale = allLocales.find(locale => 
+        locale.value === masterLocale || 
+        locale.value === `${masterLocale}-us` ||
+        locale.value === `${masterLocale}-${masterLocale}`
+      );
+      
+      if (matchingLocale) {
+        formRef.current.change('locale', matchingLocale);
+      }
+    }
+  }, [allLocales, props?.newMigrationData?.destination_stack?.sourceLocale, props?.sourceLocales]);
 
   return (
     <>
@@ -126,7 +163,7 @@ const AddStack = (props: any): JSX.Element => {
           </div>
         </div>
       ) : (
-        <FinalForm
+                <FinalForm
           onSubmit={onSubmit}
           keepDirtyOnReinitialize={true}
           validate={(values: any) => {
@@ -148,7 +185,9 @@ const AddStack = (props: any): JSX.Element => {
           initialValues={{
             locale: { label: 'English - United States', value: 'en-us' }
           }}
-          render={({ handleSubmit }): JSX.Element => {
+          render={({ handleSubmit, form }): JSX.Element => {
+            // Store form reference for updating values
+            formRef.current = form;
             return (
               <div className="ReactModal__add-stack">
                 <form onSubmit={handleSubmit}>

@@ -1,0 +1,381 @@
+{
+    "title": "page",
+    "uid": "page",
+    "schema": [
+        {
+            "uid": "title",
+            "otherCmsField": "title",
+            "otherCmsType": "text",
+            "contentstackField": "title",
+            "contentstackFieldUid": "title",
+            "contentstackFieldType": "text",
+            "backupFieldType": "text",
+            "backupFieldUid": "title",
+            "advanced": {
+                "mandatory": true
+            }
+        },
+        {
+            "uid": "url",
+            "otherCmsField": "url",
+            "otherCmsType": "text",
+            "contentstackField": "Url",
+            "contentstackFieldUid": "url",
+            "contentstackFieldType": "url",
+            "backupFieldType": "url",
+            "backupFieldUid": "url",
+            "advanced": {
+                "mandatory": true
+            }
+        },
+        {
+            "uid": "field_body",
+            "otherCmsField": "Body",
+            "otherCmsType": "text_long",
+            "contentstackField": "Body",
+            "contentstackFieldUid": "field_body",
+            "contentstackFieldType": "json",
+            "backupFieldType": "html",
+            "backupFieldUid": "field_body",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_external_link",
+            "otherCmsField": "External Link",
+            "otherCmsType": "string",
+            "contentstackField": "External Link",
+            "contentstackFieldUid": "field_external_link",
+            "contentstackFieldType": "single_line_text",
+            "backupFieldType": "multi_line_text",
+            "backupFieldUid": "field_external_link",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [
+                    "article",
+                    "fact",
+                    "institute",
+                    "link",
+                    "list",
+                    "profile",
+                    "school",
+                    "tour",
+                    "video"
+                ],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_formatted_title",
+            "otherCmsField": "Formatted Title",
+            "otherCmsType": "text_long",
+            "contentstackField": "Formatted Title",
+            "contentstackFieldUid": "field_formatted_title",
+            "contentstackFieldType": "json",
+            "backupFieldType": "html",
+            "backupFieldUid": "field_formatted_title",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_hero_body",
+            "otherCmsField": "Hero Body",
+            "otherCmsType": "text_long",
+            "contentstackField": "Hero Body",
+            "contentstackFieldUid": "field_hero_body",
+            "contentstackFieldType": "json",
+            "backupFieldType": "html",
+            "backupFieldUid": "field_hero_body",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_hero_image",
+            "otherCmsField": "Hero Image",
+            "otherCmsType": "image",
+            "contentstackField": "Hero Image",
+            "contentstackFieldUid": "field_hero_image_target_id",
+            "contentstackFieldType": "file",
+            "backupFieldType": "file",
+            "backupFieldUid": "field_hero_image_target_id",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_hero_intro",
+            "otherCmsField": "Hero Intro",
+            "otherCmsType": "string",
+            "contentstackField": "Hero Intro",
+            "contentstackFieldUid": "field_hero_intro",
+            "contentstackFieldType": "single_line_text",
+            "backupFieldType": "multi_line_text",
+            "backupFieldUid": "field_hero_intro",
+            "advanced": {
+                "default_value": "ABBREVIATED INTRODUCTORY",
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [
+                    "article",
+                    "fact",
+                    "institute",
+                    "link",
+                    "list",
+                    "profile",
+                    "school",
+                    "tour",
+                    "video"
+                ],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_hero_title",
+            "otherCmsField": "Hero Title",
+            "otherCmsType": "text_long",
+            "contentstackField": "Hero Title",
+            "contentstackFieldUid": "field_hero_title",
+            "contentstackFieldType": "json",
+            "backupFieldType": "html",
+            "backupFieldUid": "field_hero_title",
+            "advanced": {
+                "default_value": "<p>Page Title&nbsp;<strong>Here</strong></p>\r\n",
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_image",
+            "otherCmsField": "Image",
+            "otherCmsType": "image",
+            "contentstackField": "Image",
+            "contentstackFieldUid": "field_image_target_id",
+            "contentstackFieldType": "file",
+            "backupFieldType": "file",
+            "backupFieldUid": "field_image_target_id",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_link",
+            "otherCmsField": "Link",
+            "otherCmsType": "link",
+            "contentstackField": "Link",
+            "contentstackFieldUid": "field_link",
+            "contentstackFieldType": "link",
+            "backupFieldType": "link",
+            "backupFieldUid": "field_link",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_meta_tags",
+            "otherCmsField": "Meta Tags",
+            "otherCmsType": "metatag",
+            "contentstackField": "Meta Tags",
+            "contentstackFieldUid": "field_meta_tags",
+            "contentstackFieldType": "single_line_text",
+            "backupFieldType": "single_line_text",
+            "backupFieldUid": "field_meta_tags",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_paragraphs",
+            "otherCmsField": "Paragraphs",
+            "otherCmsType": "entity_reference_revisions",
+            "contentstackField": "Paragraphs",
+            "contentstackFieldUid": "field_paragraphs",
+            "contentstackFieldType": "single_line_text",
+            "backupFieldType": "single_line_text",
+            "backupFieldUid": "field_paragraphs",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_quick_links",
+            "otherCmsField": "Quick Links",
+            "otherCmsType": "link",
+            "contentstackField": "Quick Links",
+            "contentstackFieldUid": "field_quick_links",
+            "contentstackFieldType": "link",
+            "backupFieldType": "link",
+            "backupFieldUid": "field_quick_links",
+            "advanced": {
+                "default_value": null,
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_subtitle",
+            "otherCmsField": "Subtitle",
+            "otherCmsType": "string",
+            "contentstackField": "Subtitle",
+            "contentstackFieldUid": "field_subtitle",
+            "contentstackFieldType": "single_line_text",
+            "backupFieldType": "multi_line_text",
+            "backupFieldUid": "field_subtitle",
+            "advanced": {
+                "default_value": "LEARN MORE",
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [
+                    "article",
+                    "fact",
+                    "institute",
+                    "link",
+                    "list",
+                    "profile",
+                    "school",
+                    "tour",
+                    "video"
+                ],
+                "description": ""
+            }
+        },
+        {
+            "uid": "field_summary",
+            "otherCmsField": "Summary",
+            "otherCmsType": "string_long",
+            "contentstackField": "Summary",
+            "contentstackFieldUid": "field_summary",
+            "contentstackFieldType": "json",
+            "backupFieldType": "html",
+            "backupFieldUid": "field_summary",
+            "advanced": {
+                "default_value": "Fostering diversity and an intellectual environment, Rice University is a comprehensive research university located on a 300-acre tree-lined campus in Houston, Texas. Rice produces the next generation of leaders and advances tomorrow’s thinking.",
+                "mandatory": false,
+                "multiple": false,
+                "unique": false,
+                "nonLocalizable": false,
+                "validationErrorMessage": "",
+                "embedObjects": [],
+                "description": ""
+            }
+        },
+        {
+            "uid": "taxonomies",
+            "otherCmsField": "Taxonomy",
+            "otherCmsType": "taxonomy",
+            "contentstackField": "Taxonomy",
+            "contentstackFieldUid": "taxonomies",
+            "contentstackFieldType": "taxonomy",
+            "backupFieldType": "taxonomy",
+            "backupFieldUid": "taxonomies",
+            "advanced": {
+                "taxonomies": [
+                    {
+                        "taxonomy_uid": "pages",
+                        "mandatory": false,
+                        "multiple": true,
+                        "non_localizable": false
+                    },
+                    {
+                        "taxonomy_uid": "tags",
+                        "mandatory": false,
+                        "multiple": true,
+                        "non_localizable": false
+                    }
+                ],
+                "mandatory": false,
+                "multiple": true,
+                "non_localizable": false,
+                "unique": false
+            }
+        }
+    ],
+    "description": "Schema for page",
+    "options": {
+        "is_page": true,
+        "singleton": false,
+        "sub_title": [],
+        "title": "title",
+        "url_pattern": "/:title",
+        "url_prefix": "/page/"
+    }
+}

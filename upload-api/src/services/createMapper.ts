@@ -2,6 +2,7 @@ import createSitecoreMapper from '../controllers/sitecore';
 import createWordpressMapper from '../controllers/wordpress';
 import { Config } from '../models/types';
 import createContentfulMapper from './contentful';
+import createDrupalMapper from './drupal';
 
 const createMapper = async (
   filePath: string = '',
@@ -11,6 +12,8 @@ const createMapper = async (
   config: Config
 ) => {
   const CMSIdentifier = config?.cmsType?.toLowerCase();
+  console.log('CMSIdentifier', CMSIdentifier);
+  
   switch (CMSIdentifier) {
     case 'sitecore': {
       return await createSitecoreMapper(filePath, projectId, app_token, affix, config);
@@ -22,6 +25,10 @@ const createMapper = async (
 
     case 'wordpress': {
       return createWordpressMapper(filePath, projectId, app_token, affix);
+    }
+
+    case 'drupal': {
+      return createDrupalMapper(config, projectId, app_token, affix);
     }
 
     // case 'aem': {

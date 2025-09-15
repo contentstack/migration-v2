@@ -47,19 +47,28 @@ const MigrationFlowHeader = ({
 
   useEffect(() => {
     fetchProject();
-  }, [selectedOrganisation?.value, params?.projectId]);
+  }, [selectedOrganisation?.value, params?.projectId, projectData?.current_step]);
 
   /******** Function to get project  ********/
   /**
    * Fetch the project details project name and current step.
    */
   const fetchProject = async () => {
+    if (!projectData?.name || !projectData?.current_step) return;
+    
     setProjectName(projectData?.name);
     setCurrentStep(projectData?.current_step);
 
-    //Navigate to lastest or active Step
-    const url = `/projects/${params?.projectId}/migration/steps/${projectData?.current_step}`;
-    navigate(url, { replace: true });
+    // Check if URL step matches database step
+    const urlStep = parseInt(params?.stepId || '1');
+    const dbStep = projectData?.current_step;
+    
+    // Only navigate if there's a mismatch and we have valid data
+    if (urlStep !== dbStep && dbStep && params?.projectId) {
+      console.info(`🔄 Step mismatch detected: URL shows step ${urlStep}, DB shows step ${dbStep}. Redirecting...`);
+      const url = `/projects/${params?.projectId}/migration/steps/${dbStep}`;
+      navigate(url, { replace: true });
+    }
   };
 
   let stepValue;

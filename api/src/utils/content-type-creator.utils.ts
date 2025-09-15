@@ -5,7 +5,7 @@ import customLogger from './custom-logger.utils.js';
 import { getLogMessage } from './index.js';
 import { LIST_EXTENSION_UID, MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import { contentMapperService } from "../services/contentMapper.service.js";
-import appMeta from '../constants/app/index.json';
+import appMeta from '../constants/app/index.json' with { type: 'json' };
 
 const {
   GLOBAL_FIELDS_FILE_NAME,
@@ -122,7 +122,7 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, keyMapper }: any) => {
+export const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, keyMapper }: any) => {
   switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
@@ -364,6 +364,29 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, keyMa
         "non_localizable": field.advanced?.nonLocalizable ?? false
       }
     }
+
+    case "html": {
+      return {
+        "data_type": "html",
+        "display_name": field?.title,
+        uid: field?.uid,
+        "field_metadata": {
+          description: "",
+          default_value: field?.advanced?.default_value ?? '',
+          "allow_json_rte": true,
+          "embed_entry": false,
+          "rich_text_type": "advanced"
+        },
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
+      }
+    }
     case 'markdown': {
       return {
         "data_type": "text",
@@ -458,6 +481,27 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, keyMa
         mandatory: field?.advanced?.mandatory ?? false,
         multiple: field?.advanced?.multiple ?? false,
         non_localizable: field.advanced?.nonLocalizable ?? false,
+        unique: field?.advanced?.unique ?? false
+      };
+    }
+
+    case "taxonomy": {
+      return {
+        data_type: "taxonomy",
+        display_name: field?.title,
+        uid: field?.uid,
+        taxonomies: field?.advanced?.taxonomies || [],
+        field_metadata: {
+          description: field?.advanced?.field_metadata?.description || "",
+          default_value: field?.advanced?.field_metadata?.default_value || ""
+        },
+        format: field?.advanced?.validationRegex ?? '',
+        error_messages: {
+          format: field?.advanced?.validationErrorMessage ?? '',
+        },
+        mandatory: field?.advanced?.mandatory ?? false,
+        multiple: field?.advanced?.multiple ?? true,
+        non_localizable: field?.advanced?.non_localizable ?? false,
         unique: field?.advanced?.unique ?? false
       };
     }
@@ -770,7 +814,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
         marketPlacePath,
         keyMapper
       });
-      if (dt && item?.isDeleted === false) {
+      if (dt && item?.isDeleted !== true) {
         ct?.schema?.push(dt);
       }
     }
