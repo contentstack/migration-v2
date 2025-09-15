@@ -26,7 +26,7 @@ fileignoreconfig:
 - filename: api/src/services/migration.service.ts
   checksum: f459c7ff7d979f1712e3da73ebedaaf3071629d7b1941e7257fb10b6d46ebbbd
 - filename: api/src/services/aem.service.ts
-  checksum: ccda69fd5b37e23ba220da449e9729ccd273837f0259efb87b6f2996b86689ec
+  checksum: 6e0bf7d915a4385dc5685600f36e2d2e57461c9068cbb38dc2d083b50865f27e
 - filename: upload-api/migration-aem/libs/contentType/index.ts
   checksum: 4a76de0371b4f2a6de3ec18cf336f24f95be2bef1d7c83db79413f569c4fd914
 - filename: upload-api/migration-aem/libs/contentType/components/BreadcrumbComponent.ts

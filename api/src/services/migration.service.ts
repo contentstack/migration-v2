@@ -432,14 +432,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
     await testFolderCreator?.({
       destinationStackId: project?.current_test_stack_id,
     });
-    await utilsCli?.runCli(
-      region,
-      user_id,
-      project?.current_test_stack_id,
-      projectId,
-      true,
-      loggerPath
-    );
+    // await utilsCli?.runCli(
+    //   region,
+    //   user_id,
+    //   project?.current_test_stack_id,
+    //   projectId,
+    //   true,
+    //   loggerPath
+    // );
   }
 };
 
