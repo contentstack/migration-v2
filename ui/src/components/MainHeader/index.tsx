@@ -169,7 +169,7 @@ const MainHeader = () => {
           <div className="logo" onClick={handleonClick}>
             <Tooltip position="right" content="Projects" wrapperElementType="div">
               <Link to={`${logo?.url}`} onClick={(e) => e.preventDefault()}>
-                <img src={logo?.image?.url} width={32} alt="Contentstack" />
+                <img src={logo?.image?.url} width={28} alt="Contentstack" />
               </Link>
             </Tooltip>
           </div>
