@@ -1,16 +1,23 @@
 import fs from 'fs';
 import path from 'path';
 import read from 'fs-readdir-recursive';
+import { v4 as uuidv4 } from 'uuid';
 import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { buildSchemaTree } from '../utils/content-type-creator.utils.js';
-import { MIGRATION_DATA_CONFIG } from '../constants/index.js';
+import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER } from '../constants/index.js';
 import { getLogMessage } from '../utils/index.js';
 import customLogger from '../utils/custom-logger.utils.js';
+import { orgService } from './org.service.js';
+import { Request } from 'express';
 
 const baseDirName = MIGRATION_DATA_CONFIG.DATA;
 const {
   ENTRIES_DIR_NAME,
+  LOCALE_DIR_NAME,
+  LOCALE_MASTER_LOCALE,
+  LOCALE_FILE_NAME,
+  EXPORT_INFO_FILE
 } = MIGRATION_DATA_CONFIG;
 
 interface CreateAssetsOptions {
@@ -37,11 +44,18 @@ interface ContentType {
 interface CreateEntryOptions {
   project?: Project;
   packagePath?: string;
-  contentTypes?: ContentType;
+  contentTypes?: ContentType[];
   master_locale?: string;
   destinationStackId: string;
   projectId: string;
   keyMapper?: unknown;
+}
+
+interface LocaleInfo {
+  code: string;
+  fallback_locale: string | null;
+  uid: string;
+  name: string;
 }
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
@@ -198,7 +212,7 @@ const createAssets = async ({
         const flatData = deepFlattenObject(parseData);
         for (const [, value] of Object.entries(flatData)) {
           if (typeof value === 'string' && isImageType?.(value)) {
-            // console.info("🚀 ~ createAssets ~ value:", value)
+            console.info("🚀 ~ createAssets ~ value:", value)
           }
         }
       } catch (err) {
@@ -326,7 +340,8 @@ function processFieldsRecursive(fields: any[], items: any, title: string) {
       }
       case 'file': {
         const uid = getLastKey(field?.contentstackFieldUid);
-        obj[uid] = null;
+        console.info(items)
+        obj[uid] = null
         break;
       }
       case 'app': {
@@ -396,11 +411,11 @@ const createEntry = async ({
       }
     }
   }
-  if (Object.keys(entriesData)?.length) {
-    for (const [ctUid, value] of Object.entries(entriesData)) {
+  if (Object.keys?.(entriesData)?.length) {
+    for await (const [ctUid, value] of Object.entries(entriesData)) {
       const entriesLocale = Object.entries(value);
       if (entriesLocale?.length) {
-        for (const [locale, entries] of entriesLocale) {
+        for await (const [locale, entries] of entriesLocale) {
           const fileMeta = { '1': `${locale}.json` };
           const entryPath = path.join(
             process.cwd(),
@@ -415,7 +430,102 @@ const createEntry = async ({
   }
 }
 
+
+const createLocale = async (
+  req: Request,
+  destinationStackId: string,
+  projectId: string,
+  project: Project
+) => {
+  const srcFunc = 'createLocale';
+  try {
+    const baseDir = path.join(baseDirName, destinationStackId);
+    const localeSave = path.join(baseDir, LOCALE_DIR_NAME);
+    const allLocalesResp = await orgService.getLocales(req);
+    const masterLocale = Object?.keys?.(
+      project?.master_locale ?? LOCALE_MAPPER?.masterLocale
+    )?.[0];
+    const msLocale: Record<string, LocaleInfo> = {};
+    const uid = uuidv4();
+    msLocale[uid] = {
+      code: masterLocale,
+      fallback_locale: null,
+      uid: uid,
+      name: allLocalesResp?.data?.locales?.[masterLocale] ?? '',
+    };
+    const message = getLogMessage(
+      srcFunc,
+      `Master locale ${masterLocale} has been successfully transformed.`,
+      {}
+    );
+    await customLogger(projectId, destinationStackId, 'info', message);
+    const allLocales: Record<string, LocaleInfo> = {};
+    for (const [key, value] of Object.entries(
+      project?.locales ?? LOCALE_MAPPER
+    )) {
+      const localeUid = uuidv4();
+      if (key !== 'masterLocale' && typeof value === 'string') {
+        allLocales[localeUid] = {
+          code: key,
+          fallback_locale: masterLocale,
+          uid: localeUid,
+          name: allLocalesResp?.data?.locales?.[key] ?? '',
+        };
+        const message = getLogMessage(
+          srcFunc,
+          `locale ${value} has been successfully transformed.`,
+          {}
+        );
+        await customLogger(projectId, destinationStackId, 'info', message);
+      }
+    }
+    const masterPath = path.join(localeSave, LOCALE_MASTER_LOCALE);
+    const allLocalePath = path.join(localeSave, LOCALE_FILE_NAME);
+    fs.access(localeSave, async (err) => {
+      if (err) {
+        fs.mkdir(localeSave, { recursive: true }, async (err) => {
+          if (!err) {
+            await writeOneFile(masterPath, msLocale);
+            await writeOneFile(allLocalePath, allLocales);
+          }
+        });
+      } else {
+        await writeOneFile(masterPath, msLocale);
+        await writeOneFile(allLocalePath, allLocales);
+      }
+    });
+  } catch (err) {
+    const message = getLogMessage(
+      srcFunc,
+      `error while Creating the locales.`,
+      {},
+      err
+    );
+    await customLogger(projectId, destinationStackId, 'error', message);
+  }
+};
+
+
+const createVersionFile = async (destinationStackId: string) => {
+  const baseDir = path.join(baseDirName, destinationStackId);
+  fs.writeFile(
+    path?.join?.(baseDir, EXPORT_INFO_FILE),
+    JSON.stringify({
+      contentVersion: 2,
+      logsPath: '',
+    }),
+    (err) => {
+      if (err) {
+        console.error('Error writing file: 3', err);
+      }
+    }
+  );
+};
+
+
 export const aemService = {
   createAssets,
-  createEntry
+  createEntry,
+  createLocale,
+  createVersionFile
 };
