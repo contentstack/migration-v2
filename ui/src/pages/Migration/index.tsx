@@ -605,7 +605,8 @@ const Migration = () => {
           value !== '' &&
           value !== null &&
           value !== undefined && 
-          label !== 'undefined'
+          label !== 'undefined' &&
+          isNaN(Number(label))
       );
 
     const master_locale: LocalesType = {};

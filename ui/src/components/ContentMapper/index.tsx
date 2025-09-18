@@ -2470,8 +2470,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                               />
                             </div>
 
-                            <Tooltip content={'Fetch content types from destination stack'} position="left">
-                              <Button buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
+                            <Tooltip content={'Fetch content types from destination stack'} position="top">
+                              <Button className='icon-padding' buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
                                 version="v2" onlyIcon={true} onlyIconHoverColor={'primary'}
                                 size='small' onClick={handleFetchContentType}>
                               </Button>
@@ -2479,8 +2479,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                           </>
                         )}
 
-                        <Tooltip content={'Reset to system mapping'} position="left">
-                          <Button buttonType="light" icon={onlyIcon ? "v2-ResetReverse" : ''}
+                        <Tooltip content={'Reset to system mapping'} position="top">
+                          <Button className='icon-padding' buttonType="light" icon={onlyIcon ? "v2-ResetReverse" : ''}
                             version="v2" onlyIcon={true} onlyIconHoverColor={'primary'}
                             size='small' onClick={handleResetContentType}></Button>
                         </Tooltip>
