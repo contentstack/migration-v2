@@ -22,6 +22,8 @@ import getProjectUtil from "../utils/get-project.utils.js";
 import logger from "../utils/logger.js";
 // import { contentMapperService } from "./contentMapper.service.js";
 import { v4 as uuidv4 } from "uuid";
+import { orgService } from "./org.service.js";
+import { createDualOrgPlanFiles } from "./orgPlanDualWriter.service.js";
 
 /**
  * Retrieves all projects based on the provided request object.
@@ -146,6 +148,80 @@ const createProject = async (req: Request) => {
         decodedToken
       )
     );
+
+    // Automatically save org plan details when project is created
+    console.log("\n🎯 ORG PLAN FINDER - Starting execution...");
+    console.log("=" .repeat(60));
+    console.log(`📋 Project ID: ${projectData.id}`);
+    console.log(`🏢 Organization ID: ${orgId}`);
+    console.log(`🌍 Region: ${region}`);
+    console.log(`👤 User ID: ${user_id}`);
+    
+    try {
+      console.log("\n🔑 Getting authtoken...");
+      const authtoken = await getAuthtoken(region, user_id);
+      console.log(`✅ Authtoken retrieved: ${authtoken ? authtoken.substring(0, 20) + '...' : 'MISSING'}`);
+      
+      const orgPlanRequest = {
+        body: {
+          region,
+          authtoken,
+          org_uid: orgId,
+        },
+      } as Request;
+
+      console.log("\n📡 Calling org plan finder...");
+      console.log("Request payload:", {
+        region,
+        authtoken: authtoken ? `${authtoken.substring(0, 10)}...` : 'MISSING',
+        org_uid: orgId
+      });
+
+      // Use the new dual writer instead of the old single writer
+      const dualWriterResult = await createDualOrgPlanFiles(
+        region,
+        authtoken,
+        orgId,
+        projectData.id,
+        'contentful' // Default CMS type, can be made dynamic later
+      );
+      
+      if (dualWriterResult.success) {
+        console.log("\n🎉 DUAL ORG PLAN WRITER - SUCCESS!");
+        console.log("Response:", JSON.stringify(dualWriterResult, null, 2));
+      } else {
+        console.log("\n❌ DUAL ORG PLAN WRITER - FAILED!");
+        console.log("Error:", dualWriterResult.message);
+      }
+      console.log("=" .repeat(60));
+      
+      logger.info(
+        getLogMessage(
+          srcFunc,
+          `Organization plan details saved for org: ${orgId} during project creation.`,
+          decodedToken
+        )
+      );
+    } catch (orgPlanError: any) {
+      console.log("\n❌ ORG PLAN FINDER - ERROR!");
+      console.log("Error details:", {
+        message: orgPlanError?.message,
+        status: orgPlanError?.statusCode || orgPlanError?.status,
+        stack: orgPlanError?.stack
+      });
+      console.log("=" .repeat(60));
+      
+      // Log error but don't fail project creation
+      logger.error(
+        getLogMessage(
+          srcFunc,
+          `Failed to save org plan details for org: ${orgId}, but project creation succeeded.`,
+          decodedToken,
+          orgPlanError
+        )
+      );
+    }
+
     return {
       status: "success",
       message: "Project created successfully",

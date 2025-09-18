@@ -58,6 +58,18 @@ router.get("/get_stack_locales", asyncRouter(orgController.getStackLocale));
  */
 router.get("/get_org_details", asyncRouter(orgController.getOrgDetails));
 
+/**
+ * POST Save organization plan details to database.
+ * @param req - Express request object.
+ * @param res - Express response object.
+ */
+router.post("/save_org_plan", asyncRouter(orgController.saveOrgPlanDetails));
 
+/**
+ * POST Retrieve saved organization plan details from database.
+ * @param req - Express request object.
+ * @param res - Express response object.
+ */
+router.post("/get_org_plan", asyncRouter(orgController.getOrgPlanDetails));
 
 export default router;

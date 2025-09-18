@@ -132,7 +132,7 @@ const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any)
           let asset: any = {};
           if (uid?.includes('/')) {
             for (const value of Object.values(allAssetJSON)) {
-              if (value?.assetPath === `${uid}/`) {
+              if ((value as any)?.assetPath === `${uid}/`) {
                 asset = value;
               }
             }

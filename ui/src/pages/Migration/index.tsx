@@ -25,6 +25,10 @@ import {
   updateMigrationKey,
   updateLocaleMapper
 } from '../../services/api/migration.service';
+import {
+  validateReferenceeLimits,
+  formatStepTransitionMessage
+} from '../../services/api/referenceLimitValidation.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
 // Utilities
@@ -94,6 +98,7 @@ const Migration = () => {
   const organisationsList = useSelector(
     (state: RootState) => state?.authentication?.organisationsList
   );
+  const user = useSelector((state: RootState) => state?.authentication?.user);
   const [projectData, setProjectData] = useState<MigrationResponse>();
   const [isLoading, setIsLoading] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -648,6 +653,72 @@ const Migration = () => {
   };
 
   /**
+   * Validates reference limits before proceeding to next step
+   */
+  const validateReferenceLimitsForStepTransition = async (): Promise<boolean> => {
+    try {
+      console.info("🔍 STEP TRANSITION - Validating reference limits before proceeding to Test Migration...");
+      
+      const validationResult = await validateReferenceeLimits(
+        selectedOrganisation?.value || '',
+        projectId,
+        {
+          region: user?.region,
+          user_id: user?.username,
+          organization: { uid: selectedOrganisation?.value }
+        }
+      );
+
+      if (!validationResult.data.isValid && validationResult.data.violations.length > 0) {
+        // Format violation message for step transition
+        const stepTransitionMessage = formatStepTransitionMessage(validationResult.data.violations);
+        
+        // Show blocking notification
+        Notification({
+          notificationContent: { 
+            text: "Reference Limit Violations Found",
+            description: stepTransitionMessage
+          },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: false,
+            autoHideDuration: 15000 // Show longer for step transition
+          },
+          type: 'error'
+        });
+
+        console.info("❌ STEP TRANSITION BLOCKED - Reference limit violations found:");
+        validationResult.data.violations.forEach((violation, index) => {
+          console.info(`${index + 1}. ${violation.contentType}.${violation.field} - ${violation.type} field has ${violation.current} references, limit is ${violation.limit}`);
+        });
+
+        return false; // Block step transition
+      } else {
+        console.info("✅ STEP TRANSITION ALLOWED - All reference limits are within bounds");
+        return true; // Allow step transition
+      }
+
+    } catch (error: any) {
+      console.error("❌ Error during step transition validation:", error);
+      
+      // On validation error, show warning but allow transition (fail-safe)
+      Notification({
+        notificationContent: { 
+          text: "Reference Validation Warning",
+          description: "Unable to validate reference limits. Proceeding with caution."
+        },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: false
+        },
+        type: 'warning'
+      });
+
+      return true; // Allow step transition on validation error (fail-safe)
+    }
+  };
+
+  /**
    * Calls when click Continue button on Content Mapper step and handles to proceed to Test Migration
    */
   const handleOnClickContentMapper = async (event: MouseEvent) => {
@@ -662,6 +733,15 @@ const Migration = () => {
             otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
             saveContentType={saveRef?.current?.handleSaveContentType}
             changeStep={async () => {
+              // Validate reference limits before step transition
+              const canProceed = await validateReferenceLimitsForStepTransition();
+              
+              if (!canProceed) {
+                console.info("🚫 STEP TRANSITION BLOCKED - Reference limit violations found");
+                return; // Don't proceed to next step
+              }
+
+              console.info("✅ STEP TRANSITION PROCEEDING - Reference limits validated successfully");
               const url = `/projects/${projectId}/migration/steps/4`;
               navigate(url, { replace: true });
 
@@ -677,7 +757,15 @@ const Migration = () => {
         }
       });
     } else {
+      // Validate reference limits before step transition
+      const canProceed = await validateReferenceLimitsForStepTransition();
+      
+      if (!canProceed) {
+        console.info("🚫 STEP TRANSITION BLOCKED - Reference limit violations found");
+        return; // Don't proceed to next step
+      }
 
+      console.info("✅ STEP TRANSITION PROCEEDING - Reference limits validated successfully");
       const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
         setIsLoading(false);
         event.preventDefault();

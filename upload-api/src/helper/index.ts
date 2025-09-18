@@ -4,6 +4,8 @@ import path from "path";
 import xml2js from 'xml2js'
 import { HTTP_TEXTS, HTTP_CODES, MACOSX_FOLDER } from '../constants';
 import logger from "../utils/logger";
+// Import org plan limits utility for centralized access
+import orgPlanLimits from "../utils/orgPlanLimits";
 
 const getFileName = (params: { Key: string }) => {
   const obj: { fileName?: string; fileExt?: string } = {};
@@ -150,4 +152,13 @@ function deleteFolderSync(folderPath: string): void {
 }
 
 
-export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson };
+export { 
+  getFileName, 
+  saveZip, 
+  saveJson, 
+  fileOperationLimiter, 
+  deleteFolderSync, 
+  parseXmlToJson,
+  // Export org plan limits utility for centralized access across all migrations
+  orgPlanLimits
+};

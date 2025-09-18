@@ -1,4 +1,4 @@
-/* eslint-disable operator-linebreak */
+ 
 import ProjectModel from "../models/project-lowdb.js";
 import {
   BadRequestError,

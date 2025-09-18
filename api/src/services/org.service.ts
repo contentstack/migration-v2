@@ -9,6 +9,8 @@ import { HTTP_TEXTS, HTTP_CODES } from "../constants/index.js";
 import { ExceptionFunction } from "../utils/custom-errors.utils.js";
 import { BadRequestError } from "../utils/custom-errors.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
+import OrgPlanFinderModel from "../models/org-plan-finder.js";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Retrieves all stacks based on the provided request.
@@ -434,6 +436,218 @@ const getOrgDetails = async (req: Request) => {
   }
 };
 
+/**
+ * Fetches and saves organization plan details to the database.
+ * @param req - The request object containing region, authtoken, and org_uid.
+ * @returns An object containing the success status and saved data.
+ * @throws ExceptionFunction if an error occurs while fetching or saving org plan details.
+ */
+const saveOrgPlanDetails = async (req: Request): Promise<LoginServiceType> => {
+  const { region, authtoken, org_uid } = req.body;
+  const srcFunc = "saveOrgPlanDetails";
+
+  console.log("\n🔍 ORG SERVICE - saveOrgPlanDetails called");
+  console.log("Received parameters:", {
+    region,
+    authtoken: authtoken ? `${authtoken.substring(0, 15)}...` : 'MISSING',
+    org_uid
+  });
+
+  try {
+    // Determine base URL based on region
+    let baseUrl: string;
+    switch (region?.toLowerCase()) {
+      case 'na':
+        baseUrl = 'https://app.contentstack.com/';
+        break;
+      case 'eu':
+        baseUrl = 'https://eu-api.contentstack.com/';
+        break;
+      case 'azure-na':
+        baseUrl = 'https://azure-na-api.contentstack.com/';
+        break;
+      case 'azure-eu':
+        baseUrl = 'https://azure-eu-api.contentstack.com/';
+        break;
+      case 'gcp-na':
+        baseUrl = 'https://gcp-na-api.contentstack.com/';
+        break;
+      case 'gcp-eu':
+        baseUrl = 'https://gcp-eu-api.contentstack.com/';
+        break;
+      default:
+        baseUrl = 'https://app.contentstack.com/';
+        break;
+    }
+
+    console.log(`\n🌐 Making API call to: ${baseUrl}api/v3/organizations/${org_uid}?include_plan=true`);
+    
+    const [orgErr, orgRes] = await safePromise(
+      https({
+        method: "GET",
+        url: `${baseUrl}api/v3/organizations/${org_uid}?include_plan=true`,
+        headers: {
+          authtoken,
+        },
+      })
+    );
+
+    console.log(`📊 API Response Status: ${orgRes?.status || 'ERROR'}`);
+    if (orgErr) {
+      console.log("❌ API Error:", {
+        status: orgErr.response?.status,
+        message: orgErr.response?.data?.message || orgErr.message
+      });
+    }
+
+    if (orgErr) {
+      logger.error(
+        getLogMessage(
+          srcFunc,
+          `Error occurred while fetching org plan details.`,
+          { region, org_uid },
+          orgErr
+        )
+      );
+      return {
+        data: {
+          message: HTTP_TEXTS.INTERNAL_ERROR,
+        },
+        status: orgErr.response?.status || HTTP_CODES.SERVER_ERROR,
+      };
+    }
+
+    const organizationResponse = orgRes.data;
+    if (!organizationResponse?.organization) {
+      throw new BadRequestError("Organization not found");
+    }
+
+    // Extract plan features exactly like the original orgPlanFinder.js
+    const planFeatures = organizationResponse?.organization?.plan?.features;
+    console.log(`\n📦 Plan features found: ${planFeatures ? planFeatures.length : 0} features`);
+    
+    if (!planFeatures) {
+      console.log("❌ No plan features found in response");
+      throw new BadRequestError("Organization plan features not found");
+    }
+
+    console.log("✅ Sample features:", planFeatures.slice(0, 3).map((f: any) => ({ uid: f.uid, name: f.name })));
+
+    // Read the existing data
+    await OrgPlanFinderModel.read();
+
+    // Check if org plan already exists
+    const existingIndex = OrgPlanFinderModel.chain
+      .get("org_plans")
+      .findIndex({ org_uid })
+      .value();
+
+    const currentTime = new Date().toISOString();
+    const orgPlanEntry = {
+      org_uid,
+      region,
+      authtoken,
+      organization_response: planFeatures, // Save only the plan features array
+      fetched_at: currentTime,
+      isDeleted: false,
+    };
+
+    // Update or insert the org plan entry
+    console.log(`\n💾 Saving to database... ${existingIndex >= 0 ? 'Updating existing' : 'Creating new'} entry`);
+    
+    OrgPlanFinderModel.update((data: any) => {
+      if (existingIndex >= 0) {
+        data.org_plans[existingIndex] = orgPlanEntry;
+        console.log("✅ Updated existing org plan entry");
+      } else {
+        data.org_plans.push(orgPlanEntry);
+        console.log("✅ Added new org plan entry");
+      }
+    });
+
+    console.log(`📁 Database file should be created at: ${process.cwd()}/database/org-plan-finder.json`);
+
+    logger.info(
+      getLogMessage(
+        srcFunc,
+        `Organization plan details saved successfully for org: ${org_uid}`,
+        { region, org_uid }
+      )
+    );
+
+    return {
+      status: HTTP_CODES.OK,
+      data: {
+        message: "Organization plan features saved successfully",
+        org_plan: orgPlanEntry,
+        features_count: planFeatures.length, // Include count of features saved
+      },
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while saving org plan details.`,
+        { region, org_uid },
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
+/**
+ * Retrieves saved organization plan details from the database.
+ * @param req - The request object containing the org_uid.
+ * @returns An object containing the org plan details.
+ * @throws ExceptionFunction if an error occurs while retrieving org plan details.
+ */
+const getOrgPlanDetails = async (req: Request): Promise<LoginServiceType> => {
+  const { org_uid } = req.body;
+  const srcFunc = "getOrgPlanDetails";
+
+  try {
+    await OrgPlanFinderModel.read();
+
+    const orgPlan = OrgPlanFinderModel.chain
+      .get("org_plans")
+      .find({ org_uid, isDeleted: false })
+      .value();
+
+    if (!orgPlan) {
+      return {
+        status: HTTP_CODES.NOT_FOUND,
+        data: {
+          message: "Organization plan details not found",
+        },
+      };
+    }
+
+    return {
+      status: HTTP_CODES.OK,
+      data: {
+        org_plan: orgPlan,
+      },
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        `Error occurred while retrieving org plan details.`,
+        { org_uid },
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
 export const orgService = {
   getAllStacks,
   getLocales,
@@ -441,4 +655,6 @@ export const orgService = {
   getStackStatus,
   getStackLocale,
   getOrgDetails,
+  saveOrgPlanDetails,
+  getOrgPlanDetails,
 };

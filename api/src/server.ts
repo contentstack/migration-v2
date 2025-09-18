@@ -16,6 +16,7 @@ import { unmatchedRoutesMiddleware } from './middlewares/unmatched-routes.middle
 import logger from './utils/logger.js';
 import contentMapperRoutes from './routes/contentMapper.routes.js';
 import migrationRoutes from './routes/migration.routes.js';
+import referenceLimitValidationRoutes from './routes/referenceLimitValidation.routes.js';
 import chokidar from 'chokidar';
 import { Server } from 'socket.io';
 import fs from 'fs';
@@ -95,6 +96,7 @@ try {
   app.use('/v2/org/:orgId/project', authenticateUser, projectRoutes);
   app.use('/v2/mapper', authenticateUser, contentMapperRoutes);
   app.use('/v2/migration', authenticateUser, migrationRoutes);
+  app.use('/v2/projects', authenticateUser, referenceLimitValidationRoutes);
 
   // Handle unmatched routes
   app.use(unmatchedRoutesMiddleware);

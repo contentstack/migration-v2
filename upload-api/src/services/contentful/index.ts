@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
+ 
 import axios from 'axios';
 
 import logger from '../../utils/logger';
@@ -19,7 +19,7 @@ const createContentfulMapper = async (
     const fetchedLocales: [] = await extractLocale(cleanLocalPath);
 
     await extractContentTypes(cleanLocalPath, affix);
-    const initialMapper = await createInitialMapper(cleanLocalPath, affix);
+    const initialMapper = await createInitialMapper(cleanLocalPath, affix, projectId);
     const req = {
       method: 'post',
       maxBodyLength: Infinity,

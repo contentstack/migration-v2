@@ -6,7 +6,7 @@ import { deleteFolderSync } from "../../helper";
 import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { contentTypes, ExtractConfiguration, reference, ExtractFiles, extractLocales } = require('migration-sitecore');
 
 const {

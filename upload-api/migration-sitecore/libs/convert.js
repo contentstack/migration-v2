@@ -1,7 +1,7 @@
 /**
  * External module Dependencies.
  */
-/* eslint-disable @typescript-eslint/no-var-requires */
+ 
 const path = require("path");
 const fs = require("fs");
 const parseString = require("xml2js").parseString;

@@ -1,7 +1,7 @@
 import axios from "axios";
 import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS } from "../../constants";
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+ 
 const { extractContentTypes, contentTypeMaker, extractLocale } = require('migration-wordpress')
 
 

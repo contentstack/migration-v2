@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
+ 
 const path = require('path');
 const _ = require('lodash');
 const read = require('fs-readdir-recursive');
@@ -395,7 +395,7 @@ const contentTypeMapper = ({
   components,
   standardValues,
   content_type,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   basePath,
   sitecore_folder,
   affix

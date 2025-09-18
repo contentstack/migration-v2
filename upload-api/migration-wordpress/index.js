@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
+ 
 
 const extractContentTypes = require('./libs/content_types.js');
 const contentTypeMaker = require('./libs/contenttypemapper.js');

@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
+ 
 
 const restrictedUid = require('../utils/restrictedKeyWords');
-const appDetails = require('../utils/apps/appDetails.json')
+const appDetails = require('../utils/apps/appDetails.json');
+const { getOrgPlanLimitsByProject } = require('../../build/utils/orgPlanLimits');
 
 
 /**
@@ -195,6 +196,8 @@ const arrangeRte = (itemData, item) => {
  * Maps a collection of content type items to a schema array with specific field types and properties.
  *
  * @param {Array} data - An array of content type items, each containing metadata like type, widgetId, contentNames, etc.
+ * @param {Array} entries - Array of entries for reference processing
+ * @param {string} projectId - Project ID to fetch organization plan limits from org-plan-finder.json
  * @returns {Array} A schema array with field objects and corresponding properties based on the content type item.
  *
  * @description
@@ -204,18 +207,43 @@ const arrangeRte = (itemData, item) => {
  * and `contentNames`.
  * 
  * The function supports processing of:
- * - RichText fields with associated reference fields
+ * - RichText fields with associated reference fields (with dynamic limits from org plan)
  * - Text fields with widget-specific mappings
  * - Integer/Number fields with widget-specific mappings
  * - Date, Link, Array, Boolean, Object, and Location fields
  * - Special handling for complex types like Asset links, Entry links, and Geo-location fields.
+ * - Dynamic reference field limits based on organization plan features
  */
-const contentTypeMapper = (data, entries) => {
+const contentTypeMapper = (data, entries, projectId) => {
+  // Get dynamic limits with fallback safety net
+  let orgLimits = getOrgPlanLimitsByProject(projectId);
+  
+  // CONTENTFUL FALLBACK: If no orgUid found, use old hardcoded limits
+  if (!orgLimits.orgUid) {
+    console.log(`🛡️ Contentful Safety Fallback: Using old hardcoded limits (9)`);
+    orgLimits = {
+      referenceFieldLimit: 9, // Old hardcoded limit from slice(0, 9)
+      jsonRteLimit: 9,        // Old hardcoded limit from slice(0, 9)
+      orgUid: null,
+      fetched_at: null
+    };
+  }
+  
+  const { referenceFieldLimit, jsonRteLimit, orgUid } = orgLimits;
+  
+  console.log(`🎯 Contentful Mapper - Final limits:`, {
+    projectId,
+    orgUid,
+    referenceFieldLimit,
+    jsonRteLimit,
+    source: orgUid ? 'org-plan-data' : 'fallback-limits'
+  });
   const schemaArray = data.reduce((acc, item) => {
     switch (item.type) {
       case 'RichText': {
         const refsUids = arrangeRte(item?.validations, item);
-        const referenceFields = refsUids ?? (item.contentNames?.slice(0, 9) || []);
+        const referenceFields = refsUids ?? (item.contentNames?.slice(0, jsonRteLimit || 9) || []);
+        console.log(`📝 RichText field "${item.name}" using ${jsonRteLimit} reference limit (${referenceFields.length} references)`);
         acc.push(createFieldObject(item, 'json', 'json', referenceFields));
         break;
       }
@@ -331,7 +359,8 @@ const contentTypeMapper = (data, entries) => {
                   if (entries?.linkContentType?.length) {
                     commonRef = processLinkContentType(entries?.linkContentType);
                     referenceFields =
-                      commonRef?.length > 0 ? commonRef : item?.contentNames?.slice(0, 9);
+                      commonRef?.length > 0 ? commonRef : item?.contentNames?.slice(0, referenceFieldLimit || 9);
+                    console.log(`🔗 Reference field "${item.name}" using ${referenceFieldLimit} reference limit (validation path)`);
                   }
                 });
               } else {
@@ -342,7 +371,8 @@ const contentTypeMapper = (data, entries) => {
               const firstValidation = item.items.validations?.[0];
               if (firstValidation) {
                 commonRef = processLinkContentType(firstValidation.linkContentType);
-                referenceFields = commonRef.length > 0 ? commonRef : item.contentNames?.slice(0, 9);
+                referenceFields = commonRef.length > 0 ? commonRef : item.contentNames?.slice(0, referenceFieldLimit || 9);
+                console.log(`🔗 Reference field "${item.name}" using ${referenceFieldLimit} reference limit (items path)`);
               } else if (item.validations?.length > 0) {
                 item.validations.forEach((entries) => {
                   if (entries.linkContentType?.length) {

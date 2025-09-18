@@ -73,7 +73,29 @@ const getOrgDetails = async (req: Request, res: Response) => {
  res.status(resp.status).json(resp.data);
 };
 
+/**
+ * Saves organization plan details to the database.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to the save operation response.
+ */
+const saveOrgPlanDetails = async (req: Request, res: Response) => {
+  const resp = await orgService.saveOrgPlanDetails(req);
+  res.status(resp.status).json(resp.data);
+};
 
+/**
+ * Retrieves saved organization plan details from the database.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to the org plan details response.
+ */
+const getOrgPlanDetails = async (req: Request, res: Response) => {
+  const resp = await orgService.getOrgPlanDetails(req);
+  res.status(resp.status).json(resp.data);
+};
 
 export const orgController = {
   getAllStacks,
@@ -82,4 +104,6 @@ export const orgController = {
   getStackStatus,
   getStackLocale,
   getOrgDetails,
+  saveOrgPlanDetails,
+  getOrgPlanDetails,
 };

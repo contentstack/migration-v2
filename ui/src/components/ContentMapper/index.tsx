@@ -28,6 +28,11 @@ import {
   getExistingGlobalFields,
   updateContentMapper
 } from '../../services/api/migration.service';
+import {
+  validateReferenceeLimits,
+  formatViolationMessages,
+  ReferenceViolation
+} from '../../services/api/referenceLimitValidation.service';
 
 // Redux
 import { RootState } from '../../store';
@@ -227,6 +232,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
+  const user = useSelector((state: RootState) => state?.authentication?.user);
 
   // When setting contentModels from Redux, ensure it's cloned
   const reduxContentTypes = newMigrationData?.content_mapping?.existingCT; // Assume this gets your Redux state
@@ -791,7 +797,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
 
-      // eslint-disable-next-line no-unsafe-optional-chaining
+       
       setTableData([...tableData, ...validTableData ?? tableData]);
       setTotalCounts([...tableData, ...validTableData ?? tableData]?.length);
       setIsLoading(false);
@@ -2194,6 +2200,89 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     }
   }
 
+  /**
+   * Validates reference limits and shows notifications for violations
+   */
+  const validateAndShowReferenceLimits = async () => {
+    try {
+      console.info("🔍 Starting reference limit validation...");
+      
+      const validationResult = await validateReferenceeLimits(
+        selectedOrganisation?.value || '',
+        projectId,
+        {
+          region: user?.region,
+          user_id: user?.username,
+          organization: { uid: selectedOrganisation?.value }
+        }
+      );
+
+      if (!validationResult.data.isValid && validationResult.data.violations.length > 0) {
+        // Format violation messages similar to the error pattern you showed
+        const violationMessages = formatViolationMessages(validationResult.data.violations);
+        
+        // Create a comprehensive error message
+        const errorTitle = `Reference Limit Violations Found. Please review and update the affected fields.`;
+        const errorDetails = violationMessages.join('\n\n');
+        
+        // Show notification with all violations
+        Notification({
+          notificationContent: { 
+            text: errorTitle,
+            description: errorDetails
+          },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: false,
+            autoHideDuration: 10000 // Show for 10 seconds due to multiple violations
+          },
+          type: 'error'
+        });
+
+        // Also log to console for debugging
+        console.info("❌ Reference Limit Violations:");
+        validationResult.data.violations.forEach((violation, index) => {
+          console.info(`${index + 1}. ${violation.contentType}.${violation.field} - ${violation.type} field has ${violation.current} references, limit is ${violation.limit}`);
+        });
+
+        return false; // Validation failed
+      } else {
+        // Show success notification
+        Notification({
+          notificationContent: { 
+            text: `✅ All content types are within reference limits`,
+            description: `Validation passed for all ${validationResult.data.violations.length === 0 ? 'content types' : 'fields'}`
+          },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: false
+          },
+          type: 'success'
+        });
+
+        console.info("✅ Reference limit validation passed");
+        return true; // Validation passed
+      }
+
+    } catch (error: any) {
+      console.error("❌ Error during reference limit validation:", error);
+      
+      Notification({
+        notificationContent: { 
+          text: "Reference Limit Validation Failed",
+          description: error.message || "Unable to validate reference limits. Please try again."
+        },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: false
+        },
+        type: 'error'
+      });
+
+      return false;
+    }
+  };
+
   const columns = [
     {
       disableSortBy: true,
@@ -2483,6 +2572,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                           <Button className='icon-padding' buttonType="light" icon={onlyIcon ? "v2-ResetReverse" : ''}
                             version="v2" onlyIcon={true} onlyIconHoverColor={'primary'}
                             size='small' onClick={handleResetContentType}></Button>
+                        </Tooltip>
+
+                        <Tooltip content={'Validate reference limits for all content types'} position="top">
+                          <Button className='icon-padding' buttonType="light" icon={onlyIcon ? "v2-CheckCircle" : ''}
+                            version="v2" onlyIcon={true} onlyIconHoverColor={'primary'}
+                            size='small' onClick={validateAndShowReferenceLimits}></Button>
                         </Tooltip>
                       </div>
                     ),

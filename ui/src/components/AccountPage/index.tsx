@@ -16,7 +16,7 @@ const AccountPage = (props: AccountObj): JSX.Element => {
   const currentYear = new Date().getFullYear();
 
   return (
-    // eslint-disable-next-line react/no-unknown-property
+     
     <div className="AccountPage" heap-ignore="true">
       <div className="AccountPage__intro">
         <img src="/images/ContentstackLogo.png" alt="Contentstack" className="AccountPage__logo" />

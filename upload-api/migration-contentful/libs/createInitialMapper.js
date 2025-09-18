@@ -1,5 +1,5 @@
 'use strict';
-/* eslint-disable @typescript-eslint/no-var-requires */
+ 
 
 /**
  * External module dependencies.
@@ -62,7 +62,7 @@ const uidCorrector = (uid, prefix) => {
  *
  * // Outputs: an array of content type objects, each containing metadata and field mappings.
  */
-const createInitialMapper = async (cleanLocalPath, affix) => {
+const createInitialMapper = async (cleanLocalPath, affix, projectId) => {
   try {
     const alldata = readFile(cleanLocalPath);
     const { entries } = alldata;
@@ -113,7 +113,7 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
           advanced: { mandatory: true }
         }
       ];
-      const contentstackFields = [...uidTitle, ...contentTypeMapper(data, entries)]?.filter?.(
+      const contentstackFields = [...uidTitle, ...contentTypeMapper(data, entries, projectId)]?.filter?.(
         Boolean
       );
 

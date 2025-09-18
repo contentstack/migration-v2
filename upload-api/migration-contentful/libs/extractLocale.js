@@ -1,5 +1,5 @@
 'use strict';
-/* eslint-disable @typescript-eslint/no-var-requires */
+ 
 /**
  * External module dependencies.
  */

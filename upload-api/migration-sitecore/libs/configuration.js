@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
+ 
 const path = require("path");
 const read = require("fs-readdir-recursive");
 const helper = require("../utils/helper");
