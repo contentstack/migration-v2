@@ -3,94 +3,67 @@
 /**
  * External module dependencies.
  */
-const { dbConnection} = require('../utils/helper');
+const { dbConnection } = require('../utils/helper');
 
 /**
  * Apply locale transformation rules (same logic as API side)
  * - "und" alone → "en-us"
- * - "und" + "en-us" → both become "en"  
- * - "en" + "en-us" → "en" becomes "und", "en-us" stays
- * - All three → "en"+"und" become "und", "en-us" stays
+ * - "und" + "en-us" → "und" become "en", "en-us" stays
+ * - "en" + "und" → "und" becomes "en-us", "en" stays
+ * - All three "en" + "und" + "en-us" → all three stays
+ * - Apart from these, all other locales stay as is
  */
 function applyLocaleTransformations(originalLocales) {
-    const locales = [...originalLocales]; // Copy to avoid mutation
-    const hasUnd = locales.includes('und');
-    const hasEn = locales.includes('en');
-    const hasEnUs = locales.includes('en-us');
-    
-    console.log(`🔍 Locale Analysis: hasUnd=${hasUnd}, hasEn=${hasEn}, hasEnUs=${hasEnUs}`);
-    
-    const transformedSet = new Set();
-    
-    // Apply transformation rules
-    locales.forEach(locale => {
-        if (locale === 'und') {
-            if (hasEn && hasEnUs) {
-                // If all three present, "und" stays as "und"
-                transformedSet.add('und');
-                console.log(`🔄 "und" stays as "und" (all three present)`);
-            } else if (hasEnUs) {
-                // If "und" + "en-us", "und" becomes "en"
-                transformedSet.add('en');
-                console.log(`🔄 Transforming "und" → "en" (en-us exists)`);
-            } else {
-                // If only "und", becomes "en-us"
-                transformedSet.add('en-us');
-                console.log(`🔄 Transforming "und" → "en-us"`);
-            }
-        } else if (locale === 'en-us') {
-            if (hasUnd && !hasEn) {
-                // If "und" + "en-us" (no en), "und" becomes "en", so keep "en-us"
-                transformedSet.add('en-us');
-                console.log(`🔄 "en-us" stays as "en-us" (und becomes en)`);
-            } else {
-                // Keep en-us as is in other cases
-                transformedSet.add('en-us');
-            }
-        } else if (locale === 'en') {
-            if (hasEnUs && !hasUnd) {
-                // If "en" + "en-us" (no und), "en" becomes "und"
-                transformedSet.add('und');
-                console.log(`🔄 Transforming "en" → "und" (en-us exists, no und)`);
-            } else {
-                // Keep "en" as is in other cases
-                transformedSet.add('en');
-            }
-        } else {
-            // Keep other locales as is
-            transformedSet.add(locale);
-        }
-    });
-    
-    return Array.from(transformedSet).sort();
+  const locales = [...originalLocales]; // Copy to avoid mutation
+  const hasUnd = locales.includes('und');
+  const hasEn = locales.includes('en');
+  const hasEnUs = locales.includes('en-us');
+
+  // Start with all non-special locales (not und, en, en-us)
+  const result = locales.filter((locale) => !['und', 'en', 'en-us'].includes(locale));
+
+  // Apply transformation rules based on combinations
+  if (hasEn && hasUnd && hasEnUs) {
+    // Rule 4: All three "en" + "und" + "en-us" → all three stays
+    result.push('en', 'und', 'en-us');
+  } else if (hasUnd && hasEnUs && !hasEn) {
+    // Rule 2: "und" + "en-us" → "und" become "en", "en-us" stays
+    result.push('en', 'en-us');
+  } else if (hasEn && hasUnd && !hasEnUs) {
+    // Rule 3: "en" + "und" → "und" becomes "en-us", "en" stays
+    result.push('en', 'en-us');
+  } else if (hasUnd && !hasEn && !hasEnUs) {
+    // Rule 1: "und" alone → "en-us"
+    result.push('en-us');
+  } else {
+    // For any other combinations, keep locales as they are
+    if (hasEn) result.push('en');
+    if (hasUnd) result.push('und');
+    if (hasEnUs) result.push('en-us');
+  }
+
+  return Array.from(new Set(result)).sort();
 }
 
-const extractLocale = async ( systemConfig ) =>
-{
-    let connection;
-    try
-    {
+const extractLocale = async (systemConfig) => {
+  let connection;
+  try {
     // Get database connection - pass your MySQL config
-        connection = await dbConnection( systemConfig );
+    connection = await dbConnection(systemConfig);
 
-        // DYNAMIC locale extraction - query directly for unique language codes
-        console.log('🌐 Extracting locales dynamically from Drupal database...');
-        
-        // Simple query to get all unique language codes from content
-        const localeQuery = "SELECT DISTINCT langcode FROM node_field_data WHERE langcode IS NOT NULL AND langcode != '' ORDER BY langcode";
-        
-        const [localeRows] = await connection.promise().query(localeQuery);
-        const originalLocales = localeRows.map(row => row.langcode).filter(locale => locale && locale.trim());
-        
-        console.log(`📍 Found ${originalLocales.length} original locales:`, originalLocales);
-        
-        // 🔄 Apply locale transformation rules for UI consistency
-        const transformedLocales = applyLocaleTransformations(originalLocales);
-        
-        console.log(`✅ Transformed to ${transformedLocales.length} locales for UI:`, transformedLocales);
-        
-        return transformedLocales;
-        
+    // Simple query to get all unique language codes from content
+    const localeQuery =
+      "SELECT DISTINCT langcode FROM node_field_data WHERE langcode IS NOT NULL AND langcode != '' ORDER BY langcode";
+
+    const [localeRows] = await connection.promise().query(localeQuery);
+    const originalLocales = localeRows
+      .map((row) => row.langcode)
+      .filter((locale) => locale && locale.trim());
+
+    // Apply locale transformation rules for UI consistency
+    const transformedLocales = applyLocaleTransformations(originalLocales);
+
+    return transformedLocales;
   } catch (error) {
     console.error(`Error reading JSON file:`, error);
     return [];

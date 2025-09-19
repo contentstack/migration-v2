@@ -1,11 +1,11 @@
-import fs from "fs";
-import path from "path";
-import axios from "axios";
-import { LOCALE_MAPPER, MIGRATION_DATA_CONFIG } from "../../constants/index.js";
-import { Locale } from "../../models/types.js";
-import { getAllLocales, getLogMessage } from "../../utils/index.js";
-import customLogger from "../../utils/custom-logger.utils.js";
-import { createDbConnection } from "../../helper/index.js";
+import fs from 'fs';
+import path from 'path';
+import axios from 'axios';
+import { LOCALE_MAPPER, MIGRATION_DATA_CONFIG } from '../../constants/index.js';
+import { Locale } from '../../models/types.js';
+import { getAllLocales, getLogMessage } from '../../utils/index.js';
+import customLogger from '../../utils/custom-logger.utils.js';
+import { createDbConnection } from '../../helper/index.js';
 
 const {
   DATA: MIGRATION_DATA_PATH,
@@ -31,7 +31,10 @@ async function writeFile(dirPath: string, filename: string, data: any) {
 /**
  * Helper function to get key by value from an object
  */
-function getKeyByValue(obj: Record<string, string>, targetValue: string): string | undefined {
+function getKeyByValue(
+  obj: Record<string, string>,
+  targetValue: string
+): string | undefined {
   return Object.entries(obj).find(([_, value]) => value === targetValue)?.[0];
 }
 
@@ -40,7 +43,9 @@ function getKeyByValue(obj: Record<string, string>, targetValue: string): string
  */
 async function fetchContentstackLocales(): Promise<Record<string, string>> {
   try {
-    const response = await axios.get('https://app.contentstack.com/api/v3/locales?include_all=true');
+    const response = await axios.get(
+      'https://app.contentstack.com/api/v3/locales?include_all=true'
+    );
     return response.data?.locales || {};
   } catch (error) {
     console.error('Error fetching Contentstack locales:', error);
@@ -50,61 +55,87 @@ async function fetchContentstackLocales(): Promise<Record<string, string>> {
 
 /**
  * Applies special locale code transformations based on business rules
+ * - "und" alone → "en-us"
+ * - "und" + "en-us" → "und" become "en", "en-us" stays
+ * - "en" + "und" → "und" becomes "en-us", "en" stays
+ * - All three "en" + "und" + "en-us" → all three stays
+ * - Apart from these, all other locales stay as is
  */
-function applyLocaleTransformations(locales: string[], masterLocale: string): { code: string; name: string; isMaster: boolean }[] {
+function applyLocaleTransformations(
+  locales: string[],
+  masterLocale: string
+): { code: string; name: string; isMaster: boolean }[] {
   const hasUnd = locales.includes('und');
   const hasEn = locales.includes('en');
   const hasEnUs = locales.includes('en-us');
-  
-  return locales.map(locale => {
-    let code = locale.toLowerCase();
+
+  // First, apply the transformation rules to get the correct locale codes
+  const transformedCodes: string[] = [];
+
+  // Start with all non-special locales (not und, en, en-us)
+  const nonSpecialLocales = locales.filter(
+    (locale) => !['und', 'en', 'en-us'].includes(locale)
+  );
+  transformedCodes.push(...nonSpecialLocales);
+
+  // Apply transformation rules based on combinations
+  if (hasEn && hasUnd && hasEnUs) {
+    // Rule 4: All three "en" + "und" + "en-us" → all three stays
+    transformedCodes.push('en', 'und', 'en-us');
+  } else if (hasUnd && hasEnUs && !hasEn) {
+    // Rule 2: "und" + "en-us" → "und" become "en", "en-us" stays
+    transformedCodes.push('en', 'en-us');
+  } else if (hasEn && hasUnd && !hasEnUs) {
+    // Rule 3: "en" + "und" → "und" becomes "en-us", "en" stays
+    transformedCodes.push('en', 'en-us');
+  } else if (hasUnd && !hasEn && !hasEnUs) {
+    // Rule 1: "und" alone → "en-us"
+    transformedCodes.push('en-us');
+  } else {
+    // For any other combinations, keep locales as they are
+    if (hasEn) transformedCodes.push('en');
+    if (hasUnd) transformedCodes.push('und');
+    if (hasEnUs) transformedCodes.push('en-us');
+  }
+
+  // Remove duplicates and sort
+  const uniqueTransformedCodes = Array.from(new Set(transformedCodes)).sort();
+
+  // Now map each transformed code to the proper format with names
+  return uniqueTransformedCodes.map((code) => {
     let name = '';
-    let isMaster = locale === masterLocale;
-    
-    // Apply transformation rules
-    if (locale === 'und') {
-      if (hasEn && hasEnUs) {
-        // If all three present, "und" stays as "und"
-        code = 'und';
-        name = 'Language Neutral';
-      } else if (hasEnUs) {
-        // If "und" + "en-us", "und" becomes "en"
-        code = 'en';
+    let isMaster = false;
+
+    // Determine if this is the master locale (check against original and transformed)
+    isMaster =
+      code === masterLocale ||
+      (masterLocale === 'und' && code === 'en-us') || // Rule 1 transformation
+      (masterLocale === 'und' && hasEnUs && code === 'en') || // Rule 2 transformation
+      (masterLocale === 'und' && hasEn && code === 'en-us'); // Rule 3 transformation
+
+    // Set appropriate names
+    switch (code) {
+      case 'en':
         name = 'English';
-      } else {
-        // If only "und", becomes "en-us"
-        code = 'en-us';
+        break;
+      case 'en-us':
         name = 'English - United States';
-      }
-    } else if (locale === 'en-us') {
-      if (hasUnd && !hasEn) {
-        // If "und" + "en-us" (no en), "und" becomes "en", so keep "en-us"
-        code = 'en-us';
-        name = 'English - United States';
-      } else {
-        // Keep en-us as is in other cases
-        code = 'en-us';
-        name = 'English - United States';
-      }
-    } else if (locale === 'en') {
-      if (hasEnUs && !hasUnd) {
-        // If "en" + "en-us" (no und), "en" becomes "und"
-        code = 'und';
+        break;
+      case 'und':
         name = 'Language Neutral';
-      } else {
-        // Keep "en" as is in other cases
-        code = 'en';
-        name = 'English';
-      }
+        break;
+      default:
+        name = ''; // Will be filled from Contentstack API later
+        break;
     }
-    
-    return { code, name, isMaster };
+
+    return { code: code.toLowerCase(), name, isMaster };
   });
 }
 
 /**
  * Processes and creates locale configurations from Drupal database for migration to Contentstack.
- * 
+ *
  * This function:
  * 1. Fetches master locale from Drupal system.site config
  * 2. Fetches all locales from node_field_data
@@ -120,28 +151,25 @@ export const createLocale = async (
   project: any
 ) => {
   const srcFunc = 'createLocale';
-  const localeSave = path.join(MIGRATION_DATA_PATH, destination_stack_id, LOCALE_DIR_NAME);
+  const localeSave = path.join(
+    MIGRATION_DATA_PATH,
+    destination_stack_id,
+    LOCALE_DIR_NAME
+  );
 
   try {
     const msLocale: Record<string, Locale> = {};
     const allLocales: Record<string, Locale> = {};
     const localeList: Record<string, Locale> = {};
 
-    // Create database connection using dbConfig
-    console.log('🔍 Database config for locales:', {
-      host: dbConfig?.host,
-      user: dbConfig?.user,
-      database: dbConfig?.database,
-      port: dbConfig?.port,
-      hasPassword: !!dbConfig?.password
-    });
-    
     if (!dbConfig || !dbConfig.host || !dbConfig.user || !dbConfig.database) {
-      throw new Error('Invalid database configuration provided to createLocale');
+      throw new Error(
+        'Invalid database configuration provided to createLocale'
+      );
     }
-    
+
     const connection = await createDbConnection(dbConfig);
-    
+
     if (!connection) {
       throw new Error('Failed to create database connection');
     }
@@ -179,7 +207,7 @@ export const createLocale = async (
       WHERE langcode IS NOT NULL AND langcode != '' 
       ORDER BY langcode
     `;
-    
+
     const allLocaleRows: any = await executeQuery(allLocalesQuery);
     const allLocaleCodes = allLocaleRows.map((row: any) => row.langcode);
 
@@ -202,7 +230,7 @@ export const createLocale = async (
         )
       ORDER BY n.langcode
     `;
-    
+
     const nonMasterRows: any = await executeQuery(nonMasterLocalesQuery);
     const nonMasterLocaleCodes = nonMasterRows.map((row: any) => row.langcode);
 
@@ -213,19 +241,28 @@ export const createLocale = async (
     const contentstackLocales = await fetchContentstackLocales();
 
     // 5. Apply special transformation rules
-    const transformedLocales = applyLocaleTransformations(allLocaleCodes, masterLocaleCode);
+    const transformedLocales = applyLocaleTransformations(
+      allLocaleCodes,
+      masterLocaleCode
+    );
 
     // 6. Process each locale
     transformedLocales.forEach((localeInfo, index) => {
       const { code, name, isMaster } = localeInfo;
-      
+
       // Create UID using original langcode from database
       const originalLangcode = allLocaleCodes[index]; // Get original langcode from database
-      const uid = `drupallocale_${originalLangcode.toLowerCase().replace(/-/g, '_')}`;
-      
+      const uid = `drupallocale_${originalLangcode
+        .toLowerCase()
+        .replace(/-/g, '_')}`;
+
       // Get name from Contentstack API or use transformed name
-      const localeName = name || contentstackLocales[code] || contentstackLocales[code.toLowerCase()] || 'Unknown Language';
-      
+      const localeName =
+        name ||
+        contentstackLocales[code] ||
+        contentstackLocales[code.toLowerCase()] ||
+        'Unknown Language';
+
       const newLocale: Locale = {
         code: code.toLowerCase(),
         name: localeName,
@@ -239,17 +276,18 @@ export const createLocale = async (
       } else {
         allLocales[uid] = newLocale;
       }
-      
+
       localeList[uid] = newLocale;
     });
 
     // Handle case where no non-master locales exist
-    const finalAllLocales = Object.keys(allLocales).length > 0 ? allLocales : {};
+    const finalAllLocales =
+      Object.keys(allLocales).length > 0 ? allLocales : {};
 
     // 7. Write locale files (same structure as Contentful)
-    await writeFile(localeSave, LOCALE_FILE_NAME, finalAllLocales);        // locales.json (non-master only)
-    await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale);           // master-locale.json (master only)
-    await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList);           // language.json (all locales)
+    await writeFile(localeSave, LOCALE_FILE_NAME, finalAllLocales); // locales.json (non-master only)
+    await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale); // master-locale.json (master only)
+    await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList); // language.json (all locales)
 
     const message = getLogMessage(
       srcFunc,
@@ -257,7 +295,6 @@ export const createLocale = async (
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', message);
-
   } catch (err) {
     const message = getLogMessage(
       srcFunc,

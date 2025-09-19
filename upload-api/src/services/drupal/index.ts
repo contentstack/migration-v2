@@ -14,18 +14,13 @@ const createDrupalMapper = async (
   affix: string | string[]
 ) => {
   try {
-    console.log('hey we are in createDrupalMapper');
-
     // this is to fetch the locales from the drupal database
     // const fetchedLocales:[]= await extractLocale(config)
 
     const localeData = await extractLocale(config);
-    console.log('🔍 DEBUG: Locale data from extractLocale:', localeData);
 
     // Extract taxonomy vocabularies and save to drupalMigrationData
-    console.log('🏷️ Extracting taxonomy vocabularies...');
-    const taxonomyData = await extractTaxonomy(config.mysql);
-    console.log(`✅ Extracted ${taxonomyData.length} taxonomy vocabularies`);
+    await extractTaxonomy(config.mysql);
 
     const initialMapper = await createInitialMapper(config, affix);
 
@@ -41,21 +36,15 @@ const createDrupalMapper = async (
     };
 
     const { data } = await axios.request(req);
-    console.log('🚀 ~ createDrupalMapper ~ data:', data?.data);
     if (data?.data?.content_mapper?.length) {
-      console.log('Inside the if block of createDrupalMapper');
-
       logger.info('Validation success:', {
         status: HTTP_CODES?.OK,
         message: HTTP_TEXTS?.MAPPER_SAVED
       });
-    } else {
-      console.log('Inside the else block of createDrupalMapper');
     }
 
     const localeArray = Array.from(localeData);
-    console.log('🔍 DEBUG: Sending locales to API:', localeArray);
-    
+
     const mapperConfig = {
       method: 'post',
       maxBodyLength: Infinity,
@@ -77,7 +66,6 @@ const createDrupalMapper = async (
       });
     }
   } catch (err: any) {
-    console.error('🚀 ~ createDrupalMapper ~ err:', err?.response?.data ?? err);
     logger.warn('Validation error:', {
       status: HTTP_CODES?.UNAUTHORIZED,
       message: HTTP_TEXTS?.VALIDATION_ERROR
