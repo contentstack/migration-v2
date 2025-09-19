@@ -34,16 +34,20 @@ interface QueryConfig {
  * Get field information by querying the database for a specific field
  * Enhanced to handle link fields with both URI and TITLE columns
  */
-const getQuery = (connection: mysql.Connection, data: DrupalFieldData): Promise<string> => {
+const getQuery = (
+  connection: mysql.Connection,
+  data: DrupalFieldData
+): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
       const tableName = `node__${data.field_name}`;
-      
+
       // Check if this is a link field first
       if (data.type !== 'link') {
         // For non-link fields, use existing logic
         const value = data.field_name;
-        const handlerType = data.content_handler === undefined ? 'invalid' : data.content_handler;
+        const handlerType =
+          data.content_handler === undefined ? 'invalid' : data.content_handler;
         const query = `SELECT *, '${handlerType}' as handler, '${data.type}' as fieldType FROM ${tableName}`;
 
         connection.query(query, (error: any, rows: any, fields: any) => {
@@ -51,14 +55,16 @@ const getQuery = (connection: mysql.Connection, data: DrupalFieldData): Promise<
             // Look for field patterns in the database columns
             for (const field of fields) {
               const fieldName = field.name;
-              
+
               // Check for various Drupal field suffixes
-              if (fieldName === `${value}_value` || 
-                  fieldName === `${value}_fid` || 
-                  fieldName === `${value}_tid` || 
-                  fieldName === `${value}_status` || 
-                  fieldName === `${value}_target_id` || 
-                  fieldName === `${value}_uri`) {
+              if (
+                fieldName === `${value}_value` ||
+                fieldName === `${value}_fid` ||
+                fieldName === `${value}_tid` ||
+                fieldName === `${value}_status` ||
+                fieldName === `${value}_target_id` ||
+                fieldName === `${value}_uri`
+              ) {
                 const fieldTable = `node__${data.field_name}.${fieldName}`;
                 resolve(fieldTable);
                 return;
@@ -73,33 +79,43 @@ const getQuery = (connection: mysql.Connection, data: DrupalFieldData): Promise<
         });
         return;
       }
-      
+
       // For LINK fields only - get both URI and TITLE columns
-      connection.query(`SHOW COLUMNS FROM ${tableName}`, (error: any, columns: any) => {
-        if (error) {
-          console.error(`Error querying columns for link field ${data.field_name}:`, error);
-          resolve('');
-          return;
+      connection.query(
+        `SHOW COLUMNS FROM ${tableName}`,
+        (error: any, columns: any) => {
+          if (error) {
+            console.error(
+              `Error querying columns for link field ${data.field_name}:`,
+              error
+            );
+            resolve('');
+            return;
+          }
+
+          // Filter for link-specific columns only
+          const linkColumns = columns
+            .map((col: any) => col.Field)
+            .filter(
+              (field: string) =>
+                (field === `${data.field_name}_uri` ||
+                  field === `${data.field_name}_title`) &&
+                field.startsWith(data.field_name)
+            );
+
+          if (linkColumns.length > 0) {
+            // Return both columns as MAX aggregations for link fields
+            const maxColumns = linkColumns.map(
+              (col: string) => `MAX(${tableName}.${col}) as ${col}`
+            );
+            resolve(maxColumns.join(','));
+          } else {
+            // Fallback to just URI if title doesn't exist
+            const uriColumn = `${data.field_name}_uri`;
+            resolve(`MAX(${tableName}.${uriColumn}) as ${uriColumn}`);
+          }
         }
-        
-        // Filter for link-specific columns only
-        const linkColumns = columns
-          .map((col: any) => col.Field)
-          .filter((field: string) => 
-            (field === `${data.field_name}_uri` || field === `${data.field_name}_title`) &&
-            field.startsWith(data.field_name)
-          );
-        
-        if (linkColumns.length > 0) {
-          // Return both columns as MAX aggregations for link fields
-          const maxColumns = linkColumns.map((col: string) => `MAX(${tableName}.${col}) as ${col}`);
-          resolve(maxColumns.join(','));
-        } else {
-          // Fallback to just URI if title doesn't exist
-          const uriColumn = `${data.field_name}_uri`;
-          resolve(`MAX(${tableName}.${uriColumn}) as ${uriColumn}`);
-        }
-      });
+      );
     } catch (error) {
       console.error('Error in getQuery', error);
       resolve(''); // Resolve with empty string on error to continue process
@@ -117,28 +133,37 @@ const generateQueriesForFields = async (
   destination_stack_id: string
 ): Promise<QueryConfig> => {
   const srcFunc = 'generateQueriesForFields';
-  
+
   try {
     const select: { [contentType: string]: string } = {};
     const countQuery: { [contentType: string]: string } = {};
-    
+
     // Group fields by content type
-    const contentTypes = [...new Set(fieldData.map(field => field.content_types))];
-    
+    const contentTypes = [
+      ...new Set(fieldData.map((field) => field.content_types)),
+    ];
+
     const message = `Processing ${contentTypes.length} content types for query generation...`;
     await customLogger(projectId, destination_stack_id, 'info', message);
 
     // Process each content type
     for (const contentType of contentTypes) {
-      const fieldsForType = fieldData.filter(field => field.content_types === contentType);
+      const fieldsForType = fieldData.filter(
+        (field) => field.content_types === contentType
+      );
       const fieldCount = fieldsForType.length;
       const maxJoinLimit = 50; // Conservative limit to avoid MySQL's 61-table limit
-      
+
       // Check if content type has too many fields for single query
       if (fieldCount > maxJoinLimit) {
         const warningMessage = `Content type '${contentType}' has ${fieldCount} fields (>${maxJoinLimit} limit). Using optimized base query only.`;
-        await customLogger(projectId, destination_stack_id, 'warn', warningMessage);
-        
+        await customLogger(
+          projectId,
+          destination_stack_id,
+          'warn',
+          warningMessage
+        );
+
         // Generate simple base query without field JOINs to avoid MySQL limit
         const baseQuery = `
           SELECT 
@@ -151,28 +176,38 @@ const generateQueriesForFields = async (
           LEFT JOIN users ON users.uid = node.uid
           WHERE node.type = '${contentType}'
           GROUP BY node.nid
-        `.replace(/\s+/g, ' ').trim();
-        
+        `
+          .replace(/\s+/g, ' ')
+          .trim();
+
         const baseCountQuery = `
           SELECT COUNT(DISTINCT node.nid) as countentry 
           FROM node_field_data node 
           WHERE node.type = '${contentType}'
-        `.replace(/\s+/g, ' ').trim();
-        
-        select[contentType] = baseQuery + ` /* OPTIMIZED_NO_JOINS:${fieldCount} */`;
+        `
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        select[contentType] =
+          baseQuery + ` /* OPTIMIZED_NO_JOINS:${fieldCount} */`;
         countQuery[`${contentType}Count`] = baseCountQuery;
-        
+
         const optimizedMessage = `Generated optimized base query for ${contentType} (avoiding ${fieldCount} JOINs)`;
-        await customLogger(projectId, destination_stack_id, 'info', optimizedMessage);
-        
+        await customLogger(
+          projectId,
+          destination_stack_id,
+          'info',
+          optimizedMessage
+        );
+
         continue; // Skip to next content type
       }
-      
+
       const tableJoins: string[] = [];
       const queries: Promise<string>[] = [];
 
       // Collect all field queries (only for content types with manageable field count)
-      fieldsForType.forEach(fieldData => {
+      fieldsForType.forEach((fieldData) => {
         tableJoins.push(`node__${fieldData.field_name}`);
         queries.push(getQuery(connection, fieldData));
       });
@@ -180,17 +215,17 @@ const generateQueriesForFields = async (
       try {
         // Wait for all field queries to complete
         const results = await Promise.all(queries);
-        
+
         // Filter out empty results
-        const validResults = results.filter(item => item);
-        
+        const validResults = results.filter((item) => item);
+
         if (validResults.length === 0) {
           console.log(`No valid fields found for content type ${contentType}`);
           continue;
         }
 
         // Build the SELECT clause with proper handling for link fields
-        const modifiedResults = validResults.map(item => {
+        const modifiedResults = validResults.map((item) => {
           // Check if this is already a MAX aggregation (link fields)
           if (item.includes('MAX(') && item.includes(' as ')) {
             return item; // Link fields are already properly formatted
@@ -201,14 +236,14 @@ const generateQueriesForFields = async (
 
         // Build LEFT JOIN clauses
         const leftJoins = tableJoins.map(
-          table => `LEFT JOIN ${table} ON ${table}.entity_id = node.nid`
+          (table) => `LEFT JOIN ${table} ON ${table}.entity_id = node.nid`
         );
         leftJoins.push('LEFT JOIN users ON users.uid = node.uid');
 
         // Construct the complete query
         const selectClause = [
           'SELECT node.nid, MAX(node.title) AS title, MAX(node.langcode) AS langcode, MAX(node.created) as created, MAX(node.type) as type',
-          ...modifiedResults
+          ...modifiedResults,
         ].join(',');
 
         const fromClause = 'FROM node_field_data node';
@@ -218,29 +253,43 @@ const generateQueriesForFields = async (
 
         // Final query construction
         const finalQuery = `${selectClause} ${fromClause} ${joinClause} ${whereClause} ${groupClause}`;
-        
+
         // Clean up any double commas
-        select[contentType] = finalQuery.replace(/,,/g, ',').replace(/, ,/g, ',');
+        select[contentType] = finalQuery
+          .replace(/,,/g, ',')
+          .replace(/, ,/g, ',');
 
         // Build count query
         const countQueryStr = `SELECT count(distinct(node.nid)) as countentry ${fromClause} ${joinClause} ${whereClause}`;
         countQuery[`${contentType}Count`] = countQueryStr;
 
         const fieldMessage = `Generated queries for content type: ${contentType} with ${validResults.length} fields`;
-        await customLogger(projectId, destination_stack_id, 'info', fieldMessage);
-
+        await customLogger(
+          projectId,
+          destination_stack_id,
+          'info',
+          fieldMessage
+        );
       } catch (error) {
         const errorMessage = `Error processing queries for content type: ${contentType}`;
-        await customLogger(projectId, destination_stack_id, 'error', errorMessage);
-        console.error('Error processing queries for content type:', contentType, error);
+        await customLogger(
+          projectId,
+          destination_stack_id,
+          'error',
+          errorMessage
+        );
+        console.error(
+          'Error processing queries for content type:',
+          contentType,
+          error
+        );
       }
     }
 
     return {
       page: select,
-      count: countQuery
+      count: countQuery,
     };
-
   } catch (error: any) {
     const errorMessage = `Error in generateQueriesForFields: ${error.message}`;
     await customLogger(projectId, destination_stack_id, 'error', errorMessage);
@@ -254,9 +303,9 @@ const generateQueriesForFields = async (
  */
 /**
  * Validates that query configuration file exists (legacy compatibility)
- * 
+ *
  * NOTE: This function is for backward compatibility.
- * The new dynamic query system uses createQuery() which generates queries 
+ * The new dynamic query system uses createQuery() which generates queries
  * based on actual database field analysis.
  */
 export const createQueryConfig = async (
@@ -269,10 +318,11 @@ export const createQueryConfig = async (
   try {
     // Check if dynamic query file exists (should be created by createQuery service)
     await fs.promises.access(queryPath);
-    console.log(`✅ Dynamic query configuration found at: ${queryPath}`);
   } catch (error) {
     // If no dynamic queries exist, this is an error since we removed hardcoded fallbacks
-    throw new Error(`❌ No query configuration found at ${queryPath}. Dynamic queries must be generated first using createQuery() service.`);
+    throw new Error(
+      `❌ No query configuration found at ${queryPath}. Dynamic queries must be generated first using createQuery() service.`
+    );
   }
 };
 
@@ -285,13 +335,6 @@ export const createQuery = async (
   let connection: mysql.Connection | null = null;
 
   try {
-    console.info('🔍 === DRUPAL QUERY SERVICE CONFIG ===');
-    console.info('📋 Database Config:', JSON.stringify(dbConfig, null, 2));
-    console.info('📋 Destination Stack ID:', destination_stack_id);
-    console.info('📋 Project ID:', projectId);
-    console.info('📋 Function:', srcFunc);
-    console.info('======================================');
-
     const queryDir = path.join(DATA, destination_stack_id, 'query');
     const queryPath = path.join(queryDir, 'index.json');
 
@@ -302,13 +345,18 @@ export const createQuery = async (
     await customLogger(projectId, destination_stack_id, 'info', message);
 
     // Create database connection
-    connection = await getDbConnection(dbConfig, projectId, destination_stack_id);
+    connection = await getDbConnection(
+      dbConfig,
+      projectId,
+      destination_stack_id
+    );
 
     // SQL query to extract field configuration from Drupal
-    const configQuery = "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'";
+    const configQuery =
+      "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'";
 
     // Execute query using promise-based approach
-    const [rows] = await connection.promise().query(configQuery) as any[];
+    const [rows] = (await connection.promise().query(configQuery)) as any[];
 
     let fieldData: DrupalFieldData[] = [];
 
@@ -317,12 +365,16 @@ export const createQuery = async (
       try {
         const { unserialize } = await import('php-serialize');
         const convDetails = unserialize(rows[i].data);
-        if (convDetails && typeof convDetails === 'object' && 'field_name' in convDetails) {
+        if (
+          convDetails &&
+          typeof convDetails === 'object' &&
+          'field_name' in convDetails
+        ) {
           fieldData.push({
             field_name: convDetails.field_name,
             content_types: convDetails.bundle,
             type: convDetails.field_type,
-            content_handler: convDetails?.settings?.handler
+            content_handler: convDetails?.settings?.handler,
           });
         }
       } catch (err: any) {
@@ -338,23 +390,30 @@ export const createQuery = async (
     await customLogger(projectId, destination_stack_id, 'info', fieldMessage);
 
     // Generate queries based on field data
-    const queryConfig = await generateQueriesForFields(connection, fieldData, projectId, destination_stack_id);
+    const queryConfig = await generateQueriesForFields(
+      connection,
+      fieldData,
+      projectId,
+      destination_stack_id
+    );
 
     // Write query configuration to file
-    await fs.promises.writeFile(queryPath, JSON.stringify(queryConfig, null, 4), 'utf8');
+    await fs.promises.writeFile(
+      queryPath,
+      JSON.stringify(queryConfig, null, 4),
+      'utf8'
+    );
 
     const successMessage = `Successfully generated and saved dynamic queries to: ${queryPath}`;
     await customLogger(projectId, destination_stack_id, 'info', successMessage);
-
-    console.info(`✅ Dynamic query configuration created at: ${queryPath}`);
-    console.info(`📊 Generated queries for ${Object.keys(queryConfig.page).length} content types`);
-
   } catch (error: any) {
     const errorMessage = `Failed to generate dynamic queries: ${error.message}`;
     await customLogger(projectId, destination_stack_id, 'error', errorMessage);
-    
+
     console.error('❌ Error generating dynamic queries:', error);
-    throw new Error(`Failed to connect to database or generate queries: ${error.message}`);
+    throw new Error(
+      `Failed to connect to database or generate queries: ${error.message}`
+    );
   } finally {
     // Always close the connection when done
     if (connection) {

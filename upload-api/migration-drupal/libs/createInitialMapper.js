@@ -38,8 +38,6 @@ const createInitialMapper = async (systemConfig, prefix) => {
     if (!fs.existsSync(drupalFolderPath)) {
       await fsp.mkdir(drupalFolderPath, { recursive: true });
     }
-
-    console.log('Extracting content types from Drupal database...');
     
     // Get database connection
     const connection = dbConnection(systemConfig);
@@ -76,11 +74,9 @@ const createInitialMapper = async (systemConfig, prefix) => {
     }
 
     if (details_data.length === 0) {
-      console.log('No content types found to process');
       return { contentTypes: [] };
     }
 
-    console.log(`Processing ${details_data.length} content type entries...`);
 
     const initialMapper = [];
     const contentTypes = Object.keys(require('lodash').keyBy(details_data, 'content_types'));
@@ -130,13 +126,8 @@ const createInitialMapper = async (systemConfig, prefix) => {
       );
     }
 
-    console.log(`Successfully processed ${initialMapper.length} content types`);
-    console.log('Content type extraction completed successfully');
-
     // Close database connection
     connection.end();
-    console.log('Database connection closed');
-
     return { contentTypes: initialMapper };
   } catch (error) {
     console.error('Error in content type extraction:', error);

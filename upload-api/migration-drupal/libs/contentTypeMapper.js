@@ -19,20 +19,16 @@ const loadTaxonomySchema = async (dbConfig = null) => {
     if (fs.existsSync(taxonomySchemaPath)) {
       const taxonomyData = fs.readFileSync(taxonomySchemaPath, 'utf8');
       const taxonomies = JSON.parse(taxonomyData);
-      console.log(`✅ Loaded ${taxonomies.length} taxonomies from schema file`);
       return taxonomies;
     }
     
     // If not found and dbConfig available, try to generate it
     if (dbConfig) {
-      console.log('⚠️ Taxonomy schema not found, attempting to generate...');
       const extractTaxonomy = require('./extractTaxonomy');
       const taxonomies = await extractTaxonomy(dbConfig);
-      console.log(`✅ Generated ${taxonomies.length} taxonomies`);
       return taxonomies;
     }
     
-    console.warn('⚠️ Taxonomy schema not found and no dbConfig provided for generation');
     return [];
     
   } catch (error) {
@@ -258,7 +254,6 @@ const createTaxonomyFieldObject = (item, taxonomySchema, targetVocabularies = []
 const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) => {
   // Load taxonomy schema for taxonomy field processing
   const taxonomySchema = await loadTaxonomySchema(dbConfig);
-  console.log(`🏷️ Loaded ${taxonomySchema.length} taxonomy vocabularies for field mapping`);
   
   // 🏷️ Collect taxonomy fields for consolidation
   const collectedTaxonomies = [];
@@ -273,7 +268,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         // Rich text with switching options: JSON RTE → HTML RTE → multiline → text
         const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
         const referenceFields = availableContentTypes.slice(0, 10);
-        console.log(`🔄 Rich text field ${item.field_name} using backup content types:`, referenceFields);
         acc.push(createFieldObject(item, 'json', 'html', referenceFields));
         break;
       }
@@ -281,7 +275,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         // Single line with switching options: single_line → multiline → HTML RTE → JSON RTE
         const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
         const referenceFields = availableContentTypes.slice(0, 10);
-        console.log(`🔄 Text field ${item.field_name} using backup content types:`, referenceFields);
         acc.push(createFieldObject(item, 'single_line_text', 'multi_line_text', referenceFields));
         break;
       }
@@ -290,7 +283,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         // Rich text with switching options: JSON RTE → HTML RTE → multiline → text
         const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
         const referenceFields = availableContentTypes.slice(0, 10);
-        console.log(`🔄 Rich text field ${item.field_name} using backup content types:`, referenceFields);
         acc.push(createFieldObject(item, 'json', 'html', referenceFields));
         break;
       }
@@ -299,7 +291,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         // Single line with switching options: single_line → multiline → HTML RTE → JSON RTE
         const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
         const referenceFields = availableContentTypes.slice(0, 10);
-        console.log(`🔄 Text field ${item.field_name} using backup content types:`, referenceFields);
         acc.push(createFieldObject(item, 'single_line_text', 'multi_line_text', referenceFields));
         break;
       }
@@ -310,7 +301,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
       case 'taxonomy_term_reference': {
         // 🏷️ Collect taxonomy field for consolidation instead of creating individual fields
         if (taxonomySchema && taxonomySchema.length > 0) {
-          console.log(`🏷️ Collecting taxonomy field for consolidation: ${item.field_name}`);
           
           // Try to determine specific vocabularies this field references
           let targetVocabularies = [];
@@ -318,7 +308,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
           // Check if field has handler settings that specify target vocabularies
           if (item.handler_settings && item.handler_settings.target_bundles) {
             targetVocabularies = Object.keys(item.handler_settings.target_bundles);
-            console.log(`🎯 Found target vocabularies for ${item.field_name}:`, targetVocabularies);
           }
           
           // Add vocabularies to collection (avoid duplicates)
@@ -338,7 +327,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
           }
         } else {
           // Fallback to regular reference field if no taxonomy schema available
-          console.warn(`⚠️ No taxonomy schema available for field: ${item.field_name}, using reference field`);
           acc.push(createFieldObject(item, 'reference', 'reference', ['taxonomy']));
         }
         break;
@@ -347,7 +335,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         // Check if this is a taxonomy field by handler
         if (item.handler === 'default:taxonomy_term') {
           // 🏷️ Collect taxonomy field for consolidation instead of creating individual fields
-          console.log(`🏷️ Collecting taxonomy field for consolidation: ${item.field_name}`);
           
           // Try to determine specific vocabularies this field references
           let targetVocabularies = [];
@@ -355,7 +342,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
           // Check if field has handler settings that specify target vocabularies
           if (item.reference) {
             targetVocabularies = Object.keys(item.reference);
-            console.log(`🎯 Found target vocabularies for ${item.field_name}:`, targetVocabularies);
           }
           
           if (taxonomySchema && taxonomySchema.length > 0) {
@@ -376,7 +362,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
             }
           } else {
             // Fallback to regular reference field if no taxonomy schema available
-            console.warn(`⚠️ No taxonomy schema available for field: ${item.field_name}, using reference field`);
             // Use available content types instead of generic 'taxonomy'
             const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
             const referenceFields = availableContentTypes.slice(0, 10);
@@ -389,12 +374,10 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
           if (item.reference && Object.keys(item.reference).length > 0) {
             // Use specific content types from field configuration
             referenceFields = Object.keys(item.reference);
-            console.log(`🎯 Found specific reference content types for ${item.field_name}:`, referenceFields);
           } else {
             // Backup: Use up to 10 content types from available content types
             const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
             referenceFields = availableContentTypes.slice(0, 10);
-            console.log(`🔄 No specific content types found for ${item.field_name}, using backup content types:`, referenceFields);
           }
           
           acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
@@ -402,7 +385,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
           // Handle other entity references - exclude taxonomy and limit to 10 content types
           const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
           const referenceFields = availableContentTypes.slice(0, 10);
-          console.log(`📋 Using available content types for ${item.field_name}:`, referenceFields);
           acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
         }
         break;
@@ -485,7 +467,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
 
   // 🏷️ TAXONOMY CONSOLIDATION: Create single consolidated taxonomy field if any taxonomies were collected
   if (collectedTaxonomies.length > 0) {
-    console.log(`🏷️ Creating consolidated taxonomy field with ${collectedTaxonomies.length} taxonomies:`, collectedTaxonomies);
     
     // Create consolidated taxonomy field with fixed properties
     const consolidatedTaxonomyField = {
@@ -513,7 +494,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
     
     // Add consolidated taxonomy field at the end of schema
     schemaArray.push(consolidatedTaxonomyField);
-    console.log(`✅ Added consolidated taxonomy field 'taxonomies' with ${collectedTaxonomies.length} vocabularies`);
   }
 
   return schemaArray;

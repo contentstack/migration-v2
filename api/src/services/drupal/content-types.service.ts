@@ -17,7 +17,7 @@ export const generateContentTypeSchemas = async (
   projectId: string
 ): Promise<void> => {
   const srcFunc = 'generateContentTypeSchemas';
-  
+
   try {
     const message = getLogMessage(
       srcFunc,
@@ -27,48 +27,75 @@ export const generateContentTypeSchemas = async (
     await customLogger(projectId, destination_stack_id, 'info', message);
 
     // Path to upload-api generated schema
-    const uploadApiSchemaPath = path.join(process.cwd(), '..', 'upload-api', 'drupalMigrationData', 'drupalSchema');
-    
+    const uploadApiSchemaPath = path.join(
+      process.cwd(),
+      '..',
+      'upload-api',
+      'drupalMigrationData',
+      'drupalSchema'
+    );
+
     // Path to API content types directory
-    const apiContentTypesPath = path.join(DATA, destination_stack_id, CONTENT_TYPES_DIR_NAME);
-    
+    const apiContentTypesPath = path.join(
+      DATA,
+      destination_stack_id,
+      CONTENT_TYPES_DIR_NAME
+    );
+
     // Ensure API content types directory exists
     await fs.promises.mkdir(apiContentTypesPath, { recursive: true });
-    
+
     if (!fs.existsSync(uploadApiSchemaPath)) {
-      throw new Error(`Upload-API schema not found at: ${uploadApiSchemaPath}. Please run upload-api migration first.`);
+      throw new Error(
+        `Upload-API schema not found at: ${uploadApiSchemaPath}. Please run upload-api migration first.`
+      );
     }
-    
+
     // Read all schema files from upload-api
-    const schemaFiles = fs.readdirSync(uploadApiSchemaPath).filter(file => file.endsWith('.json'));
-    
+    const schemaFiles = fs
+      .readdirSync(uploadApiSchemaPath)
+      .filter((file) => file.endsWith('.json'));
+
     if (schemaFiles.length === 0) {
-      throw new Error(`No schema files found in upload-api directory: ${uploadApiSchemaPath}`);
+      throw new Error(
+        `No schema files found in upload-api directory: ${uploadApiSchemaPath}`
+      );
     }
-    
-    console.log(`📋 Found ${schemaFiles.length} content type schemas to convert`);
-    
+
     for (const schemaFile of schemaFiles) {
       try {
-        const uploadApiSchemaFilePath = path.join(uploadApiSchemaPath, schemaFile);
-        const uploadApiSchema = JSON.parse(fs.readFileSync(uploadApiSchemaFilePath, 'utf8'));
-        
+        const uploadApiSchemaFilePath = path.join(
+          uploadApiSchemaPath,
+          schemaFile
+        );
+        const uploadApiSchema = JSON.parse(
+          fs.readFileSync(uploadApiSchemaFilePath, 'utf8')
+        );
+
         // Convert upload-api schema to API format
         const apiSchema = convertUploadApiSchemaToApiSchema(uploadApiSchema);
-        
+
         // Write API schema file
         const apiSchemaFilePath = path.join(apiContentTypesPath, schemaFile);
-        await fs.promises.writeFile(apiSchemaFilePath, JSON.stringify(apiSchema, null, 2), 'utf8');
-        
+        await fs.promises.writeFile(
+          apiSchemaFilePath,
+          JSON.stringify(apiSchema, null, 2),
+          'utf8'
+        );
+
         const fieldMessage = getLogMessage(
           srcFunc,
-          `Converted content type ${uploadApiSchema.uid} with ${uploadApiSchema.schema?.length || 0} fields`,
+          `Converted content type ${uploadApiSchema.uid} with ${
+            uploadApiSchema.schema?.length || 0
+          } fields`,
           {}
         );
-        await customLogger(projectId, destination_stack_id, 'info', fieldMessage);
-        
-        console.log(`✅ Converted ${schemaFile}: ${uploadApiSchema.schema?.length || 0} fields`);
-        
+        await customLogger(
+          projectId,
+          destination_stack_id,
+          'info',
+          fieldMessage
+        );
       } catch (error: any) {
         const errorMessage = getLogMessage(
           srcFunc,
@@ -76,20 +103,25 @@ export const generateContentTypeSchemas = async (
           {},
           error
         );
-        await customLogger(projectId, destination_stack_id, 'error', errorMessage);
-        console.error(`❌ Failed to convert ${schemaFile}:`, error.message);
+        await customLogger(
+          projectId,
+          destination_stack_id,
+          'error',
+          errorMessage
+        );
       }
     }
-    
+
     const successMessage = getLogMessage(
       srcFunc,
       `Successfully generated ${schemaFiles.length} content type schemas from upload-api`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', successMessage);
-    
-    console.log(`🎉 Successfully converted ${schemaFiles.length} content type schemas`);
-    
+
+    console.log(
+      `🎉 Successfully converted ${schemaFiles.length} content type schemas`
+    );
   } catch (error: any) {
     const errorMessage = getLogMessage(
       srcFunc,
@@ -110,13 +142,13 @@ function convertUploadApiSchemaToApiSchema(uploadApiSchema: any): any {
   const apiSchema = {
     title: uploadApiSchema.title,
     uid: uploadApiSchema.uid,
-    schema: [] as any[]
+    schema: [] as any[],
   };
-  
+
   if (!uploadApiSchema.schema || !Array.isArray(uploadApiSchema.schema)) {
     return apiSchema;
   }
-  
+
   // Convert each field from upload-api format to API format
   for (const uploadField of uploadApiSchema.schema) {
     try {
@@ -134,41 +166,55 @@ function convertUploadApiSchemaToApiSchema(uploadApiSchema: any): any {
             nonLocalizable: uploadField.advanced?.non_localizable || false,
             default_value: uploadField.advanced?.default_value || '',
             validationRegex: uploadField.advanced?.format || '',
-            validationErrorMessage: uploadField.advanced?.error_message || ''
+            validationErrorMessage: uploadField.advanced?.error_message || '',
           },
           // For reference fields, preserve reference_to from upload-api
-          refrenceTo: uploadField.advanced?.reference_to || uploadField.advanced?.embedObjects || [],
-          // For taxonomy fields, preserve taxonomies from upload-api  
-          taxonomies: uploadField.advanced?.taxonomies || []
+          refrenceTo:
+            uploadField.advanced?.reference_to ||
+            uploadField.advanced?.embedObjects ||
+            [],
+          // For taxonomy fields, preserve taxonomies from upload-api
+          taxonomies: uploadField.advanced?.taxonomies || [],
         },
-        advanced: true
+        advanced: true,
       });
-      
+
       if (apiField) {
         // Preserve additional metadata from upload-api
-        if (uploadField.contentstackFieldType === 'reference' && uploadField.advanced?.reference_to) {
+        if (
+          uploadField.contentstackFieldType === 'reference' &&
+          uploadField.advanced?.reference_to
+        ) {
           apiField.reference_to = uploadField.advanced.reference_to;
         }
-        
-        if (uploadField.contentstackFieldType === 'taxonomy' && uploadField.advanced?.taxonomies) {
+
+        if (
+          uploadField.contentstackFieldType === 'taxonomy' &&
+          uploadField.advanced?.taxonomies
+        ) {
           apiField.taxonomies = uploadField.advanced.taxonomies;
         }
-        
+
         // Preserve field metadata for proper field type conversion
         if (uploadField.advanced?.multiline !== undefined) {
           apiField.field_metadata = apiField.field_metadata || {};
           apiField.field_metadata.multiline = uploadField.advanced.multiline;
         }
-        
+
         apiSchema.schema.push(apiField);
       }
-      
     } catch (error: any) {
-      console.warn(`Failed to convert field ${uploadField.uid}:`, error.message);
-      
+      console.warn(
+        `Failed to convert field ${uploadField.uid}:`,
+        error.message
+      );
+
       // Fallback: create basic field structure
       apiSchema.schema.push({
-        display_name: uploadField.contentstackField || uploadField.otherCmsField || uploadField.uid,
+        display_name:
+          uploadField.contentstackField ||
+          uploadField.otherCmsField ||
+          uploadField.uid,
         uid: uploadField.contentstackFieldUid || uploadField.uid,
         data_type: mapFieldTypeToDataType(uploadField.contentstackFieldType),
         mandatory: uploadField.advanced?.mandatory || false,
@@ -177,11 +223,11 @@ function convertUploadApiSchemaToApiSchema(uploadApiSchema: any): any {
         format: '',
         error_messages: { format: '' },
         multiple: uploadField.advanced?.multiple || false,
-        non_localizable: uploadField.advanced?.non_localizable || false
+        non_localizable: uploadField.advanced?.non_localizable || false,
       });
     }
   }
-  
+
   return apiSchema;
 }
 
@@ -191,26 +237,26 @@ function convertUploadApiSchemaToApiSchema(uploadApiSchema: any): any {
  */
 function mapFieldTypeToDataType(fieldType: string): string {
   const fieldTypeMap: { [key: string]: string } = {
-    'single_line_text': 'text',
-    'multi_line_text': 'text', 
-    'text': 'text',
-    'html': 'html',
-    'json': 'json',
-    'markdown': 'text',
-    'number': 'number',
-    'boolean': 'boolean',
-    'isodate': 'isodate',
-    'file': 'file',
-    'reference': 'reference',
-    'taxonomy': 'taxonomy',
-    'link': 'link',
-    'dropdown': 'text',
-    'radio': 'text',
-    'checkbox': 'boolean',
-    'global_field': 'global_field',
-    'group': 'group',
-    'url': 'text'
+    single_line_text: 'text',
+    multi_line_text: 'text',
+    text: 'text',
+    html: 'html',
+    json: 'json',
+    markdown: 'text',
+    number: 'number',
+    boolean: 'boolean',
+    isodate: 'isodate',
+    file: 'file',
+    reference: 'reference',
+    taxonomy: 'taxonomy',
+    link: 'link',
+    dropdown: 'text',
+    radio: 'text',
+    checkbox: 'boolean',
+    global_field: 'global_field',
+    group: 'group',
+    url: 'text',
   };
-  
+
   return fieldTypeMap[fieldType] || 'text';
 }

@@ -2,6 +2,7 @@ import sitecoreValidator from './sitecore';
 import contentfulValidator from './contentful';
 import wordpressValidator from './wordpress';
 import aemValidator from './aem';
+import drupalValidator from './drupal';
 
 const validator = ({ data, type, extension }: { data: any; type: string; extension: string }) => {
   const CMSIdentifier = `${type}-${extension}`;
@@ -20,6 +21,10 @@ const validator = ({ data, type, extension }: { data: any; type: string; extensi
 
     case 'aem-zip': {
       return aemValidator({ data });
+    }
+
+    case 'drupal-sql': {
+      return drupalValidator({ data });
     }
 
     default:

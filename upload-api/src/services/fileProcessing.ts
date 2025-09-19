@@ -68,52 +68,48 @@ const handleFileProcessing = async (
         };
       }
     }
-  }else if (fileExt === 'sql') {
-    console.log('SQL file processing');
+  } else if (fileExt === 'sql') {
     try {
-      // Get database connection
-      const dbConnection = await getDbConnection(config.mysql);
+      // Validate SQL connection using our Drupal validator
+      const isValidConnection = await validator({
+        data: config.mysql,
+        type: cmsType,
+        extension: fileExt
+      });
 
-      if (dbConnection) {
-        await validator({ data: config, type: cmsType, extension: fileExt });
-        logger.info('Database connection success:', {
+      if (isValidConnection) {
+        logger.info('Database validation success:', {
           status: HTTP_CODES?.OK,
-          message: 'Successfully connected to database'
+          message: 'File validated successfully'
         });
         const successResponse = {
           status: HTTP_CODES?.OK,
-          message: 'Successfully connected to database',
+          message: 'File validated successfully',
           file_details: config
         };
-        console.log('=== Sending response (sql success) ===');
-        console.log('Response object:', JSON.stringify(successResponse, null, 2));
         return successResponse;
       } else {
-        logger.warn('Database connection error:', {
+        logger.warn('Database validation failed:', {
           status: HTTP_CODES?.UNAUTHORIZED,
-          message: 'Failed to connect to database'
+          message: 'Failed to validate database connection or required tables are missing'
         });
-        const authErrorResponse = {
+        const validationErrorResponse = {
           status: HTTP_CODES?.UNAUTHORIZED,
-          message: 'Failed to connect to database',
+          message: 'Failed to validate database connection or required tables are missing',
           file_details: config
         };
-        console.log('=== Sending response (sql auth error) ===');
-        console.log('Response object:', JSON.stringify(authErrorResponse, null, 2));
-        return authErrorResponse;
+        return validationErrorResponse;
       }
     } catch (error) {
-      logger.error('Database connection error:', error);
-      console.log('=== Sending response (sql server error) ===');
-  const errorResponse = {
-    status: HTTP_CODES?.SERVER_ERROR,
-    message: 'Failed to connect to database',
-    file_details: config
-  };
-  console.log('Response object:', JSON.stringify(errorResponse, null, 2));
-  return errorResponse;
+      logger.error('Database validation error:', error);
+      const errorResponse = {
+        status: HTTP_CODES?.SERVER_ERROR,
+        message: 'Database validation failed with error',
+        file_details: config
+      };
+      return errorResponse;
     }
-  }else {
+  } else {
     // if file is not zip
     // Convert the buffer to a string assuming it's UTF-8 encoded
     const jsonString = Buffer?.from?.(zipBuffer)?.toString?.('utf8');

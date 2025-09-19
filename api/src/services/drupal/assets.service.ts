@@ -1,13 +1,13 @@
-import fs from "fs";
-import path from "path";
-import axios from "axios";
+import fs from 'fs';
+import path from 'path';
+import axios from 'axios';
 import pLimit from 'p-limit';
 import mysql from 'mysql2';
-import { MIGRATION_DATA_CONFIG } from "../../constants/index.js";
-import { getLogMessage } from "../../utils/index.js";
-import customLogger from "../../utils/custom-logger.utils.js";
-import { getDbConnection } from "../../helper/index.js";
-import { processBatches } from "../../utils/batch-processor.utils.js";
+import { MIGRATION_DATA_CONFIG } from '../../constants/index.js';
+import { getLogMessage } from '../../utils/index.js';
+import customLogger from '../../utils/custom-logger.utils.js';
+import { getDbConnection } from '../../helper/index.js';
+import { processBatches } from '../../utils/batch-processor.utils.js';
 
 const {
   DATA,
@@ -32,7 +32,7 @@ interface DrupalAsset {
   status?: string | number;
   uid?: string | number;
   timestamp?: string | number;
-  id?: string | number;    // For file_usage table
+  id?: string | number; // For file_usage table
   count?: string | number; // For file_usage table
 }
 
@@ -44,7 +44,7 @@ async function writeFile(dirPath: string, filename: string, data: any) {
   try {
     await fs.promises.mkdir(dirPath, { recursive: true });
     const filePath = path.join(dirPath, filename);
-    
+
     // Use file handle for better control over file operations
     fileHandle = await fs.promises.open(filePath, 'w');
     await fileHandle.writeFile(JSON.stringify(data), 'utf8');
@@ -57,7 +57,10 @@ async function writeFile(dirPath: string, filename: string, data: any) {
       try {
         await fileHandle.close();
       } catch (closeErr) {
-        console.error(`Error closing file handle for ${dirPath}/${filename}:`, closeErr);
+        console.error(
+          `Error closing file handle for ${dirPath}/${filename}:`,
+          closeErr
+        );
       }
     }
   }
@@ -66,15 +69,19 @@ async function writeFile(dirPath: string, filename: string, data: any) {
 /**
  * Constructs the full URL for Drupal assets, handling public:// and private:// schemes
  */
-const constructAssetUrl = (uri: string, baseUrl: string, publicPath: string): string => {
+const constructAssetUrl = (
+  uri: string,
+  baseUrl: string,
+  publicPath: string
+): string => {
   let url = uri;
   const replaceValue = baseUrl + publicPath;
-  
-  if (!url.startsWith("http")) {
-    url = url.replace("public://", replaceValue);
-    url = url.replace("private://", replaceValue);
+
+  if (!url.startsWith('http')) {
+    url = url.replace('public://', replaceValue);
+    url = url.replace('private://', replaceValue);
   }
-  
+
   return encodeURI(url);
 };
 
@@ -89,14 +96,14 @@ const saveAsset = async (
   metadata: AssetMetaData[],
   projectId: string,
   destination_stack_id: string,
-  baseUrl: string = "",
-  publicPath: string = "/sites/default/files/",
+  baseUrl: string = '',
+  publicPath: string = '/sites/default/files/',
   retryCount = 0
 ): Promise<string> => {
   try {
     const srcFunc = 'saveAsset';
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
-    
+
     // Use Drupal-specific field names
     const assetId = `assets_${assets.fid}`;
     const fileName = assets.filename;
@@ -109,10 +116,10 @@ const saveAsset = async (
 
     try {
       const response = await axios.get(fileUrl, {
-        responseType: "arraybuffer",
+        responseType: 'arraybuffer',
         timeout: 30000,
       });
-      
+
       const assetPath = path.resolve(assetsSave, assetId);
 
       // Create asset data following Drupal migration pattern
@@ -139,23 +146,40 @@ const saveAsset = async (
       );
 
       await fs.promises.mkdir(assetPath, { recursive: true });
-      await fs.promises.writeFile(path.join(assetPath, fileName), Buffer.from(response.data), "binary");
-      await writeFile(assetPath, `_contentstack_${assetId}.json`, assetData[assetId]);
-      
+      await fs.promises.writeFile(
+        path.join(assetPath, fileName),
+        Buffer.from(response.data),
+        'binary'
+      );
+      await writeFile(
+        assetPath,
+        `_contentstack_${assetId}.json`,
+        assetData[assetId]
+      );
+
       metadata.push({ uid: assetId, url: fileUrl, filename: fileName });
-      
+
       // Remove from failed assets if it was previously failed
       if (failedJSON[assetId]) {
         delete failedJSON[assetId];
       }
-      
+
       await customLogger(projectId, destination_stack_id, 'info', message);
       return assetId;
-      
     } catch (err: any) {
       if (retryCount < 1) {
         // Retry once
-        return await saveAsset(assets, failedJSON, assetData, metadata, projectId, destination_stack_id, baseUrl, publicPath, retryCount + 1);
+        return await saveAsset(
+          assets,
+          failedJSON,
+          assetData,
+          metadata,
+          projectId,
+          destination_stack_id,
+          baseUrl,
+          publicPath,
+          retryCount + 1
+        );
       } else {
         // Mark as failed after retry
         failedJSON[assetId] = {
@@ -165,7 +189,7 @@ const saveAsset = async (
           file_size: assets.filesize,
           reason_for_error: err?.message,
         };
-        
+
         const message = getLogMessage(
           srcFunc,
           `Failed to download asset "${fileName}" with id ${assets.fid}: ${err.message}`,
@@ -177,7 +201,7 @@ const saveAsset = async (
       }
     }
   } catch (error) {
-    console.error("Error in saveAsset:", error);
+    console.error('Error in saveAsset:', error);
     return `assets_${assets.fid}`;
   }
 };
@@ -185,7 +209,10 @@ const saveAsset = async (
 /**
  * Executes SQL query and returns results as Promise
  */
-const executeQuery = (connection: mysql.Connection, query: string): Promise<any[]> => {
+const executeQuery = (
+  connection: mysql.Connection,
+  query: string
+): Promise<any[]> => {
   return new Promise((resolve, reject) => {
     connection.query(query, (error, results) => {
       if (error) {
@@ -206,18 +233,19 @@ const fetchAssetsFromDB = async (
   destination_stack_id: string
 ): Promise<DrupalAsset[]> => {
   const srcFunc = 'fetchAssetsFromDB';
-  const assetsQuery = "SELECT a.fid, a.filename, a.uri, a.filesize, a.filemime FROM file_managed a";
-  
+  const assetsQuery =
+    'SELECT a.fid, a.filename, a.uri, a.filesize, a.filemime FROM file_managed a';
+
   try {
     const results = await executeQuery(connection, assetsQuery);
-    
+
     const message = getLogMessage(
       srcFunc,
       `Fetched ${results.length} assets from database.`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', message);
-    
+
     return results as DrupalAsset[];
   } catch (error: any) {
     const message = getLogMessage(
@@ -242,27 +270,40 @@ const retryFailedAssets = async (
   metadata: AssetMetaData[],
   projectId: string,
   destination_stack_id: string,
-  baseUrl: string = "",
-  publicPath: string = "/sites/default/files/"
+  baseUrl: string = '',
+  publicPath: string = '/sites/default/files/'
 ): Promise<void> => {
   const srcFunc = 'retryFailedAssets';
-  
+
   if (failedAssetIds.length === 0) {
     return;
   }
-  
+
   try {
-    const assetsFIDQuery = `SELECT a.fid, a.filename, a.uri, a.filesize, a.filemime, b.id, b.count FROM file_managed a, file_usage b WHERE a.fid IN (${failedAssetIds.join(',')})`;
+    const assetsFIDQuery = `SELECT a.fid, a.filename, a.uri, a.filesize, a.filemime, b.id, b.count FROM file_managed a, file_usage b WHERE a.fid IN (${failedAssetIds.join(
+      ','
+    )})`;
     const results = await executeQuery(connection, assetsFIDQuery);
-    
+
     if (results.length > 0) {
       const limit = pLimit(1); // Reduce to 1 for large datasets to prevent EMFILE errors
       const tasks = results.map((asset: DrupalAsset) =>
-        limit(() => saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, baseUrl, publicPath))
+        limit(() =>
+          saveAsset(
+            asset,
+            failedJSON,
+            assetData,
+            metadata,
+            projectId,
+            destination_stack_id,
+            baseUrl,
+            publicPath
+          )
+        )
       );
-      
+
       await Promise.all(tasks);
-      
+
       const message = getLogMessage(
         srcFunc,
         `Retried ${results.length} failed assets.`,
@@ -289,13 +330,13 @@ export const createAssets = async (
   dbConfig: any,
   destination_stack_id: string,
   projectId: string,
-  baseUrl: string = "",
-  publicPath: string = "/sites/default/files/",
+  baseUrl: string = '',
+  publicPath: string = '/sites/default/files/',
   isTest = false
 ) => {
   const srcFunc = 'createAssets';
   let connection: mysql.Connection | null = null;
-  
+
   try {
     console.info('🔍 === DRUPAL ASSETS SERVICE CONFIG ===');
     console.info('📋 Database Config:', JSON.stringify(dbConfig, null, 2));
@@ -308,31 +349,40 @@ export const createAssets = async (
     console.info('========================================');
 
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
-    const assetMasterFolderPath = path.join(DATA, destination_stack_id, "logs", ASSETS_DIR_NAME);
-    
+    const assetMasterFolderPath = path.join(
+      DATA,
+      destination_stack_id,
+      'logs',
+      ASSETS_DIR_NAME
+    );
+
     // Initialize directories and files
     await fs.promises.mkdir(assetsSave, { recursive: true });
     await fs.promises.mkdir(assetMasterFolderPath, { recursive: true });
-    
+
     // Initialize data structures
     const failedJSON: any = {};
     const assetData: any = {};
     const metadata: AssetMetaData[] = [];
-    const fileMeta = { "1": ASSETS_SCHEMA_FILE };
+    const fileMeta = { '1': ASSETS_SCHEMA_FILE };
     const failedAssetIds: string[] = [];
 
-    const message = getLogMessage(
-      srcFunc,
-      `Exporting assets...`,
-      {}
-    );
+    const message = getLogMessage(srcFunc, `Exporting assets...`, {});
     await customLogger(projectId, destination_stack_id, 'info', message);
 
     // Create database connection
-    connection = await getDbConnection(dbConfig, projectId, destination_stack_id);
-    
+    connection = await getDbConnection(
+      dbConfig,
+      projectId,
+      destination_stack_id
+    );
+
     // Fetch assets from database
-    const assetsData = await fetchAssetsFromDB(connection, projectId, destination_stack_id);
+    const assetsData = await fetchAssetsFromDB(
+      connection,
+      projectId,
+      destination_stack_id
+    );
 
     if (assetsData && assetsData.length > 0) {
       let assets = assetsData;
@@ -340,15 +390,22 @@ export const createAssets = async (
         assets = assets.slice(0, 10);
       }
 
-      console.log(`📊 Processing ${assets.length} assets...`);
-      
       // Use batch processing for large datasets to prevent EMFILE errors
       const batchSize = assets.length > 10000 ? 100 : 1000; // Smaller batches for very large datasets
       const results = await processBatches(
         assets,
         async (asset: DrupalAsset) => {
           try {
-            return await saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, baseUrl, publicPath);
+            return await saveAsset(
+              asset,
+              failedJSON,
+              assetData,
+              metadata,
+              projectId,
+              destination_stack_id,
+              baseUrl,
+              publicPath
+            );
           } catch (error) {
             failedAssetIds.push(asset.fid.toString());
             return `assets_${asset.fid}`;
@@ -357,14 +414,17 @@ export const createAssets = async (
         {
           batchSize,
           concurrency: 1, // Process one at a time to prevent file handle exhaustion
-          delayBetweenBatches: 200 // 200ms delay between batches to allow file handles to close
+          delayBetweenBatches: 200, // 200ms delay between batches to allow file handles to close
         },
         (batchIndex, totalBatches, batchResults) => {
-          console.log(`✅ Completed batch ${batchIndex}/${totalBatches} - Processed ${batchResults.length} assets`);
-          
           // Periodically save progress for very large datasets
           if (batchIndex % 10 === 0) {
-            console.log(`💾 Progress: ${batchIndex}/${totalBatches} batches completed (${(batchIndex/totalBatches*100).toFixed(1)}%)`);
+            console.log(
+              `💾 Progress: ${batchIndex}/${totalBatches} batches completed (${(
+                (batchIndex / totalBatches) *
+                100
+              ).toFixed(1)}%)`
+            );
           }
         }
       );
@@ -387,26 +447,28 @@ export const createAssets = async (
       // Write files following the original pattern
       await writeFile(assetsSave, ASSETS_SCHEMA_FILE, assetData);
       await writeFile(assetsSave, ASSETS_FILE_NAME, fileMeta);
-      
+
       if (Object.keys(failedJSON).length > 0) {
         await writeFile(assetMasterFolderPath, ASSETS_FAILED_FILE, failedJSON);
       }
 
       const successMessage = getLogMessage(
         srcFunc,
-        `Successfully processed ${Object.keys(assetData).length} assets out of ${assets.length} total assets.`,
+        `Successfully processed ${
+          Object.keys(assetData).length
+        } assets out of ${assets.length} total assets.`,
         {}
       );
-      await customLogger(projectId, destination_stack_id, 'info', successMessage);
-      
+      await customLogger(
+        projectId,
+        destination_stack_id,
+        'info',
+        successMessage
+      );
+
       return results;
-      
     } else {
-      const message = getLogMessage(
-        srcFunc,
-        `No assets found.`,
-        {}
-      );
+      const message = getLogMessage(srcFunc, `No assets found.`, {});
       await customLogger(projectId, destination_stack_id, 'info', message);
       return [];
     }

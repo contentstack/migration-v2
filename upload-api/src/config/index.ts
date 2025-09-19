@@ -21,8 +21,8 @@ export default {
     port: '3306'
   },
   drupalAssetsUrl: {
-    base_url: "",
-    public_path: "",
+    base_url: '',
+    public_path: ''
   },
-  localPath: process.env.CONTAINER_PATH || 'sql',
+  localPath: process.env.CONTAINER_PATH || 'sql'
 };
