@@ -597,17 +597,37 @@ const Migration = () => {
   const handleOnClickDestinationStack = async (event: MouseEvent) => {
     setIsLoading(true);
 
+    // 🔍 DEBUG: Log the actual localeMapping being validated
+    console.info('🔍 DEBUG: About to validate localeMapping:', JSON.stringify(newMigrationData?.destination_stack?.localeMapping, null, 2));
+    
     const hasNonEmptyMapping =
       newMigrationData?.destination_stack?.localeMapping &&
       Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
-        ([label, value]: [string, string]) =>
-          Boolean(label?.trim()) &&
-          value !== '' &&
-          value !== null &&
-          value !== undefined && 
-          label !== 'undefined' &&
-          isNaN(Number(label))
+        ([label, value]: [string, string]) => {
+          const conditions = {
+            hasLabel: Boolean(label?.trim()),
+            notEmptyValue: value !== '',
+            notNullValue: value !== null,
+            notUndefinedValue: value !== undefined,
+            labelNotUndefined: label !== 'undefined',
+            labelNotNumeric: isNaN(Number(label))
+          };
+          
+          console.info(`🔍 DEBUG: Validating entry [${label}] = "${value}":`, conditions);
+          
+          const passes = conditions.hasLabel &&
+                         conditions.notEmptyValue &&
+                         conditions.notNullValue &&
+                         conditions.notUndefinedValue &&
+                         conditions.labelNotUndefined &&
+                         conditions.labelNotNumeric;
+          
+          console.info(`🔍 DEBUG: Entry result: ${passes ? '✅ PASS' : '❌ FAIL'}`);
+          return passes;
+        }
       );
+    
+    console.info('🔍 DEBUG: Final hasNonEmptyMapping result:', hasNonEmptyMapping);
 
     const master_locale: LocalesType = {};
     const locales: LocalesType = {};

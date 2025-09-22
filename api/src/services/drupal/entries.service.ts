@@ -730,6 +730,9 @@ const processFieldData = async (
           } else {
             processedData[dataKey] = isoDate.toISOString();
           }
+          // Mark field as processed to avoid duplicate processing in second loop
+          processedFields.add(dataKey);
+          processedFields.add(matchingFieldConfig.field_name);
           continue;
         }
       }
@@ -741,6 +744,9 @@ const processFieldData = async (
           typeof value === 'number'
         ) {
           processedData[dataKey] = value === 1;
+          // Mark field as processed to avoid duplicate processing in second loop
+          processedFields.add(dataKey);
+          processedFields.add(matchingFieldConfig.field_name);
           continue;
         }
       }
@@ -752,6 +758,9 @@ const processFieldData = async (
           typeof value === 'number'
         ) {
           processedData[dataKey] = `${value}`;
+          // Mark field as processed to avoid duplicate processing in second loop
+          processedFields.add(dataKey);
+          processedFields.add(matchingFieldConfig.field_name);
           continue;
         }
       }
@@ -840,17 +849,43 @@ const processFieldData = async (
         };
       }
     } else if (fieldName.endsWith('_value')) {
+      // Skip if this field was already processed in the main loop (avoid duplicates)
+      const baseFieldName = fieldName.replace('_value', '');
+      if (
+        processedFields.has(fieldName) ||
+        processedFields.has(baseFieldName)
+      ) {
+        continue;
+      }
+
       // Check if content contains HTML
       if (/<\/?[a-z][\s\S]*>/i.test(value)) {
         const dom = new JSDOM(value);
         const htmlDoc = dom.window.document.querySelector('body');
         const jsonValue = htmlToJson(htmlDoc);
-        ctValue[fieldName.replace('_value', '')] = jsonValue;
+        ctValue[baseFieldName] = jsonValue;
       } else {
-        ctValue[fieldName.replace('_value', '')] = value;
+        ctValue[baseFieldName] = value;
       }
+
+      // Mark both the original and base field as processed to avoid duplicates
+      processedFields.add(fieldName);
+      processedFields.add(baseFieldName);
     } else if (fieldName.endsWith('_status')) {
-      ctValue[fieldName.replace('_status', '')] = value;
+      // Skip if this field was already processed in the main loop (avoid duplicates)
+      const baseFieldName = fieldName.replace('_status', '');
+      if (
+        processedFields.has(fieldName) ||
+        processedFields.has(baseFieldName)
+      ) {
+        continue;
+      }
+
+      ctValue[baseFieldName] = value;
+
+      // Mark both the original and base field as processed to avoid duplicates
+      processedFields.add(fieldName);
+      processedFields.add(baseFieldName);
     } else {
       // Check if content contains HTML
       if (typeof value === 'string' && /<\/?[a-z][\s\S]*>/i.test(value)) {
@@ -864,14 +899,45 @@ const processFieldData = async (
     }
   }
 
-  // Apply processed field data
-  Object.assign(ctValue, processedData);
+  // Apply processed field data, but prioritize ctValue (processed without suffixes) over processedData (with suffixes)
+  // This prevents duplicate fields like both 'body' and 'body_value' from appearing
+  const mergedData = { ...processedData, ...ctValue };
 
   // Final cleanup: remove any null, undefined, or empty values from the final result
+  // Also remove duplicate fields where both suffixed and non-suffixed versions exist
   const cleanedEntry: any = {};
-  for (const [key, val] of Object.entries(ctValue)) {
+  for (const [key, val] of Object.entries(mergedData)) {
     if (val !== null && val !== undefined && val !== '') {
-      cleanedEntry[key] = val;
+      // Check if this is a suffixed field (_value, _status, _uri) and if a non-suffixed version exists
+      const isValueField = key.endsWith('_value');
+      const isStatusField = key.endsWith('_status');
+      const isUriField = key.endsWith('_uri');
+
+      if (isValueField) {
+        const baseFieldName = key.replace('_value', '');
+        // Only include the _value field if the base field doesn't exist
+        if (!mergedData.hasOwnProperty(baseFieldName)) {
+          cleanedEntry[key] = val;
+        }
+        // If base field exists, skip the _value field (base field takes priority)
+      } else if (isStatusField) {
+        const baseFieldName = key.replace('_status', '');
+        // Only include the _status field if the base field doesn't exist
+        if (!mergedData.hasOwnProperty(baseFieldName)) {
+          cleanedEntry[key] = val;
+        }
+        // If base field exists, skip the _status field (base field takes priority)
+      } else if (isUriField) {
+        const baseFieldName = key.replace('_uri', '');
+        // Only include the _uri field if the base field doesn't exist
+        if (!mergedData.hasOwnProperty(baseFieldName)) {
+          cleanedEntry[key] = val;
+        }
+        // If base field exists, skip the _uri field (base field takes priority)
+      } else {
+        // For non-suffixed fields, always include them
+        cleanedEntry[key] = val;
+      }
     }
   }
 
