@@ -71,14 +71,17 @@ const templatesComponents = ({ path: newPath }) => {
 const templateStandardValues = ({ components }) => {
   const standardValues = [];
   const data = components?.item?.$ ?? {};
-  components?.item?.fields?.field.forEach((item) => {
-    if (!item?.$?.key.includes('__')) {
-      standardValues.push({
-        content: item.content,
-        ...item.$
-      });
-    }
-  });
+  const fields = components?.item?.fields?.field;
+  if (fields && Array.isArray(fields)) {
+    fields.forEach((item) => {
+      if (!item?.$?.key.includes('__')) {
+        standardValues.push({
+          content: item.content,
+          ...item.$
+        });
+      }
+    });
+  }
   data.fields = standardValues;
   return data;
 };
@@ -111,7 +114,7 @@ const ContentTypeSchema = ({
   choices = [],
   sourLet,
   sitecoreKey,
-  affix,
+  affix
 }) => {
   const isPresent = restrictedUid?.find((item) => item === uid);
   if (isPresent) {
@@ -362,7 +365,7 @@ const groupFlat = (data, item) => {
   if (
     data?.data_type === 'group' &&
     Array.isArray(data?.schema) &&
-    data.schema.some(item => item !== undefined)
+    data.schema.some((item) => item !== undefined)
   ) {
     const group = {
       uid: item?.meta?.key,
@@ -455,17 +458,7 @@ const contentTypeMapper = ({
                   if (isKeyPresent('key', sourceType)) {
                     advanced = true;
                   }
-                } else {
-                  console.log(
-                    '🚀 ~ file: contenttypes.js:305 ~ field?.fields?.forEach ~ item?.content:',
-                    item?.content
-                  );
                 }
-              } else {
-                console.log(
-                  '🚀 ~ file: contenttypes.js:371 ~ field?.fields?.forEach ~ compType:',
-                  compType?.standardValues?.key
-                );
               }
             } else {
               if (source) {
@@ -547,7 +540,7 @@ const contentTypeMapper = ({
               sourLet,
               sitecoreKey: field?.key,
               isFromMapper: true,
-              affix,
+              affix
             })
           );
         }
@@ -590,7 +583,9 @@ const contentTypeMapper = ({
 
 const contentTypeMaker = ({ template, basePath, sitecore_folder, affix }) => {
   const isPresent = restrictedUid?.find((item) => item === template?.key);
-  const correctedUid = isPresent ? `${affix}_${uidCorrector({ uid: template?.key })}` : uidCorrector({ uid: template?.key })
+  const correctedUid = isPresent
+    ? `${affix}_${uidCorrector({ uid: template?.key })}`
+    : uidCorrector({ uid: template?.key });
   const content_type = {
     id: template?.id,
     status: 1,
