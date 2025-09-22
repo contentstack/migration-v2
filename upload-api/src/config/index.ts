@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: process.env.CMS_TYPE || 'sitecore',
+  cmsType: process.env.CMS_TYPE || 'cmsType',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
@@ -12,7 +12,5 @@ export default {
     bucketName: '',
     bucketKey: ''
   },
-  localPath:
-    process.env.CONTAINER_PATH ||
-    '/Users/saurav.upadhyay/Expert Service/Contentstack Migration/migration-v2/Secureworks Sitecore Data Migration Package-1.0.zip'
+  localPath: process.env.CONTAINER_PATH || 'your-local-legacy-cms-path'
 };
