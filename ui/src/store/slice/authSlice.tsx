@@ -97,6 +97,14 @@ const authSlice = createSlice({
         },
         setSelectedOrganisation: (state, action) => {
             state.selectedOrganisation = action?.payload;
+        },
+        clearOrganisationData: (state) => {
+            state.organisationsList = [];
+            state.selectedOrganisation = DEFAULT_DROPDOWN;
+        },
+        clearAuthToken: (state) => {
+            state.authToken = '';
+            state.isAuthenticated = false;
         }
 
 
@@ -116,7 +124,7 @@ const authSlice = createSlice({
         
     },
 })
-export const { setAuthToken, reInitiliseState, setOrganisationsList, setSelectedOrganisation, setUser } = authSlice.actions;
+export const { setAuthToken, reInitiliseState, setOrganisationsList, setSelectedOrganisation, setUser, clearOrganisationData, clearAuthToken } = authSlice.actions;
 
 export {getUserDetails};
 export default authSlice.reducer;
