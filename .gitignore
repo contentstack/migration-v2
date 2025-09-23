@@ -361,3 +361,5 @@ upload-api/extracted_files
 .qodo
 .vscode
 *MigrationData*
+*.zip
+*extracted_files*
