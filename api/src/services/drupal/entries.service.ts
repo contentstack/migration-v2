@@ -565,6 +565,12 @@ const consolidateTaxonomyFields = (
   const fieldsToRemove: string[] = [];
   const seenTermUids = new Set<string>(); // Track unique term_uid values
 
+  console.log(
+    `🏷️ Starting taxonomy consolidation for ${contentType} with ${
+      Object.keys(processedEntry).length
+    } fields`
+  );
+
   // Iterate through all fields in the processed entry
   for (const [fieldKey, fieldValue] of Object.entries(processedEntry)) {
     // Extract field name from key (remove _target_id suffix)
@@ -572,6 +578,9 @@ const consolidateTaxonomyFields = (
 
     // Check if this is a taxonomy field using field analysis
     if (isTaxonomyField(fieldName, contentType, taxonomyFieldMapping)) {
+      console.log(
+        `🏷️ Found taxonomy field in consolidation: ${fieldKey} -> ${fieldName}`
+      );
       // Validate that field value is an array with taxonomy structure
       if (Array.isArray(fieldValue)) {
         for (const taxonomyItem of fieldValue) {
@@ -655,6 +664,13 @@ const processFieldData = async (
       .replace(/_status$/, '')
       .replace(/_uri$/, '');
 
+    // Debug: Log all fields being processed
+    if (dataKey.endsWith('_target_id')) {
+      console.log(
+        `🔍 Processing _target_id field: ${dataKey} -> ${fieldName} (value: ${value}) for content type: ${contentType}`
+      );
+    }
+
     // Handle asset fields using field analysis
     if (
       dataKey.endsWith('_target_id') &&
@@ -678,10 +694,14 @@ const processFieldData = async (
     if (dataKey.endsWith('_target_id') && typeof value === 'number') {
       // Check if this is a taxonomy field using our field analysis
       if (isTaxonomyField(fieldName, contentType, taxonomyFieldMapping)) {
+        console.log(
+          `🏷️ Processing taxonomy field: ${fieldName} (${dataKey}) with value: ${value} for content type: ${contentType}`
+        );
         // Look up taxonomy reference using drupal_term_id
         const taxonomyRef = taxonomyReferenceLookup[value];
 
         if (taxonomyRef) {
+          console.log(`🏷️ Found taxonomy reference for ${value}:`, taxonomyRef);
           // Transform to array format with taxonomy_uid and term_uid (no drupal_term_id)
           processedData[dataKey] = [
             {
@@ -690,6 +710,9 @@ const processFieldData = async (
             },
           ];
         } else {
+          console.log(
+            `⚠️ No taxonomy reference found for drupal_term_id: ${value}`
+          );
           // Fallback to numeric tid if lookup failed
           processedData[dataKey] = value;
         }
@@ -1336,6 +1359,9 @@ const processEntries = async (
 
         processedEntry = enhancedEntry;
 
+        // Add publish_details as an empty array to the end of entry creation
+        processedEntry.publish_details = [];
+
         if (typeof entry.nid === 'number') {
           existingLocaleContent[`content_type_entries_title_${entry.nid}`] =
             processedEntry;
@@ -1588,6 +1614,11 @@ export const createEntry = async (
       assetFields: assetFieldMapping,
     } = await analyzeFieldTypes(dbConfig, destination_stack_id, projectId);
 
+    console.log(
+      `🏷️ Taxonomy field mapping loaded:`,
+      JSON.stringify(taxonomyFieldMapping, null, 2)
+    );
+
     // Fetch field configurations
     const fieldConfigs = await fetchFieldConfigs(
       connection,
@@ -1613,6 +1644,11 @@ export const createEntry = async (
     // Load taxonomy reference mappings for field transformation
     const taxonomyReferenceLookup = await loadTaxonomyReferences(
       referencesSave
+    );
+    console.log(
+      `🏷️ Loaded ${
+        Object.keys(taxonomyReferenceLookup).length
+      } taxonomy reference mappings`
     );
 
     // Process each content type from query config (like original)
