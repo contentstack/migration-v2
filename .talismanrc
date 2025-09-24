@@ -34,5 +34,7 @@ fileignoreconfig:
   checksum: ac81e1b00a641a97c1de7dc86c03e818454c91e527d79a17dec340a43448d930
 - filename: ui/package-lock.json
   checksum: 9c3c8eac6baca8456014614651bd447b9ec0d7736031fc11cfd46877563e0469
+- filename: upload-api/migration-contentful/package-lock.json
+  checksum: 69c54eadb09058eef416d8f68b9cc44b7178eb4a96beee9226b6a175a7518b5d
 
 version: "1.0.1-beta"
