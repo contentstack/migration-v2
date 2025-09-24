@@ -421,25 +421,31 @@ const startTestMigration = async (req: Request): Promise<any> => {
           keyMapper: project?.mapperKeys,
           project
         })
+        await aemService?.createLocale(
+          req,
+          project?.current_test_stack_id,
+          projectId,
+          project
+        );
+        await aemService?.createVersionFile(
+          project?.current_test_stack_id
+        );
         break;
       }
       default:
         break;
     }
-    await siteCoreService?.createVersionFile(
-      project?.current_test_stack_id
-    );
     await testFolderCreator?.({
       destinationStackId: project?.current_test_stack_id,
     });
-    // await utilsCli?.runCli(
-    //   region,
-    //   user_id,
-    //   project?.current_test_stack_id,
-    //   projectId,
-    //   true,
-    //   loggerPath
-    // );
+    await utilsCli?.runCli(
+      region,
+      user_id,
+      project?.current_test_stack_id,
+      projectId,
+      true,
+      loggerPath
+    );
   }
 };
 

@@ -1,9 +1,24 @@
 import fs from 'fs';
 import path from 'path';
 import read from 'fs-readdir-recursive';
+import { v4 as uuidv4 } from 'uuid';
 import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { buildSchemaTree } from '../utils/content-type-creator.utils.js';
+import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER } from '../constants/index.js';
+import { getLogMessage } from '../utils/index.js';
+import customLogger from '../utils/custom-logger.utils.js';
+import { orgService } from './org.service.js';
+import { Request } from 'express';
+
+const baseDirName = MIGRATION_DATA_CONFIG.DATA;
+const {
+  ENTRIES_DIR_NAME,
+  LOCALE_DIR_NAME,
+  LOCALE_MASTER_LOCALE,
+  LOCALE_FILE_NAME,
+  EXPORT_INFO_FILE
+} = MIGRATION_DATA_CONFIG;
 
 interface CreateAssetsOptions {
   packagePath?: string;
@@ -14,25 +29,75 @@ interface FieldMapping {
   contentstackFieldType?: string;
 }
 
+interface Project {
+  master_locale?: object;
+  locales?: object;
+  // add other properties as needed
+}
 
 interface ContentType {
+  contentstackUid?: string;
   otherCmsUid?: string;
   fieldMapping?: FieldMapping[];
 }
 
 interface CreateEntryOptions {
+  project?: Project;
   packagePath?: string;
-  contentTypes?: ContentType;
+  contentTypes?: ContentType[];
   master_locale?: string;
-  destinationStackId?: string;
-  projectId?: string;
+  destinationStackId: string;
+  projectId: string;
   keyMapper?: unknown;
-  project?: unknown;
 }
 
-const getLastKey = (str: string) => {
+interface LocaleInfo {
+  code: string;
+  fallback_locale: string | null;
+  uid: string;
+  name: string;
+}
+
+async function writeOneFile(indexPath: string, fileMeta: any) {
+  fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
+    if (err) {
+      console.error('Error writing file: 3', err);
+    }
+  });
+}
+
+async function writeFiles(
+  entryPath: string,
+  fileMeta: any,
+  entryLocale: any,
+  locale: string
+) {
+  try {
+    const indexPath = path.join(entryPath, 'index.json');
+    const localePath = path.join(entryPath, `${locale}.json`);
+    fs.access(entryPath, async (err) => {
+      if (err) {
+        fs.mkdir(entryPath, { recursive: true }, async (err) => {
+          if (err) {
+            console.error('Error writing file: 2', err);
+          } else {
+            await writeOneFile(indexPath, fileMeta);
+            await writeOneFile(localePath, entryLocale);
+          }
+        });
+      } else {
+        await writeOneFile(indexPath, fileMeta);
+        await writeOneFile(localePath, entryLocale);
+      }
+    });
+  } catch (error) {
+    console.error('Error writing files:', error);
+  }
+}
+
+const getLastKey = (str: string, items = '.') => {
   if (!str) return '';
-  const parts = str.split('.');
+  const parts = str.split(items);
   return parts[parts.length - 1];
 };
 
@@ -42,6 +107,50 @@ const attachJsonRte = ({ content = "" }: any) => {
   return htmlToJson(htmlDoc);
 }
 
+function slugify(text: unknown): string {
+  if (typeof text !== 'string') return '';
+  return text
+    .toLowerCase()
+    .replace(/\|/g, '')           // Remove pipe characters
+    .replace(/[^\w\s-]/g, '')     // Remove non-word, non-space, non-hyphen chars
+    .replace(/\s+/g, '-')         // Replace spaces with hyphens
+    .replace(/-+/g, '-')          // Replace multiple hyphens with one
+    .replace(/^-+|-+$/g, '');     // Trim leading/trailing hyphens
+}
+
+function addEntryToEntriesData(
+  entriesData: Record<string, Record<string, any[]>>,
+  contentTypeUid: string,
+  entryObj: any,
+  mappedLocale: string
+) {
+  if (!entriesData[contentTypeUid]) {
+    entriesData[contentTypeUid] = {};
+  }
+  if (!entriesData[contentTypeUid][mappedLocale]) {
+    entriesData[contentTypeUid][mappedLocale] = [];
+  }
+  entriesData[contentTypeUid][mappedLocale].push(entryObj);
+}
+
+/**
+ * Extracts the current locale from the given parseData object.
+ * @param parseData The parsed data object from the JSON file.
+ * @returns The locale string if found, otherwise undefined.
+ */
+function getCurrentLocale(parseData: any): string | undefined {
+  if (parseData.language) {
+    return parseData.language;
+  } else if (parseData[":path"]) {
+    const segments = parseData[":path"].split("/");
+    return segments[segments.length - 1];
+  }
+  return undefined;
+}
+
+function getLocaleFromMapper(mapper: Record<string, string>, locale: string): string | undefined {
+  return Object.keys(mapper).find(key => mapper[key] === locale);
+}
 
 
 const deepFlattenObject = (obj: any, prefix = '', res: any = {}) => {
@@ -103,7 +212,7 @@ const createAssets = async ({
         const flatData = deepFlattenObject(parseData);
         for (const [, value] of Object.entries(flatData)) {
           if (typeof value === 'string' && isImageType?.(value)) {
-            // console.info("🚀 ~ createAssets ~ value:", value)
+            console.info("🚀 ~ createAssets ~ value:", value)
           }
         }
       } catch (err) {
@@ -115,31 +224,35 @@ const createAssets = async ({
   }
 };
 
-function processFieldsRecursive(fields: any[], items: any) {
+function processFieldsRecursive(fields: any[], items: any, title: string) {
   if (!fields) return;
   const obj: any = {};
+  const data: any = [];
   for (const field of fields) {
     switch (field?.contentstackFieldType) {
       case 'modular_blocks': {
-        const modularData = items?.[field?.uid] ? items?.[field?.uid] : items?.[':items']
+        const modularData = items?.[field?.uid] ? items?.[field?.uid] : items?.[':items'];
         if (Array.isArray(field?.schema)) {
-          const value = processFieldsRecursive(field.schema, modularData);
+          const itemsData = modularData?.[':items'] ?? modularData;
+          const value = processFieldsRecursive(field.schema, itemsData, title)
           const uid = getLastKey(field?.contentstackFieldUid);
           obj[uid] = value;
         }
         break;
       }
       case 'modular_blocks_child': {
-        const modularChildData = typeof (items?.[field?.uid] ?? items?.[':items']) === 'object' ? Object.values(items?.[field?.uid] ?? items?.[':items'])
-          : items?.[field?.uid] ?? items?.[':items'];
-
-        for (const element of modularChildData ?? []) {
-          console.info("🚀 ~ processFieldsRecursive ~ element:", element)
-        }
-        if (Array.isArray(field?.schema)) {
-          const value = processFieldsRecursive(field.schema, modularChildData);
+        for (const [, value] of Object.entries(items)) {
+          const objData: any = {};
+          const typeValue = (value as { [key: string]: string })[':type'];
+          const getTypeComp = getLastKey(typeValue, '/');
           const uid = getLastKey(field?.contentstackFieldUid);
-          obj[uid] = value;
+          if (getTypeComp === field?.uid) {
+            const compValue = processFieldsRecursive(field.schema, value, title);
+            if (Object?.keys?.(compValue)?.length) {
+              objData[uid] = compValue;
+              data?.push(objData);
+            }
+          }
         }
         break;
       }
@@ -150,14 +263,14 @@ function processFieldsRecursive(fields: any[], items: any) {
         if (Array.isArray(groupValue)) {
           for (const element of groupValue) {
             if (Array.isArray(field?.schema)) {
-              const value = processFieldsRecursive(field.schema, element);
+              const value = processFieldsRecursive(field.schema, element, title);
               groupData?.push(value);
             }
           }
           obj[uid] = groupData;
         } else {
           if (Array.isArray(field?.schema)) {
-            const value = processFieldsRecursive(field.schema, groupValue);
+            const value = processFieldsRecursive(field.schema, groupValue, title);
             obj[uid] = value;
           }
         }
@@ -177,8 +290,14 @@ function processFieldsRecursive(fields: any[], items: any) {
         obj[uid] = value ?? '';
         break;
       }
-      case 'text':
+      case 'text': {
+        const uid = getLastKey(field?.contentstackFieldUid);
+        obj[uid] = title ?? '';
+        break;
+      }
       case 'url': {
+        const uid = getLastKey(field?.contentstackFieldUid);
+        obj[uid] = `/${slugify(title)}`;
         break;
       }
       case 'reference': {
@@ -221,53 +340,192 @@ function processFieldsRecursive(fields: any[], items: any) {
       }
       case 'file': {
         const uid = getLastKey(field?.contentstackFieldUid);
-        obj[uid] = null;
+        console.info(items)
+        obj[uid] = null
         break;
       }
       case 'app': {
-        console.info(items)
+        // console.info(items)
         break;
       }
       default: {
-        // console.info("🚀 ~ processFieldsRecursive ~ childItems:", field?.uid, field?.contentstackFieldType)
+        console.info("🚀 ~ processFieldsRecursive ~ childItems:", field?.uid, field?.contentstackFieldType)
         break;
       }
     }
   }
-  return obj;
+  return data?.length ? data : obj;
 }
 
-const containerCreator = (fieldMapping: any, items: any) => {
+const containerCreator = (fieldMapping: any, items: any, title: string) => {
   const fields = buildSchemaTree(fieldMapping);
-  return processFieldsRecursive(fields, items);
+  return processFieldsRecursive(fields, items, title);
+}
+
+const getTitle = (parseData: any) => {
+  return parseData?.title ?? parseData?.templateType;
 }
 
 const createEntry = async ({
   packagePath,
   contentTypes,
-  // master_locale,
-  // destinationStackId,
-  // projectId,
+  destinationStackId,
+  projectId,
   // keyMapper,
-  // project 
+  project
 }: CreateEntryOptions) => {
+  const srcFunc = 'createEntry';
+  const baseDir = path.join(baseDirName, destinationStackId);
+  const entrySave = path.join(baseDir, ENTRIES_DIR_NAME);
   const entriesDir = path.resolve(packagePath ?? '');
+  const entriesData: Record<string, Record<string, any[]>> = {};
+  const allLocales: object = { ...project?.master_locale, ...project?.locales, ...{ 'fr': 'sc' } }
   for await (const fileName of read(entriesDir)) {
     const filePath = path.join(entriesDir, fileName);
     const content: unknown = await fs.promises.readFile(filePath, 'utf-8');
     if (typeof content === 'string') {
       const parseData = JSON.parse(content);
+      const title = getTitle(parseData);
       const isEFragment = isExperienceFragment(parseData);
       const templateUid = isEFragment?.isXF ? parseData?.title : parseData?.templateName ?? parseData?.templateType;
       const contentType = (contentTypes as ContentType[] | undefined)?.find?.((element) => element?.otherCmsUid === templateUid);
+      const locale = getCurrentLocale(parseData);
+      const mappedLocale = locale ? getLocaleFromMapper(allLocales as Record<string, string>, locale) : Object.keys(project?.master_locale ?? {})?.[0];
       const items = parseData?.[':items']?.root?.[':items'];
-      const data = containerCreator(contentType?.fieldMapping, items);
-      await fs.promises.writeFile(`./${templateUid}.json`, JSON.stringify(data, null, 2), 'utf-8');
+      const data = containerCreator(contentType?.fieldMapping, items, title);
+      data.publish_details = [];
+      if (contentType?.contentstackUid && data && mappedLocale) {
+        const message = getLogMessage(
+          srcFunc,
+          `Entry title "${data?.title}"(${contentType?.contentstackUid}
+          }) in the ${mappedLocale} locale has been successfully transformed.`,
+          {}
+        );
+        await customLogger(
+          projectId,
+          destinationStackId,
+          'info',
+          message
+        );
+        addEntryToEntriesData(entriesData, contentType.contentstackUid, data, mappedLocale);
+      }
+    }
+  }
+  if (Object.keys?.(entriesData)?.length) {
+    for await (const [ctUid, value] of Object.entries(entriesData)) {
+      const entriesLocale = Object.entries(value);
+      if (entriesLocale?.length) {
+        for await (const [locale, entries] of entriesLocale) {
+          const fileMeta = { '1': `${locale}.json` };
+          const entryPath = path.join(
+            process.cwd(),
+            entrySave,
+            ctUid,
+            locale
+          );
+          await writeFiles(entryPath, fileMeta, entries, locale);
+        }
+      }
     }
   }
 }
 
+
+const createLocale = async (
+  req: Request,
+  destinationStackId: string,
+  projectId: string,
+  project: Project
+) => {
+  const srcFunc = 'createLocale';
+  try {
+    const baseDir = path.join(baseDirName, destinationStackId);
+    const localeSave = path.join(baseDir, LOCALE_DIR_NAME);
+    const allLocalesResp = await orgService.getLocales(req);
+    const masterLocale = Object?.keys?.(
+      project?.master_locale ?? LOCALE_MAPPER?.masterLocale
+    )?.[0];
+    const msLocale: Record<string, LocaleInfo> = {};
+    const uid = uuidv4();
+    msLocale[uid] = {
+      code: masterLocale,
+      fallback_locale: null,
+      uid: uid,
+      name: allLocalesResp?.data?.locales?.[masterLocale] ?? '',
+    };
+    const message = getLogMessage(
+      srcFunc,
+      `Master locale ${masterLocale} has been successfully transformed.`,
+      {}
+    );
+    await customLogger(projectId, destinationStackId, 'info', message);
+    const allLocales: Record<string, LocaleInfo> = {};
+    for (const [key, value] of Object.entries(
+      project?.locales ?? LOCALE_MAPPER
+    )) {
+      const localeUid = uuidv4();
+      if (key !== 'masterLocale' && typeof value === 'string') {
+        allLocales[localeUid] = {
+          code: key,
+          fallback_locale: masterLocale,
+          uid: localeUid,
+          name: allLocalesResp?.data?.locales?.[key] ?? '',
+        };
+        const message = getLogMessage(
+          srcFunc,
+          `locale ${value} has been successfully transformed.`,
+          {}
+        );
+        await customLogger(projectId, destinationStackId, 'info', message);
+      }
+    }
+    const masterPath = path.join(localeSave, LOCALE_MASTER_LOCALE);
+    const allLocalePath = path.join(localeSave, LOCALE_FILE_NAME);
+    fs.access(localeSave, async (err) => {
+      if (err) {
+        fs.mkdir(localeSave, { recursive: true }, async (err) => {
+          if (!err) {
+            await writeOneFile(masterPath, msLocale);
+            await writeOneFile(allLocalePath, allLocales);
+          }
+        });
+      } else {
+        await writeOneFile(masterPath, msLocale);
+        await writeOneFile(allLocalePath, allLocales);
+      }
+    });
+  } catch (err) {
+    const message = getLogMessage(
+      srcFunc,
+      `error while Creating the locales.`,
+      {},
+      err
+    );
+    await customLogger(projectId, destinationStackId, 'error', message);
+  }
+};
+
+
+const createVersionFile = async (destinationStackId: string) => {
+  const baseDir = path.join(baseDirName, destinationStackId);
+  fs.writeFile(
+    path?.join?.(baseDir, EXPORT_INFO_FILE),
+    JSON.stringify({
+      contentVersion: 2,
+      logsPath: '',
+    }),
+    (err) => {
+      if (err) {
+        console.error('Error writing file: 3', err);
+      }
+    }
+  );
+};
+
+
 export const aemService = {
   createAssets,
-  createEntry
+  createEntry,
+  createLocale,
+  createVersionFile
 };

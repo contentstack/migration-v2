@@ -7,6 +7,7 @@ ignoreconfig:
     checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
 
   - filename: ui/package-lock.json
+    checksum: 9c3c8eac6baca8456014614651bd447b9ec0d7736031fc11cfd46877563e0469
     ignore_detectors:
       - Base64Detector
 
@@ -26,8 +27,14 @@ fileignoreconfig:
 - filename: api/src/services/migration.service.ts
   checksum: f459c7ff7d979f1712e3da73ebedaaf3071629d7b1941e7257fb10b6d46ebbbd
 - filename: api/src/services/aem.service.ts
-  checksum: fdcb7ef88172cd8dc59d4911df95f58e3c00c8158b99a85d1d62c74e57706eb4 
-- filename: api/src/services/aem.service.ts
-  checksum: ccda69fd5b37e23ba220da449e9729ccd273837f0259efb87b6f2996b86689ec
-  
+  checksum: 771587bdeaca63f1a7a2e875fea0a43f4b153aa257308cbf1c743b020bce7064
+- filename: upload-api/migration-aem/libs/contentType/index.ts
+  checksum: 4a76de0371b4f2a6de3ec18cf336f24f95be2bef1d7c83db79413f569c4fd914
+- filename: upload-api/migration-aem/libs/contentType/components/BreadcrumbComponent.ts
+  checksum: ac81e1b00a641a97c1de7dc86c03e818454c91e527d79a17dec340a43448d930
+- filename: ui/package-lock.json
+  checksum: 9c3c8eac6baca8456014614651bd447b9ec0d7736031fc11cfd46877563e0469
+- filename: upload-api/migration-contentful/package-lock.json
+  checksum: 69c54eadb09058eef416d8f68b9cc44b7178eb4a96beee9226b6a175a7518b5d
+
 version: "1.0.1-beta"

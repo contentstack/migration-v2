@@ -11,6 +11,10 @@ const processLocales = async (dirPath: string) => {
     const localeData: any = await readFiles(filePath);
     if (localeData?.language) {
       allLocales.push(localeData?.language);
+    } else if (localeData?.[":path"]) {
+      const segments = localeData[":path"].split("/");
+      const locale = segments[segments.length - 1];
+      allLocales.push(locale);
     }
   }
   return Array.from(new Set(allLocales));

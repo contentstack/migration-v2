@@ -12,3 +12,4 @@ export { ButtonComponent } from './ButtonComponent';
 export { TextBannerComponent } from './TextBannerComponent';
 export { ImageComponent } from './ImageComponent';
 export { CarouselComponent } from './CarouselComponent';
+export { BreadcrumbComponent } from './BreadcrumbComponent';
