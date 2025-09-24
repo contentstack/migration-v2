@@ -132,7 +132,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           />
         </label>
 
-        {isError && <p className="errorMessage">{error}</p>}
+        {isError && <p className="errorMessage pt-2">{error}</p>}
       </div>
     </div>
   );
