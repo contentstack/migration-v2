@@ -41,6 +41,6 @@
     "errorMsg": "Please add valid branch name!"
   },
   "dependencies": {
-    "@contentstack/cli-utilities": "^1.0.3"
+    "@contentstack/cli-utilities": "^1.14.0"
   }
 }
