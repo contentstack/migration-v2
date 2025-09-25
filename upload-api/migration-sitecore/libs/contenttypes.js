@@ -35,8 +35,17 @@ const uidCorrector = ({ uid }) => {
   if (startsWithNumber(uid)) {
     return `${append}_${_.replace(uid, /[ -]/g, '_')?.toLowerCase()}`.replace(/\$/g, '');
   }
-  const newUid = _.replace(uid, /[ -]/g, '_')?.toLowerCase();
-  return newUid.replace(/\$/g, '');
+
+  // Clean and normalize the UID
+  let newUid = _.replace(uid, /[ -]/g, '_')?.toLowerCase();
+  newUid = newUid.replace(/\$/g, '');
+
+  // Check if the cleaned UID is in the restricted list
+  if (restrictedUid.includes(newUid)) {
+    newUid = `cs_${newUid}`;
+  }
+
+  return newUid;
 };
 
 const templatesComponents = ({ path: newPath }) => {
@@ -128,7 +137,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'single_line_text',
         backupFieldType: 'single_line_text',
         backupFieldUid: uid,
@@ -143,7 +152,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'boolean',
         backupFieldType: 'boolean',
         backupFieldUid: uid,
@@ -157,7 +166,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'json',
         backupFieldType: 'json',
         backupFieldUid: uid,
@@ -172,7 +181,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'dropdown',
         backupFieldType: 'dropdown',
         backupFieldUid: uid,
@@ -190,7 +199,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'file',
         backupFieldType: 'file',
         backupFieldUid: uid,
@@ -205,7 +214,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'link',
         backupFieldType: 'link',
         backupFieldUid: uid,
@@ -220,7 +229,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'multi_line_text',
         backupFieldType: 'multi_line_text',
         backupFieldUid: uid,
@@ -230,17 +239,30 @@ const ContentTypeSchema = ({
 
     case 'Integer':
     case 'Number': {
+      // Convert default_value to number if possible, otherwise set to null
+      let numericDefaultValue = null;
+      if (default_value !== '' && default_value !== null && default_value !== undefined) {
+        // Only process if it's a string or number type (exclude objects, arrays, etc.)
+        if (typeof default_value === 'string' || typeof default_value === 'number') {
+          const parsedValue = Number(default_value);
+          // Check if conversion was successful (not NaN and is finite)
+          if (!isNaN(parsedValue) && isFinite(parsedValue)) {
+            numericDefaultValue = parsedValue;
+          }
+        }
+      }
+
       return {
         id: id,
         uid: sitecoreKey,
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'number',
         backupFieldType: 'number',
         backupFieldUid: uid,
-        advanced: { default_value: default_value !== '' ? default_value : null }
+        advanced: { default_value: numericDefaultValue }
       };
     }
 
@@ -252,7 +274,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'isodate',
         backupFieldType: 'isodate',
         backupFieldUid: uid,
@@ -268,7 +290,7 @@ const ContentTypeSchema = ({
           otherCmsField: name,
           otherCmsType: type,
           contentstackField: name,
-          contentstackFieldUid: uid,
+          contentstackFieldUid: uidCorrector({ uid }),
           contentstackFieldType: 'dropdown',
           backupFieldType: 'dropdown',
           backupFieldUid: uid,
@@ -288,7 +310,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'reference',
         backupFieldUid: uid,
         backupFieldType: 'reference',
@@ -302,7 +324,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'reference',
         backupFieldUid: uid,
         backupFieldType: 'reference'
@@ -384,8 +406,8 @@ const groupFlat = (data, item) => {
           uid: `${item?.meta?.key}.${element?.uid}`,
           otherCmsField: `${item?.meta?.name} > ${element?.otherCmsField}`,
           contentstackField: `${item?.meta?.name} > ${element?.contentstackField}`,
-          contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`,
-          backupFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`
+          contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${uidCorrector({ uid: element?.contentstackFieldUid })}`,
+          backupFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${uidCorrector({ uid: element?.contentstackFieldUid })}`
         };
         flat?.push(obj);
       }
@@ -456,7 +478,7 @@ const contentTypeMapper = ({
                   sourceType = makeUnique({ data: sourceTree?.[item?.content] });
                   compType.content = 'Droplist';
                   if (isKeyPresent('key', sourceType)) {
-                    advanced = true;
+                    advanced = false; // 🔧 FIX: Set dropdown advance to false
                   }
                 }
               }
@@ -515,7 +537,7 @@ const contentTypeMapper = ({
                 } else {
                   sourceType = makeUnique({ data: source?.[item?.content] });
                   if (isKeyPresent('key', sourceType)) {
-                    advanced = true;
+                    advanced = false; // 🔧 FIX: Set dropdown advance to false
                   }
                 }
               }

@@ -34,6 +34,8 @@ const createLocaleSource = async ({
   localeData: any;
   projectId: string | string[];
 }) => {
+  const processedLocales = Array.isArray(localeData) ? localeData : Array.from(localeData ?? []);
+
   const mapperConfig = {
     method: 'post',
     maxBodyLength: Infinity,
@@ -43,12 +45,13 @@ const createLocaleSource = async ({
       'Content-Type': 'application/json'
     },
     data: {
-      locale: Array.isArray(localeData) ? localeData : Array.from(localeData ?? [])
+      locale: processedLocales
     }
   };
 
   try {
     const mapRes = await axios.request(mapperConfig);
+
     if (mapRes?.status === 200) {
       logger.info('Legacy CMS', {
         status: HTTP_CODES?.OK,

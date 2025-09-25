@@ -1,10 +1,13 @@
-import _ from "lodash";
-import { JSDOM } from "jsdom";
+import _ from 'lodash';
+import { JSDOM } from 'jsdom';
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 // @ts-ignore
 import { HTMLToJSON } from 'html-to-json-parser';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat.js';
+dayjs.extend(customParseFormat);
 
-const append = "a";
+const append = 'a';
 
 function startsWithNumber(str: string) {
   return /^\d/.test(str);
@@ -12,18 +15,20 @@ function startsWithNumber(str: string) {
 
 const uidCorrector = ({ uid }: any) => {
   if (startsWithNumber(uid)) {
-    return `${append}_${_.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()}`
+    return `${append}_${_.replace(
+      uid,
+      new RegExp('[ -]', 'g'),
+      '_'
+    )?.toLowerCase()}`;
   }
-  return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
-}
+  return _.replace(uid, new RegExp('[ -]', 'g'), '_')?.toLowerCase();
+};
 
-
-
-const attachJsonRte = ({ content = "" }: any) => {
+const attachJsonRte = ({ content = '' }: any) => {
   const dom = new JSDOM(content);
-  const htmlDoc = dom.window.document.querySelector("body");
+  const htmlDoc = dom.window.document.querySelector('body');
   return htmlToJson(htmlDoc);
-}
+};
 
 type Table = { [key: string]: any };
 
@@ -33,23 +38,23 @@ export function unflatten(table: Table): any {
   for (const path in table) {
     let cursor: any = result;
     const length: number = path.length;
-    let property: string = "";
+    let property: string = '';
     let index: number = 0;
 
     while (index < length) {
       const char: string = path.charAt(index);
 
-      if (char === "[") {
+      if (char === '[') {
         const start: number = index + 1;
-        const end: number = path.indexOf("]", start);
-        cursor = (cursor[property] = cursor[property] || []);
+        const end: number = path.indexOf(']', start);
+        cursor = cursor[property] = cursor[property] || [];
         property = path.slice(start, end);
         index = end + 1;
       } else {
-        cursor = (cursor[property] = cursor[property] || {});
-        const start: number = char === "." ? index + 1 : index;
-        const bracket: number = path.indexOf("[", start);
-        const dot: number = path.indexOf(".", start);
+        cursor = cursor[property] = cursor[property] || {};
+        const start: number = char === '.' ? index + 1 : index;
+        const bracket: number = path.indexOf('[', start);
+        const dot: number = path.indexOf('.', start);
 
         let end: number;
         if (bracket < 0 && dot < 0) {
@@ -69,20 +74,18 @@ export function unflatten(table: Table): any {
     cursor[property] = table[path];
   }
 
-  return result[""];
+  return result[''];
 }
 
-
-
-const htmlConverter = async ({ content = "" }: any) => {
+const htmlConverter = async ({ content = '' }: any) => {
   const dom = `<div>${content}</div>`;
   return await Promise.resolve(HTMLToJSON(dom, true));
-}
+};
 
 const getAssetsUid = ({ url }: any) => {
   if (url?.includes('/media')) {
-    if (url?.includes("?")) {
-      url = url?.split("?")?.[0]?.replace('.jpg', '')
+    if (url?.includes('?')) {
+      url = url?.split('?')?.[0]?.replace('.jpg', '');
     }
     const newUrl = url?.match?.(/\/media\/(.*).ashx/)?.[1];
     if (newUrl !== undefined) {
@@ -93,7 +96,7 @@ const getAssetsUid = ({ url }: any) => {
   } else {
     return url;
   }
-}
+};
 
 function flatten(data: any) {
   const result: any = {};
@@ -103,36 +106,40 @@ function flatten(data: any) {
     } else if (Array.isArray(cur)) {
       let l;
       for (let i = 0, l = cur?.length; i < l; i++)
-        recurse(cur?.[i], prop + "[" + i + "]");
+        recurse(cur?.[i], prop + '[' + i + ']');
       if (l == 0) result[prop] = [];
     } else {
       let isEmpty = true;
       for (const p in cur) {
         isEmpty = false;
-        recurse(cur[p], prop ? prop + "." + p : p);
+        recurse(cur[p], prop ? prop + '.' + p : p);
       }
       if (isEmpty && prop) result[prop] = {};
     }
   }
-  recurse(data, "");
+  recurse(data, '');
   return result;
 }
 
-
-const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any) => {
+const findAssestInJsoRte = (
+  jsonValue: any,
+  allAssetJSON: any,
+  idCorrector: any
+) => {
   const flattenHtml = flatten(jsonValue);
   for (const [key, value] of Object.entries(flattenHtml)) {
-    if (value === "img") {
-      const newKey = key?.replace(".type", "")
-      const htmlData = _.get(jsonValue, newKey)
-      if (htmlData?.type === "img" && htmlData?.attrs) {
-        const urlRegex: any = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w.-]*)*\/?$/;
+    if (value === 'img') {
+      const newKey = key?.replace('.type', '');
+      const htmlData = _.get(jsonValue, newKey);
+      if (htmlData?.type === 'img' && htmlData?.attrs) {
+        const urlRegex: any =
+          /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w.-]*)*\/?$/;
         const uid = getAssetsUid({ url: htmlData?.attrs?.url });
         if (!uid?.match(urlRegex)) {
           let asset: any = {};
           if (uid?.includes('/')) {
             for (const value of Object.values(allAssetJSON)) {
-              if (value?.assetPath === `${uid}/`) {
+              if ((value as any)?.assetPath === `${uid}/`) {
                 asset = value;
               }
             }
@@ -142,41 +149,45 @@ const findAssestInJsoRte = (jsonValue: any, allAssetJSON: any, idCorrector: any)
           }
           if (asset?.uid) {
             const updated = {
-              "uid": htmlData?.uid,
-              "type": "reference",
-              "attrs": {
-                "display-type": "display",
-                "asset-uid": asset?.uid,
-                "content-type-uid": "sys_assets",
-                "asset-link": asset?.urlPath,
-                "asset-name": asset?.title,
-                "asset-type": asset?.content_type,
-                "type": "asset",
-                "class-name": "embedded-asset",
-                "inline": false
+              uid: htmlData?.uid,
+              type: 'reference',
+              attrs: {
+                'display-type': 'display',
+                'asset-uid': asset?.uid,
+                'content-type-uid': 'sys_assets',
+                'asset-link': asset?.urlPath,
+                'asset-name': asset?.title,
+                'asset-type': asset?.content_type,
+                type: 'asset',
+                'class-name': 'embedded-asset',
+                inline: false,
               },
-              "children": [
+              children: [
                 {
-                  "text": ""
-                }
-              ]
-            }
-            _.set(jsonValue, newKey, updated)
+                  text: '',
+                },
+              ],
+            };
+            _.set(jsonValue, newKey, updated);
           }
         } else {
-          console.info('uid not found', uid)
+          console.info('uid not found', uid);
         }
       }
     }
   }
   return jsonValue;
-}
+};
 
-
-
-
-export const entriesFieldCreator = async ({ field, content, idCorrector, allAssetJSON, contentTypes, entriesData, locale }: any) => {
-
+export const entriesFieldCreator = async ({
+  field,
+  content,
+  idCorrector,
+  allAssetJSON,
+  contentTypes,
+  entriesData,
+  locale,
+}: any) => {
   switch (field?.contentstackFieldType) {
     case 'multi_line_text':
     case 'single_line_text':
@@ -185,26 +196,32 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
     }
 
     case 'json': {
-      const jsonData = attachJsonRte({ content })
+      const jsonData = attachJsonRte({ content });
       return findAssestInJsoRte(jsonData, allAssetJSON, idCorrector);
     }
 
     case 'dropdown': {
-      const isOptionPresent = field?.advanced?.options?.find((ops: any) => ops?.key === content || ops?.value === content);
+      const isOptionPresent = field?.advanced?.options?.find(
+        (ops: any) => ops?.key === content || ops?.value === content
+      );
       if (isOptionPresent) {
         if (field?.advanced?.Multiple) {
           if (!isOptionPresent?.key) {
-            return isOptionPresent
+            return isOptionPresent;
           }
           return isOptionPresent;
         }
         return isOptionPresent?.value ?? null;
       } else {
         if (field?.advanced?.default_value) {
-          const isOptionDefaultValue = field?.advanced?.options?.find((ops: any) => ops?.key === field?.advanced?.default_value || ops?.value === field?.advanced?.default_value);
+          const isOptionDefaultValue = field?.advanced?.options?.find(
+            (ops: any) =>
+              ops?.key === field?.advanced?.default_value ||
+              ops?.value === field?.advanced?.default_value
+          );
           if (field?.advanced?.Multiple) {
             if (!isOptionDefaultValue?.key) {
-              return isOptionDefaultValue
+              return isOptionDefaultValue;
             }
             return isOptionDefaultValue;
           }
@@ -217,7 +234,7 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
 
     case 'number': {
       if (typeof content === 'string') {
-        return parseInt?.(content)
+        return parseInt?.(content);
       }
       return content;
     }
@@ -226,10 +243,12 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
       const fileData = attachJsonRte({ content });
       for (const item of fileData?.children ?? []) {
         if (item?.attrs?.['redactor-attributes']?.mediaid) {
-          const assetUid = idCorrector({ id: item?.attrs?.['redactor-attributes']?.mediaid });
+          const assetUid = idCorrector({
+            id: item?.attrs?.['redactor-attributes']?.mediaid,
+          });
           return allAssetJSON?.[assetUid] ?? null;
         } else {
-          console.info('more', item?.attrs)
+          console.info('more', item?.attrs);
         }
       }
       return null;
@@ -237,7 +256,7 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
 
     //need to change  this
     case 'link': {
-      const linkType: any = await htmlConverter({ content })
+      const linkType: any = await htmlConverter({ content });
       let obj: any = { title: '', href: '' };
       if (typeof linkType === 'string') {
         const parseData = JSON?.parse?.(linkType);
@@ -246,10 +265,10 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
             if (item?.type === 'link') {
               obj = {
                 title: item?.attributes?.id,
-                href: item?.attributes?.url ?? ''
-              }
+                href: item?.attributes?.url ?? '',
+              };
             }
-          })
+          });
         }
       }
       return obj;
@@ -259,29 +278,33 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
       const refs: any = [];
       if (field?.refrenceTo?.length) {
         field?.refrenceTo?.forEach((entry: any) => {
-          const templatePresent = entriesData?.find((tel: any) => uidCorrector({ uid: tel?.template }) === entry);
+          const templatePresent = entriesData?.find(
+            (tel: any) => uidCorrector({ uid: tel?.template }) === entry
+          );
           content?.split('|')?.forEach((id: string) => {
-            const entryid = templatePresent?.locale?.[locale]?.[idCorrector({ id })];
+            const entryid =
+              templatePresent?.locale?.[locale]?.[idCorrector({ id })];
             if (entryid) {
               refs?.push({
-                "uid": idCorrector({ id }),
-                "_content_type_uid": entry
-              })
+                uid: idCorrector({ id }),
+                _content_type_uid: entry,
+              });
             } else {
               // console.info("no entry for following id", id)
             }
-          })
-        })
+          });
+        });
       } else {
         console.info('test ====>');
       }
       return refs;
     }
 
-
     case 'global_field': {
-      const globalFieldsSchema = contentTypes?.find?.((gfd: any) =>
-        gfd?.contentstackUid === field?.contentstackFieldUid && gfd?.type === 'global_field'
+      const globalFieldsSchema = contentTypes?.find?.(
+        (gfd: any) =>
+          gfd?.contentstackUid === field?.contentstackFieldUid &&
+          gfd?.type === 'global_field'
       );
       if (globalFieldsSchema?.fieldMapping) {
         const mainSchema = [];
@@ -290,9 +313,12 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
           if (item?.contentstackFieldType === 'group') {
             group[item?.contentstackFieldUid] = { ...item, fieldMapping: [] };
           } else {
-            const groupSchema = group[item?.contentstackFieldUid?.split('.')?.[0]];
+            const groupSchema =
+              group[item?.contentstackFieldUid?.split('.')?.[0]];
             if (groupSchema) {
-              group?.[groupSchema?.contentstackFieldUid]?.fieldMapping?.push(item);
+              group?.[groupSchema?.contentstackFieldUid]?.fieldMapping?.push(
+                item
+              );
             } else {
               mainSchema?.push(item);
             }
@@ -302,17 +328,23 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
         const obj: any = {};
         mainSchema?.forEach(async (field: any) => {
           if (field?.['uid']) {
-            obj[field?.contentstackFieldUid] = await entriesFieldCreator({ field, content });
+            obj[field?.contentstackFieldUid] = await entriesFieldCreator({
+              field,
+              content,
+            });
           } else {
             Object?.values(field)?.forEach((item: any) => {
               if (item?.contentstackFieldType === 'group') {
                 item?.fieldMapping?.forEach(async (ele: any) => {
-                  obj[ele?.contentstackFieldUid] = await entriesFieldCreator({ field: ele, content });
-                })
+                  obj[ele?.contentstackFieldUid] = await entriesFieldCreator({
+                    field: ele,
+                    content,
+                  });
+                });
               }
-            })
+            });
           }
-        })
+        });
         return await obj;
       }
       break;
@@ -322,12 +354,47 @@ export const entriesFieldCreator = async ({ field, content, idCorrector, allAsse
       return typeof content === 'string' && content === '1' ? true : false;
     }
 
+    case 'date':
+    case 'isodate': {
+      if (!content) return null;
+
+      try {
+        let dayjsDate;
+
+        // Handle Sitecore format like "20220215T000000Z"
+        if (typeof content === 'string' && /^\d{8}T\d{6}Z$/.test(content)) {
+          // Parse Sitecore format: YYYYMMDDTHHMMSSZ
+          dayjsDate = dayjs(content, 'YYYYMMDD[T]HHmmss[Z]');
+        } else {
+          // Use dayjs default parsing for other formats
+          dayjsDate = dayjs(content);
+        }
+
+        // Check if the date is valid
+        if (!dayjsDate.isValid()) {
+          console.warn(
+            `Invalid date format for field: ${
+              field?.contentstackFieldUid || 'unknown'
+            }, value: ${content}`
+          );
+          return null;
+        }
+
+        return dayjsDate.toISOString();
+      } catch (error) {
+        console.error(
+          `Error converting date for field: ${
+            field?.contentstackFieldUid || 'unknown'
+          }, value: ${content}`,
+          error
+        );
+        return null;
+      }
+    }
+
     default: {
       console.info(field?.contentstackFieldType, 'field missing');
       return content;
     }
   }
-}
-
-
-
+};
