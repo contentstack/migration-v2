@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@contentstack/json-rte-serializer": "^2.0.12",
-    "@contentstack/venus-components": "^3.0.0",
+    "@contentstack/json-rte-serializer": "^3.0.4",
+    "@contentstack/venus-components": "^3.0.1",
     "@reduxjs/toolkit": "^2.8.2",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^13.4.0",

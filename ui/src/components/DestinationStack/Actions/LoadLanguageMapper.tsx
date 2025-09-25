@@ -108,7 +108,6 @@ const Mapper = ({
   useEffect(() => {
     const updatedExistingField = {...existingField};
     const updatedExistingLocale = {...existingLocale};
-    let updatedSelectedMappings = { ...selectedMappings };
 
     // const validLabels = cmsLocaleOptions?.map((item)=> item?.label);
 
@@ -157,18 +156,20 @@ const Mapper = ({
           setexistingLocale({});
           setExistingField({});
 
-          updatedSelectedMappings = {
+          // 🔧 FIX: Merge with existing mappings instead of replacing
+          setSelectedMappings(prev => ({
+            ...prev,
             [`${locale?.label}-master_locale`]: '',
-          };
-          setSelectedMappings(updatedSelectedMappings);
+          }));
           
         }
         else if ( !isLabelMismatch && !isStackChanged ) {
           const key = `${locale?.label}-master_locale`
-            updatedSelectedMappings = {
-            [key]: updatedSelectedMappings?.[`${locale?.label}-master_locale`] ? updatedSelectedMappings?.[`${locale?.label}-master_locale`] : '',
-          };
-          setSelectedMappings(updatedSelectedMappings);
+          // 🔧 FIX: Merge with existing mappings instead of replacing
+          setSelectedMappings(prev => ({
+            ...prev,
+            [key]: prev?.[key] ? prev?.[key] : '',
+          }));
         }
       }        
     })
@@ -298,8 +299,10 @@ const Mapper = ({
         updatedMappings[existingLabel?.value] = ''
       }
       else if (selectedLocaleKey) {
-
-        updatedMappings[existingLabel?.value ?? index] = selectedValue?.label
+        // 🔧 FIX: Use the actual Contentstack locale code, or source locale in lowercase as fallback
+        const mappingKey = existingLabel?.value || existingLabel?.label || selectedValue?.label?.toLowerCase();
+        
+        updatedMappings[mappingKey] = selectedValue?.label
           ? selectedValue?.label
           : '';
       }
