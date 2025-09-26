@@ -31,18 +31,36 @@ function startsWithNumber(str) {
   return /^\d/.test(str);
 }
 
-const uidCorrector = ({ uid }) => {
-  if (startsWithNumber(uid)) {
-    return `${append}_${_.replace(uid, /[ -]/g, '_')?.toLowerCase()}`.replace(/\$/g, '');
+const uidCorrector = (uid, prefix) => {
+  if (!uid || typeof uid !== 'string' || !prefix) {
+    return '';
   }
 
-  // Clean and normalize the UID
-  let newUid = _.replace(uid, /[ -]/g, '_')?.toLowerCase();
-  newUid = newUid.replace(/\$/g, '');
+  let newUid = uid;
 
-  // Check if the cleaned UID is in the restricted list
-  if (restrictedUid.includes(newUid)) {
-    newUid = `cs_${newUid}`;
+  // Handle restricted keywords
+  if (idArray.includes(uid) || uid.startsWith('_ids') || uid.endsWith('_ids')) {
+    newUid = `${prefix}_${uid}`;
+  }
+
+  // Handle UIDs that start with numbers
+  if (startsWithNumber(newUid)) {
+    newUid = `${prefix}_${newUid}`;
+  }
+
+  // Clean up the UID
+  newUid = newUid
+    .replace(/[ -]/g, '_') // Replace spaces and hyphens with underscores
+    .replace(/[^a-zA-Z0-9_]+/g, '_') // Replace non-alphanumeric characters (except underscore)
+    .replace(/\$/g, '') // Remove dollar signs
+    .toLowerCase() // Convert to lowercase
+    .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase
+    .replace(/_+/g, '_') // Replace multiple underscores with single
+    .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+
+  // Ensure UID doesn't start with underscore (Contentstack requirement)
+  if (newUid.startsWith('_')) {
+    newUid = newUid.substring(1);
   }
 
   return newUid;
