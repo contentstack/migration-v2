@@ -4,8 +4,8 @@
 /**
  * External module dependencies.
  */
-const fs = require('fs');             // for existsSync
-const fsp = require('fs/promises');   // for async file operations
+const fs = require('fs'); // for existsSync
+const fsp = require('fs/promises'); // for async file operations
 const path = require('path');
 const contentTypeMapper = require('./contentTypeMapper');
 
@@ -17,15 +17,49 @@ const config = require('../config');
 const idArray = require('../utils/restrictedKeyWords');
 
 /**
- * Corrects the UID by adding a prefix and sanitizing the string if it is found in a specified list.
+ * Helper function to check if string starts with a number
+ */
+function startsWithNumber(str) {
+  return /^\d/.test(str);
+}
+
+/**
+ * Improved UID corrector based on Sitecore implementation but adapted for Drupal
+ * Handles all edge cases: restricted keywords, numbers, CamelCase, special characters
  */
 const uidCorrector = (uid, prefix) => {
-  let newId = uid;
-  if (idArray.includes(uid) || uid.startsWith('_ids') || uid.endsWith('_ids')) {
-    newId = uid.replace(uid, `${prefix}_${uid}`);
-    newId = newId.replace(/[^a-zA-Z0-9]+/g, '_');
+  if (!uid || typeof uid !== 'string' || !prefix) {
+    return '';
   }
-  return newId.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`);
+
+  let newUid = uid;
+
+  // Handle restricted keywords
+  if (idArray.includes(uid) || uid.startsWith('_ids') || uid.endsWith('_ids')) {
+    newUid = `${prefix}_${uid}`;
+  }
+
+  // Handle UIDs that start with numbers
+  if (startsWithNumber(newUid)) {
+    newUid = `${prefix}_${newUid}`;
+  }
+
+  // Clean up the UID
+  newUid = newUid
+    .replace(/[ -]/g, '_') // Replace spaces and hyphens with underscores
+    .replace(/[^a-zA-Z0-9_]+/g, '_') // Replace non-alphanumeric characters (except underscore)
+    .replace(/\$/g, '') // Remove dollar signs
+    .toLowerCase() // Convert to lowercase
+    .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase
+    .replace(/_+/g, '_') // Replace multiple underscores with single
+    .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+
+  // Ensure UID doesn't start with underscore (Contentstack requirement)
+  if (newUid.startsWith('_')) {
+    newUid = newUid.substring(1);
+  }
+
+  return newUid;
 };
 
 /**
@@ -34,16 +68,17 @@ const uidCorrector = (uid, prefix) => {
 const createInitialMapper = async (systemConfig, prefix) => {
   try {
     const drupalFolderPath = path.resolve(config.data, config.drupal.drupal);
-    
+
     if (!fs.existsSync(drupalFolderPath)) {
       await fsp.mkdir(drupalFolderPath, { recursive: true });
     }
-    
+
     // Get database connection
     const connection = dbConnection(systemConfig);
-    
+
     // SQL query to get field configurations
-    const query = "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'";
+    const query =
+      "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'";
 
     // Execute query
     const [rows] = await connection.promise().query(query);
@@ -55,7 +90,7 @@ const createInitialMapper = async (systemConfig, prefix) => {
       try {
         const { unserialize } = require('php-serialize');
         const conv_details = unserialize(rows[i].data);
-        
+
         details_data.push({
           field_label: conv_details?.label,
           description: conv_details?.description,
@@ -77,13 +112,14 @@ const createInitialMapper = async (systemConfig, prefix) => {
       return { contentTypes: [] };
     }
 
-
     const initialMapper = [];
     const contentTypes = Object.keys(require('lodash').keyBy(details_data, 'content_types'));
 
     // Process each content type
     for (const contentType of contentTypes) {
-      const contentTypeFields = require('lodash').filter(details_data, { content_types: contentType });
+      const contentTypeFields = require('lodash').filter(details_data, {
+        content_types: contentType
+      });
       const contenttypeTitle = contentType.split('_').join(' ');
 
       const contentTypeObject = {
@@ -99,7 +135,12 @@ const createInitialMapper = async (systemConfig, prefix) => {
       };
 
       // Map fields using contentTypeMapper
-      const contentstackFields = await contentTypeMapper(contentTypeFields, contentTypes, prefix, systemConfig.mysql);
+      const contentstackFields = await contentTypeMapper(
+        contentTypeFields,
+        contentTypes,
+        prefix,
+        systemConfig.mysql
+      );
       contentTypeObject.fieldMapping = contentstackFields;
 
       initialMapper.push(contentTypeObject);

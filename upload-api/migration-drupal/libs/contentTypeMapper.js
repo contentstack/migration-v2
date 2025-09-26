@@ -7,60 +7,89 @@ const path = require('path');
 /**
  * Loads taxonomy schema from drupalMigrationData/taxonomySchema/taxonomySchema.json
  * If not found, attempts to generate it using extractTaxonomy
- * 
+ *
  * @param {Object} dbConfig - Database configuration for fallback taxonomy extraction
  * @returns {Array} Array of taxonomy vocabularies with uid and name
  */
 const loadTaxonomySchema = async (dbConfig = null) => {
   try {
-    const taxonomySchemaPath = path.join(__dirname, '..', '..', 'drupalMigrationData', 'taxonomySchema', 'taxonomySchema.json');
-    
+    const taxonomySchemaPath = path.join(
+      __dirname,
+      '..',
+      '..',
+      'drupalMigrationData',
+      'taxonomySchema',
+      'taxonomySchema.json'
+    );
+
     // Check if taxonomy schema exists
     if (fs.existsSync(taxonomySchemaPath)) {
       const taxonomyData = fs.readFileSync(taxonomySchemaPath, 'utf8');
       const taxonomies = JSON.parse(taxonomyData);
       return taxonomies;
     }
-    
+
     // If not found and dbConfig available, try to generate it
     if (dbConfig) {
       const extractTaxonomy = require('./extractTaxonomy');
       const taxonomies = await extractTaxonomy(dbConfig);
       return taxonomies;
     }
-    
+
     return [];
-    
   } catch (error) {
     console.error('❌ Error loading taxonomy schema:', error.message);
     return [];
   }
 };
 
+// Load restricted keywords
+const idArray = require('../utils/restrictedKeyWords');
+
 /**
- * Corrects the UID by applying a custom affix and sanitizing the string.
- *
- * @param {string} uid - The original UID that needs to be corrected.
- * @param {string} affix - The affix to be prepended to the UID if it's restricted.
- * @returns {string} The corrected UID with the affix (if applicable) and sanitized characters.
- *
- * @description
- * This function checks if the provided `uid` is included in the `restrictedUid` list. If it is, the function will:
- * 1. Prepend the provided `affix` to the `uid`.
- * 2. Replace any non-alphanumeric characters in the `uid` with underscores.
- * 
- * It then converts any uppercase letters to lowercase and prefixes them with an underscore (to match a typical snake_case format).
- *
- * If the `uid` is not restricted, the function simply returns it after converting uppercase letters to lowercase and adding an underscore before each uppercase letter.
- * // Outputs: 'prefix_my_restricted_uid'
+ * Helper function to check if string starts with a number
  */
-const uidCorrector = (uid, affix) => {
-  let newId = uid;
-  if (restrictedUid?.includes?.(uid) || uid?.startsWith?.('_ids') || uid?.endsWith?.('_ids')) {
-    newId = uid?.replace?.(uid, `${affix}_${uid}`);
-    newId = newId?.replace?.(/[^a-zA-Z0-9]+/g, '_');
+function startsWithNumber(str) {
+  return /^\d/.test(str);
+}
+
+/**
+ * Improved UID corrector based on Sitecore implementation but adapted for Drupal
+ * Handles all edge cases: restricted keywords, numbers, CamelCase, special characters
+ */
+const uidCorrector = (uid, prefix) => {
+  if (!uid || typeof uid !== 'string' || !prefix) {
+    return '';
   }
-  return newId.replace(/([A-Z])/g, (match) => `${match?.toLowerCase?.()}`);
+
+  let newUid = uid;
+
+  // Handle restricted keywords
+  if (idArray.includes(uid) || uid.startsWith('_ids') || uid.endsWith('_ids')) {
+    newUid = `${prefix}_${uid}`;
+  }
+
+  // Handle UIDs that start with numbers
+  if (startsWithNumber(newUid)) {
+    newUid = `${prefix}_${newUid}`;
+  }
+
+  // Clean up the UID
+  newUid = newUid
+    .replace(/[ -]/g, '_') // Replace spaces and hyphens with underscores
+    .replace(/[^a-zA-Z0-9_]+/g, '_') // Replace non-alphanumeric characters (except underscore)
+    .replace(/\$/g, '') // Remove dollar signs
+    .toLowerCase() // Convert to lowercase
+    .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase
+    .replace(/_+/g, '_') // Replace multiple underscores with single
+    .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+
+  // Ensure UID doesn't start with underscore (Contentstack requirement)
+  if (newUid.startsWith('_')) {
+    newUid = newUid.substring(1);
+  }
+
+  return newUid;
 };
 
 /**
@@ -91,8 +120,12 @@ const extractAdvancedFields = (item, referenceFields = []) => {
     unique: false,
     nonLocalizable: false,
     validationErrorMessage: '',
-    embedObjects: referenceFields.length ? referenceFields : (referenceFields.length === 0 && Array.isArray(referenceFields) ? [] : undefined),
-    description: description,
+    embedObjects: referenceFields.length
+      ? referenceFields
+      : referenceFields.length === 0 && Array.isArray(referenceFields)
+        ? []
+        : undefined,
+    description: description
   };
 };
 
@@ -109,7 +142,7 @@ const extractAdvancedFields = (item, referenceFields = []) => {
  * This function generates a field object to be used in the context of a content management system (CMS),
  * specifically for fields that have both a primary and backup configuration. It extracts the necessary field
  * details from the provided `item` and augments it with additional information such as UID, field names, and field types.
- * 
+ *
  * The advanced field properties are extracted using the `extractAdvancedFields` function, including any reference fields,
  * field types, and other metadata related to the field configuration.
  *
@@ -119,11 +152,11 @@ const createFieldObject = (item, contentstackFieldType, backupFieldType, referen
   // Add suffix for specific field types (following old migration pattern)
   const needsSuffix = ['reference', 'file'].includes(contentstackFieldType);
   const fieldNameWithSuffix = needsSuffix ? `${item?.field_name}_target_id` : item?.field_name;
-  
+
   // 🚫 For json and html fields, always use empty embedObjects array
   const shouldUseEmptyEmbedObjects = ['json', 'html'].includes(contentstackFieldType);
   const finalReferenceFields = shouldUseEmptyEmbedObjects ? [] : referenceFields;
-  
+
   return {
     uid: item?.field_name,
     otherCmsField: item?.field_label,
@@ -147,7 +180,7 @@ const createFieldObject = (item, contentstackFieldType, backupFieldType, referen
  * @description
  * This function generates a field object for dropdown or radio field types based on the provided item.
  * It ensures that the field's advanced properties are extracted from the item, including validation options.
- * 
+ *
  */
 const createDropdownOrRadioFieldObject = (item, fieldType) => {
   return {
@@ -161,7 +194,7 @@ const createDropdownOrRadioFieldObject = (item, fieldType) => {
 
 /**
  * Creates a taxonomy field object with specialized structure for Contentstack
- * 
+ *
  * @param {Object} item - The Drupal field item containing field details
  * @param {Array} taxonomySchema - Array of taxonomy vocabularies from taxonomySchema.json
  * @param {Array} targetVocabularies - Optional array of specific vocabularies this field references
@@ -170,31 +203,32 @@ const createDropdownOrRadioFieldObject = (item, fieldType) => {
 const createTaxonomyFieldObject = (item, taxonomySchema, targetVocabularies = []) => {
   // Determine which taxonomies to include
   let taxonomiesToInclude = [];
-  
+
   if (targetVocabularies && targetVocabularies.length > 0) {
     // If specific vocabularies are provided, use only those
-    taxonomiesToInclude = taxonomySchema.filter(taxonomy => 
-      targetVocabularies.includes(taxonomy.uid) || targetVocabularies.includes(taxonomy.name)
+    taxonomiesToInclude = taxonomySchema.filter(
+      (taxonomy) =>
+        targetVocabularies.includes(taxonomy.uid) || targetVocabularies.includes(taxonomy.name)
     );
   } else {
     // If no specific vocabularies, include all available taxonomies
     taxonomiesToInclude = taxonomySchema;
   }
-  
+
   // Build taxonomies array with default properties
-  const taxonomiesArray = taxonomiesToInclude.map(taxonomy => ({
+  const taxonomiesArray = taxonomiesToInclude.map((taxonomy) => ({
     taxonomy_uid: taxonomy.uid,
     mandatory: false,
     multiple: true,
     non_localizable: false
   }));
-  
+
   // Get advanced field properties from the original field
   const advancedFields = extractAdvancedFields(item);
-  
+
   // Add _target_id suffix for taxonomy fields (following old migration pattern)
   const fieldNameWithSuffix = `${item?.field_name}_target_id`;
-  
+
   return {
     uid: item?.field_name,
     otherCmsField: item?.field_label,
@@ -205,16 +239,16 @@ const createTaxonomyFieldObject = (item, taxonomySchema, targetVocabularies = []
     backupFieldType: 'reference',
     backupFieldUid: uidCorrector(fieldNameWithSuffix, item?.prefix),
     advanced: {
-      data_type: "taxonomy",
+      data_type: 'taxonomy',
       display_name: item?.field_label || item?.field_name,
       uid: uidCorrector(fieldNameWithSuffix, item?.prefix),
       taxonomies: taxonomiesArray,
-      field_metadata: { 
-        description: advancedFields?.field_metadata?.description || "", 
-        default_value: advancedFields?.field_metadata?.default_value || "" 
+      field_metadata: {
+        description: advancedFields?.field_metadata?.description || '',
+        default_value: advancedFields?.field_metadata?.default_value || ''
       },
-      format: "",
-      error_messages: { format: "" },
+      format: '',
+      error_messages: { format: '' },
       mandatory: advancedFields?.mandatory || false,
       multiple: advancedFields?.multiple !== undefined ? advancedFields?.multiple : true,
       non_localizable: advancedFields?.non_localizable || false,
@@ -235,14 +269,14 @@ const createTaxonomyFieldObject = (item, taxonomySchema, targetVocabularies = []
  * @description
  * This function processes each Drupal field item from the input data and maps them to a specific schema structure.
  * It handles various Drupal field types and maps them to Contentstack field types with the following adaptations:
- * 
+ *
  * Field Type Mappings:
  * - Single line text → Multiline/HTML RTE/JSON RTE
- * - Multiline text → HTML RTE/JSON RTE  
+ * - Multiline text → HTML RTE/JSON RTE
  * - HTML RTE → JSON RTE
  * - JSON RTE → HTML RTE
  * - Taxonomy term references → Taxonomy fields with vocabulary mappings
- * 
+ *
  * The function supports processing of:
  * - Text fields with various widget types
  * - Rich text fields with associated reference fields
@@ -254,26 +288,26 @@ const createTaxonomyFieldObject = (item, taxonomySchema, targetVocabularies = []
 const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) => {
   // Load taxonomy schema for taxonomy field processing
   const taxonomySchema = await loadTaxonomySchema(dbConfig);
-  
+
   // 🏷️ Collect taxonomy fields for consolidation
   const collectedTaxonomies = [];
-  
+
   const schemaArray = data.reduce((acc, item) => {
     // Add prefix to item for UID correction
     item.prefix = prefix;
-    
+
     switch (item.type) {
       case 'text_with_summary':
       case 'text_long': {
         // Rich text with switching options: JSON RTE → HTML RTE → multiline → text
-        const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
+        const availableContentTypes = contentTypes?.filter((ct) => ct !== item.content_types) || [];
         const referenceFields = availableContentTypes.slice(0, 10);
         acc.push(createFieldObject(item, 'json', 'html', referenceFields));
         break;
       }
       case 'text': {
         // Single line with switching options: single_line → multiline → HTML RTE → JSON RTE
-        const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
+        const availableContentTypes = contentTypes?.filter((ct) => ct !== item.content_types) || [];
         const referenceFields = availableContentTypes.slice(0, 10);
         acc.push(createFieldObject(item, 'single_line_text', 'multi_line_text', referenceFields));
         break;
@@ -281,7 +315,7 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
       case 'string_long':
       case 'comment': {
         // Rich text with switching options: JSON RTE → HTML RTE → multiline → text
-        const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
+        const availableContentTypes = contentTypes?.filter((ct) => ct !== item.content_types) || [];
         const referenceFields = availableContentTypes.slice(0, 10);
         acc.push(createFieldObject(item, 'json', 'html', referenceFields));
         break;
@@ -289,7 +323,7 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
       case 'string':
       case 'list_string': {
         // Single line with switching options: single_line → multiline → HTML RTE → JSON RTE
-        const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
+        const availableContentTypes = contentTypes?.filter((ct) => ct !== item.content_types) || [];
         const referenceFields = availableContentTypes.slice(0, 10);
         acc.push(createFieldObject(item, 'single_line_text', 'multi_line_text', referenceFields));
         break;
@@ -301,25 +335,24 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
       case 'taxonomy_term_reference': {
         // 🏷️ Collect taxonomy field for consolidation instead of creating individual fields
         if (taxonomySchema && taxonomySchema.length > 0) {
-          
           // Try to determine specific vocabularies this field references
           let targetVocabularies = [];
-          
+
           // Check if field has handler settings that specify target vocabularies
           if (item.handler_settings && item.handler_settings.target_bundles) {
             targetVocabularies = Object.keys(item.handler_settings.target_bundles);
           }
-          
+
           // Add vocabularies to collection (avoid duplicates)
           if (targetVocabularies && targetVocabularies.length > 0) {
-            targetVocabularies.forEach(vocab => {
+            targetVocabularies.forEach((vocab) => {
               if (!collectedTaxonomies.includes(vocab)) {
                 collectedTaxonomies.push(vocab);
               }
             });
           } else {
             // Backup: Use all available taxonomies from taxonomySchema.json
-            taxonomySchema.forEach(taxonomy => {
+            taxonomySchema.forEach((taxonomy) => {
               if (!collectedTaxonomies.includes(taxonomy.uid)) {
                 collectedTaxonomies.push(taxonomy.uid);
               }
@@ -335,26 +368,26 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         // Check if this is a taxonomy field by handler
         if (item.handler === 'default:taxonomy_term') {
           // 🏷️ Collect taxonomy field for consolidation instead of creating individual fields
-          
+
           // Try to determine specific vocabularies this field references
           let targetVocabularies = [];
-          
+
           // Check if field has handler settings that specify target vocabularies
           if (item.reference) {
             targetVocabularies = Object.keys(item.reference);
           }
-          
+
           if (taxonomySchema && taxonomySchema.length > 0) {
             // Add vocabularies to collection (avoid duplicates)
             if (targetVocabularies && targetVocabularies.length > 0) {
-              targetVocabularies.forEach(vocab => {
+              targetVocabularies.forEach((vocab) => {
                 if (!collectedTaxonomies.includes(vocab)) {
                   collectedTaxonomies.push(vocab);
                 }
               });
             } else {
               // Backup: Use all available taxonomies from taxonomySchema.json
-              taxonomySchema.forEach(taxonomy => {
+              taxonomySchema.forEach((taxonomy) => {
                 if (!collectedTaxonomies.includes(taxonomy.uid)) {
                   collectedTaxonomies.push(taxonomy.uid);
                 }
@@ -363,27 +396,30 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
           } else {
             // Fallback to regular reference field if no taxonomy schema available
             // Use available content types instead of generic 'taxonomy'
-            const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
+            const availableContentTypes =
+              contentTypes?.filter((ct) => ct !== item.content_types) || [];
             const referenceFields = availableContentTypes.slice(0, 10);
             acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
           }
         } else if (item.handler === 'default:node') {
           // Handle node reference fields - use specific content types from reference settings
           let referenceFields = [];
-          
+
           if (item.reference && Object.keys(item.reference).length > 0) {
             // Use specific content types from field configuration
             referenceFields = Object.keys(item.reference);
           } else {
             // Backup: Use up to 10 content types from available content types
-            const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
+            const availableContentTypes =
+              contentTypes?.filter((ct) => ct !== item.content_types) || [];
             referenceFields = availableContentTypes.slice(0, 10);
           }
-          
+
           acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
         } else {
           // Handle other entity references - exclude taxonomy and limit to 10 content types
-          const availableContentTypes = contentTypes?.filter(ct => ct !== item.content_types) || [];
+          const availableContentTypes =
+            contentTypes?.filter((ct) => ct !== item.content_types) || [];
           const referenceFields = availableContentTypes.slice(0, 10);
           acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
         }
@@ -434,8 +470,8 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
   }, []);
 
   // Add default title and url fields if not present
-  const hasTitle = schemaArray.some(field => field.uid === 'title');
-  const hasUrl = schemaArray.some(field => field.uid === 'url');
+  const hasTitle = schemaArray.some((field) => field.uid === 'title');
+  const hasUrl = schemaArray.some((field) => field.uid === 'url');
 
   if (!hasTitle) {
     schemaArray.unshift({
@@ -467,7 +503,6 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
 
   // 🏷️ TAXONOMY CONSOLIDATION: Create single consolidated taxonomy field if any taxonomies were collected
   if (collectedTaxonomies.length > 0) {
-    
     // Create consolidated taxonomy field with fixed properties
     const consolidatedTaxonomyField = {
       uid: 'taxonomies',
@@ -479,7 +514,7 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
       backupFieldType: 'taxonomy',
       backupFieldUid: 'taxonomies',
       advanced: {
-        taxonomies: collectedTaxonomies.map(taxonomyUid => ({
+        taxonomies: collectedTaxonomies.map((taxonomyUid) => ({
           taxonomy_uid: taxonomyUid,
           mandatory: false,
           multiple: true,
@@ -491,7 +526,7 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         unique: false
       }
     };
-    
+
     // Add consolidated taxonomy field at the end of schema
     schemaArray.push(consolidatedTaxonomyField);
   }
