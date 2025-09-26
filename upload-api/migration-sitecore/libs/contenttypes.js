@@ -31,22 +31,15 @@ function startsWithNumber(str) {
   return /^\d/.test(str);
 }
 
-const uidCorrector = (uid, prefix) => {
-  if (!uid || typeof uid !== 'string' || !prefix) {
+const uidCorrector = ({ uid }) => {
+  if (!uid || typeof uid !== 'string') {
     return '';
   }
 
   let newUid = uid;
 
-  // Handle restricted keywords
-  if (idArray.includes(uid) || uid.startsWith('_ids') || uid.endsWith('_ids')) {
-    newUid = `${prefix}_${uid}`;
-  }
-
-  // Handle UIDs that start with numbers
-  if (startsWithNumber(newUid)) {
-    newUid = `${prefix}_${newUid}`;
-  }
+  // Note: UIDs starting with numbers and restricted keywords are handled externally in Sitecore
+  // The prefix is applied in contentTypeMaker function when needed
 
   // Clean up the UID
   newUid = newUid
