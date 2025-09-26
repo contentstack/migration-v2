@@ -21,13 +21,13 @@
       "content_type": "image/svg+xml",
       "file_size": "10160",
       "tags": [],
-      "filename": "icon-cs-mobile.svg",
-      "url": "https://images.contentstack.io/v3/assets/blt7359e2a55efae483/blt0b9a8281aeac3ec0/664c27d3c9024c35b5ad593a/CS_logo.png",
+      "filename": "contentstack-logo.svg",
+      "url": "https://images.contentstack.io/v3/assets/blt77d44a06c81b1730/blt2e24a315fedaeaf7/68bc10f25f14881bc908b6c2/CS_OnlyLogo.webp",
       "ACL": [],
       "is_dir": false,
       "parent_uid": "blt8e7f7872baa3a09e",
       "_version": 1,
-      "title": "icon-cs-mobile.svg"
+      "title": "Contentstack"
     },
     "url": "/projects"
   }
