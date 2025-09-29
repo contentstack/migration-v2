@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: process.env.CMS_TYPE || 'cmsType',
+  cmsType: process.env.CMS_TYPE || 'wordpress',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',

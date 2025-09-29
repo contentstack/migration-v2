@@ -19,6 +19,7 @@ export interface User {
 export interface AppTokenPayload {
   region: string;
   user_id: string;
+  is_sso: boolean;
 }
 
 /**
