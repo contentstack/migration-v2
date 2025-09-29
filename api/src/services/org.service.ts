@@ -3,7 +3,7 @@ import { config } from "../config/index.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
 import https from "../utils/https.utils.js";
 import { LoginServiceType } from "../models/types.js";
-import getAuthtoken from "../utils/auth.utils.js";
+import getAuthtoken, { getAccessToken } from "../utils/auth.utils.js";
 import logger from "../utils/logger.js";
 import { HTTP_TEXTS, HTTP_CODES } from "../constants/index.js";
 import { ExceptionFunction } from "../utils/custom-errors.utils.js";
@@ -22,10 +22,22 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   const search: string = req?.params?.searchText?.toLowerCase();
 
   try {
-    const authtoken = await getAuthtoken(
-      token_payload?.region,
-      token_payload?.user_id
-    );
+    let headers: any = {
+      organization_uid: orgId,
+      "Content-Type": "application/json",
+    };
+    if (token_payload?.is_sso) {
+      const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+      headers.authorization = `Bearer ${accessToken}`;
+    } else if (token_payload?.is_sso === false) {
+      const authtoken = await getAuthtoken(
+        token_payload?.region,
+        token_payload?.user_id
+      );
+      headers.authtoken = authtoken;
+    } else {
+      throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+    }
 
     const [err, res] = await safePromise(
       https({
@@ -33,10 +45,7 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          organization_uid: orgId,
-          authtoken,
-        },
+        headers: headers,
       })
     );
     if (err) {
@@ -109,10 +118,22 @@ const createStack = async (req: Request): Promise<LoginServiceType> => {
   const { token_payload, name, description, master_locale } = req.body;
 
   try {
-    const authtoken = await getAuthtoken(
-      token_payload?.region,
-      token_payload?.user_id
-    );
+    let headers: any = {
+      organization_uid: orgId,
+      "Content-Type": "application/json",
+    };
+    if (token_payload?.is_sso) {
+      const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+      headers.authorization = `Bearer ${accessToken}`;
+    } else if (token_payload?.is_sso === false) {
+      const authtoken = await getAuthtoken(
+        token_payload?.region,
+        token_payload?.user_id
+      );
+      headers.authtoken = authtoken;
+    } else {
+      throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+    }
 
     const [err, res] = await safePromise(
       https({
@@ -120,10 +141,7 @@ const createStack = async (req: Request): Promise<LoginServiceType> => {
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          organization_uid: orgId,
-          authtoken,
-        },
+        headers: headers,
         data: {
           stack: {
             name,
@@ -182,10 +200,18 @@ const getLocales = async (req: Request): Promise<LoginServiceType> => {
   const { token_payload } = req.body;
 
   try {
-    const authtoken = await getAuthtoken(
-      token_payload?.region,
-      token_payload?.user_id
-    );
+    let headers: any = {
+      "Content-Type": "application/json",
+    };
+    if (token_payload?.is_sso) {
+      const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+      headers.authorization = `Bearer ${accessToken}`;
+    } else if (token_payload?.is_sso === false) {
+      const authtoken = await getAuthtoken(token_payload?.region, token_payload?.user_id);
+      headers.authtoken = authtoken;
+    } else {
+      throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+    }
 
     const [err, res] = await safePromise(
       https({
@@ -193,9 +219,7 @@ const getLocales = async (req: Request): Promise<LoginServiceType> => {
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/locales?include_all=true`,
-        headers: {
-          authtoken,
-        },
+        headers: headers,
       })
     );
 
@@ -242,10 +266,22 @@ const getStackStatus = async (req: Request) => {
   const { token_payload, stack_api_key } = req.body;
   const srcFunc = "getStackStatus";
 
-  const authtoken = await getAuthtoken(
+  let headers: any = {
+    organization_uid: orgId,
+    "Content-Type": "application/json",
+  };
+  if (token_payload?.is_sso) {
+    const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+    headers.authorization = `Bearer ${accessToken}`;
+  } else if (token_payload?.is_sso === false) {
+    const authtoken = await getAuthtoken(
     token_payload?.region,
     token_payload?.user_id
-  );
+    );
+    headers.authtoken = authtoken;
+  } else {
+    throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+  }
 
   try {
     const [stackErr, stackRes] = await safePromise(
@@ -254,10 +290,7 @@ const getStackStatus = async (req: Request) => {
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          organization_uid: orgId,
-          authtoken,
-        },
+        headers: headers,
       })
     );
 
@@ -282,10 +315,7 @@ const getStackStatus = async (req: Request) => {
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/content_types?skip=0&limit=1&include_count=true`,
-        headers: {
-          api_key: stack_api_key,
-          authtoken,
-        },
+        headers: headers,
       })
     );
 
@@ -330,10 +360,16 @@ const getStackLocale = async (req: Request) => {
   const { token_payload, stack_api_key } = req.body;
   const srcFunc = "getStackStatus";
 
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id
-  );
+  let headers: any = {
+    api_key: stack_api_key,
+  }
+  if(token_payload?.is_sso) {
+    const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+    headers.authorization = `Bearer ${accessToken}`;
+  } else if (token_payload?.is_sso === false) {
+    const authtoken = await getAuthtoken(token_payload?.region, token_payload?.user_id);
+    headers.authtoken = authtoken;
+  }
 
   try {
     const [stackErr, stackRes] = await safePromise(
@@ -342,10 +378,7 @@ const getStackLocale = async (req: Request) => {
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/locales`,
-        headers: {
-          api_key: stack_api_key,
-          authtoken,
-        },
+        headers: headers,
       })
     );
 
@@ -388,10 +421,15 @@ const getOrgDetails = async (req: Request) => {
   const { token_payload } = req.body;
   const srcFunc = "getOrgDetails";
 
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id
-  );
+  let headers: any = {}
+  if(token_payload?.is_sso) {
+    const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+    headers.authorization = `Bearer ${accessToken}`;
+  } else if (token_payload?.is_sso === false) {
+    const authtoken = await getAuthtoken(token_payload?.region, token_payload?.user_id);
+    headers.authtoken = authtoken;
+  }
+
 
   try {
     const [stackErr, stackRes] = await safePromise(
@@ -400,9 +438,7 @@ const getOrgDetails = async (req: Request) => {
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/organizations/${orgId}?include_plan=true`,
-        headers: {
-          authtoken,
-        },
+        headers: headers,
       })
     );
 

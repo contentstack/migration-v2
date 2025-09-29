@@ -83,6 +83,7 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     const appTokenPayload: AppTokenPayload = {
       region: userData?.region,
       user_id: res?.data?.user.uid,
+      is_sso: false,
     };
 
     // Saving auth info in the DB
@@ -184,7 +185,7 @@ const getAppConfig = () => {
  * Receives the final code to generate token, fetches user details,
  * and saves/updates the user in the database.
  */
-const saveOAuthToken = async (req: Request): Promise<void> => {
+const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
   const { code, region } = req.query;
 
   if (!code || !region) {
@@ -241,8 +242,10 @@ const saveOAuthToken = async (req: Request): Promise<void> => {
     const appTokenPayload = {
       region: region as string,
       user_id: csUser.uid, 
+      is_sso: true,
     };
       
+    const appToken = generateToken(appTokenPayload);
     await AuthenticationModel.read();
     const userIndex = AuthenticationModel.chain.get("users").findIndex({ user_id: csUser.uid }).value();
 
@@ -263,6 +266,13 @@ const saveOAuthToken = async (req: Request): Promise<void> => {
     });
 
     logger.info(`Token and user data for ${csUser.email} (Region: ${region}) saved successfully.`);
+    return {
+      data: {
+        message: HTTP_TEXTS.SUCCESS_LOGIN,
+        app_token: appToken,
+      },
+      status: HTTP_CODES.OK,
+    } 
 
   } catch (error) {
     logger.error("An error occurred during token exchange and save:", error);
@@ -344,9 +354,90 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
   }
 };
 
+/**
+ * Check app.json file for SSO configuration.
+ * @returns The app configuration
+ */
+export const getAppData = async () => {
+  try {
+    const appConfigPath = path.join(process.cwd(), '..','app.json');
+    
+    if (!fs.existsSync(appConfigPath)) {
+      throw new Error('app.json file not found - SSO configuration required');
+    }
+
+    const appConfigData = fs.readFileSync(appConfigPath, 'utf8');
+    const appConfig: any = JSON.parse(appConfigData);
+
+    return appConfig;
+
+  } catch (error: any) {
+    if (error?.message?.includes('app.json file not found')) {
+      throw error;
+    }
+    if (error instanceof SyntaxError) {
+      throw new Error('Invalid JSON format in app.json file');
+    }
+    throw new Error(`Failed to read app configuration: ${error?.message}`);
+  }
+}
+
+/**
+ * Checks the status of the SSO authentication.
+ * @param userId - The user ID
+ * @returns The authentication status
+ */
+export const checkSSOAuthStatus = async (userId: string) => {
+  try {
+    await AuthenticationModel.read();
+    const userRecord = AuthenticationModel.chain.get("users").find({ user_id: userId }).value();
+    
+    if (!userRecord || !userRecord.access_token) {
+      throw new Error('SSO authentication not completed');
+    }
+
+    // Only consider tokens created in the last 10 minutes as "fresh"
+    const tokenAge = new Date()?.getTime() - new Date(userRecord.updated_at)?.getTime();
+    const maxTokenAge = 10 * 60 * 1000; // 10 minutes in milliseconds
+    
+    if (tokenAge > maxTokenAge) {
+      throw new Error('SSO authentication not completed');
+    }
+
+    // Token is fresh, proceed with authentication
+    const appTokenPayload = {
+      region: userRecord.region,
+      user_id: userRecord.user_id,
+      is_sso: true,
+    };
+    
+    const appToken = generateToken(appTokenPayload);
+    
+    return {
+      authenticated: true,
+      message: 'SSO authentication successful',
+      app_token: appToken,
+      user: {
+        email: userRecord.email,
+        uid: userRecord.user_id,
+        region: userRecord.region,
+        organization_uid: userRecord.organization_uid
+      }
+    };
+
+  } catch (error: any) {
+    if (error.message.includes('SSO authentication not completed')) {
+      throw error;
+    }
+    throw new Error(`Failed to check SSO authentication status: ${error.message}`);
+  }
+};
+
 export const authService = {
   login,
   requestSms,
   saveOAuthToken,
   refreshOAuthToken,
+  getAppData,
+  checkSSOAuthStatus
 };

@@ -15,7 +15,7 @@ import {
 import logger from "../utils/logger.js";
 import { config } from "../config/index.js";
 import https from "../utils/https.utils.js";
-import getAuthtoken from "../utils/auth.utils.js";
+import getAuthtoken, { getAccessToken } from "../utils/auth.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
 import fetchAllPaginatedData from "../utils/pagination.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
@@ -366,26 +366,29 @@ const getExistingContentTypes = async (req: Request) => {
 
   const { token_payload } = req.body;
 
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id
-  );
 
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain
     .get("projects")
     .find({ id: projectId })
     .value();
-  const stackId = project?.destination_stack_id;
 
   const baseUrl = `${config.CS_API[
     token_payload?.region as keyof typeof config.CS_API
   ]!}/content_types`;
-
-  const headers = {
-    api_key: stackId,
-    authtoken,
-  };
+  let headers: any = {
+    api_key: projectId?.destination_stack_id,
+  }
+  if(token_payload?.is_sso) {
+    const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+    headers.authorization = `Bearer ${accessToken}`;
+  } else if (token_payload?.is_sso === false) {
+    const authtoken = await getAuthtoken(
+      token_payload?.region,
+      token_payload?.user_id
+    );
+    headers.authtoken = authtoken;
+  }
 
   try {
     // Step 1: Fetch the updated list of all content types

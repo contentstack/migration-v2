@@ -50,5 +50,19 @@ router.get(
   asyncRouter(authController.saveOAuthToken)
 );
 
+/**
+ * @route GET /api/app-config
+ * @desc Get app configuration from app.json
+ * @access Public
+ */
+router.get('/app-config', authController.getAppConfigHandler);
+
+/**
+ * @route GET /v2/auth/sso-status/:userId
+ * @desc Check SSO authentication status for a user
+ * @param userId - The user ID to check authentication status for
+ * @access Public
+ */
+router.get('/sso-status/:userId', authController.getSSOAuthStatus);
 
 export default router;

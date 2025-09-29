@@ -24,3 +24,21 @@ export default async (region: string, userId: string) => {
 
   return authToken;
 };
+
+
+export const getAccessToken = async (region: string, userId: string) => {
+  await AuthenticationModel.read();
+  const userIndex = AuthenticationModel.chain
+    .get("users")
+    .findIndex({
+      region: region,
+      user_id: userId,
+    })
+    .value();
+
+  const accessToken = AuthenticationModel.data.users[userIndex]?.access_token;
+
+  if (userIndex < 0 || !accessToken) throw new UnauthorizedError();
+
+  return accessToken;
+};
