@@ -3,6 +3,7 @@ import path from 'path';
 import mysql from 'mysql2';
 import { v4 as uuidv4 } from 'uuid';
 import { JSDOM } from 'jsdom';
+import _ from 'lodash';
 import {
   htmlToJson,
   jsonToHtml,
@@ -26,7 +27,32 @@ import {
   type AssetFieldMapping,
 } from './field-analysis.service.js';
 import FieldFetcherService from './field-fetcher.service.js';
+import {
+  entriesFieldCreator,
+  unflatten,
+} from '../../utils/entries-field-creator.utils.js';
 // Dynamic import for phpUnserialize will be used in the function
+
+// Local utility functions (extracted from entries-field-creator.utils.ts patterns)
+const append = 'a';
+
+function startsWithNumber(str: string) {
+  return /^\d/.test(str);
+}
+
+const uidCorrector = ({ uid, id }: any) => {
+  const value = uid || id;
+  if (!value) return '';
+
+  if (startsWithNumber(value)) {
+    return `${append}_${_.replace(
+      value,
+      new RegExp('[ -]', 'g'),
+      '_'
+    )?.toLowerCase()}`;
+  }
+  return _.replace(value, new RegExp('[ -]', 'g'), '_')?.toLowerCase();
+};
 
 interface TaxonomyReference {
   drupal_term_id: number;
@@ -547,11 +573,7 @@ const processFieldByType = (
 
 /**
  * Consolidates all taxonomy fields into a single 'taxonomies' field with unique term_uid validation
- *
- * @param processedEntry - The processed entry data
- * @param contentType - The content type being processed
- * @param taxonomyFieldMapping - Mapping of taxonomy fields from field analysis
- * @returns Entry with consolidated taxonomy field
+ * Uses the same pattern as entries-field-creator.utils.ts
  */
 const consolidateTaxonomyFields = (
   processedEntry: any,
@@ -581,6 +603,7 @@ const consolidateTaxonomyFields = (
       console.log(
         `🏷️ Found taxonomy field in consolidation: ${fieldKey} -> ${fieldName}`
       );
+
       // Validate that field value is an array with taxonomy structure
       if (Array.isArray(fieldValue)) {
         for (const taxonomyItem of fieldValue) {
@@ -621,13 +644,6 @@ const consolidateTaxonomyFields = (
     consolidatedEntry.taxonomies = consolidatedTaxonomies;
     console.log(
       `🏷️ Consolidated ${fieldsToRemove.length} taxonomy fields into 'taxonomies' with ${consolidatedTaxonomies.length} unique terms for ${contentType}`
-    );
-  }
-
-  // Replace existing 'taxonomies' field if it exists (as per requirement)
-  if ('taxonomies' in processedEntry && consolidatedTaxonomies.length > 0) {
-    console.log(
-      `🔄 Replaced existing 'taxonomies' field with consolidated data for ${contentType}`
     );
   }
 
@@ -819,7 +835,7 @@ const processFieldData = async (
     } else if (fieldName.endsWith('_tid')) {
       ctValue[fieldName] = [value];
     } else if (fieldName === 'nid') {
-      ctValue.uid = `content_type_entries_title_${value}`;
+      ctValue.uid = uidCorrector({ id: `content_type_entries_title_${value}` });
     } else if (fieldName === 'langcode') {
       // Use the actual langcode from the entry for proper multilingual support
       ctValue.locale = value || 'en-us'; // fallback to en-us if langcode is empty
@@ -1363,10 +1379,11 @@ const processEntries = async (
         processedEntry.publish_details = [];
 
         if (typeof entry.nid === 'number') {
-          existingLocaleContent[`content_type_entries_title_${entry.nid}`] =
-            processedEntry;
-          allProcessedContent[`content_type_entries_title_${entry.nid}`] =
-            processedEntry;
+          const entryUid = uidCorrector({
+            id: `content_type_entries_title_${entry.nid}`,
+          });
+          existingLocaleContent[entryUid] = processedEntry;
+          allProcessedContent[entryUid] = processedEntry;
         }
 
         // Log each entry transformation
