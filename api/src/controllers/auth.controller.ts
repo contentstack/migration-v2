@@ -26,8 +26,9 @@ const RequestSms = async (req: Request, res: Response) => {
 
 
 /**
- * Handles the secure, server-to-server POST request from our Launch proxy.
- * This confirms to the proxy that the token was received.
+ * Generates the OAuth token and saves it to the database.
+ * @param req - The request object. Sends the code and region.
+ * @param res - The response object. Sends the message "Token received successfully."
  */
 const saveOAuthToken = async (req: Request, res: Response) => {
   await authService.saveOAuthToken(req);

@@ -41,8 +41,9 @@ router.post(
 );
 
 /**
- * The new secure endpoint that the Launch proxy will call with a POST request
- * to deliver the final access token. This is NOT for browser access.
+ * Generates the OAuth token and saves it to the database.
+ * @param req - The request object. Sends the code and region.
+ * @param res - The response object. Sends the message "Token received successfully."
  * @route POST /v2/auth/save-token
  */
 router.get(

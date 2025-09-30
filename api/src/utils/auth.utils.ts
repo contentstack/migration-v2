@@ -30,11 +30,11 @@ export const getAccessToken = async (region: string, userId: string) => {
   await AuthenticationModel.read();
   const userIndex = AuthenticationModel.chain
     .get("users")
-    .findIndex({
+    ?.findIndex({
       region: region,
       user_id: userId,
     })
-    .value();
+    ?.value();
 
   const accessToken = AuthenticationModel.data.users[userIndex]?.access_token;
 

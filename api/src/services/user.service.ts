@@ -34,14 +34,14 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
 
     if (userIndex < 0) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
 
-    const userRecord = AuthenticationModel.data.users[userIndex];
+    const userRecord = AuthenticationModel?.data?.users[userIndex];
     let headers: any = {
       "Content-Type": "application/json",
     };
     if (appTokenPayload?.is_sso) {
-      headers.authorization = `Bearer ${userRecord.access_token}`;
+      headers.authorization = `Bearer ${userRecord?.access_token}`;
     } else if (appTokenPayload?.is_sso === false) {
-      headers.authtoken = userRecord.authtoken;
+      headers.authtoken = userRecord?.authtoken;
     } else {
       throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
     }
@@ -75,7 +75,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
     if (!res?.data?.user) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
 
     const orgs = (res?.data?.user?.organizations || [])
-      ?.filter((org: any) => org?.org_roles?.some((item: any) => item.admin))
+      ?.filter((org: any) => org?.org_roles?.some((item: any) => item?.admin))
       ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
 
     const ownerOrgs = (res?.data?.user?.organizations || [])?.filter((org:any)=> org?.is_owner)
@@ -91,7 +91,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
           orgs: allOrgs,
         },
       },
-      status: res.status,
+      status: res?.status,
     };
   } catch (error: any) {
     logger.error(
