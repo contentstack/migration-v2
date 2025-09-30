@@ -237,22 +237,22 @@ const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
       throw new InternalServerError(userErr);
     }
 
-    const csUser = userRes.data.user;
+    const csUser = userRes?.data?.user;
 
     const appTokenPayload = {
       region: region as string,
-      user_id: csUser.uid, 
+      user_id: csUser?.uid, 
       is_sso: true,
     };
       
     const appToken = generateToken(appTokenPayload);
     await AuthenticationModel.read();
-    const userIndex = AuthenticationModel.chain.get("users").findIndex({ user_id: csUser.uid }).value();
+    const userIndex = AuthenticationModel.chain.get("users").findIndex({ user_id: csUser?.uid }).value();
 
     AuthenticationModel.update((data: any) => {
       const userRecord = {
         ...appTokenPayload,
-        email: csUser.email,
+        email: csUser?.email,
         access_token: access_token, 
         refresh_token: refresh_token,
         organization_uid: organization_uid,
@@ -295,7 +295,7 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
       throw new Error(`User record not found for user_id: ${userId}`);
     }
 
-    if (!userRecord.refresh_token) {
+    if (!userRecord?.refresh_token) {
       throw new Error(`No refresh token available for user: ${userId}`);
     }
 
@@ -311,7 +311,7 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
       throw new Error('OAuth client_id or client_secret not found in app.json');
     }
 
-    logger.info(`Refreshing token for user: ${userRecord.email} in region: ${userRecord.region}`);
+    logger.info(`Refreshing token for user: ${userRecord?.email} in region: ${userRecord?.region}`);
 
     const appUrl = CSAUTHHOST[userRecord.region] || CSAUTHHOST['NA'];
     const tokenEndpoint = `${appUrl}`;
@@ -321,7 +321,7 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
       client_id: client_id,
       client_secret: client_secret,
       redirect_uri: redirect_uri,
-      refresh_token: userRecord.refresh_token
+      refresh_token: userRecord?.refresh_token
     });
 
     const response = await axios.post<RefreshTokenResponse>(tokenEndpoint, formData, {
@@ -331,13 +331,13 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
       timeout: 15000
     });
 
-    const { access_token, refresh_token } = response.data;
+    const { access_token, refresh_token } = response?.data;
 
     AuthenticationModel.update((data: any) => {
-      const userIndex = data.users.findIndex((user: any) => user.user_id === userId);
+      const userIndex = data?.users?.findIndex((user: any) => user?.user_id === userId);
       if (userIndex >= 0) {
         data.users[userIndex] = {
-          ...data.users[userIndex],
+          ...data?.users[userIndex],
           access_token: access_token,
           refresh_token: refresh_token || userRecord.refresh_token, 
           updated_at: new Date().toISOString()
@@ -345,11 +345,11 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
       }
     });
 
-    logger.info(`Token refreshed successfully for user: ${userRecord.email}`);
+    logger.info(`Token refreshed successfully for user: ${userRecord?.email}`);
     return access_token;
 
   } catch (error: any) {
-    logger.error(`Token refresh failed for user ${userId}:`, error.response?.data || error.message);
+    logger.error(`Token refresh failed for user ${userId}:`, error?.response?.data || error?.message);
     throw new Error(`Failed to refresh token: ${error.response?.data?.error_description || error.message}`);
   }
 };
@@ -392,12 +392,12 @@ export const checkSSOAuthStatus = async (userId: string) => {
     await AuthenticationModel.read();
     const userRecord = AuthenticationModel.chain.get("users").find({ user_id: userId }).value();
     
-    if (!userRecord || !userRecord.access_token) {
+    if (!userRecord || !userRecord?.access_token) {
       throw new Error('SSO authentication not completed');
     }
 
     // Only consider tokens created in the last 10 minutes as "fresh"
-    const tokenAge = new Date()?.getTime() - new Date(userRecord.updated_at)?.getTime();
+    const tokenAge = new Date()?.getTime() - new Date(userRecord?.updated_at)?.getTime();
     const maxTokenAge = 10 * 60 * 1000; // 10 minutes in milliseconds
     
     if (tokenAge > maxTokenAge) {
@@ -406,7 +406,7 @@ export const checkSSOAuthStatus = async (userId: string) => {
 
     // Token is fresh, proceed with authentication
     const appTokenPayload = {
-      region: userRecord.region,
+      region: userRecord?.region,
       user_id: userRecord.user_id,
       is_sso: true,
     };
@@ -418,18 +418,18 @@ export const checkSSOAuthStatus = async (userId: string) => {
       message: 'SSO authentication successful',
       app_token: appToken,
       user: {
-        email: userRecord.email,
-        uid: userRecord.user_id,
-        region: userRecord.region,
-        organization_uid: userRecord.organization_uid
+        email: userRecord?.email,
+        uid: userRecord?.user_id,
+        region: userRecord?.region,
+        organization_uid: userRecord?.organization_uid
       }
     };
 
   } catch (error: any) {
-    if (error.message.includes('SSO authentication not completed')) {
+    if (error?.message?.includes('SSO authentication not completed')) {
       throw error;
     }
-    throw new Error(`Failed to check SSO authentication status: ${error.message}`);
+    throw new Error(`Failed to check SSO authentication status: ${error?.message}`);
   }
 };
 

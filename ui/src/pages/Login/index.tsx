@@ -273,17 +273,17 @@ const Login: FC<IProps> = () => {
           }
   
           // Checks if region matches
-          if (appConfig?.region?.key && appConfig.region.key !== currentRegion) {
+          if (appConfig?.region?.key && appConfig?.region?.key !== currentRegion) {
             failtureNotification('Kindly choose correct region as the SSO region');
             setIsLoading(false);
             return;
           }
   
-          const authURL = appConfig.authUrl;
+          const authURL = appConfig?.authUrl;
           const ssoWindow = window.open(authURL, '_blank', 'noopener,noreferrer');
           
-          if (appConfig.user?.uid) {
-            startSSOPolling(appConfig.user.uid, ssoWindow);
+          if (appConfig?.user?.uid) {
+            startSSOPolling(appConfig?.user?.uid, ssoWindow);
           } else {
             failtureNotification('Missing user information in SSO configuration');
             setIsLoading(false);
@@ -326,7 +326,7 @@ const Login: FC<IProps> = () => {
                 ssoWindow.close();
               }
               
-              handleSuccessfulSSOLogin(authRes.data);
+              handleSuccessfulSSOLogin(authRes?.data);
               return;
             }
             
@@ -372,14 +372,14 @@ const Login: FC<IProps> = () => {
     try {
       setIsLoading(false);
       
-      setDataInLocalStorage('app_token', authData.app_token);
+      setDataInLocalStorage('app_token', authData?.app_token);
       
       localStorage?.removeItem('organization');
       dispatch(clearOrganisationData());
     
       
       const authenticationObj = {
-        authToken: authData.app_token,
+        authToken: authData?.app_token,
         isAuthenticated: true
       };
       

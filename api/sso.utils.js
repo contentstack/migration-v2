@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const manifest = require("./manifest.json");
 const { default: axios } = require("axios");
 
+// Region configuration
 const REGION_CONFIG = {
   NA: {
     name: "North America",
@@ -55,6 +56,10 @@ const REGION_CONFIG = {
 };
 
 
+/**
+ * Gets the current region from the CSDX config.
+ * @returns The current region.
+ */
 function getCurrentRegion() {
   try {
     const regionOutput = execSync("csdx config:get:region", {
@@ -80,6 +85,12 @@ function getCurrentRegion() {
   }
 }
 
+/**
+ * Sets the OAuth configuration for the CLI.
+ * @param migration - The migration object.
+ * @param stackSDKInstance - The stack SDK instance.
+ * @param managementAPIClient - The management API client.
+ */
 module.exports = async ({
   migration,
   stackSDKInstance,
@@ -237,21 +248,22 @@ module.exports = async ({
 
     console.log("🔐 Fetching OAuth configuration...");
     const oauthData = await client
-      .marketplace(selectedOrg.uid)
-      .app(existingApp?.uid)
-      .oauth()
-      .fetch();
+      ?.marketplace(selectedOrg?.uid)
+      ?.app(existingApp?.uid)
+      ?.oauth()
+      ?.fetch();
 
     console.log("🔒 Generating PKCE credentials...");
-    const code_verifier = crypto.randomBytes(32).toString("hex");
+    const code_verifier = crypto?.randomBytes(32).toString("hex");
     const code_challenge = crypto
-      .createHash("sha256")
-      .update(code_verifier)
-      .digest("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
+      ?.createHash("sha256")
+      ?.update(code_verifier)
+      ?.digest("base64")
+      ?.replace(/\+/g, "-")
+      ?.replace(/\//g, "_")
+      ?.replace(/=+$/, "");
 
+    // Generates the authorization URL for the app
     const authUrl = `${regionConfig.app}/#!/apps/${
       existingApp?.uid
     }/authorize?response_type=code&client_id=${
@@ -262,6 +274,8 @@ module.exports = async ({
 
     console.log(`\n🚀 Authorization URL for ${regionConfig.name}:`);
     console.log(authUrl);
+
+    // Formats the app data for the app.json file
     const appData = {
       timestamp: new Date().toISOString(),
       region: {
@@ -295,10 +309,10 @@ module.exports = async ({
 
   } catch (error) {
     console.error("❌ Setup failed:");
-    console.error("Error:", error.message);
+    console.error("Error:", error?.message);
 
-    if (error.errorMessage) {
-      console.error("Details:", error.errorMessage);
+    if (error?.errorMessage) {
+      console.error("Details:", error?.errorMessage);
     }
 
     console.error(`\n🔍 Debug Info:`);
