@@ -8,7 +8,6 @@
     "start": "NODE_ENV=production tsx ./src/server.ts",
     "start:prod": "NODE_ENV=production node dist/server.js",
     "dev": "NODE_ENV=production nodemon --exec tsx ./src/server.ts",
-    "test:drupal": "npx tsx test-drupal-services.js",
     "prettify": "prettier --write .",
     "windev": "SET NODE_ENV=production&& tsx watch ./src/server.ts",
     "winstart": "SET NODE_ENV=production&& node dist/server.js",
