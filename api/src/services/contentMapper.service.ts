@@ -377,7 +377,7 @@ const getExistingContentTypes = async (req: Request) => {
     token_payload?.region as keyof typeof config.CS_API
   ]!}/content_types`;
   let headers: any = {
-    api_key: projectId?.destination_stack_id,
+    api_key: project?.destination_stack_id,
   }
   if(token_payload?.is_sso) {
     const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);

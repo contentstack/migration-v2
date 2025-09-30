@@ -308,7 +308,7 @@ const Login: FC<IProps> = () => {
     let pollCount = 0;
     const maxPolls = maxPollTime / pollInterval; 
     const poll = async () => {
-      pollCount++
+      pollCount++;
       
       try {
         if (ssoWindow?.closed) {

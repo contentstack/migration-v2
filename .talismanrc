@@ -180,3 +180,8 @@ fileignoreconfig:
 - filename: ui/src/pages/Login/index.tsx
   checksum: 7f7c008586db60f1cc8df625b88bfdc5c3bb861c21e40a55fc763f0ac4a6a8d2
 version: "1.0"
+
+fileignoreconfig:
+- filename: api/src/services/contentMapper.service.ts
+  checksum: 924b124214a93a7bec4c471304f5b270d5e735d506644180273b7118f3d37dd2
+version: "1.0"
