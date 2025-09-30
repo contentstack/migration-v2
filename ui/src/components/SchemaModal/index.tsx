@@ -139,14 +139,14 @@ const TreeView = ({ schema = [] }: schemaType) => {
     };
 
     // First pass: Add all root level fields (no dots in UID)
-    schema?.forEach((field, index) => {
+    schema?.forEach((field) => {
       if (!field?.uid?.includes('.')) {
         data.push({ ...field, child: [] });
       }
     });
     
     // Second pass: Add nested fields (with dots in UID)
-    schema?.forEach((field, index) => {
+    schema?.forEach((field) => {
       
       // Check if this field has a parent (contains dots in UID)
       if (field?.uid?.includes('.')) {
@@ -205,6 +205,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
           if (field?.uid) {
             fieldname = field?.uid?.replace(/\.+/g, '_');
           }
+        
           return (
             <li key={`${field?.otherCmsField}${field?.contentstackFieldType}`}>
               <button
@@ -215,10 +216,10 @@ const TreeView = ({ schema = [] }: schemaType) => {
                   handleClick(e);
                 }}
                 className={`iconsholder list-button`}
-              >
+              >                
                 <span className="icons">
                   {hasNestedValue(field) && (
-                    <Icon className={`chevron ${index ? '' : 'close'} `} icon="ChevronExtraSmall" />
+                    <Icon className={`chevron ${(index || nestedIndex !== null) ? '' : 'close'} `} icon="ChevronExtraSmall" />
                   )}
                   <Icon icon={getTopLevelIcons(field) as string} className="field-icon" version='v2' size='small' />
                 </span>

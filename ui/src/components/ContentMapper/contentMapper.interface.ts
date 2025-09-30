@@ -206,4 +206,5 @@ export interface ModifiedField {
   backupFieldType: string;
   parentId: string;
   uid: string;
+  contentstackFieldType?: string;
 }

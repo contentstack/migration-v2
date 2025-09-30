@@ -790,7 +790,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
 
   const handleSchemaPreview = async (title: string, contentTypeId: string) => {
     try {
-      const { data } = await getFieldMapping(contentTypeId ?? '', 0, 30, searchText ?? '', projectId);
+      const { data } = await getFieldMapping(contentTypeId ?? '', 0, 1000, searchText ?? '', projectId);
       return cbModal({
         component: (props: ModalObj) => (
           <SchemaModal
@@ -898,13 +898,14 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
   }
 
   const modifiedObj = (obj: FieldMapType) => {
-    const {backupFieldType, uid, id} = obj ?? {}
-    const excludeArr = ["group"]
+    const {backupFieldType, uid, id, contentstackFieldType} = obj ?? {}
+    const excludeArr = ["group", "modular_blocks"]
     return {
       id,
       backupFieldType,
+      contentstackFieldType,
       uid,
-      parentId : excludeArr?.includes?.(backupFieldType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0]?.toLowerCase())
+      parentId : excludeArr?.includes?.(backupFieldType?.toLowerCase()) || excludeArr?.includes?.(contentstackFieldType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0]?.toLowerCase())
     }
   }
   
@@ -974,12 +975,24 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
     // Get the latest action performed row 
     const latestRow = findLatest(rowHistoryObj);
 
-    if(latestRow?.backupFieldType?.toLowerCase() === "group" && latestRow?.parentId === '') {
+    // Helper functions for checkbox logic
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const isParentBlock = (item: any) => {
+      return item?.backupFieldType?.toLowerCase() === "group" || 
+             item?.backupFieldType?.toLowerCase() === "modular_blocks" || 
+             item?.backupFieldType?.toLowerCase() === "modular_blocks_child" ||
+             item?.contentstackFieldType?.toLowerCase() === "modular_blocks" || 
+             item?.contentstackFieldType?.toLowerCase() === "modular_blocks_child";
+    };
+
+    if((latestRow?.backupFieldType?.toLowerCase() === "group" && latestRow?.parentId === '') || latestRow?.backupFieldType?.toLowerCase() === "modular_blocks") {
       // get all child rows of group
       const groupUid = latestRow?.uid?.toLowerCase();
       const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupUid + '.'));
+      console.info("childItems ---> ", childItems)
       if (childItems && validateArray(childItems)) {
         if(latestRow?.checked){
+          console.info("inside if latestRow?.checked ---> ", latestRow?.checked)
           const lastEle = getLastElements(rowHistoryObj)
           let isChildChecked = false
           childItems?.forEach((child) => {
@@ -987,6 +1000,25 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
               isChildChecked = true
             }
           })
+
+          if (childItems?.some((child) => child?.contentstackFieldType?.toLowerCase() === latestRow?.contentstackFieldType?.toLowerCase())) {
+            isChildChecked = true;
+            childItems?.forEach((child) => {
+              console.info("child ---> ", child)
+              const modularBlockChildItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(child?.uid?.toLowerCase() + '.'));
+
+              modularBlockChildItems?.forEach((blockChild) => {
+                // if(lastEle[blockChild?.id]?.checked){
+                //   isChildChecked = true
+                // }
+                if(!lastEle[blockChild?.id]){
+                selectedObj[blockChild?.id] = true
+              }
+              })
+              
+            })
+            
+          }
 
           if(isChildChecked) {
             if(!selectedObj[latestRow?.id]){
