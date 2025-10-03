@@ -905,7 +905,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       backupFieldType,
       contentstackFieldType,
       uid,
-      parentId : excludeArr?.includes?.(backupFieldType?.toLowerCase()) || excludeArr?.includes?.(contentstackFieldType?.toLowerCase()) ? '' : getParentId(uid?.split('.')[0]?.toLowerCase())
+      parentId : excludeArr?.includes?.(backupFieldType?.toLowerCase()) || excludeArr?.includes?.(contentstackFieldType?.toLowerCase()) ? '' : getParentId(uid?.substring(0, uid.lastIndexOf('.'))?.toLowerCase())
     }
   }
   
@@ -936,6 +936,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         }
       }
     }
+    console.info("latestItem ---> ", latestItem)
     return latestItem;
   }
 
@@ -992,19 +993,22 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       console.info("childItems ---> ", childItems)
       if (childItems && validateArray(childItems)) {
         if(latestRow?.checked){
-          console.info("inside if latestRow?.checked ---> ", latestRow?.checked)
+          console.info("inside if latestRow?.checked ---> ", latestRow)
           const lastEle = getLastElements(rowHistoryObj)
+          console.info("lastEle ---> ", lastEle)
           let isChildChecked = false
-          childItems?.forEach((child) => {
-            if(lastEle[child?.id]?.checked){
-              isChildChecked = true
-            }
-          })
+
+
+          const modularBlockChild = childItems?.find((entry) => entry?.contentstackFieldType?.toLowerCase() === 'modular_blocks_child');
+          console.info("modularBlockChild ---> ", modularBlockChild)
+          if(modularBlockChild?.id === latestRow?.parentId){
+            selectedObj[modularBlockChild?.id] = true
+          }
 
           if (childItems?.some((child) => child?.contentstackFieldType?.toLowerCase() === latestRow?.contentstackFieldType?.toLowerCase())) {
             isChildChecked = true;
             childItems?.forEach((child) => {
-              console.info("child ---> ", child)
+              // console.info("child ---> ", child)
               const modularBlockChildItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(child?.uid?.toLowerCase() + '.'));
 
               modularBlockChildItems?.forEach((blockChild) => {

@@ -122,15 +122,15 @@ const TreeView = ({ schema = [] }: schemaType) => {
     // Helper function to find the correct parent for a field
     const findParentInData = (targetUid: string, dataArray: FieldMapType[]): FieldMapType | null => {
       for (const item of dataArray) {
-        if (targetUid.startsWith(item.uid + '.')) {
+        if (targetUid?.startsWith(item?.uid + '.')) {
           // Check if this is an immediate child (no additional dots after parent uid)
-          const remainingPath = targetUid.substring(item.uid.length + 1);
+          const remainingPath = targetUid?.substring(item?.uid?.length + 1);
           if (!remainingPath.includes('.')) {
             return item; // This is the immediate parent
           }
           // Check in children recursively
-          if (item.child && item.child.length > 0) {
-            const foundInChild = findParentInData(targetUid, item.child);
+          if (item?.child && item?.child?.length > 0) {
+            const foundInChild = findParentInData(targetUid, item?.child);
             if (foundInChild) return foundInChild;
           }
         }
