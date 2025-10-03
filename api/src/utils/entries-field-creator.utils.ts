@@ -199,35 +199,63 @@ export const entriesFieldCreator = async ({
     }
 
     case 'dropdown': {
-      const isOptionPresent = field?.advanced?.options?.find(
-        (ops: any) => ops?.key === content || ops?.value === content
-      );
-      if (isOptionPresent) {
-        if (field?.advanced?.Multiple) {
-          if (!isOptionPresent?.key) {
-            return isOptionPresent;
-          }
-          return isOptionPresent;
-        }
-        return isOptionPresent?.value ?? null;
-      } else {
-        if (field?.advanced?.default_value) {
-          const isOptionDefaultValue = field?.advanced?.options?.find(
-            (ops: any) =>
-              ops?.key === field?.advanced?.default_value ||
-              ops?.value === field?.advanced?.default_value
+      // Handle dropdown, radio, and checkbox fields following CSV scenarios
+      const choices =
+        field?.advanced?.enum?.choices || field?.advanced?.options || [];
+      const isMultiple = field?.advanced?.multiple || false;
+      const displayType = field?.advanced?.display_type || 'dropdown';
+
+      // Handle multiple values (arrays) - for checkboxes
+      if (Array.isArray(content)) {
+        const matchedValues = [];
+        for (const item of content) {
+          const match = choices.find(
+            (choice: any) =>
+              choice?.key === item ||
+              choice?.value === item ||
+              String(choice?.key) === String(item) ||
+              String(choice?.value) === String(item)
           );
-          if (field?.advanced?.Multiple) {
-            if (!isOptionDefaultValue?.key) {
-              return isOptionDefaultValue;
-            }
-            return isOptionDefaultValue;
+          if (match) {
+            // For checkboxes (multiple=true), return the value
+            // For single fields, return just the value
+            matchedValues.push(match.value);
           }
-          return isOptionDefaultValue?.value ?? null;
-        } else {
-          return field?.advanced?.default_value;
         }
+        return matchedValues.length > 0
+          ? isMultiple
+            ? matchedValues
+            : matchedValues[0]
+          : null;
       }
+
+      // Handle single values - for dropdown and radio
+      const match = choices.find(
+        (choice: any) =>
+          choice?.key === content ||
+          choice?.value === content ||
+          String(choice?.key) === String(content) ||
+          String(choice?.value) === String(content)
+      );
+
+      if (match) {
+        // Always return the value, not the whole choice object
+        return match.value;
+      }
+
+      // Fallback to default value
+      const defaultValue =
+        field?.advanced?.default_value ||
+        field?.advanced?.field_metadata?.default_value;
+      if (defaultValue) {
+        const defaultMatch = choices.find(
+          (choice: any) =>
+            choice?.key === defaultValue || choice?.value === defaultValue
+        );
+        return defaultMatch ? defaultMatch.value : defaultValue;
+      }
+
+      return null;
     }
 
     case 'number': {

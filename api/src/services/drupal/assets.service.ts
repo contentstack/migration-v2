@@ -338,16 +338,6 @@ export const createAssets = async (
   let connection: mysql.Connection | null = null;
 
   try {
-    console.info('🔍 === DRUPAL ASSETS SERVICE CONFIG ===');
-    console.info('📋 Database Config:', JSON.stringify(dbConfig, null, 2));
-    console.info('📋 Destination Stack ID:', destination_stack_id);
-    console.info('📋 Project ID:', projectId);
-    console.info('📋 Base URL:', baseUrl);
-    console.info('📋 Public Path:', publicPath);
-    console.info('📋 Is Test Migration:', isTest);
-    console.info('📋 Function:', srcFunc);
-    console.info('========================================');
-
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
     const assetMasterFolderPath = path.join(
       DATA,

@@ -156,7 +156,7 @@ const loadTaxonomyReferences = async (
 
     return lookup;
   } catch (error) {
-    console.warn('Could not load taxonomy references:', error);
+    console.error('Could not load taxonomy references:', error);
     return {};
   }
 };
@@ -241,7 +241,7 @@ const fetchFieldConfigs = async (
           fieldConfigs.push(configData as DrupalFieldConfig);
         }
       } catch (parseError) {
-        console.warn(
+        console.error(
           `Failed to parse field config for ${row.name}:`,
           parseError
         );
@@ -299,6 +299,7 @@ const isConversionAllowed = (
   targetType: string
 ): boolean => {
   const conversionRules: { [key: string]: string[] } = {
+    // ✅ Single line can upgrade to multi-line, HTML RTE, or JSON RTE
     single_line: [
       'single_line_text',
       'text',
@@ -306,9 +307,12 @@ const isConversionAllowed = (
       'html',
       'json',
     ],
-    multi_line: ['multi_line_text', 'text', 'html', 'json'], // Cannot convert to single_line_text
-    html_rte: ['html', 'json'], // Cannot convert to single_line_text or multi_line_text
-    json_rte: ['json', 'html'], // Cannot convert to single_line_text or multi_line_text
+    // ✅ Multi-line can upgrade to HTML RTE or JSON RTE (but not downgrade to single-line)
+    multi_line: ['multi_line_text', 'text', 'html', 'json'],
+    // ✅ HTML RTE can only convert to JSON RTE (no downgrades to text fields)
+    html_rte: ['html', 'json'],
+    // ✅ JSON RTE can only convert to HTML RTE (no downgrades to text fields)
+    json_rte: ['json', 'html'],
   };
 
   return conversionRules[sourceType]?.includes(targetType) || false;
@@ -334,7 +338,7 @@ const processFieldByType = (
 
   // Check if conversion is allowed
   if (!isConversionAllowed(sourceType, targetType)) {
-    console.warn(
+    console.error(
       `Conversion not allowed: ${sourceType} → ${targetType}. Keeping original value.`
     );
     return value;
@@ -354,7 +358,7 @@ const processFieldByType = (
             .trim();
           return textContent;
         } catch (error) {
-          console.warn(
+          console.error(
             'Failed to convert JSON RTE to single line text:',
             error
           );
@@ -396,7 +400,7 @@ const processFieldByType = (
             }) || ''
           );
         } catch (error) {
-          console.warn('Failed to convert JSON RTE to HTML:', error);
+          console.error('Failed to convert JSON RTE to HTML:', error);
           return String(value || '');
         }
       }
@@ -416,7 +420,7 @@ const processFieldByType = (
             return htmlToJson(htmlDoc);
           }
         } catch (error) {
-          console.warn('Failed to convert HTML to JSON RTE:', error);
+          console.error('Failed to convert HTML to JSON RTE:', error);
         }
       } else if (typeof value === 'string') {
         // Plain text to JSON RTE
@@ -427,7 +431,7 @@ const processFieldByType = (
             return htmlToJson(htmlDoc);
           }
         } catch (error) {
-          console.warn('Failed to convert text to JSON RTE:', error);
+          console.error('Failed to convert text to JSON RTE:', error);
         }
       }
       // If already JSON RTE or conversion failed, return as-is
@@ -454,11 +458,19 @@ const processFieldByType = (
             }) || '<p></p>'
           );
         } catch (error) {
-          console.warn('Failed to convert JSON RTE to HTML:', error);
+          console.error('Failed to convert JSON RTE to HTML:', error);
           return value;
         }
+      } else if (typeof value === 'string') {
+        // Check if it's already HTML
+        if (/<\/?[a-z][\s\S]*>/i.test(value)) {
+          // Already HTML, return as-is
+          return value;
+        } else {
+          // Plain text to HTML - wrap in paragraph tags
+          return `<p>${value}</p>`;
+        }
       }
-      // If already HTML or plain text, return as-is
       return typeof value === 'string' ? value : String(value || '');
     }
 
@@ -468,7 +480,7 @@ const processFieldByType = (
         try {
           return jsonToMarkdown(value);
         } catch (error) {
-          console.warn('Failed to convert JSON RTE to Markdown:', error);
+          console.error('Failed to convert JSON RTE to Markdown:', error);
           return value;
         }
       }
@@ -489,7 +501,7 @@ const processFieldByType = (
                 return assetReference;
               }
 
-              console.warn(
+              console.error(
                 `Asset ${assetKey} not found or invalid, excluding from array`
               );
               return null;
@@ -507,7 +519,7 @@ const processFieldByType = (
           return assetReference;
         }
 
-        console.warn(`Asset ${assetKey} not found or invalid, removing field`);
+        console.error(`Asset ${assetKey} not found or invalid, removing field`);
         return undefined; // Return undefined to indicate field should be removed
       }
       return value;
@@ -587,12 +599,6 @@ const consolidateTaxonomyFields = (
   const fieldsToRemove: string[] = [];
   const seenTermUids = new Set<string>(); // Track unique term_uid values
 
-  console.log(
-    `🏷️ Starting taxonomy consolidation for ${contentType} with ${
-      Object.keys(processedEntry).length
-    } fields`
-  );
-
   // Iterate through all fields in the processed entry
   for (const [fieldKey, fieldValue] of Object.entries(processedEntry)) {
     // Extract field name from key (remove _target_id suffix)
@@ -600,10 +606,6 @@ const consolidateTaxonomyFields = (
 
     // Check if this is a taxonomy field using field analysis
     if (isTaxonomyField(fieldName, contentType, taxonomyFieldMapping)) {
-      console.log(
-        `🏷️ Found taxonomy field in consolidation: ${fieldKey} -> ${fieldName}`
-      );
-
       // Validate that field value is an array with taxonomy structure
       if (Array.isArray(fieldValue)) {
         for (const taxonomyItem of fieldValue) {
@@ -642,9 +644,6 @@ const consolidateTaxonomyFields = (
   // Add consolidated taxonomy field if we have any taxonomies
   if (consolidatedTaxonomies.length > 0) {
     consolidatedEntry.taxonomies = consolidatedTaxonomies;
-    console.log(
-      `🏷️ Consolidated ${fieldsToRemove.length} taxonomy fields into 'taxonomies' with ${consolidatedTaxonomies.length} unique terms for ${contentType}`
-    );
   }
 
   return consolidatedEntry;
@@ -680,13 +679,6 @@ const processFieldData = async (
       .replace(/_status$/, '')
       .replace(/_uri$/, '');
 
-    // Debug: Log all fields being processed
-    if (dataKey.endsWith('_target_id')) {
-      console.log(
-        `🔍 Processing _target_id field: ${dataKey} -> ${fieldName} (value: ${value}) for content type: ${contentType}`
-      );
-    }
-
     // Handle asset fields using field analysis
     if (
       dataKey.endsWith('_target_id') &&
@@ -710,14 +702,10 @@ const processFieldData = async (
     if (dataKey.endsWith('_target_id') && typeof value === 'number') {
       // Check if this is a taxonomy field using our field analysis
       if (isTaxonomyField(fieldName, contentType, taxonomyFieldMapping)) {
-        console.log(
-          `🏷️ Processing taxonomy field: ${fieldName} (${dataKey}) with value: ${value} for content type: ${contentType}`
-        );
         // Look up taxonomy reference using drupal_term_id
         const taxonomyRef = taxonomyReferenceLookup[value];
 
         if (taxonomyRef) {
-          console.log(`🏷️ Found taxonomy reference for ${value}:`, taxonomyRef);
           // Transform to array format with taxonomy_uid and term_uid (no drupal_term_id)
           processedData[dataKey] = [
             {
@@ -726,9 +714,6 @@ const processFieldData = async (
             },
           ];
         } else {
-          console.log(
-            `⚠️ No taxonomy reference found for drupal_term_id: ${value}`
-          );
           // Fallback to numeric tid if lookup failed
           processedData[dataKey] = value;
         }
@@ -1107,13 +1092,6 @@ const processEntries = async (
       entriesByLocale[entryLocale].push(entry);
     });
 
-    console.log(
-      `📍 Found entries in ${
-        Object.keys(entriesByLocale).length
-      } locales for ${contentType}:`,
-      Object.keys(entriesByLocale)
-    );
-
     // 🔄 Apply locale folder transformation rules (same as locale service)
     // Rules:
     // - "und" alone → "en-us"
@@ -1127,10 +1105,6 @@ const processEntries = async (
     const hasEn = allLocales.includes('en');
     const hasEnUs = allLocales.includes('en-us');
 
-    console.log(
-      `🔍 Locale Analysis: hasUnd=${hasUnd}, hasEn=${hasEn}, hasEnUs=${hasEnUs}`
-    );
-
     // Transform locale folder names based on business rules
     Object.entries(entriesByLocale).forEach(([originalLocale, entries]) => {
       let targetFolder = originalLocale;
@@ -1139,25 +1113,15 @@ const processEntries = async (
         if (hasEn && hasEnUs) {
           // Rule 4: All three "en" + "und" + "en-us" → all three stays
           targetFolder = 'und';
-          console.log(`🔄 "und" entries → "und" folder (all three present)`);
         } else if (hasEnUs && !hasEn) {
           // Rule 2: "und" + "en-us" → "und" become "en", "en-us" stays
           targetFolder = 'en';
-          console.log(
-            `🔄 Transforming "und" entries → "en" folder (Rule 2: und+en-us)`
-          );
         } else if (hasEn && !hasEnUs) {
           // Rule 3: "en" + "und" → "und" becomes "en-us", "en" stays
           targetFolder = 'en-us';
-          console.log(
-            `🔄 Transforming "und" entries → "en-us" folder (Rule 3: en+und)`
-          );
         } else if (!hasEn && !hasEnUs) {
           // Rule 1: "und" alone → "en-us"
           targetFolder = 'en-us';
-          console.log(
-            `🔄 Transforming "und" entries → "en-us" folder (Rule 1: und alone)`
-          );
         } else {
           // Keep as is for any other combinations
           targetFolder = 'und';
@@ -1165,11 +1129,9 @@ const processEntries = async (
       } else if (originalLocale === 'en-us') {
         // "en-us" always stays as "en-us" in all rules
         targetFolder = 'en-us';
-        console.log(`🔄 "en-us" entries → "en-us" folder (stays as is)`);
       } else if (originalLocale === 'en') {
         // "en" always stays as "en" in all rules (never transforms to "und")
         targetFolder = 'en';
-        console.log(`🔄 "en" entries → "en" folder (stays as is)`);
       }
 
       // Merge entries if target folder already has entries
@@ -1178,21 +1140,10 @@ const processEntries = async (
           ...transformedEntriesByLocale[targetFolder],
           ...entries,
         ];
-        console.log(
-          `📁 Merging ${originalLocale} entries into existing ${targetFolder} folder`
-        );
       } else {
         transformedEntriesByLocale[targetFolder] = entries;
-        console.log(
-          `📁 Creating ${targetFolder} folder for ${originalLocale} entries`
-        );
       }
     });
-
-    console.log(
-      `📂 Final folder structure:`,
-      Object.keys(transformedEntriesByLocale)
-    );
 
     // Find content type mapping for field type switching
     const currentContentTypeMapping = contentTypeMapping.find(
@@ -1206,10 +1157,6 @@ const processEntries = async (
     for (const [currentLocale, localeEntries] of Object.entries(
       transformedEntriesByLocale
     )) {
-      console.log(
-        `🌐 Processing ${localeEntries.length} entries for transformed locale: ${currentLocale}`
-      );
-
       // Create folder structure: entries/contentType/locale/
       const contentTypeFolderPath = path.join(
         MIGRATION_DATA_CONFIG.DATA,
@@ -1295,12 +1242,23 @@ const processEntries = async (
                 // Determine the proper field type based on schema configuration
                 let targetFieldType = schemaField.data_type;
 
-                // Handle text fields with multiline metadata
+                // Handle HTML RTE fields (text with allow_rich_text: true)
                 if (
+                  schemaField.data_type === 'text' &&
+                  schemaField.field_metadata?.allow_rich_text === true
+                ) {
+                  targetFieldType = 'html'; // ✅ HTML RTE field
+                }
+                // Handle JSON RTE fields
+                else if (schemaField.data_type === 'json') {
+                  targetFieldType = 'json'; // ✅ JSON RTE field
+                }
+                // Handle text fields with multiline metadata
+                else if (
                   schemaField.data_type === 'text' &&
                   schemaField.field_metadata?.multiline
                 ) {
-                  targetFieldType = 'multi_line_text'; // This will be handled as HTML in processFieldByType
+                  targetFieldType = 'multi_line_text'; // ✅ Multi-line text field
                 }
 
                 // Create a mapping from schema field
@@ -1310,13 +1268,9 @@ const processEntries = async (
                   backupFieldType: schemaField.data_type,
                   advanced: schemaField,
                 };
-
-                console.log(
-                  `📋 Field mapping created for ${fieldName}: ${targetFieldType} (from schema)`
-                );
               }
             } catch (error: any) {
-              console.warn(
+              console.error(
                 `Failed to load content type schema for field ${fieldName}:`,
                 error.message
               );
@@ -1431,10 +1385,6 @@ const processEntries = async (
         // Create mandatory index.json file that maps to the locale file
         const indexData = { '1': localeFileName };
         await writeFile(localeFolderPath, 'index.json', indexData);
-
-        console.log(
-          `📁 Created mandatory index.json for ${contentType}/${currentLocale} → ${localeFileName}`
-        );
       }
     }
 
@@ -1587,14 +1537,6 @@ export const createEntry = async (
   let connection: mysql.Connection | null = null;
 
   try {
-    console.info('🔍 === DRUPAL ENTRIES SERVICE CONFIG ===');
-    console.info('📋 Database Config:', JSON.stringify(dbConfig, null, 2));
-    console.info('📋 Destination Stack ID:', destination_stack_id);
-    console.info('📋 Project ID:', projectId);
-    console.info('📋 Is Test Migration:', isTest);
-    console.info('📋 Function:', srcFunc);
-    console.info('=========================================');
-
     const entriesSave = path.join(DATA, destination_stack_id, ENTRIES_DIR_NAME);
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
     const referencesSave = path.join(
@@ -1631,11 +1573,6 @@ export const createEntry = async (
       assetFields: assetFieldMapping,
     } = await analyzeFieldTypes(dbConfig, destination_stack_id, projectId);
 
-    console.log(
-      `🏷️ Taxonomy field mapping loaded:`,
-      JSON.stringify(taxonomyFieldMapping, null, 2)
-    );
-
     // Fetch field configurations
     const fieldConfigs = await fetchFieldConfigs(
       connection,
@@ -1646,9 +1583,6 @@ export const createEntry = async (
     // Read supporting data - following original page.js pattern
     // Load assets from index.json (your new format)
     const assetId = (await readFile(assetsSave, 'index.json')) || {};
-    console.log(
-      `📁 Loaded ${Object.keys(assetId).length} assets from index.json`
-    );
 
     const referenceId =
       (await readFile(referencesSave, REFERENCES_FILE_NAME)) || {};
@@ -1661,11 +1595,6 @@ export const createEntry = async (
     // Load taxonomy reference mappings for field transformation
     const taxonomyReferenceLookup = await loadTaxonomyReferences(
       referencesSave
-    );
-    console.log(
-      `🏷️ Loaded ${
-        Object.keys(taxonomyReferenceLookup).length
-      } taxonomy reference mappings`
     );
 
     // Process each content type from query config (like original)
