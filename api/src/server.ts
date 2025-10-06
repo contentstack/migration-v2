@@ -21,7 +21,7 @@ import { Server } from 'socket.io';
 import fs from 'fs';
 import path from 'path';
 import { getSafePath } from './utils/sanitize-path.utils.js';
-import { aemService } from './services/aem.service.js';
+
 // Initialize file watcher for the log file
 const watcher = chokidar.watch(config.LOG_FILE_PATH, {
   usePolling: true, // Enables polling to detect changes in all environments
@@ -158,7 +158,6 @@ try {
         logger.error(`Error emitting log data: ${error}`);
       }
     });
-    // aemService.createAssets({})
   })();
 } catch (e) {
   logger.error('Error while starting the server!');
