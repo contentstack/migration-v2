@@ -21,7 +21,7 @@ import {
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
 import { siteCoreService } from './sitecore.service.js';
 import { wordpressService } from './wordpress.service.js';
-import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
+// import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { setLogFilePath } from '../server.js';
@@ -412,6 +412,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.AEM: {
+        await aemService.createAssets({ projectId, packagePath, destinationStackId: project?.current_test_stack_id });
         await aemService.createEntry({
           packagePath,
           contentTypes,
@@ -435,9 +436,9 @@ const startTestMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
-    await testFolderCreator?.({
-      destinationStackId: project?.current_test_stack_id,
-    });
+    // await testFolderCreator?.({
+    //   destinationStackId: project?.current_test_stack_id,
+    // });
     await utilsCli?.runCli(
       region,
       user_id,

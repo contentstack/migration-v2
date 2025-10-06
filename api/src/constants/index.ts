@@ -177,7 +177,7 @@ export const LOCALE_MAPPER: any = {
   masterLocale: {
     "en-us": "en",
   },
-  locales:{fr: "fr-fr",}
+  locales: { fr: "fr-fr", }
 };
 export const CHUNK_SIZE = 1048576;
 
@@ -271,4 +271,6 @@ export const MIGRATION_DATA_CONFIG = {
   GLOBAL_FIELDS_FILE_NAME: "globalfields.json",
 
   EXPORT_INFO_FILE: "export-info.json",
+
+  AEM_DAM_DIR: 'dam-downloads'
 };
