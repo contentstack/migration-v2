@@ -936,13 +936,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
         }
       }
     }
-    console.info("latestItem ---> ", latestItem)
     return latestItem;
   }
 
   // Update the object on selection or deselection
   const updateRowHistoryObj = (key: string, checked: boolean) => {
-    const obj = tableData?.find(i => i?.id === key);
+    const obj = selectedEntries?.find(i => i?.id === key);
     if (obj) {
       rowHistoryObj[key].push({
         checked,
@@ -986,11 +985,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
              item?.contentstackFieldType?.toLowerCase() === "modular_blocks_child";
     };
 
+    console.info("latestRow ---> ", latestRow)
+
     if((latestRow?.backupFieldType?.toLowerCase() === "group" && latestRow?.parentId === '') || latestRow?.backupFieldType?.toLowerCase() === "modular_blocks") {
       // get all child rows of group
       const groupUid = latestRow?.uid?.toLowerCase();
-      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupUid + '.'));
-      console.info("childItems ---> ", childItems)
+      const childItems = selectedEntries?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupUid + '.'));
       if (childItems && validateArray(childItems)) {
         if(latestRow?.checked){
           console.info("inside if latestRow?.checked ---> ", latestRow)
@@ -1005,10 +1005,25 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
             selectedObj[modularBlockChild?.id] = true
           }
 
+          //if the modular block or group is checked, then check the child
+          childItems?.forEach((child) => {
+            console.info("child ---> ", selectedObj?.[latestRow?.id])
+              // if (latestRow?.checked){
+              //   selectedObj[child?.id] = true
+              // }
+          })
+
+          
+
+          
+
           if (childItems?.some((child) => child?.contentstackFieldType?.toLowerCase() === latestRow?.contentstackFieldType?.toLowerCase())) {
             isChildChecked = true;
             childItems?.forEach((child) => {
-              // console.info("child ---> ", child)
+              // if (!lastEle[child?.id]?.checked) {
+              //   // isChildChecked = true
+              //   selectedObj[child?.id] = true
+              // }
               const modularBlockChildItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(child?.uid?.toLowerCase() + '.'));
 
               modularBlockChildItems?.forEach((blockChild) => {
@@ -1025,6 +1040,7 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           }
 
           if(isChildChecked) {
+            console.info("inside if isChildChecked ---> ", latestRow)
             if(!selectedObj[latestRow?.id]){
               selectedObj[latestRow?.id] = true
             }
@@ -1056,20 +1072,48 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
           selectedObj[latestRow?.id] = true
         }
       } else {
+        console.info("inside else ================")
         const lastEle = getLastElements(rowHistoryObj);
 
         let allChildFalse = 0
+
+        // let allModularBlockChildFalse = 0
         childItems?.forEach((child) => {
           if(!lastEle[child?.id]?.checked){
             allChildFalse ++
           }
+
+          // const modularBlockChildItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(child?.uid?.toLowerCase() + '.'));
+
+          // console.info("modularBlockChildItems ---> ", modularBlockChildItems)
+
+          //     modularBlockChildItems?.forEach((blockChild) => {
+          // console.info("modularBlockChildItems ---> ", blockChild?.uid?.split(".").slice(0, 2).join(".")?.toLowerCase())
+
+          //       if(blockChild?.uid?.split(".").slice(0, 2).join(".")?.toLowerCase() === latestRow?.uid?.toLowerCase()){
+          //         allModularBlockChildFalse ++
+          //         console.info("allblock ChildFalse ---> ", allModularBlockChildFalse)
+          //       }
+
+          //       if(allModularBlockChildFalse === modularBlockChildItems?.length){
+          //         console.info("inside if ================")
+          //           if(lastEle[blockChild?.id]?.checked){
+          //           delete lastEle[blockChild?.id]
+          //         }
+          //       } else if (selectedObj[latestRow?.id]){
+          //         delete selectedObj[latestRow?.id]
+          //       } 
+          //     })
+
+              
         })
-        if(childItems?.length === allChildFalse){
+        if(childItems?.length === allChildFalse) {
+
           if(selectedObj[latestRow?.parentId]){
-            delete selectedObj[latestRow?.parentId]
+            // delete selectedObj[latestRow?.parentId]
           }
         }else if (selectedObj[latestRow?.id]){
-            delete selectedObj[latestRow?.id]
+            // delete selectedObj[latestRow?.id]
           } 
       }
     }
