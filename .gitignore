@@ -364,3 +364,4 @@ upload-api/extracted_files
 *.zip
 *extracted_files*
 *.tsbuildinfo
+*drupalMigrationData*
