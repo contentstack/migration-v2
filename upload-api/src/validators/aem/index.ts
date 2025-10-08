@@ -1,38 +1,15 @@
-interface ZipEntry {
-  dir: boolean;
-  async(
-    type: 'string' | 'arraybuffer' | 'uint8array' | 'blob' | 'nodebuffer' | 'base64'
-  ): Promise<any>;
-}
+import { validator } from 'migration-aem';
 
-interface JSZipFiles {
-  [fileName: string]: ZipEntry;
-}
 
-interface ValidatorProps {
-  data: {
-    files: JSZipFiles;
-  };
-}
-
-async function aemValidator({ data }: ValidatorProps) {
+async function aemValidator({ data }: any) {
   try {
-    const fileNames = Object.keys(data?.files);
-    const test = 'jcr:content';
-
-    for (const fileName of fileNames) {
-      const file: any = data?.files?.[fileName];
-      if (!file?.dir) {
-        // const content = await file.async('string');
-        if (`content.${test}.root`) {
-          return true;
-        }
-      } else {
-        return false;
-      }
-    }
-  } catch (err) {
-    console.info('Error : ', err);
+    const validationReport = await validator(data)
+    const someValid = Array.isArray(validationReport) && validationReport.some(Boolean);
+    return someValid;
+  }
+  catch (err) {
+    console.error('Error : ', err);
+    return false;
   }
 }
 
