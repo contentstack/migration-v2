@@ -12,8 +12,7 @@ const createMapper = async (
   config: Config
 ) => {
   const CMSIdentifier = config?.cmsType?.toLowerCase();
-  console.log('CMSIdentifier', CMSIdentifier);
-  
+
   switch (CMSIdentifier) {
     case 'sitecore': {
       return await createSitecoreMapper(filePath, projectId, app_token, affix, config);

@@ -1,30 +1,30 @@
-import { Request } from "express";
-import ProjectModelLowdb from "../models/project-lowdb.js";
-import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
-import FieldMapperModel from "../models/FieldMapper.js";
-import { drupalService } from "./drupal.service.js";
+import { Request } from 'express';
+import ProjectModelLowdb from '../models/project-lowdb.js';
+import ContentTypesMapperModelLowdb from '../models/contentTypesMapper-lowdb.js';
+import FieldMapperModel from '../models/FieldMapper.js';
+import { drupalService } from './drupal.service.js';
 
 import {
   BadRequestError,
   ExceptionFunction,
   NotFoundError,
-} from "../utils/custom-errors.utils.js";
+} from '../utils/custom-errors.utils.js';
 import {
   HTTP_TEXTS,
   HTTP_CODES,
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
   CMS,
-} from "../constants/index.js";
-import { config } from "../config/index.js";
-import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
-import getAuthtoken from "../utils/auth.utils.js";
-import https from "../utils/https.utils.js";
-import getProjectUtil from "../utils/get-project.utils.js";
-import logger from "../utils/logger.js";
-import customLogger from "../utils/custom-logger.utils.js";
+} from '../constants/index.js';
+import { config } from '../config/index.js';
+import { getLogMessage, isEmpty, safePromise } from '../utils/index.js';
+import getAuthtoken from '../utils/auth.utils.js';
+import https from '../utils/https.utils.js';
+import getProjectUtil from '../utils/get-project.utils.js';
+import logger from '../utils/logger.js';
+import customLogger from '../utils/custom-logger.utils.js';
 // import { contentMapperService } from "./contentMapper.service.js";
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Retrieves all projects based on the provided request object.
@@ -37,16 +37,16 @@ const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
 
   const decodedToken = req.body.token_payload;
-  const { user_id = "", region = "" } = decodedToken;
+  const { user_id = '', region = '' } = decodedToken;
 
   await ProjectModelLowdb.read();
   const projects = ProjectModelLowdb.chain
-    .get("projects")
+    .get('projects')
     .filter({
       org_id: orgId,
       region,
       owner: user_id,
-      isDeleted: false
+      isDeleted: false,
     })
     .value();
 
@@ -64,7 +64,7 @@ const getProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
   const decodedToken = req.body.token_payload;
-  const { user_id = "", region = "" } = decodedToken;
+  const { user_id = '', region = '' } = decodedToken;
   // Find the project based on both orgId and projectId, region, owner
   const project = await getProjectUtil(
     projectId,
@@ -74,7 +74,7 @@ const getProject = async (req: Request) => {
       region: region,
       owner: user_id,
     },
-    "getProject"
+    'getProject'
   );
 
   return project;
@@ -90,8 +90,8 @@ const createProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const { name, description } = req.body;
   const decodedToken = req.body.token_payload;
-  const { user_id = "", region = "" } = decodedToken;
-  const srcFunc = "createProject";
+  const { user_id = '', region = '' } = decodedToken;
+  const srcFunc = 'createProject';
   const projectData = {
     id: uuidv4(),
     region,
@@ -102,26 +102,26 @@ const createProject = async (req: Request) => {
     description,
     status: NEW_PROJECT_STATUS[0],
     current_step: STEPPER_STEPS.LEGACY_CMS,
-    destination_stack_id: "",
+    destination_stack_id: '',
     test_stacks: [],
-    current_test_stack_id: "",
+    current_test_stack_id: '',
     legacy_cms: {
       is_fileValid: false,
       awsDetails: {
-        awsRegion: "",
-        bucketName: "",
-        buketKey: "",
+        awsRegion: '',
+        bucketName: '',
+        buketKey: '',
       },
       is_sql: false,
       mySQLDetails: {
-        host: "",
-        user: "",
-        database:""
+        host: '',
+        user: '',
+        database: '',
       },
-      drupalAssetsUrl: {
-        base_url: "",
-        public_path: ""
-      }
+      assetsConfig: {
+        base_url: '',
+        public_path: '',
+      },
     },
     content_mapper: [],
     execution_log: [],
@@ -130,18 +130,18 @@ const createProject = async (req: Request) => {
     created_at: new Date().toISOString(),
     isDeleted: false,
     isNewStack: false,
-    newStackId: "",
+    newStackId: '',
     stackDetails: {
       uid: '',
       label: '',
       master_locale: '',
       created_at: '',
-      isNewStack: false
+      isNewStack: false,
     },
     mapperKeys: {},
     isMigrationStarted: false,
-    isMigrationCompleted:false,
-    migration_execution:false,
+    isMigrationCompleted: false,
+    migration_execution: false,
   };
 
   try {
@@ -160,8 +160,8 @@ const createProject = async (req: Request) => {
       )
     );
     return {
-      status: "success",
-      message: "Project created successfully",
+      status: 'success',
+      message: 'Project created successfully',
       project: {
         name: projectData.name,
         id: projectData.id,
@@ -198,8 +198,8 @@ const updateProject = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const updateData = req?.body;
   const decodedToken = req.body.token_payload;
-  const { user_id = "", region = "" } = decodedToken;
-  const srcFunc = "updateProject";
+  const { user_id = '', region = '' } = decodedToken;
+  const srcFunc = 'updateProject';
   let project: any;
 
   // Find the project based on both orgId and projectId
@@ -243,8 +243,8 @@ const updateProject = async (req: Request) => {
       )
     );
     return {
-      status: "success",
-      message: "Project updated successfully",
+      status: 'success',
+      message: 'Project updated successfully',
       project: {
         name: updateData?.name,
         description: updateData?.description,
@@ -282,7 +282,7 @@ const updateProject = async (req: Request) => {
 const updateLegacyCMS = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, legacy_cms } = req.body;
-  const srcFunc = "updateLegacyCMS";
+  const srcFunc = 'updateLegacyCMS';
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -364,7 +364,7 @@ const updateLegacyCMS = async (req: Request) => {
  * @returns An object with the status and data properties.
  */
 const updateAffix = async (req: Request) => {
-  const srcFunc = "updateAffix";
+  const srcFunc = 'updateAffix';
   const { orgId, projectId } = req.params;
   const { token_payload, affix } = req.body;
 
@@ -401,7 +401,7 @@ const updateAffix = async (req: Request) => {
  * @returns An object with the status and data properties.
  */
 const affixConfirmation = async (req: Request) => {
-  const srcFunc = "affixConfirmation";
+  const srcFunc = 'affixConfirmation';
   const { orgId, projectId } = req.params;
   const { token_payload, affix_confirmation } = req.body;
 
@@ -450,9 +450,10 @@ const updateFileFormat = async (req: Request) => {
     awsDetails,
     is_sql,
     mySQLDetails,
-    drupalAssetsUrl,
+    assetsConfig,
   } = req.body;
-  const srcFunc = "updateFileFormat";
+
+  const srcFunc = 'updateFileFormat';
   const projectIndex = (await getProjectUtil(
     projectId,
     {
@@ -507,17 +508,17 @@ const updateFileFormat = async (req: Request) => {
         awsDetails.bucketName;
       data.projects[projectIndex].legacy_cms.awsDetails.buketKey =
         awsDetails.buketKey;
-      data.projects[ projectIndex ].legacy_cms.is_sql = is_sql;
+      data.projects[projectIndex].legacy_cms.is_sql = is_sql;
       data.projects[projectIndex].legacy_cms.mySQLDetails.host =
         mySQLDetails.host;
       data.projects[projectIndex].legacy_cms.mySQLDetails.user =
         mySQLDetails.user;
       data.projects[projectIndex].legacy_cms.mySQLDetails.database =
         mySQLDetails.database;
-      data.projects[projectIndex].legacy_cms.drupalAssetsUrl.base_url =
-        drupalAssetsUrl?.base_url || "";
-      data.projects[projectIndex].legacy_cms.drupalAssetsUrl.public_path =
-        drupalAssetsUrl?.public_path || "";
+      data.projects[projectIndex].legacy_cms.assetsConfig.base_url =
+        assetsConfig?.base_url || '';
+      data.projects[projectIndex].legacy_cms.assetsConfig.public_path =
+        assetsConfig?.public_path || '';
     });
 
     logger.info(
@@ -555,7 +556,7 @@ const updateFileFormat = async (req: Request) => {
  * @returns An object with the status and data properties.
  */
 const fileformatConfirmation = async (req: Request) => {
-  const srcFunc = "fileformat";
+  const srcFunc = 'fileformat';
   const { orgId, projectId } = req.params;
   const { token_payload, fileformat_confirmation } = req.body;
 
@@ -599,7 +600,7 @@ const fileformatConfirmation = async (req: Request) => {
 const updateDestinationStack = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, stack_api_key } = req.body;
-  const srcFunc = "updateDestinationStack";
+  const srcFunc = 'updateDestinationStack';
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -648,7 +649,7 @@ const updateDestinationStack = async (req: Request) => {
   try {
     const [err, res] = await safePromise(
       https({
-        method: "GET",
+        method: 'GET',
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
@@ -747,7 +748,7 @@ const generateQueriesWithRetry = async (
     user: project?.legacy_cms?.mySQLDetails?.user,
     password: project?.legacy_cms?.mySQLDetails?.password || '',
     database: project?.legacy_cms?.mySQLDetails?.database,
-    port: project?.legacy_cms?.mySQLDetails?.port || 3306
+    port: project?.legacy_cms?.mySQLDetails?.port || 3306,
   };
 
   const logMessage = getLogMessage(
@@ -806,8 +807,8 @@ const generateQueriesWithRetry = async (
         token_payload
       );
       await customLogger(projectId, stackId, 'info', retryMessage);
-      
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
   }
 
@@ -824,9 +825,7 @@ const generateQueriesWithRetry = async (
 const updateCurrentStep = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const token_payload = req.body.token_payload;
-  const srcFunc = "updateCurrentStep";
-
-  
+  const srcFunc = 'updateCurrentStep';
 
   try {
     await ProjectModelLowdb.read();
@@ -847,7 +846,6 @@ const updateCurrentStep = async (req: Request) => {
     const isStepCompleted =
       project?.legacy_cms?.cms && project?.legacy_cms?.file_format;
 
-
     switch (project.current_step) {
       case STEPPER_STEPS.LEGACY_CMS: {
         if (project.status !== NEW_PROJECT_STATUS[0] || !isStepCompleted) {
@@ -865,7 +863,8 @@ const updateCurrentStep = async (req: Request) => {
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.DESTINATION_STACK;
           data.projects[projectIndex].status =
-            project.current_step <= STEPPER_STEPS.CONTENT_MAPPING ? NEW_PROJECT_STATUS[0]
+            project.current_step <= STEPPER_STEPS.CONTENT_MAPPING
+              ? NEW_PROJECT_STATUS[0]
               : NEW_PROJECT_STATUS[1];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
@@ -896,7 +895,12 @@ const updateCurrentStep = async (req: Request) => {
             `Generating dynamic queries for Drupal project before proceeding to Content Mapping...`,
             token_payload
           );
-          await customLogger(projectId, project?.destination_stack_id, 'info', startMessage);
+          await customLogger(
+            projectId,
+            project?.destination_stack_id,
+            'info',
+            startMessage
+          );
 
           // Generate queries for destination stack
           const destinationSuccess = await generateQueriesWithRetry(
@@ -924,17 +928,13 @@ const updateCurrentStep = async (req: Request) => {
             const failedStacks = [];
             if (!destinationSuccess) failedStacks.push('destination');
             if (!testSuccess) failedStacks.push('test');
-            
-            const errorMessage = `Query generation failed for ${failedStacks.join(' and ')} stack(s). Something went wrong. Please try again.`;
-            
-            logger.error(
-              getLogMessage(
-                srcFunc,
-                errorMessage,
-                token_payload
-              )
-            );
-            
+
+            const errorMessage = `Query generation failed for ${failedStacks.join(
+              ' and '
+            )} stack(s). Something went wrong. Please try again.`;
+
+            logger.error(getLogMessage(srcFunc, errorMessage, token_payload));
+
             throw new BadRequestError(errorMessage);
           }
 
@@ -943,7 +943,12 @@ const updateCurrentStep = async (req: Request) => {
             `Dynamic queries successfully generated for all stacks. Proceeding to Content Mapping step.`,
             token_payload
           );
-          await customLogger(projectId, project?.destination_stack_id, 'info', completeMessage);
+          await customLogger(
+            projectId,
+            project?.destination_stack_id,
+            'info',
+            completeMessage
+          );
         }
 
         await ProjectModelLowdb.update((data: any) => {
@@ -956,7 +961,6 @@ const updateCurrentStep = async (req: Request) => {
         break;
       }
       case STEPPER_STEPS.CONTENT_MAPPING: {
-
         if (
           project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
@@ -970,14 +974,11 @@ const updateCurrentStep = async (req: Request) => {
               token_payload
             )
           );
-          throw new BadRequestError(
-            HTTP_TEXTS.CANNOT_PROCEED_CONTENT_MAPPING
-          );
+          throw new BadRequestError(HTTP_TEXTS.CANNOT_PROCEED_CONTENT_MAPPING);
         }
 
         await ProjectModelLowdb.update((data: any) => {
-          data.projects[projectIndex].current_step =
-            STEPPER_STEPS.TESTING;
+          data.projects[projectIndex].current_step = STEPPER_STEPS.TESTING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
@@ -985,13 +986,13 @@ const updateCurrentStep = async (req: Request) => {
       }
       case STEPPER_STEPS.TESTING: {
         if (
-          (project.status === NEW_PROJECT_STATUS[0] ||
+          project.status === NEW_PROJECT_STATUS[0] ||
           !isStepCompleted ||
           !project?.destination_stack_id ||
           project?.content_mapper?.length === 0 ||
-          !project?.current_test_stack_id) || !project?.migration_execution
+          !project?.current_test_stack_id ||
+          !project?.migration_execution
         ) {
-          
           logger.error(
             getLogMessage(
               srcFunc,
@@ -999,14 +1000,11 @@ const updateCurrentStep = async (req: Request) => {
               token_payload
             )
           );
-          throw new BadRequestError(
-            HTTP_TEXTS.CANNOT_PROCEED_TEST_MIGRATION
-          );
+          throw new BadRequestError(HTTP_TEXTS.CANNOT_PROCEED_TEST_MIGRATION);
         }
-        
+
         await ProjectModelLowdb.update((data: any) => {
-          data.projects[projectIndex].current_step =
-            STEPPER_STEPS.MIGRATION;
+          data.projects[projectIndex].current_step = STEPPER_STEPS.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
@@ -1028,14 +1026,11 @@ const updateCurrentStep = async (req: Request) => {
               token_payload
             )
           );
-          throw new BadRequestError(
-            HTTP_TEXTS.CANNOT_PROCEED_MIGRATION
-          );
+          throw new BadRequestError(HTTP_TEXTS.CANNOT_PROCEED_MIGRATION);
         }
 
         await ProjectModelLowdb.update((data: any) => {
-          data.projects[projectIndex].current_step =
-            STEPPER_STEPS.MIGRATION;
+          data.projects[projectIndex].current_step = STEPPER_STEPS.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[5];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
@@ -1074,8 +1069,8 @@ const updateCurrentStep = async (req: Request) => {
 const deleteProject = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const decodedToken = req.body.token_payload;
-  const { user_id = "", region = "" } = decodedToken;
-  const srcFunc = "deleteProject";
+  const { user_id = '', region = '' } = decodedToken;
+  const srcFunc = 'deleteProject';
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -1101,7 +1096,7 @@ const deleteProject = async (req: Request) => {
     if (!isEmpty(content_mapper_id)) {
       content_mapper_id.map(async (item: any) => {
         const contentMapperData = ContentTypesMapperModelLowdb.chain
-          .get("ContentTypesMappers")
+          .get('ContentTypesMappers')
           .find({ id: item, projectId: projectId })
           .value();
 
@@ -1111,7 +1106,7 @@ const deleteProject = async (req: Request) => {
         if (!isEmpty(fieldMappingIds)) {
           (fieldMappingIds || []).forEach((field: any) => {
             const fieldIndex = FieldMapperModel.chain
-              .get("field_mapper")
+              .get('field_mapper')
               .findIndex({ id: field, projectId: projectId })
               .value();
             if (fieldIndex > -1) {
@@ -1123,7 +1118,7 @@ const deleteProject = async (req: Request) => {
         }
         //delete all content Mapper which is related to Project
         const contentMapperID = ContentTypesMapperModelLowdb.chain
-          .get("ContentTypesMappers")
+          .get('ContentTypesMappers')
           .findIndex({ id: item, projectId: projectId })
           .value();
         await ContentTypesMapperModelLowdb.update((Cdata: any) => {
@@ -1166,8 +1161,8 @@ const deleteProject = async (req: Request) => {
 const revertProject = async (req: Request) => {
   const { orgId, projectId } = req?.params ?? {};
   const decodedToken = req.body.token_payload;
-  const { user_id = "", region = "" } = decodedToken;
-  const srcFunc = "revertProject";
+  const { user_id = '', region = '' } = decodedToken;
+  const srcFunc = 'revertProject';
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -1200,7 +1195,7 @@ const revertProject = async (req: Request) => {
       status: HTTP_CODES.OK,
       data: {
         message: HTTP_TEXTS.PROJECT_REVERT,
-        Project: projects
+        Project: projects,
       },
     };
   }
@@ -1217,7 +1212,7 @@ const revertProject = async (req: Request) => {
 const updateStackDetails = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, stack_details } = req.body;
-  const srcFunc = "updateStackDetails";
+  const srcFunc = 'updateStackDetails';
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -1278,8 +1273,7 @@ const updateStackDetails = async (req: Request) => {
 const updateContentMapper = async (req: Request) => {
   const { orgId, projectId } = req.params;
   const { token_payload, content_mapper } = req.body;
-  const srcFunc = "updateContentMapper";
-
+  const srcFunc = 'updateContentMapper';
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -1335,26 +1329,25 @@ const updateContentMapper = async (req: Request) => {
  */
 const updateMigrationExecution = async (req: Request) => {
   const { orgId, projectId } = req.params; // Extract organization and project IDs from the route parameters
-    const { token_payload, stack_details } = req.body; // Extract token payload and stack details from the request body
-    const srcFunc = "updateMigrationExecutionKey"; 
+  const { token_payload, stack_details } = req.body; // Extract token payload and stack details from the request body
+  const srcFunc = 'updateMigrationExecutionKey';
 
-    // Ensure the `ProjectModelLowdb` database is ready to be read
-    await ProjectModelLowdb.read();
+  // Ensure the `ProjectModelLowdb` database is ready to be read
+  await ProjectModelLowdb.read();
 
-    // Retrieve the project index using the `getProjectUtil` helper
-    const projectIndex = (await getProjectUtil(
-      projectId, 
-      {
-        id: projectId,
-        org_id: orgId,
-        region: token_payload?.region, 
-        owner: token_payload?.user_id, 
-      },
-      srcFunc, 
-      true 
-    )) as number;
+  // Retrieve the project index using the `getProjectUtil` helper
+  const projectIndex = (await getProjectUtil(
+    projectId,
+    {
+      id: projectId,
+      org_id: orgId,
+      region: token_payload?.region,
+      owner: token_payload?.user_id,
+    },
+    srcFunc,
+    true
+  )) as number;
   try {
-    
     // Update the project in the `ProjectModelLowdb` database
     await ProjectModelLowdb.update((data: any) => {
       data.projects[projectIndex].migration_execution = true; // Set migration execution to true
@@ -1372,12 +1365,11 @@ const updateMigrationExecution = async (req: Request) => {
 
     // Return success response
     return {
-      status: HTTP_CODES.OK, 
+      status: HTTP_CODES.OK,
       data: {
-        message: HTTP_TEXTS.MIGRATION_EXECUTION_KEY_UPDATED, 
+        message: HTTP_TEXTS.MIGRATION_EXECUTION_KEY_UPDATED,
       },
     };
-
   } catch (error: any) {
     // Log error message
     logger.error(
@@ -1391,12 +1383,11 @@ const updateMigrationExecution = async (req: Request) => {
 
     // Throw a custom exception with the error details
     throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR, 
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR 
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
-
 
 /**
  * get the destination_stack_id of completed projects.
@@ -1405,25 +1396,26 @@ const updateMigrationExecution = async (req: Request) => {
  * @returns An object with the status and data of the update operation.
  * @throws ExceptionFunction if an error occurs during the process.
  */
-const getMigratedStacks =  async(req: Request) => {
-
- const { token_payload } = req.body; 
-  const srcFunc = "getMigratedStacks"; 
+const getMigratedStacks = async (req: Request) => {
+  const { token_payload } = req.body;
+  const srcFunc = 'getMigratedStacks';
 
   try {
     await ProjectModelLowdb.read();
     const projects = ProjectModelLowdb.data?.projects || [];
 
     // Map through projects to extract `destinationstack` key
-    const destinationStacks = projects.filter((project: any) => project?.status === 5 && project.current_step === 5)
-    .map((project: any) => project.destination_stack_id);
+    const destinationStacks = projects
+      .filter(
+        (project: any) => project?.status === 5 && project.current_step === 5
+      )
+      .map((project: any) => project.destination_stack_id);
 
     return {
-      status: HTTP_CODES.OK, 
-      destinationStacks
+      status: HTTP_CODES.OK,
+      destinationStacks,
     };
-    
-  } catch (error:any) {
+  } catch (error: any) {
     // Log error message
     logger.error(
       getLogMessage(
@@ -1436,13 +1428,11 @@ const getMigratedStacks =  async(req: Request) => {
 
     // Throw a custom exception with the error details
     throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR, 
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR 
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
-    
   }
-
-}
+};
 
 export const projectService = {
   getAllProjects,
@@ -1461,5 +1451,5 @@ export const projectService = {
   updateStackDetails,
   updateContentMapper,
   updateMigrationExecution,
-  getMigratedStacks
+  getMigratedStacks,
 };

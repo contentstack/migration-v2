@@ -699,37 +699,88 @@ const processFieldData = async (
     }
 
     // Handle entity references (taxonomy and node references) using field analysis
-    if (dataKey.endsWith('_target_id') && typeof value === 'number') {
+    // NOTE: value can be a number (single reference) or string (GROUP_CONCAT comma-separated IDs)
+    if (
+      dataKey.endsWith('_target_id') &&
+      (typeof value === 'number' || typeof value === 'string')
+    ) {
       // Check if this is a taxonomy field using our field analysis
       if (isTaxonomyField(fieldName, contentType, taxonomyFieldMapping)) {
-        // Look up taxonomy reference using drupal_term_id
-        const taxonomyRef = taxonomyReferenceLookup[value];
+        // Handle both single ID (number) and GROUP_CONCAT result (comma-separated string)
+        const targetIds =
+          typeof value === 'string'
+            ? value
+                .split(',')
+                .map((id) => parseInt(id.trim()))
+                .filter((id) => !isNaN(id))
+            : [value];
 
-        if (taxonomyRef) {
-          // Transform to array format with taxonomy_uid and term_uid (no drupal_term_id)
-          processedData[dataKey] = [
-            {
+        const transformedTaxonomies: Array<{
+          taxonomy_uid: string;
+          term_uid: string;
+        }> = [];
+
+        for (const tid of targetIds) {
+          // Look up taxonomy reference using drupal_term_id
+          const taxonomyRef = taxonomyReferenceLookup[tid];
+
+          if (taxonomyRef) {
+            transformedTaxonomies.push({
               taxonomy_uid: taxonomyRef.taxonomy_uid,
               term_uid: taxonomyRef.term_uid,
-            },
-          ];
+            });
+          } else {
+            console.warn(
+              `⚠️  Taxonomy term ${tid} not found in reference lookup for field ${fieldName}`
+            );
+          }
+        }
+
+        if (transformedTaxonomies.length > 0) {
+          processedData[dataKey] = transformedTaxonomies;
         } else {
-          // Fallback to numeric tid if lookup failed
+          // Fallback to original value if no lookups succeeded
           processedData[dataKey] = value;
         }
+
+        // Mark field as processed so it doesn't get overwritten by ctValue loop
+        processedFields.add(dataKey);
+        skippedFields.add(dataKey); // Also skip in ctValue loop
+
         continue; // Skip further processing for this field
       } else if (
         isReferenceField(fieldName, contentType, referenceFieldMapping)
       ) {
         // Handle node reference fields using field analysis
-        const referenceKey = `content_type_entries_title_${value}`;
-        if (referenceKey in referenceId) {
-          // Transform to array format with proper reference structure
-          processedData[dataKey] = [referenceId[referenceKey]];
+        // Handle both single ID (number) and GROUP_CONCAT result (comma-separated string)
+        const targetIds =
+          typeof value === 'string'
+            ? value
+                .split(',')
+                .map((id) => parseInt(id.trim()))
+                .filter((id) => !isNaN(id))
+            : [value];
+
+        const transformedReferences: any[] = [];
+
+        for (const nid of targetIds) {
+          const referenceKey = `content_type_entries_title_${nid}`;
+          if (referenceKey in referenceId) {
+            transformedReferences.push(referenceId[referenceKey]);
+          }
+        }
+
+        if (transformedReferences.length > 0) {
+          processedData[dataKey] = transformedReferences;
         } else {
-          // If reference not found, mark field as skipped
+          // If no references found, mark field as skipped
           skippedFields.add(dataKey);
         }
+
+        // Mark field as processed so it doesn't get overwritten by ctValue loop
+        processedFields.add(dataKey);
+        skippedFields.add(dataKey); // Also skip in ctValue loop
+
         continue; // Skip further processing for this field
       }
     }

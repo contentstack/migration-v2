@@ -23,7 +23,7 @@ export interface Config {
     database: string;
     port: string;
   };
-  drupalAssetsUrl: {
+  assetsConfig: {
     base_url: string;
     public_path: string;
   };

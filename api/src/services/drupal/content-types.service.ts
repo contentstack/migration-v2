@@ -5,7 +5,8 @@ import { convertToSchemaFormate } from '../../utils/content-type-creator.utils.j
 import { getLogMessage } from '../../utils/index.js';
 import customLogger from '../../utils/custom-logger.utils.js';
 
-const { DATA, CONTENT_TYPES_DIR_NAME } = MIGRATION_DATA_CONFIG;
+const { DATA, CONTENT_TYPES_DIR_NAME, CONTENT_TYPES_SCHEMA_FILE } =
+  MIGRATION_DATA_CONFIG;
 
 /**
  * Generates API content types from upload-api drupal schema
@@ -62,6 +63,9 @@ export const generateContentTypeSchemas = async (
       );
     }
 
+    // Build complete schema array (NO individual files)
+    const allApiSchemas = [];
+
     for (const schemaFile of schemaFiles) {
       try {
         const uploadApiSchemaFilePath = path.join(
@@ -75,13 +79,8 @@ export const generateContentTypeSchemas = async (
         // Convert upload-api schema to API format
         const apiSchema = convertUploadApiSchemaToApiSchema(uploadApiSchema);
 
-        // Write API schema file
-        const apiSchemaFilePath = path.join(apiContentTypesPath, schemaFile);
-        await fs.promises.writeFile(
-          apiSchemaFilePath,
-          JSON.stringify(apiSchema, null, 2),
-          'utf8'
-        );
+        // Add to combined schema array (NO individual files)
+        allApiSchemas.push(apiSchema);
 
         const fieldMessage = getLogMessage(
           srcFunc,
@@ -111,6 +110,21 @@ export const generateContentTypeSchemas = async (
         );
       }
     }
+
+    // Write ONLY the combined schema.json file
+    const combinedSchemaPath = path.join(
+      apiContentTypesPath,
+      CONTENT_TYPES_SCHEMA_FILE
+    );
+    await fs.promises.writeFile(
+      combinedSchemaPath,
+      JSON.stringify(allApiSchemas, null, 2),
+      'utf8'
+    );
+
+    console.log(
+      `✅ Generated schema.json with ${allApiSchemas.length} content types (NO individual files)`
+    );
 
     const successMessage = getLogMessage(
       srcFunc,
@@ -260,3 +274,6 @@ function mapFieldTypeToDataType(fieldType: string): string {
 
   return fieldTypeMap[fieldType] || 'text';
 }
+
+// Removed regenerateCombinedSchemaFromIndividualFiles function
+// We now generate ONLY schema.json directly, no individual files

@@ -212,7 +212,7 @@ router.get(
               ...result.file_details,
               isSQL: config.isSQL,
               mySQLDetails: config.mysql, // Changed from mysql to mySQLDetails
-              drupalAssetsUrl: config.drupalAssetsUrl
+              assetsConfig: config.assetsConfig
             }
           };
 
@@ -286,6 +286,7 @@ router.get(
 );
 
 router.get('/config', async function (req: Request, res: Response) {
+  console.log('🔍 UPLOAD-API Response config:', config);
   res.json(config);
 });
 

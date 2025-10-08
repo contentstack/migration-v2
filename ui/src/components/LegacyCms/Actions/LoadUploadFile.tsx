@@ -37,15 +37,25 @@ interface UploadState {
 
 
 const FileComponent = ({ fileDetails }: Props) => {
+
   return (
     <div>
-      {fileDetails?.isLocalPath &&
-      (!isEmptyString(fileDetails?.localPath) ||
-        !isEmptyString(fileDetails?.awsData?.awsRegion)) ? (
+      {fileDetails?.isLocalPath ? (
+        // ✅ Case 1: Local file path
         <div className="file-container">
           <Paragraph tagName="p" variant="p1" text={`Local Path: ${fileDetails?.localPath}`} />
         </div>
+      ) : fileDetails?.isSQL ? (
+        // ✅ Case 2: MySQL details
+        fileDetails?.mySQLDetails && (
+          <div>
+            <p className="pb-2">Host: {fileDetails?.mySQLDetails?.host}</p>
+            <p className="pb-2">Database: {fileDetails?.mySQLDetails?.database}</p>
+            <p className="pb-2">User: {fileDetails?.mySQLDetails?.user}</p>
+          </div>
+        )
       ) : (
+        // ✅ Case 3: AWS details
         <div>
           <p className="pb-2">AWS Region: {fileDetails?.awsData?.awsRegion}</p>
           <p className="pb-2">Bucket Name: {fileDetails?.awsData?.bucketName}</p>
@@ -55,6 +65,7 @@ const FileComponent = ({ fileDetails }: Props) => {
     </div>
   );
 };
+
 
 const saveStateToLocalStorage = (state: UploadState, projectId: string) => {
   sessionStorage.setItem(`uploadProgressState_${projectId}`, JSON.stringify(state));
@@ -84,7 +95,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   );
   const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
   const [cmsType, setCmsType]= useState('');
-  const [fileDetails, setFileDetails] = useState(newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details);
+  // Use newMigrationData directly from Redux, not the ref, so it updates when Redux changes
+  const [fileDetails, setFileDetails] = useState(newMigrationData?.legacy_cms?.uploadedFile?.file_details);
   const [fileExtension, setFileExtension] = useState<string>('');
   const [progressPercentage, setProgressPercentage] = useState<number>(0);
   const [showProgress, setShowProgress] = useState<boolean>(false);
@@ -102,6 +114,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   //Handle further action on file is uploaded to server
   const handleOnFileUploadCompletion = async () => {
     try {
+      
       setIsValidationAttempted(false);
       setValidationMessage('');
       setIsLoading(true);
@@ -146,9 +159,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                 database: data?.file_details?.mySQLDetails?.database,
                 port: data?.file_details?.mySQLDetails?.port
               },
-              drupalAssetsUrl: {
-                base_url: data?.file_details?.drupalAssetsUrl?.base_url,
-                public_path: data?.file_details?.drupalAssetsUrl?.public_path
+              assetsConfig: {
+                base_url: data?.file_details?.assetsConfig?.base_url,
+                public_path: data?.file_details?.assetsConfig?.public_path
               }
             },
             cmsType: data?.cmsType
@@ -158,8 +171,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
       // For Drupal SQL files, ensure selectedFileFormat is set in the same update
       if (status === 200 && data?.file_details?.isSQL && data?.file_details?.cmsType === 'drupal') {
-        console.info('🔧 === LOAD UPLOAD FILE DEBUG ===');
-        console.info('📋 Setting selectedFileFormat for Drupal SQL in combined update');
         
         // Add selectedFileFormat to the existing newMigrationDataObj
         newMigrationDataObj.legacy_cms.selectedFileFormat = {
@@ -169,18 +180,17 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           group_name: 'sql',
           isactive: true
         };
-        
-        console.info('📋 Combined newMigrationDataObj:', newMigrationDataObj);
-        console.info('================================');
       }
 
-      console.info('📋 Dispatching combined newMigrationDataObj:', newMigrationDataObj);
-      console.info('🔍 DEBUG: uploadedFile.isValidated in dispatch:', newMigrationDataObj.legacy_cms.uploadedFile.isValidated);
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
       if (status === 200) {
         setIsValidated(true);
-        setValidationMessage('File validated successfully.');
+        setValidationMessage(
+          data?.file_details?.isSQL 
+            ? 'Connection established successfully.' 
+            : 'File validated successfully.'
+        );
 
         setIsDisabled(true);
 
@@ -196,7 +206,11 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         }
       } else if (status === 500) {
         setIsValidated(false);
-        setValidationMessage('File not found');
+        setValidationMessage(
+          data?.file_details?.isSQL 
+            ? 'Connection failed' 
+            : 'File not found'
+        );
         setIsValidationAttempted(true);
         setProgressPercentage(100);
       } else if (status === 429) {
@@ -318,6 +332,17 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     }
   };
 
+  // Update fileDetails whenever Redux state changes
+  useEffect(() => {
+    const latestFileDetails = newMigrationData?.legacy_cms?.uploadedFile?.file_details;
+    
+    if (latestFileDetails) {
+      setFileDetails(latestFileDetails);
+    } else {
+      console.warn('⚠️ latestFileDetails is empty, not updating');
+    }
+  }, [newMigrationData?.legacy_cms?.uploadedFile?.file_details]);
+
   useEffect(() => {
       getConfigDetails();   
   }, []);
@@ -389,7 +414,11 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     ) {
       setIsValidated(true);
       setShowMessage(true);
-      setValidationMessage('File validated successfully.');
+      setValidationMessage(
+        fileDetails?.isSQL 
+          ? 'Connection established successfully.' 
+          : 'File validated successfully.'
+      );
       setIsDisabled(true);
       !isEmptyString(newMigrationData?.legacy_cms?.affix) ||
         !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) ||
@@ -486,7 +515,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             version="v2"
             disabled={!(reValidate || (!isDisabled && !isEmptyString(newMigrationData?.legacy_cms?.affix)))}
           > 
-            Validate File
+            {fileDetails?.isSQL ? 'Check Connection' : 'Validate File'}
           </Button>
         </div>
       </div>

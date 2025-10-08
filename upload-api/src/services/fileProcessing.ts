@@ -71,10 +71,12 @@ const handleFileProcessing = async (
   } else if (fileExt === 'sql') {
     try {
       // Validate SQL connection using our Drupal validator
+      // Also validate assets configuration if provided
       const isValidConnection = await validator({
         data: config.mysql,
         type: cmsType,
-        extension: fileExt
+        extension: fileExt,
+        assetsConfig: config.assetsConfig // Pass assetsConfig for validation
       });
 
       if (isValidConnection) {

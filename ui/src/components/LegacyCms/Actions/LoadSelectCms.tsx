@@ -50,6 +50,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   //const [setErrorMessage] = useState<string>('');
   const [isError, setIsError] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [configDetails, setConfigDetails] = useState<any>(null); // Store config details (mysql, assetsConfig)
 
   /****  ALL METHODS HERE  ****/
 
@@ -82,6 +83,18 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
       const { data } = await getConfig(); // api call to get cms type from upload service
 
+      console.info('🔍 CONFIG API Response:', data);
+      console.info('🔍 data.mysql:', data?.mysql);
+      console.info('🔍 data.assetsConfig:', data?.assetsConfig);
+
+      // Store config details to display in UI
+      setConfigDetails({
+        mySQLDetails: data?.mysql,
+        assetsConfig: data?.assetsConfig,
+        isSQL: data?.isSQL,
+        cmsType: data?.cmsType
+      });
+
       const cms = data?.cmsType?.toLowerCase();
 
       if (isEmptyString(cmsType?.cms_id)) {
@@ -96,22 +109,47 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           (cms: ICMSType) => cms?.parent?.toLowerCase() === cmstype?.toLowerCase()
         );
       }
+      
+      // Store config data (mysql, assetsConfig) in Redux for later use
+      // First, log what's currently in Redux
+      console.info('🔍 BEFORE UPDATE - Current file_details in Redux:', newMigrationData?.legacy_cms?.uploadedFile?.file_details);
+      
+      // Determine which CMS to set as selected
+      let newSelectedCard: ICMSType | undefined;
+      if (filteredCmsData?.length === 1) {
+        newSelectedCard = filteredCmsData[0];
+      } else {
+        newSelectedCard = DEFAULT_CMS_TYPE;
+      }
+      
       const newMigrationDataObj = {
         ...newMigrationData,
         legacy_cms: {
           ...newMigrationData?.legacy_cms,
-          selectedFileFormat: filteredCmsData[0].allowed_file_formats[0]
+          selectedCms: newSelectedCard, // Include selectedCms in this dispatch
+          selectedFileFormat: filteredCmsData[0].allowed_file_formats[0],
+          uploadedFile: {
+            ...newMigrationData?.legacy_cms?.uploadedFile,
+            file_details: {
+              ...newMigrationData?.legacy_cms?.uploadedFile?.file_details,
+              mySQLDetails: data?.mysql, // Store mysql as mySQLDetails
+              assetsConfig: data?.assetsConfig, // Store assetsConfig
+              isSQL: data?.isSQL,
+              cmsType: data?.cmsType,
+              localPath: data?.localPath,
+              awsData: data?.awsData
+            }
+          }
         }
       };
-
-      // Debug logging for selectedFileFormat setting
-      console.info('🔧 === LOAD SELECT CMS DEBUG ===');
-      console.info('📋 filteredCmsData[0]:', filteredCmsData[0]);
-      console.info('📋 allowed_file_formats[0]:', filteredCmsData[0]?.allowed_file_formats[0]);
-      console.info('📋 selectedFileFormat being set:', newMigrationDataObj.legacy_cms.selectedFileFormat);
-      console.info('================================');
-
-      //dispatch(updateNewMigrationData(newMigrationDataObj));
+      
+      console.info('🔍 Updated newMigrationDataObj with config:', newMigrationDataObj);
+      console.info('🔍 file_details after mapping:', newMigrationDataObj?.legacy_cms?.uploadedFile?.file_details);
+      console.info('🔍 mySQLDetails after mapping:', newMigrationDataObj?.legacy_cms?.uploadedFile?.file_details?.mySQLDetails);
+     
+      dispatch(updateNewMigrationData(newMigrationDataObj)); // Dispatch to save config to Redux
+      
+      console.info('✅ DISPATCHED to Redux - newMigrationDataObj dispatched');
 
       setCmsData(filteredCmsData);
 
@@ -127,13 +165,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
       setCmsData(_filterCmsData);
 
-      let newSelectedCard: ICMSType | undefined;
-
-      if (filteredCmsData?.length === 1) {
-        newSelectedCard = filteredCmsData[0];
-      } else {
-        newSelectedCard = DEFAULT_CMS_TYPE;
-      }
       setIsLoading(false);
 
       if (!isEmptyString(newSelectedCard?.title)) {
@@ -141,15 +172,10 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         //setErrorMessage('');
         setIsError(false);
 
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          legacy_cms: {
-            ...newMigrationData?.legacy_cms,
-            selectedCms: newSelectedCard
-          }
-        };
+        // The dispatch already happened above (line 150) with all the data including selectedCms
+        // No need to dispatch again here
+        
         //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
-        dispatch(updateNewMigrationData(newMigrationDataObj));
         props?.handleStepChange(props?.currentStep);
       }
     } catch (error) {

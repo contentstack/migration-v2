@@ -93,8 +93,8 @@
       ]
     },
     {
-      "cms_id": "drupal v8+",
-      "title": "Drupal v8+",
+      "cms_id": "drupal",
+      "title": "Drupal",
       "description": "",
       "group_name": "lightning",
       "doc_url": {
