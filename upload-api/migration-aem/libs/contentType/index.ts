@@ -88,9 +88,13 @@ const mergeChildComponent = (contentstackComponents: any) => {
 const convertContentType: IConvertContentType = async (dirPath) => {
   const templatesDir = path.resolve(dirPath);
   const templateFiles = read(templatesDir);
+  const damPath = path?.resolve?.(path?.join?.(templatesDir, CONSTANTS.AEM_DAM_DIR));
   const allComponentData: Record<string, any>[] = [];
   for await (const fileName of templateFiles) {
     const filePath = path.join(templatesDir, fileName);
+    if (filePath?.startsWith?.(damPath)) {
+      continue;
+    }
     const templateData = await readFiles(filePath);
     const tracker = await contentTypeMappers({ templateData, affix: "cms" });
     const trackerData = tracker.getAllComponents();
@@ -108,9 +112,13 @@ const arrangeContentModels = async (
 ) => {
   const arrangedCt: Record<string, any[]> = {};
   const templateFiles = read(templatesDir);
+  const damPath = path?.resolve?.(path?.join?.(templatesDir, CONSTANTS.AEM_DAM_DIR));
 
   for await (const fileName of templateFiles) {
     const filePath = path.join(templatesDir, fileName);
+    if (filePath?.startsWith?.(damPath)) {
+      continue;
+    }
     const templateData: any = await readFiles(filePath);
 
     for (const key of groupBy) {
