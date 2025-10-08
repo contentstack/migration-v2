@@ -208,4 +208,5 @@ export interface ModifiedField {
   parentId: string;
   uid: string;
   _canSelect?: boolean;
+  contentstackFieldType?: string;
 }

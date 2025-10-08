@@ -93,7 +93,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
         }
         
       
-        setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt?.(0).toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase());
+        setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt?.(0).toUpperCase() + fileFormat?.slice?.(1) : fileFormat === 'directory' ? 'Folder' : fileFormat?.toUpperCase());
 
       }
     } catch (error) {
@@ -116,7 +116,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       <div className="col-12">
         <label htmlFor="file-format">
           <TextInput
-            value={fileIcon ? fileIcon : 'file extension not found'}
+            value={fileIcon === 'Folder' ? 'DIRECTORY' : fileIcon ? fileIcon :  'file extension not found'}
             version="v2"
             isReadOnly={true}
             disabled={true}
@@ -133,7 +133,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           />
         </label>
 
-        {isError && <p className="errorMessage">{error}</p>}
+        {isError && <p className="errorMessage pt-2">{error}</p>}
       </div>
     </div>
   );
