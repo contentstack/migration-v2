@@ -21,10 +21,10 @@ fileignoreconfig:
     checksum: d9d3ca95b2f4df855c8811c73b5714e80b31e5e84b46affa0cb514dcfcc145bf
 
   - filename: upload-api/migration-wordpress/package-lock.json
-    checksum: d8cba4136f09e4ce63370e5f48d3292a78fd5f317c186e6f44d4556196a3617e
+    checksum:  9793f49517fef0e686e6a32cde8c614e4feabe2a613fd0dd281df79852b017ea
 
   - filename: upload-api/migration-sitecore/package-lock.json
-    checksum: 32579e06dde520acbde710f84684f738403a324a1cd0d6b342e21e423f4f8d96
+    checksum: fb0f9538bbf60a81caa4ed31f51dff697fe49b9518ef1751dffe13fec5af0c9d
 
   - filename: package-lock.json
     checksum: 4dfe369ac7c49071314c21076141521beffe3ef1215d71d30e98e657a8a5f61a
@@ -61,7 +61,7 @@ fileignoreconfig:
   - filename: upload-api/migration-sitecore/package-lock.json
     checksum: 32579e06dde520acbde710f84684f738403a324a1cd0d6b342e21e423f4f8d96
   - filename: upload-api/migration-contentful/package-lock.json
-    checksum: 1fec859f4d41e1acb5cdab8fdfba7c1978532a7f98f4fd26674153755f926d64
+    checksum: 8dfd2594bda249292050535233930acc26eb589d57fff196efb71283c29cf58e
   - filename: ui/src/components/ContentMapper/index.scss
     checksum: 46f8fde3b745feba40943f00d8d52714d0f320202c86b62f6c5ded73c2dbcf4c
   - filename: api/src/services/migration.service.ts
