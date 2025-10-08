@@ -97,5 +97,65 @@ fileignoreconfig:
     checksum: 4e9bd6dcdb08fab85a3d8200e0dffa0d003743ebbb42d5043228cfd46f7e91da
   - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
     checksum: dde885393dfdd813f1dace88ce8ce79e3fb438801ee5e7bf19855fe1394cb78c
-
+      
+  - filename: upload-api/migration-aem/package-lock.json
+    checksum: c8b13ba2f88b37305486b1a80b9ebef91be21c5e731c8742fac6f306b4cdcc28
+  - filename: upload-api/package-lock.json
+    checksum: ca5f44dd78f87cd656135ab36f6ddb8470288a61c2cb4d9e09156db3e9c3e3c3
+  - filename: upload-api/migration-aem/libs/contentType/types/index.interface.ts
+    checksum: 82c4da161fd82c68f41012819ae77c375c9238f86c6006f1c270bc08bd8c25c0
+  - filename: upload-api/migration-aem/libs/contentType/types/contentTypeMapper.interface.ts
+    checksum: dbbbfc6790567486f654fe38cce608fd0bba683d02ab1179d4ce0e279891e71b
+  - filename: upload-api/migration-aem/libs/contentType/components/ButtonComponent.ts
+    checksum: efec4fadf52f861d84f10a032540a1df66073c921763ee09d856cd2613886531
+  - filename: upload-api/migration-aem/libs/contentType/components/TextBannerComponent.ts
+    checksum: c0dbc67db856464d848373325cadfda125236ad677be6ffbc58c5564efa16ca1
+  - filename: upload-api/migration-aem/helper/contentType.flatten.ts
+    checksum: 68e47b8e4d47e936358c1439b2b39b4ee92447f1d558d71d51646419db796c62
+  - filename: api/src/utils/content-type-creator.utils.ts
+    checksum: e230a263f6eb844e40c2542daf5d6b152c6a1e014b8d6d275bb77ab79845b683
+  - filename: upload-api/migration-aem/libs/contentType/components/CarouselComponent.ts
+    checksum: f914f89a61ab10cb80b0eee912d38dd6c747fe5b605d2e975c4bf0f891de0d93
+  - filename: upload-api/migration-aem/libs/contentType/components/CustomEmbedComponent.ts
+    checksum: 236df713e0cacf43d76fd49f7c729b5f2df1a0f604eab2c6f199655cb2bd263e
+  - filename: upload-api/migration-aem/libs/contentType/components/ImageComponent.ts
+    checksum: 3d1375e62caf3363b0a8d38efc9fea747716260630a66758184fbfa4277b0342
+  - filename: upload-api/migration-aem/libs/contentType/components/NavigationComponent.ts
+    checksum: 8d2eb7bd681abcab3b030a643d726943e99cdb5eb2e87ef06498dba2db231730
+  - filename: upload-api/migration-aem/libs/contentType/components/NtFolderComponent.ts
+    checksum: 7025bab1ef5bbdb8b8e48d412995d77a708c415acb74a5f2f9d3644a5ab9c1bf
+  - filename: upload-api/migration-aem/libs/contentType/components/ProductListingComponent.ts
+    checksum: d1b6ab95120b46b61e30963029b99c848925d8cc2d537821797eef8b998735d4
+  - filename: upload-api/migration-aem/libs/contentType/components/SearchComponent.ts
+    checksum: e69779e94a72556b06828becfe2f70795e86a736b1b160fb841113ae6f93b1e4
+  - filename: upload-api/migration-aem/libs/contentType/components/SeparatorComponent.ts
+    checksum: dbfe958f88bcf7f1d7641979b95f8af0edcb3517e2407815ab6b1efe25d521ea
+  - filename: upload-api/migration-aem/libs/contentType/components/SpacerComponent.ts
+    checksum: cb037902980594de54019ff94a8932bc65dc01a7c7ba8b70301321b79611f9ad
+  - filename: api/src/services/aem.service.ts
+    checksum: c74bb5531bc701ab368b639f2cd50c2e809b1caf09ae3f2f9c52de0721865983
+  - filename: upload-api/migration-aem/helper/index.ts
+    checksum: 30b9ada3cb1430df905bfc5bf02c77ff0428e9cda8bca906ca40618986f1687d
+  - filename: upload-api/migration-aem/libs/contentType/components/TeaserComponent.ts
+    checksum: 4b71402b994b2bde22b6ca1645fa04b889394fe75296ed7b19e55886ec60aaeb
+  - filename: upload-api/migration-aem/helper/fieldMappings.merge.ts
+    checksum: 3afa6e6abcf7128cd7da838501440483109161a60a8df3618ae090bd589d0cb2
+  - filename: api/src/services/migration.service.ts
+    checksum: 99945d57540e20cce2e02dfd782ba6544161a80f1f01f0e7a9d07cd8b22b0a0b
+  - filename: upload-api/migration-aem/helper/jsonSchema.identifier.ts
+    checksum: b90687acac3c2b5e719eacc05c3b4f142d55d6bd5c99dc48609422c987cab1c8
+  - filename: upload-api/migration-aem/libs/contentType/fragment/index.ts
+    checksum: 386f63288a333408c55420051e62925dcdf40a7651aa7502e8a0417f4e3db76f
+  - filename: upload-api/migration-aem/helper/types/index.interface.ts
+    checksum: 4866ccc42e8ea9d7a89c46ac0c8b4998185da330727fe4019939b213c38ddc94
+  - filename: upload-api/migration-aem/libs/contentType/components/BreadcrumbComponent.ts
+    checksum: ac81e1b00a641a97c1de7dc86c03e818454c91e527d79a17dec340a43448d930
+  - filename: upload-api/migration-aem/libs/contentType/index.ts
+    checksum: a6310acf6da3c61ba43054feb7f3b5ef51ca84d860dd2e86bc39125eb56a7150
+  - filename: upload-api/migration-aem/libs/contentType/contentTypeMapper.ts
+    checksum: 4d5f4099f8ce4bd022e2774d0ed2d015c4dbfec60a0ea4072e3f34bd9c01c280
+  - filename: upload-api/migration-aem/libs/contentType/components/TitleComponent.ts
+    checksum: fd490e48c5a6e5a544ce9bf05a201149acc0f8d836f25c4f742999e8b0c0f2a2
+  - filename: upload-api/migration-aem/libs/contentType/createContentTypes.ts
+    checksum: b9fa07f84933054324a900412d584f561ec7c58e33f294489d7b1d68d54c656b
 version: "1.0"
