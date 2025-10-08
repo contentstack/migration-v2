@@ -57,7 +57,6 @@ import {
   MouseOrKeyboardEvent,
   MappingFields,
   FieldHistoryObj,
-  FieldObj
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -681,12 +680,12 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== null);
       
-      setTableData(data?.fieldMapping ?? []);
-      setSelectedEntries(data?.fieldMapping ?? []);
-      setTotalCounts(data?.fieldMapping?.length);
-      setInitialRowSelectedData(data?.fieldMapping?.filter((item: FieldMapType) => !item?.isDeleted))
+      setTableData(validTableData ?? []);
+      setSelectedEntries(validTableData ?? []);
+      setTotalCounts(validTableData?.length);
+      setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item?.isDeleted))
       setIsLoading(false);
-      generateSourceGroupSchema(data?.fieldMapping);
+      generateSourceGroupSchema(validTableData);
     } catch (error) {
       console.error('fetchData -> error', error);
     }
@@ -908,40 +907,10 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       parentId : excludeArr?.includes?.(backupFieldType?.toLowerCase()) || excludeArr?.includes?.(contentstackFieldType?.toLowerCase()) ? '' : getParentId(uid?.substring(0, uid.lastIndexOf('.'))?.toLowerCase())
     }
   }
-  
-  // Get the last action of each row 
-  const getLastElements = (obj: FieldHistoryObj) => {
-    const result: FieldObj = {};
-    for (const key in obj) {
-      if (Array.isArray(obj[key]) && obj[key]?.length > 0) {
-        // Get the last element of the array
-        result[key] = obj[key][obj[key]?.length - 1];
-      }
-    }
-    return result;
-  }
-
-  // Get the latest action performed on table 
-  const findLatest = (obj: FieldHistoryObj) => {
-    let latestItem = null;
-
-    for (const key in obj) {
-      if (Array.isArray(obj[key]) && obj[key]?.length > 0) {
-        // Get the last element of the array
-        const lastElement = obj[key][obj[key]?.length - 1];
-
-        // Compare the 'at' property
-        if (!latestItem || lastElement?.at > latestItem?.at) {
-          latestItem = lastElement;
-        }
-      }
-    }
-    return latestItem;
-  }
 
   // Update the object on selection or deselection
   const updateRowHistoryObj = (key: string, checked: boolean) => {
-    const obj = selectedEntries?.find(i => i?.id === key);
+    const obj = tableData?.find(i => i?.id === key);
     if (obj) {
       rowHistoryObj[key].push({
         checked,
@@ -950,185 +919,218 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       });
     }
   };
+
+/**
+ * Recursively gets all descendant row IDs for a given parent UID
+ * @param parentUid - The UID of the parent
+ * @param data - The table data array
+ * @returns Array of all descendant row objects
+ * @description Recursively gets all descendant row IDs for a given parent UID
+ */
+const getAllDescendants = (parentUid: string, data: FieldMapType[]): FieldMapType[] => {
+  const descendants: FieldMapType[] = [];
+  const parentUidLower = parentUid?.toLowerCase();
   
-  const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
-    const selectedObj: UidMap = {};
+  const children = data?.filter((item) => {
+    const itemUidLower = item?.uid?.toLowerCase() || '';
+    return itemUidLower?.startsWith(parentUidLower + '.') && itemUidLower !== parentUidLower;
+  });
   
-    singleSelectedRowIds?.forEach((uid: string) => {
-      const isId = selectedEntries?.some((item) => item?.id === uid);
-      if (isId) {
-        selectedObj[uid] = true;
-      }
-    });
-
-    // updates rowHistoryObj based on selectedObj
-    for (const key in rowHistoryObj) {
-      if (Object.hasOwn(selectedObj, key)) {
-        if(!rowHistoryObj[key][rowHistoryObj[key]?.length - 1]?.checked){
-          updateRowHistoryObj(key, true);
-        }
-      } else if(rowHistoryObj[key][rowHistoryObj[key]?.length - 1]?.checked){
-        updateRowHistoryObj(key, false);        
-      }
+  children?.forEach((child) => {
+    descendants?.push(child);
+    
+    if (
+      child?.backupFieldType?.toLowerCase() === 'group' ||
+      child?.backupFieldType?.toLowerCase() === 'modular_blocks' ||
+      child?.backupFieldType?.toLowerCase() === 'modular_blocks_child' ||
+      child?.contentstackFieldType?.toLowerCase() === 'modular_blocks' ||
+      child?.contentstackFieldType?.toLowerCase() === 'modular_blocks_child'
+    ) {
+      const nestedDescendants = getAllDescendants(child?.uid, data);
+      descendants?.push(...nestedDescendants);
     }
+  });
+  
+  return descendants;
+};
 
-    // Get the latest action performed row 
-    const latestRow = findLatest(rowHistoryObj);
+/**
+ * 
+ * @param childUid - The UID of the child
+ * @param selectedObj - The selected object
+ * @param data - The table data array
+ * @returns 
+ * @description Cascade DOWN to uncheck all descendants
+ */
+const cascadeUncheckParents = (
+  childUid: string,
+  selectedObj: UidMap,
+  data: FieldMapType[]
+): void => {
+  const uidParts = childUid?.split('.');
+  if (uidParts?.length <= 1) return;
 
-    // Helper functions for checkbox logic
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const isParentBlock = (item: any) => {
-      return item?.backupFieldType?.toLowerCase() === "group" || 
-             item?.backupFieldType?.toLowerCase() === "modular_blocks" || 
-             item?.backupFieldType?.toLowerCase() === "modular_blocks_child" ||
-             item?.contentstackFieldType?.toLowerCase() === "modular_blocks" || 
-             item?.contentstackFieldType?.toLowerCase() === "modular_blocks_child";
-    };
+  const parentUid = uidParts?.slice(0, -1)?.join('.');
+  const parentItem = data?.find((item) => item?.uid?.toLowerCase() === parentUid?.toLowerCase());
+  
+  if (!parentItem) return;
 
-    console.info("latestRow ---> ", latestRow)
+  const allChildren = data?.filter((item) => {
+    const itemUid = item?.uid?.toLowerCase() || '';
+    const parentUidLower = parentUid?.toLowerCase();
+    return (
+      itemUid?.startsWith(parentUidLower + '.') &&
+      itemUid?.split('.')?.length === parentUidLower?.split('.')?.length + 1
+    );
+  });
 
-    if((latestRow?.backupFieldType?.toLowerCase() === "group" && latestRow?.parentId === '') || latestRow?.backupFieldType?.toLowerCase() === "modular_blocks") {
-      // get all child rows of group
-      const groupUid = latestRow?.uid?.toLowerCase();
-      const childItems = selectedEntries?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupUid + '.'));
-      if (childItems && validateArray(childItems)) {
-        if(latestRow?.checked){
-          console.info("inside if latestRow?.checked ---> ", latestRow)
-          const lastEle = getLastElements(rowHistoryObj)
-          console.info("lastEle ---> ", lastEle)
-          let isChildChecked = false
+  const allChildrenUnchecked = allChildren?.every((child) => !selectedObj?.[child?.id]);
 
+  if (allChildrenUnchecked) {
+    delete selectedObj[parentItem?.id];
+    cascadeUncheckParents(parentItem?.uid, selectedObj, data);
+  }
+};
 
-          const modularBlockChild = childItems?.find((entry) => entry?.contentstackFieldType?.toLowerCase() === 'modular_blocks_child');
-          console.info("modularBlockChild ---> ", modularBlockChild)
-          if(modularBlockChild?.id === latestRow?.parentId){
-            selectedObj[modularBlockChild?.id] = true
-          }
-
-          //if the modular block or group is checked, then check the child
-          childItems?.forEach((child) => {
-            console.info("child ---> ", selectedObj?.[latestRow?.id])
-              // if (latestRow?.checked){
-              //   selectedObj[child?.id] = true
-              // }
-          })
-
-          
-
-          
-
-          if (childItems?.some((child) => child?.contentstackFieldType?.toLowerCase() === latestRow?.contentstackFieldType?.toLowerCase())) {
-            isChildChecked = true;
-            childItems?.forEach((child) => {
-              // if (!lastEle[child?.id]?.checked) {
-              //   // isChildChecked = true
-              //   selectedObj[child?.id] = true
-              // }
-              const modularBlockChildItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(child?.uid?.toLowerCase() + '.'));
-
-              modularBlockChildItems?.forEach((blockChild) => {
-                // if(lastEle[blockChild?.id]?.checked){
-                //   isChildChecked = true
-                // }
-                if(!lastEle[blockChild?.id]){
-                selectedObj[blockChild?.id] = true
-              }
-              })
-              
-            })
-            
-          }
-
-          if(isChildChecked) {
-            console.info("inside if isChildChecked ---> ", latestRow)
-            if(!selectedObj[latestRow?.id]){
-              selectedObj[latestRow?.id] = true
-            }
-          } else {
-            childItems.forEach((child) => {
-              if(!selectedObj[child?.id]){
-                selectedObj[child?.id] = true
-              }
-            })
-          }
-
-        } else {
-          childItems?.forEach((child) => {
-            delete selectedObj[child?.id || ''];          
-          })
-        }
-      }
-    } else if(latestRow?.parentId && !["title", "url"]?.includes?.(latestRow?.uid?.toLowerCase())){
-      // Extract the group UID if item is child of any group
-      const uidBeforeDot = latestRow?.uid?.split?.('.')?.[0]?.toLowerCase();
-      const groupItem = tableData?.find((entry) => entry?.uid?.toLowerCase() === uidBeforeDot);   
-      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupItem?.uid?.toLowerCase() + '.'));
-
-      if(latestRow?.checked) {
-        if(!selectedObj[latestRow?.parentId]){
-          selectedObj[latestRow?.parentId] = true
-        }
-        if(!selectedObj[latestRow?.id]){
-          selectedObj[latestRow?.id] = true
-        }
-      } else {
-        console.info("inside else ================")
-        const lastEle = getLastElements(rowHistoryObj);
-
-        let allChildFalse = 0
-
-        // let allModularBlockChildFalse = 0
-        childItems?.forEach((child) => {
-          if(!lastEle[child?.id]?.checked){
-            allChildFalse ++
-          }
-
-          // const modularBlockChildItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(child?.uid?.toLowerCase() + '.'));
-
-          // console.info("modularBlockChildItems ---> ", modularBlockChildItems)
-
-          //     modularBlockChildItems?.forEach((blockChild) => {
-          // console.info("modularBlockChildItems ---> ", blockChild?.uid?.split(".").slice(0, 2).join(".")?.toLowerCase())
-
-          //       if(blockChild?.uid?.split(".").slice(0, 2).join(".")?.toLowerCase() === latestRow?.uid?.toLowerCase()){
-          //         allModularBlockChildFalse ++
-          //         console.info("allblock ChildFalse ---> ", allModularBlockChildFalse)
-          //       }
-
-          //       if(allModularBlockChildFalse === modularBlockChildItems?.length){
-          //         console.info("inside if ================")
-          //           if(lastEle[blockChild?.id]?.checked){
-          //           delete lastEle[blockChild?.id]
-          //         }
-          //       } else if (selectedObj[latestRow?.id]){
-          //         delete selectedObj[latestRow?.id]
-          //       } 
-          //     })
-
-              
-        })
-        if(childItems?.length === allChildFalse) {
-
-          if(selectedObj[latestRow?.parentId]){
-            // delete selectedObj[latestRow?.parentId]
-          }
-        }else if (selectedObj[latestRow?.id]){
-            // delete selectedObj[latestRow?.id]
-          } 
-      }
+/**
+ * Cascade UP to check all ancestors
+ * @param childUid - The UID of the child
+ * @param selectedObj - The selected object
+ * @param data - The table data array
+ * @returns void
+ * @description Cascade UP to check all ancestors
+ */
+const cascadeCheckParents = (
+  childUid: string,
+  selectedObj: UidMap,
+  data: FieldMapType[]
+): void => {
+  const uidParts = childUid?.split('.');
+  
+  // Check all ancestors
+  for (let i = 1; i < uidParts?.length; i++) {
+    const ancestorUid = uidParts?.slice(0, i)?.join('.');
+    const ancestorItem = data?.find(
+      (item) => item?.uid?.toLowerCase() === ancestorUid?.toLowerCase()
+    );
+    if (ancestorItem) {
+      selectedObj[ancestorItem?.id] = true;
     }
-   
-    const updatedTableData = tableData?.map?.((tableItem) => {
-      // Mark the item as deleted if not found in selectedData
-      return {
-        ...tableItem,
-        isDeleted: (tableItem?._canSelect ) ? !selectedObj[tableItem?.id] : tableItem?.isDeleted //!found ? true : false,
-      };
-    });  
+  }
+};
 
+/**
+ * Check if an item is a leaf node
+ * @param item - The item to check
+ * @returns true if the item is a leaf node, false otherwise
+*/
+const isLeafNode = (item: FieldMapType): boolean => {
+  const type = item?.backupFieldType?.toLowerCase();
+  return (
+    type !== 'group' &&
+    type !== 'modular_blocks' &&
+    type !== 'modular_blocks_child'
+  );
+};
+  
+/**
+ * Handle the selected entries
+ * @param singleSelectedRowIds - The single selected row IDs
+ * @returns void
+ */
+const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
+  const selectedObj: UidMap = {};
+  const previousRowIds: UidMap = { ...rowIds as UidMap };
+
+  singleSelectedRowIds?.forEach((uid: string) => {
+    const isId = selectedEntries?.some((item) => item?.id === uid);
+    if (isId) {
+      selectedObj[uid] = true;
+    }
+  });
+
+  // Find all items that changed state
+  const changedItems = tableData.filter((item) => {
+    const wasSelected = !!previousRowIds[item?.id];
+    const isSelected = !!selectedObj[item?.id];
+    return wasSelected !== isSelected;
+  });
+
+  if (changedItems?.length === 0) {
+    const updatedTableData = tableData?.map((tableItem) => ({
+      ...tableItem,
+      isDeleted: tableItem?._canSelect ? !selectedObj[tableItem?.id] : tableItem?.isDeleted
+    }));
     setRowIds(selectedObj);
     setSelectedEntries(updatedTableData);
-  };
+    return;
+  }
+
+  // Find the leaf node that changed (if any) - this is likely what user clicked
+  let userClickedItem = changedItems?.find(item => isLeafNode(item));
+  
+  // If no leaf node changed, use the deepest changed item
+  if (!userClickedItem) {
+    changedItems?.sort((a, b) => {
+      const depthA = a?.uid?.split('.')?.length;
+      const depthB = b?.uid?.split('.')?.length;
+      return depthB - depthA; // Deepest first
+    });
+    userClickedItem = changedItems?.[0];
+  }
+
+  const wasChecked = !!previousRowIds[userClickedItem?.id];
+  const isNowChecked = !wasChecked;
+
+  // Update history
+  updateRowHistoryObj(userClickedItem?.id, isNowChecked);
+
+  // Check if this is a parent container
+  const isParentContainer =
+    (userClickedItem?.contentstackFieldType?.toLowerCase() === 'group') ||
+    userClickedItem?.contentstackFieldType?.toLowerCase() === 'modular_blocks' ||
+    userClickedItem?.contentstackFieldType?.toLowerCase() === 'modular_blocks_child';
+
+  if (isParentContainer) {
+    const allDescendants = getAllDescendants(userClickedItem?.uid, tableData);
+    
+    if (isNowChecked) {
+      // Parent checked - cascade DOWN to children AND UP to ancestors
+      selectedObj[userClickedItem?.id] = true;
+      allDescendants?.forEach((descendant) => {
+        selectedObj[descendant?.id] = true;
+      });
+      
+      cascadeCheckParents(userClickedItem?.uid, selectedObj, tableData);
+    } else {
+      delete selectedObj[userClickedItem?.id];
+      allDescendants?.forEach((descendant) => {
+        delete selectedObj?.[descendant?.id];
+      });
+      cascadeUncheckParents(userClickedItem?.uid, selectedObj, tableData);
+    }
+  } else {
+    if (isNowChecked) {
+      selectedObj[userClickedItem?.id] = true;
+      
+      // Cascade UP to ancestors
+      cascadeCheckParents(userClickedItem?.uid, selectedObj, tableData);
+    } else {
+      // Leaf unchecked
+      delete selectedObj[userClickedItem?.id];
+      cascadeUncheckParents(userClickedItem?.uid, selectedObj, tableData);
+    }
+  }
+
+  // Update table data
+  const updatedTableData = tableData?.map((tableItem) => ({
+    ...tableItem,
+    isDeleted: tableItem?._canSelect ? !selectedObj[tableItem?.id] : tableItem?.isDeleted
+  }));
+
+  setRowIds(selectedObj);
+  setSelectedEntries(updatedTableData);
+};
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string) => {
@@ -1179,8 +1181,6 @@ const ContentMapper = forwardRef(({handleStepChange}: contentMapperProps, ref: R
       }
     });
   };
-
-  // console.info('tableData', tableData);
   
   const SelectAccessor = (data: FieldMapType) => {
     const OptionsForRow = Fields?.[data?.backupFieldType]?.options ;
