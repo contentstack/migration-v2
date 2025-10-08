@@ -86,7 +86,7 @@ fileignoreconfig:
   - filename: upload-api/Dockerfile
     checksum: b26f4860a8c18e1a777ff560b2e33168fba6359b92f5f4eca6aa64d7d83782e0
   - filename: ui/package-lock.json
-    checksum: 61170510551ad3fdaab20123a6c2a52c42e7e5f397019dfcd14ac9b3f71eadcc
+    checksum: dbdc4b08f5945e196edd03dd7cf99bde5987f318e9afcfb535ab70390b12cc84
   - filename: api/package-lock.json
     checksum: 09b36877f7e86bb806a9657f852a448dc32fa1dfb350d0fde5fd843c54a27bf0
   - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
