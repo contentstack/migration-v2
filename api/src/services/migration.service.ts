@@ -35,6 +35,7 @@ import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath } from '../utils/sanitize-path.utils.js';
+import { aemService } from './aem.service.js';
 
 /**
  * Creates a test stack.
@@ -460,9 +461,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
-    await testFolderCreator?.({
-      destinationStackId: project?.current_test_stack_id,
-    });
+    if (cms !== CMS.AEM) {
+      await testFolderCreator?.({
+        destinationStackId: project?.current_test_stack_id,
+      });
+    }
     await utilsCli?.runCli(
       region,
       user_id,

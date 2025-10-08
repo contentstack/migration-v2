@@ -6,7 +6,7 @@
   "types": "build/index.d.ts",
   "scripts": {
     "clean": "rimraf dist",
-    "build": "npm run clean && tsc --skipLibCheck",
+    "build": "npm i && npm run clean && tsc --skipLibCheck",
     "start": "ts-node index.ts",
     "dev": "nodemon --watch './**/*.ts' --exec 'ts-node' index.ts"
   },
