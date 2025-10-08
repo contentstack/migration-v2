@@ -86,9 +86,7 @@ fileignoreconfig:
   - filename: upload-api/Dockerfile
     checksum: b26f4860a8c18e1a777ff560b2e33168fba6359b92f5f4eca6aa64d7d83782e0
   - filename: ui/package-lock.json
-    checksum: 00f48c5cca77f80913c0a339c82319564dd7e2cfe4de706ba0756e6aa1053445
-  - filename: upload-api/package-lock.json
-    checksum: 38d2188de3b4df88ed5e195c13b77ad7c469fe5c4d1265f1ffb868dbe3844ae1
+    checksum: 8ee0a57e97ad05c6926cb12187824a43c8cf733eaf0382dc42a6907f656b6f88
   - filename: api/package-lock.json
     checksum: 09b36877f7e86bb806a9657f852a448dc32fa1dfb350d0fde5fd843c54a27bf0
   - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
@@ -101,7 +99,7 @@ fileignoreconfig:
   - filename: upload-api/migration-aem/package-lock.json
     checksum: c8b13ba2f88b37305486b1a80b9ebef91be21c5e731c8742fac6f306b4cdcc28
   - filename: upload-api/package-lock.json
-    checksum: ca5f44dd78f87cd656135ab36f6ddb8470288a61c2cb4d9e09156db3e9c3e3c3
+    checksum: 8273f5562dc69deee1c7d660a75dc9765e212d71af52b85fb8fec8c55aa3137c
   - filename: upload-api/migration-aem/libs/contentType/types/index.interface.ts
     checksum: 82c4da161fd82c68f41012819ae77c375c9238f86c6006f1c270bc08bd8c25c0
   - filename: upload-api/migration-aem/libs/contentType/types/contentTypeMapper.interface.ts
