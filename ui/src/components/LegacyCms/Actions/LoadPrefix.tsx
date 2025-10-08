@@ -119,7 +119,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
   /****  ALL USEEffects  HERE  ****/
 
   const { restricted_keyword_link = DEFAULT_URL_TYPE } = migrationData.legacyCMSData;
-
+  
   return (
     <div className="p-3">
       <div className="col-12">
@@ -127,7 +127,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             handleOnChange(e);
           }}
-          value={prefix}
+          value={prefix?.replace(/\s+/g, '')?.length > 0 ? prefix?.replace(/\s+/g, '') : prefix}
           autoFocus={true}
           width="large"
           placeholder={'Add Affix'}

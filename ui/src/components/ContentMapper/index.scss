@@ -152,8 +152,20 @@
   .Table {
     border-left: 0 none;
     min-height: inherit;
+    .Table__body__row {
+      //   height: auto!important;
+      //   min-height: 80px;
+        .Table-select-body {
+         >.checkbox-wrapper .Checkbox {
+          align-items: flex-start;
+        }
+      }
+    }
     .Table__body__column {
       padding: 0 1.25rem;
+      &:not(:last-of-type) {
+        display: block;
+      }
     }
     .Table-select-body {
       width: 68px;
@@ -321,4 +333,76 @@ div .table-row {
 .icon-padding{
   padding: 10px 10px;
   margin-left: 6px;
+}
+// Parent-child table structure styles
+.table-row-content {
+  &.parent-row {
+    font-weight: 600;
+    // margin-left: 16px;
+  }
+  
+  &.child-row {
+    margin-left: 26px;
+  }
+  
+  &.child-row-level-2 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 36px;
+    padding-left: 16px;
+  }
+  
+  &.child-row-level-3 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 62px;
+    padding-left: 16px;
+  }
+  
+  &.child-row-level-4 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 98px;
+    padding-left: 16px;
+  }
+  &.child-row-level-5 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 134px;
+    padding-left: 16px;
+  }
+  &.child-row-level-6 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 164px;
+    padding-left: 16px;
+  }
+  &.child-row-level-7 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 194px;
+    padding-left: 16px;
+  }
+  &.child-row-level-8 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 220px;
+    padding-left: 16px;
+  }
+  &.child-row-level-9 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 248px;
+    padding-left: 16px;
+  }
+  &.child-row-level-10 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 278px;
+    padding-left: 16px;
+  }
+}
+.instruction-text-indent {
+  margin-left: 26px;
+}
+
+// UID text styling to prevent table column breaking
+.uid-text {
+  word-break: break-all;
+  // white-space: normal;
+  overflow-wrap: break-word;
+  max-width: 230px;
+  display: inline-flex;
+  line-height: 1.2!important;
 }
