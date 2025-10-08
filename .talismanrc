@@ -5,7 +5,7 @@ fileignoreconfig:
     checksum: 8eaf7502faeaa062a42ee5629f12ba1e8b961b8b8e0d209c4680c59c8de6269c
 
   - filename: api/src/services/migration.service.ts
-    checksum: bd5374b31c0fad4a266bc9affdcf595f71456edb68b075c1fdfba762f7462e38
+    checksum: 1a358a3380be1a4ba52b5baa9658ebd740719b1e79f831f47575f65bf6580f46
     
   - filename: .github/workflows/secrets-scan.yml
     ignore_detectors:
@@ -88,7 +88,7 @@ fileignoreconfig:
   - filename: ui/package-lock.json
     checksum: dbdc4b08f5945e196edd03dd7cf99bde5987f318e9afcfb535ab70390b12cc84
   - filename: api/package-lock.json
-    checksum: 09b36877f7e86bb806a9657f852a448dc32fa1dfb350d0fde5fd843c54a27bf0
+    checksum: 01cb67600a699655e5f6c4d0dc0edbd06c9f608118b6218797fab12433ae99a7
   - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
     checksum: 4e9bd6dcdb08fab85a3d8200e0dffa0d003743ebbb42d5043228cfd46f7e91da
   - filename: ui/src/components/DestinationStack/Actions/LoadLanguageMapper.tsx
@@ -97,9 +97,9 @@ fileignoreconfig:
     checksum: dde885393dfdd813f1dace88ce8ce79e3fb438801ee5e7bf19855fe1394cb78c
       
   - filename: upload-api/migration-aem/package-lock.json
-    checksum: c8b13ba2f88b37305486b1a80b9ebef91be21c5e731c8742fac6f306b4cdcc28
+    checksum: ae7a2d1431d6043ea22f593ba7d1ae02c4a05180a83b4782bfbbab0a0252d2ec
   - filename: upload-api/package-lock.json
-    checksum: 8273f5562dc69deee1c7d660a75dc9765e212d71af52b85fb8fec8c55aa3137c
+    checksum: b39dae8667c831dec9367640a86e3ca0d5d118ef41dbb0e9a5f4e8c19256e254
   - filename: upload-api/migration-aem/libs/contentType/types/index.interface.ts
     checksum: 82c4da161fd82c68f41012819ae77c375c9238f86c6006f1c270bc08bd8c25c0
   - filename: upload-api/migration-aem/libs/contentType/types/contentTypeMapper.interface.ts
@@ -155,5 +155,7 @@ fileignoreconfig:
   - filename: upload-api/migration-aem/libs/contentType/components/TitleComponent.ts
     checksum: fd490e48c5a6e5a544ce9bf05a201149acc0f8d836f25c4f742999e8b0c0f2a2
   - filename: upload-api/migration-aem/libs/contentType/createContentTypes.ts
-    checksum: b9fa07f84933054324a900412d584f561ec7c58e33f294489d7b1d68d54c656b
+    checksum: f3bd8c6e981ed0acf26432859b2b7e388c0d90018513005cfc674726f14fe245
+  - filename: ui/src/components/SchemaModal/index.tsx
+    checksum: 607a465c9cd4a504b9a81750a3f9faa0f4e11c09414354d69ec7308c11f0046a
 version: "1.0"
