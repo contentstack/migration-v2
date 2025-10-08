@@ -433,6 +433,30 @@ const startTestMigration = async (req: Request): Promise<any> => {
         );
         break;
       }
+
+      case CMS.AEM: {
+        await aemService.createAssets({ projectId, packagePath, destinationStackId: project?.current_test_stack_id });
+        await aemService.createEntry({
+          packagePath,
+          contentTypes,
+          master_locale: project?.stackDetails?.master_locale,
+          destinationStackId: project?.current_test_stack_id,
+          projectId,
+          keyMapper: project?.mapperKeys,
+          project
+        })
+        await aemService?.createLocale(
+          req,
+          project?.current_test_stack_id,
+          projectId,
+          project
+        );
+        await aemService?.createVersionFile(
+          project?.current_test_stack_id
+        );
+        break;
+      }
+
       default:
         break;
     }

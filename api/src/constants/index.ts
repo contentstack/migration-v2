@@ -279,6 +279,8 @@ export const MIGRATION_DATA_CONFIG = {
   GLOBAL_FIELDS_FILE_NAME: "globalfields.json",
 
   EXPORT_INFO_FILE: "export-info.json",
+
+  AEM_DAM_DIR: 'dam-downloads'
 };
 export const GET_AUDIT_DATA = {
   MIGRATION: "migration-v2",
