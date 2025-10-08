@@ -90,7 +90,7 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['boolean'];
   }
 
-  if (field?.contentstackFieldType === 'Reference' || field?.contentstackFieldType === 'refernce') {
+  if (field?.contentstackFieldType === 'Reference' || field?.contentstackFieldType === 'reference') {
     return icons['reference'];
   }
 
@@ -106,6 +106,10 @@ const getTopLevelIcons = (field: FieldMapType) => {
     return icons['extension'];
   }
 
+  if (field?.contentstackFieldType === 'modular_blocks' || field?.contentstackFieldType === 'modular_blocks_child') {
+    return icons['blocks'];
+  }
+
   return icons[field?.contentstackFieldType as keyof Icons];
 };
 
@@ -113,23 +117,51 @@ const TreeView = ({ schema = [] }: schemaType) => {
   const [nestedList, setNestedList] = useState<FieldMapType[]>([]);
 
   useEffect(() => {
-    let groupId = '';
     const data: FieldMapType[] = [];
-    schema?.forEach((field) => {
-      if (field?.contentstackFieldType === 'group') {
-        groupId = field?.uid;
-        data?.push({ ...field, child: [] });
-      } else if (field?.uid?.startsWith(groupId + '.')) {
-        const obj = data[data?.length - 1];
-        if (Object.hasOwn(obj, 'child')) {
-          obj?.child?.push(field);
-        } else {
-          obj.child = [field];
+    // Helper function to find the correct parent for a field
+    const findParentInData = (targetUid: string, dataArray: FieldMapType[]): FieldMapType | null => {
+      for (const item of dataArray) {
+        if (targetUid.startsWith(item.uid + '.')) {
+          // Check if this is an immediate child (no additional dots after parent uid)
+          const remainingPath = targetUid.substring(item.uid.length + 1);
+          if (!remainingPath.includes('.')) {
+            return item; // This is the immediate parent
+          }
+          // Check in children recursively
+          if (item.child && item.child.length > 0) {
+            const foundInChild = findParentInData(targetUid, item.child);
+            if (foundInChild) return foundInChild;
+          }
         }
-      } else {
+      }
+      return null;
+    };
+
+    // First pass: Add all root level fields (no dots in UID)
+    schema?.forEach((field, index) => {
+      if (!field?.uid?.includes('.')) {
         data.push({ ...field, child: [] });
       }
     });
+    
+    // Second pass: Add nested fields (with dots in UID)
+    schema?.forEach((field, index) => {
+      
+      // Check if this field has a parent (contains dots in UID)
+      if (field?.uid?.includes('.')) {
+        
+        const parentField = findParentInData(field.uid, data);
+        if (parentField) {
+          if (!parentField.child) {
+            parentField.child = [];
+          }
+          parentField.child.push({ ...field, child: [] });
+        } else {
+          // If no parent found, add to root level
+          data.push({ ...field, child: [] });
+        }
+      }
+    });    
     setNestedList(data);
   }, [schema]);
 
@@ -185,7 +217,7 @@ const TreeView = ({ schema = [] }: schemaType) => {
               >
                 <span className="icons">
                   {hasNestedValue(field) && (
-                    <Icon className={`chevron ${index ? '' : 'close'} `} icon="ChevronExtraSmall" />
+                    <Icon className={`chevron ${(index || nestedIndex !== null) ? '' : 'close'} `} icon="ChevronExtraSmall" />
                   )}
                   <Icon icon={getTopLevelIcons(field) as string} className="field-icon" version='v2' size='small' />
                 </span>
