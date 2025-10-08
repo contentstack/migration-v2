@@ -33,14 +33,14 @@ export const drupalService = {
     destination_stack_id: string,
     projectId: string,
     isTest = false,
-    drupalAssetsConfig?: any
+    assetsConfig?: any
   ) => {
     return createAssets(
       dbConfig,
       destination_stack_id,
       projectId,
-      drupalAssetsConfig?.base_url || '',
-      drupalAssetsConfig?.public_path || '/sites/default/files/',
+      assetsConfig?.base_url || '',
+      assetsConfig?.public_path || '',
       isTest
     );
   },

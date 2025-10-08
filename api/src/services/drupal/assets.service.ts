@@ -67,146 +67,6 @@ async function writeFile(dirPath: string, filename: string, data: any) {
 }
 
 /**
- * Constructs the full URL for Drupal assets, handling public:// and private:// schemes
- */
-const constructAssetUrl = (
-  uri: string,
-  baseUrl: string,
-  publicPath: string
-): string => {
-  let url = uri;
-  const replaceValue = baseUrl + publicPath;
-
-  if (!url.startsWith('http')) {
-    url = url.replace('public://', replaceValue);
-    url = url.replace('private://', replaceValue);
-  }
-
-  return encodeURI(url);
-};
-
-/**
- * Saves an asset to the destination stack directory for Drupal migration.
- * Based on the original Drupal v8 migration logic.
- */
-const saveAsset = async (
-  assets: DrupalAsset,
-  failedJSON: any,
-  assetData: any,
-  metadata: AssetMetaData[],
-  projectId: string,
-  destination_stack_id: string,
-  baseUrl: string = '',
-  publicPath: string = '/sites/default/files/',
-  retryCount = 0
-): Promise<string> => {
-  try {
-    const srcFunc = 'saveAsset';
-    const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
-
-    // Use Drupal-specific field names
-    const assetId = `assets_${assets.fid}`;
-    const fileName = assets.filename;
-    const fileUrl = constructAssetUrl(assets.uri, baseUrl, publicPath);
-
-    // Check if asset already exists
-    if (fs.existsSync(path.resolve(assetsSave, assetId, fileName))) {
-      return assetId; // Asset already exists
-    }
-
-    try {
-      const response = await axios.get(fileUrl, {
-        responseType: 'arraybuffer',
-        timeout: 30000,
-      });
-
-      const assetPath = path.resolve(assetsSave, assetId);
-
-      // Create asset data following Drupal migration pattern
-      assetData[assetId] = {
-        uid: assetId,
-        urlPath: `/assets/${assetId}`,
-        status: true,
-        content_type: assets.filemime || 'application/octet-stream',
-        file_size: assets.filesize.toString(),
-        tag: [],
-        filename: fileName,
-        url: fileUrl,
-        is_dir: false,
-        parent_uid: null,
-        _version: 1,
-        title: fileName,
-        publish_details: [],
-      };
-
-      const message = getLogMessage(
-        srcFunc,
-        `Asset "${fileName}" with id ${assets.fid} has been successfully transformed.`,
-        {}
-      );
-
-      await fs.promises.mkdir(assetPath, { recursive: true });
-      await fs.promises.writeFile(
-        path.join(assetPath, fileName),
-        Buffer.from(response.data),
-        'binary'
-      );
-      await writeFile(
-        assetPath,
-        `_contentstack_${assetId}.json`,
-        assetData[assetId]
-      );
-
-      metadata.push({ uid: assetId, url: fileUrl, filename: fileName });
-
-      // Remove from failed assets if it was previously failed
-      if (failedJSON[assetId]) {
-        delete failedJSON[assetId];
-      }
-
-      await customLogger(projectId, destination_stack_id, 'info', message);
-      return assetId;
-    } catch (err: any) {
-      if (retryCount < 1) {
-        // Retry once
-        return await saveAsset(
-          assets,
-          failedJSON,
-          assetData,
-          metadata,
-          projectId,
-          destination_stack_id,
-          baseUrl,
-          publicPath,
-          retryCount + 1
-        );
-      } else {
-        // Mark as failed after retry
-        failedJSON[assetId] = {
-          failedUid: assets.fid,
-          name: fileName,
-          url: fileUrl,
-          file_size: assets.filesize,
-          reason_for_error: err?.message,
-        };
-
-        const message = getLogMessage(
-          srcFunc,
-          `Failed to download asset "${fileName}" with id ${assets.fid}: ${err.message}`,
-          {},
-          err
-        );
-        await customLogger(projectId, destination_stack_id, 'error', message);
-        return assetId;
-      }
-    }
-  } catch (error) {
-    console.error('Error in saveAsset:', error);
-    return `assets_${assets.fid}`;
-  }
-};
-
-/**
  * Executes SQL query and returns results as Promise
  */
 const executeQuery = (
@@ -224,24 +84,505 @@ const executeQuery = (
   });
 };
 
-/**
- * Fetches assets from database using SQL query
- */
+const publicPathCache = new Map<string, string>();
+
+// AUTO-DETECT PUBLIC PATH FROM DATABASE
+const detectPublicPath = async (
+  connection: mysql.Connection,
+  baseUrl: string,
+  projectId: string,
+  destination_stack_id: string
+): Promise<string> => {
+  const srcFunc = 'detectPublicPath';
+
+  try {
+    // Try to get public file path from Drupal's system table
+    const configQuery = `
+      SELECT value 
+      FROM config 
+      WHERE name = 'system.file' 
+      LIMIT 1
+    `;
+
+    try {
+      const configResults = await executeQuery(connection, configQuery);
+      if (configResults.length > 0) {
+        const config = JSON.parse(configResults[0].value);
+        if (config.path && config.path.public) {
+          const detectedPath = config.path.public;
+          console.log(`✅ Detected public path from config: ${detectedPath}`);
+          return detectedPath.endsWith('/') ? detectedPath : `${detectedPath}/`;
+        }
+      }
+    } catch (configErr) {
+      console.log(
+        '⚠️  Config table not found or not readable, trying web detection...'
+      );
+    }
+
+    // Final fallback: Try to detect from an actual file by testing URLs
+    const sampleFileQuery = `
+      SELECT uri, filename 
+      FROM file_managed 
+      WHERE uri LIKE 'public://%' 
+      LIMIT 5
+    `;
+
+    const sampleResults = await executeQuery(connection, sampleFileQuery);
+    if (sampleResults.length > 0) {
+      // Try common Drupal paths with the user-provided baseUrl
+      const commonPaths = [
+        '/sites/default/files/',
+        '/sites/all/files/',
+        '/sites/g/files/bxs2566/files/', // Rice University specific
+        '/files/',
+      ];
+
+      // Also try to extract path patterns from the database URIs
+      for (const sampleFile of sampleResults) {
+        const sampleUri = sampleFile.uri;
+
+        for (const testPath of commonPaths) {
+          const testUrl = `${baseUrl}${testPath}${sampleUri.replace(
+            'public://',
+            ''
+          )}`;
+          try {
+            const response = await axios.get(testUrl, {
+              timeout: 5000,
+              maxContentLength: 1024, // Only download first 1KB to test
+              headers: {
+                'User-Agent': 'Contentstack-Drupal-Migration/1.0',
+              },
+            });
+            if (response.status === 200) {
+              console.log(
+                `✅ Detected public path by testing URLs: ${testPath}`
+              );
+              const message = getLogMessage(
+                srcFunc,
+                `Auto-detected public path: ${testPath}`,
+                {}
+              );
+              await customLogger(
+                projectId,
+                destination_stack_id,
+                'info',
+                message
+              );
+              return testPath;
+            }
+          } catch (err) {
+            // Continue to next path
+          }
+        }
+      }
+
+      // If common paths don't work, try to extract from URI patterns
+      // Look for patterns like /sites/[site]/files/ in the database
+      const uriPatternQuery = `
+        SELECT DISTINCT uri 
+        FROM file_managed 
+        WHERE uri LIKE 'public://%' 
+        LIMIT 10
+      `;
+
+      const uriResults = await executeQuery(connection, uriPatternQuery);
+      const pathPatterns = new Set();
+
+      uriResults.forEach((row) => {
+        const uri = row.uri;
+        // Extract potential path patterns from URIs
+        const matches = uri.match(/public:\/\/(?:sites\/([^\/]+)\/)?files\//);
+        if (matches) {
+          pathPatterns.add(`/sites/${matches[1]}/files/`);
+        }
+      });
+
+      // Test extracted patterns
+      for (const pattern of pathPatterns) {
+        const patternStr = pattern as string;
+        for (const sampleFile of sampleResults.slice(0, 2)) {
+          // Test with fewer files
+          const testUrl = `${baseUrl}${patternStr}${sampleFile.uri.replace(
+            'public://',
+            ''
+          )}`;
+          try {
+            const response = await axios.get(testUrl, {
+              timeout: 5000,
+              maxContentLength: 1024, // Only download first 1KB to test
+              headers: {
+                'User-Agent': 'Contentstack-Drupal-Migration/1.0',
+              },
+            });
+            if (response.status === 200) {
+              console.log(
+                `✅ Detected public path from URI patterns: ${patternStr}`
+              );
+              const message = getLogMessage(
+                srcFunc,
+                `Auto-detected public path from patterns: ${patternStr}`,
+                {}
+              );
+              await customLogger(
+                projectId,
+                destination_stack_id,
+                'info',
+                message
+              );
+              return patternStr;
+            }
+          } catch (err) {
+            // Continue to next pattern
+          }
+        }
+      }
+    }
+
+    // Ultimate fallback
+    console.log(
+      `⚠️ Could not auto-detect path for baseUrl=${baseUrl}. Using default: /sites/default/files/`
+    );
+
+    const message = getLogMessage(
+      srcFunc,
+      `Could not auto-detect public path. Using default: /sites/default/files/`,
+      {}
+    );
+    await customLogger(projectId, destination_stack_id, 'warn', message);
+    return '/sites/default/files/';
+  } catch (error: any) {
+    const message = getLogMessage(
+      srcFunc,
+      `Error detecting public path: ${error.message}. Using default.`,
+      {},
+      error
+    );
+    await customLogger(projectId, destination_stack_id, 'warn', message);
+    return '/sites/default/files/';
+  }
+};
+
+// URL VALIDATION AND NORMALIZATION
+const normalizeUrlConfig = (
+  baseUrl: string,
+  publicPath: string
+): { baseUrl: string; publicPath: string } => {
+  // Validate inputs - allow empty values for auto-detection
+  if (!baseUrl && !publicPath) {
+    throw new Error(
+      `Invalid URL configuration: Both baseUrl and publicPath are empty. At least one must be provided.`
+    );
+  }
+
+  // Normalize baseUrl (handle empty case)
+  let normalizedBaseUrl = baseUrl ? baseUrl.trim() : '';
+
+  if (normalizedBaseUrl) {
+    // Remove trailing slash from baseUrl
+    normalizedBaseUrl = normalizedBaseUrl.replace(/\/+$/, '');
+
+    // Ensure baseUrl has protocol
+    if (
+      !normalizedBaseUrl.startsWith('http://') &&
+      !normalizedBaseUrl.startsWith('https://')
+    ) {
+      normalizedBaseUrl = `https://${normalizedBaseUrl}`;
+    }
+
+    // Validate baseUrl format
+    try {
+      new URL(normalizedBaseUrl);
+    } catch (error) {
+      throw new Error(
+        `Invalid baseUrl format: "${baseUrl}" → "${normalizedBaseUrl}". Please provide a valid URL.`
+      );
+    }
+  }
+
+  // Normalize publicPath (handle empty case)
+  let normalizedPublicPath = publicPath ? publicPath.trim() : '';
+
+  if (normalizedPublicPath) {
+    // Ensure publicPath starts with /
+    if (!normalizedPublicPath.startsWith('/')) {
+      normalizedPublicPath = `/${normalizedPublicPath}`;
+    }
+
+    // Ensure publicPath ends with /
+    if (!normalizedPublicPath.endsWith('/')) {
+      normalizedPublicPath = `${normalizedPublicPath}/`;
+    }
+
+    // Remove duplicate slashes
+    normalizedPublicPath = normalizedPublicPath.replace(/\/+/g, '/');
+
+    // Validate publicPath doesn't contain invalid characters
+    if (
+      normalizedPublicPath.includes('..') ||
+      normalizedPublicPath.includes('//')
+    ) {
+      throw new Error(
+        `Invalid publicPath format: "${publicPath}" → "${normalizedPublicPath}". Path contains invalid characters.`
+      );
+    }
+  }
+
+  console.log(`🔧 URL Normalization:`);
+  console.log(
+    `   Original baseUrl: "${baseUrl}" → Normalized: "${normalizedBaseUrl}"`
+  );
+  console.log(
+    `   Original publicPath: "${publicPath}" → Normalized: "${normalizedPublicPath}"`
+  );
+
+  return {
+    baseUrl: normalizedBaseUrl,
+    publicPath: normalizedPublicPath,
+  };
+};
+
+// DYNAMIC URL CONSTRUCTION - HANDLES MULTIPLE PATH FORMATS
+const constructAssetUrl = (
+  uri: string,
+  baseUrl: string,
+  publicPath: string
+): string => {
+  try {
+    // Normalize the input URLs first
+    const { baseUrl: cleanBaseUrl, publicPath: cleanPublicPath } =
+      normalizeUrlConfig(baseUrl, publicPath);
+
+    // Already a full URL - return as is
+    if (uri.startsWith('http://') || uri.startsWith('https://')) {
+      return uri;
+    }
+
+    // Handle public:// scheme
+    if (uri.startsWith('public://')) {
+      const relativePath = uri.replace('public://', '');
+
+      // Check if we have valid baseUrl and publicPath
+      if (!cleanBaseUrl || !cleanPublicPath) {
+        throw new Error(
+          `Cannot construct URL: baseUrl="${cleanBaseUrl}", publicPath="${cleanPublicPath}". Both are required for public:// URIs.`
+        );
+      }
+
+      const fullUrl = `${cleanBaseUrl}${cleanPublicPath}${relativePath}`;
+      console.log(`🔗 Constructed URL: ${fullUrl} (from URI: ${uri})`);
+      return fullUrl;
+    }
+
+    // Handle private:// scheme
+    if (uri.startsWith('private://')) {
+      const relativePath = uri.replace('private://', '');
+
+      if (!cleanBaseUrl) {
+        throw new Error(
+          `Cannot construct URL: baseUrl="${cleanBaseUrl}". Base URL is required for private:// URIs.`
+        );
+      }
+
+      return `${cleanBaseUrl}/system/files/${relativePath}`;
+    }
+
+    // Handle relative paths
+    const path = uri.startsWith('/') ? uri : `/${uri}`;
+
+    if (!cleanBaseUrl) {
+      throw new Error(
+        `Cannot construct URL: baseUrl="${cleanBaseUrl}". Base URL is required for relative paths.`
+      );
+    }
+
+    return `${cleanBaseUrl}${path}`;
+  } catch (error: any) {
+    console.error(`❌ URL Construction Error: ${error.message}`);
+    throw new Error(`Failed to construct asset URL: ${error.message}`);
+  }
+};
+
+// IMPROVED SAVE ASSET WITH BETTER ERROR HANDLING
+const saveAsset = async (
+  assets: DrupalAsset,
+  failedJSON: any,
+  assetData: any,
+  metadata: AssetMetaData[],
+  projectId: string,
+  destination_stack_id: string,
+  baseUrl: string = '',
+  publicPath: string = '/sites/default/files/',
+  retryCount = 0,
+  authHeaders: any = {} // NEW: Support for authentication
+): Promise<string> => {
+  try {
+    const srcFunc = 'saveAsset';
+    const assetsSave = path.join(
+      DATA,
+      destination_stack_id,
+      ASSETS_DIR_NAME,
+      'files'
+    );
+
+    const assetId = `assets_${assets.fid}`;
+    const fileName = assets.filename;
+    console.log(
+      `🔍 Processing asset: ${fileName} (FID: ${assets.fid}, URI: ${assets.uri})`
+    );
+    const fileUrl = constructAssetUrl(assets.uri, baseUrl, publicPath);
+    console.log(`📥 Final download URL: ${fileUrl}`);
+
+    // Check if asset already exists
+    if (fs.existsSync(path.resolve(assetsSave, assetId, fileName))) {
+      console.log(`⏭️  Skipping existing asset: ${fileName}`);
+      return assetId;
+    }
+
+    try {
+      console.log(`📥 Downloading: ${fileName} (FID: ${assets.fid})`);
+
+      const response = await axios.get(fileUrl, {
+        responseType: 'arraybuffer',
+        timeout: 120000, // Increased to 2 minutes
+        maxContentLength: 500 * 1024 * 1024, // 500MB max
+        headers: {
+          'User-Agent': 'Contentstack-Drupal-Migration/1.0',
+          ...authHeaders, // Spread any authentication headers
+        },
+        validateStatus: (status) => status === 200, // Only accept 200
+      });
+
+      const assetPath = path.resolve(assetsSave, assetId);
+
+      // Create asset data
+      assetData[assetId] = {
+        uid: assetId,
+        urlPath: `/assets/${assetId}`,
+        status: true,
+        content_type: assets.filemime || 'application/octet-stream',
+        file_size: assets.filesize.toString(),
+        tag: [],
+        filename: fileName,
+        url: fileUrl,
+        is_dir: false,
+        parent_uid: null,
+        _version: 1,
+        title: fileName,
+        publish_details: [],
+      };
+
+      await fs.promises.mkdir(assetPath, { recursive: true });
+      await fs.promises.writeFile(
+        path.join(assetPath, fileName),
+        Buffer.from(response.data),
+        'binary'
+      );
+      await writeFile(
+        assetPath,
+        `_contentstack_${assetId}.json`,
+        assetData[assetId]
+      );
+
+      metadata.push({ uid: assetId, url: fileUrl, filename: fileName });
+
+      if (failedJSON[assetId]) {
+        delete failedJSON[assetId];
+      }
+
+      const message = getLogMessage(
+        srcFunc,
+        `✅ Asset "${fileName}" (${assets.fid}) downloaded successfully.`,
+        {}
+      );
+      await customLogger(projectId, destination_stack_id, 'info', message);
+
+      return assetId;
+    } catch (err: any) {
+      // Retry logic with exponential backoff
+      if (retryCount < 3) {
+        // Increased to 3 retries
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(
+          `⏳ Retrying ${fileName} in ${delay}ms... (Attempt ${
+            retryCount + 1
+          }/3)`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        return await saveAsset(
+          assets,
+          failedJSON,
+          assetData,
+          metadata,
+          projectId,
+          destination_stack_id,
+          baseUrl,
+          publicPath,
+          retryCount + 1,
+          authHeaders
+        );
+      } else {
+        // Failed after retries
+        const errorDetails = {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          message: err.message,
+          url: fileUrl,
+        };
+
+        failedJSON[assetId] = {
+          failedUid: assets.fid,
+          name: fileName,
+          url: fileUrl,
+          file_size: assets.filesize,
+          reason_for_error: JSON.stringify(errorDetails),
+        };
+
+        const message = getLogMessage(
+          srcFunc,
+          `❌ Failed to download "${fileName}" (${assets.fid}): ${err.message}`,
+          {},
+          err
+        );
+        await customLogger(projectId, destination_stack_id, 'error', message);
+
+        return assetId;
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error in saveAsset:', error);
+    return `assets_${assets.fid}`;
+  }
+};
+
+// ASSETS QUERY - FETCH ALL FILES
 const fetchAssetsFromDB = async (
   connection: mysql.Connection,
   projectId: string,
   destination_stack_id: string
 ): Promise<DrupalAsset[]> => {
   const srcFunc = 'fetchAssetsFromDB';
-  const assetsQuery =
-    'SELECT a.fid, a.filename, a.uri, a.filesize, a.filemime FROM file_managed a';
+
+  // Query to fetch ALL files from Drupal
+  const assetsQuery = `
+    SELECT 
+      fm.fid, 
+      fm.filename, 
+      fm.uri, 
+      fm.filesize, 
+      fm.filemime
+    FROM file_managed fm
+    ORDER BY fm.fid ASC
+  `;
 
   try {
     const results = await executeQuery(connection, assetsQuery);
 
     const message = getLogMessage(
       srcFunc,
-      `Fetched ${results.length} assets from database.`,
+      `Fetched ${results.length} total assets from database.`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', message);
@@ -271,7 +612,8 @@ const retryFailedAssets = async (
   projectId: string,
   destination_stack_id: string,
   baseUrl: string = '',
-  publicPath: string = '/sites/default/files/'
+  publicPath: string = '/sites/default/files/',
+  authHeaders: any = {}
 ): Promise<void> => {
   const srcFunc = 'retryFailedAssets';
 
@@ -297,7 +639,9 @@ const retryFailedAssets = async (
             projectId,
             destination_stack_id,
             baseUrl,
-            publicPath
+            publicPath,
+            0,
+            authHeaders
           )
         )
       );
@@ -322,22 +666,44 @@ const retryFailedAssets = async (
   }
 };
 
-/**
- * Creates and processes assets from Drupal database for migration to Contentstack.
- * Based on the original Drupal v8 migration logic with direct SQL queries.
- */
+// UPDATED createAssets WITH AUTO-DETECTION
 export const createAssets = async (
   dbConfig: any,
   destination_stack_id: string,
   projectId: string,
   baseUrl: string = '',
-  publicPath: string = '/sites/default/files/',
+  publicPath: string = '', // Now optional - will auto-detect if empty
   isTest = false
 ) => {
   const srcFunc = 'createAssets';
   let connection: mysql.Connection | null = null;
 
   try {
+    // Create database connection first
+    connection = await getDbConnection(
+      dbConfig,
+      projectId,
+      destination_stack_id
+    );
+
+    // Auto-detect public path if not provided or empty
+    let detectedPublicPath = publicPath;
+    if (!publicPath || publicPath.trim() === '') {
+      console.log('🔍 Auto-detecting public path (no path provided)...');
+      detectedPublicPath = await detectPublicPath(
+        connection,
+        baseUrl,
+        projectId,
+        destination_stack_id
+      );
+    } else {
+      console.log(`✅ Using provided public path: ${publicPath}`);
+    }
+
+    console.log(`📁 Using public path: ${detectedPublicPath}`);
+    console.log(`🌐 Using base URL: ${baseUrl}`);
+    console.log(`🔧 Original publicPath parameter: "${publicPath}"`);
+
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
     const assetMasterFolderPath = path.join(
       DATA,
@@ -346,26 +712,21 @@ export const createAssets = async (
       ASSETS_DIR_NAME
     );
 
-    // Initialize directories and files
     await fs.promises.mkdir(assetsSave, { recursive: true });
     await fs.promises.mkdir(assetMasterFolderPath, { recursive: true });
 
-    // Initialize data structures
     const failedJSON: any = {};
     const assetData: any = {};
     const metadata: AssetMetaData[] = [];
     const fileMeta = { '1': ASSETS_SCHEMA_FILE };
     const failedAssetIds: string[] = [];
 
-    const message = getLogMessage(srcFunc, `Exporting assets...`, {});
-    await customLogger(projectId, destination_stack_id, 'info', message);
-
-    // Create database connection
-    connection = await getDbConnection(
-      dbConfig,
-      projectId,
-      destination_stack_id
+    const message = getLogMessage(
+      srcFunc,
+      `Exporting assets using base URL: ${baseUrl} and public path: ${detectedPublicPath}`,
+      {}
     );
+    await customLogger(projectId, destination_stack_id, 'info', message);
 
     // Fetch assets from database
     const assetsData = await fetchAssetsFromDB(
@@ -380,8 +741,7 @@ export const createAssets = async (
         assets = assets.slice(0, 10);
       }
 
-      // Use batch processing for large datasets to prevent EMFILE errors
-      const batchSize = assets.length > 10000 ? 100 : 1000; // Smaller batches for very large datasets
+      const batchSize = assets.length > 10000 ? 100 : 1000;
       const results = await processBatches(
         assets,
         async (asset: DrupalAsset) => {
@@ -394,7 +754,9 @@ export const createAssets = async (
               projectId,
               destination_stack_id,
               baseUrl,
-              publicPath
+              detectedPublicPath, // Use detected path
+              0,
+              {} // authHeaders
             );
           } catch (error) {
             failedAssetIds.push(asset.fid.toString());
@@ -403,11 +765,10 @@ export const createAssets = async (
         },
         {
           batchSize,
-          concurrency: 1, // Process one at a time to prevent file handle exhaustion
-          delayBetweenBatches: 200, // 200ms delay between batches to allow file handles to close
+          concurrency: 5, // Increased from 1 for better performance
+          delayBetweenBatches: 200,
         },
         (batchIndex, totalBatches, batchResults) => {
-          // Periodically save progress for very large datasets
           if (batchIndex % 10 === 0) {
             console.log(
               `💾 Progress: ${batchIndex}/${totalBatches} batches completed (${(
@@ -419,7 +780,7 @@ export const createAssets = async (
         }
       );
 
-      // Retry failed assets if any
+      // Retry failed assets
       if (failedAssetIds.length > 0) {
         await retryFailedAssets(
           connection,
@@ -430,11 +791,10 @@ export const createAssets = async (
           projectId,
           destination_stack_id,
           baseUrl,
-          publicPath
+          detectedPublicPath // Use detected path
         );
       }
 
-      // Write files following the original pattern
       await writeFile(assetsSave, ASSETS_SCHEMA_FILE, assetData);
       await writeFile(assetsSave, ASSETS_FILE_NAME, fileMeta);
 
@@ -472,7 +832,6 @@ export const createAssets = async (
     await customLogger(projectId, destination_stack_id, 'error', message);
     throw err;
   } finally {
-    // Close database connection
     if (connection) {
       connection.end();
     }

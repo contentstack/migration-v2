@@ -104,7 +104,7 @@ const createInitialMapper = async (systemConfig, prefix) => {
           default_value: conv_details?.default_value?.[0]?.value
         });
       } catch (error) {
-        console.warn(`Couldn't parse row ${i}:`, error.message);
+        console.error(`Couldn't parse row ${i}:`, error.message);
       }
     }
 

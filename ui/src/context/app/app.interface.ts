@@ -64,7 +64,7 @@ export interface FileDetails {
     database?: string;
     port?: number;
   };
-  drupalAssetsUrl?: {
+  assetsConfig?: {
     base_url?: string;
     public_path?: string;
   };
@@ -81,7 +81,7 @@ export interface IFile {
   isValidated: boolean;
   reValidate: boolean;
   cmsType: string;
-  buttonClicked:boolean
+  buttonClicked: boolean;
 }
 
 export interface ICMSType extends ICardType {
@@ -217,7 +217,7 @@ export interface INewMigration {
   stackDetails: IDropDown;
   migration_execution: IMigrationExecutionStep;
   project_current_step: number;
-  settings:ISetting;
+  settings: ISetting;
 }
 
 export interface TestStacks {
@@ -334,7 +334,7 @@ export const DEFAULT_FILE: IFile = {
       database: '',
       port: 0
     },
-    drupalAssetsUrl: {
+    assetsConfig: {
       base_url: '',
       public_path: ''
     },
@@ -418,7 +418,7 @@ export const DEFAULT_NEW_MIGRATION: INewMigration = {
   migration_execution: DEFAULT_MIGRATION_EXECUTION_STEP,
   project_current_step: 0,
   settings: DEFAULT_SETTING,
-  isContentMapperGenerated: false,
+  isContentMapperGenerated: false
 };
 
 export const DEFAULT_URL_TYPE: IURLType = {

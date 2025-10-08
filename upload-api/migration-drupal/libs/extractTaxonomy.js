@@ -86,7 +86,7 @@ const extractTaxonomy = async (dbConfig) => {
           }
         }
       } catch (parseError) {
-        console.warn(`⚠️ Failed to parse vocabulary data for ${vocab.vid}:`, parseError.message);
+        console.error(`⚠️ Failed to parse vocabulary data for ${vocab.vid}:`, parseError.message);
       }
     }
 

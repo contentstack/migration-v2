@@ -116,7 +116,7 @@ const extractAdvancedFields = (item, referenceFields = []) => {
   return {
     default_value: item?.default_value || null,
     mandatory: item?.required || false,
-    multiple: item?.max > 1 || false,
+    multiple: item?.max > 1 || item?.cardinality === -1 || false,
     unique: false,
     nonLocalizable: false,
     validationErrorMessage: '',
@@ -171,23 +171,206 @@ const createFieldObject = (item, contentstackFieldType, backupFieldType, referen
 };
 
 /**
- * Creates a field object for dropdown or radio field types with appropriate options and validations.
+ * Creates a field object for boolean field types with proper display_type.
  *
- * @param {Object} item - The Drupal field item that includes field details like `type`, etc.
- * @param {string} fieldType - The type of field being created (e.g., 'dropdown', 'radio').
+ * @param {Object} item - The Drupal field item that includes field details like `type`, `widget`, etc.
+ * @returns {Object} A field object that includes the field configuration for boolean fields.
+ */
+const createBooleanFieldObject = (item) => {
+  const fieldNameWithSuffix = item?.field_name;
+  const advancedFields = extractAdvancedFields(item);
+
+  // Determine display type based on widget
+  let displayType;
+  const widgetType = item.widget?.type || item.widget;
+
+  if (widgetType === 'boolean_checkbox') {
+    displayType = 'checkbox';
+  }
+  // Add other boolean widget types as needed
+
+  return {
+    uid: item?.field_name,
+    otherCmsField: item?.field_label,
+    otherCmsType: item?.type,
+    contentstackField: item?.field_label,
+    contentstackFieldUid: uidCorrector(fieldNameWithSuffix, item?.prefix),
+    contentstackFieldType: 'boolean',
+    backupFieldType: 'boolean',
+    backupFieldUid: uidCorrector(fieldNameWithSuffix, item?.prefix),
+    advanced: {
+      ...advancedFields,
+      data_type: 'boolean',
+      display_type: displayType,
+      field_metadata: {
+        description: advancedFields?.description || '',
+        default_value: false
+      }
+    }
+  };
+};
+
+/**
+ * Creates a field object for dropdown, radio, or checkbox field types following CSV scenarios.
+ * Maps Drupal field configurations to Contentstack format based on widget and cardinality.
+ *
+ * @param {Object} item - The Drupal field item that includes field details like `type`, `widget`, etc.
+ * @param {string} baseFieldType - The base field type ('dropdown', 'radio', 'checkbox').
+ * @param {string} dataType - The data type ('text' for list_string, 'number' for list_integer/list_float).
  * @returns {Object} A field object that includes the field configuration and validation options.
  *
  * @description
- * This function generates a field object for dropdown or radio field types based on the provided item.
- * It ensures that the field's advanced properties are extracted from the item, including validation options.
- *
+ * This function generates a field object for list field types based on CSV scenarios:
+ * - Dropdown (options_select) → display_type: "dropdown", multiple: false
+ * - Radio (options_buttons + cardinality=1) → display_type: "radio", multiple: false
+ * - Checkboxes (options_buttons + cardinality=-1) → display_type: "checkbox", multiple: true
  */
-const createDropdownOrRadioFieldObject = (item, fieldType) => {
+const createDropdownOrRadioFieldObject = (
+  item,
+  baseFieldType,
+  dataType = 'text',
+  numericType = null
+) => {
+  // Determine display type and multiple based on CSV scenarios
+  let displayType = 'dropdown';
+  let multiple = false;
+
+  // Map based on CSV scenarios from drupal_field_mapping.csv
+  const widgetType = item.widget?.type || item.widget;
+  if (widgetType) {
+    switch (widgetType) {
+      case 'options_select':
+        // Dropdown scenario
+        displayType = 'dropdown';
+        multiple = false;
+        break;
+      case 'options_buttons':
+        // Radio or Checkbox based on cardinality
+        if (item.cardinality === -1 || item.max === -1 || item.max > 1) {
+          // Checkboxes (cardinality=-1)
+          displayType = 'checkbox';
+          multiple = true;
+        } else {
+          // Radio buttons (cardinality=1)
+          displayType = 'radio';
+          multiple = false;
+        }
+        break;
+      default:
+        // Fallback to dropdown
+        displayType = 'dropdown';
+        multiple = false;
+    }
+  } else {
+    // Fallback based on field configuration
+    displayType = baseFieldType;
+    multiple = item.max > 1 || item.cardinality === -1;
+  }
+
+  const fieldNameWithSuffix = item?.field_name;
+  const advancedFields = extractAdvancedFields(item);
+
+  // Extract actual choices from field settings (allowed_values)
+  let actualChoices = [];
+
+  if (item.settings && item.settings.allowed_values) {
+    // Convert allowed_values object to choices array
+    // Drupal format: { stored_key: display_label } -> Contentstack format: [{ value: display_label, key: stored_key }]
+    actualChoices = Object.entries(item.settings.allowed_values).map(([key, value]) => {
+      let processedKey = key;
+
+      // For numeric fields, ensure the key (stored value) is properly typed
+      if (dataType === 'number') {
+        if (numericType === 'float') {
+          // For float fields, preserve decimal precision in the key
+          processedKey = isNaN(key) ? key : parseFloat(key);
+        } else if (numericType === 'integer') {
+          // For integer fields, convert key to integer
+          processedKey = isNaN(key) ? key : parseInt(key, 10);
+        } else {
+          // Default number handling for key
+          processedKey = isNaN(key) ? key : Number(key);
+        }
+      }
+
+      return {
+        value: value, // Display label (e.g., "1.5 Stars", "$10.50")
+        key: processedKey // Stored value (e.g., 1.5, 10.50)
+      };
+    });
+  } else {
+    // Fallback: generate minimal choices if no allowed_values found
+    if (dataType === 'number') {
+      if (numericType === 'float') {
+        actualChoices = [
+          { value: 1.0, key: 'option_1' },
+          { value: 2.0, key: 'option_2' }
+        ];
+      } else {
+        actualChoices = [
+          { value: 1, key: 'option_1' },
+          { value: 2, key: 'option_2' }
+        ];
+      }
+    } else {
+      actualChoices = [
+        { value: 'Option 1', key: 'option_1' },
+        { value: 'Option 2', key: 'option_2' }
+      ];
+    }
+  }
+
   return {
-    ...createFieldObject(item, fieldType, fieldType),
+    uid: item?.field_name,
+    otherCmsField: item?.field_label,
+    otherCmsType: item?.type,
+    contentstackField: item?.field_label,
+    contentstackFieldUid: uidCorrector(fieldNameWithSuffix, item?.prefix),
+    contentstackFieldType: baseFieldType,
+    backupFieldType: baseFieldType,
+    backupFieldUid: uidCorrector(fieldNameWithSuffix, item?.prefix),
     advanced: {
-      ...extractAdvancedFields(item),
-      options: [{ value: 'value', key: 'key' }]
+      ...advancedFields,
+      data_type: dataType,
+      display_type: displayType,
+      multiple: multiple,
+      enum: {
+        advanced: true,
+        choices: actualChoices
+      },
+      field_metadata: {
+        description: advancedFields?.description || '',
+        default_value: '',
+        default_key: ''
+      }
+    }
+  };
+};
+
+/**
+ * Creates a date range field object with specialized structure for Contentstack
+ *
+ * @param {Object} item - The Drupal field item containing field details
+ * @returns {Object} A date range field object with date_range: true metadata
+ */
+const createDateRangeFieldObject = (item) => {
+  const fieldNameWithSuffix = item?.field_name;
+  const advancedFields = extractAdvancedFields(item);
+
+  return {
+    uid: item?.field_name,
+    otherCmsField: item?.field_label,
+    otherCmsType: item?.type,
+    contentstackField: item?.field_label,
+    contentstackFieldUid: uidCorrector(fieldNameWithSuffix, item?.prefix),
+    contentstackFieldType: 'isodate',
+    backupFieldType: 'isodate',
+    backupFieldUid: uidCorrector(fieldNameWithSuffix, item?.prefix),
+    advanced: {
+      ...advancedFields,
+      date_range: true, // This enables start/end date functionality
+      description: advancedFields?.description || '',
+      default_value: {}
     }
   };
 };
@@ -306,30 +489,40 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         break;
       }
       case 'text': {
-        // Single line with switching options: single_line → multiline → HTML RTE → JSON RTE
-        const availableContentTypes = contentTypes?.filter((ct) => ct !== item.content_types) || [];
-        const referenceFields = availableContentTypes.slice(0, 10);
-        acc.push(createFieldObject(item, 'single_line_text', 'multi_line_text', referenceFields));
+        // Multi Line Text Fields
+        acc.push(createFieldObject(item, 'multi_line_text', 'multi_line_text'));
         break;
       }
-      case 'string_long':
+      case 'string_long': {
+        // Multi Line Text Fields
+        acc.push(createFieldObject(item, 'multi_line_text', 'multi_line_text'));
+        break;
+      }
       case 'comment': {
-        // Rich text with switching options: JSON RTE → HTML RTE → multiline → text
-        const availableContentTypes = contentTypes?.filter((ct) => ct !== item.content_types) || [];
-        const referenceFields = availableContentTypes.slice(0, 10);
-        acc.push(createFieldObject(item, 'json', 'html', referenceFields));
+        // Comment Field - multiline
+        acc.push(createFieldObject(item, 'multi_line_text', 'multi_line_text'));
         break;
       }
-      case 'string':
-      case 'list_string': {
+      case 'string': {
         // Single line with switching options: single_line → multiline → HTML RTE → JSON RTE
         const availableContentTypes = contentTypes?.filter((ct) => ct !== item.content_types) || [];
         const referenceFields = availableContentTypes.slice(0, 10);
         acc.push(createFieldObject(item, 'single_line_text', 'multi_line_text', referenceFields));
+        break;
+      }
+      case 'telephone': {
+        // Telephone field - number field
+        acc.push(createFieldObject(item, 'number', 'number'));
         break;
       }
       case 'email': {
-        acc.push(createFieldObject(item, 'text', 'text'));
+        // Email field - single line text
+        acc.push(createFieldObject(item, 'single_line_text', 'single_line_text'));
+        break;
+      }
+      case 'list_string': {
+        // Select/Dropdown field for string values (supports radio/checkbox/dropdown)
+        acc.push(createDropdownOrRadioFieldObject(item, 'dropdown', 'text'));
         break;
       }
       case 'taxonomy_term_reference': {
@@ -365,8 +558,11 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         break;
       }
       case 'entity_reference': {
-        // Check if this is a taxonomy field by handler
-        if (item.handler === 'default:taxonomy_term') {
+        // Check if this is a media field by handler
+        if (item.handler === 'default:media') {
+          // Media entity references should be treated as file fields
+          acc.push(createFieldObject(item, 'file', 'file'));
+        } else if (item.handler === 'default:taxonomy_term') {
           // 🏷️ Collect taxonomy field for consolidation instead of creating individual fields
 
           // Try to determine specific vocabularies this field references
@@ -432,7 +628,7 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
       }
       case 'list_boolean':
       case 'boolean': {
-        acc.push(createFieldObject(item, 'boolean', 'boolean'));
+        acc.push(createBooleanFieldObject(item));
         break;
       }
       case 'datetime':
@@ -440,12 +636,25 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         acc.push(createFieldObject(item, 'isodate', 'isodate'));
         break;
       }
+      case 'daterange': {
+        // Date range field - isodate with date_range: true
+        acc.push(createDateRangeFieldObject(item));
+        break;
+      }
       case 'integer':
       case 'decimal':
-      case 'float':
-      case 'list_integer':
-      case 'list_float': {
+      case 'float': {
         acc.push(createFieldObject(item, 'number', 'number'));
+        break;
+      }
+      case 'list_integer': {
+        // Select/Dropdown field for integer values (supports radio/checkbox/dropdown)
+        acc.push(createDropdownOrRadioFieldObject(item, 'dropdown', 'number', 'integer'));
+        break;
+      }
+      case 'list_float': {
+        // Select/Dropdown field for float values (supports radio/checkbox/dropdown)
+        acc.push(createDropdownOrRadioFieldObject(item, 'dropdown', 'number', 'float'));
         break;
       }
       case 'link': {
@@ -453,11 +662,13 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
         break;
       }
       case 'list_text': {
-        acc.push(createDropdownOrRadioFieldObject(item, 'dropdown'));
+        // Select/Dropdown field for text values (supports radio/checkbox/dropdown)
+        acc.push(createDropdownOrRadioFieldObject(item, 'dropdown', 'text'));
         break;
       }
       case 'list_number': {
-        acc.push(createDropdownOrRadioFieldObject(item, 'dropdown'));
+        // Select/Dropdown field for number values (supports radio/checkbox/dropdown)
+        acc.push(createDropdownOrRadioFieldObject(item, 'dropdown', 'number'));
         break;
       }
       default: {

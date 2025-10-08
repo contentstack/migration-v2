@@ -587,13 +587,23 @@ const startTestMigration = async (req: Request): Promise<any> => {
           port: project?.legacy_cms?.mySQLDetails?.port || 3306,
         };
 
-        // Get Drupal assets URL configuration from project
+        // Get Drupal assets URL configuration from project or request body
+        // Fallback to empty strings if not provided (auto-detection will be used)
         const drupalAssetsConfig = {
-          base_url: project?.legacy_cms?.drupalAssetsUrl?.base_url || '',
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            '',
           public_path:
-            project?.legacy_cms?.drupalAssetsUrl?.public_path ||
-            '/sites/default/files/',
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            '',
         };
+
+        console.log(
+          '🔧 Migration service - drupalAssetsConfig:',
+          drupalAssetsConfig
+        );
 
         // Run Drupal migration services in proper order (following test-drupal-services sequence)
         // NOTE: Dynamic queries are generated during Step 2→3 transition, no need for createQueryConfig
@@ -968,13 +978,24 @@ const startMigration = async (req: Request): Promise<any> => {
           port: project?.legacy_cms?.mySQLDetails?.port || 3306,
         };
 
-        // Get Drupal assets URL configuration from project
+        // Get Drupal assets URL configuration from project or request body
+        // Fallback to empty strings if not provided (auto-detection will be used)
         const drupalAssetsConfig = {
-          base_url: project?.legacy_cms?.drupalAssetsUrl?.base_url || '',
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            '',
           public_path:
-            project?.legacy_cms?.drupalAssetsUrl?.public_path ||
-            '/sites/default/files/',
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            '',
         };
+
+        console.log(
+          '🔧 Migration service (production) - drupalAssetsConfig:',
+          drupalAssetsConfig
+        );
+
         // Run Drupal migration services in proper order (following test-drupal-services sequence)
         // NOTE: Dynamic queries are generated during Step 2→3 transition, no need for createQueryConfig
 
