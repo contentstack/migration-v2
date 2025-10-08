@@ -185,7 +185,7 @@
         "title": "https://business.adobe.com/",
         "href": "https://business.adobe.com/"
       },
-      "parent": "",
+      "parent": "AEM",
       "isactive": true,
       "allowed_file_formats": [
         {
