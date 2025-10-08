@@ -41,6 +41,8 @@ async function processTemplateItems(itemsOrder: string[], items: any, contentsta
               contentstackFieldUid: object?.contentstackFieldUid,
               backupFieldUid: object?.backupFieldUid,
               contentstackFieldType: 'modular_blocks_child',
+              backupFieldType: 'modular_blocks_child',
+              otherCmsType: 'modular_blocks_child',
               schema: object?.contentstackFieldType === 'modular_blocks' ? [object] : object?.schema,
             }
             modularData.blocks?.push(block);
@@ -52,6 +54,8 @@ async function processTemplateItems(itemsOrder: string[], items: any, contentsta
               contentstackFieldUid: object?.contentstackFieldUid,
               backupFieldUid: object?.backupFieldUid,
               contentstackFieldType: 'modular_blocks_child',
+              backupFieldType: 'modular_blocks_child',
+              otherCmsType: 'modular_blocks_child',
               schema: [object],
             }
             modularData.blocks?.push(block);
