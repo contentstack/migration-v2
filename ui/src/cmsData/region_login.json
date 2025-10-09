@@ -2,7 +2,7 @@
   "title": "Account Login",
   "url": "/region-login",
   "heading": "Account Login",
-  "description": "Please select Contentstack <strong>North America (AWS, Azure or GCP)</strong> or Contentstack <strong>Europe (AWS or Azure)</strong> to continue",
+  "description": "Select <strong>North America</strong> (AWS, Azure or GCP); <strong>Europe</strong> (AWS, Azure or GCP); <strong>Australia</strong> (AWS) to continue.",
   "regions": [
     {
       "region": "NA",
@@ -128,6 +128,54 @@
       "region_title": "Europe",
       "cta": { "title": "Continue", "url": "/login" },
       "_metadata": { "uid": "cs7c90ee35480e165e" }
+    },
+    {
+      "region": "GCP_EU",
+      "service_icon": {
+        "uid": "blt85d2a7024c613199",
+        "created_at": "2023-10-31T07:00:56.567Z",
+        "updated_at": "2023-10-31T07:00:56.567Z",
+        "created_by": "bltb317ebe35429ebe6",
+        "updated_by": "bltb317ebe35429ebe6",
+        "content_type": "image/svg+xml",
+        "file_size": "821",
+        "tags": [],
+        "filename": "google-cloud_1.svg",
+        "url": "https://images.contentstack.io/v3/assets/bltd3620ec6418ad3ad/blt57dafa9c1472b46f/66a775b7d14106640a554ec7/google-cloud_1.svg",
+        "ACL": [],
+        "is_dir": false,
+        "parent_uid": null,
+        "_version": 1,
+        "title": "google-cloud_1.svg"
+      },
+      "service_title": "Google Cloud Platform",
+      "region_title": "Europe",
+      "cta": { "title": "Continue", "url": "/login" },
+      "_metadata": { "uid": "cs7c90ee35480e165e" }
+    },
+    {
+      "region": "AU",
+      "service_icon": {
+        "uid": "bltbe45879eac0025d8",
+        "created_at": "2023-10-31T06:59:22.783Z",
+        "updated_at": "2023-10-31T06:59:22.783Z",
+        "created_by": "bltb317ebe35429ebe6",
+        "updated_by": "bltb317ebe35429ebe6",
+        "content_type": "image/svg+xml",
+        "file_size": "92431",
+        "tags": [],
+        "filename": "aws.svg",
+        "url": "https://images.contentstack.io/v3/assets/bltd3620ec6418ad3ad/bltbe45879eac0025d8/6540a5ca1680320407c3a753/aws.svg",
+        "ACL": [],
+        "is_dir": false,
+        "parent_uid": null,
+        "_version": 1,
+        "title": "AWS"
+      },
+      "service_title": "Amazon Web Services",
+      "region_title": "Australia",
+      "cta": { "title": "Continue", "url": "/login" },
+      "_metadata": { "uid": "csf578f8fbea1ae0c0" }
     }
   ],
   "tags": [],
