@@ -7,18 +7,19 @@
  * It contains styles for the layout, logo, background image, action section, content, heading, and circles.
  */
 .AccountPage {
-  align-items: stretch;
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
+  
 
   &__logo {
-    display: inline-block;
-    height: 3.75rem;
-    left: 4%;
+    background-color: $color-gray-bg;
+    left: 0;
+    padding: 1rem;
     position: relative;
-    top: 5%;
+    top: 0;
+    width: 100%;
     z-index: 10;
+    img {
+      height: 1.5rem;
+    }
   }
 
   &__intro {
@@ -31,29 +32,22 @@
   }
 
   &__action {
-    flex: 0 0 65%;
-    max-width: 65%;
-    position: relative;
-    width: 65%;
-    z-index: 10;
-
-    &::before {
-      backdrop-filter: blur(104px);
-      background: $color-brand-white-base;
-      /* background: rgba(249, 251, 253, 0.5); */
-      content: '';
-      display: block;
-      height: 100%;
-      width: 100%;
-    }
+    align-items: center;
+    background-color: $color-brand-white-base;
+    display: flex;
+    height: calc(100vh - 3.6rem);
+    justify-content: center;
   }
 
   &__content {
-    left: 50%;
-    position: absolute;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 20;
+    // left: 50%;
+    // position: absolute;
+    // top: 50%;
+    // transform: translate(-50%, -50%);
+    // z-index: 20;
+    align-items: center;
+    display: flex;
+    justify-content: center;
   }
 
   &__heading {
@@ -175,6 +169,8 @@
   color: $color-font-base;
   font-size: 0.75rem;
   letter-spacing: 0.02em;
-  left: 2.5rem;
+  left: 0;
   position: absolute;
+  right: 0;
+  text-align: center;
 }
