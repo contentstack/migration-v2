@@ -26,7 +26,9 @@ export const REGIONS = {
   AZURE_NA: 'AZURE_NA',
   EU: 'EU',
   AZURE_EU: 'AZURE_EU',
-  GCP_NA: 'GCP_NA'
+  GCP_NA: 'GCP_NA',
+  GCP_EU: 'GCP_EU',
+  AU: 'AU'
 };
 
 export const CS_URL: ObjectType = {
@@ -34,7 +36,9 @@ export const CS_URL: ObjectType = {
   EU: 'https://eu-app.contentstack.com/#!',
   AZURE_NA: 'https://azure-na-app.contentstack.com/#!',
   AZURE_EU: 'https://azure-eu-app.contentstack.com/#!',
-  GCP_NA: 'https://gcp-na-app.contentstack.com/#!'
+  GCP_NA: 'https://gcp-na-app.contentstack.com/#!',
+  GCP_EU: 'https://gcp-eu-app.contentstack.com/#!',
+  AU: 'https://au-app.contentstack.com/#!'
 };
 
 export const HEADERS = {
