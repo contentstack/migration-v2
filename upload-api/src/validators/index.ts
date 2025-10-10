@@ -29,7 +29,7 @@ const validator = ({
       return wordpressValidator(data);
     }
 
-    case 'aem-zip': {
+    case 'aem-folder': {
       return aemValidator({ data });
     }
 

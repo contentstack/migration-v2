@@ -36,6 +36,7 @@ import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath } from '../utils/sanitize-path.utils.js';
+import { aemService } from './aem.service.js';
 
 /**
  * Creates a test stack.
@@ -112,7 +113,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     if (index > -1) {
       // ✅ NEW: Generate queries for new test stack (Drupal only)
       const project = ProjectModelLowdb.data.projects[index];
-      if (project?.legacy_cms?.cms === CMS.DRUPAL_V8) {
+      if (project?.legacy_cms?.cms === CMS.DRUPAL) {
         try {
           const startMessage = getLogMessage(
             srcFun,
@@ -577,7 +578,33 @@ const startTestMigration = async (req: Request): Promise<any> => {
         );
         break;
       }
-      case CMS.DRUPAL_V8: {
+
+      case CMS.AEM: {
+        await aemService.createAssets({
+          projectId,
+          packagePath,
+          destinationStackId: project?.current_test_stack_id,
+        });
+        await aemService.createEntry({
+          packagePath,
+          contentTypes,
+          master_locale: project?.stackDetails?.master_locale,
+          destinationStackId: project?.current_test_stack_id,
+          projectId,
+          keyMapper: project?.mapperKeys,
+          project,
+        });
+        await aemService?.createLocale(
+          req,
+          project?.current_test_stack_id,
+          projectId,
+          project
+        );
+        await aemService?.createVersionFile(project?.current_test_stack_id);
+        break;
+      }
+
+      case CMS.DRUPAL: {
         // Get database configuration from project
         const dbConfig = {
           host: project?.legacy_cms?.mySQLDetails?.host,
@@ -587,16 +614,18 @@ const startTestMigration = async (req: Request): Promise<any> => {
           port: project?.legacy_cms?.mySQLDetails?.port || 3306,
         };
 
-        // Get Drupal assets URL configuration from project or request body
-        // Fallback to empty strings if not provided (auto-detection will be used)
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        // Priority: project config > request body > environment variables > empty (auto-detection)
         const drupalAssetsConfig = {
           base_url:
             project?.legacy_cms?.assetsConfig?.base_url ||
             req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
             '',
           public_path:
             project?.legacy_cms?.assetsConfig?.public_path ||
             req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
             '',
         };
 
@@ -606,9 +635,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
         );
 
         // Run Drupal migration services in proper order (following test-drupal-services sequence)
-        // NOTE: Dynamic queries are generated during Step 2→3 transition, no need for createQueryConfig
+        // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId
+        );
 
-        // Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
+        // Step 2: Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
         await drupalService?.generateContentTypeSchemas(
           project?.current_test_stack_id,
           projectId
@@ -655,9 +689,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
-    await testFolderCreator?.({
-      destinationStackId: project?.current_test_stack_id,
-    });
+    if (cms !== CMS.AEM) {
+      await testFolderCreator?.({
+        destinationStackId: project?.current_test_stack_id,
+      });
+    }
     await utilsCli?.runCli(
       region,
       user_id,
@@ -968,7 +1004,7 @@ const startMigration = async (req: Request): Promise<any> => {
         );
         break;
       }
-      case CMS.DRUPAL_V8: {
+      case CMS.DRUPAL: {
         // Get database configuration from project
         const dbConfig = {
           host: project?.legacy_cms?.mySQLDetails?.host,
@@ -978,16 +1014,18 @@ const startMigration = async (req: Request): Promise<any> => {
           port: project?.legacy_cms?.mySQLDetails?.port || 3306,
         };
 
-        // Get Drupal assets URL configuration from project or request body
-        // Fallback to empty strings if not provided (auto-detection will be used)
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        // Priority: project config > request body > environment variables > empty (auto-detection)
         const drupalAssetsConfig = {
           base_url:
             project?.legacy_cms?.assetsConfig?.base_url ||
             req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
             '',
           public_path:
             project?.legacy_cms?.assetsConfig?.public_path ||
             req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
             '',
         };
 
@@ -997,9 +1035,14 @@ const startMigration = async (req: Request): Promise<any> => {
         );
 
         // Run Drupal migration services in proper order (following test-drupal-services sequence)
-        // NOTE: Dynamic queries are generated during Step 2→3 transition, no need for createQueryConfig
+        // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId
+        );
 
-        // Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
+        // Step 2: Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
         await drupalService?.generateContentTypeSchemas(
           project?.destination_stack_id,
           projectId

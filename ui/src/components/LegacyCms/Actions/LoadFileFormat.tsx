@@ -120,7 +120,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
         if (isDrupal && isSQLFormat) {
           setFileIcon('SQL');
         } else {
-          setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt?.(0).toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase());
+          setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt?.(0).toUpperCase() + fileFormat?.slice?.(1) : fileFormat === 'directory' ? 'Folder' : fileFormat?.toUpperCase());
         }
 
       }
@@ -144,7 +144,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       <div className="col-12">
         <label htmlFor="file-format">
           <TextInput
-            value={fileIcon ? fileIcon : 'file extension not found'}
+            value={fileIcon === 'Folder' ? 'DIRECTORY' : fileIcon ? fileIcon :  'file extension not found'}
             version="v2"
             isReadOnly={true}
             disabled={true}
@@ -161,7 +161,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           />
         </label>
 
-        {isError && <p className="errorMessage">{error}</p>}
+        {isError && <p className="errorMessage pt-2">{error}</p>}
       </div>
     </div>
   );

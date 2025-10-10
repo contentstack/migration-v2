@@ -12,6 +12,7 @@ const handleFileProcessing = async (
   cmsType: string,
   name: string
 ) => {
+  console.log('🚀 ~ handleFileProcessing ~ fileExt:', fileExt);
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);
@@ -68,8 +69,33 @@ const handleFileProcessing = async (
         };
       }
     }
+  } else if (fileExt === 'folder') {
+    console.log('🚀 ~ handleFileProcessing ~ fileExt:', fileExt);
+    if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt })) {
+      logger.info('Validation success:', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
+      });
+      return {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
+        file_details: config
+      };
+    } else {
+      logger.warn('Validation error:', {
+        status: HTTP_CODES?.UNAUTHORIZED,
+        message: HTTP_TEXTS?.VALIDATION_ERROR
+      });
+      return {
+        status: HTTP_CODES?.UNAUTHORIZED,
+        message: HTTP_TEXTS?.VALIDATION_ERROR,
+        file_details: config
+      };
+    }
   } else if (fileExt === 'sql') {
     try {
+      console.log('🚀 ~ handleFileProcessing ~ config:');
+
       // Validate SQL connection using our Drupal validator
       // Also validate assets configuration if provided
       const isValidConnection = await validator({

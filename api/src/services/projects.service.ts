@@ -728,7 +728,7 @@ const generateQueriesWithRetry = async (
   const maxRetries = 3;
 
   // Only generate queries for Drupal projects
-  if (project?.legacy_cms?.cms !== CMS.DRUPAL_V8) {
+  if (project?.legacy_cms?.cms !== CMS.DRUPAL) {
     return true; // Skip for non-Drupal projects
   }
 
@@ -889,7 +889,7 @@ const updateCurrentStep = async (req: Request) => {
         }
 
         // ✅ NEW: Generate dynamic queries for both destination and test stacks (Drupal only)
-        if (project?.legacy_cms?.cms === CMS.DRUPAL_V8) {
+        if (project?.legacy_cms?.cms === CMS.DRUPAL) {
           const startMessage = getLogMessage(
             srcFunc,
             `Generating dynamic queries for Drupal project before proceeding to Content Mapping...`,

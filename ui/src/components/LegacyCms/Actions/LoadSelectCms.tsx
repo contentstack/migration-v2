@@ -51,6 +51,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [isError, setIsError] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [configDetails, setConfigDetails] = useState<any>(null); // Store config details (mysql, assetsConfig)
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   /****  ALL METHODS HERE  ****/
 
@@ -104,10 +105,29 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       const cmstype = !isEmptyString(cmsType?.cms_id) ? cmsType?.parent : cms; // Fetch the specific CMS type
 
       let filteredCmsData = all_cms;
-      if (cmstype) {
+      // Check if cmstype is empty
+      if (isEmptyString(cmstype)) {
+        setIsError(true);
+        setErrorMessage('No CMS found! Please add the correct CMS');
+        setCmsData([]);
+      } else {
+        // cmstype is not empty, apply filter
         filteredCmsData = all_cms.filter(
           (cms: ICMSType) => cms?.parent?.toLowerCase() === cmstype?.toLowerCase()
         );
+        setIsLoading(false);
+
+        
+        // Check if filter returned any results
+        if (filteredCmsData?.length > 0) {
+          setCmsData(filteredCmsData);
+          setIsError(false);
+        } else {
+          // cmstype is not empty but no matches found
+          setIsError(true);
+          setErrorMessage('Please add the correct CMS');
+          setCmsData([]);
+        }
       }
       
       // Store config data (mysql, assetsConfig) in Redux for later use
@@ -151,7 +171,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       
       console.info('✅ DISPATCHED to Redux - newMigrationDataObj dispatched');
 
-      setCmsData(filteredCmsData);
+      // setCmsData(filteredCmsData);
 
       //Normal Search
       const _filterCmsData = validateArray(all_cms)
@@ -213,13 +233,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   return (
     <div>
       <div className="col-12">
-        {isError && (
-          <div className="empty_search_description">
-            <EmptyState
-              heading={<div className="empty_search_heading">No matching CMS found!</div>}
-              img={SEARCH_ICON}
-            />
-          </div>
+      {isError && (
+          <div className="px-3 py-1 fs-6 errorMessage">{errorMessage}</div>
         )}
         {isLoading ? (
           <div className="loader">
