@@ -1,3 +1,4 @@
+import { createAemMapper } from '../controllers/aem';
 import createSitecoreMapper from '../controllers/sitecore';
 import createWordpressMapper from '../controllers/wordpress';
 import { Config } from '../models/types';
@@ -26,13 +27,13 @@ const createMapper = async (
       return createWordpressMapper(filePath, projectId, app_token, affix);
     }
 
+    case 'aem': {
+      return createAemMapper(filePath, projectId, app_token, affix);
+    }
+
     case 'drupal': {
       return createDrupalMapper(config, projectId, app_token, affix);
     }
-
-    // case 'aem': {
-    //   return createAemMapper({ data });
-    // }
 
     default:
       return false;

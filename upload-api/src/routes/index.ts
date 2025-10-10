@@ -102,7 +102,7 @@ router.get(
 
       if (config?.isLocalPath) {
         const fileName = path.basename(config?.localPath || '');
-        //const fileName = config?.localPath?.replace(/\/$/, "")?.split?.('/')?.pop?.();
+        const isFile = !!path.extname(fileName);
 
         if (!fileName) {
           res.send('Filename could not be determined from the local path.');
@@ -286,7 +286,6 @@ router.get(
 );
 
 router.get('/config', async function (req: Request, res: Response) {
-  console.log('🔍 UPLOAD-API Response config:', config);
   res.json(config);
 });
 

@@ -468,10 +468,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               // <div className='file-icon-group'>
               <FileComponent fileDetails={fileDetails || {}} />
             ) : (
-              // </div>
-              <div className="loader">
-                <CircularLoader />
-              </div>
+              <div className='errorMessage fs-6'>No file added. Please add the file to validate.</div>
             )}
             {showMessage && !showProgress && (
               <div className="message-container">

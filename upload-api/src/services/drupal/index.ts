@@ -24,6 +24,13 @@ const createDrupalMapper = async (
 
     const initialMapper = await createInitialMapper(config, affix);
 
+    // Include assetsConfig and mySQLDetails with the mapper data
+    const mapperPayload = {
+      ...initialMapper,
+      assetsConfig: config.assetsConfig,
+      mySQLDetails: config.mysql
+    };
+
     const req = {
       method: 'post',
       maxBodyLength: Infinity,
@@ -32,7 +39,7 @@ const createDrupalMapper = async (
         app_token,
         'Content-Type': 'application/json'
       },
-      data: JSON.stringify(initialMapper)
+      data: JSON.stringify(mapperPayload)
     };
 
     const { data } = await axios.request(req);
