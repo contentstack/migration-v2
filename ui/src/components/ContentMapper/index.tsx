@@ -858,10 +858,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     setIsDropDownChanged(checkBoxChanged);
     const newTableData = tableData?.map?.((row: any) => {
       if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
-        if (row?.referenceTo) {
-          row.referenceTo = updatedSettings?.referenedItems;
-        }
-        return { ...row, advanced: { ...row?.advanced, ...updatedSettings } };
+        const updatedRow = {
+          ...row,
+          referenceTo: updatedSettings?.referenedItems,
+          advanced: { ...row?.advanced, ...updatedSettings }
+        };
+        return updatedRow;
       }
       return row;
     });
