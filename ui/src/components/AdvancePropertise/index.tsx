@@ -316,8 +316,6 @@ const AdvancePropertise = (props: SchemaProps) => {
     });
   };
 
-
-
   const handleDrop = (index: number) => {
     if (draggedIndex === null) return;
 
@@ -576,7 +574,11 @@ const AdvancePropertise = (props: SchemaProps) => {
                   );
                 }}
                 options={
-                  option}
+                  (Array.isArray(props?.data?.referenceTo) && props?.data?.referenceTo?.length) ? [props.data.referenceTo.map((item: any) => ({
+                    label: item,
+                    value: item
+                  })), ...option]
+                    : option ?? []}
                 placeholder="Add Content Type(s)"
                 version="v2"
                 isSearchable={true}

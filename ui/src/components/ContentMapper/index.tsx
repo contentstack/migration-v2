@@ -1340,14 +1340,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               <Button
                 buttonType="light"
                 disabled={newMigrationData?.project_current_step > 4}
+                onClick={() =>
+                  handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
+                }
               >
                 <Icon
                   version="v2"
                   icon="Sliders"
                   size="small"
-                  onClick={() =>
-                    handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
-                  }
                   disabled={newMigrationData?.project_current_step > 4}
                 />
 
@@ -1836,14 +1836,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                 <Button
                   buttonType="light"
                   disabled={(contentTypeSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 4}
+                  onClick={() => {
+                    handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
+                  }}
                 >
                   <Icon
                     version={'v2'}
                     icon="Sliders"
                     size="small"
-                    onClick={() => {
-                      handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
-                    }}
                   />
                 </Button>
               </Tooltip>
