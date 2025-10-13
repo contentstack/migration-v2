@@ -1004,6 +1004,31 @@ const startMigration = async (req: Request): Promise<any> => {
         );
         break;
       }
+      case CMS.AEM: {
+        await aemService.createAssets({
+          projectId,
+          packagePath,
+          destinationStackId: project?.current_test_stack_id,
+        });
+        await aemService.createEntry({
+          packagePath,
+          contentTypes,
+          master_locale: project?.stackDetails?.master_locale,
+          destinationStackId: project?.destination_stack_id,
+          projectId,
+          keyMapper: project?.mapperKeys,
+          project,
+        });
+        await aemService?.createLocale(
+          req,
+          project?.destination_stack_id,
+          projectId,
+          project
+        );
+        await aemService?.createVersionFile(project?.destination_stack_id);
+        break;
+      }
+
       case CMS.DRUPAL: {
         // Get database configuration from project
         const dbConfig = {

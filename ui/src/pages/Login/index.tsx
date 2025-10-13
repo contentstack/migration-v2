@@ -290,7 +290,7 @@ const Login: FC<IProps> = () => {
           <FinalForm
             onSubmit={onSubmit}
             render={({ handleSubmit }): JSX.Element => (
-              <form className="ml-16" onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit}>
                 <Field>
                   <FinalField name="tfa_token" validate={TFAValidation}>
                     {({ input, meta }): JSX.Element => (
@@ -366,7 +366,7 @@ const Login: FC<IProps> = () => {
       ) : (
         <div className="AccountForm AccountForm_login app-login">
           {login?.title && <h2 className="mb-40">{login?.title}</h2>}
-          <div className="ml-16">
+          <div>
             <FinalForm
               onSubmit={onSubmit}
               render={({ handleSubmit }): JSX.Element => {
