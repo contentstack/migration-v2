@@ -1252,8 +1252,67 @@ const processEntries = async (
         for (const [fieldName, fieldValue] of Object.entries(processedEntry)) {
           let fieldMapping = null;
 
-          // First try to find mapping from UI content type mapping
+          // PRIORITY 1: Read from generated content type schema (has UI-selected field types)
+          // This is checked FIRST because it contains the final field types after user's UI changes
+          // Load the content type schema to get user's field type selections
+          try {
+            const contentTypeSchemaPath = path.join(
+              MIGRATION_DATA_CONFIG.DATA,
+              destination_stack_id,
+              'content_types',
+              `${contentType}.json`
+            );
+            const contentTypeSchema = JSON.parse(
+              await fs.promises.readFile(contentTypeSchemaPath, 'utf8')
+            );
+
+            // Find field in schema
+            const schemaField = contentTypeSchema.schema?.find(
+              (field: any) =>
+                field.uid === fieldName ||
+                field.uid === fieldName.replace(/_target_id$/, '') ||
+                field.uid === fieldName.replace(/_value$/, '') ||
+                fieldName.includes(field.uid)
+            );
+
+            if (schemaField) {
+              // Determine the proper field type based on schema configuration
+              let targetFieldType = schemaField.data_type;
+
+              // Handle HTML RTE fields (text with allow_rich_text: true)
+              if (
+                schemaField.data_type === 'text' &&
+                schemaField.field_metadata?.allow_rich_text === true
+              ) {
+                targetFieldType = 'html'; // ✅ HTML RTE field
+              }
+              // Handle JSON RTE fields
+              else if (schemaField.data_type === 'json') {
+                targetFieldType = 'json'; // ✅ JSON RTE field
+              }
+              // Handle text fields with multiline metadata
+              else if (
+                schemaField.data_type === 'text' &&
+                schemaField.field_metadata?.multiline
+              ) {
+                targetFieldType = 'multi_line_text'; // ✅ Multi-line text field
+              }
+
+              // Create a mapping from schema field
+              fieldMapping = {
+                uid: fieldName,
+                contentstackFieldType: targetFieldType,
+                backupFieldType: schemaField.data_type,
+                advanced: schemaField,
+              };
+            }
+          } catch (error: any) {
+            // Schema not found, will try fallback below
+          }
+
+          // FALLBACK: If schema not found, try UI content type mapping
           if (
+            !fieldMapping &&
             currentContentTypeMapping &&
             currentContentTypeMapping.fieldMapping
           ) {
@@ -1264,68 +1323,6 @@ const processEntries = async (
                 fieldName.startsWith(fm.uid) ||
                 fieldName.includes(fm.uid)
             );
-          }
-
-          // If no UI mapping found, try to infer from content type schema
-          if (!fieldMapping) {
-            // Load the content type schema to get user's field type selections
-            try {
-              const contentTypeSchemaPath = path.join(
-                MIGRATION_DATA_CONFIG.DATA,
-                destination_stack_id,
-                'content_types',
-                `${contentType}.json`
-              );
-              const contentTypeSchema = JSON.parse(
-                await fs.promises.readFile(contentTypeSchemaPath, 'utf8')
-              );
-
-              // Find field in schema
-              const schemaField = contentTypeSchema.schema?.find(
-                (field: any) =>
-                  field.uid === fieldName ||
-                  field.uid === fieldName.replace(/_target_id$/, '') ||
-                  field.uid === fieldName.replace(/_value$/, '') ||
-                  fieldName.includes(field.uid)
-              );
-
-              if (schemaField) {
-                // Determine the proper field type based on schema configuration
-                let targetFieldType = schemaField.data_type;
-
-                // Handle HTML RTE fields (text with allow_rich_text: true)
-                if (
-                  schemaField.data_type === 'text' &&
-                  schemaField.field_metadata?.allow_rich_text === true
-                ) {
-                  targetFieldType = 'html'; // ✅ HTML RTE field
-                }
-                // Handle JSON RTE fields
-                else if (schemaField.data_type === 'json') {
-                  targetFieldType = 'json'; // ✅ JSON RTE field
-                }
-                // Handle text fields with multiline metadata
-                else if (
-                  schemaField.data_type === 'text' &&
-                  schemaField.field_metadata?.multiline
-                ) {
-                  targetFieldType = 'multi_line_text'; // ✅ Multi-line text field
-                }
-
-                // Create a mapping from schema field
-                fieldMapping = {
-                  uid: fieldName,
-                  contentstackFieldType: targetFieldType,
-                  backupFieldType: schemaField.data_type,
-                  advanced: schemaField,
-                };
-              }
-            } catch (error: any) {
-              console.error(
-                `Failed to load content type schema for field ${fieldName}:`,
-                error.message
-              );
-            }
           }
 
           if (fieldMapping) {
