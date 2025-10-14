@@ -97,6 +97,17 @@ const putTestData = async (req: Request) => {
                 );
               }
 
+              if (
+                (field?.backupFieldType === 'reference' ||
+                  field?.backupFieldType === 'taxonomy') &&
+                referenceTo.length > 0
+              ) {
+                console.log(
+                  `📌 putTestData: Initializing ${field?.backupFieldType} field "${field?.contentstackField}" with referenceTo:`,
+                  referenceTo
+                );
+              }
+
               return {
                 id,
                 projectId,
@@ -700,6 +711,27 @@ const updateContentType = async (req: Request) => {
 
     if (Array?.isArray?.(fieldMapping) && !isEmpty(fieldMapping)) {
       await FieldMapperModel.read();
+
+      // Log reference/taxonomy fields being updated
+      const refTaxFields = fieldMapping.filter(
+        (f: any) =>
+          (f.backupFieldType === 'reference' ||
+            f.backupFieldType === 'taxonomy') &&
+          f.referenceTo &&
+          f.referenceTo.length > 0
+      );
+      if (refTaxFields.length > 0) {
+        console.log(
+          '\n💾 updateContentType: Saving reference/taxonomy fields:'
+        );
+        refTaxFields.forEach((f: any) => {
+          console.log(
+            `   • ${f.contentstackField} (${f.backupFieldType}): referenceTo =`,
+            f.referenceTo
+          );
+        });
+      }
+
       fieldMapping.forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) =>
