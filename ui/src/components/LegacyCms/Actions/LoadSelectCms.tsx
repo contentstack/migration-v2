@@ -83,11 +83,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       setIsLoading(true);
 
       const { data } = await getConfig(); // api call to get cms type from upload service
-
-      console.info('🔍 CONFIG API Response:', data);
-      console.info('🔍 data.mysql:', data?.mysql);
-      console.info('🔍 data.assetsConfig:', data?.assetsConfig);
-
       // Store config details to display in UI
       setConfigDetails({
         mySQLDetails: data?.mysql,
@@ -129,11 +124,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           setCmsData([]);
         }
       }
-      
-      // Store config data (mysql, assetsConfig) in Redux for later use
-      // First, log what's currently in Redux
-      console.info('🔍 BEFORE UPDATE - Current file_details in Redux:', newMigrationData?.legacy_cms?.uploadedFile?.file_details);
-      
+
       // Determine which CMS to set as selected
       let newSelectedCard: ICMSType | undefined;
       if (filteredCmsData?.length === 1) {
@@ -163,14 +154,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         }
       };
       
-      console.info('🔍 Updated newMigrationDataObj with config:', newMigrationDataObj);
-      console.info('🔍 file_details after mapping:', newMigrationDataObj?.legacy_cms?.uploadedFile?.file_details);
-      console.info('🔍 mySQLDetails after mapping:', newMigrationDataObj?.legacy_cms?.uploadedFile?.file_details?.mySQLDetails);
      
       dispatch(updateNewMigrationData(newMigrationDataObj)); // Dispatch to save config to Redux
       
-      console.info('✅ DISPATCHED to Redux - newMigrationDataObj dispatched');
-
       // setCmsData(filteredCmsData);
 
       //Normal Search
