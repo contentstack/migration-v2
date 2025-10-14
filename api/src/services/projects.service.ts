@@ -515,10 +515,20 @@ const updateFileFormat = async (req: Request) => {
         mySQLDetails.user;
       data.projects[projectIndex].legacy_cms.mySQLDetails.database =
         mySQLDetails.database;
-      data.projects[projectIndex].legacy_cms.assetsConfig.base_url =
-        assetsConfig?.base_url || '';
-      data.projects[projectIndex].legacy_cms.assetsConfig.public_path =
-        assetsConfig?.public_path || '';
+
+      // Only update assetsConfig if it's provided and has values
+      // Don't overwrite existing config with empty strings
+      if (assetsConfig && (assetsConfig.base_url || assetsConfig.public_path)) {
+        data.projects[projectIndex].legacy_cms.assetsConfig.base_url =
+          assetsConfig.base_url ||
+          data.projects[projectIndex].legacy_cms.assetsConfig.base_url ||
+          '';
+        data.projects[projectIndex].legacy_cms.assetsConfig.public_path =
+          assetsConfig.public_path ||
+          data.projects[projectIndex].legacy_cms.assetsConfig.public_path ||
+          '';
+      } else {
+      }
     });
 
     logger.info(

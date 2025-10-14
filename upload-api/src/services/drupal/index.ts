@@ -38,17 +38,11 @@ const createDrupalMapper = async (
         'taxonomySchema',
         'taxonomySchema.json'
       );
-      console.log('🔍 Looking for taxonomies at path:', taxonomyPath);
 
       if (fs.existsSync(taxonomyPath)) {
         const taxonomyData = await fs.promises.readFile(taxonomyPath, 'utf8');
         taxonomies = JSON.parse(taxonomyData);
         logger.info(`✓ Loaded ${taxonomies.length} taxonomies to send to API`);
-        console.log('📦 Taxonomies loaded from file:', {
-          path: taxonomyPath,
-          count: taxonomies.length,
-          taxonomies: taxonomies
-        });
       } else {
         console.warn('⚠️ Taxonomy file not found at:', taxonomyPath);
       }
@@ -64,12 +58,6 @@ const createDrupalMapper = async (
       mySQLDetails: config.mysql,
       taxonomies: taxonomies // Add taxonomies to payload
     };
-
-    console.log('📤 Sending payload to API with:', {
-      contentTypesCount: initialMapper?.contentTypes?.length || 0,
-      taxonomiesCount: taxonomies.length,
-      hasTaxonomies: taxonomies.length > 0
-    });
 
     const req = {
       method: 'post',

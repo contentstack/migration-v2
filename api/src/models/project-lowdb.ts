@@ -30,6 +30,10 @@ interface LegacyCMS {
     database: string;
     port?: number;
   };
+  assetsConfig?: {
+    base_url?: string;
+    public_path?: string;
+  };
   is_sql: boolean;
   file_path: string;
   is_fileValid: boolean;
