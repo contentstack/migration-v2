@@ -146,6 +146,7 @@ const putTestData = async (req: Request) => {
         (
           ProjectModelLowdb.data.projects[index].legacy_cms as any
         ).assetsConfig = req.body.assetsConfig;
+      } else {
       }
 
       if (
@@ -167,6 +168,14 @@ const putTestData = async (req: Request) => {
       }
 
       await ProjectModelLowdb.write();
+
+      // Re-read from disk to verify persistence
+      await ProjectModelLowdb.read();
+      const verifyIndex = ProjectModelLowdb.chain
+        .get('projects')
+        .findIndex({ id: projectId })
+        .value();
+      const verifyProject = ProjectModelLowdb.data.projects[verifyIndex];
     } else {
       throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
     }
