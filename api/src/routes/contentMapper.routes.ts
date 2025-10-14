@@ -1,6 +1,6 @@
-import express from "express";
-import { contentMapperController } from "../controllers/projects.contentMapper.controller.js";
-import { asyncRouter } from "../utils/async-router.utils.js";
+import express from 'express';
+import { contentMapperController } from '../controllers/projects.contentMapper.controller.js';
+import { asyncRouter } from '../utils/async-router.utils.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -9,7 +9,7 @@ const router = express.Router({ mergeParams: true });
  * @route POST /createDummyData/:projectId
  */
 router.post(
-  "/createDummyData/:projectId",
+  '/createDummyData/:projectId',
   asyncRouter(contentMapperController.putTestData)
 );
 
@@ -18,7 +18,7 @@ router.post(
  * @route GET /contentTypes/:projectId/:skip/:limit/:searchText?
  */
 router.get(
-  "/contentTypes/:projectId/:skip/:limit/:searchText?",
+  '/contentTypes/:projectId/:skip/:limit/:searchText?',
   asyncRouter(contentMapperController.getContentTypes)
 );
 
@@ -27,7 +27,7 @@ router.get(
  * @route GET /fieldMapping/:contentTypeId/:skip/:limit/:searchText?
  */
 router.get(
-  "/fieldMapping/:projectId/:contentTypeId/:skip/:limit/:searchText?",
+  '/fieldMapping/:projectId/:contentTypeId/:skip/:limit/:searchText?',
   asyncRouter(contentMapperController.getFieldMapping)
 );
 
@@ -36,7 +36,7 @@ router.get(
  * @route GET /:projectId
  */
 router.get(
-  "/:projectId/contentTypes/:contentTypeUid?",
+  '/:projectId/contentTypes/:contentTypeUid?',
   asyncRouter(contentMapperController.getExistingContentTypes)
 );
 
@@ -45,8 +45,17 @@ router.get(
  * @route GET /:projectId
  */
 router.get(
-  "/:projectId/globalFields/:globalFieldUid?",
+  '/:projectId/globalFields/:globalFieldUid?',
   asyncRouter(contentMapperController.getExistingGlobalFields)
+);
+
+/**
+ * Get Existing Taxonomies from source and destination
+ * @route GET /:projectId/taxonomies
+ */
+router.get(
+  '/:projectId/taxonomies',
+  asyncRouter(contentMapperController.getExistingTaxonomies)
 );
 
 /**
@@ -54,7 +63,7 @@ router.get(
  * @route PUT /contentTypes/:orgId/:projectId/:contentTypeId
  */
 router.put(
-  "/contentTypes/:orgId/:projectId/:contentTypeId",
+  '/contentTypes/:orgId/:projectId/:contentTypeId',
   asyncRouter(contentMapperController.putContentTypeFields)
 );
 
@@ -63,7 +72,7 @@ router.put(
  * @route PUT /resetFields/:orgId/:projectId/:contentTypeId
  */
 router.put(
-  "/resetFields/:orgId/:projectId/:contentTypeId",
+  '/resetFields/:orgId/:projectId/:contentTypeId',
   asyncRouter(contentMapperController.resetContentType)
 );
 
@@ -81,7 +90,7 @@ router.put(
  * @route GET /:orgId/:projectId/content-mapper
  */
 router.get(
-  "/:orgId/:projectId/content-mapper",
+  '/:orgId/:projectId/content-mapper',
   asyncRouter(contentMapperController.removeContentMapper)
 );
 
@@ -89,7 +98,10 @@ router.get(
  * Update content mapper
  * @route GET /:orgId/:projectId
  */
-router.patch("/:orgId/:projectId/mapper_keys", asyncRouter(contentMapperController.updateContentMapper));
+router.patch(
+  '/:orgId/:projectId/mapper_keys',
+  asyncRouter(contentMapperController.updateContentMapper)
+);
 
 /**
  * Get Single Global Field data

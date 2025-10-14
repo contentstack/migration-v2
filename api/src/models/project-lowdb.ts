@@ -1,6 +1,6 @@
 import path from 'path';
-import { JSONFile } from "lowdb/node";
-import LowWithLodash from "../utils/lowdb-lodash.utils.js";
+import { JSONFile } from 'lowdb/node';
+import LowWithLodash from '../utils/lowdb-lodash.utils.js';
 
 /**
  * Represents the LegacyCMS object.
@@ -82,8 +82,9 @@ interface Project {
   mapperKeys: {};
   extract_path: string;
   isMigrationStarted: boolean;
-  isMigrationCompleted:boolean;
+  isMigrationCompleted: boolean;
   migration_execution: boolean;
+  taxonomies?: any[]; // Taxonomies from source CMS
 }
 
 interface ProjectDocument {
@@ -96,7 +97,9 @@ const defaultData: ProjectDocument = { projects: [] };
  * Represents the database instance for the project.
  */
 const db = new LowWithLodash(
-  new JSONFile<ProjectDocument>(path.join(process.cwd(), "database", "project.json")),
+  new JSONFile<ProjectDocument>(
+    path.join(process.cwd(), 'database', 'project.json')
+  ),
   defaultData
 );
 
