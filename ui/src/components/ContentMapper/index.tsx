@@ -1224,6 +1224,11 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string, rowContentstackFieldUid: string) => {
+    // Find the field being changed
+    const changedField = selectedEntries?.find?.(
+      (row) => row?.uid === rowIndex && row?.contentstackFieldUid === rowContentstackFieldUid
+    );
+
     setIsDropDownChanged(true);
     setFieldValue(value);
     const updatedRows: FieldMapType[] = selectedEntries?.map?.((row) => {
@@ -1904,6 +1909,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           fieldMapping: selectedEntries
         }
       };
+
+      // Log field type changes being sent to backend
+      const changedFields = selectedEntries?.filter(field => {
+        const original = tableData?.find(t => t.uid === field.uid);
+        return original && original.contentstackFieldType !== field.contentstackFieldType;
+      });
 
       try {
         const { data } = await updateContentType(
