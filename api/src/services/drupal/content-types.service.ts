@@ -4,6 +4,8 @@ import { MIGRATION_DATA_CONFIG } from '../../constants/index.js';
 import { convertToSchemaFormate } from '../../utils/content-type-creator.utils.js';
 import { getLogMessage } from '../../utils/index.js';
 import customLogger from '../../utils/custom-logger.utils.js';
+import FieldMapperModel from '../../models/FieldMapper.js';
+import ContentTypesMapperModelLowdb from '../../models/contentTypesMapper-lowdb.js';
 
 const { DATA, CONTENT_TYPES_DIR_NAME, CONTENT_TYPES_SCHEMA_FILE } =
   MIGRATION_DATA_CONFIG;
@@ -63,6 +65,18 @@ export const generateContentTypeSchemas = async (
       );
     }
 
+    // Load saved field mappings from database to get UI selections
+    await FieldMapperModel.read();
+    await ContentTypesMapperModelLowdb.read();
+
+    const savedFieldMappings = FieldMapperModel.data.field_mapper.filter(
+      (field: any) => field && field.projectId === projectId
+    );
+
+    console.log(
+      `📊 Loaded ${savedFieldMappings.length} saved field mappings with UI selections from database`
+    );
+
     // Build complete schema array (NO individual files)
     const allApiSchemas = [];
 
@@ -76,8 +90,12 @@ export const generateContentTypeSchemas = async (
           fs.readFileSync(uploadApiSchemaFilePath, 'utf8')
         );
 
-        // Convert upload-api schema to API format
-        const apiSchema = convertUploadApiSchemaToApiSchema(uploadApiSchema);
+        // Convert upload-api schema to API format WITH saved field mappings from UI
+        const apiSchema = convertUploadApiSchemaToApiSchema(
+          uploadApiSchema,
+          savedFieldMappings,
+          projectId
+        );
 
         // Add to combined schema array (NO individual files)
         allApiSchemas.push(apiSchema);
@@ -151,8 +169,13 @@ export const generateContentTypeSchemas = async (
 /**
  * Converts upload-api drupal schema format to API content type format
  * This preserves the original field types and user selections from the upload-api
+ * AND applies user's UI selections from Content Mapper for reference/taxonomy fields
  */
-function convertUploadApiSchemaToApiSchema(uploadApiSchema: any): any {
+function convertUploadApiSchemaToApiSchema(
+  uploadApiSchema: any,
+  savedFieldMappings: any[] = [],
+  projectId?: string
+): any {
   const apiSchema = {
     title: uploadApiSchema.title,
     uid: uploadApiSchema.uid,
@@ -162,6 +185,10 @@ function convertUploadApiSchemaToApiSchema(uploadApiSchema: any): any {
   if (!uploadApiSchema.schema || !Array.isArray(uploadApiSchema.schema)) {
     return apiSchema;
   }
+
+  console.log(`\n🔄 Converting content type: ${uploadApiSchema.uid}`);
+  console.log(`   📋 Fields in upload-api: ${uploadApiSchema.schema.length}`);
+  console.log(`   💾 Saved mappings available: ${savedFieldMappings.length}`);
 
   // Convert each field from upload-api format to API format
   for (const uploadField of uploadApiSchema.schema) {
@@ -194,19 +221,112 @@ function convertUploadApiSchemaToApiSchema(uploadApiSchema: any): any {
       });
 
       if (apiField) {
-        // Preserve additional metadata from upload-api
-        if (
-          uploadField.contentstackFieldType === 'reference' &&
-          uploadField.advanced?.reference_to
-        ) {
-          apiField.reference_to = uploadField.advanced.reference_to;
+        // Find saved field mapping from database (user's UI selections)
+        // Try multiple matching strategies to find the right field
+        const savedMapping = savedFieldMappings.find(
+          (mapping: any) =>
+            mapping.contentstackFieldUid === uploadField.contentstackFieldUid ||
+            mapping.contentstackFieldUid === uploadField.uid ||
+            mapping.uid === uploadField.contentstackFieldUid ||
+            mapping.uid === uploadField.uid
+        );
+
+        console.log(
+          `   🔍 Checking field "${uploadField.contentstackFieldUid}" (${uploadField.contentstackFieldType})`
+        );
+        console.log(
+          `      Upload-API data:`,
+          uploadField.advanced?.reference_to ||
+            uploadField.advanced?.taxonomies ||
+            'none'
+        );
+        console.log(`      Saved mapping found:`, savedMapping ? 'YES' : 'NO');
+        if (savedMapping) {
+          console.log(`      Saved referenceTo:`, savedMapping.referenceTo);
         }
 
-        if (
-          uploadField.contentstackFieldType === 'taxonomy' &&
-          uploadField.advanced?.taxonomies
-        ) {
-          apiField.taxonomies = uploadField.advanced.taxonomies;
+        // Use UI selections if available, otherwise fall back to upload-api data
+        if (uploadField.contentstackFieldType === 'reference') {
+          if (
+            savedMapping?.referenceTo &&
+            Array.isArray(savedMapping.referenceTo) &&
+            savedMapping.referenceTo.length > 0
+          ) {
+            // MERGE: Combine old upload-api data with new UI selections (no duplicates)
+            // Check both embedObjects AND reference_to
+            const oldReferences =
+              uploadField.advanced?.embedObjects ||
+              uploadField.advanced?.reference_to ||
+              [];
+            const newReferences = savedMapping.referenceTo || [];
+            const mergedReferences = [
+              ...new Set([...oldReferences, ...newReferences]),
+            ];
+
+            apiField.reference_to = mergedReferences;
+            console.log(
+              `   ✅ Reference field "${
+                uploadField.contentstackFieldUid
+              }": MERGED [${mergedReferences.join(', ')}]`
+            );
+            console.log(
+              `      (Old: [${oldReferences.join(
+                ', '
+              )}] + New: [${newReferences.join(', ')}])`
+            );
+          } else {
+            // Fall back to upload-api data only (check both embedObjects and reference_to)
+            const fallbackReferences =
+              uploadField.advanced?.embedObjects ||
+              uploadField.advanced?.reference_to;
+            if (fallbackReferences) {
+              apiField.reference_to = fallbackReferences;
+              console.log(
+                `   ⚠️  Reference field "${uploadField.contentstackFieldUid}": Using upload-api data only (no UI selection)`
+              );
+            }
+          }
+        }
+
+        if (uploadField.contentstackFieldType === 'taxonomy') {
+          if (
+            savedMapping?.referenceTo &&
+            Array.isArray(savedMapping.referenceTo) &&
+            savedMapping.referenceTo.length > 0
+          ) {
+            // MERGE: Combine old upload-api taxonomies with new UI selections (no duplicates)
+            const oldTaxonomyUIDs = (
+              uploadField.advanced?.taxonomies || []
+            ).map((t: any) => t.taxonomy_uid || t);
+            const newTaxonomyUIDs = savedMapping.referenceTo || [];
+            const mergedTaxonomyUIDs = [
+              ...new Set([...oldTaxonomyUIDs, ...newTaxonomyUIDs]),
+            ];
+
+            // Convert UIDs to taxonomy format
+            apiField.taxonomies = mergedTaxonomyUIDs.map((taxUid: string) => ({
+              taxonomy_uid: taxUid,
+              mandatory: uploadField.advanced?.mandatory || false,
+              multiple: uploadField.advanced?.multiple !== false, // Default to true for taxonomies
+              non_localizable: uploadField.advanced?.non_localizable || false,
+            }));
+            console.log(
+              `   ✅ Taxonomy field "${
+                uploadField.contentstackFieldUid
+              }": MERGED [${mergedTaxonomyUIDs.join(', ')}]`
+            );
+            console.log(
+              `      (Old: [${oldTaxonomyUIDs.join(
+                ', '
+              )}] + New: [${newTaxonomyUIDs.join(', ')}])`
+            );
+          } else if (uploadField.advanced?.taxonomies) {
+            // Fall back to upload-api data only
+            apiField.taxonomies = uploadField.advanced.taxonomies;
+            console.log(
+              `   ⚠️  Taxonomy field "${uploadField.contentstackFieldUid}": Using upload-api data only (no UI selection)`
+            );
+          }
         }
 
         // Preserve field metadata for proper field type conversion

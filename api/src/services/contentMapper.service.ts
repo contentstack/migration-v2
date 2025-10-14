@@ -1,4 +1,6 @@
 import { Request } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { getLogMessage, isEmpty, safePromise } from '../utils/index.js';
 import {
   BadRequestError,
@@ -11,6 +13,7 @@ import {
   NEW_PROJECT_STATUS,
   CONTENT_TYPE_STATUS,
   VALIDATION_ERRORS,
+  MIGRATION_DATA_CONFIG,
 } from '../constants/index.js';
 import logger from '../utils/logger.js';
 import { config } from '../config/index.js';
@@ -76,12 +79,39 @@ const putTestData = async (req: Request) => {
                 : uuidv4();
               field.id = id;
               fieldIds.push(id);
+
+              // Initialize referenceTo from advanced data (upload-api)
+              let referenceTo: string[] = [];
+              if (field?.backupFieldType === 'reference') {
+                // Reference fields use embedObjects OR reference_to
+                referenceTo =
+                  field?.advanced?.embedObjects ||
+                  field?.advanced?.reference_to ||
+                  [];
+                console.log(
+                  `   📝 Initializing referenceTo for reference field "${field?.contentstackFieldUid}":`,
+                  referenceTo
+                );
+              } else if (
+                field?.backupFieldType === 'taxonomy' &&
+                field?.advanced?.taxonomies
+              ) {
+                referenceTo = field.advanced.taxonomies.map(
+                  (t: any) => t.taxonomy_uid || t
+                );
+                console.log(
+                  `   📝 Initializing referenceTo for taxonomy field "${field?.contentstackFieldUid}":`,
+                  referenceTo
+                );
+              }
+
               return {
                 id,
                 projectId,
                 contentTypeId: type?.id,
                 isDeleted: false,
                 ...field,
+                referenceTo, // Initialize referenceTo field
               };
             })
         : [];
@@ -133,6 +163,25 @@ const putTestData = async (req: Request) => {
         (
           ProjectModelLowdb.data.projects[index].legacy_cms as any
         ).mySQLDetails = req.body.mySQLDetails;
+      }
+
+      // Store taxonomies if provided
+      if (req?.body?.taxonomies && Array.isArray(req.body.taxonomies)) {
+        ProjectModelLowdb.data.projects[index].taxonomies = req.body.taxonomies;
+        logger.info(
+          `✓ Stored ${req.body.taxonomies.length} taxonomies for project ${projectId}`
+        );
+        console.log('💾 Taxonomies stored in project database:', {
+          projectId,
+          count: req.body.taxonomies.length,
+          taxonomies: req.body.taxonomies,
+        });
+      } else {
+        console.warn('⚠️ No taxonomies provided in request body:', {
+          hasTaxonomies: !!req.body.taxonomies,
+          isArray: Array.isArray(req.body.taxonomies),
+          taxonomiesValue: req.body.taxonomies,
+        });
       }
 
       await ProjectModelLowdb.write();
@@ -1278,6 +1327,167 @@ const updateContentMapper = async (req: Request) => {
   }
 };
 
+/**
+ * Retrieves existing taxonomies from the destination Contentstack stack
+ * and source taxonomy data from migration files.
+ * @param req - The request object containing the project ID and token payload.
+ * @returns An object containing source taxonomies and destination taxonomies.
+ */
+const getExistingTaxonomies = async (req: Request) => {
+  const projectId = req?.params?.projectId;
+  const { token_payload } = req.body;
+
+  try {
+    // Get project details
+    await ProjectModelLowdb.read();
+    const project = ProjectModelLowdb.chain
+      .get('projects')
+      .find({ id: projectId })
+      .value();
+
+    if (!project) {
+      return {
+        data: 'Project not found',
+        status: 404,
+      };
+    }
+
+    const stackId = project?.destination_stack_id;
+
+    // Step 1: Get source taxonomies from project database (sent by upload-api)
+    let sourceTaxonomies: any[] = [];
+
+    if (project?.taxonomies && Array.isArray(project.taxonomies)) {
+      // Taxonomies stored in project database (sent from upload-api during validation)
+      sourceTaxonomies = project.taxonomies.map((taxonomy: any) => ({
+        uid: taxonomy.uid,
+        name: taxonomy.name || taxonomy.uid,
+        description: taxonomy.description || '',
+        source: 'source_cms',
+      }));
+      logger.info(
+        `✓ Found ${sourceTaxonomies.length} source taxonomies in project database`
+      );
+      console.log(
+        '📊 Source Taxonomies from DB:',
+        JSON.stringify(sourceTaxonomies, null, 2)
+      );
+    } else {
+      // Fallback: Try reading from migration-data files
+      logger.warn(
+        'No taxonomies found in project database, checking fallback paths...'
+      );
+      console.warn(
+        '⚠️ project.taxonomies is empty or not an array:',
+        project?.taxonomies
+      );
+
+      // Path 1: Check api/migration-data (processed taxonomies)
+      const apiMigrationDataPath = path.join(
+        MIGRATION_DATA_CONFIG.DATA,
+        stackId,
+        MIGRATION_DATA_CONFIG.TAXONOMIES_DIR_NAME,
+        MIGRATION_DATA_CONFIG.TAXONOMIES_FILE_NAME
+      );
+
+      try {
+        if (fs.existsSync(apiMigrationDataPath)) {
+          const taxonomiesData = await fs.promises.readFile(
+            apiMigrationDataPath,
+            'utf8'
+          );
+          const taxonomiesObject = JSON.parse(taxonomiesData);
+
+          // Convert object to array with proper structure
+          const apiTaxonomies = Object.entries(taxonomiesObject).map(
+            ([uid, data]: [string, any]) => ({
+              uid: data.uid || uid,
+              name: data.name || uid,
+              description: data.description || '',
+              source: 'source_cms',
+            })
+          );
+          sourceTaxonomies.push(...apiTaxonomies);
+          logger.info(
+            `✓ Found ${apiTaxonomies.length} taxonomies in migration-data (fallback)`
+          );
+        }
+      } catch (fileError: any) {
+        logger.error(
+          `Error reading migration-data taxonomies: ${fileError.message}`
+        );
+      }
+    }
+
+    // Step 2: Get destination taxonomies from Contentstack (if stack exists)
+    let destinationTaxonomies: any[] = [];
+
+    if (token_payload?.region && token_payload?.user_id && stackId) {
+      try {
+        const authtoken = await getAuthtoken(
+          token_payload.region,
+          token_payload.user_id
+        );
+
+        const baseUrl = `${config.CS_API[
+          token_payload?.region as keyof typeof config.CS_API
+        ]!}/taxonomies`;
+
+        const headers = {
+          api_key: stackId,
+          authtoken,
+        };
+
+        // Fetch taxonomies from Contentstack
+        const taxonomies = await fetchAllPaginatedData(
+          baseUrl,
+          headers,
+          100,
+          'getExistingTaxonomies',
+          'taxonomies'
+        );
+
+        destinationTaxonomies = taxonomies.map((taxonomy: any) => ({
+          uid: taxonomy.uid,
+          name: taxonomy.name,
+          description: taxonomy.description || '',
+          source: 'destination_stack',
+        }));
+        console.log(
+          '🎯 Destination Taxonomies from Contentstack:',
+          JSON.stringify(destinationTaxonomies, null, 2)
+        );
+      } catch (apiError: any) {
+        logger.error(
+          `Error fetching destination taxonomies: ${apiError.message}`
+        );
+        console.error('❌ Failed to fetch destination taxonomies:', apiError);
+      }
+    }
+
+    const response = {
+      sourceTaxonomies,
+      destinationTaxonomies,
+      status: 201,
+    };
+
+    console.log('📤 Returning taxonomy response:', {
+      sourceTaxonomiesCount: sourceTaxonomies.length,
+      destinationTaxonomiesCount: destinationTaxonomies.length,
+      totalCount: sourceTaxonomies.length + destinationTaxonomies.length,
+    });
+
+    return response;
+  } catch (error: any) {
+    logger.error(`Error in getExistingTaxonomies: ${error.message}`);
+    console.error('❌ Error in getExistingTaxonomies:', error);
+    return {
+      data: error.message,
+      status: error.status || 500,
+    };
+  }
+};
+
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -1292,4 +1502,5 @@ export const contentMapperService = {
   updateContentMapper,
   getExistingGlobalFields,
   getSingleGlobalField,
+  getExistingTaxonomies,
 };

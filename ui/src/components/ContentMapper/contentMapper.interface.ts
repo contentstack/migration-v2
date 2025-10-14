@@ -89,6 +89,13 @@ export interface Advanced {
   referenedItems?: string[];
   title?: string;
   url?: string;
+  reference_to?: string[]; // Reference field UIDs from upload-api
+  taxonomies?: Array<{
+    taxonomy_uid: string;
+    mandatory?: boolean;
+    multiple?: boolean;
+    non_localizable?: boolean;
+  }>; // Taxonomy UIDs from upload-api
 }
 
 export interface ItemStatus {
