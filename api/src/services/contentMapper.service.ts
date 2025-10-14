@@ -88,20 +88,12 @@ const putTestData = async (req: Request) => {
                   field?.advanced?.embedObjects ||
                   field?.advanced?.reference_to ||
                   [];
-                console.log(
-                  `   📝 Initializing referenceTo for reference field "${field?.contentstackFieldUid}":`,
-                  referenceTo
-                );
               } else if (
                 field?.backupFieldType === 'taxonomy' &&
                 field?.advanced?.taxonomies
               ) {
                 referenceTo = field.advanced.taxonomies.map(
                   (t: any) => t.taxonomy_uid || t
-                );
-                console.log(
-                  `   📝 Initializing referenceTo for taxonomy field "${field?.contentstackFieldUid}":`,
-                  referenceTo
                 );
               }
 
@@ -171,17 +163,7 @@ const putTestData = async (req: Request) => {
         logger.info(
           `✓ Stored ${req.body.taxonomies.length} taxonomies for project ${projectId}`
         );
-        console.log('💾 Taxonomies stored in project database:', {
-          projectId,
-          count: req.body.taxonomies.length,
-          taxonomies: req.body.taxonomies,
-        });
       } else {
-        console.warn('⚠️ No taxonomies provided in request body:', {
-          hasTaxonomies: !!req.body.taxonomies,
-          isArray: Array.isArray(req.body.taxonomies),
-          taxonomiesValue: req.body.taxonomies,
-        });
       }
 
       await ProjectModelLowdb.write();
@@ -1368,18 +1350,10 @@ const getExistingTaxonomies = async (req: Request) => {
       logger.info(
         `✓ Found ${sourceTaxonomies.length} source taxonomies in project database`
       );
-      console.log(
-        '📊 Source Taxonomies from DB:',
-        JSON.stringify(sourceTaxonomies, null, 2)
-      );
     } else {
       // Fallback: Try reading from migration-data files
       logger.warn(
         'No taxonomies found in project database, checking fallback paths...'
-      );
-      console.warn(
-        '⚠️ project.taxonomies is empty or not an array:',
-        project?.taxonomies
       );
 
       // Path 1: Check api/migration-data (processed taxonomies)
@@ -1408,9 +1382,6 @@ const getExistingTaxonomies = async (req: Request) => {
             })
           );
           sourceTaxonomies.push(...apiTaxonomies);
-          logger.info(
-            `✓ Found ${apiTaxonomies.length} taxonomies in migration-data (fallback)`
-          );
         }
       } catch (fileError: any) {
         logger.error(
@@ -1453,15 +1424,10 @@ const getExistingTaxonomies = async (req: Request) => {
           description: taxonomy.description || '',
           source: 'destination_stack',
         }));
-        console.log(
-          '🎯 Destination Taxonomies from Contentstack:',
-          JSON.stringify(destinationTaxonomies, null, 2)
-        );
       } catch (apiError: any) {
         logger.error(
           `Error fetching destination taxonomies: ${apiError.message}`
         );
-        console.error('❌ Failed to fetch destination taxonomies:', apiError);
       }
     }
 
@@ -1471,16 +1437,9 @@ const getExistingTaxonomies = async (req: Request) => {
       status: 201,
     };
 
-    console.log('📤 Returning taxonomy response:', {
-      sourceTaxonomiesCount: sourceTaxonomies.length,
-      destinationTaxonomiesCount: destinationTaxonomies.length,
-      totalCount: sourceTaxonomies.length + destinationTaxonomies.length,
-    });
-
     return response;
   } catch (error: any) {
     logger.error(`Error in getExistingTaxonomies: ${error.message}`);
-    console.error('❌ Error in getExistingTaxonomies:', error);
     return {
       data: error.message,
       status: error.status || 500,

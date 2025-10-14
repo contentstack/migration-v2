@@ -73,9 +73,16 @@ export const generateContentTypeSchemas = async (
       (field: any) => field && field.projectId === projectId
     );
 
-    console.log(
-      `📊 Loaded ${savedFieldMappings.length} saved field mappings with UI selections from database`
+    // Log fields with UI changes
+    const fieldsWithTypeChanges = savedFieldMappings.filter(
+      (field: any) =>
+        field.contentstackFieldType &&
+        field.backupFieldType !== field.contentstackFieldType
     );
+
+    if (fieldsWithTypeChanges.length > 0) {
+      fieldsWithTypeChanges.forEach((field: any) => {});
+    }
 
     // Build complete schema array (NO individual files)
     const allApiSchemas = [];
@@ -140,20 +147,12 @@ export const generateContentTypeSchemas = async (
       'utf8'
     );
 
-    console.log(
-      `✅ Generated schema.json with ${allApiSchemas.length} content types (NO individual files)`
-    );
-
     const successMessage = getLogMessage(
       srcFunc,
       `Successfully generated ${schemaFiles.length} content type schemas from upload-api`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', successMessage);
-
-    console.log(
-      `🎉 Successfully converted ${schemaFiles.length} content type schemas`
-    );
   } catch (error: any) {
     const errorMessage = getLogMessage(
       srcFunc,
@@ -186,19 +185,29 @@ function convertUploadApiSchemaToApiSchema(
     return apiSchema;
   }
 
-  console.log(`\n🔄 Converting content type: ${uploadApiSchema.uid}`);
-  console.log(`   📋 Fields in upload-api: ${uploadApiSchema.schema.length}`);
-  console.log(`   💾 Saved mappings available: ${savedFieldMappings.length}`);
-
   // Convert each field from upload-api format to API format
   for (const uploadField of uploadApiSchema.schema) {
     try {
+      // Find saved field mapping from database FIRST to get user's field type selection
+      const savedMapping = savedFieldMappings.find(
+        (mapping: any) =>
+          mapping.contentstackFieldUid === uploadField.contentstackFieldUid ||
+          mapping.contentstackFieldUid === uploadField.uid ||
+          mapping.uid === uploadField.contentstackFieldUid ||
+          mapping.uid === uploadField.uid
+      );
+
+      // Use UI-selected field type if available, otherwise use upload-api type
+      const fieldType =
+        savedMapping?.contentstackFieldType ||
+        uploadField.contentstackFieldType;
+
       // Map upload-api field to API format using convertToSchemaFormate
       const apiField = convertToSchemaFormate({
         field: {
           title: uploadField.contentstackField || uploadField.otherCmsField,
           uid: uploadField.contentstackFieldUid,
-          contentstackFieldType: uploadField.contentstackFieldType,
+          contentstackFieldType: fieldType, // Use UI selection if available
           advanced: {
             ...uploadField.advanced,
             mandatory: uploadField.advanced?.mandatory || false,
@@ -221,32 +230,9 @@ function convertUploadApiSchemaToApiSchema(
       });
 
       if (apiField) {
-        // Find saved field mapping from database (user's UI selections)
-        // Try multiple matching strategies to find the right field
-        const savedMapping = savedFieldMappings.find(
-          (mapping: any) =>
-            mapping.contentstackFieldUid === uploadField.contentstackFieldUid ||
-            mapping.contentstackFieldUid === uploadField.uid ||
-            mapping.uid === uploadField.contentstackFieldUid ||
-            mapping.uid === uploadField.uid
-        );
-
-        console.log(
-          `   🔍 Checking field "${uploadField.contentstackFieldUid}" (${uploadField.contentstackFieldType})`
-        );
-        console.log(
-          `      Upload-API data:`,
-          uploadField.advanced?.reference_to ||
-            uploadField.advanced?.taxonomies ||
-            'none'
-        );
-        console.log(`      Saved mapping found:`, savedMapping ? 'YES' : 'NO');
-        if (savedMapping) {
-          console.log(`      Saved referenceTo:`, savedMapping.referenceTo);
-        }
-
         // Use UI selections if available, otherwise fall back to upload-api data
-        if (uploadField.contentstackFieldType === 'reference') {
+        // Check against the FINAL field type (which may have been changed in UI)
+        if (fieldType === 'reference') {
           if (
             savedMapping?.referenceTo &&
             Array.isArray(savedMapping.referenceTo) &&
@@ -264,16 +250,6 @@ function convertUploadApiSchemaToApiSchema(
             ];
 
             apiField.reference_to = mergedReferences;
-            console.log(
-              `   ✅ Reference field "${
-                uploadField.contentstackFieldUid
-              }": MERGED [${mergedReferences.join(', ')}]`
-            );
-            console.log(
-              `      (Old: [${oldReferences.join(
-                ', '
-              )}] + New: [${newReferences.join(', ')}])`
-            );
           } else {
             // Fall back to upload-api data only (check both embedObjects and reference_to)
             const fallbackReferences =
@@ -281,14 +257,11 @@ function convertUploadApiSchemaToApiSchema(
               uploadField.advanced?.reference_to;
             if (fallbackReferences) {
               apiField.reference_to = fallbackReferences;
-              console.log(
-                `   ⚠️  Reference field "${uploadField.contentstackFieldUid}": Using upload-api data only (no UI selection)`
-              );
             }
           }
         }
 
-        if (uploadField.contentstackFieldType === 'taxonomy') {
+        if (fieldType === 'taxonomy') {
           if (
             savedMapping?.referenceTo &&
             Array.isArray(savedMapping.referenceTo) &&
@@ -310,22 +283,9 @@ function convertUploadApiSchemaToApiSchema(
               multiple: uploadField.advanced?.multiple !== false, // Default to true for taxonomies
               non_localizable: uploadField.advanced?.non_localizable || false,
             }));
-            console.log(
-              `   ✅ Taxonomy field "${
-                uploadField.contentstackFieldUid
-              }": MERGED [${mergedTaxonomyUIDs.join(', ')}]`
-            );
-            console.log(
-              `      (Old: [${oldTaxonomyUIDs.join(
-                ', '
-              )}] + New: [${newTaxonomyUIDs.join(', ')}])`
-            );
           } else if (uploadField.advanced?.taxonomies) {
             // Fall back to upload-api data only
             apiField.taxonomies = uploadField.advanced.taxonomies;
-            console.log(
-              `   ⚠️  Taxonomy field "${uploadField.contentstackFieldUid}": Using upload-api data only (no UI selection)`
-            );
           }
         }
 
@@ -338,11 +298,6 @@ function convertUploadApiSchemaToApiSchema(
         apiSchema.schema.push(apiField);
       }
     } catch (error: any) {
-      console.warn(
-        `Failed to convert field ${uploadField.uid}:`,
-        error.message
-      );
-
       // Fallback: create basic field structure
       apiSchema.schema.push({
         display_name:
