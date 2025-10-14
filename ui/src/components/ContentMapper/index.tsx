@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useState, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -1128,7 +1128,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
    * @param singleSelectedRowIds - The single selected row IDs
    * @returns void
    */
-  const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
+  const handleSelectedEntries = useCallback((singleSelectedRowIds: string[]) => {
     const selectedObj: UidMap = {};
     const previousRowIds: UidMap = { ...rowIds as UidMap };
 
@@ -1220,7 +1220,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
     setRowIds(selectedObj);
     setSelectedEntries(updatedTableData);
-  };
+  }, [rowIds, selectedEntries, tableData]);
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string, rowContentstackFieldUid: string) => {
@@ -2659,7 +2659,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
                   name={{
                     singular: '',
-                    plural: `${totalCounts === 0 ? 'Count' : ''}`
+                    plural: totalCounts === 0 ? 'Count' : ''
                   }}
                 />
                 <div className='d-flex align-items-center justify-content-between my-2 mx-3 px-1 py-1'>
