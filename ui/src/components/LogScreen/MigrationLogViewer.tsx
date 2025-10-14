@@ -91,6 +91,11 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
       const logArray = newLogs?.split('\n');
 
       logArray?.forEach((logLine) => {
+        // Skip empty or whitespace-only lines
+        if (!logLine || !logLine.trim()) {
+          return;
+        }
+        
         try {
           //parse each log entry as a JSON object
           const parsedLog = JSON?.parse(logLine);
@@ -103,7 +108,8 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           };
           parsedLogsArray.push(plogs);
         } catch (error) {
-          console.error('error in parsing logs : ', error);
+          // Silently skip malformed log entries
+          // console.error('error in parsing logs : ', error);
         }
       });
 
