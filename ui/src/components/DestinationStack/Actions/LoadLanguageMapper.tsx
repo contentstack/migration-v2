@@ -90,16 +90,10 @@ const Mapper = ({
     const hasChanges = JSON.stringify(existingMapping) !== JSON.stringify(mergedMapping);
     
     if (hasChanges && Object.keys(selectedMappings).length > 0) {
-      console.info('🔍 DEBUG: Mapper updating localeMapping with selectedMappings:', selectedMappings);
-      console.info('🔍 DEBUG: Existing mapping:', existingMapping);
-      console.info('🔍 DEBUG: Merged mapping:', mergedMapping);
       
       // 🔧 CRITICAL CHECK: Don't override with empty values
       const hasEmptyValues = Object.values(selectedMappings).some(value => value === '');
       if (hasEmptyValues) {
-        console.warn('⚠️ WARNING: selectedMappings contains empty values, skipping update to preserve auto-mapping');
-        console.warn('   Empty selectedMappings:', selectedMappings);
-        console.warn('   Preserving existing mapping:', existingMapping);
         return;
       }
       
@@ -685,15 +679,11 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
       .filter(key => !key.includes('-master_locale')) // Exclude master locale entries
       .filter(key => localeMapping[key] !== '' && localeMapping[key] !== null && localeMapping[key] !== undefined); // Only count valid mappings
     
-    console.info('🔍 DEBUG: Currently mapped source locales:', mappedSourceLocales);
-    console.info('🔍 DEBUG: Available source locales:', sourceLocales.map(s => s.value));
-    
     // Find first unmapped source locale
     const unmappedLocale = sourceLocales.find(source => 
       !mappedSourceLocales.includes(source.value)
     );
     
-    console.info('🔍 DEBUG: Found unmapped locale:', unmappedLocale);
     return unmappedLocale || null;
   };
 
@@ -810,12 +800,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         ...(destinationLocale ? { [singleSourceLocale.value]: destinationLocale } : {})
       };
       
-      // 🔍 DEBUG: Log the mapping structure being created
-      console.info('🔍 DEBUG: Single locale autoMapping created:', JSON.stringify(autoMapping, null, 2));
-      console.info('🔍 DEBUG: Source locale:', singleSourceLocale.value);
-      console.info('🔍 DEBUG: Destination locale:', destinationLocale);
-      console.info('🔍 DEBUG: Stack master locale:', stack?.master_locale);
-      
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
@@ -824,11 +808,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         }
       };
       dispatch(updateNewMigrationData(newMigrationDataObj));
-      
-      // 🔍 DEBUG: Log after dispatch
-      console.info('🔍 DEBUG: Dispatched single locale mapping to Redux');
-      
-      // 🔍 DEBUG: Auto-mapping completed for single locale
       
       // Reset stack changed flag after auto-mapping
       if (isStackChanged) {
@@ -871,15 +850,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           hasAnyMatches = true;
         }
       }
-      
-      // 🔧 CRITICAL CHANGE: For multi-locale, only map the FIRST/MASTER locale initially
-      // Other locales will be handled by the "Add Language" functionality
-      console.info('🔍 DEBUG: Multi-locale detected - only mapping master locale initially');
-      console.info('   Master locale from source:', masterLocaleFromSource?.value);
-      console.info('   Other locales will be available for "Add Language"');
-      
-      // Skip auto-mapping all other locales to keep "Add Language" button enabled
-      // The "Add Language" functionality will handle mapping additional locales one by one
       
       // 🔧 TC-04 & TC-08: Enhanced no-match logic with master locale default
       if (!hasAnyMatches) {
@@ -925,10 +895,8 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
       // 🔧 REMOVED: TC-03 auto-mapping of remaining locales
       // This was causing all locales to be mapped at once, disabling "Add Language" button
       // Now remaining locales will be handled by "Add Language" functionality
-      console.info('🔍 DEBUG: Skipping auto-mapping of remaining locales to keep "Add Language" enabled');
       
       const unmappedSources = sourceLocale.filter(source => !autoMapping[source.value]);
-      console.info(`   Unmapped sources available for "Add Language": [${unmappedSources.map(s => s.value).join(', ')}]`);
       
       // Update Redux state with auto-mappings
       const newMigrationDataObj: INewMigration = {
@@ -939,8 +907,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         }
       };
       dispatch(updateNewMigrationData(newMigrationDataObj));
-      
-      // 🔍 DEBUG: Auto-mapping completed for multi-locale
       
       // 🔥 CRITICAL FIX: Update existingLocale state for dropdown display
       // The dropdown reads from existingLocale, not from Redux localeMapping
@@ -1075,16 +1041,13 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
   
   // 🆕 CONDITION 3: Intelligent Add Language functionality with auto-suggestions
   const addRowComp = () => {
-    console.info('🔍 DEBUG: Add Language button clicked');
     setisStackChanged(false);
     
     // 🆕 STEP 1: Get next unmapped source locale
     const nextUnmappedSource = getNextUnmappedSourceLocale();
-    console.info('🔍 DEBUG: Next unmapped source locale:', nextUnmappedSource);
     
     if (!nextUnmappedSource) {
       // Fallback: No more unmapped source locales available
-      console.warn('⚠️ No more unmapped source locales available for "Add Language"');
       setcmsLocaleOptions((prevList: { label: string; value: string }[]) => [
         ...prevList,
         {
@@ -1098,18 +1061,9 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
     
     // 🆕 STEP 2: Check if source locale exists in destination
     const destinationMatch = findDestinationMatch(nextUnmappedSource.value);
-    console.info('🔍 DEBUG: Destination match found:', destinationMatch);
     
     // 🆕 STEP 3 & 4: Auto-map if exists, leave empty if not
     const newRowValue = destinationMatch ? destinationMatch.value : '';
-    console.info(`🔍 DEBUG: Creating new row - Source: "${nextUnmappedSource.value}", Destination: "${newRowValue || 'empty'}"`);
-    
-    if (destinationMatch) {
-      console.info(`✅ Auto-mapping: ${nextUnmappedSource.value} -> ${destinationMatch.value}`);
-    } else {
-      console.info(`⚠️ No destination match for "${nextUnmappedSource.value}" - leaving destination empty for manual selection`);
-    }
-    
     
     // Add new row with intelligent defaults
     setcmsLocaleOptions((prevList: { label: string; value: string }[]) => [
@@ -1221,13 +1175,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
                   localeMapping[key] !== null && // Exclude null mappings
                   localeMapping[key] !== undefined // Exclude undefined mappings
                 ).length;
-                
-                console.info('🔍 DEBUG: Add Language Button Logic:', {
-                  totalSourceLocales,
-                  actualMappedSourceLocales,
-                  visibleRowsCount,
-                  localeMapping
-                });
                 
                 // Disable if: all source locales are mapped OR all source locales have visible rows OR project is completed
                 const shouldDisable = actualMappedSourceLocales >= totalSourceLocales || 

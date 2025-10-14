@@ -211,37 +211,17 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
   },[newMigrationData]);
   
   useEffect(()=>{
-   // Debug logging for completion check
-   console.info('🔍 === LEGACY CMS COMPLETION CHECK ===');
-   console.info('📊 Current state:', {
-     affix: newMigrationData?.legacy_cms?.affix,
-     selectedFileFormat: newMigrationData?.legacy_cms?.selectedFileFormat,
-     selectedCms: newMigrationData?.legacy_cms?.selectedCms,
-     uploadedFile: newMigrationData?.legacy_cms?.uploadedFile,
-     isValidated: newMigrationData?.legacy_cms?.uploadedFile?.isValidated
-   });
-   
-   console.info('✅ Individual conditions:');
-   console.info('  - affix exists:', !isEmptyString(newMigrationData?.legacy_cms?.affix));
-   console.info('  - selectedFileFormat.title exists:', !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.title));
-   console.info('  - selectedCms.title exists:', !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title));
-   console.info('  - uploadedFile.isValidated:', newMigrationData?.legacy_cms?.uploadedFile?.isValidated);
-   
    const allConditionsMet = !isEmptyString(newMigrationData?.legacy_cms?.affix) 
       && !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.title) &&
     ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) && 
     newMigrationData?.legacy_cms?.uploadedFile?.isValidated;
     
-   console.info('🎯 All conditions met:', allConditionsMet);
-   console.info('=====================================');
    
    if(allConditionsMet){
-      console.info('✅ Setting all steps completed to TRUE');
       setIsAllStepsCompleted(true);
       handleAllStepsComplete(true);
     }
     else{
-      console.info('❌ Setting all steps completed to FALSE');
       setIsAllStepsCompleted(false);
       handleAllStepsComplete(false);
     }

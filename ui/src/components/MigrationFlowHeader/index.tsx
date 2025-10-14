@@ -65,7 +65,6 @@ const MigrationFlowHeader = ({
     
     // Only navigate if there's a mismatch and we have valid data
     if (urlStep !== dbStep && dbStep && params?.projectId) {
-      console.info(`🔄 Step mismatch detected: URL shows step ${urlStep}, DB shows step ${dbStep}. Redirecting...`);
       const url = `/projects/${params?.projectId}/migration/steps/${dbStep}`;
       navigate(url, { replace: true });
     }

@@ -137,7 +137,6 @@ const Migration = () => {
         value !== null &&
         value !== undefined
     );
-    //console.info("legacyCMSRef?.current ", legacyCMSRef?.current,legacyCMSRef?.current?.getInternalActiveStepIndex())
     if(legacyCMSRef?.current && newMigrationData?.project_current_step === 1 && legacyCMSRef?.current?.getInternalActiveStepIndex() > -1){
       setIsSaved(true);    
     }
@@ -522,10 +521,6 @@ const Migration = () => {
         mySQLDetails: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.mySQLDetails
       };
       
-      console.info('🔍 === FILE FORMAT API CALL DEBUG ===');
-      console.info('📋 Sending fileFormatData:', fileFormatData);
-      console.info('📋 mySQLDetails:', newMigrationData?.legacy_cms?.uploadedFile?.file_details?.mySQLDetails);
-      console.info('=====================================');
       
       await updateFileFormatData(selectedOrganisation?.value, projectId, fileFormatData);
       
@@ -533,14 +528,12 @@ const Migration = () => {
       const currentProjectData = await getMigrationData(selectedOrganisation?.value, projectId);
       const currentStep = currentProjectData?.data?.current_step;
       
-      console.info(`🔍 Current project step: ${currentStep}, attempting to proceed...`);
       
       // Only call updateCurrentStepData if we're at step 1 (to avoid 400 error)
       let res;
       if (currentStep === 1) {
         res = await updateCurrentStepData(selectedOrganisation.value, projectId);
       } else {
-        console.info(`⚠️ Project already at step ${currentStep}, skipping step update`);
         res = { status: 200 }; // Simulate success to continue flow
       }
 
@@ -601,8 +594,6 @@ const Migration = () => {
   const handleOnClickDestinationStack = async (event: MouseEvent) => {
     setIsLoading(true);
 
-    // 🔍 DEBUG: Log the actual localeMapping being validated
-    console.info('🔍 DEBUG: About to validate localeMapping:', JSON.stringify(newMigrationData?.destination_stack?.localeMapping, null, 2));
     
     const hasNonEmptyMapping =
       newMigrationData?.destination_stack?.localeMapping &&
@@ -617,8 +608,6 @@ const Migration = () => {
             labelNotNumeric: isNaN(Number(label))
           };
           
-          console.info(`🔍 DEBUG: Validating entry [${label}] = "${value}":`, conditions);
-          
           const passes = conditions.hasLabel &&
                          conditions.notEmptyValue &&
                          conditions.notNullValue &&
@@ -626,12 +615,9 @@ const Migration = () => {
                          conditions.labelNotUndefined &&
                          conditions.labelNotNumeric;
           
-          console.info(`🔍 DEBUG: Entry result: ${passes ? '✅ PASS' : '❌ FAIL'}`);
           return passes;
         }
       );
-    
-    console.info('🔍 DEBUG: Final hasNonEmptyMapping result:', hasNonEmptyMapping);
 
     const master_locale: LocalesType = {};
     const locales: LocalesType = {};

@@ -90,6 +90,7 @@ const AdvancePropertise = (props: SchemaProps) => {
   const [sourceTaxonomies, setSourceTaxonomies] = useState<Taxonomy[]>([]);
   const [destinationTaxonomies, setDestinationTaxonomies] = useState<Taxonomy[]>([]);
   const [referencedTaxonomies, setReferencedTaxonomies] = useState<ContentTypeOption[] | null>(referencedItems || null);
+  const [isTaxonomiesLoading, setIsTaxonomiesLoading] = useState<boolean>(false);
   const [showOptions, setShowOptions] = useState<Record<number, boolean>>({});
   const [showIcon, setShowIcon] = useState<number>();
   const filterRef = useRef<HTMLDivElement | null>(null);
@@ -107,17 +108,12 @@ const AdvancePropertise = (props: SchemaProps) => {
   }, []);
   
   useEffect(() => {
-    console.info('🔍 AdvancePropertise Props Debug:', {
-      fieldtype: props?.fieldtype,
-      referenceTo: props?.data?.referenceTo,
-      'advanced.reference_to': props?.data?.advanced?.reference_to,
-      'advanced.taxonomies': props?.data?.advanced?.taxonomies,
-      advancedFull: props?.data?.advanced,
-      fullData: props?.data
-    });
-    
     fetchContentTypes('');
-    fetchTaxonomies();
+    
+    // Only fetch taxonomies if this is a Taxonomy field
+    if (props?.fieldtype === 'Taxonomy') {
+      fetchTaxonomies();
+    }
   }, []);
 
   // Update referenced CT when content types are fetched (only for Reference fields)
@@ -129,14 +125,6 @@ const AdvancePropertise = (props: SchemaProps) => {
       const newReferences = props?.data?.referenceTo || [];
       const allReferenceUIDs = Array.from(new Set([...oldReferences, ...newReferences]));
       
-      console.info('🔍 Reference field - Loading selections:', {
-        'advanced.embedObjects': props?.data?.advanced?.embedObjects,
-        'advanced.reference_to': props?.data?.advanced?.reference_to,
-        oldFromUploadApi: oldReferences,
-        newFromUI: newReferences,
-        merged: allReferenceUIDs
-      });
-      
       if (allReferenceUIDs.length > 0) {
         const matchedCTs = allReferenceUIDs
           .map((uid: string) => {
@@ -144,12 +132,6 @@ const AdvancePropertise = (props: SchemaProps) => {
             return ct ? { label: ct.contentstackTitle, value: ct.contentstackUid } : null;
           })
           .filter(Boolean) as ContentTypeOption[];
-        
-        console.info('✅ Matched Referenced CTs (OLD + NEW):', {
-          fieldtype: props.fieldtype,
-          totalCount: matchedCTs.length,
-          matchedCTs
-        });
         
         if (matchedCTs.length > 0) {
           setReferencedCT(matchedCTs);
@@ -168,11 +150,7 @@ const AdvancePropertise = (props: SchemaProps) => {
       const newTaxonomies = props?.data?.referenceTo || [];
       const allTaxonomyUIDs = Array.from(new Set([...oldTaxonomies, ...newTaxonomies]));
       
-      console.info('🔍 Taxonomy field - Loading selections:', {
-        oldFromUploadApi: oldTaxonomies,
-        newFromUI: newTaxonomies,
-        merged: allTaxonomyUIDs
-      });
+      
       
       if (allTaxonomyUIDs.length > 0) {
         const matchedTaxonomies = allTaxonomyUIDs
@@ -182,12 +160,7 @@ const AdvancePropertise = (props: SchemaProps) => {
           })
           .filter(Boolean) as ContentTypeOption[];
         
-        console.info('✅ Matched Referenced Taxonomies (OLD + NEW):', {
-          fieldtype: props.fieldtype,
-          totalCount: matchedTaxonomies.length,
-          allTaxonomiesCount: allTaxonomies.length,
-          matchedTaxonomies
-        });
+        
         
         if (matchedTaxonomies.length > 0) {
           setReferencedTaxonomies(matchedTaxonomies);
@@ -213,28 +186,22 @@ const AdvancePropertise = (props: SchemaProps) => {
    * Fetches taxonomies from both source CMS and destination stack.
    */
   const fetchTaxonomies = async () => {
+    setIsTaxonomiesLoading(true);
     try {
-      console.info('🔄 Fetching taxonomies for project:', props?.projectId);
+      
       const { data } = await getExistingTaxonomies(props?.projectId ?? '');
       
-      console.info('📥 Received taxonomy data from API:', {
-        rawData: data,
-        sourceTaxonomiesCount: data?.sourceTaxonomies?.length || 0,
-        destinationTaxonomiesCount: data?.destinationTaxonomies?.length || 0,
-        sourceTaxonomies: data?.sourceTaxonomies,
-        destinationTaxonomies: data?.destinationTaxonomies
-      });
+      
       
       setSourceTaxonomies(data?.sourceTaxonomies || []);
       setDestinationTaxonomies(data?.destinationTaxonomies || []);
       
-      console.info('✅ Taxonomies state updated:', {
-        sourceCount: data?.sourceTaxonomies?.length || 0,
-        destinationCount: data?.destinationTaxonomies?.length || 0
-      });
+      
     } catch (error) {
       console.error('❌ Error fetching taxonomies:', error);
       return error;
+    } finally {
+      setIsTaxonomiesLoading(false);
     }
   };
 
@@ -723,11 +690,12 @@ const AdvancePropertise = (props: SchemaProps) => {
               <Select
                 value={referencedTaxonomies}
                 isMulti={true}
+                isDisabled={isTaxonomiesLoading}
                 onChange={(selectedOptions: ContentTypeOption[]) => {
-                  console.info('🎯 Taxonomy selection changed:', selectedOptions);
+                  
                   setReferencedTaxonomies(selectedOptions);
                   const taxonomyArray = selectedOptions?.map((item: optionsType) => item?.value);
-                  console.info('💾 Saving taxonomy references:', taxonomyArray);
+                  
 
                   props?.updateFieldSettings(
                     props?.rowId,
@@ -758,29 +726,27 @@ const AdvancePropertise = (props: SchemaProps) => {
                       value: taxonomy?.uid
                     }));
                     
-                    console.info('🎨 Dropdown options generated:', {
-                      totalOptions: dropdownOptions.length,
-                      sourceCount: sourceTaxonomies?.length || 0,
-                      destinationCount: destinationTaxonomies?.length || 0,
-                      uniqueCount: uniqueTaxonomiesMap.size,
-                      fullOptions: dropdownOptions
-                    });
+                    
                     
                     return dropdownOptions;
                   })()
                 }
-                placeholder="Add Taxonomy(ies)"
+                placeholder={isTaxonomiesLoading ? "Loading..." : "Add Taxonomy(ies)"}
                 version="v2"
                 isSearchable={true}
                 isClearable={true}
                 width="350px"
                 maxMenuHeight={200}
               />
-              {sourceTaxonomies?.length === 0 && destinationTaxonomies?.length === 0 && (
+              {isTaxonomiesLoading ? (
+                <InstructionText>
+                  Loading taxonomies...
+                </InstructionText>
+              ) : sourceTaxonomies?.length === 0 && destinationTaxonomies?.length === 0 ? (
                 <InstructionText>
                   No taxonomies found. Please upload source data or create taxonomies in your destination stack.
                 </InstructionText>
-              )}
+              ) : null}
             </Field>
           )}
 
