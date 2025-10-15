@@ -661,6 +661,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                           true
                         ))
                     }
+                    disabled={props?.fieldtype === 'Modular Blocks' || props?.fieldtype === 'Block'}
                   />
                 </div>
               )}
