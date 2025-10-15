@@ -333,7 +333,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if(field?.backupFieldType === 'reference' &&  field?.referenceTo?.length === 0) {
+      if(field?.backupFieldType === 'reference' &&  field?.refrenceTo?.length === 0) {
         field._canSelect = false;
       }
       else if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
@@ -860,7 +860,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
         const updatedRow = {
           ...row,
-          referenceTo: updatedSettings?.referenedItems,
+          refrenceTo: updatedSettings?.referenedItems,
           advanced: { ...row?.advanced, ...updatedSettings }
         };
         return updatedRow;
