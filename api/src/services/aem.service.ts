@@ -513,7 +513,16 @@ function processFieldsRecursive(fields: any[], items: any, title: string, assetJ
       case 'json': {
         const value = items?.[field?.uid];
         const uid = getLastKey(field?.contentstackFieldUid);
-        const jsonData = attachJsonRte({ content: value })
+        
+        let htmlContent = '';
+        
+        if (typeof value === 'string') {
+          htmlContent = value;
+        } else if (value && typeof value === 'object') {
+          htmlContent = value.text || value.content || '';
+        }
+        
+        const jsonData = attachJsonRte({ content: htmlContent });
         obj[uid] = jsonData;
         break;
       }
