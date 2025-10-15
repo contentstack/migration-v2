@@ -122,16 +122,16 @@ async function writeFiles(
   try {
     const indexPath = path.join(entryPath, 'index.json');
     const localePath = path.join(entryPath, `${locale}.json`);
-    
+
     try {
       await fs.promises.access(entryPath);
     } catch {
       await fs.promises.mkdir(entryPath, { recursive: true });
     }
-    
+
     await fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
     await fs.promises.writeFile(localePath, JSON.stringify(entryLocale));
-} catch (error) {
+  } catch (error) {
     console.error('Error writing files:', error);
     throw error;
   }
@@ -456,8 +456,9 @@ function processFieldsRecursive(fields: any[], items: any, title: string, assetJ
         break;
       }
       case 'boolean': {
-        const value = items?.[field?.uid];
-        const uid = getLastKey(field?.contentstackFieldUid);
+        const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : getLastKey(field?.uid);
+        const value = items?.[aemFieldName];
+        const uid = getLastKey(field?.contentstackFieldUid);     
         if (typeof value === 'boolean' || (typeof value === 'object' && value?.[':type']?.includes('separator'))) {
           obj[uid] = typeof value === 'boolean' ? value : true;
         }
@@ -482,19 +483,16 @@ function processFieldsRecursive(fields: any[], items: any, title: string, assetJ
       case 'reference': {
         const fieldKey = getLastKey(field?.contentstackFieldUid);
         const refCtUid = field?.referenceTo?.[0] || field?.uid;
-        
         for (const [key, val] of Object.entries(items) as [string, Record<string, unknown>][]) {
           if (!val?.configured || (val[':type'] as string) === 'nt:folder') {
             continue;
           }
-          
           if (
             (val[':type'] as string)?.includes('experiencefragment') &&
             typeof val?.localizedFragmentVariationPath === 'string'
           ) {
             const pathMatchesField = val.localizedFragmentVariationPath.includes(`/${field?.uid}`);
             const pathMatchesRefType = val.localizedFragmentVariationPath.includes(`/${refCtUid}`);
-            
             if (pathMatchesField || pathMatchesRefType) {
               obj[fieldKey] = [{
                 "uid": val?.id,
@@ -572,14 +570,14 @@ const createEntry = async ({
   const assetJson = path.join(assetsSave, ASSETS_SCHEMA_FILE);
   const exists = await isAssetJsonCreated(assetJson);
   let assetJsonData: Record<string, AssetJSON> = {};
-  
+
   if (exists) {
     const assetData = await fs.promises.readFile(assetJson, 'utf-8');
     if (typeof assetData === 'string') {
       assetJsonData = JSON.parse(assetData);
     }
   }
-  
+
   const entriesDir = path.resolve(packagePath ?? '');
   const damPath = path.join(entriesDir, AEM_DAM_DIR);
   const entriesData: Record<string, Record<string, any[]>> = {};
@@ -606,7 +604,7 @@ const createEntry = async ({
       const data = containerCreator(contentType?.fieldMapping, items, title, assetJsonData);
       data.uid = uid;
       data.publish_details = [];
-      
+
       if (contentType?.contentstackUid && data && mappedLocale) {
         const message = getLogMessage(
           srcFunc,
@@ -635,7 +633,7 @@ const createEntry = async ({
               if (key.endsWith('._content_type_uid') && typeof value === 'string') {
                 const uidField = key.replace('._content_type_uid', '');
                 const refs: string[] = entryMapping?.[value];
-                
+
                 if (refs?.length) {
                   _.set(entry, `${uidField}.uid`, refs[0]);
                 } else {
@@ -647,7 +645,7 @@ const createEntry = async ({
           const entriesObject: Record<string, any> = {};
           for (const entry of entries) {
             entriesObject[entry.uid] = entry;
-          }    
+          }
           const fileMeta = { '1': `${locale}.json` };
           const entryPath = path.join(
             process.cwd(),
