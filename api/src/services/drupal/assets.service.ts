@@ -37,6 +37,23 @@ interface DrupalAsset {
 }
 
 /**
+ * Interface to track asset download URLs and their status
+ */
+interface AssetUrlTracker {
+  success: Array<{
+    uid: string;
+    url: string;
+    filename: string;
+  }>;
+  failed: Array<{
+    uid: string;
+    url: string;
+    filename: string;
+    reason: string;
+  }>;
+}
+
+/**
  * Writes data to a specified file, ensuring the target directory exists.
  */
 async function writeFile(dirPath: string, filename: string, data: any) {
@@ -415,7 +432,9 @@ const saveAsset = async (
   baseUrl: string = '',
   publicPath: string = '/sites/default/files/',
   retryCount = 0,
-  authHeaders: any = {} // NEW: Support for authentication
+  authHeaders: any = {}, // Support for authentication
+  urlTracker?: AssetUrlTracker, // Track successful and failed URLs
+  userProvidedPublicPath?: string // Original user-provided path (for failed URL tracking)
 ): Promise<string> => {
   try {
     const srcFunc = 'saveAsset';
@@ -487,6 +506,15 @@ const saveAsset = async (
 
       metadata.push({ uid: assetId, url: fileUrl, filename: fileName });
 
+      // Track successful download
+      if (urlTracker) {
+        urlTracker.success.push({
+          uid: assetId,
+          url: fileUrl,
+          filename: fileName,
+        });
+      }
+
       if (failedJSON[assetId]) {
         delete failedJSON[assetId];
       }
@@ -521,10 +549,69 @@ const saveAsset = async (
           baseUrl,
           publicPath,
           retryCount + 1,
-          authHeaders
+          authHeaders,
+          urlTracker,
+          userProvidedPublicPath
         );
       } else {
-        // Failed after retries
+        // After 3 retries failed, try fallback paths (if not already tried)
+        const commonPaths = [
+          '/sites/default/files/',
+          '/sites/all/files/',
+          '/sites/g/files/bxs2566/files/', // Rice University specific
+          'sites/default/files/',
+          'sites/all/files/',
+        ];
+
+        // Only try fallback if current path is the user-provided path
+        const isUserProvidedPath =
+          publicPath === (userProvidedPublicPath || publicPath);
+
+        if (isUserProvidedPath) {
+          console.log(
+            `🔄 Primary path failed. Trying fallback paths for ${fileName}...`
+          );
+
+          // Try each common path
+          for (const fallbackPath of commonPaths) {
+            // Skip if already tried
+            if (fallbackPath === publicPath) {
+              continue;
+            }
+
+            console.log(`🔍 Trying fallback path: ${fallbackPath}`);
+
+            try {
+              // Attempt download with fallback path (reset retry count)
+              const result = await saveAsset(
+                assets,
+                failedJSON,
+                assetData,
+                metadata,
+                projectId,
+                destination_stack_id,
+                baseUrl,
+                fallbackPath,
+                0, // Reset retry count for fallback attempt
+                authHeaders,
+                urlTracker,
+                userProvidedPublicPath || publicPath // Keep original user path for tracking
+              );
+
+              // Check if asset was actually saved (exists in assetData)
+              if (assetData[assetId]) {
+                console.log(`✅ Success with fallback path: ${fallbackPath}`);
+                return result; // Successfully downloaded with fallback path
+              }
+            } catch (fallbackErr) {
+              // Continue to next fallback path
+              console.log(`❌ Fallback path ${fallbackPath} also failed`);
+              continue;
+            }
+          }
+        }
+
+        // All attempts failed - log failure
         const errorDetails = {
           status: err.response?.status,
           statusText: err.response?.statusText,
@@ -532,17 +619,36 @@ const saveAsset = async (
           url: fileUrl,
         };
 
+        // Use user-provided public path for the failed URL
+        const failedUrl = constructAssetUrl(
+          assets.uri,
+          baseUrl,
+          userProvidedPublicPath || publicPath
+        );
+
         failedJSON[assetId] = {
           failedUid: assets.fid,
           name: fileName,
-          url: fileUrl,
+          url: failedUrl,
           file_size: assets.filesize,
           reason_for_error: JSON.stringify(errorDetails),
         };
 
+        // Track failed download with user-provided URL
+        if (urlTracker) {
+          urlTracker.failed.push({
+            uid: assetId,
+            url: failedUrl,
+            filename: fileName,
+            reason: `${err.response?.status || 'Network error'}: ${
+              err.message
+            }`,
+          });
+        }
+
         const message = getLogMessage(
           srcFunc,
-          `❌ Failed to download "${fileName}" (${assets.fid}): ${err.message}`,
+          `❌ Failed to download "${fileName}" (${assets.fid}) after all attempts: ${err.message}`,
           {},
           err
         );
@@ -613,7 +719,9 @@ const retryFailedAssets = async (
   destination_stack_id: string,
   baseUrl: string = '',
   publicPath: string = '/sites/default/files/',
-  authHeaders: any = {}
+  authHeaders: any = {},
+  urlTracker?: AssetUrlTracker,
+  userProvidedPublicPath?: string
 ): Promise<void> => {
   const srcFunc = 'retryFailedAssets';
 
@@ -641,7 +749,9 @@ const retryFailedAssets = async (
             baseUrl,
             publicPath,
             0,
-            authHeaders
+            authHeaders,
+            urlTracker,
+            userProvidedPublicPath
           )
         )
       );
@@ -721,6 +831,12 @@ export const createAssets = async (
     const fileMeta = { '1': ASSETS_SCHEMA_FILE };
     const failedAssetIds: string[] = [];
 
+    // Initialize URL tracker for assets_url.json
+    const urlTracker: AssetUrlTracker = {
+      success: [],
+      failed: [],
+    };
+
     const message = getLogMessage(
       srcFunc,
       `Exporting assets using base URL: ${baseUrl} and public path: ${detectedPublicPath}`,
@@ -756,7 +872,9 @@ export const createAssets = async (
               baseUrl,
               detectedPublicPath, // Use detected path
               0,
-              {} // authHeaders
+              {}, // authHeaders
+              urlTracker, // Pass URL tracker
+              publicPath || detectedPublicPath // Use original user-provided path for tracking
             );
           } catch (error) {
             failedAssetIds.push(asset.fid.toString());
@@ -791,7 +909,10 @@ export const createAssets = async (
           projectId,
           destination_stack_id,
           baseUrl,
-          detectedPublicPath // Use detected path
+          detectedPublicPath, // Use detected path
+          {}, // authHeaders
+          urlTracker, // Pass URL tracker
+          publicPath || detectedPublicPath // User-provided path for tracking
         );
       }
 
@@ -801,6 +922,15 @@ export const createAssets = async (
       if (Object.keys(failedJSON).length > 0) {
         await writeFile(assetMasterFolderPath, ASSETS_FAILED_FILE, failedJSON);
       }
+
+      // Write assets_url.json with successful and failed URLs
+      await writeFile(assetsSave, 'assets_url.json', urlTracker);
+
+      console.log(`📊 Asset URL Summary:`);
+      console.log(
+        `   ✅ Successfully downloaded: ${urlTracker.success.length}`
+      );
+      console.log(`   ❌ Failed downloads: ${urlTracker.failed.length}`);
 
       const successMessage = getLogMessage(
         srcFunc,
