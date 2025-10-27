@@ -52,8 +52,16 @@ type IStyle = {
  * @param props - The props for the ProgressBar component.
  * @returns The rendered ProgressBar component.
  */
-const ProgressBar = (props: ProgressBarProps) => {
-  const { percentage, color, height, borderRadius, type, radius, stroke, bgColor } = props;
+const ProgressBar = ({
+  percentage,
+  color = '#52c0ff',
+  height = 5,
+  borderRadius = 4,
+  type = 'bar',
+  radius = 20,
+  stroke = 4,
+  bgColor = 'white'
+}: ProgressBarProps) => {
 
   const containerStyle: IStyle = {};
   const barStyle: IStyle = {
@@ -76,9 +84,9 @@ const ProgressBar = (props: ProgressBarProps) => {
     barStyle.backgroundColor = color;
   }
   if (type === 'circle') {
-    const normalizedRadius: any = (radius || 0 - (stroke || 0)) * 2;
-    const circumference: any = normalizedRadius * 2 * Math.PI;
-    const strokeDashoffset: any = circumference - (percentage / 100) * circumference;
+    const normalizedRadius: number = ((radius || 0) - (stroke || 0)) * 2;
+    const circumference: number = normalizedRadius * 2 * Math.PI;
+    const strokeDashoffset: number = circumference - (percentage / 100) * circumference;
     return (
       <>
         <svg height={radius || 0 * 2} width={radius || 0 * 2}>
@@ -111,15 +119,5 @@ const ProgressBar = (props: ProgressBarProps) => {
     </div>
   );
 };
-
-ProgressBar.defaultProps = {
-  color: '#52c0ff',
-  borderRadius: 4,
-  height: 5,
-  type: 'bar',
-  stroke: 4,
-  radius: 20,
-  bgColor: 'white'
-} as Partial<ProgressBarProps>;
 
 export default ProgressBar;
