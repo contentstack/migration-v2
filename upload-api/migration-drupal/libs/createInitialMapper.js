@@ -96,15 +96,11 @@ const createInitialMapper = async (systemConfig, prefix) => {
         const bundleName = conv_details?.bundle?.toLowerCase();
         if (bundleName === 'profile') {
           profileFieldsFiltered++;
-          console.log(
-            `🚫 Filtered out profile field: ${conv_details?.field_name} (bundle: ${conv_details?.bundle})`
-          );
           continue; // Skip profile fields
         }
 
         // Double check - don't add if content_types would be 'profile'
         if (conv_details?.bundle?.toLowerCase() === 'profile') {
-          console.log(`⚠️ Skipping profile data that slipped through first filter`);
           continue;
         }
 
@@ -125,10 +121,6 @@ const createInitialMapper = async (systemConfig, prefix) => {
       }
     }
 
-    if (profileFieldsFiltered > 0) {
-      console.log(`✅ Filtered out ${profileFieldsFiltered} profile fields`);
-    }
-
     if (details_data.length === 0) {
       return { contentTypes: [] };
     }
@@ -140,19 +132,10 @@ const createInitialMapper = async (systemConfig, prefix) => {
       (contentType) => contentType && contentType.toLowerCase() !== 'profile'
     );
 
-    console.log(`📋 Content Types Found: ${allContentTypes.length}`);
-    console.log(`   All: ${allContentTypes.join(', ')}`);
-    console.log(`   After filtering profile: ${contentTypes.join(', ')}`);
-
-    if (allContentTypes.some((ct) => ct && ct.toLowerCase() === 'profile')) {
-      console.log('⚠️  WARNING: Profile was in content types list but has been filtered out');
-    }
-
     // Process each content type
     for (const contentType of contentTypes) {
       // Extra safety check - skip if contentType is profile (case-insensitive)
       if (!contentType || contentType.toLowerCase() === 'profile') {
-        console.log(`🚫 Skipping profile content type in processing loop`);
         continue;
       }
 
@@ -202,18 +185,12 @@ const createInitialMapper = async (systemConfig, prefix) => {
 
       // Final safety check before writing file - NEVER write profile.json
       if (contentType.toLowerCase() === 'profile') {
-        console.log(`🛑 BLOCKED: Attempted to create profile.json - skipping!`);
         continue;
       }
 
       const filePath = path.join(drupalFolderPath, `${contentType}.json`);
       await fsp.writeFile(filePath, JSON.stringify(main, null, 4));
-      console.log(`✓ Created: ${contentType}.json`);
     }
-
-    console.log(
-      `\n✅ Successfully created ${contentTypes.length} content type files (profile excluded)`
-    );
 
     // Close database connection
     connection.end();

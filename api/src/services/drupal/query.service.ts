@@ -220,7 +220,6 @@ const generateQueriesForFields = async (
         const validResults = results.filter((item) => item);
 
         if (validResults.length === 0) {
-          console.log(`No valid fields found for content type ${contentType}`);
           continue;
         }
 
@@ -420,7 +419,6 @@ export const createQuery = async (
     if (connection) {
       try {
         connection.end();
-        console.info('Database connection closed');
       } catch (err: any) {
         console.warn('Connection was already closed:', err.message);
       }
