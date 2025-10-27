@@ -128,15 +128,6 @@ const Migration = () => {
   useBlockNavigation(isModalOpen);
 
   useEffect (()=>{
-    const hasNonEmptyMapping =
-    newMigrationData?.destination_stack?.localeMapping &&
-    Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
-      ([label, value]: [string, string]) =>
-        Boolean(label?.trim()) &&
-        value !== '' &&
-        value !== null &&
-        value !== undefined
-    );
     if(legacyCMSRef?.current && newMigrationData?.project_current_step === 1 && legacyCMSRef?.current?.getInternalActiveStepIndex() > -1){
       setIsSaved(true);    
     }
@@ -594,10 +585,138 @@ const Migration = () => {
   const handleOnClickDestinationStack = async (event: MouseEvent) => {
     setIsLoading(true);
 
+    // 🚀 PHASE 4: Auto-map remaining unmapped source locales before Continue
+    let currentMapping = newMigrationData?.destination_stack?.localeMapping || {};
     
+    // 🔧 FIX: If Redux localeMapping is empty, fetch from backend
+    if ( Object.keys( currentMapping ).length === 0 )
+    {
+      try {
+        const projectData: any = await getMigrationData(selectedOrganisation?.value, projectId);
+        
+        // ✅ FIX: Access data.data because API returns {data: {project}, status, ...}
+        const project = projectData?.data || projectData;
+        
+        // Reconstruct localeMapping from master_locale and locales
+        const backendMapping: Record<string, string> = {};
+        
+        if (project?.master_locale) {
+          Object.entries(project.master_locale).forEach(([key, value]) => {
+            backendMapping[`${key}-master_locale`] = value as string;
+          });
+        }
+        
+        if (project?.locales) {
+          Object.entries(project.locales).forEach(([key, value]) => {
+            backendMapping[key] = value as string;
+          });
+        }
+        
+        
+        if (Object.keys(backendMapping).length > 0) {
+          currentMapping = backendMapping;
+          
+          // Update Redux with the backend mapping
+          dispatch(updateNewMigrationData({
+            ...newMigrationData,
+            destination_stack: {
+              ...newMigrationData?.destination_stack,
+              localeMapping: backendMapping
+            }
+          }));
+          
+          }
+      } catch (error: unknown) {
+        console.error('❌ Phase 4: Failed to fetch locale mapping from backend:', error);
+      }
+    }
+    
+    const sourceLocales = newMigrationData?.destination_stack?.sourceLocale || [];
+    const destinationLocales = newMigrationData?.destination_stack?.selectedStack?.locales || [];
+    
+    // Find unmapped source locales
+    const mappedSourceLocales = new Set<string>();
+    Object.entries(currentMapping).forEach(([key, value]) => {
+      if (!key.includes('master_locale')) {
+        mappedSourceLocales.add(value as string);
+      }
+    });
+    
+    const unmappedSources = sourceLocales.filter((locale: any) => 
+      !mappedSourceLocales.has(locale.value || locale.code || locale)
+    );
+    
+    
+    // Find available destination locales
+    const usedDestinationLocales = new Set<string>(Object.keys(currentMapping));
+    const availableDestinations = destinationLocales.filter((locale: any) => {
+      const localeCode = locale.value || locale.code || locale;
+      return !usedDestinationLocales.has(localeCode) && localeCode !== newMigrationData?.destination_stack?.selectedStack?.master_locale;
+    });
+    
+    
+    // Auto-map remaining unmapped sources to available destinations
+    let finalMapping = currentMapping;
+    if (unmappedSources.length > 0 && availableDestinations.length > 0) {
+      const finalAutoMapping = { ...currentMapping };
+      
+      unmappedSources.forEach((sourceLocale: any, index: number) => {
+        if (index < availableDestinations.length) {
+          const sourceCode = sourceLocale.value || sourceLocale.code || sourceLocale;
+          const destLocale: any = availableDestinations[index];
+          const destCode = destLocale?.value || destLocale?.code || destLocale;
+          finalAutoMapping[destCode] = sourceCode;
+        }
+      });
+      
+      // Update Redux with final mappings
+      dispatch(updateNewMigrationData({
+        ...newMigrationData,
+        destination_stack: {
+          ...newMigrationData?.destination_stack,
+          localeMapping: finalAutoMapping
+        }
+      }));
+      
+      finalMapping = finalAutoMapping;
+      
+      // 🚀 PHASE 4: Save final auto-mapping to backend immediately
+      try {
+        const phase4_master_locale: LocalesType = {};
+        const phase4_locales: LocalesType = {};
+        Object.entries(finalAutoMapping)?.forEach(([key, value]) => {
+          if (key?.includes('master_locale')) {
+            phase4_master_locale[key?.replace('-master_locale', '')] = value;
+          } else {
+            phase4_locales[key] = value;
+          }
+        });
+        
+        await updateLocaleMapper(projectId, {
+          master_locale: phase4_master_locale,
+          locales: phase4_locales
+        });
+      } catch (error: unknown) {
+        console.error('❌ Phase 4: Failed to save final auto-mapping:', error);
+      }
+    }
+    
+    // Parse master_locale and locales from the final mapping
+    const master_locale: LocalesType = {};
+    const locales: LocalesType = {};
+    Object.entries(finalMapping)?.forEach(([key, value]) => {
+      if (key?.includes('master_locale')) {
+        master_locale[key?.replace('-master_locale', '')] = value;
+      } else {
+        locales[key] = value;
+      }
+    });
+
+    // ✅ Check if finalMapping has valid entries (after Phase 4)
     const hasNonEmptyMapping =
-      newMigrationData?.destination_stack?.localeMapping &&
-      Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
+      finalMapping &&
+      Object.keys(finalMapping).length > 0 &&
+      Object.entries(finalMapping)?.every(
         ([label, value]: [string, string]) => {
           const conditions = {
             hasLabel: Boolean(label?.trim()),
@@ -619,21 +738,13 @@ const Migration = () => {
         }
       );
 
-    const master_locale: LocalesType = {};
-    const locales: LocalesType = {};
-    Object.entries(newMigrationData?.destination_stack?.localeMapping)?.forEach(([key, value]) => {
-      if (key?.includes('master_locale')) {
-        master_locale[key?.replace('-master_locale', '')] = value;
-      } else {
-        locales[key] = value;
-      }
-    });
     if (
       isCompleted &&
       !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) &&
       hasNonEmptyMapping
     ) {
       event?.preventDefault();
+      
       //Update Data in backend
       await updateDestinationStack(selectedOrganisation?.value, projectId, {
         stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
@@ -646,6 +757,7 @@ const Migration = () => {
         created_at: newMigrationData?.destination_stack?.selectedStack?.created_at,
         isNewStack: newMigrationData?.destination_stack?.selectedStack?.isNewStack
       });
+      
       await updateLocaleMapper(projectId, { master_locale: master_locale, locales: locales });
       const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
       if (res?.status === 200) {

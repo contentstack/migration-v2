@@ -54,11 +54,15 @@ export function mapDrupalLocales({
   locale,
   locales,
   localeMapping,
+  sourceMasterLocale,
+  destinationMasterLocale,
 }: {
   masterLocale: string;
   locale: string;
   locales?: any;
   localeMapping?: Record<string, string>;
+  sourceMasterLocale?: string;
+  destinationMasterLocale?: string;
 }): string {
   // Priority 1: Check direct locale mapping from UI (format: { "en-master_locale": "fr-fr", "es": "es-es" })
   if (localeMapping) {
@@ -88,7 +92,26 @@ export function mapDrupalLocales({
     }
   }
 
-  // Priority 4: Return locale as-is (lowercase)
+  // Priority 4: If this is the source master locale, map to destination master locale
+  // This handles the case where user selected a custom master locale (e.g., "div-mv") in UI
+  // but locale mapping wasn't saved in project.master_locale/locales
+  if (
+    sourceMasterLocale &&
+    destinationMasterLocale &&
+    locale === sourceMasterLocale
+  ) {
+    return destinationMasterLocale?.toLowerCase?.();
+  }
+
+  // Priority 5: Check if locale matches the destination master locale (already in correct format)
+  if (
+    destinationMasterLocale &&
+    locale?.toLowerCase?.() === destinationMasterLocale?.toLowerCase?.()
+  ) {
+    return destinationMasterLocale?.toLowerCase?.();
+  }
+
+  // Priority 6: Return locale as-is (lowercase)
   return locale?.toLowerCase?.() || locale;
 }
 
@@ -271,19 +294,20 @@ export const createLocale = async (
     // 3. Get user-selected locale mapping from UI (project.localeMapping or project.locales/master_locale)
     // localeMapping format: { "en-master_locale": "fr-fr", "es": "es-es", ... }
     const localeMapping = project?.localeMapping || {};
+    // ✅ FIX: Use LOCALE_MAPPER as fallback like WordPress does (but stackDetails.master_locale takes precedence)
     const masterLocaleFromProject = project?.master_locale || {};
     const localesFromProject = project?.locales || {};
 
     // 4. Fetch locale names from Contentstack API
     const [err, localesApiResponse] = await getAllLocales();
-    const contentstackLocales = localesApiResponse?.data?.locales || {};
+    const contentstackLocales = localesApiResponse || {}; // ✅ FIX: getAllLocales already returns the locales object
 
     // 5. Map source locales to destination locales using user selection
     // Find the destination master locale based on source master locale
     const masterLocaleKey = `${sourceMasterLocale}-master_locale`;
     let destinationMasterLocale =
       localeMapping[masterLocaleKey] ||
-      Object.keys(masterLocaleFromProject)?.[0] ||
+      Object.values(masterLocaleFromProject)?.[0] || // ✅ FIX: Use VALUES not KEYS!
       project?.stackDetails?.master_locale ||
       'en-us';
 

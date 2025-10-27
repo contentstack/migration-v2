@@ -37,15 +37,6 @@ interface UploadState {
 
 
 const FileComponent = ({ fileDetails }: Props) => {
-  console.info('🖼️ FileComponent render:', {
-    isLocalPath: fileDetails?.isLocalPath,
-    isSQL: fileDetails?.isSQL,
-    localPath: fileDetails?.localPath,
-    hasMySQL: !!fileDetails?.mySQLDetails,
-    hasAWS: !!fileDetails?.awsData,
-    mysqlHost: fileDetails?.mySQLDetails?.host,
-    awsRegion: fileDetails?.awsData?.awsRegion
-  });
 
   return (
     <div>
@@ -355,12 +346,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     // Always update fileDetails from Redux, even if it's empty (to clear stale data)
     setFileDetails(latestFileDetails);
     
-    console.info('📋 LoadUploadFile: fileDetails updated from Redux', {
-      isSQL: latestFileDetails?.isSQL,
-      hasMySQL: !!latestFileDetails?.mySQLDetails,
-      hasAWS: !!latestFileDetails?.awsData,
-      localPath: latestFileDetails?.localPath
-    });
   }, [newMigrationData?.legacy_cms?.uploadedFile?.file_details]);
 
   useEffect(() => {

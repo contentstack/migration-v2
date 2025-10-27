@@ -1160,6 +1160,19 @@ const processEntries = async (
       ...(project?.locales || {}),
     };
 
+    // Get source master locale from database query
+    // Use the masterLocale parameter which was fetched from Drupal's system.site config
+    const sourceMasterLocale = masterLocale || 'en';
+
+    // Get destination master locale from project configuration
+    // Priority: localeMapping -> master_locale values -> stackDetails.master_locale -> masterLocale
+    const masterLocaleKey = `${sourceMasterLocale}-master_locale`;
+    const destinationMasterLocale =
+      localeMapping?.[masterLocaleKey] ||
+      Object.values(project?.master_locale || {})?.[0] || // ✅ Use values() not keys()!
+      project?.stackDetails?.master_locale ||
+      masterLocale ||
+      'en-us';
     // Apply source locale transformation rules first (und → en-us, etc.)
     // Then map the transformed source locale to destination locale using user's selection
     Object.entries(entriesByLocale).forEach(([originalLocale, entries]) => {
@@ -1197,6 +1210,8 @@ const processEntries = async (
         locale: transformedSourceLocale,
         locales: localesFromProject,
         localeMapping,
+        sourceMasterLocale,
+        destinationMasterLocale,
       });
 
       // Merge entries if destination locale already has entries
