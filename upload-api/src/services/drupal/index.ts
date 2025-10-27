@@ -51,9 +51,9 @@ const createDrupalMapper = async (
       console.error('❌ Error reading taxonomy file:', error);
     }
 
-    // Include assetsConfig, mySQLDetails, and taxonomies with the mapper data
+    // Build the complete mapper payload with all content types
     const mapperPayload = {
-      ...initialMapper,
+      contentTypes: initialMapper.contentTypes, // All content types (no profile)
       assetsConfig: config.assetsConfig,
       mySQLDetails: config.mysql,
       taxonomies: taxonomies // Add taxonomies to payload

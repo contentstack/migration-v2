@@ -67,7 +67,7 @@ export interface FieldMapType {
   contentstackUid: string;
   _invalid?: boolean;
   backupFieldUid: string;
-  refrenceTo: string[];
+  referenceTo: string[];
 }
 
 export interface Advanced {

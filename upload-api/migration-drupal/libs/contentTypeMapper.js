@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable operator-linebreak */
 
-const restrictedUid = require('../utils/restrictedKeyWords');
 const fs = require('fs');
 const path = require('path');
 
@@ -51,6 +51,18 @@ const idArray = require('../utils/restrictedKeyWords');
  */
 function startsWithNumber(str) {
   return /^\d/.test(str);
+}
+
+/**
+ * Helper function to filter out profile from reference fields
+ * @param {Array} referenceFields - Array of content type UIDs
+ * @returns {Array} Filtered array without profile
+ */
+function filterOutProfile(referenceFields) {
+  if (!Array.isArray(referenceFields)) {
+    return referenceFields;
+  }
+  return referenceFields.filter((ref) => ref && ref.toLowerCase() !== 'profile');
 }
 
 /**
@@ -484,7 +496,7 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
       case 'text_long': {
         // Rich text with switching options: JSON RTE → HTML RTE → multiline → text
         const availableContentTypes = contentTypes?.filter((ct) => ct !== item.content_types) || [];
-        const referenceFields = availableContentTypes.slice(0, 10);
+        const referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
         acc.push(createFieldObject(item, 'json', 'html', referenceFields));
         break;
       }
@@ -506,7 +518,7 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
       case 'string': {
         // Single line with switching options: single_line → multiline → HTML RTE → JSON RTE
         const availableContentTypes = contentTypes?.filter((ct) => ct !== item.content_types) || [];
-        const referenceFields = availableContentTypes.slice(0, 10);
+        const referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
         acc.push(createFieldObject(item, 'single_line_text', 'multi_line_text', referenceFields));
         break;
       }
@@ -594,7 +606,7 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
             // Use available content types instead of generic 'taxonomy'
             const availableContentTypes =
               contentTypes?.filter((ct) => ct !== item.content_types) || [];
-            const referenceFields = availableContentTypes.slice(0, 10);
+            const referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
             acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
           }
         } else if (item.handler === 'default:node') {
@@ -602,13 +614,13 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
           let referenceFields = [];
 
           if (item.reference && Object.keys(item.reference).length > 0) {
-            // Use specific content types from field configuration
-            referenceFields = Object.keys(item.reference);
+            // Use specific content types from field configuration (filter out profile)
+            referenceFields = filterOutProfile(Object.keys(item.reference));
           } else {
             // Backup: Use up to 10 content types from available content types
             const availableContentTypes =
               contentTypes?.filter((ct) => ct !== item.content_types) || [];
-            referenceFields = availableContentTypes.slice(0, 10);
+            referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
           }
 
           acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
@@ -616,7 +628,7 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
           // Handle other entity references - exclude taxonomy and limit to 10 content types
           const availableContentTypes =
             contentTypes?.filter((ct) => ct !== item.content_types) || [];
-          const referenceFields = availableContentTypes.slice(0, 10);
+          const referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
           acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
         }
         break;

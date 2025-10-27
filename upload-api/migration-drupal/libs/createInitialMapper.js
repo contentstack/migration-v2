@@ -12,7 +12,7 @@ const contentTypeMapper = require('./contentTypeMapper');
 /**
  * Internal module dependencies.
  */
-const { dbConnection, writeFile } = require('../utils/helper');
+const { dbConnection } = require('../utils/helper');
 const config = require('../config');
 const idArray = require('../utils/restrictedKeyWords');
 
@@ -86,10 +86,27 @@ const createInitialMapper = async (systemConfig, prefix) => {
     const details_data = [];
 
     // Process each row to extract field data
+    let profileFieldsFiltered = 0;
     for (let i = 0; i < rows.length; i++) {
       try {
         const { unserialize } = require('php-serialize');
         const conv_details = unserialize(rows[i].data);
+
+        // Filter out profile content type fields (case-insensitive)
+        const bundleName = conv_details?.bundle?.toLowerCase();
+        if (bundleName === 'profile') {
+          profileFieldsFiltered++;
+          console.log(
+            `🚫 Filtered out profile field: ${conv_details?.field_name} (bundle: ${conv_details?.bundle})`
+          );
+          continue; // Skip profile fields
+        }
+
+        // Double check - don't add if content_types would be 'profile'
+        if (conv_details?.bundle?.toLowerCase() === 'profile') {
+          console.log(`⚠️ Skipping profile data that slipped through first filter`);
+          continue;
+        }
 
         details_data.push({
           field_label: conv_details?.label,
@@ -108,15 +125,37 @@ const createInitialMapper = async (systemConfig, prefix) => {
       }
     }
 
+    if (profileFieldsFiltered > 0) {
+      console.log(`✅ Filtered out ${profileFieldsFiltered} profile fields`);
+    }
+
     if (details_data.length === 0) {
       return { contentTypes: [] };
     }
 
     const initialMapper = [];
-    const contentTypes = Object.keys(require('lodash').keyBy(details_data, 'content_types'));
+    const allContentTypes = Object.keys(require('lodash').keyBy(details_data, 'content_types'));
+    // Aggressive filter: remove profile (case-insensitive) and any null/undefined
+    const contentTypes = allContentTypes.filter(
+      (contentType) => contentType && contentType.toLowerCase() !== 'profile'
+    );
+
+    console.log(`📋 Content Types Found: ${allContentTypes.length}`);
+    console.log(`   All: ${allContentTypes.join(', ')}`);
+    console.log(`   After filtering profile: ${contentTypes.join(', ')}`);
+
+    if (allContentTypes.some((ct) => ct && ct.toLowerCase() === 'profile')) {
+      console.log('⚠️  WARNING: Profile was in content types list but has been filtered out');
+    }
 
     // Process each content type
     for (const contentType of contentTypes) {
+      // Extra safety check - skip if contentType is profile (case-insensitive)
+      if (!contentType || contentType.toLowerCase() === 'profile') {
+        console.log(`🚫 Skipping profile content type in processing loop`);
+        continue;
+      }
+
       const contentTypeFields = require('lodash').filter(details_data, {
         content_types: contentType
       });
@@ -161,11 +200,20 @@ const createInitialMapper = async (systemConfig, prefix) => {
         }
       };
 
-      await fsp.writeFile(
-        path.join(drupalFolderPath, `${contentType}.json`),
-        JSON.stringify(main, null, 4)
-      );
+      // Final safety check before writing file - NEVER write profile.json
+      if (contentType.toLowerCase() === 'profile') {
+        console.log(`🛑 BLOCKED: Attempted to create profile.json - skipping!`);
+        continue;
+      }
+
+      const filePath = path.join(drupalFolderPath, `${contentType}.json`);
+      await fsp.writeFile(filePath, JSON.stringify(main, null, 4));
+      console.log(`✓ Created: ${contentType}.json`);
     }
+
+    console.log(
+      `\n✅ Successfully created ${contentTypes.length} content type files (profile excluded)`
+    );
 
     // Close database connection
     connection.end();

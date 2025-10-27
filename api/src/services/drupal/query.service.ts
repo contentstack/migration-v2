@@ -138,10 +138,10 @@ const generateQueriesForFields = async (
     const select: { [contentType: string]: string } = {};
     const countQuery: { [contentType: string]: string } = {};
 
-    // Group fields by content type
+    // Group fields by content type and filter out profile
     const contentTypes = [
       ...new Set(fieldData.map((field) => field.content_types)),
-    ];
+    ].filter((contentType) => contentType !== 'profile');
 
     const message = `Processing ${contentTypes.length} content types for query generation...`;
     await customLogger(projectId, destination_stack_id, 'info', message);
@@ -242,7 +242,7 @@ const generateQueriesForFields = async (
 
         // Construct the complete query
         const selectClause = [
-          'SELECT node.nid, MAX(node.title) AS title, MAX(node.langcode) AS langcode, MAX(node.created) as created, MAX(node.type) as type',
+          'SELECT node.nid, MAX(node.title) AS title, MAX(node.langcode) AS langcode, MAX(node.type) as type',
           ...modifiedResults,
         ].join(',');
 
@@ -368,7 +368,8 @@ export const createQuery = async (
         if (
           convDetails &&
           typeof convDetails === 'object' &&
-          'field_name' in convDetails
+          'field_name' in convDetails &&
+          convDetails.bundle !== 'profile' // Filter out profile fields
         ) {
           fieldData.push({
             field_name: convDetails.field_name,
@@ -386,7 +387,7 @@ export const createQuery = async (
       throw new Error('No field configuration found in Drupal database');
     }
 
-    const fieldMessage = `Found ${fieldData.length} field configurations in database`;
+    const fieldMessage = `Found ${fieldData.length} field configurations in database (profile fields filtered out)`;
     await customLogger(projectId, destination_stack_id, 'info', fieldMessage);
 
     // Generate queries based on field data
