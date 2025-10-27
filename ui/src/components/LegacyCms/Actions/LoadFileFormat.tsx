@@ -32,7 +32,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   const [isCheckedBoxChecked] = useState<boolean>(
     newMigrationData?.legacy_cms?.isFileFormatCheckboxChecked || true
   );
-  const [fileIcon, setFileIcon]  = useState(newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat?.title);
+  const [fileIcon, setFileIcon] = useState<string>('');
   const [isError, setIsError] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -57,74 +57,104 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   const handleFileFormat = async() =>{
     try {
-    
-      const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) ? newMigrationData?.legacy_cms?.selectedCms?.parent : newMigrationData?.legacy_cms?.uploadedFile?.cmsType;
+      
+      const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) 
+        ? newMigrationData?.legacy_cms?.selectedCms?.parent 
+        : newMigrationData?.legacy_cms?.uploadedFile?.cmsType;
       const filePath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath?.toLowerCase();
+      
+      // Check if this is a SQL connection with multiple fallback indicators
+      const isSQLFromFlag = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isSQL === true;
+      const isSQLFromName = newMigrationData?.legacy_cms?.uploadedFile?.name?.toLowerCase() === 'sql';
+      const isSQLFromPath = filePath === 'sql';
+      const isSQLFromAwsData = (newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData as any)?.mysql !== undefined;
+      
+      // SQL connection is true if ANY of these indicators are true
+      const isSQLConnection = isSQLFromFlag || isSQLFromName || isSQLFromPath || isSQLFromAwsData;
       
       // Get file format from selectedFileFormat or detect from upload response
       let fileFormat: string = newMigrationData?.legacy_cms?.selectedFileFormat?.title?.toLowerCase();
       
       // If fileFormat is not set, try to detect from upload response
-      if (!fileFormat && newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isSQL) {
+      if (!fileFormat && isSQLConnection) {
         fileFormat = 'sql';
       }
-      if(! isEmptyString(selectedCard?.fileformat_id) && selectedCard?.fileformat_id !== fileFormat && newMigrationData?.project_current_step > 1){   
-        setFileIcon(selectedCard?.title);
-      } else {
-        const { all_cms = [] } = migrationData?.legacyCMSData || {};
-        let filteredCmsData: ICMSType[] = all_cms;
-        if (cmsType) {
-          filteredCmsData = all_cms?.filter(
-            (cms) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase()
-          );
-        }
-
-        // Special handling for Drupal SQL format
-        const isDrupal = cmsType?.toLowerCase() === 'drupal';
-        const isSQLFormat = fileFormat?.toLowerCase() === 'sql';
-        
-        let isFormatValid = false;
-        
-        if (isDrupal && isSQLFormat) {
-          // For Drupal, automatically accept SQL format
-          isFormatValid = true;
-        } else {
-          // For other CMS types, use the original validation logic
-          const foundFormat = filteredCmsData[0]?.allowed_file_formats?.find(
-            (format: ICardType) => {
-              const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();
-              return isValid;
-            }
-          );
-          isFormatValid = !!foundFormat;
-        }
-
-        if (!isFormatValid) {
-          setIsError(true);
-          setError('File format does not support, please add the correct file format.');
-        } else {
-          // Clear any previous errors
-          setIsError(false);
-          setError('');
-        }
-    
-        const selectedFileFormatObj = {
-          description: '',
-          fileformat_id: fileFormat,
-          group_name: fileFormat,
-          isactive: true,
-          title: fileFormat === 'zip' ? fileFormat?.charAt?.(0)?.toUpperCase() + fileFormat?.slice?.(1) : fileFormat?.toUpperCase()
-        }
-        
-        // Set file icon based on format
-        if (isDrupal && isSQLFormat) {
-          setFileIcon('SQL');
-        } else {
-          setFileIcon(fileFormat === 'zip' ? fileFormat?.charAt?.(0).toUpperCase() + fileFormat?.slice?.(1) : fileFormat === 'directory' ? 'Folder' : fileFormat?.toUpperCase());
-        }
-
+      
+      const { all_cms = [] } = migrationData?.legacyCMSData || {};
+      let filteredCmsData: ICMSType[] = all_cms;
+      if (cmsType) {
+        filteredCmsData = all_cms?.filter(
+          (cms) => cms?.parent?.toLowerCase() === cmsType?.toLowerCase()
+        );
       }
-    } catch (error) {
+      // Special handling for Drupal SQL format
+      const isDrupal = cmsType?.toLowerCase() === 'drupal';
+      
+      let isFormatValid = false;
+      
+      // KEY FIX: Check isSQLConnection instead of comparing fileFormat string
+      if (isDrupal && isSQLConnection) {
+        // For Drupal SQL connections, automatically accept the format
+        isFormatValid = true;
+      } else {
+        // For other CMS types, use the original validation logic
+        const foundFormat = filteredCmsData[0]?.allowed_file_formats?.find(
+          (format: ICardType) => {
+            const isValid = format?.fileformat_id?.toLowerCase() === fileFormat?.toLowerCase();
+            return isValid;
+          }
+        );
+        isFormatValid = !!foundFormat;
+      }
+
+      if (!isFormatValid) {
+        setIsError(true);
+        setError('File format does not support, please add the correct file format.');
+      } else {
+        // Clear any previous errors
+        setIsError(false);
+        setError('');
+      }
+  
+      // For SQL connections, use 'sql' as the format identifier
+      const displayFormat = isSQLConnection ? 'sql' : fileFormat;
+      
+      const selectedFileFormatObj = {
+        description: '',
+        fileformat_id: displayFormat,
+        group_name: displayFormat,
+        isactive: true,
+        title: displayFormat === 'zip' 
+          ? displayFormat?.charAt?.(0)?.toUpperCase() + displayFormat?.slice?.(1) 
+          : displayFormat?.toUpperCase()
+      }
+      
+      // Update Redux state with the correct file format
+      if (isDrupal && isSQLConnection) {
+        dispatch(
+          updateNewMigrationData({
+            ...newMigrationData,
+            legacy_cms: {
+              ...newMigrationData?.legacy_cms,
+              selectedFileFormat: selectedFileFormatObj
+            }
+          })
+        );
+      }
+      
+      // Set file icon - use SQL for SQL connections
+      if (isDrupal && isSQLConnection) {
+        setFileIcon('SQL');
+      } else {
+        const iconValue = displayFormat === 'zip' 
+          ? displayFormat?.charAt?.(0).toUpperCase() + displayFormat?.slice?.(1) 
+          : displayFormat === 'directory' 
+            ? 'Folder' 
+            : displayFormat?.toUpperCase();
+        setFileIcon(iconValue);
+      }
+     } catch (error) {
+      console.error('❌ Error in handleFileFormat:', error);
       return error;
     }
   };
@@ -136,6 +166,18 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
+    
+    // Check if SQL connection and update icon immediately
+    const isSQLFromFlag = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isSQL === true;
+    const isSQLFromName = newMigrationData?.legacy_cms?.uploadedFile?.name?.toLowerCase() === 'sql';
+    const isSQLFromPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath?.toLowerCase() === 'sql';
+    const isSQLFromAwsData = (newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData as any)?.mysql !== undefined;
+    const isSQLConnection = isSQLFromFlag || isSQLFromName || isSQLFromPath || isSQLFromAwsData;
+    const isDrupal = newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase() === 'drupal';
+    
+    if (isDrupal && isSQLConnection) {
+      setFileIcon('SQL');
+    }
   }, [newMigrationData]);
 
   
@@ -144,7 +186,12 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       <div className="col-12">
         <label htmlFor="file-format">
           <TextInput
-            value={fileIcon === 'Folder' ? 'DIRECTORY' : fileIcon ? fileIcon :  'file extension not found'}
+            value={
+              fileIcon === 'SQL' ? 'SQL' : 
+              fileIcon === 'Folder' ? 'DIRECTORY' : 
+              fileIcon ? fileIcon : 
+              'file extension not found'
+            }
             version="v2"
             isReadOnly={true}
             disabled={true}
@@ -152,7 +199,7 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
             placeholder=""
             prefix={
               <Icon
-                icon={fileIcon ? fileIcon : 'CrashedPage'}
+                icon={fileIcon === 'SQL' ? 'ApiTokens' : fileIcon ? fileIcon : 'CrashedPage'}
                 size="medium"
                 version="v2"
                 aria-label="fileformat"
