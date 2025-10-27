@@ -83,11 +83,14 @@ const putTestData = async (req: Request) => {
               // Initialize referenceTo from advanced data (upload-api)
               let referenceTo: string[] = [];
               if (field?.backupFieldType === 'reference') {
-                // Reference fields use embedObjects OR reference_to
-                referenceTo =
+                // Reference fields use embedObjects OR reference_to (filter out profile)
+                const rawReferences =
                   field?.advanced?.embedObjects ||
                   field?.advanced?.reference_to ||
                   [];
+                referenceTo = rawReferences.filter(
+                  (ref: string) => ref && ref.toLowerCase() !== 'profile'
+                );
               } else if (
                 field?.backupFieldType === 'taxonomy' &&
                 field?.advanced?.taxonomies

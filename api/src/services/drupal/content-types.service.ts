@@ -247,15 +247,18 @@ function convertUploadApiSchemaToApiSchema(
             const newReferences = savedMapping.referenceTo || [];
             const mergedReferences = [
               ...new Set([...oldReferences, ...newReferences]),
-            ];
+            ].filter((ref) => ref && ref.toLowerCase() !== 'profile'); // Filter out profile
 
             apiField.reference_to = mergedReferences;
           } else {
             // Fall back to upload-api data only (check both embedObjects and reference_to)
-            const fallbackReferences =
+            const fallbackReferences = (
               uploadField.advanced?.embedObjects ||
-              uploadField.advanced?.reference_to;
-            if (fallbackReferences) {
+              uploadField.advanced?.reference_to ||
+              []
+            ).filter((ref: string) => ref && ref.toLowerCase() !== 'profile'); // Filter out profile
+
+            if (fallbackReferences && fallbackReferences.length > 0) {
               apiField.reference_to = fallbackReferences;
             }
           }
