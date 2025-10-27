@@ -629,11 +629,6 @@ const startTestMigration = async (req: Request): Promise<any> => {
             '',
         };
 
-        console.log(
-          '🔧 Migration service - drupalAssetsConfig:',
-          drupalAssetsConfig
-        );
-
         // Run Drupal migration services in proper order (following test-drupal-services sequence)
         // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
         await drupalService?.createQuery(
@@ -1054,11 +1049,6 @@ const startMigration = async (req: Request): Promise<any> => {
             process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
             '',
         };
-
-        console.log(
-          '🔧 Migration service (production) - drupalAssetsConfig:',
-          drupalAssetsConfig
-        );
 
         // Run Drupal migration services in proper order (following test-drupal-services sequence)
         // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
@@ -1545,12 +1535,39 @@ export const updateLocaleMapper = async (req: Request) => {
       ?.get?.('projects')
       ?.findIndex?.({ id: projectId })
       ?.value?.();
+
     if (index > -1) {
+      // 🔧 Reconstruct localeMapping from master_locale and locales
+      const localeMapping: Record<string, string> = {};
+
+      // Add master locale mappings with "-master_locale" suffix
+      Object.entries(mapperObject?.master_locale || {}).forEach(
+        ([source, dest]) => {
+          localeMapping[`${source}-master_locale`] = dest as string;
+        }
+      );
+
+      // Add regular locale mappings
+      Object.entries(mapperObject?.locales || {}).forEach(([source, dest]) => {
+        localeMapping[source] = dest as string;
+      });
+
       ProjectModelLowdb?.update?.((data: any) => {
         data.projects[index].master_locale = mapperObject?.master_locale;
         data.projects[index].locales = mapperObject?.locales;
+        data.projects[index].localeMapping = localeMapping; // ✅ SAVE localeMapping!
       });
+
       // Write back the updated projects
+      await ProjectModelLowdb.write();
+
+      // 🔍 LOGGING: Log after update
+      await ProjectModelLowdb?.read?.();
+      logger.info('Locale mapping updated successfully', {
+        projectId,
+        masterLocaleKeys: Object.keys(mapperObject?.master_locale || {}),
+        localesKeys: Object.keys(mapperObject?.locales || {}),
+      });
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
@@ -1558,11 +1575,7 @@ export const updateLocaleMapper = async (req: Request) => {
       });
     }
   } catch (err: any) {
-    console.error(
-      '🚀 ~ updateLocaleMapper ~ err:',
-      err?.response?.data ?? err,
-      err
-    );
+    console.error('Error details:', err?.response?.data ?? err);
     logger.warn('Bad Request', {
       status: HTTP_CODES?.BAD_REQUEST,
       message: HTTP_TEXTS?.INTERNAL_ERROR,

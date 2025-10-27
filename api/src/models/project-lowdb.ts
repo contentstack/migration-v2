@@ -89,6 +89,10 @@ interface Project {
   isMigrationCompleted: boolean;
   migration_execution: boolean;
   taxonomies?: any[]; // Taxonomies from source CMS
+  source_locales?: string[]; // Source locales from legacy CMS
+  master_locale?: Record<string, string>; // Master locale mapping { source: destination }
+  locales?: Record<string, string>; // Non-master locale mappings { source: destination }
+  localeMapping?: Record<string, string>; // Direct locale mapping from UI
 }
 
 interface ProjectDocument {

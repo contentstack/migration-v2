@@ -8,13 +8,15 @@ import {
   Select,
   Tooltip
 } from '@contentstack/venus-components';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import TableHeader from './tableHeader'
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
 import {CS_ENTRIES} from '../../../utilities/constants';
+import { updateLocaleMapper } from '../../../services/api/migration.service';
+import { useParams } from 'react-router';
 
 export type ExistingFieldType = {
   [key: string]: { label: string; value: string };
@@ -55,9 +57,46 @@ const Mapper = ({
   onLocaleStateUpdate?: (updater: (prev: ExistingFieldType) => ExistingFieldType) => void;
   parentLocaleState?: ExistingFieldType;
 }) => {
+  const { projectId = '' } = useParams();
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const dispatch = useDispatch();
+  
   const [selectedMappings, setSelectedMappings] = useState<{ [key: string]: string }>({});
   const [existingField, setExistingField] = useState<ExistingFieldType>({});
   const [existingLocale, setexistingLocale] = useState<ExistingFieldType>({});
+  const [selectedCsOptions, setselectedCsOption] = useState<string[]>([]);
+  const [selectedSourceOption, setselectedSourceOption] = useState<string[]>([]);
+  const [csOptions, setcsOptions] = useState(options);
+  const [sourceoptions, setsourceoptions] = useState(sourceOptions);
+  const [placeholder] = useState<string>('Select language');
+
+  // 🚀 PHASE 1: Helper function to save locale mapping to backend immediately
+  const saveLocaleMappingToBackend = useCallback(async (localeMapping: Record<string, string>) => {
+    try {
+      // Parse master_locale and locales from the mapping
+      const master_locale: Record<string, string> = {};
+      const locales: Record<string, string> = {};
+
+      Object.entries(localeMapping).forEach(([key, value]) => {
+        if (key.includes('master_locale')) {
+          master_locale[key.replace('-master_locale', '')] = value;
+        } else {
+          locales[key] = value;
+        }
+      });
+
+      // Call API to save
+      const response = await updateLocaleMapper(projectId, { 
+        master_locale, 
+        locales 
+      });
+
+      return response;
+    } catch (error: unknown) {
+      console.error('❌ Phase 1: Error saving locale mapping:', error);
+      throw error;
+    }
+  }, [projectId]);
 
   // 🔥 Sync with parent state when auto-mapping occurs
   useEffect(() => {
@@ -68,14 +107,6 @@ const Mapper = ({
       }));
     }
   }, [parentLocaleState]);
-  const [selectedCsOptions, setselectedCsOption] = useState<string[]>([]);
-  const [selectedSourceOption, setselectedSourceOption] = useState<string[]>([]);
-  const [csOptions, setcsOptions] = useState(options);
-  const [sourceoptions, setsourceoptions] = useState(sourceOptions);
-  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-  const dispatch = useDispatch();
-  // const [selectedStack, setSelectedStack] = useState<IDropDown>();
-  const [placeholder] = useState<string>('Select language');
 
   // useEffect(()=>{
   //   setSelectedStack(stack);
@@ -97,6 +128,18 @@ const Mapper = ({
         return;
       }
       
+      // 🔧 CRITICAL CHECK: Don't save if selectedMappings would OVERWRITE better auto-mapping
+      // This happens when parent auto-maps but child still has stale state
+      const wouldDowngrade = Object.entries(selectedMappings).some(([key, value]) => {
+        const existingValue = existingMapping[key];
+        // If Redux has a better mapping (not "en" → "en"), don't overwrite with worse mapping
+        return existingValue && existingValue !== value && value === key.replace('-master_locale', '');
+      });
+      
+      if (wouldDowngrade) {
+        return;
+      }
+      
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         destination_stack: {
@@ -106,8 +149,13 @@ const Mapper = ({
       };
 
       dispatch(updateNewMigrationData(newMigrationDataObj));
+      
+      // 🚀 PHASE 1: Save to backend immediately after user selects a locale
+      saveLocaleMappingToBackend(mergedMapping).catch((error: unknown) => {
+        console.error('❌ Phase 1: Failed to save locale mapping:', error);
+      });
     }
-  }, [selectedMappings]);
+  }, [selectedMappings, saveLocaleMappingToBackend, newMigrationData, dispatch]);
 
   useEffect(() => {
     if (selectedCsOptions?.length === 0) {
@@ -586,6 +634,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const dispatch = useDispatch();
+  const { projectId = '' } = useParams();
   const [options, setoptions] = useState<{ label: string; value: string }[]>([]);
   const [cmsLocaleOptions, setcmsLocaleOptions] = useState<{ label: string; value: string }[]>([]);
   const [sourceLocales, setsourceLocales] = useState<{ label: string; value: string }[]>([]);
@@ -598,6 +647,35 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
   const [mapperLocaleState, setMapperLocaleState] = useState<ExistingFieldType>({});
 
   const prevStackRef: React.MutableRefObject<IDropDown | null> = useRef(null);
+
+  // 🚀 PHASE 1: Helper function to save locale mapping to backend immediately
+  const saveLocaleMappingToBackend = useCallback(async (localeMapping: Record<string, string>) => {
+    try {
+     
+      // Parse master_locale and locales from the mapping
+      const master_locale: Record<string, string> = {};
+      const locales: Record<string, string> = {};
+
+      Object.entries(localeMapping).forEach(([key, value]) => {
+        if (key.includes('master_locale')) {
+          master_locale[key.replace('-master_locale', '')] = value;
+        } else {
+          locales[key] = value;
+        }
+      });
+
+      // Call API to save
+      const response = await updateLocaleMapper(projectId, { 
+        master_locale, 
+        locales 
+      });
+
+      return response;
+    } catch (error: unknown) {
+      console.error('❌ Phase 1: Error saving locale mapping:', error);
+      throw error;
+    }
+  }, [projectId]);
 
   useEffect(() => {
     if (prevStackRef?.current && stack && stack?.uid !== prevStackRef?.current?.uid) {
@@ -778,15 +856,23 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
       
       const singleSourceLocale = sourceLocale[0];
       
-      // 🔧 TC-02: Check for exact match first, only use smart mapping if exact match exists
-      const exactMatch = allLocales.find(dest => 
-        dest.value.toLowerCase() === singleSourceLocale.value.toLowerCase()
+      // 🔧 CRITICAL FIX: Check if user has already manually mapped this locale
+      const existingMapping = newMigrationData?.destination_stack?.localeMapping || {};
+      const hasManualMapping = Object.keys(existingMapping).some(key => 
+        existingMapping[key] === singleSourceLocale.value && !key.includes('master_locale')
       );
       
-      let destinationLocale = '';
-      if (exactMatch) {
-        destinationLocale = exactMatch.value;
+      if (hasManualMapping) {
+        // Reset stack changed flag but don't override manual mapping
+        if (isStackChanged) {
+          setisStackChanged(false);
+        }
+        return; // Exit early, don't auto-map
       }
+      
+      // 🔧 CRITICAL FIX: For single source locale, ALWAYS map to stack's master locale
+      // Don't look for exact matches - respect the user's stack selection!
+      const destinationLocale = stack?.master_locale || 'en-us';
       
       // Set the auto-selected source locale for the Mapper component
       setAutoSelectedSourceLocale({
@@ -796,8 +882,8 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
       
       // Set the mapping in Redux state
       const autoMapping = {
-        [`${singleSourceLocale.value}-master_locale`]: destinationLocale || stack?.master_locale,
-        ...(destinationLocale ? { [singleSourceLocale.value]: destinationLocale } : {})
+        [`${singleSourceLocale.value}-master_locale`]: destinationLocale,
+        [singleSourceLocale.value]: destinationLocale  // ✅ Always include locale mapping
       };
       
       const newMigrationDataObj: INewMigration = {
@@ -808,6 +894,11 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         }
       };
       dispatch(updateNewMigrationData(newMigrationDataObj));
+      
+      // 🚀 PHASE 2: Save auto-mapping to backend immediately when stack is selected
+      saveLocaleMappingToBackend(autoMapping).catch((error: unknown) => {
+        console.error('❌ Phase 2: Failed to save auto-mapping:', error);
+      });
       
       // Reset stack changed flag after auto-mapping
       if (isStackChanged) {
@@ -823,6 +914,18 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
               !keys || 
               stackHasChanged) && 
              newMigrationData?.project_current_step <= 2) {
+      
+      // 🔧 CRITICAL FIX: Check if user has already manually mapped any locales
+      const existingMapping = newMigrationData?.destination_stack?.localeMapping || {};
+      const hasManualMappings = Object.keys(existingMapping).filter(key => !key.includes('master_locale')).length > 0;
+      
+      if (hasManualMappings && stackHasChanged) {
+        // Reset stack changed flag but don't override manual mappings
+        if (isStackChanged) {
+          setisStackChanged(false);
+        }
+        return; // Exit early, don't auto-map
+      }
       
       // 🆕 CONDITION 2: Enhanced multi-locale logic with master locale priority
       
@@ -907,6 +1010,11 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         }
       };
       dispatch(updateNewMigrationData(newMigrationDataObj));
+      
+      // 🚀 PHASE 2: Save multi-locale auto-mapping to backend immediately when stack is selected
+      saveLocaleMappingToBackend(autoMapping).catch((error: unknown) => {
+        console.error('❌ Phase 2: Failed to save multi-locale auto-mapping:', error);
+      });
       
       // 🔥 CRITICAL FIX: Update existingLocale state for dropdown display
       // The dropdown reads from existingLocale, not from Redux localeMapping
@@ -1104,6 +1212,10 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         };
         dispatch(updateNewMigrationData(newMigrationDataObj));
         
+        // 🚀 PHASE 2: Save auto-mapping to backend immediately when "Add Language" is clicked
+        saveLocaleMappingToBackend(updatedMapping).catch((error: unknown) => {
+          console.error('❌ Phase 2: Failed to save Add Language auto-mapping:', error);
+        });
       }
     }, 100); // Small delay to ensure state updates properly
   };
