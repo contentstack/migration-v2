@@ -6,6 +6,7 @@ import { Locale } from '../../models/types.js';
 import { getAllLocales, getLogMessage } from '../../utils/index.js';
 import customLogger from '../../utils/custom-logger.utils.js';
 import { createDbConnection } from '../../helper/index.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const {
   DATA: MIGRATION_DATA_PATH,
@@ -36,6 +37,59 @@ function getKeyByValue(
   targetValue: string
 ): string | undefined {
   return Object.entries(obj).find(([_, value]) => value === targetValue)?.[0];
+}
+
+/**
+ * Maps source locale to destination locale based on user-selected mapping from UI.
+ * Similar to WordPress/Contentful/Sitecore mapLocales function.
+ *
+ * @param masterLocale - The master locale code from the stack
+ * @param locale - The source locale code from Drupal
+ * @param locales - The locale mapping object from project (contains master_locale and locales)
+ * @param localeMapping - The direct locale mapping from UI (optional, takes precedence)
+ * @returns The mapped destination locale code
+ */
+export function mapDrupalLocales({
+  masterLocale,
+  locale,
+  locales,
+  localeMapping,
+}: {
+  masterLocale: string;
+  locale: string;
+  locales?: any;
+  localeMapping?: Record<string, string>;
+}): string {
+  // Priority 1: Check direct locale mapping from UI (format: { "en-master_locale": "fr-fr", "es": "es-es" })
+  if (localeMapping) {
+    // Check if this is a master locale mapping
+    const masterKey = `${locale}-master_locale`;
+    if (localeMapping[masterKey]) {
+      return localeMapping[masterKey];
+    }
+
+    // Check direct mapping
+    if (localeMapping[locale]) {
+      return localeMapping[locale];
+    }
+  }
+
+  // Priority 2: Check if source locale matches master locale in mapping
+  if (locales?.masterLocale?.[masterLocale] === locale) {
+    return Object.keys(locales.masterLocale)?.[0] || masterLocale;
+  }
+
+  // Priority 3: Check regular locales mapping
+  if (locales) {
+    for (const [key, value] of Object.entries(locales)) {
+      if (typeof value !== 'object' && value === locale) {
+        return key;
+      }
+    }
+  }
+
+  // Priority 4: Return locale as-is (lowercase)
+  return locale?.toLowerCase?.() || locale;
 }
 
 /**
@@ -139,9 +193,9 @@ function applyLocaleTransformations(
  * This function:
  * 1. Fetches master locale from Drupal system.site config
  * 2. Fetches all locales from node_field_data
- * 3. Fetches non-master locales separately
- * 4. Gets locale names from Contentstack API
- * 5. Applies special transformation rules for "und", "en", "en-us"
+ * 3. Uses user-selected locale mapping from UI (project.localeMapping)
+ * 4. Maps source locales to destination locales based on user selection
+ * 5. Sets master locale based on user selection
  * 6. Creates 3 JSON files: master-locale.json, locales.json, language.json
  */
 export const createLocale = async (
@@ -198,7 +252,7 @@ export const createLocale = async (
     `;
 
     const masterRows: any = await executeQuery(masterLocaleQuery);
-    const masterLocaleCode = masterRows[0]?.master_locale || 'en';
+    const sourceMasterLocale = masterRows[0]?.master_locale || 'en';
 
     // 2. Get all locales from node_field_data
     const allLocalesQuery = `
@@ -209,64 +263,70 @@ export const createLocale = async (
     `;
 
     const allLocaleRows: any = await executeQuery(allLocalesQuery);
-    const allLocaleCodes = allLocaleRows.map((row: any) => row.langcode);
-
-    // 3. Get non-master locales
-    const nonMasterLocalesQuery = `
-      SELECT DISTINCT n.langcode
-      FROM node_field_data n
-      WHERE n.langcode IS NOT NULL
-        AND n.langcode != ''
-        AND n.langcode != (
-          SELECT 
-             SUBSTRING_INDEX(
-                SUBSTRING_INDEX(CONVERT(data USING utf8), 'default_langcode";s:2:"', -1),
-                '"',
-                1
-             )
-          FROM config 
-          WHERE name = 'system.site'
-          LIMIT 1
-        )
-      ORDER BY n.langcode
-    `;
-
-    const nonMasterRows: any = await executeQuery(nonMasterLocalesQuery);
-    const nonMasterLocaleCodes = nonMasterRows.map((row: any) => row.langcode);
+    const sourceLocaleCodes = allLocaleRows.map((row: any) => row.langcode);
 
     // Close database connection
     connection.end();
 
-    // 4. Fetch locale names from Contentstack API
-    const contentstackLocales = await fetchContentstackLocales();
+    // 3. Get user-selected locale mapping from UI (project.localeMapping or project.locales/master_locale)
+    // localeMapping format: { "en-master_locale": "fr-fr", "es": "es-es", ... }
+    const localeMapping = project?.localeMapping || {};
+    const masterLocaleFromProject = project?.master_locale || {};
+    const localesFromProject = project?.locales || {};
 
-    // 5. Apply special transformation rules
+    // 4. Fetch locale names from Contentstack API
+    const [err, localesApiResponse] = await getAllLocales();
+    const contentstackLocales = localesApiResponse?.data?.locales || {};
+
+    // 5. Map source locales to destination locales using user selection
+    // Find the destination master locale based on source master locale
+    const masterLocaleKey = `${sourceMasterLocale}-master_locale`;
+    let destinationMasterLocale =
+      localeMapping[masterLocaleKey] ||
+      Object.keys(masterLocaleFromProject)?.[0] ||
+      project?.stackDetails?.master_locale ||
+      'en-us';
+
+    // Process transformed locales first (handle und, en, en-us)
     const transformedLocales = applyLocaleTransformations(
-      allLocaleCodes,
-      masterLocaleCode
+      sourceLocaleCodes,
+      sourceMasterLocale
     );
 
-    // 6. Process each locale
-    transformedLocales.forEach((localeInfo, index) => {
-      const { code, name, isMaster } = localeInfo;
+    // Map each transformed source locale to destination locale
+    transformedLocales.forEach((localeInfo) => {
+      const { code: sourceCode, isMaster } = localeInfo;
 
-      // Create UID using original langcode from database
-      const originalLangcode = allLocaleCodes[index]; // Get original langcode from database
-      const uid = `drupallocale_${originalLangcode
-        .toLowerCase()
-        .replace(/-/g, '_')}`;
+      // Find destination locale from mapping
+      let destinationCode: string;
 
-      // Get name from Contentstack API or use transformed name
+      if (isMaster) {
+        // For master locale, use the mapped master locale
+        destinationCode = destinationMasterLocale;
+      } else {
+        // For non-master locales, check mapping or use as-is
+        destinationCode =
+          localeMapping[sourceCode] ||
+          localesFromProject[sourceCode] ||
+          sourceCode;
+      }
+
+      // Create UID
+      const uid = uuidv4();
+
+      // Get name from Contentstack API
       const localeName =
-        name ||
-        contentstackLocales[code] ||
-        contentstackLocales[code.toLowerCase()] ||
+        contentstackLocales[destinationCode] ||
+        contentstackLocales[destinationCode.toLowerCase()] ||
+        contentstackLocales[sourceCode] ||
         'Unknown Language';
 
       const newLocale: Locale = {
-        code: code.toLowerCase(),
+        code: destinationCode.toLowerCase(),
         name: localeName,
-        fallback_locale: isMaster ? null : masterLocaleCode.toLowerCase(),
+        fallback_locale: isMaster
+          ? null
+          : destinationMasterLocale.toLowerCase(),
         uid: uid,
       };
 
@@ -284,14 +344,14 @@ export const createLocale = async (
     const finalAllLocales =
       Object.keys(allLocales).length > 0 ? allLocales : {};
 
-    // 7. Write locale files (same structure as Contentful)
+    // 6. Write locale files (same structure as Contentful/WordPress)
     await writeFile(localeSave, LOCALE_FILE_NAME, finalAllLocales); // locales.json (non-master only)
     await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale); // master-locale.json (master only)
     await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList); // language.json (all locales)
 
     const message = getLogMessage(
       srcFunc,
-      `Drupal locales have been successfully transformed. Master: ${masterLocaleCode}, Total: ${allLocaleCodes.length}, Non-master: ${nonMasterLocaleCodes.length}`,
+      `Drupal locales have been successfully transformed. Source Master: ${sourceMasterLocale}, Destination Master: ${destinationMasterLocale}, Total: ${sourceLocaleCodes.length}`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', message);

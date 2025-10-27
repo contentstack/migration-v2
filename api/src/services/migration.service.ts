@@ -672,7 +672,8 @@ const startTestMigration = async (req: Request): Promise<any> => {
           projectId,
           true,
           project?.stackDetails?.master_locale,
-          project?.content_mapper || []
+          project?.content_mapper || [],
+          project
         );
         await drupalService?.createLocale(
           dbConfig,
@@ -1103,7 +1104,8 @@ const startMigration = async (req: Request): Promise<any> => {
           projectId,
           false,
           project?.stackDetails?.master_locale,
-          project?.content_mapper || []
+          project?.content_mapper || [],
+          project
         );
         await drupalService?.createVersionFile(
           project?.destination_stack_id,

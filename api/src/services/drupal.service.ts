@@ -52,7 +52,8 @@ export const drupalService = {
     projectId: string,
     isTest = false,
     masterLocale = 'en-us',
-    contentTypeMapping: any[] = []
+    contentTypeMapping: any[] = [],
+    project: any = null
   ) => {
     return createEntry(
       dbConfig,
@@ -60,7 +61,8 @@ export const drupalService = {
       projectId,
       isTest,
       masterLocale,
-      contentTypeMapping
+      contentTypeMapping,
+      project
     );
   },
   createLocale, // Create locale configurations

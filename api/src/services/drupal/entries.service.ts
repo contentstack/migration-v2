@@ -31,6 +31,7 @@ import {
   entriesFieldCreator,
   unflatten,
 } from '../../utils/entries-field-creator.utils.js';
+import { mapDrupalLocales } from './locales.service.js';
 // Dynamic import for phpUnserialize will be used in the function
 
 // Local utility functions (extracted from entries-field-creator.utils.ts patterns)
@@ -1039,7 +1040,8 @@ const processEntries = async (
   destination_stack_id: string,
   masterLocale: string,
   contentTypeMapping: any[] = [],
-  isTest: boolean = false
+  isTest: boolean = false,
+  project: any = null
 ): Promise<{ [key: string]: any } | null> => {
   const srcFunc = 'processEntries';
 
@@ -1143,56 +1145,68 @@ const processEntries = async (
       entriesByLocale[entryLocale].push(entry);
     });
 
-    // 🔄 Apply locale folder transformation rules (same as locale service)
-    // Rules:
-    // - "und" alone → "en-us"
-    // - "und" + "en-us" → "und" become "en", "en-us" stays
-    // - "en" + "und" → "und" becomes "en-us", "en" stays
-    // - All three "en" + "und" + "en-us" → all three stays
-    // - Apart from these, all other locales stay as is
+    // Map source locales to destination locales using user-selected mapping from UI
+    // This replaces the old hardcoded transformation rules with dynamic user mapping
     const transformedEntriesByLocale: { [locale: string]: any[] } = {};
     const allLocales = Object.keys(entriesByLocale);
     const hasUnd = allLocales.includes('und');
     const hasEn = allLocales.includes('en');
     const hasEnUs = allLocales.includes('en-us');
 
-    // Transform locale folder names based on business rules
+    // Get locale mapping configuration from project
+    const localeMapping = project?.localeMapping || {};
+    const localesFromProject = {
+      masterLocale: project?.master_locale || {},
+      ...(project?.locales || {}),
+    };
+
+    // Apply source locale transformation rules first (und → en-us, etc.)
+    // Then map the transformed source locale to destination locale using user's selection
     Object.entries(entriesByLocale).forEach(([originalLocale, entries]) => {
-      let targetFolder = originalLocale;
+      // Step 1: Apply Drupal-specific transformation rules (same as before)
+      let transformedSourceLocale = originalLocale;
 
       if (originalLocale === 'und') {
         if (hasEn && hasEnUs) {
           // Rule 4: All three "en" + "und" + "en-us" → all three stays
-          targetFolder = 'und';
+          transformedSourceLocale = 'und';
         } else if (hasEnUs && !hasEn) {
           // Rule 2: "und" + "en-us" → "und" become "en", "en-us" stays
-          targetFolder = 'en';
+          transformedSourceLocale = 'en';
         } else if (hasEn && !hasEnUs) {
           // Rule 3: "en" + "und" → "und" becomes "en-us", "en" stays
-          targetFolder = 'en-us';
+          transformedSourceLocale = 'en-us';
         } else if (!hasEn && !hasEnUs) {
           // Rule 1: "und" alone → "en-us"
-          targetFolder = 'en-us';
+          transformedSourceLocale = 'en-us';
         } else {
           // Keep as is for any other combinations
-          targetFolder = 'und';
+          transformedSourceLocale = 'und';
         }
       } else if (originalLocale === 'en-us') {
         // "en-us" always stays as "en-us" in all rules
-        targetFolder = 'en-us';
+        transformedSourceLocale = 'en-us';
       } else if (originalLocale === 'en') {
         // "en" always stays as "en" in all rules (never transforms to "und")
-        targetFolder = 'en';
+        transformedSourceLocale = 'en';
       }
 
-      // Merge entries if target folder already has entries
-      if (transformedEntriesByLocale[targetFolder]) {
-        transformedEntriesByLocale[targetFolder] = [
-          ...transformedEntriesByLocale[targetFolder],
+      // Step 2: Map transformed source locale to destination locale using user's mapping
+      const destinationLocale = mapDrupalLocales({
+        masterLocale,
+        locale: transformedSourceLocale,
+        locales: localesFromProject,
+        localeMapping,
+      });
+
+      // Merge entries if destination locale already has entries
+      if (transformedEntriesByLocale[destinationLocale]) {
+        transformedEntriesByLocale[destinationLocale] = [
+          ...transformedEntriesByLocale[destinationLocale],
           ...entries,
         ];
       } else {
-        transformedEntriesByLocale[targetFolder] = entries;
+        transformedEntriesByLocale[destinationLocale] = entries;
       }
     });
 
@@ -1468,7 +1482,8 @@ const processContentType = async (
   destination_stack_id: string,
   masterLocale: string,
   contentTypeMapping: any[] = [],
-  isTest: boolean = false
+  isTest: boolean = false,
+  project: any = null
 ): Promise<void> => {
   const srcFunc = 'processContentType';
 
@@ -1519,7 +1534,8 @@ const processContentType = async (
         destination_stack_id,
         masterLocale,
         contentTypeMapping,
-        isTest
+        isTest,
+        project
       );
 
       // If no entries returned, break the loop
@@ -1579,7 +1595,8 @@ export const createEntry = async (
   projectId: string,
   isTest = false,
   masterLocale = 'en-us',
-  contentTypeMapping: any[] = []
+  contentTypeMapping: any[] = [],
+  project: any = null
 ): Promise<void> => {
   const srcFunc = 'createEntry';
   let connection: mysql.Connection | null = null;
@@ -1668,7 +1685,8 @@ export const createEntry = async (
         destination_stack_id,
         masterLocale,
         contentTypeMapping,
-        isTest
+        isTest,
+        project
       );
     }
 
