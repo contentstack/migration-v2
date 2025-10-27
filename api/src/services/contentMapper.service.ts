@@ -100,17 +100,6 @@ const putTestData = async (req: Request) => {
                 );
               }
 
-              if (
-                (field?.backupFieldType === 'reference' ||
-                  field?.backupFieldType === 'taxonomy') &&
-                referenceTo.length > 0
-              ) {
-                console.log(
-                  `📌 putTestData: Initializing ${field?.backupFieldType} field "${field?.contentstackField}" with referenceTo:`,
-                  referenceTo
-                );
-              }
-
               return {
                 id,
                 projectId,
@@ -724,15 +713,7 @@ const updateContentType = async (req: Request) => {
           f.referenceTo.length > 0
       );
       if (refTaxFields.length > 0) {
-        console.log(
-          '\n💾 updateContentType: Saving reference/taxonomy fields:'
-        );
-        refTaxFields.forEach((f: any) => {
-          console.log(
-            `   • ${f.contentstackField} (${f.backupFieldType}): referenceTo =`,
-            f.referenceTo
-          );
-        });
+        refTaxFields.forEach((f: any) => {});
       }
 
       fieldMapping.forEach((field: any) => {

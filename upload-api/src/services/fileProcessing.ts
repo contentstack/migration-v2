@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak */
+
 import { HTTP_TEXTS, HTTP_CODES } from '../constants';
 import { parseXmlToJson, saveJson, saveZip, getDbConnection } from '../helper';
 import JSZip from 'jszip';
@@ -12,7 +14,6 @@ const handleFileProcessing = async (
   cmsType: string,
   name: string
 ) => {
-  console.log('🚀 ~ handleFileProcessing ~ fileExt:', fileExt);
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);
@@ -70,7 +71,6 @@ const handleFileProcessing = async (
       }
     }
   } else if (fileExt === 'folder') {
-    console.log('🚀 ~ handleFileProcessing ~ fileExt:', fileExt);
     if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt })) {
       logger.info('Validation success:', {
         status: HTTP_CODES?.OK,
@@ -94,8 +94,6 @@ const handleFileProcessing = async (
     }
   } else if (fileExt === 'sql') {
     try {
-      console.log('🚀 ~ handleFileProcessing ~ config:');
-
       // Validate SQL connection using our Drupal validator
       // Also validate assets configuration if provided
       const validationResult = await validator({

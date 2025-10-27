@@ -32,7 +32,6 @@ router.post('/upload', upload.single('file'), async function (req: Request, res:
       // Add file data to the stream
       fileStream.push(req.file.buffer);
       fileStream.push(null);
-      console.info('🚀 ~ router.post ~ fileStream:', fileStream);
 
       //multipart upload session in S3
       const createMultipartUploadCommand = new CreateMultipartUploadCommand({

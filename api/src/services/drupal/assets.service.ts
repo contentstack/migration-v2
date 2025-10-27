@@ -127,15 +127,10 @@ const detectPublicPath = async (
         const config = JSON.parse(configResults[0].value);
         if (config.path && config.path.public) {
           const detectedPath = config.path.public;
-          console.log(`✅ Detected public path from config: ${detectedPath}`);
           return detectedPath.endsWith('/') ? detectedPath : `${detectedPath}/`;
         }
       }
-    } catch (configErr) {
-      console.log(
-        '⚠️  Config table not found or not readable, trying web detection...'
-      );
-    }
+    } catch (configErr) {}
 
     // Final fallback: Try to detect from an actual file by testing URLs
     const sampleFileQuery = `
@@ -172,9 +167,6 @@ const detectPublicPath = async (
               },
             });
             if (response.status === 200) {
-              console.log(
-                `✅ Detected public path by testing URLs: ${testPath}`
-              );
               const message = getLogMessage(
                 srcFunc,
                 `Auto-detected public path: ${testPath}`,
@@ -233,9 +225,6 @@ const detectPublicPath = async (
               },
             });
             if (response.status === 200) {
-              console.log(
-                `✅ Detected public path from URI patterns: ${patternStr}`
-              );
               const message = getLogMessage(
                 srcFunc,
                 `Auto-detected public path from patterns: ${patternStr}`,
@@ -257,9 +246,6 @@ const detectPublicPath = async (
     }
 
     // Ultimate fallback
-    console.log(
-      `⚠️ Could not auto-detect path for baseUrl=${baseUrl}. Using default: /sites/default/files/`
-    );
 
     const message = getLogMessage(
       srcFunc,
@@ -345,14 +331,6 @@ const normalizeUrlConfig = (
     }
   }
 
-  console.log(`🔧 URL Normalization:`);
-  console.log(
-    `   Original baseUrl: "${baseUrl}" → Normalized: "${normalizedBaseUrl}"`
-  );
-  console.log(
-    `   Original publicPath: "${publicPath}" → Normalized: "${normalizedPublicPath}"`
-  );
-
   return {
     baseUrl: normalizedBaseUrl,
     publicPath: normalizedPublicPath,
@@ -387,7 +365,6 @@ const constructAssetUrl = (
       }
 
       const fullUrl = `${cleanBaseUrl}${cleanPublicPath}${relativePath}`;
-      console.log(`🔗 Constructed URL: ${fullUrl} (from URI: ${uri})`);
       return fullUrl;
     }
 
@@ -446,21 +423,14 @@ const saveAsset = async (
 
     const assetId = `assets_${assets.fid}`;
     const fileName = assets.filename;
-    console.log(
-      `🔍 Processing asset: ${fileName} (FID: ${assets.fid}, URI: ${assets.uri})`
-    );
     const fileUrl = constructAssetUrl(assets.uri, baseUrl, publicPath);
-    console.log(`📥 Final download URL: ${fileUrl}`);
 
     // Check if asset already exists
     if (fs.existsSync(path.resolve(assetsSave, assetId, fileName))) {
-      console.log(`⏭️  Skipping existing asset: ${fileName}`);
       return assetId;
     }
 
     try {
-      console.log(`📥 Downloading: ${fileName} (FID: ${assets.fid})`);
-
       const response = await axios.get(fileUrl, {
         responseType: 'arraybuffer',
         timeout: 120000, // Increased to 2 minutes
@@ -531,11 +501,7 @@ const saveAsset = async (
       if (retryCount < 3) {
         // Increased to 3 retries
         const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-        console.log(
-          `⏳ Retrying ${fileName} in ${delay}ms... (Attempt ${
-            retryCount + 1
-          }/3)`
-        );
+
         await new Promise((resolve) => setTimeout(resolve, delay));
 
         return await saveAsset(
@@ -567,18 +533,12 @@ const saveAsset = async (
           publicPath === (userProvidedPublicPath || publicPath);
 
         if (isUserProvidedPath) {
-          console.log(
-            `🔄 Primary path failed. Trying fallback paths for ${fileName}...`
-          );
-
           // Try each common path
           for (const fallbackPath of commonPaths) {
             // Skip if already tried
             if (fallbackPath === publicPath) {
               continue;
             }
-
-            console.log(`🔍 Trying fallback path: ${fallbackPath}`);
 
             try {
               // Attempt download with fallback path (reset retry count)
@@ -599,12 +559,10 @@ const saveAsset = async (
 
               // Check if asset was actually saved (exists in assetData)
               if (assetData[assetId]) {
-                console.log(`✅ Success with fallback path: ${fallbackPath}`);
                 return result; // Successfully downloaded with fallback path
               }
             } catch (fallbackErr) {
               // Continue to next fallback path
-              console.log(`❌ Fallback path ${fallbackPath} also failed`);
               continue;
             }
           }
@@ -798,7 +756,6 @@ export const createAssets = async (
     // Auto-detect public path if not provided or empty
     let detectedPublicPath = publicPath;
     if (!publicPath || publicPath.trim() === '') {
-      console.log('🔍 Auto-detecting public path (no path provided)...');
       detectedPublicPath = await detectPublicPath(
         connection,
         baseUrl,
@@ -806,12 +763,7 @@ export const createAssets = async (
         destination_stack_id
       );
     } else {
-      console.log(`✅ Using provided public path: ${publicPath}`);
     }
-
-    console.log(`📁 Using public path: ${detectedPublicPath}`);
-    console.log(`🌐 Using base URL: ${baseUrl}`);
-    console.log(`🔧 Original publicPath parameter: "${publicPath}"`);
 
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
     const assetMasterFolderPath = path.join(
@@ -887,12 +839,6 @@ export const createAssets = async (
         },
         (batchIndex, totalBatches, batchResults) => {
           if (batchIndex % 10 === 0) {
-            console.log(
-              `💾 Progress: ${batchIndex}/${totalBatches} batches completed (${(
-                (batchIndex / totalBatches) *
-                100
-              ).toFixed(1)}%)`
-            );
           }
         }
       );
@@ -924,12 +870,6 @@ export const createAssets = async (
 
       // Write assets_url.json with successful and failed URLs
       await writeFile(assetsSave, 'assets_url.json', urlTracker);
-
-      console.log(`📊 Asset URL Summary:`);
-      console.log(
-        `   ✅ Successfully downloaded: ${urlTracker.success.length}`
-      );
-      console.log(`   ❌ Failed downloads: ${urlTracker.failed.length}`);
 
       const successMessage = getLogMessage(
         srcFunc,
