@@ -106,7 +106,7 @@
       "allowed_file_formats": [
         {
           "fileformat_id": "sql",
-          "title": "SQL",
+          "title": "ApiTokens",
           "description": "",
           "group_name": "sql",
           "isactive": true,
