@@ -203,6 +203,9 @@ export const uidCorrector = (uid: string) => {
   // Remove leading colon if present (e.g., ':items' becomes 'items')
   let newUid = uid.replace(/^:/, '');
 
+  // Insert underscore before uppercase letters, then lowercase everything
+  newUid = newUid.replace(/([a-z0-9])([A-Z])/g, '$1_$2');
+
   // Replace spaces, hyphens, and colons with underscores
   newUid = newUid.replace(/[ :-]/g, '_');
 
