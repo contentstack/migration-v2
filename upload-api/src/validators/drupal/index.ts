@@ -265,9 +265,12 @@ async function validateAssetsConfig(
  * Tests connection with: "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'"
  * @param data - Database configuration object containing connection details
  * @param assetsConfig - Optional assets configuration to validate
- * @returns Promise<boolean> - true if connection successful and query returns results, false otherwise
+ * @returns Promise<{ success: boolean, error?: string }> - success flag and optional error message
  */
-async function drupalValidator({ data, assetsConfig }: ValidatorProps): Promise<boolean> {
+async function drupalValidator({
+  data,
+  assetsConfig
+}: ValidatorProps): Promise<{ success: boolean; error?: string } | boolean> {
   let connection: mysql.Connection | null = null;
 
   try {
@@ -291,7 +294,11 @@ async function drupalValidator({ data, assetsConfig }: ValidatorProps): Promise<
         missingUser: !data?.user,
         missingDatabase: !data?.database
       });
-      return false;
+      return {
+        success: false,
+        error:
+          '❌ Missing database connection parameters. Please provide host, user, and database name.'
+      };
     }
 
     // Create MySQL connection configuration
@@ -326,7 +333,11 @@ async function drupalValidator({ data, assetsConfig }: ValidatorProps): Promise<
         code: nodeError.code,
         sqlState: nodeError.sqlState
       });
-      return false;
+      return {
+        success: false,
+        error:
+          '❌ Required Drupal table not found: This database appears to be missing critical Drupal content tables. Please ensure this is a Drupal 8/9/10/11 database.'
+      };
     }
 
     // Test with the specific Drupal config query
@@ -356,7 +367,10 @@ async function drupalValidator({ data, assetsConfig }: ValidatorProps): Promise<
               baseUrl: assetsConfig.base_url,
               publicPath: assetsConfig.public_path
             });
-            return false;
+            return {
+              success: false,
+              error: `❌ Assets validation failed: Unable to access assets at ${assetsConfig.base_url}. Please verify your assets configuration (base URL and public path).`
+            };
           }
 
           logger.info('Drupal validator: All validation checks (DB + Assets) passed successfully');
@@ -364,12 +378,16 @@ async function drupalValidator({ data, assetsConfig }: ValidatorProps): Promise<
           logger.info('Drupal validator: No assetsConfig provided, skipping asset validation');
         }
 
-        return true;
+        return { success: true };
       } else {
         logger.warn('Drupal validator: Config query executed but returned no results', {
           query: configQuery
         });
-        return false;
+        return {
+          success: false,
+          error:
+            '❌ Drupal schema validation failed: Required tables or configuration not found. Please ensure this is a valid Drupal database with content types configured.'
+        };
       }
     } catch (configError: any) {
       logger.error('Drupal validator: Config table query failed', {
@@ -378,7 +396,10 @@ async function drupalValidator({ data, assetsConfig }: ValidatorProps): Promise<
         sqlState: configError.sqlState,
         query: configQuery
       });
-      return false;
+      return {
+        success: false,
+        error: `❌ Database schema error: ${configError.code === 'ER_NO_SUCH_TABLE' ? 'Required Drupal tables not found' : configError.message}. Ensure this is a Drupal 8/9/10 database.`
+      };
     }
   } catch (error: any) {
     // Log specific error details for debugging
@@ -392,8 +413,21 @@ async function drupalValidator({ data, assetsConfig }: ValidatorProps): Promise<
       port: data?.port
     });
 
-    // Return false for any connection or query errors
-    return false;
+    // Return specific error messages based on error code
+    let errorMessage = '❌ Database connection failed: ';
+    if (error.code === 'ECONNREFUSED') {
+      errorMessage += `Cannot connect to MySQL server at ${data?.host}:${data?.port || 3306}. Please check if the database server is running and accessible.`;
+    } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+      errorMessage += `Access denied for user '${data?.user}'. Please verify your username and password are correct.`;
+    } else if (error.code === 'ER_BAD_DB_ERROR') {
+      errorMessage += `Database '${data?.database}' does not exist. Please verify the database name is correct.`;
+    } else if (error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+      errorMessage += `Cannot reach database server at ${data?.host}. Please check the host address and network connectivity.`;
+    } else {
+      errorMessage += `${error.message}`;
+    }
+
+    return { success: false, error: errorMessage };
   } finally {
     // Always close the connection if it was established
     if (connection) {
