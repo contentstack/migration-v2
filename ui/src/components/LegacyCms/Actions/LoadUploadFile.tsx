@@ -37,6 +37,15 @@ interface UploadState {
 
 
 const FileComponent = ({ fileDetails }: Props) => {
+  console.info('🖼️ FileComponent render:', {
+    isLocalPath: fileDetails?.isLocalPath,
+    isSQL: fileDetails?.isSQL,
+    localPath: fileDetails?.localPath,
+    hasMySQL: !!fileDetails?.mySQLDetails,
+    hasAWS: !!fileDetails?.awsData,
+    mysqlHost: fileDetails?.mySQLDetails?.host,
+    awsRegion: fileDetails?.awsData?.awsRegion
+  });
 
   return (
     <div>
@@ -306,14 +315,15 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
       if(!isFormatValid){
         setValidationMessage('');
+        // ✅ FIX: Properly spread existing data to prevent data loss
         dispatch(updateNewMigrationData({
           ...newMigrationData,
           legacy_cms: {
+            ...newMigrationData?.legacy_cms,
             uploadedFile: {
+              ...newMigrationData?.legacy_cms?.uploadedFile,
               isValidated: false,
             }
-
-
           }
         }))
 
@@ -342,11 +352,15 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   useEffect(() => {
     const latestFileDetails = newMigrationData?.legacy_cms?.uploadedFile?.file_details;
     
-    if (latestFileDetails) {
-      setFileDetails(latestFileDetails);
-    } else {
-      console.warn('⚠️ latestFileDetails is empty, not updating');
-    }
+    // Always update fileDetails from Redux, even if it's empty (to clear stale data)
+    setFileDetails(latestFileDetails);
+    
+    console.info('📋 LoadUploadFile: fileDetails updated from Redux', {
+      isSQL: latestFileDetails?.isSQL,
+      hasMySQL: !!latestFileDetails?.mySQLDetails,
+      hasAWS: !!latestFileDetails?.awsData,
+      localPath: latestFileDetails?.localPath
+    });
   }, [newMigrationData?.legacy_cms?.uploadedFile?.file_details]);
 
   useEffect(() => {
@@ -420,8 +434,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     ) {
       setIsValidated(true);
       setShowMessage(true);
+      // ✅ FIX: Use Redux state instead of local state for isSQL check
       setValidationMessage(
-        fileDetails?.isSQL 
+        newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isSQL 
           ? 'Connection established successfully.' 
           : 'File validated successfully.'
       );
@@ -442,7 +457,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     // else{
     //   setIsValidated(false);
     // }
-  }, [isValidated, newMigrationData]);
+  }, [isValidated, newMigrationData, showProgress]);
 
   useEffect(() => {
     if (newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) {
