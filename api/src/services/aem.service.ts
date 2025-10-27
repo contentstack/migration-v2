@@ -105,11 +105,12 @@ function findAssetByPath(
 }
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
-  fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
-    if (err) {
-      console.error('Error writing file: 3', err);
-    }
-  });
+  try {
+    await fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
+  } catch (err) {
+    console.error('Error writing file:', err);
+    throw err;
+  }
 }
 
 async function writeFiles(
@@ -121,23 +122,18 @@ async function writeFiles(
   try {
     const indexPath = path.join(entryPath, 'index.json');
     const localePath = path.join(entryPath, `${locale}.json`);
-    fs.access(entryPath, async (err) => {
-      if (err) {
-        fs.mkdir(entryPath, { recursive: true }, async (err) => {
-          if (err) {
-            console.error('Error writing file: 2', err);
-          } else {
-            await writeOneFile(indexPath, fileMeta);
-            await writeOneFile(localePath, entryLocale);
-          }
-        });
-      } else {
-        await writeOneFile(indexPath, fileMeta);
-        await writeOneFile(localePath, entryLocale);
-      }
-    });
+
+    try {
+      await fs.promises.access(entryPath);
+    } catch {
+      await fs.promises.mkdir(entryPath, { recursive: true });
+    }
+
+    await fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
+    await fs.promises.writeFile(localePath, JSON.stringify(entryLocale));
   } catch (error) {
     console.error('Error writing files:', error);
+    throw error;
   }
 }
 
@@ -460,8 +456,9 @@ function processFieldsRecursive(fields: any[], items: any, title: string, assetJ
         break;
       }
       case 'boolean': {
-        const value = items?.[field?.uid];
-        const uid = getLastKey(field?.contentstackFieldUid);
+        const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : getLastKey(field?.uid);
+        const value = items?.[aemFieldName];
+        const uid = getLastKey(field?.contentstackFieldUid);     
         if (typeof value === 'boolean' || (typeof value === 'object' && value?.[':type']?.includes('separator'))) {
           obj[uid] = typeof value === 'boolean' ? value : true;
         }
@@ -484,19 +481,24 @@ function processFieldsRecursive(fields: any[], items: any, title: string, assetJ
         break;
       }
       case 'reference': {
-        for (const [, val] of Object.entries(items) as [string, Record<string, unknown>][]) {
+        const fieldKey = getLastKey(field?.contentstackFieldUid);
+        const refCtUid = field?.referenceTo?.[0] || field?.uid;
+        for (const [key, val] of Object.entries(items) as [string, Record<string, unknown>][]) {
+          if (!val?.configured || (val[':type'] as string) === 'nt:folder') {
+            continue;
+          }
           if (
-            (typeof field?.uid === 'string' && !['title', 'url'].includes(field.uid)) &&
-            field?.contentstackFieldType === "reference" &&
-            (val[':type'] as string) !== 'nt:folder' &&
-            val?.configured
+            (val[':type'] as string)?.includes('experiencefragment') &&
+            typeof val?.localizedFragmentVariationPath === 'string'
           ) {
-            if (typeof val?.localizedFragmentVariationPath === 'string' &&
-              val.localizedFragmentVariationPath.includes(`/${field?.uid}`)) {
-              obj[field?.uid as string] = [{
+            const pathMatchesField = val.localizedFragmentVariationPath.includes(`/${field?.uid}`);
+            const pathMatchesRefType = val.localizedFragmentVariationPath.includes(`/${refCtUid}`);
+            if (pathMatchesField || pathMatchesRefType) {
+              obj[fieldKey] = [{
                 "uid": val?.id,
-                "_content_type_uid": field?.uid,
+                "_content_type_uid": refCtUid
               }];
+              break;
             }
           }
         }
@@ -559,7 +561,6 @@ const createEntry = async ({
   contentTypes,
   destinationStackId,
   projectId,
-  // keyMapper,
   project
 }: CreateEntryOptions) => {
   const srcFunc = 'createEntry';
@@ -569,17 +570,21 @@ const createEntry = async ({
   const assetJson = path.join(assetsSave, ASSETS_SCHEMA_FILE);
   const exists = await isAssetJsonCreated(assetJson);
   let assetJsonData: Record<string, AssetJSON> = {};
+
   if (exists) {
     const assetData = await fs.promises.readFile(assetJson, 'utf-8');
     if (typeof assetData === 'string') {
       assetJsonData = JSON.parse(assetData);
     }
   }
+
   const entriesDir = path.resolve(packagePath ?? '');
   const damPath = path.join(entriesDir, AEM_DAM_DIR);
   const entriesData: Record<string, Record<string, any[]>> = {};
   const allLocales: object = { ...project?.master_locale, ...project?.locales };
   const entryMapping: Record<string, string[]> = {};
+
+  // FIRST PASS: Process all entries and build mappings
   for await (const fileName of read(entriesDir)) {
     const filePath = path.join(entriesDir, fileName);
     if (filePath?.startsWith?.(damPath)) {
@@ -599,11 +604,11 @@ const createEntry = async ({
       const data = containerCreator(contentType?.fieldMapping, items, title, assetJsonData);
       data.uid = uid;
       data.publish_details = [];
+
       if (contentType?.contentstackUid && data && mappedLocale) {
         const message = getLogMessage(
           srcFunc,
-          `Entry title "${data?.title}"(${contentType?.contentstackUid}
-          }) in the ${mappedLocale} locale has been successfully transformed.`,
+          `Entry title "${data?.title}"(${contentType?.contentstackUid}) in the ${mappedLocale} locale has been successfully transformed.`,
           {}
         );
         await customLogger(
@@ -625,16 +630,21 @@ const createEntry = async ({
           for (const entry of entries) {
             const flatData = deepFlattenObject(entry);
             for (const [key, value] of Object.entries(flatData)) {
-              if (key.endsWith('._content_type_uid')) {
-                const uidFeild = key.replace('._content_type_uid', '');
-                if (uidFeild && typeof value === 'string') {
-                  const refs: string[] = entryMapping?.[value];
-                  if (refs?.length) {
-                    _.set(entry, `${uidFeild}.uid`, refs?.[0]);
-                  }
+              if (key.endsWith('._content_type_uid') && typeof value === 'string') {
+                const uidField = key.replace('._content_type_uid', '');
+                const refs: string[] = entryMapping?.[value];
+
+                if (refs?.length) {
+                  _.set(entry, `${uidField}.uid`, refs[0]);
+                } else {
+                  console.info(`✗ No entry found for content type: ${value}`);
                 }
               }
             }
+          }
+          const entriesObject: Record<string, any> = {};
+          for (const entry of entries) {
+            entriesObject[entry.uid] = entry;
           }
           const fileMeta = { '1': `${locale}.json` };
           const entryPath = path.join(
@@ -643,7 +653,7 @@ const createEntry = async ({
             ctUid,
             locale
           );
-          await writeFiles(entryPath, fileMeta, entries, locale);
+          await writeFiles(entryPath, fileMeta, entriesObject, locale);
         }
       }
     }
