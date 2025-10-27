@@ -151,7 +151,6 @@ const detectPublicPath = async (
       const commonPaths = [
         '/sites/default/files/',
         '/sites/all/files/',
-        '/sites/g/files/bxs2566/files/', // Rice University specific
         '/files/',
       ];
 

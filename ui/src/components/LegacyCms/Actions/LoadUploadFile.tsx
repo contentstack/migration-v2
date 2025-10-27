@@ -220,7 +220,13 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         setProgressPercentage(100);
       } else {
         setIsValidated(false);
-        setValidationMessage('Validation failed.');
+        // For SQL connections, show the specific backend error message
+        // For other formats, show generic validation failed message
+        setValidationMessage(
+          data?.file_details?.isSQL && data?.message 
+            ? data.message 
+            : 'Validation failed.'
+        );
         setIsValidationAttempted(true);
         setProgressPercentage(100);
       }
@@ -478,7 +484,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                   variant="p2"
                   text={validationMessgae}
                 />
-                {!isValidated && validationMessgae === 'Validation failed.' && (
+                {!isValidated && validationMessgae === 'Validation failed.' && !fileDetails?.isSQL && (
                   <p className={`${validationClassName} p2 doc-link`}>
                     Please check the requirements{' '}
                     <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">

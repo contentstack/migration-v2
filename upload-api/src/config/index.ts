@@ -17,7 +17,7 @@ export default {
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'riceuniversity2',
+    database: 'riceuniversity1',
     port: '3306'
   },
   assetsConfig: {

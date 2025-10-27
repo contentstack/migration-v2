@@ -98,12 +98,20 @@ const handleFileProcessing = async (
 
       // Validate SQL connection using our Drupal validator
       // Also validate assets configuration if provided
-      const isValidConnection = await validator({
+      const validationResult = await validator({
         data: config.mysql,
         type: cmsType,
         extension: fileExt,
         assetsConfig: config.assetsConfig // Pass assetsConfig for validation
       });
+
+      // Handle both old boolean format and new object format
+      const isValidConnection =
+        typeof validationResult === 'boolean' ? validationResult : validationResult.success;
+      const errorMessage =
+        typeof validationResult === 'object' && validationResult.error
+          ? validationResult.error
+          : 'Failed to validate database connection or required tables are missing';
 
       if (isValidConnection) {
         logger.info('Database validation success:', {
@@ -119,11 +127,11 @@ const handleFileProcessing = async (
       } else {
         logger.warn('Database validation failed:', {
           status: HTTP_CODES?.UNAUTHORIZED,
-          message: 'Failed to validate database connection or required tables are missing'
+          message: errorMessage
         });
         const validationErrorResponse = {
           status: HTTP_CODES?.UNAUTHORIZED,
-          message: 'Failed to validate database connection or required tables are missing',
+          message: errorMessage, // Pass the specific error message
           file_details: config
         };
         return validationErrorResponse;
