@@ -368,3 +368,4 @@ app.json
 *drupalMigrationData*
 # Snyk Security Extension - AI Rules (auto-generated)
 .cursor/rules/snyk_rules.mdc
+/aem_data_structure

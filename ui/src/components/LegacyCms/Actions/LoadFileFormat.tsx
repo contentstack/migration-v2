@@ -57,11 +57,29 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
 
   const handleFileFormat = async() =>{
     try {
+      /* eslint-disable no-console */
+      console.info('🔍 LoadFileFormat - handleFileFormat called');
+      
+      // Check if file has been validated yet
+      const isFileValidated = newMigrationData?.legacy_cms?.uploadedFile?.isValidated;
+      console.info('  isFileValidated:', isFileValidated);
+      
+      if (!isFileValidated) {
+        console.info('  ⚠️ File not validated yet, skipping format check');
+        // Clear any previous errors
+        setIsError(false);
+        setError('');
+        /* eslint-enable no-console */
+        return;
+      }
       
       const cmsType = !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent) 
         ? newMigrationData?.legacy_cms?.selectedCms?.parent 
         : newMigrationData?.legacy_cms?.uploadedFile?.cmsType;
       const filePath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath?.toLowerCase();
+      
+      console.info('  cmsType:', cmsType);
+      console.info('  filePath:', filePath);
       
       // Check if this is a SQL connection with multiple fallback indicators
       const isSQLFromFlag = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isSQL === true;
@@ -69,16 +87,33 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       const isSQLFromPath = filePath === 'sql';
       const isSQLFromAwsData = (newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData as any)?.mysql !== undefined;
       
+      console.info('  SQL Detection:');
+      console.info('    isSQLFromFlag:', isSQLFromFlag);
+      console.info('    isSQLFromName:', isSQLFromName);
+      console.info('    isSQLFromPath:', isSQLFromPath);
+      console.info('    isSQLFromAwsData:', isSQLFromAwsData);
+      
       // SQL connection is true if ANY of these indicators are true
       const isSQLConnection = isSQLFromFlag || isSQLFromName || isSQLFromPath || isSQLFromAwsData;
+      
+      console.info('  ✓ isSQLConnection:', isSQLConnection);
       
       // Get file format from selectedFileFormat or detect from upload response
       let fileFormat: string = newMigrationData?.legacy_cms?.selectedFileFormat?.title?.toLowerCase();
       
-      // If fileFormat is not set, try to detect from upload response
-      if (!fileFormat && isSQLConnection) {
+      console.info('  fileFormat from selectedFileFormat:', fileFormat);
+      
+      // If SQL connection is detected but fileFormat is not 'sql', override it
+      if (isSQLConnection) {
+        if (fileFormat !== 'sql') {
+          console.info('  ⚠️ SQL connection detected but fileFormat is:', fileFormat);
+          console.info('  ⚠️ Overriding fileFormat to: sql');
+        }
         fileFormat = 'sql';
       }
+      
+      console.info('  fileFormat after SQL check:', fileFormat);
+      /* eslint-enable no-console */
       
       const { all_cms = [] } = migrationData?.legacyCMSData || {};
       let filteredCmsData: ICMSType[] = all_cms;
@@ -90,12 +125,20 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
       // Special handling for Drupal SQL format
       const isDrupal = cmsType?.toLowerCase() === 'drupal';
       
+      /* eslint-disable no-console */
+      console.info('  isDrupal:', isDrupal);
+      console.info('  Final fileFormat:', fileFormat);
+      /* eslint-enable no-console */
+      
       let isFormatValid = false;
       
       // KEY FIX: Check isSQLConnection instead of comparing fileFormat string
       if (isDrupal && isSQLConnection) {
         // For Drupal SQL connections, automatically accept the format
         isFormatValid = true;
+        /* eslint-disable no-console */
+        console.info('  ✓ Format valid (Drupal SQL):', isFormatValid);
+        /* eslint-enable no-console */
       } else {
         // For other CMS types, use the original validation logic
         const foundFormat = filteredCmsData[0]?.allowed_file_formats?.find(
@@ -105,15 +148,31 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
           }
         );
         isFormatValid = !!foundFormat;
+        /* eslint-disable no-console */
+        console.info('  ✓ Format valid (standard check):', isFormatValid);
+        console.info('    foundFormat:', foundFormat);
+        /* eslint-enable no-console */
       }
+
+      /* eslint-disable no-console */
+      console.info('');
+      console.info('  📌 FINAL RESULT:');
+      console.info('    isFormatValid:', isFormatValid);
+      /* eslint-enable no-console */
 
       if (!isFormatValid) {
         setIsError(true);
         setError('File format does not support, please add the correct file format.');
+        /* eslint-disable no-console */
+        console.info('    ❌ Setting error - format not valid');
+        /* eslint-enable no-console */
       } else {
         // Clear any previous errors
         setIsError(false);
         setError('');
+        /* eslint-disable no-console */
+        console.info('    ✅ Clearing error - format is valid');
+        /* eslint-enable no-console */
       }
   
       // For SQL connections, use 'sql' as the format identifier
@@ -167,16 +226,30 @@ const LoadFileFormat = (props: LoadFileFormatProps) => {
   useEffect(() => {
     newMigrationDataRef.current = newMigrationData;
     
+    const localPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath;
+    const isLocalPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isLocalPath;
+    
     // Check if SQL connection and update icon immediately
     const isSQLFromFlag = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isSQL === true;
     const isSQLFromName = newMigrationData?.legacy_cms?.uploadedFile?.name?.toLowerCase() === 'sql';
-    const isSQLFromPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath?.toLowerCase() === 'sql';
+    const isSQLFromPath = localPath?.toLowerCase() === 'sql';
     const isSQLFromAwsData = (newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData as any)?.mysql !== undefined;
     const isSQLConnection = isSQLFromFlag || isSQLFromName || isSQLFromPath || isSQLFromAwsData;
     const isDrupal = newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase() === 'drupal';
     
+    // Set icon based on file type
     if (isDrupal && isSQLConnection) {
       setFileIcon('SQL');
+    } else if (isLocalPath && localPath) {
+      // Check if it's a directory (no file extension)
+      const hasExtension = /\.[a-zA-Z0-9]{1,5}$/.test(localPath);
+      if (!hasExtension) {
+        setFileIcon('Folder');
+      } else {
+        // Extract extension
+        const ext = localPath.split('.').pop()?.toUpperCase();
+        setFileIcon(ext || 'Folder');
+      }
     }
   }, [newMigrationData]);
 
