@@ -1,3 +1,5 @@
+import { uidCorrector } from ".";
+
 interface FieldMapping {
   id?: string;
   uid?: string;
@@ -54,6 +56,126 @@ function trackComponentType(type: string): void {
 }
 
 /**
+ * Apply uidCorrector to all contentstackFieldUid values in the field mapping
+ */
+function normalizeFieldUids(field: FieldMapping | undefined): FieldMapping | undefined {
+  if (!field) return undefined;
+  
+  const normalized = { ...field };
+  if (normalized?.contentstackFieldUid) {
+    normalized.contentstackFieldUid = uidCorrector(normalized?.contentstackFieldUid);
+  }
+  
+  // Also fix backupFieldUid if it exists
+  if (normalized?.backupFieldUid) {
+    normalized.backupFieldUid = uidCorrector(normalized?.backupFieldUid);
+  }
+  
+  // Fix UIDs in blocks
+  if (normalized?.blocks && Array.isArray(normalized?.blocks)) {
+    normalized.blocks = normalized?.blocks
+      .map(block => normalizeBlockUids(block))
+      .filter(block => block !== undefined) as BlockItem[];
+  }
+  
+  // Fix UIDs in schema
+  if (normalized?.schema) {
+    if (Array.isArray(normalized?.schema)) {
+      normalized.schema = normalized?.schema
+        .map((schemaItem: any) => normalizeSchemaItemUids(schemaItem))
+        .filter((item: any) => item !== undefined);
+    } else if (typeof normalized?.schema === 'object') {
+      normalized.schema = normalizeSchemaItemUids(normalized?.schema);
+    }
+  }
+  
+  return normalized;
+}
+
+/**
+ * Normalize UIDs in a block item
+ */
+function normalizeBlockUids(block: BlockItem | undefined): BlockItem | undefined {
+  if (!block) return undefined;
+  
+  const normalized = { ...block };
+  
+  // Fix the block's UID
+  if (normalized?.contentstackFieldUid) {
+    normalized.contentstackFieldUid = uidCorrector(normalized.contentstackFieldUid);
+  }
+  
+  // Fix backup UID
+  if (normalized?.backupFieldUid) {
+    normalized.backupFieldUid = uidCorrector(normalized.backupFieldUid);
+  }
+  
+  // Fix uid field (different from contentstackFieldUid)
+  if (normalized?.uid) {
+    normalized.uid = uidCorrector(normalized.uid);
+  }
+  
+  // Keep contentstackField unchanged
+  
+  if (normalized?.blocks && Array.isArray(normalized?.blocks)) {
+    normalized.blocks = normalized.blocks
+      .map(b => normalizeBlockUids(b))
+      .filter(b => b !== undefined) as BlockItem[];
+  }
+  
+  if (normalized?.schema) {
+    if (Array.isArray(normalized.schema)) {
+      normalized.schema = normalized.schema
+        .map((item: any) => normalizeSchemaItemUids(item))
+        .filter((item: any) => item !== undefined);
+    } else if (typeof normalized.schema === 'object') {
+      normalized.schema = normalizeSchemaItemUids(normalized.schema);
+    }
+  }
+  
+  return normalized;
+}
+
+/**
+ * Normalize UIDs in a schema item
+ */
+function normalizeSchemaItemUids(schemaItem: any): any {
+  if (!schemaItem || typeof schemaItem !== 'object') {
+    return schemaItem;
+  }
+  
+  const normalized = { ...schemaItem };
+  if (normalized?.contentstackFieldUid) {
+    normalized.contentstackFieldUid = uidCorrector(normalized?.contentstackFieldUid);
+  }
+  
+  if (normalized?.backupFieldUid) {
+    normalized.backupFieldUid = uidCorrector(normalized?.backupFieldUid);
+  }
+  
+  if (normalized?.uid) {
+    normalized.uid = uidCorrector(normalized?.uid);
+  }
+  
+  if (normalized?.blocks && Array.isArray(normalized?.blocks)) {
+    normalized.blocks = normalized?.blocks
+      .map((b: any) => normalizeBlockUids(b))
+      .filter((b: any) => b !== undefined);
+  }
+  
+  if (normalized?.schema) {
+    if (Array.isArray(normalized?.schema)) {
+      normalized.schema = normalized?.schema
+        .map((item: any) => normalizeSchemaItemUids(item))
+        .filter((item: any) => item !== undefined);
+    } else if (typeof normalized?.schema === 'object') {
+      normalized.schema = normalizeSchemaItemUids(normalized?.schema);
+    }
+  }
+  
+  return normalized;
+}
+/**
  * Main entry point for processing content models
  */
 export function processContentModels(
@@ -70,9 +192,14 @@ export function processContentModels(
 
   if (isAlreadyProcessed) {
     console.log('Data appears to be already processed. Applying deep deduplication and container merging.');
-    return (jsonData as MergedContentModel[]).map(model => ({
+    return (jsonData as MergedContentModel[])?.map(model => ({
       ...model,
-      fieldMapping: model.fieldMapping.map(field => processFieldDeep(field))
+      fieldMapping: model?.fieldMapping
+        .map(field => {
+          const processed = processFieldDeep(field);
+          return normalizeFieldUids(processed);
+        })
+        .filter(field => field !== undefined) as FieldMapping[] 
     }));
   }
 
@@ -93,7 +220,7 @@ function mergeContentModels(models: ContentModel[]): MergedContentModel[] {
 
   // Group by contentstackUid
   models.forEach(model => {
-    const key = model.contentstackUid;
+    const key = model?.contentstackUid;
     if (!groupedModels.has(key)) {
       groupedModels.set(key, []);
     }
@@ -104,19 +231,23 @@ function mergeContentModels(models: ContentModel[]): MergedContentModel[] {
 
   // Process each group
   groupedModels.forEach((group, contentstackUid) => {
-    console.log(`\nProcessing content type: ${contentstackUid} (${group.length} instances)`);
+    console.log(`\nProcessing content type: ${contentstackUid} (${group?.length} instances)`);
 
     if (group.length === 1) {
       // Single instance - just process blocks
-      const singleModel = group[0];
-      const processedFieldMapping = singleModel.fieldMapping
-        .filter(f => f !== null)
-        .map(field => processFieldDeep(field as FieldMapping));
+      const singleModel = group?.[0];
+      const processedFieldMapping = singleModel?.fieldMapping
+        .filter(f => f !== null && f !== undefined) 
+        .map(field => {
+          const processed = processFieldDeep(field as FieldMapping);
+          return normalizeFieldUids(processed);
+        })
+        .filter(field => field !== undefined) as FieldMapping[]; 
 
       mergedModels.push({
         ...singleModel,
         fieldMapping: processedFieldMapping,
-        mergedFromIds: [singleModel.id]
+        mergedFromIds: [singleModel?.id]
       });
     } else {
       // Multiple instances - merge them
@@ -133,11 +264,11 @@ function mergeContentModels(models: ContentModel[]): MergedContentModel[] {
  */
 function processFieldDeep(field: FieldMapping): FieldMapping {
   // Process blocks at the top level
-  if (field.blocks && Array.isArray(field.blocks)) {
-    console.log(`\n📦 Processing field: ${field.uid || field.contentstackFieldUid}`);
-    console.log(`  Initial blocks: ${field.blocks.length}`);
+  if (field?.blocks && Array.isArray(field?.blocks)) {
+    console.log(`\n📦 Processing field: ${field?.uid || field?.contentstackFieldUid}`);
+    console.log(`  Initial blocks: ${field?.blocks?.length}`);
 
-    const processedBlocks = mergeBlocksWithSameUid(field.blocks);
+    const processedBlocks = mergeBlocksWithSameUid(field?.blocks);
 
     console.log(`  Final blocks: ${processedBlocks.length}`);
 
@@ -155,13 +286,13 @@ function processFieldDeep(field: FieldMapping): FieldMapping {
  * This function handles all the merging logic for blocks with same UIDs
  */
 function mergeBlocksWithSameUid(blocks: any[]): any[] {
-  if (!blocks || !Array.isArray(blocks) || blocks.length === 0) {
+  if (!blocks || !Array.isArray(blocks) || blocks?.length === 0) {
     return blocks;
   }
 
   // Track component types as they appear
   blocks.forEach(block => {
-    const type = block.uid || block.contentstackFieldUid || '';
+    const type = block?.uid || block?.contentstackFieldUid || '';
     if (type) {
       trackComponentType(type);
     }
@@ -173,7 +304,7 @@ function mergeBlocksWithSameUid(blocks: any[]): any[] {
 
   blocks.forEach(block => {
     // Use contentstackFieldUid as the primary key for grouping, fallback to uid
-    const key = block.contentstackFieldUid || block.uid || 'unknown';
+    const key = block?.contentstackFieldUid || block?.uid || 'unknown';
 
     if (!blockGroups.has(key)) {
       blockGroups.set(key, []);
@@ -195,30 +326,30 @@ function mergeBlocksWithSameUid(blocks: any[]): any[] {
       const block = deepClone(sameUidBlocks[0]);
 
       // Recursively process nested blocks if they exist
-      if (block.blocks && Array.isArray(block.blocks)) {
-        block.blocks = mergeBlocksWithSameUid(block.blocks);
+      if (block?.blocks && Array.isArray(block?.blocks)) {
+        block.blocks = mergeBlocksWithSameUid(block?.blocks);
       }
 
       // Also process schema if it contains blocks
-      if (block.schema) {
-        if (Array.isArray(block.schema)) {
+      if (block?.schema) {
+        if (Array.isArray(block?.schema)) {
           // Check if schema array has multiple items with same contentstackFieldUid
-          block.schema = mergeBlocksWithSameUid(block.schema);
+          block.schema = mergeBlocksWithSameUid(block?.schema);
 
           // Then process each schema item's blocks
-          block.schema = block.schema.map((schemaItem: any) => {
+          block.schema = block?.schema?.map((schemaItem: any) => {
             if (schemaItem.blocks && Array.isArray(schemaItem.blocks)) {
               return {
                 ...schemaItem,
-                blocks: mergeBlocksWithSameUid(schemaItem.blocks)
+                blocks: mergeBlocksWithSameUid(schemaItem?.blocks)
               };
             }
             return schemaItem;
           });
-        } else if (typeof block.schema === 'object' && block.schema.blocks && Array.isArray(block.schema.blocks)) {
+        } else if (typeof block?.schema === 'object' && block?.schema?.blocks && Array.isArray(block?.schema?.blocks)) {
           block.schema = {
             ...block.schema,
-            blocks: mergeBlocksWithSameUid(block.schema.blocks)
+            blocks: mergeBlocksWithSameUid(block?.schema?.blocks)
           };
         }
       }
@@ -229,16 +360,16 @@ function mergeBlocksWithSameUid(blocks: any[]): any[] {
       console.log(`  🔀 Merging ${sameUidBlocks.length} blocks with contentstackFieldUid/uid: "${key}"`);
 
       // Use first block as base
-      const mergedBlock = deepClone(sameUidBlocks[0]);
+      const mergedBlock = deepClone(sameUidBlocks?.[0]);
 
       // Collect all nested blocks from all instances
       const allNestedBlocks: any[] = [];
       const nestedBlockSignatures = new Set<string>();
 
-      sameUidBlocks.forEach((block, index) => {
+      sameUidBlocks?.forEach((block, index) => {
         console.log(`    Processing block ${index + 1}/${sameUidBlocks.length}`);
 
-        if (block.blocks && Array.isArray(block.blocks)) {
+        if (block?.blocks && Array.isArray(block?.blocks)) {
           block.blocks.forEach((nestedBlock: any) => {
             // Track component type
             const nestedType = nestedBlock.uid || nestedBlock.contentstackFieldUid || '';
@@ -324,48 +455,49 @@ function mergeBlocksWithSameUid(blocks: any[]): any[] {
 }
 
 /**
+ * COMMENTED CODE - OLDER VERSION
  * Process a single block recursively
  */
-function processBlockRecursively(block: BlockItem): BlockItem {
-  const processedBlock = { ...block };
+// function processBlockRecursively(block: BlockItem): BlockItem {
+//   const processedBlock = { ...block };
 
-  // Special handling for blocks with schema containing multiple containers at the same level
-  if (processedBlock.schema && Array.isArray(processedBlock.schema)) {
-    console.log(`  🔍 Processing schema array for ${processedBlock.uid || processedBlock.contentstackFieldUid}`);
+//   // Special handling for blocks with schema containing multiple containers at the same level
+//   if (processedBlock.schema && Array.isArray(processedBlock.schema)) {
+//     console.log(`  🔍 Processing schema array for ${processedBlock.uid || processedBlock.contentstackFieldUid}`);
 
-    // Use mergeBlocksWithSameUid for schema arrays
-    processedBlock.schema = mergeBlocksWithSameUid(processedBlock.schema);
+//     // Use mergeBlocksWithSameUid for schema arrays
+//     processedBlock.schema = mergeBlocksWithSameUid(processedBlock.schema);
 
-    // Then process each schema item recursively
-    processedBlock.schema = processedBlock.schema.map((schemaItem: any) => {
-      if (schemaItem.blocks && Array.isArray(schemaItem.blocks)) {
-        return {
-          ...schemaItem,
-          blocks: mergeBlocksWithSameUid(schemaItem.blocks)
-        };
-      }
-      return schemaItem;
-    });
-  } else if (processedBlock.schema && typeof processedBlock.schema === 'object' && processedBlock.schema.blocks) {
-    // Schema is an object with blocks
-    const nestedBlocks = processedBlock.schema.blocks;
-    if (Array.isArray(nestedBlocks)) {
-      console.log(`  📂 Processing nested blocks in schema object`);
-      processedBlock.schema = {
-        ...processedBlock.schema,
-        blocks: mergeBlocksWithSameUid(nestedBlocks)
-      };
-    }
-  }
+//     // Then process each schema item recursively
+//     processedBlock.schema = processedBlock.schema.map((schemaItem: any) => {
+//       if (schemaItem.blocks && Array.isArray(schemaItem.blocks)) {
+//         return {
+//           ...schemaItem,
+//           blocks: mergeBlocksWithSameUid(schemaItem.blocks)
+//         };
+//       }
+//       return schemaItem;
+//     });
+//   } else if (processedBlock.schema && typeof processedBlock.schema === 'object' && processedBlock.schema.blocks) {
+//     // Schema is an object with blocks
+//     const nestedBlocks = processedBlock.schema.blocks;
+//     if (Array.isArray(nestedBlocks)) {
+//       console.log(`  📂 Processing nested blocks in schema object`);
+//       processedBlock.schema = {
+//         ...processedBlock.schema,
+//         blocks: mergeBlocksWithSameUid(nestedBlocks)
+//       };
+//     }
+//   }
 
-  // If the block itself has blocks (another pattern)
-  if (processedBlock.blocks && Array.isArray(processedBlock.blocks)) {
-    console.log(`  📂 Processing blocks array in ${processedBlock.uid}`);
-    processedBlock.blocks = mergeBlocksWithSameUid(processedBlock.blocks);
-  }
+//   // If the block itself has blocks (another pattern)
+//   if (processedBlock.blocks && Array.isArray(processedBlock.blocks)) {
+//     console.log(`  📂 Processing blocks array in ${processedBlock.uid}`);
+//     processedBlock.blocks = mergeBlocksWithSameUid(processedBlock.blocks);
+//   }
 
-  return processedBlock;
-}
+//   return processedBlock;
+// }
 
 /**
  * Sort components dynamically based on their natural order in the data
@@ -484,20 +616,21 @@ function createDetailedSchemaSignature(schemaItem: any): string {
 }
 
 /**
+ * COMMENTED CODE - OLDER VERSION
  * Deduplicate blocks array
  */
-function deduplicateBlocks(blocks: BlockItem[]): BlockItem[] {
-  const uniqueBlocks = new Map<string, BlockItem>();
+// function deduplicateBlocks(blocks: BlockItem[]): BlockItem[] {
+//   const uniqueBlocks = new Map<string, BlockItem>();
 
-  blocks.forEach(block => {
-    const signature = createDetailedBlockSignature(block);
-    if (!uniqueBlocks.has(signature)) {
-      uniqueBlocks.set(signature, block);
-    }
-  });
+//   blocks.forEach(block => {
+//     const signature = createDetailedBlockSignature(block);
+//     if (!uniqueBlocks.has(signature)) {
+//       uniqueBlocks.set(signature, block);
+//     }
+//   });
 
-  return Array.from(uniqueBlocks.values());
-}
+//   return Array.from(uniqueBlocks.values());
+// }
 
 /**
  * Normalize object for signature creation
@@ -553,7 +686,7 @@ function mergeMultipleInstances(instances: ContentModel[]): MergedContentModel {
   // Analyze all instances
   instances.forEach((instance) => {
     instance.fieldMapping.forEach((field, position) => {
-      if (field === null) {
+      if (field === null || field === undefined) { 
         return;
       }
 
@@ -580,12 +713,15 @@ function mergeMultipleInstances(instances: ContentModel[]): MergedContentModel {
   fieldPositionMap.forEach((data) => {
     // Process field with deep deduplication
     const processedField = processFieldDeep(data.field);
-    const optimalPosition = calculateOptimalPosition(data.positions);
-
-    fieldsWithOptimalPosition.push({
-      field: processedField,
-      position: optimalPosition
-    });
+    const normalizedField = normalizeFieldUids(processedField);
+    
+    if (normalizedField) { 
+      const optimalPosition = calculateOptimalPosition(data.positions);
+      fieldsWithOptimalPosition.push({
+        field: normalizedField,
+        position: optimalPosition
+      });
+    }
   });
 
   // Sort by position
