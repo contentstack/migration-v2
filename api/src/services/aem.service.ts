@@ -95,7 +95,7 @@ async function isAssetJsonCreated(assetJsonPath: string): Promise<boolean> {
   }
 }
 
-// Helper function to remove Sanitize data and remove unwanted HTML tags and other chars
+// Helper function to sanitize data and remove unwanted HTML tags and other chars
 function stripHtmlTags(html: string): string {
   if (!html || typeof html !== 'string') return '';
   
@@ -118,17 +118,17 @@ function getFieldValue(items: any, fieldName: string): any {
   
   // Try camelCase conversion (snake_case → camelCase)
   // Handle both single letter and multiple letter segments
-  const camelCaseFieldName = fieldName.replace(/_([a-z]+)/gi, (_, letters) => {
+  const camelCaseFieldName = fieldName?.replace(/_([a-z]+)/gi, (_, letters) => {
     // Capitalize first letter, keep rest as-is for acronyms
-    return letters.charAt(0).toUpperCase() + letters.slice(1);
+    return letters?.charAt(0)?.toUpperCase() + letters?.slice(1);
   });
   if (items[camelCaseFieldName] !== undefined) {
     return items[camelCaseFieldName];
   }
   
-  // Try all uppercase version for acronyms (show_oos → showOOS)
-  const acronymVersion = fieldName.replace(/_([a-z]+)/gi, (_, letters) => {
-    return letters.toUpperCase();
+  // Try all uppercase version for acronyms
+  const acronymVersion = fieldName?.replace(/_([a-z]+)/gi, (_, letters) => {
+    return letters?.toUpperCase();
   });
   if (items[acronymVersion] !== undefined) {
     return items[acronymVersion];
@@ -136,7 +136,7 @@ function getFieldValue(items: any, fieldName: string): any {
   
   // Try case-insensitive match as last resort
   const itemKeys = Object.keys(items);
-  const matchedKey = itemKeys.find(key => key.toLowerCase() === fieldName.toLowerCase());
+  const matchedKey = itemKeys?.find(key => key.toLowerCase() === fieldName?.toLowerCase());
   if (matchedKey && items[matchedKey] !== undefined) {
     return items[matchedKey];
   }
@@ -386,7 +386,7 @@ const createAssets = async ({
             const lastSegment = value?.split?.('/')?.pop?.();
             if (typeof lastSegment === 'string') {
               const assetsQueryPath = await fetchFilesByQuery(damPath, lastSegment);
-              const firstJson = assetsQueryPath.find((fp: string) => fp?.endsWith?.('.json')) ?? null;
+              const firstJson = assetsQueryPath?.find((fp: string) => fp?.endsWith?.('.json')) ?? null;
               
               if (typeof firstJson === 'string' && firstJson?.endsWith('.json')) {
                 const contentAst = await fs.promises.readFile(firstJson, 'utf-8');
@@ -394,21 +394,21 @@ const createAssets = async ({
                   const parseData = JSON.parse(contentAst);
                   const filename = parseData?.asset?.name;
                   
-                  //  Store mapping from this AEM path to filename
+                  // Store mapping from this AEM path to filename
                   pathToFilenameMap.set(value, filename);
                   
-                  //  Only create asset ONCE per unique filename
-                  if (!seenFilenames.has(filename)) {
+                  // Only create asset ONCE per unique filename
+                  if (!seenFilenames?.has(filename)) {
                     const uid = uuidv4?.()?.replace?.(/-/g, '');
                     const blobPath = firstJson?.replace?.('.metadata.json', '');
                     
-                    seenFilenames.set(filename, {
+                    seenFilenames?.set(filename, {
                       uid,
                       metadata: parseData,
                       blobPath
                     });
                   } else {
-                    console.info(`Reusing asset: ${filename} → ${seenFilenames.get(filename)!.uid}`);
+                    console.info(`Reusing asset: ${filename} → ${seenFilenames?.get(filename)?.uid}`);
                   }
                 }
               }
@@ -422,7 +422,7 @@ const createAssets = async ({
   }
   
   // Create physical asset files (one per unique filename)
-  for (const [filename, assetInfo] of seenFilenames.entries()) {
+  for (const [filename, assetInfo] of seenFilenames?.entries()) {
     const { uid, metadata, blobPath } = assetInfo;
     const nameWithoutExt = typeof filename === 'string' 
       ? filename.split('.').slice(0, -1).join('.') 
@@ -462,7 +462,7 @@ const createAssets = async ({
   
   // Build path-to-UID mapping (ALL paths map to the SAME deduplicated UID)
   for (const [aemPath, filename] of pathToFilenameMap.entries()) {
-    const assetInfo = seenFilenames.get(filename);
+    const assetInfo = seenFilenames?.get(filename);
     if (assetInfo) {
       pathToUidMap[aemPath] = assetInfo.uid;
       
@@ -474,10 +474,10 @@ const createAssets = async ({
   }
   
   // Create UID-based index.json
-  for (const [filename, assetInfo] of seenFilenames.entries()) {
+  for (const [filename, assetInfo] of seenFilenames?.entries()) {
     const { uid, metadata } = assetInfo;
     const nameWithoutExt = typeof filename === 'string' 
-      ? filename.split('.').slice(0, -1).join('.') 
+      ? filename?.split('.').slice(0, -1).join('.') 
       : filename;
     
     allAssetJSON[uid] = {
@@ -491,7 +491,7 @@ const createAssets = async ({
       parent_uid: null,
       title: nameWithoutExt,
       publish_details: [],
-      assetPath: assetFirstPath.get(uid) || '',
+      assetPath: assetFirstPath?.get(uid) ?? '',
       url: `https://images.contentstack.io/v3/assets/${destinationStackId}/${uid}/${filename}`,
       ACL: [],
       _version: 1
@@ -594,7 +594,7 @@ function processFieldsRecursive(
           obj[uid] = true;
         } 
         else if (typeof value === 'string') {
-          const lowerValue = value.toLowerCase().trim();
+          const lowerValue = value?.toLowerCase()?.trim();
           if (lowerValue === 'true' || lowerValue === 'yes' || lowerValue === '1') {
             obj[uid] = true;
           } else if (lowerValue === 'false' || lowerValue === 'no' || lowerValue === '0' || lowerValue === '') {
@@ -722,7 +722,7 @@ function processFieldsRecursive(
         const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : 'src';
         const imageSrc = getFieldValue(items, aemFieldName) || getFieldValue(items, 'src'); 
         
-        if (!imageSrc || !Object.keys(pathToUidMap)?.length) {
+        if (!imageSrc || !Object?.keys(pathToUidMap)?.length) {
           obj[uid] = null;
           break;
         }
@@ -733,17 +733,17 @@ function processFieldsRecursive(
           
           if (assetDetails) {
             obj[uid] = {
-              uid: assetDetails.uid,
-              filename: assetDetails.filename,
-              content_type: assetDetails.content_type,
-              file_size: assetDetails.file_size,
-              title: assetDetails.title,
-              url: assetDetails.url,
-              tags: assetDetails.tags || [],
-              publish_details: assetDetails.publish_details || [],
-              parent_uid: assetDetails.parent_uid || null,
+              uid: assetDetails?.uid,
+              filename: assetDetails?.filename,
+              content_type: assetDetails?.content_type,
+              file_size: assetDetails?.file_size,
+              title: assetDetails?.title,
+              url: assetDetails?.url,
+              tags: assetDetails?.tags || [],
+              publish_details: assetDetails?.publish_details || [],
+              parent_uid: assetDetails?.parent_uid || null,
               is_dir: false,
-              ACL: assetDetails.ACL || []
+              ACL: assetDetails?.ACL || []
             };
           } else {
             obj[uid] = {
@@ -868,20 +868,20 @@ const createEntry = async ({
             const flatData = deepFlattenObject(entry);
             for (const [key, value] of Object.entries(flatData)) {
               if (key.endsWith('._content_type_uid') && typeof value === 'string') {
-                const uidField = key.replace('._content_type_uid', '');
+                const uidField = key?.replace('._content_type_uid', '');
                 const refs: string[] = entryMapping?.[value];
 
                 if (refs?.length) {
-                  _.set(entry, `${uidField}.uid`, refs[0]);
+                  _.set(entry, `${uidField}.uid`, refs?.[0]);
                 } else {
-                  console.info(`✗ No entry found for content type: ${value}`);
+                  console.info(`No entry found for content type: ${value}`);
                 }
               }
             }
           }
           const entriesObject: Record<string, any> = {};
           for (const entry of entries) {
-            entriesObject[entry.uid] = entry;
+            entriesObject[entry?.uid] = entry;
           }
           const fileMeta = { '1': `${locale}.json` };
           const entryPath = path.join(
