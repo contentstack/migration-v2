@@ -27,7 +27,10 @@ const handleFileProcessing = async (
         return {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
-          file_details: config,
+          file_details: {
+            ...config,
+            isSQL: false // Explicitly set to false for zip validation
+          },
           file: isSaved?.filePath
         };
       }
@@ -39,7 +42,10 @@ const handleFileProcessing = async (
       return {
         status: HTTP_CODES?.UNAUTHORIZED,
         message: HTTP_TEXTS?.VALIDATION_ERROR,
-        file_details: config
+        file_details: {
+          ...config,
+          isSQL: false // Explicitly set to false for zip validation
+        }
       };
     }
   } else if (fileExt === 'xml') {
@@ -56,7 +62,10 @@ const handleFileProcessing = async (
         return {
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
-          file_details: config
+          file_details: {
+            ...config,
+            isSQL: false // Explicitly set to false for xml validation
+          }
         };
       } else {
         logger.warn('Validation error:', {
@@ -66,7 +75,10 @@ const handleFileProcessing = async (
         return {
           status: HTTP_CODES?.UNAUTHORIZED,
           message: HTTP_TEXTS?.VALIDATION_ERROR,
-          file_details: config
+          file_details: {
+            ...config,
+            isSQL: false // Explicitly set to false for xml validation
+          }
         };
       }
     }
@@ -76,11 +88,22 @@ const handleFileProcessing = async (
         status: HTTP_CODES?.OK,
         message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL
       });
-      return {
+
+      const responseData = {
         status: HTTP_CODES?.OK,
         message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
-        file_details: config
+        file_details: {
+          ...config,
+          isSQL: false // Explicitly set to false for folder validation
+        }
       };
+
+      console.log('🔍 FOLDER VALIDATION - Response being returned:');
+      console.log('  file_details.isSQL:', responseData.file_details.isSQL);
+      console.log('  file_details.cmsType:', responseData.file_details.cmsType);
+      console.log('  Full file_details:', JSON.stringify(responseData.file_details, null, 2));
+
+      return responseData;
     } else {
       logger.warn('Validation error:', {
         status: HTTP_CODES?.UNAUTHORIZED,
@@ -89,7 +112,10 @@ const handleFileProcessing = async (
       return {
         status: HTTP_CODES?.UNAUTHORIZED,
         message: HTTP_TEXTS?.VALIDATION_ERROR,
-        file_details: config
+        file_details: {
+          ...config,
+          isSQL: false // Explicitly set to false for folder validation
+        }
       };
     }
   } else if (fileExt === 'sql') {
@@ -155,7 +181,10 @@ const handleFileProcessing = async (
       return {
         status: HTTP_CODES?.OK,
         message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
-        file_details: config
+        file_details: {
+          ...config,
+          isSQL: false // Explicitly set to false for other file types
+        }
       };
     } else {
       logger.warn('Validation error:', {
@@ -165,7 +194,10 @@ const handleFileProcessing = async (
       return {
         status: HTTP_CODES?.UNAUTHORIZED,
         message: HTTP_TEXTS?.VALIDATION_ERROR,
-        file_details: config
+        file_details: {
+          ...config,
+          isSQL: false // Explicitly set to false for other file types
+        }
       };
     }
   }
