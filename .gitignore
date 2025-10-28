@@ -360,6 +360,7 @@ upload-api/extracted_files*
 *copy*
 .qodo
 .vscode
+app.json
 *extracted_files*
 *MigrationData*
 *.zip

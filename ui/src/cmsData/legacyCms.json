@@ -185,17 +185,17 @@
         "title": "https://business.adobe.com/",
         "href": "https://business.adobe.com/"
       },
-      "parent": "",
+      "parent": "aem",
       "isactive": true,
       "allowed_file_formats": [
         {
-          "fileformat_id": "zip",
+          "fileformat_id": "directory",
           "_metadata": {
             "uid": "cs08dadd206cfa53b4"
           },
-          "title": "Zip",
+          "title": "Directory",
           "description": "",
-          "group_name": "zip",
+          "group_name": "directory",
           "isactive": true
         }
       ]

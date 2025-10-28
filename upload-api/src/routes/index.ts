@@ -89,149 +89,180 @@ router.post('/upload', upload.single('file'), async function (req: Request, res:
 });
 
 // deepcode ignore NoRateLimitingForExpensiveWebOperation: <alredy implemetes>
-router.get('/validator', express.json(), fileOperationLimiter, async function (req: Request, res: Response) {
-  try {
-    const projectId: string | string[] = req?.headers?.projectid ?? "";
-    const app_token: string | string[] = req?.headers?.app_token ?? "";
-    const affix: string | string[] = req?.headers?.affix ?? "csm";
-    const cmsType = config?.cmsType?.toLowerCase();
+router.get(
+  '/validator',
+  express.json(),
+  fileOperationLimiter,
+  async function (req: Request, res: Response) {
+    try {
+      const projectId: string | string[] = req?.headers?.projectid ?? '';
+      const app_token: string | string[] = req?.headers?.app_token ?? '';
+      const affix: string | string[] = req?.headers?.affix ?? 'csm';
+      const cmsType = config?.cmsType?.toLowerCase();
 
-    if (config?.isLocalPath) {
-      const fileName = path.basename(config?.localPath || "");
-      //const fileName = config?.localPath?.replace(/\/$/, "")?.split?.('/')?.pop?.();
+      if (config?.isLocalPath) {
+        const fileName = path.basename(config?.localPath || '');
+        const isFile = !!path.extname(fileName);
 
-      if (!fileName) {
-        res.send('Filename could not be determined from the local path.');
-      }
+        if (!fileName) {
+          res.send('Filename could not be determined from the local path.');
+        }
 
-      if (fileName) {
-        const name = fileName?.split?.('.')?.[0];
-        const fileExt = fileName?.split('.')?.pop() ?? '';
-        const bodyStream = createReadStream(config?.localPath?.replace(/\/$/, ""));
+        if (fileName) {
+          if (isFile) {
+            const name = fileName?.split?.('.')?.[0];
+            const fileExt = fileName?.split('.')?.pop() ?? '';
+            const bodyStream = createReadStream(config?.localPath?.replace(/\/$/, ''));
 
-        bodyStream.on('error', (error: any) => {
-          console.error(error);
-          return res.status(500).json({
-            status: "error",
-            message: "Error reading file.",
-            file_details: config
-          });
+            bodyStream.on('error', (error: any) => {
+              console.error(error);
+              return res.status(500).json({
+                status: 'error',
+                message: 'Error reading file.',
+                file_details: config
+              });
+            });
+            if (fileExt === 'xml') {
+              let xmlData = '';
+              // Collect the data from the stream as a string
+              bodyStream.on('data', (chunk) => {
+                if (typeof chunk !== 'string' && !Buffer.isBuffer(chunk)) {
+                  throw new Error('Expected chunk to be a string or a Buffer');
+                } else {
+                  // Convert chunk to string (if it's a Buffer)
+                  xmlData += chunk.toString();
+                }
+              });
+
+              // When the stream ends, process the XML data
+              bodyStream.on('end', async () => {
+                if (!xmlData) {
+                  throw new Error('No data collected from the stream.');
+                }
+
+                const data = await handleFileProcessing(fileExt, xmlData, cmsType, name);
+                res.status(data?.status || 200).json(data);
+                if (data?.status === 200) {
+                  const filePath = path.join(
+                    __dirname,
+                    '..',
+                    '..',
+                    'extracted_files',
+                    `${name}.json`
+                  );
+                  createMapper(filePath, projectId, app_token, affix, config);
+                }
+              });
+            } else {
+              const chunks: Buffer[] = [];
+              let totalLength = 0;
+
+              bodyStream.on('data', (chunk) => {
+                if (!Buffer.isBuffer(chunk)) {
+                  throw new Error('Expected chunk to be a Buffer');
+                }
+                chunks.push(chunk);
+                totalLength += chunk.length;
+              });
+
+              bodyStream.on('end', async () => {
+                try {
+                  if (chunks.length === 0) {
+                    return res.status(400).json({ error: 'No data collected from the stream.' });
+                  }
+
+                  const zipBuffer = Buffer.concat(chunks, totalLength);
+                  const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
+
+                  res.status(data?.status || 200).json(data);
+
+                  if (data?.status === 200) {
+                    let filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+                    // If file was extracted to a nested directory (e.g., nested-extracted for Sitecore)
+                    if (data?.file) {
+                      filePath = path.join(filePath, data.file);
+                    }
+                    createMapper(filePath, projectId, app_token, affix, config);
+                  }
+                } catch (error) {
+                  console.error('Processing error:', error);
+                  res.status(500).json({ error: 'Failed to process file' });
+                }
+              });
+
+              bodyStream.on('error', (error) => {
+                console.error('Stream error:', error);
+                res.status(500).json({ error: 'Stream processing failed' });
+              });
+            }
+          } else {
+            const data = await handleFileProcessing('folder', config?.localPath, cmsType, fileName);
+            res.status(data?.status || 200).json(data);
+            if (data?.status === 200) {
+              createMapper(config?.localPath, projectId, app_token, affix, config);
+            }
+          }
+        }
+      } else {
+        const params = {
+          Bucket: config?.awsData?.bucketName,
+          Key: config?.awsData?.bucketKey
+        };
+        const getObjectCommand = new GetObjectCommand(params);
+        // Get the object from S3
+        const s3File = await client.send(getObjectCommand);
+        //file Name From key
+        const fileName = params?.Key?.split?.('/')?.pop?.() ?? '';
+        //file ext from fileName
+        const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
+
+        if (!s3File?.Body) {
+          throw new Error('Empty response body from S3');
+        }
+
+        const bodyStream: Readable = s3File?.Body as Readable;
+
+        // Create a writable stream to save the downloaded zip file
+        const zipFileStream = createWriteStream(`${fileName}`);
+
+        // // Pipe the S3 object's body to the writable stream
+        bodyStream.pipe(zipFileStream);
+
+        // Create a writable stream to save the downloaded zip file
+        let zipBuffer: Buffer | null = null;
+
+        // Collect the data from the stream into a buffer
+        bodyStream.on('data', (chunk) => {
+          if (zipBuffer === null) {
+            zipBuffer = chunk;
+          } else {
+            zipBuffer = Buffer.concat([zipBuffer, chunk]);
+          }
         });
-        if (fileExt === 'xml') {
-          let xmlData = '';
 
-          // Collect the data from the stream as a string
-          bodyStream.on('data', (chunk) => {
-            if (typeof chunk !== 'string' && !Buffer.isBuffer(chunk)) {
-              throw new Error('Expected chunk to be a string or a Buffer');
-            } else {
-              // Convert chunk to string (if it's a Buffer)
-              xmlData += chunk.toString();
-            }
-          });
+        //buffer fully stremd
+        bodyStream.on('end', async () => {
+          if (!zipBuffer) {
+            throw new Error('No data collected from the stream.');
+          }
 
-          // When the stream ends, process the XML data
-          bodyStream.on('end', async () => {
-            if (!xmlData) {
-              throw new Error('No data collected from the stream.');
-            }
-
-            const data = await handleFileProcessing(fileExt, xmlData, cmsType, name);
-            res.status(data?.status || 200).json(data);
-            if (data?.status === 200) {
-              const filePath = path.join(__dirname, '..', '..', 'extracted_files', `${name}.json`);
-              createMapper(filePath, projectId, app_token, affix, config);
-            }
-          });
-        }
-        else {
-          // Create a writable stream to save the downloaded zip file
-          let zipBuffer = Buffer.alloc(0);
-
-          // Collect the data from the stream into a buffer
-          bodyStream.on('data', (chunk) => {
-            if (!Buffer.isBuffer(chunk)) {
-              throw new Error('Expected chunk to be a Buffer');
-            } else {
-              zipBuffer = Buffer.concat([zipBuffer, chunk]);
-            }
-          });
-
-          //buffer fully stremd
-          bodyStream.on('end', async () => {
-            if (!zipBuffer) {
-              throw new Error('No data collected from the stream.');
-            }
-            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
-            res.status(data?.status || 200).json(data);
-            if (data?.status === 200) {
-              let filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
-              if (data?.file !== undefined) {
-                filePath = path.join(__dirname, '..', '..', 'extracted_files', name, data?.file);
-              }
-              createMapper(filePath, projectId, app_token, affix, config);
-            }
-          });
-        }
+          const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
+          res.json(data);
+          res.send('file valited sucessfully.');
+          let filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
+          // If file was extracted to a nested directory (e.g., nested-extracted for Sitecore)
+          if (data?.file) {
+            filePath = path.join(filePath, data.file);
+          }
+          console.log('🚀 ~ bodyStream.on ~ filePath:', filePath);
+          createMapper(filePath, projectId, app_token, affix, config);
+        });
       }
-    } else {
-      const params = {
-        Bucket: config?.awsData?.bucketName,
-        Key: config?.awsData?.bucketKey
-      };
-      const getObjectCommand = new GetObjectCommand(params);
-      // Get the object from S3
-      const s3File = await client.send(getObjectCommand);
-      //file Name From key
-      const fileName = params?.Key?.split?.('/')?.pop?.() ?? '';
-      //file ext from fileName
-      const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
-
-      if (!s3File?.Body) {
-        throw new Error('Empty response body from S3');
-      }
-
-      const bodyStream: Readable = s3File?.Body as Readable;
-
-      // Create a writable stream to save the downloaded zip file
-      const zipFileStream = createWriteStream(`${fileName}`);
-
-      // // Pipe the S3 object's body to the writable stream
-      bodyStream.pipe(zipFileStream);
-
-      // Create a writable stream to save the downloaded zip file
-      let zipBuffer: Buffer | null = null;
-
-      // Collect the data from the stream into a buffer
-      bodyStream.on('data', (chunk) => {
-        if (zipBuffer === null) {
-          zipBuffer = chunk;
-        } else {
-          zipBuffer = Buffer.concat([zipBuffer, chunk]);
-        }
-      });
-
-      //buffer fully stremd
-      bodyStream.on('end', async () => {
-        if (!zipBuffer) {
-          throw new Error('No data collected from the stream.');
-        }
-
-        const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
-        res.json(data);
-        res.send('file validated successfully.');
-        let filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
-        if (data?.file !== undefined) {
-          filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName, data?.file);
-        }
-        createMapper(filePath, projectId, app_token, affix, config);
-      });
+    } catch (err: any) {
+      console.error('🚀 ~ router.get ~ err:', err);
     }
   }
-  catch (err: any) {
-    console.error('🚀 ~ router.get ~ err:', err);
-  }
-});
+);
 
 router.get('/config', async function (req: Request, res: Response) {
   res.json(config);

@@ -367,3 +367,4 @@ database/
 /migration-data
 **/copy*
 **copy.ts
+manifest.json

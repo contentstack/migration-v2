@@ -662,7 +662,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           <MiniScrollableTable
             width={'600px'}
             headerComponent={
-              <TableHeader cms={newMigrationData?.legacy_cms?.selectedCms?.parent} />
+              <TableHeader cms={newMigrationData?.legacy_cms?.selectedCms?.title} />
             }
             rowComponent={
               <Mapper
