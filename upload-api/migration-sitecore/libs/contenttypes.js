@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak */
+
 const path = require('path');
 const _ = require('lodash');
 const read = require('fs-readdir-recursive');
@@ -8,7 +10,6 @@ const { MIGRATION_DATA_CONFIG } = require('../constants/index');
 
 const extraField = 'title';
 const configChecker = path?.join('content', 'Common', 'Configuration');
-const append = 'a';
 let config = {};
 
 const {
@@ -137,7 +138,11 @@ const ContentTypeSchema = ({
   affix
 }) => {
   const isPresent = restrictedUid?.find((item) => item === uid);
-  if (isPresent) {
+  const cleanedUid = uidCorrector({ uid });
+  const startsWithNum = startsWithNumber(cleanedUid);
+
+  // Add affix if UID is restricted OR starts with a number
+  if (isPresent || startsWithNum) {
     uid = `${affix}_${uid}`;
   }
   switch (type) {
@@ -400,12 +405,13 @@ const groupFlat = (data, item) => {
     Array.isArray(data?.schema) &&
     data.schema.some((item) => item !== undefined)
   ) {
+    // Use the already-corrected UID from data.uid (which has affix applied if needed)
     const group = {
       uid: item?.meta?.key,
       otherCmsField: item?.meta?.name,
       otherCmsType: 'Group',
       contentstackField: item?.meta?.name,
-      contentstackFieldUid: uidCorrector({ uid: item?.meta?.key }),
+      contentstackFieldUid: data?.uid, // Use the corrected UID from groupSchema
       contentstackFieldType: 'group',
       backupFieldType: 'group'
     };
@@ -417,8 +423,8 @@ const groupFlat = (data, item) => {
           uid: `${item?.meta?.key}.${element?.uid}`,
           otherCmsField: `${item?.meta?.name} > ${element?.otherCmsField}`,
           contentstackField: `${item?.meta?.name} > ${element?.contentstackField}`,
-          contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${uidCorrector({ uid: element?.contentstackFieldUid })}`,
-          backupFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${uidCorrector({ uid: element?.contentstackFieldUid })}`
+          contentstackFieldUid: `${data?.uid}.${uidCorrector({ uid: element?.contentstackFieldUid })}`, // Use corrected group UID
+          backupFieldUid: `${data?.uid}.${uidCorrector({ uid: element?.contentstackFieldUid })}` // Use corrected group UID
         };
         flat?.push(obj);
       }
@@ -450,12 +456,20 @@ const contentTypeMapper = ({
   let mainSchema = [];
   components?.forEach((item) => {
     if (item?.schema?.length) {
+      const groupUidCleaned = uidCorrector({ uid: item?.meta?.key });
+      const groupStartsWithNum = startsWithNumber(groupUidCleaned);
+      const isGroupRestricted = restrictedUid?.find((uid) => uid === item?.meta?.key);
+
+      // Add affix to group UID if it starts with a number or is restricted
+      const groupUid =
+        isGroupRestricted || groupStartsWithNum ? `${affix}_${groupUidCleaned}` : groupUidCleaned;
+
       const groupSchema = {
         data_type: 'group',
         display_name: item?.meta?.name,
         field_metadata: {},
         schema: [],
-        uid: uidCorrector({ uid: item?.meta?.key }),
+        uid: groupUid,
         multiple: true,
         mandatory: false,
         unique: false
