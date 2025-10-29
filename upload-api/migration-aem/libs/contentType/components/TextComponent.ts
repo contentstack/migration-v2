@@ -66,7 +66,7 @@ export class TextComponent extends ContentstackComponent {
     const name = 'text';
     const type = 'Rich Text';
     const uid = 'text';
-    const default_value = component?.convertedSchema?.properties?.text?.value || '';
+    const default_value = '';
 
     const isRichText = this.processTextComponents(component) ?? this.isText(component);
     if (isRichText) {

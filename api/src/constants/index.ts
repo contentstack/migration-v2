@@ -1,10 +1,12 @@
-export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA"];
+export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA", "AU", "GCP_EU"];
 export const DEVURLS: any = {
   NA: "developerhub-api.contentstack.com",
   EU: "eu-developerhub-api.contentstack.com",
   AZURE_NA: "azure-na-developerhub-api.contentstack.com",
   AZURE_EU: "azure-eu-developerhub-api.contentstack.com",
   GCP_NA: "gcp-na-developerhub-api.contentstack.com",
+  AU: "au-developerhub-api.contentstack.com",
+  GCP_EU: "gcp-eu-developerhub-api.contentstack.com",
 };
 export const CMS = {
   CONTENTFUL: "contentful",
