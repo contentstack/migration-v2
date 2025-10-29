@@ -151,7 +151,7 @@
   }
   .Table {
     border-left: 0 none;
-    min-height: inherit;
+    // min-height: inherit;
     .Table__body__row {
       //   height: auto!important;
       //   min-height: 80px;
@@ -405,4 +405,14 @@ div .table-row {
   max-width: 230px;
   display: inline-flex;
   line-height: 1.2!important;
+}
+
+.custom-empty-state {
+  .Icon--original {
+    width: 207px !important;
+    height: auto !important;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+  }
 }
