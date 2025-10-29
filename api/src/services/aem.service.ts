@@ -708,6 +708,21 @@ function processFieldsRecursive(
         obj[uid] = jsonData;
         break;
       }
+      case 'html': {  
+        const aemFieldName = field?.otherCmsField ? getLastKey(field?.otherCmsField, ' > ') : field?.uid;
+        const value = getFieldValue(items, aemFieldName); 
+        const uid = getLastKey(field?.contentstackFieldUid);
+        
+        let htmlContent = '';
+        
+        if (typeof value === 'string') {
+          htmlContent = value;
+        } else if (value && typeof value === 'object') {
+          htmlContent = value?.text || value?.content || '';
+        }
+        obj[uid] = htmlContent;
+        break;
+      }
       case 'link': {
         const value = { 
           title: getFieldValue(items, 'title') ?? '', 
