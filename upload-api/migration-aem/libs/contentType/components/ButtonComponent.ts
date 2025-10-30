@@ -51,14 +51,14 @@ export class ButtonComponent extends ContentstackComponent {
       uid: key,
       displayName: key,
       description: "",
-      defaultValue: schemaProp.value
+      defaultValue: false
     }).toContentstack(),
     integer: (key, schemaProp) => new TextField({
       uid: key,
       displayName: key,
       description: "",
       isNumber: true,
-      defaultValue: schemaProp.value
+      defaultValue: ""
     }).toContentstack(),
     object: (key, schemaProp) => {
       const urlValue = schemaProp?.properties?.url?.value;
@@ -67,7 +67,7 @@ export class ButtonComponent extends ContentstackComponent {
           uid: key,
           displayName: key,
           description: "",
-          defaultValue: urlValue
+          defaultValue: ""
         }).toContentstack();
       }
       return null;
