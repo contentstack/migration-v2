@@ -38,20 +38,20 @@ export class ImageComponent extends ContentstackComponent {
           uid: key,
           displayName: key,
           description: "",
-          defaultValue: schemaProp.value
+          defaultValue: ""
         }).toContentstack()
     },
     boolean: (key, schemaProp) => new BooleanField({
       uid: key,
       displayName: key,
       description: "",
-      defaultValue: schemaProp.value
+      defaultValue: false
     }).toContentstack(),
     integer: (key, schemaProp) => new TextField({
       uid: key,
       displayName: key,
       description: "",
-      defaultValue: schemaProp.value,
+      defaultValue: "",
       isNumber: true
     }).toContentstack(),
     object: () => null,
