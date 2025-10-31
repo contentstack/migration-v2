@@ -4,6 +4,8 @@ export const devConfig = {
     EU: "https://stag-eu-api.csnonprod.com/v3",
     AZURE_NA: "https://stag-azure-na-api.csnonprod.com/v3",
     GCP_NA: "https://stag-gcp-na-api.csnonprod.com/v3",
+    AU:"https://stag-au-api.csnonprod.com/v3",
+    GCP_EU: "https://stag-gcp-eu-api.csnonprod.com/v3",
   },
   CS_URL: {
     NA: "https://app.contentstack.com/#!",
@@ -11,6 +13,8 @@ export const devConfig = {
     AZURE_NA: "https://azure-na-app.contentstack.com/#!",
     AZURE_EU: "https://azure-eu-app.contentstack.com/#!",
     GCP_NA: "https://gcp-na-app.contentstack.com/#!",
+    AU: "https://au-app.contentstack.com/#!",
+    GCP_EU: "https://gcp-eu-app.contentstack.com/#!",
   },
   LOG_FILE_PATH:
     process.platform === "win32" ? ".\\combine.log" : "./combine.log", // Replace with the actual path to your log file

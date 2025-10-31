@@ -22,7 +22,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  flex: 0.6;
+  flex: 0.9;
   margin: 0;
 }
 
@@ -82,14 +82,14 @@
 }
 
 .connector {
-  height: 4px;
+  height: 4px; 
   background-color: $color-brand-primary-base;
   flex-grow: 1;
   margin: 0;
   margin-bottom: 30px;
   border-radius: 4px;
-  margin-left: -40px;
-  margin-right: -40px;
+  margin-left: -80px;
+  margin-right: -80px;
 }
 
 .circle-title-wrapper {
@@ -104,12 +104,12 @@
 .disabled-connector {
   background-color: $color-base-gray-40;
   flex-grow: 1;
-  margin: 0;
+  margin: 0;  
   margin-bottom: 30px;
   border-radius: 4px;
   height: 4px;
-  margin-left: -40px;
-  margin-right: -40px;
+  margin-left: -80px;
+  margin-right: -80px;
 }
 
 /******************* Custom Classes *******************/
