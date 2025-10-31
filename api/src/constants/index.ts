@@ -293,3 +293,8 @@ export const GET_AUDIT_DATA = {
   AUDIT_REPORT: "audit-report",
   FILTERALL: "all",
 }
+
+export const RESERVED_FIELD_MAPPINGS: Record<string, string> = {
+  'locale': 'cm_locale'
+  // Add other reserved fields if needed
+};
