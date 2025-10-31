@@ -65,7 +65,7 @@ export class TeaserComponent extends ContentstackComponent {
       uid: key,
       displayName: key,
       description: "",
-      defaultValue: null
+      defaultValue: ""
     }).toContentstack(),
     object: (key, schemaProp) => {
       const data = { convertedSchema: schemaProp }
