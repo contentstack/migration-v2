@@ -1,6 +1,7 @@
+/* eslint-disable */
 import fs from 'fs';
 import path from 'path';
-import _ from 'lodash';
+import _, { includes } from 'lodash';
 import customLogger from './custom-logger.utils.js';
 import { getLogMessage } from './index.js';
 import { LIST_EXTENSION_UID, MIGRATION_DATA_CONFIG } from '../constants/index.js';
@@ -17,14 +18,15 @@ const {
 } = MIGRATION_DATA_CONFIG;
 
 interface Group {
-  data_type: string;
+  data_type?: string;
   display_name?: string; // Assuming item?.contentstackField might be undefined
-  field_metadata: Record<string, any>; // Assuming it's an object with any properties
+  field_metadata?: Record<string, any>; // Assuming it's an object with any properties
   schema: any[]; // Define the type of elements in the schema array if possible
   uid?: string; // Assuming item?.contentstackFieldUid might be undefined
-  multiple: boolean;
-  mandatory: boolean;
-  unique: boolean;
+  multiple?: boolean;
+  mandatory?: boolean;
+  unique?: boolean;
+  title?: string;
 }
 
 interface ContentType {
@@ -47,8 +49,6 @@ function extractFieldName(input: string): string {
 }
 
 
-
-
 function extractValue(input: string, prefix: string, anoter: string): any {
   if (input.startsWith(prefix + anoter)) {
     return input.replace(prefix + anoter, '');
@@ -69,35 +69,224 @@ const uidCorrector = ({ uid }: any) => {
   return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
 }
 
-const arrangGroups = ({ schema, newStack }: any) => {
-  const dtSchema: any = [];
-  schema?.forEach((item: any) => {
-    if (item?.contentstackFieldType === 'group') {
-      const groupSchema: any = { ...item, schema: [] }
-      if (item?.contentstackFieldUid?.includes('.')) {
-        const parts = item?.contentstackFieldUid?.split('.');
-        groupSchema.contentstackFieldUid = parts?.[parts?.length - 1];
-      }
-      schema?.forEach((et: any) => {
-        if (et?.contentstackFieldUid?.includes(`${item?.contentstackFieldUid}.`) ||
-          (newStack === false && et?.uid?.includes(`${item?.uid}.`))) {
-            const target = groupSchema?.contentstackFieldUid;
-            const index = et?.contentstackFieldUid?.indexOf(target);
 
-            if (index > 0) {
-              et.contentstackFieldUid = et?.contentstackFieldUid?.substring?.(index);
-            }
-          groupSchema?.schema?.push(et);
+function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): any {
+  if (item?.isDeleted === true) return null;
+
+  const getCleanUid = (uid: string): string => {
+    if (!uid) return '';
+    const segments = uid.split(/[.>]/).map(s => s.trim());
+    return segments.filter(s => s).pop() || '';
+  };
+
+  const toSnakeCase = (str: string): string => {
+    // Remove special characters and handle common patterns
+    let result = str
+      .replace(/^[^a-zA-Z]+/, '')  // Remove non-alphabetic characters from start
+      .replace(/[^a-zA-Z0-9]/g, '_')  // Replace all special chars with underscore
+      .replace(/URL/g, 'url')
+      .replace(/API/g, 'api')
+      .replace(/ID/g, 'id')
+      .replace(/UI/g, 'ui')
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
+      .replace(/([a-z\d])([A-Z])/g, '$1_$2')
+      .replace(/_+/g, '_')  // Replace multiple underscores with single
+      .replace(/^_|_$/g, '')  // Remove leading/trailing underscores
+      .toLowerCase();
+
+    // Ensure it starts with a letter
+    if (result && !/^[a-z]/.test(result)) {
+      result = 'field_' + result;
+    }
+    if (result === "locale") {
+      result = 'cm_' + result;
+    }
+    return result || 'field';
+  };
+
+
+  const rawUid = getCleanUid(item?.contentstackFieldUid || item?.uid);
+  const itemUid = toSnakeCase(rawUid);  // Apply snake_case conversion
+  const fieldType = item?.contentstackFieldType;
+
+  if (fieldType === 'modular_blocks') {
+    const blocks: any[] = [];
+    const schema = item?.schema || [];
+
+    for (const blockItem of schema) {
+      if (blockItem?.contentstackFieldType !== 'modular_blocks_child') continue;
+
+      const blockRawUid = getCleanUid(blockItem?.contentstackFieldUid || blockItem?.uid);
+      const blockUid = toSnakeCase(blockRawUid);  // Apply snake_case
+      const blockSchema: any[] = [];
+
+      const blockElements = blockItem?.schema || [];
+      for (const element of blockElements) {
+        if (element?.isDeleted === false) {
+          const fieldSchema = buildFieldSchema(element, marketPlacePath, '');
+          if (fieldSchema) blockSchema.push(fieldSchema);
         }
-      })
-      dtSchema?.push(groupSchema);
-    } else {
-      if (!(item?.contentstackField?.includes('>') && item?.contentstackFieldUid?.includes('.'))) {
-        dtSchema?.push(item);
+      }
+
+      if (blockSchema.length > 0) {
+        blocks.push({
+          title: blockRawUid,  // Keep original for title
+          uid: blockUid,       // Snake case for uid
+          schema: removeDuplicateFields(blockSchema)
+        });
       }
     }
-  })
-  return dtSchema;
+
+    if (blocks.length > 0) {
+      return {
+        data_type: "blocks",
+        display_name: item?.display_name || rawUid,  // Keep original for display
+        field_metadata: {},
+        uid: itemUid,  // Snake case uid
+        multiple: true,
+        mandatory: false,
+        unique: false,
+        non_localizable: false,
+        blocks: removeDuplicateFields(blocks)
+      };
+    }
+    return null;
+  }
+
+  if (fieldType === 'group') {
+    const groupSchema: any[] = [];
+    const elements = item?.schema || [];
+
+    for (const element of elements) {
+      if (element?.isDeleted === false) {
+        const fieldSchema = buildFieldSchema(element, marketPlacePath, '');
+        if (fieldSchema) groupSchema.push(fieldSchema);
+      }
+    }
+
+    return {
+      data_type: "group",
+      display_name: item?.display_name || rawUid,  // Keep original for display
+      field_metadata: {},
+      schema: groupSchema,
+      uid: itemUid,  // Snake case uid
+      multiple: item?.advanced?.multiple || false,
+      mandatory: item?.advanced?.mandatory || false,
+      unique: false
+    };
+  }
+
+  // For leaf fields
+  return convertToSchemaFormate({
+    field: {
+      ...item,
+      title: item?.display_name || rawUid,  // Keep original for display
+      uid: itemUid  // Snake case uid
+    },
+    marketPlacePath
+  });
+}
+
+function removeDuplicateFields(fields: any[]): any[] {
+  const seen = new Map();
+  return fields.filter(field => {
+    const key = field.uid || JSON.stringify(field);
+    if (seen.has(key)) return false;
+    seen.set(key, true);
+    return true;
+  });
+}
+
+
+
+function getLastSegmentNew(str: string, separator: string): string {
+  if (!str) return '';
+  const segments = str.split(separator);
+  return segments[segments.length - 1].trim();
+}
+
+export function buildSchemaTree(fields: any[], parentUid = '', parentType = ''): any[] {
+  // Build a lookup map for O(1) access
+  const fieldMap = new Map<string, any>();
+  fields.forEach(f => {
+    if (f.contentstackFieldUid) {
+      fieldMap.set(f.contentstackFieldUid, f);
+    }
+  });
+
+  // Filter direct children of current parent
+  const directChildren = fields.filter(field => {
+    const fieldUid = field.contentstackFieldUid || '';
+
+    if (!parentUid) {
+      // Root level - only fields without dots
+      return fieldUid && !fieldUid.includes('.');
+    }
+
+    // Check if direct child of parent
+    if (!fieldUid.startsWith(parentUid + '.')) return false;
+
+    // Verify it's exactly one level deeper
+    const remainder = fieldUid.substring(parentUid.length + 1);
+    return remainder && !remainder.includes('.');
+  });
+
+  return directChildren.map(field => {
+    const uid = getLastSegmentNew(field.contentstackFieldUid, '.');
+    const displayName = field.display_name || getLastSegmentNew(field.contentstackField || '', '>').trim();
+
+    // Base field structure
+    const result: any = {
+      ...field,
+      uid,
+      display_name: displayName
+    };
+
+    // Determine if field should have nested schema
+    const fieldUid = field.contentstackFieldUid;
+    const fieldType = field.contentstackFieldType;
+
+    // Check if this field has children
+    const hasChildren = fields.some(f =>
+      f.contentstackFieldUid &&
+      f.contentstackFieldUid.startsWith(fieldUid + '.')
+    );
+
+    if (hasChildren) {
+      if (fieldType === 'modular_blocks') {
+        // Get modular block children
+        const mbChildren = fields.filter(f => {
+          const fUid = f.contentstackFieldUid || '';
+          return f.contentstackFieldType === 'modular_blocks_child' &&
+            fUid.startsWith(fieldUid + '.') &&
+            !fUid.substring(fieldUid.length + 1).includes('.');
+        });
+
+        result.schema = mbChildren.map(child => {
+          const childUid = getLastSegmentNew(child.contentstackFieldUid, '.');
+          const childDisplay = child.display_name || getLastSegmentNew(child.contentstackField || '', '>').trim();
+
+          return {
+            ...child,
+            uid: childUid,
+            display_name: childDisplay,
+            schema: buildSchemaTree(fields, child.contentstackFieldUid, 'modular_blocks_child')
+          };
+        });
+      } else if (fieldType === 'group' ||
+        (fieldType === 'modular_blocks_child' && hasChildren)) {
+        // Recursively build schema for groups and modular block children with nested content
+        result.schema = buildSchemaTree(fields, fieldUid, fieldType);
+      }
+    }
+
+    // Preserve existing schema if no children found but schema exists
+    if (!hasChildren && field.schema && Array.isArray(field.schema)) {
+      result.schema = field.schema;
+    }
+
+    return result;
+  });
 }
 
 const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
@@ -460,7 +649,7 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
       return {
         data_type: "reference",
         display_name: field?.title,
-        reference_to: field?.refrenceTo?.map((item:string) => keyMapper?.[item] || item) ?? [],
+        reference_to: field?.refrenceTo ?? [],
         field_metadata: {
           ref_multiple: true,
           ref_multiple_content_types: true
@@ -625,7 +814,6 @@ const saveContent = async (ct: any, contentSave: string) => {
 
 }
 
-
 const writeGlobalField = async (schema: any, globalSave: string) => {
   const filePath = path.join(process.cwd(), globalSave, GLOBAL_FIELDS_FILE_NAME);
   try {
@@ -700,19 +888,7 @@ const mergeArrays = async (a: any[], b: any[]) => {
     }
   }
   return a;
-};
-
-// Recursive search to find a group by uid anywhere in the schema
-const findGroupByUid = (schema: any[], uid: string): any | null => {
-  for (const field of schema) {
-    if (field?.data_type === 'group') {
-      if (field?.uid === uid) return field;
-      const nested = findGroupByUid(field?.schema ?? [], uid);
-      if (nested) return nested;
-    }
-  }
-  return null;
-};
+}
 
 const mergeTwoCts = async (ct: any, mergeCts: any) => {
   const ctData: any = {
@@ -720,31 +896,27 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
     title: mergeCts?.title,
     uid: mergeCts?.uid,
     options: {
-      singleton: false,
+      "singleton": false,
     }
-  };
-
-  const mergeGroupSchema = async (targetSchema: any[], sourceSchema: any[]) => {
-    for await (const targetField of targetSchema) {
-      if (targetField?.data_type === 'group') {
-        const matchingSourceGroup = findGroupByUid(sourceSchema, targetField?.uid);
-        if (matchingSourceGroup) {
-          if (!Array.isArray(targetField?.schema)) targetField.schema = [];
-          if (!Array.isArray(matchingSourceGroup?.schema)) matchingSourceGroup.schema = [];
-
-          await mergeGroupSchema(targetField?.schema, matchingSourceGroup?.schema);
-          targetField.schema = await mergeArrays(targetField?.schema, matchingSourceGroup?.schema);
+  }
+  for await (const field of ctData?.schema ?? []) {
+    if (field?.data_type === 'group') {
+      const currentGroup = mergeCts?.schema?.find((grp: any) => grp?.uid === field?.uid &&
+        grp?.data_type === 'group');
+      const group = [];
+      for await (const fieldGp of currentGroup?.schema ?? []) {
+        const fieldNst = field?.schema?.find((fld: any) => fld?.uid === fieldGp?.uid &&
+          fld?.data_type === fieldGp?.data_type);
+        if (fieldNst === undefined) {
+          group?.push(fieldGp);
         }
       }
+      field.schema = [...field?.schema ?? [], ...group];
     }
-  };
-
-  await mergeGroupSchema(ctData?.schema ?? [], mergeCts?.schema ?? []);
-  ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema ?? []);
-
+  }
+  ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
   return ctData;
-};
-
+}
 
 export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
   const marketPlacePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, destinationStackId);
@@ -760,7 +932,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
     keyMapper?.[contentType?.contentstackUid] !== undefined) {
     currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id });
   }
-  const ctData: any = arrangGroups({ schema: contentType?.fieldMapping, newStack })
+  const ctData: any = buildSchemaTree(contentType?.fieldMapping);
   ctData?.forEach((item: any) => {
     if (item?.contentstackFieldType === 'group') {
       const group: Group = {

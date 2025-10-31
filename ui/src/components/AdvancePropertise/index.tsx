@@ -67,7 +67,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     value: item
   }));
 
-  const referencedItems = props?.data?.referenceTo?.map((item: string) => ({
+  const referencedItems = props?.data?.refrenceTo?.map((item: string) => ({
     label: item,
     value: item
   }));

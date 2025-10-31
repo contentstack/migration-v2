@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-comment-textnodes */
 // Interface
 import { AccountObj } from './accountPage.interface';
 
@@ -15,17 +16,17 @@ const AccountPage = (props: AccountObj): JSX.Element => {
 
   const currentYear = new Date().getFullYear();
 
-  return (
-    // eslint-disable-next-line react/no-unknown-property
-    <div className="AccountPage" heap-ignore="true">
-      <div className="AccountPage__intro">
-        <img src="/images/ContentstackLogo.png" alt="Contentstack" className="AccountPage__logo" />
-        <div className="AccountPage__heading">
-          <h1 className="AccountPage__heading_title">{heading}</h1>
+  return (    
+    <div className="AccountPage">
+      <div className="AccountPage__logo">
+        <div className="container">
+          <img src="https://images.contentstack.io/v3/assets/blt77d44a06c81b1730/blt2e24a315fedaeaf7/68bc10f25f14881bc908b6c2/CS_OnlyLogo.webp?environment=production&width=128&quality=85&format=webp" alt="Contentstack" />
+          <img src="/images/ContentstackLogo.svg" alt="Contentstack" />
         </div>
       </div>
+      
       <div className="AccountPage__action">
-        <div className="AccountPage__content">{props?.children}</div>
+        {props?.children}
         <p className="copyright_text">{`© ${currentYear} ${copyrightText}`}</p>
       </div>
     </div>
