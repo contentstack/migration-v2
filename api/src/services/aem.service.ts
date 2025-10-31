@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { buildSchemaTree } from '../utils/content-type-creator.utils.js';
-import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER } from '../constants/index.js';
+import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER, RESERVED_FIELD_MAPPINGS } from '../constants/index.js';
 import { getLogMessage } from '../utils/index.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { orgService } from './org.service.js';
@@ -69,7 +69,7 @@ interface AssetJSON {
   urlPath: string;
   uid: string;
   content_type?: string;
-  file_size?: number;
+  file_size?: number | string;
   tags: string[];
   filename?: string;
   is_dir: boolean;
@@ -77,6 +77,13 @@ interface AssetJSON {
   title?: string;
   publish_details: unknown[];
   assetPath: string;
+  url?: string;
+  ACL?: unknown[];
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  updated_by?: string;
+  _version?: number;
 }
 
 async function isAssetJsonCreated(assetJsonPath: string): Promise<boolean> {
@@ -88,6 +95,65 @@ async function isAssetJsonCreated(assetJsonPath: string): Promise<boolean> {
   }
 }
 
+// Helper function to sanitize data and remove unwanted HTML tags and other chars
+function stripHtmlTags(html: string): string {
+  if (!html || typeof html !== 'string') return '';
+  
+  // Use JSDOM to parse and extract text content
+  const dom = new JSDOM(html);
+  const text = dom.window.document.body.textContent || '';
+  
+  // Clean up extra whitespace and newlines
+  return text.trim().replace(/\s+/g, ' ');
+}
+
+// Helper Function to extract value from items object based on the fieldName
+function getFieldValue(items: any, fieldName: string): any {
+  if (!items || !fieldName) return undefined;
+  
+  // Try exact match first
+  if (items[fieldName] !== undefined) {
+    return items[fieldName];
+  }
+  
+  // Try camelCase conversion (snake_case → camelCase)
+  // Handle both single letter and multiple letter segments
+  const camelCaseFieldName = fieldName?.replace(/_([a-z]+)/gi, (_, letters) => {
+    // Capitalize first letter, keep rest as-is for acronyms
+    return letters?.charAt(0)?.toUpperCase() + letters?.slice(1);
+  });
+  if (items[camelCaseFieldName] !== undefined) {
+    return items[camelCaseFieldName];
+  }
+  
+  // Try all uppercase version for acronyms
+  const acronymVersion = fieldName?.replace(/_([a-z]+)/gi, (_, letters) => {
+    return letters?.toUpperCase();
+  });
+  if (items[acronymVersion] !== undefined) {
+    return items[acronymVersion];
+  }
+  
+  // Try case-insensitive match as last resort
+  const itemKeys = Object.keys(items);
+  const matchedKey = itemKeys?.find(key => key.toLowerCase() === fieldName?.toLowerCase());
+  if (matchedKey && items[matchedKey] !== undefined) {
+    return items[matchedKey];
+  }
+  
+  return undefined;
+}
+
+
+function getActualFieldUid(uid: string, fieldUid: string): string {
+  if (RESERVED_FIELD_MAPPINGS[uid]) {
+    return RESERVED_FIELD_MAPPINGS[uid];
+  }
+  if (RESERVED_FIELD_MAPPINGS[fieldUid]) {
+    return RESERVED_FIELD_MAPPINGS[fieldUid];
+  }
+  return uid;
+}
 
 /**
  * Finds and returns the asset object from assetJsonData where assetPath matches the given string.
@@ -105,11 +171,12 @@ function findAssetByPath(
 }
 
 async function writeOneFile(indexPath: string, fileMeta: any) {
-  fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
-    if (err) {
-      console.error('Error writing file: 3', err);
-    }
-  });
+  try {
+    await fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
+  } catch (err) {
+    console.error('Error writing file:', err);
+    throw err;
+  }
 }
 
 async function writeFiles(
@@ -121,23 +188,18 @@ async function writeFiles(
   try {
     const indexPath = path.join(entryPath, 'index.json');
     const localePath = path.join(entryPath, `${locale}.json`);
-    fs.access(entryPath, async (err) => {
-      if (err) {
-        fs.mkdir(entryPath, { recursive: true }, async (err) => {
-          if (err) {
-            console.error('Error writing file: 2', err);
-          } else {
-            await writeOneFile(indexPath, fileMeta);
-            await writeOneFile(localePath, entryLocale);
-          }
-        });
-      } else {
-        await writeOneFile(indexPath, fileMeta);
-        await writeOneFile(localePath, entryLocale);
-      }
-    });
+
+    try {
+      await fs.promises.access(entryPath);
+    } catch {
+      await fs.promises.mkdir(entryPath, { recursive: true });
+    }
+
+    await fs.promises.writeFile(indexPath, JSON.stringify(fileMeta));
+    await fs.promises.writeFile(localePath, JSON.stringify(entryLocale));
   } catch (error) {
     console.error('Error writing files:', error);
+    throw error;
   }
 }
 
@@ -312,10 +374,15 @@ const createAssets = async ({
   const assetsSave = path.join(baseDir, ASSETS_DIR_NAME);
   await ensureAssetsDirectory(assetsSave);
   const assetsDir = path.resolve(packagePath);
-  const allAssetJSON: Record<string, AssetJSON> = {};
+  
+  const allAssetJSON: Record<string, AssetJSON> = {}; // UID-based index.json
+  const pathToUidMap: Record<string, string> = {}; // Path-to-UID mapping
+  const seenFilenames = new Map<string, { uid: string; metadata: any; blobPath: string }>();
+  const pathToFilenameMap = new Map<string, string>();
+  
+  // Discover assets and deduplicate by filename
   for await (const fileName of read(assetsDir)) {
     const filePath = path.join(assetsDir, fileName);
-    // Exclude files from dam-downloads directory
     if (filePath?.startsWith?.(damPath)) {
       continue;
     }
@@ -324,105 +391,168 @@ const createAssets = async ({
       try {
         const parseData = JSON.parse(content);
         const flatData = deepFlattenObject(parseData);
+        
         for await (const [, value] of Object.entries(flatData)) {
           if (typeof value === 'string' && isImageType?.(value)) {
             const lastSegment = value?.split?.('/')?.pop?.();
             if (typeof lastSegment === 'string') {
               const assetsQueryPath = await fetchFilesByQuery(damPath, lastSegment);
-              const firstJson = assetsQueryPath.find((filePath: string) => filePath?.endsWith?.('.json')) ?? null;
+              const firstJson = assetsQueryPath?.find((fp: string) => fp?.endsWith?.('.json')) ?? null;
+              
               if (typeof firstJson === 'string' && firstJson?.endsWith('.json')) {
                 const contentAst = await fs.promises.readFile(firstJson, 'utf-8');
                 if (typeof contentAst === 'string') {
-                  const uid = uuidv4?.()?.replace?.(/-/g, '');
                   const parseData = JSON.parse(contentAst);
                   const filename = parseData?.asset?.name;
-                  const nameWithoutExt = typeof filename === 'string' ? filename.split('.').slice(0, -1).join('.') : filename;
-                  allAssetJSON[uid] = {
-                    urlPath: `/assets/${uid}`,
-                    uid: uid,
-                    content_type: parseData?.asset?.mimeType,
-                    file_size: parseData?.download?.downloadedSize,
-                    tags: [],
-                    filename,
-                    is_dir: false,
-                    parent_uid: null,
-                    title: nameWithoutExt,
-                    publish_details: [],
-                    assetPath: value,
-                  };
-                  try {
+                  
+                  // Store mapping from this AEM path to filename
+                  pathToFilenameMap.set(value, filename);
+                  
+                  // Only create asset ONCE per unique filename
+                  if (!seenFilenames?.has(filename)) {
+                    const uid = uuidv4?.()?.replace?.(/-/g, '');
                     const blobPath = firstJson?.replace?.('.metadata.json', '');
-                    const assets = fs.readFileSync(path.join(blobPath));
-                    fs.mkdirSync(path.join(assetsSave, 'files', uid), {
-                      recursive: true,
+                    
+                    seenFilenames?.set(filename, {
+                      uid,
+                      metadata: parseData,
+                      blobPath
                     });
-                    fs.writeFileSync(
-                      path.join(
-                        process.cwd(),
-                        assetsSave,
-                        'files',
-                        uid,
-                        filename
-                      ),
-                      assets
-                    );
-                  } catch (err) {
-                    console.error(
-                      '🚀 ~ file: assets.js:52 ~ xml_folder?.forEach ~ err:',
-                      err
-                    );
-                    const message = getLogMessage(
-                      srcFunc,
-                      `Not able to read the asset"${nameWithoutExt}(${uid})".`,
-                      {},
-                      err
-                    );
-                    await customLogger(projectId, destinationStackId, 'error', message);
+                  } else {
+                    console.info(`Reusing asset: ${filename} → ${seenFilenames?.get(filename)?.uid}`);
                   }
-                  const message = getLogMessage(
-                    srcFunc,
-                    `Asset "${parseData?.asset?.name}" has been successfully transformed.`,
-                    {}
-                  );
-                  await customLogger(projectId, destinationStackId, 'info', message);
                 }
               }
             }
           }
         }
       } catch (err) {
-        console.error(`❌ Failed to parse JSON in ${fileName}:`, err);
+        console.error(`Failed to parse JSON in ${fileName}:`, err);
       }
     }
   }
+  
+  // Create physical asset files (one per unique filename)
+  for (const [filename, assetInfo] of seenFilenames?.entries()) {
+    const { uid, metadata, blobPath } = assetInfo;
+    const nameWithoutExt = typeof filename === 'string' 
+      ? filename.split('.').slice(0, -1).join('.') 
+      : filename;
+    
+    try {
+      const assets = fs.readFileSync(path.join(blobPath));
+      fs.mkdirSync(path.join(assetsSave, 'files', uid), {
+        recursive: true,
+      });
+      fs.writeFileSync(
+        path.join(process.cwd(), assetsSave, 'files', uid, filename),
+        assets
+      );
+      
+      const message = getLogMessage(
+        srcFunc,
+        `Asset "${filename}" has been successfully transformed.`,
+        {}
+      );
+      await customLogger(projectId, destinationStackId, 'info', message);
+      
+    } catch (err) {
+      console.error(`Failed to create asset: ${filename}`, err);
+      const message = getLogMessage(
+        srcFunc,
+        `Not able to read the asset "${nameWithoutExt}(${uid})".`,
+        {},
+        err
+      );
+      await customLogger(projectId, destinationStackId, 'error', message);
+    }
+  }
+  
+  // Track first path for each asset and build mappings
+  const assetFirstPath = new Map<string, string>();
+  
+  // Build path-to-UID mapping (ALL paths map to the SAME deduplicated UID)
+  for (const [aemPath, filename] of pathToFilenameMap.entries()) {
+    const assetInfo = seenFilenames?.get(filename);
+    if (assetInfo) {
+      pathToUidMap[aemPath] = assetInfo.uid;
+      
+      // Track first path for index.json
+      if (!assetFirstPath.has(assetInfo.uid)) {
+        assetFirstPath.set(assetInfo.uid, aemPath);
+      }
+    }
+  }
+  
+  // Create UID-based index.json
+  for (const [filename, assetInfo] of seenFilenames?.entries()) {
+    const { uid, metadata } = assetInfo;
+    const nameWithoutExt = typeof filename === 'string' 
+      ? filename?.split('.').slice(0, -1).join('.') 
+      : filename;
+    
+    allAssetJSON[uid] = {
+      urlPath: `/assets/${uid}`,
+      uid: uid,
+      content_type: metadata?.asset?.mimeType,
+      file_size: metadata?.download?.downloadedSize,
+      tags: [],
+      filename,
+      is_dir: false,
+      parent_uid: null,
+      title: nameWithoutExt,
+      publish_details: [],
+      assetPath: assetFirstPath?.get(uid) ?? '',
+      url: `https://images.contentstack.io/v3/assets/${destinationStackId}/${uid}/${filename}`,
+      ACL: [],
+      _version: 1
+    };
+  }
 
+  // Write files
   const fileMeta = { '1': ASSETS_SCHEMA_FILE };
   await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, ASSETS_FILE_NAME),
     JSON.stringify(fileMeta)
   );
+  
+  // index.json - UID-based
   await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, ASSETS_SCHEMA_FILE),
-    JSON.stringify(allAssetJSON)
+    JSON.stringify(allAssetJSON, null, 2)
+  );
+  
+  // path-mapping.json - For entry transformation
+  await fs.promises.writeFile(
+    path.join(process.cwd(), assetsSave, 'path-mapping.json'),
+    JSON.stringify(pathToUidMap, null, 2)
   );
 };
 
-function processFieldsRecursive(fields: any[], items: any, title: string, assetJsonData: Record<string, AssetJSON>) {
+function processFieldsRecursive(
+  fields: any[], 
+  items: any, 
+  title: string, 
+  pathToUidMap: Record<string, string>,
+  assetDetailsMap: Record<string, AssetJSON>
+) {
   if (!fields) return;
   const obj: any = {};
   const data: any = [];
+  
   for (const field of fields) {
     switch (field?.contentstackFieldType) {
       case 'modular_blocks': {
         const modularData = items?.[field?.uid] ? items?.[field?.uid] : items?.[':items'];
         if (Array.isArray(field?.schema)) {
           const itemsData = modularData?.[':items'] ?? modularData;
-          const value = processFieldsRecursive(field.schema, itemsData, title, assetJsonData)
+          const value = processFieldsRecursive(field.schema, itemsData, title, pathToUidMap, assetDetailsMap);
           const uid = getLastKey(field?.contentstackFieldUid);
           obj[uid] = value;
         }
         break;
       }
+      
       case 'modular_blocks_child': {
         for (const [, value] of Object.entries(items)) {
           const objData: any = {};
@@ -430,7 +560,7 @@ function processFieldsRecursive(fields: any[], items: any, title: string, assetJ
           const getTypeComp = getLastKey(typeValue, '/');
           const uid = getLastKey(field?.contentstackFieldUid);
           if (getTypeComp === field?.uid) {
-            const compValue = processFieldsRecursive(field.schema, value, title, assetJsonData);
+            const compValue = processFieldsRecursive(field.schema, value, title, pathToUidMap, assetDetailsMap);
             if (Object?.keys?.(compValue)?.length) {
               objData[uid] = compValue;
               data?.push(objData);
@@ -439,6 +569,7 @@ function processFieldsRecursive(fields: any[], items: any, title: string, assetJ
         }
         break;
       }
+      
       case 'group': {
         const groupData: unknown[] = [];
         const groupValue = items?.[field?.uid]?.items ?? items?.[field?.uid];
@@ -446,98 +577,216 @@ function processFieldsRecursive(fields: any[], items: any, title: string, assetJ
         if (Array.isArray(groupValue)) {
           for (const element of groupValue) {
             if (Array.isArray(field?.schema)) {
-              const value = processFieldsRecursive(field.schema, element, title, assetJsonData);
+              const value = processFieldsRecursive(field.schema, element, title, pathToUidMap, assetDetailsMap);
               groupData?.push(value);
             }
           }
           obj[uid] = groupData;
         } else {
           if (Array.isArray(field?.schema)) {
-            const value = processFieldsRecursive(field.schema, groupValue, title, assetJsonData);
+            const value = processFieldsRecursive(field.schema, groupValue, title, pathToUidMap, assetDetailsMap);
             obj[uid] = value;
           }
         }
         break;
-      }
+      }  
+      
       case 'boolean': {
-        const value = items?.[field?.uid];
+        const aemFieldName = field?.otherCmsField 
+          ? getLastKey(field.otherCmsField, ' > ') 
+          : getLastKey(field?.uid);
         const uid = getLastKey(field?.contentstackFieldUid);
-        if (typeof value === 'boolean' || (typeof value === 'object' && value?.[':type']?.includes('separator'))) {
-          obj[uid] = typeof value === 'boolean' ? value : true;
+        const value = getFieldValue(items, aemFieldName); 
+        
+        if (typeof value === 'boolean') {
+          obj[uid] = value;
+        } 
+        else if (typeof value === 'object' && value !== null && value?.[':type']?.includes('separator')) {
+          obj[uid] = true;
+        } 
+        else if (typeof value === 'string') {
+          const lowerValue = value?.toLowerCase()?.trim();
+          if (lowerValue === 'true' || lowerValue === 'yes' || lowerValue === '1') {
+            obj[uid] = true;
+          } else if (lowerValue === 'false' || lowerValue === 'no' || lowerValue === '0' || lowerValue === '') {
+            obj[uid] = false;
+          } else {
+            obj[uid] = true;
+          }
+        }
+        else if (typeof value === 'number') {
+          obj[uid] = value !== 0;
+        }
+        else {
+          obj[uid] = false;
         }
         break;
       }
+       
       case 'single_line_text': {
-        const value = items?.[field?.uid];
+        const aemFieldName = field?.otherCmsField ? getLastKey(field?.otherCmsField, ' > ') : getLastKey(field?.uid);
+        let value = getFieldValue(items, aemFieldName); 
         const uid = getLastKey(field?.contentstackFieldUid);
-        obj[uid] = value ?? '';
+        
+        const actualUid = getActualFieldUid(uid, field?.uid);
+        if (value && typeof value === 'string' && /<[^>]+>/.test(value)) {
+          value = stripHtmlTags(value);
+        }
+        
+        obj[actualUid] = value !== null && value !== undefined ? String(value) : "";
         break;
       }
+
+      case 'multi_line_text': {
+        const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : getLastKey(field?.uid);
+        let value = getFieldValue(items, aemFieldName); 
+        const uid = getLastKey(field?.contentstackFieldUid);
+        
+        if (value && typeof value === 'string' && /<[^>]+>/.test(value)) {
+          value = stripHtmlTags(value);
+        }
+        
+        obj[uid] = value !== null && value !== undefined ? String(value) : "";
+        break;
+      }
+
       case 'text': {
         const uid = getLastKey(field?.contentstackFieldUid);
         obj[uid] = title ?? '';
         break;
-      }
+      }   
       case 'url': {
         const uid = getLastKey(field?.contentstackFieldUid);
         obj[uid] = `/${slugify(title)}`;
         break;
-      }
+      }     
       case 'reference': {
-        for (const [, val] of Object.entries(items) as [string, Record<string, unknown>][]) {
+        const fieldKey = getLastKey(field?.contentstackFieldUid);
+        const refCtUid = field?.referenceTo?.[0] || field?.uid;
+        const references = [];     
+        for (const [key, val] of Object.entries(items) as [string, Record<string, unknown>][]) {
+          if (!val?.configured || (val[':type'] as string) === 'nt:folder') {
+            continue;
+          }
           if (
-            (typeof field?.uid === 'string' && !['title', 'url'].includes(field.uid)) &&
-            field?.contentstackFieldType === "reference" &&
-            (val[':type'] as string) !== 'nt:folder' &&
-            val?.configured
+            (val[':type'] as string)?.includes('experiencefragment') &&
+            typeof val?.localizedFragmentVariationPath === 'string'
           ) {
-            if (typeof val?.localizedFragmentVariationPath === 'string' &&
-              val.localizedFragmentVariationPath.includes(`/${field?.uid}`)) {
-              obj[field?.uid as string] = [{
+            const pathMatchesField = val.localizedFragmentVariationPath.includes(`/${field?.uid}`);
+            const pathMatchesRefType = val.localizedFragmentVariationPath.includes(`/${refCtUid}`);
+            if (pathMatchesField || pathMatchesRefType) {
+              references.push({
                 "uid": val?.id,
-                "_content_type_uid": field?.uid,
-              }];
+                "_content_type_uid": refCtUid
+              });
+              break;
             }
           }
         }
+        obj[fieldKey] = references;
         break;
       }
       case 'number': {
-        const value = items?.[field?.uid];
+        const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : getLastKey(field?.uid);
+        const value = getFieldValue(items, aemFieldName); 
         const uid = getLastKey(field?.contentstackFieldUid);
-        obj[uid] = value ?? '';
-        break;
-      }
-      case 'json': {
-        const value = items?.[field?.uid];
-        const uid = getLastKey(field?.contentstackFieldUid);
-        const jsonData = attachJsonRte({ content: value })
-        obj[uid] = jsonData;
-        break;
-      }
-      case 'link': {
-        const value = { title: items?.['title'] ?? '', href: items?.['url'] ?? '' };
-        const uid = getLastKey(field?.contentstackFieldUid);
-        obj[uid] = value;
-        break;
-      }
-      case 'file': {
-        const uid = getLastKey(field?.contentstackFieldUid);
-        obj[uid] = null
-        if (Object.keys(assetJsonData)?.length) {
-          const match = findAssetByPath(assetJsonData, items?.src);
-          if (match) {
-            obj[uid] = match?.uid
+        
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = typeof value === 'number' ? value : Number(value);
+          if (!isNaN(numValue)) {
+            obj[uid] = numValue;
+          } else {
+            obj[uid] = null;
           }
+        } else {
+          obj[uid] = null;
         }
         break;
       }
-      case 'app': {
-        // console.info(items)
+      case 'json': {
+        const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : field?.uid;
+        const value = getFieldValue(items, aemFieldName); 
+        const uid = getLastKey(field?.contentstackFieldUid);
+        
+        let htmlContent = '';
+        
+        if (typeof value === 'string') {
+          htmlContent = value;
+        } else if (value && typeof value === 'object') {
+          htmlContent = value.text || value.content || '';
+        }
+        
+        const jsonData = attachJsonRte({ content: htmlContent });
+        obj[uid] = jsonData;
         break;
       }
+      case 'html': {  
+        const aemFieldName = field?.otherCmsField ? getLastKey(field?.otherCmsField, ' > ') : field?.uid;
+        const value = getFieldValue(items, aemFieldName); 
+        const uid = getLastKey(field?.contentstackFieldUid);
+        
+        let htmlContent = '';
+        
+        if (typeof value === 'string') {
+          htmlContent = value;
+        } else if (value && typeof value === 'object') {
+          htmlContent = value?.text || value?.content || '';
+        }
+        obj[uid] = htmlContent;
+        break;
+      }
+      case 'link': {
+        const value = { 
+          title: getFieldValue(items, 'title') ?? '', 
+          href: getFieldValue(items, 'url') ?? '' 
+        };
+        const uid = getLastKey(field?.contentstackFieldUid);
+        obj[uid] = value;
+        break;
+      }  
+      case 'file': {
+        const uid = getLastKey(field?.contentstackFieldUid);
+        const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : 'src';
+        const imageSrc = getFieldValue(items, aemFieldName) || getFieldValue(items, 'src'); 
+        
+        if (!imageSrc || !Object?.keys(pathToUidMap)?.length) {
+          obj[uid] = null;
+          break;
+        }
+        const assetUid = pathToUidMap[imageSrc];
+        
+        if (assetUid) {
+          const assetDetails = assetDetailsMap?.[assetUid];
+          
+          if (assetDetails) {
+            obj[uid] = {
+              uid: assetDetails?.uid,
+              filename: assetDetails?.filename,
+              content_type: assetDetails?.content_type,
+              file_size: assetDetails?.file_size,
+              title: assetDetails?.title,
+              url: assetDetails?.url,
+              tags: assetDetails?.tags || [],
+              publish_details: assetDetails?.publish_details || [],
+              parent_uid: assetDetails?.parent_uid || null,
+              is_dir: false,
+              ACL: assetDetails?.ACL || []
+            };
+          } else {
+            obj[uid] = {
+              uid: assetUid
+            };
+          }
+        } else {
+          obj[uid] = null;
+        }
+        break;
+      } 
+      case 'app': {
+        break;
+      }     
       default: {
-        console.info("🚀 ~ processFieldsRecursive ~ childItems:", field?.uid, field?.contentstackFieldType)
+        console.info("🚀 ~ processFieldsRecursive ~ childItems:", field?.uid, field?.contentstackFieldType);
         break;
       }
     }
@@ -545,9 +794,15 @@ function processFieldsRecursive(fields: any[], items: any, title: string, assetJ
   return data?.length ? data : obj;
 }
 
-const containerCreator = (fieldMapping: any, items: any, title: string, assetJsonData: Record<string, AssetJSON>) => {
+const containerCreator = (
+  fieldMapping: any, 
+  items: any, 
+  title: string, 
+  pathToUidMap: Record<string, string>,
+  assetDetailsMap: Record<string, AssetJSON>
+) => {
   const fields = buildSchemaTree(fieldMapping);
-  return processFieldsRecursive(fields, items, title, assetJsonData);
+  return processFieldsRecursive(fields, items, title, pathToUidMap, assetDetailsMap);
 }
 
 const getTitle = (parseData: any) => {
@@ -559,27 +814,41 @@ const createEntry = async ({
   contentTypes,
   destinationStackId,
   projectId,
-  // keyMapper,
   project
 }: CreateEntryOptions) => {
   const srcFunc = 'createEntry';
   const baseDir = path.join(baseDirName, destinationStackId);
   const entrySave = path.join(baseDir, ENTRIES_DIR_NAME);
   const assetsSave = path.join(baseDir, ASSETS_DIR_NAME);
-  const assetJson = path.join(assetsSave, ASSETS_SCHEMA_FILE);
-  const exists = await isAssetJsonCreated(assetJson);
-  let assetJsonData: Record<string, AssetJSON> = {};
-  if (exists) {
-    const assetData = await fs.promises.readFile(assetJson, 'utf-8');
-    if (typeof assetData === 'string') {
-      assetJsonData = JSON.parse(assetData);
-    }
+  const pathMappingFile = path.join(assetsSave, 'path-mapping.json');
+  const assetIndexFile = path.join(assetsSave, ASSETS_SCHEMA_FILE);
+  
+  let pathToUidMap: Record<string, string> = {};
+  let assetDetailsMap: Record<string, AssetJSON> = {};
+
+  // Load path-to-UID mapping
+  try {
+    const mappingData = await fs.promises.readFile(pathMappingFile, 'utf-8');
+    pathToUidMap = JSON.parse(mappingData);
+  } catch (err) {
+    console.warn('path-mapping.json not found, assets will not be attached');
   }
+
+  // Load full asset details from index.json
+  try {
+    const assetIndexData = await fs.promises.readFile(assetIndexFile, 'utf-8');
+    assetDetailsMap = JSON.parse(assetIndexData);
+  } catch (err) {
+    console.warn('index.json not found in assets, will use minimal asset structure');
+  }
+
   const entriesDir = path.resolve(packagePath ?? '');
   const damPath = path.join(entriesDir, AEM_DAM_DIR);
   const entriesData: Record<string, Record<string, any[]>> = {};
   const allLocales: object = { ...project?.master_locale, ...project?.locales };
   const entryMapping: Record<string, string[]> = {};
+
+  // FIRST PASS: Process all entries and build mappings
   for await (const fileName of read(entriesDir)) {
     const filePath = path.join(entriesDir, fileName);
     if (filePath?.startsWith?.(damPath)) {
@@ -596,14 +865,14 @@ const createEntry = async ({
       const locale = getCurrentLocale(parseData);
       const mappedLocale = locale ? getLocaleFromMapper(allLocales as Record<string, string>, locale) : Object?.keys?.(project?.master_locale ?? {})?.[0];
       const items = parseData?.[':items']?.root?.[':items'];
-      const data = containerCreator(contentType?.fieldMapping, items, title, assetJsonData);
+      const data = containerCreator(contentType?.fieldMapping, items, title, pathToUidMap, assetDetailsMap);
       data.uid = uid;
       data.publish_details = [];
+
       if (contentType?.contentstackUid && data && mappedLocale) {
         const message = getLogMessage(
           srcFunc,
-          `Entry title "${data?.title}"(${contentType?.contentstackUid}
-          }) in the ${mappedLocale} locale has been successfully transformed.`,
+          `Entry title "${data?.title}"(${contentType?.contentstackUid}) in the ${mappedLocale} locale has been successfully transformed.`,
           {}
         );
         await customLogger(
@@ -625,16 +894,21 @@ const createEntry = async ({
           for (const entry of entries) {
             const flatData = deepFlattenObject(entry);
             for (const [key, value] of Object.entries(flatData)) {
-              if (key.endsWith('._content_type_uid')) {
-                const uidFeild = key.replace('._content_type_uid', '');
-                if (uidFeild && typeof value === 'string') {
-                  const refs: string[] = entryMapping?.[value];
-                  if (refs?.length) {
-                    _.set(entry, `${uidFeild}.uid`, refs?.[0]);
-                  }
+              if (key.endsWith('._content_type_uid') && typeof value === 'string') {
+                const uidField = key?.replace('._content_type_uid', '');
+                const refs: string[] = entryMapping?.[value];
+
+                if (refs?.length) {
+                  _.set(entry, `${uidField}.uid`, refs?.[0]);
+                } else {
+                  console.info(`No entry found for content type: ${value}`);
                 }
               }
             }
+          }
+          const entriesObject: Record<string, any> = {};
+          for (const entry of entries) {
+            entriesObject[entry?.uid] = entry;
           }
           const fileMeta = { '1': `${locale}.json` };
           const entryPath = path.join(
@@ -643,7 +917,7 @@ const createEntry = async ({
             ctUid,
             locale
           );
-          await writeFiles(entryPath, fileMeta, entries, locale);
+          await writeFiles(entryPath, fileMeta, entriesObject, locale);
         }
       }
     }
