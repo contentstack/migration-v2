@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { buildSchemaTree } from '../utils/content-type-creator.utils.js';
-import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER } from '../constants/index.js';
+import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER, RESERVED_FIELD_MAPPINGS } from '../constants/index.js';
 import { getLogMessage } from '../utils/index.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { orgService } from './org.service.js';
@@ -142,6 +142,17 @@ function getFieldValue(items: any, fieldName: string): any {
   }
   
   return undefined;
+}
+
+
+function getActualFieldUid(uid: string, fieldUid: string): string {
+  if (RESERVED_FIELD_MAPPINGS[uid]) {
+    return RESERVED_FIELD_MAPPINGS[uid];
+  }
+  if (RESERVED_FIELD_MAPPINGS[fieldUid]) {
+    return RESERVED_FIELD_MAPPINGS[fieldUid];
+  }
+  return uid;
 }
 
 /**
@@ -613,15 +624,16 @@ function processFieldsRecursive(
       }
        
       case 'single_line_text': {
-        const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : getLastKey(field?.uid);
+        const aemFieldName = field?.otherCmsField ? getLastKey(field?.otherCmsField, ' > ') : getLastKey(field?.uid);
         let value = getFieldValue(items, aemFieldName); 
         const uid = getLastKey(field?.contentstackFieldUid);
         
+        const actualUid = getActualFieldUid(uid, field?.uid);
         if (value && typeof value === 'string' && /<[^>]+>/.test(value)) {
           value = stripHtmlTags(value);
         }
         
-        obj[uid] = value !== null && value !== undefined ? String(value) : "";
+        obj[actualUid] = value !== null && value !== undefined ? String(value) : "";
         break;
       }
 
