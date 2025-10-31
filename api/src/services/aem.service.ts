@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { JSDOM } from "jsdom";
 import { htmlToJson } from '@contentstack/json-rte-serializer';
 import { buildSchemaTree } from '../utils/content-type-creator.utils.js';
-import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER } from '../constants/index.js';
+import { MIGRATION_DATA_CONFIG, LOCALE_MAPPER, RESERVED_FIELD_MAPPINGS } from '../constants/index.js';
 import { getLogMessage } from '../utils/index.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { orgService } from './org.service.js';
@@ -144,11 +144,6 @@ function getFieldValue(items: any, fieldName: string): any {
   return undefined;
 }
 
-// Reserved field helper function 
-const RESERVED_FIELD_MAPPINGS: Record<string, string> = {
-  'locale': 'cm_locale'
-  // Add other reserved fields if needed
-};
 
 function getActualFieldUid(uid: string, fieldUid: string): string {
   if (RESERVED_FIELD_MAPPINGS[uid]) {
