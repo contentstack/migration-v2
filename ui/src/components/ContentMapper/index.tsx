@@ -56,8 +56,7 @@ import {
   ContentTypeSaveHandles,
   MouseOrKeyboardEvent,
   MappingFields,
-  FieldHistoryObj,
-  FieldObj
+  FieldHistoryObj
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 import { ModalObj } from '../Modal/modal.interface';
@@ -214,8 +213,17 @@ const Fields: MappingFields = {
     label: 'Extension',
     options: { 'Extension': 'extension' },
     type: ''
+  },
+  'modular_blocks':{
+    label: 'Modular Blocks',
+    options: {'Modular Blocks':'modular_blocks'},
+    type:''
+  },
+  'modular_blocks_child':{
+    label: 'Block',
+    options: {'Block':'modular_blocks_child'},
+    type:''
   }
-
 }
 type contentMapperProps = {
   handleStepChange: (currentStep: number) => void;
@@ -325,7 +333,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if(field?.backupFieldType === 'reference' &&  field?.referenceTo?.length === 0) {
+      if(field?.backupFieldType === 'reference' &&  field?.refrenceTo?.length === 0) {
         field._canSelect = false;
       }
       else if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
@@ -850,10 +858,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     setIsDropDownChanged(checkBoxChanged);
     const newTableData = tableData?.map?.((row: any) => {
       if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
-        if (row?.referenceTo) {
-          row.referenceTo = updatedSettings?.referenedItems;
-        }
-        return { ...row, advanced: { ...row?.advanced, ...updatedSettings } };
+        const updatedRow = {
+          ...row,
+          refrenceTo: updatedSettings?.referenedItems,
+          advanced: { ...row?.advanced, ...updatedSettings }
+        };
+        return updatedRow;
       }
       return row;
     });
@@ -863,7 +873,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   const handleSchemaPreview = async (title: string, contentTypeId: string) => {
     try {
-      const { data } = await getFieldMapping(contentTypeId ?? '', 0, 30, searchText ?? '', projectId);
+      const { data } = await getFieldMapping(contentTypeId ?? '', 0, 1000, searchText ?? '', projectId);
       return cbModal({
         component: (props: ModalObj) => (
           <SchemaModal
@@ -883,20 +893,77 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   };
 
   const accessorCall = (data: FieldMapType) => {
+    // Clean field name (remove parent hierarchy)
+    const cleanFieldName = data?.otherCmsField?.includes(' > ') 
+      ? data.otherCmsField.split(' > ').pop() 
+      : data?.otherCmsField;
+    
+    const tooltipContent = data?.otherCmsField?.includes(' > ') 
+      ? `Field: ${cleanFieldName} \nFull path: ${data.otherCmsField}`
+      : `Field: ${cleanFieldName}`;
+
+    // Simple checks for visual indicators
+    const isModularBlock = data?.contentstackFieldType === 'modular_blocks';
+    const isModularBlockChild = data?.contentstackFieldType === 'modular_blocks_child';
+    const isGroup = data?.contentstackFieldType === 'group';
+    
+    // Function to calculate nesting level from UID
+    const getNestingLevel = (uid: string): number => {
+      if (!uid || !uid.includes('.')) return 0;
+      return uid.split('.').length - 1;
+    };
+    
+    // Function to get nesting class based on level
+    const getNestingClass = (level: number): string => {
+      if (level === 0) return '';
+      if (level === 1) return 'child-row';
+      return `child-row-level-${level}`;
+    };
+    
+    // Calculate nesting level for proper indentation
+    const nestingLevel = getNestingLevel(data?.uid || '');
+    
+    // Count children only if this is a modular block parent
+    const childrenCount = isModularBlockChild ? 
+      tableData?.filter(item => item?.uid?.startsWith(data?.uid + '.'))?.length || 0 : 0;
     return (
-      <div>
-        <div className='d-flex align-items-center'>
-          <div className={`${data?.backupFieldType === 'text' || data?.backupFieldType === 'url' ? `cms-field w-auto` : `cms-field`}`}>{data?.otherCmsField}</div>
-          {(data?.backupFieldType === 'text' || data?.backupFieldType === 'url') && (
-            <OutlineTag content='Default Field' className="ml-10" />
-          )}
+      <Tooltip content={tooltipContent} position="top">
+        <div className={`table-row-content ${nestingLevel > 0 ? getNestingClass(nestingLevel) : ''}`} style={isModularBlock || isModularBlockChild || isGroup ? {borderLeft: '0 none'} : {}}>
+          <div className='d-flex align-items-center'>
+            {/* Indentation for child rows */}
+            {/* {isBlockChild && <div className="child-indent"></div>} */}
+            
+            {/* Parent indicator for modular blocks */}
+            {data?.contentstackFieldType === 'modular_blocks' && <Icon icon="ModularBlocks" size="small" className="mr-8 mt-1" />}
+
+            {isModularBlockChild && <Icon icon="ParentModularBlockIcon" size="small" className="mr-8 mt-1" />}
+            {isGroup && <Icon icon="Group" size="small" className="mr-8 mt-1" />}
+            
+            <div className={`${data?.backupFieldType === 'text' || data?.backupFieldType === 'url' ? `cms-field w-auto` : `cms-field`}`}>
+              {cleanFieldName}
+            </div>
+            
+            {(data?.backupFieldType === 'text' || data?.backupFieldType === 'url') && (
+              <OutlineTag content='Default Field' className="ml-10" />
+            )}
+            
+            {/* Show indicators for parent/child relationship */}
+            {isModularBlockChild && childrenCount > 0 && (
+              <OutlineTag content={`${childrenCount} fields`} className="ml-10" type="primary" />
+            )}
+            {/* {isBlockChild && (
+              <OutlineTag content='Child Field' className="ml-10" style={{backgroundColor: '#e8f5e8', color: '#2e7d32'}} />
+            )} */}
+          </div>
+          <InstructionText>
+            <div className={`${isModularBlock || isModularBlockChild || isGroup ? "instruction-text-indent" : ""}`}>
+              Type: {data?.otherCmsType}
+              <br />
+              UID: <span className="uid-text">{data?.uid}</span>
+            </div>
+          </InstructionText>
         </div>
-        <InstructionText>
-          Type: {data?.otherCmsType}
-          <br />
-          UID: {data?.uid}
-        </InstructionText>
-      </div>
+      </Tooltip>
     );
   };
 
@@ -924,36 +991,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     }
   }
 
-  // Get the last action of each row 
-  const getLastElements = (obj: FieldHistoryObj) => {
-    const result: FieldObj = {};
-    for (const key in obj) {
-      if (Array.isArray(obj[key]) && obj[key]?.length > 0) {
-        // Get the last element of the array
-        result[key] = obj[key][obj[key]?.length - 1];
-      }
-    }
-    return result;
-  }
-
-  // Get the latest action performed on table 
-  const findLatest = (obj: FieldHistoryObj) => {
-    let latestItem = null;
-
-    for (const key in obj) {
-      if (Array.isArray(obj[key]) && obj[key]?.length > 0) {
-        // Get the last element of the array
-        const lastElement = obj[key][obj[key]?.length - 1];
-
-        // Compare the 'at' property
-        if (!latestItem || lastElement?.at > latestItem?.at) {
-          latestItem = lastElement;
-        }
-      }
-    }
-    return latestItem;
-  }
-
   // Update the object on selection or deselection
   const updateRowHistoryObj = (key: string, checked: boolean) => {
     const obj = tableData?.find(i => i?.id === key);
@@ -966,10 +1003,128 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     }
   };
 
+  /**
+ * Recursively gets all descendant row IDs for a given parent UID
+ * @param parentUid - The UID of the parent
+ * @param data - The table data array
+ * @returns Array of all descendant row objects
+ * @description Recursively gets all descendant row IDs for a given parent UID
+ */
+  const getAllDescendants = (parentUid: string, data: FieldMapType[]): FieldMapType[] => {
+    const descendants: FieldMapType[] = [];
+    const parentUidLower = parentUid?.toLowerCase();
+    
+    const children = data?.filter((item) => {
+      const itemUidLower = item?.uid?.toLowerCase() || '';
+      return itemUidLower?.startsWith(parentUidLower + '.') && itemUidLower !== parentUidLower;
+    });
+    
+    children?.forEach((child) => {
+      descendants?.push(child);
+      
+      if (
+        child?.backupFieldType?.toLowerCase() === 'group' ||
+        child?.backupFieldType?.toLowerCase() === 'modular_blocks' ||
+        child?.backupFieldType?.toLowerCase() === 'modular_blocks_child' ||
+        child?.contentstackFieldType?.toLowerCase() === 'modular_blocks' ||
+        child?.contentstackFieldType?.toLowerCase() === 'modular_blocks_child'
+      ) {
+        const nestedDescendants = getAllDescendants(child?.uid, data);
+        descendants?.push(...nestedDescendants);
+      }
+    });
+    
+    return descendants;
+  };
+
+  /**
+   * 
+   * @param childUid - The UID of the child
+   * @param selectedObj - The selected object
+   * @param data - The table data array
+   * @returns 
+   * @description Cascade DOWN to uncheck all descendants
+   */
+  const cascadeUncheckParents = (
+    childUid: string,
+    selectedObj: UidMap,
+    data: FieldMapType[]
+  ): void => {
+    const uidParts = childUid?.split('.');
+    if (uidParts?.length <= 1) return;
+
+    const parentUid = uidParts?.slice(0, -1)?.join('.');
+    const parentItem = data?.find((item) => item?.uid?.toLowerCase() === parentUid?.toLowerCase());
+    
+    if (!parentItem) return;
+
+    const allChildren = data?.filter((item) => {
+      const itemUid = item?.uid?.toLowerCase() || '';
+      const parentUidLower = parentUid?.toLowerCase();
+      return (
+        itemUid?.startsWith(parentUidLower + '.') &&
+        itemUid?.split('.')?.length === parentUidLower?.split('.')?.length + 1
+      );
+    });
+
+    const allChildrenUnchecked = allChildren?.every((child) => !selectedObj?.[child?.id]);
+
+    if (allChildrenUnchecked) {
+      delete selectedObj[parentItem?.id];
+      cascadeUncheckParents(parentItem?.uid, selectedObj, data);
+    }
+  };
+
+  /**
+   * Cascade UP to check all ancestors
+   * @param childUid - The UID of the child
+   * @param selectedObj - The selected object
+   * @param data - The table data array
+   * @returns void
+   * @description Cascade UP to check all ancestors
+   */
+  const cascadeCheckParents = (
+    childUid: string,
+    selectedObj: UidMap,
+    data: FieldMapType[]
+  ): void => {
+    const uidParts = childUid?.split('.');
+    
+    // Check all ancestors
+    for (let i = 1; i < uidParts?.length; i++) {
+      const ancestorUid = uidParts?.slice(0, i)?.join('.');
+      const ancestorItem = data?.find(
+        (item) => item?.uid?.toLowerCase() === ancestorUid?.toLowerCase()
+      );
+      if (ancestorItem) {
+        selectedObj[ancestorItem?.id] = true;
+      }
+    }
+  };
+
+  /**
+   * Check if an item is a leaf node
+   * @param item - The item to check
+   * @returns true if the item is a leaf node, false otherwise
+  */
+  const isLeafNode = (item: FieldMapType): boolean => {
+    const type = item?.backupFieldType?.toLowerCase();
+    return (
+      type !== 'group' &&
+      type !== 'modular_blocks' &&
+      type !== 'modular_blocks_child'
+    );
+  };
+    
+  /**
+   * Handle the selected entries
+   * @param singleSelectedRowIds - The single selected row IDs
+   * @returns void
+   */
   const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
     const selectedObj: UidMap = {};
+    const previousRowIds: UidMap = { ...rowIds as UidMap };
 
-    setIsAllCheck(false);
     singleSelectedRowIds?.forEach((uid: string) => {
       const isId = selectedEntries?.some((item) => item?.id === uid);
       if (isId) {
@@ -977,91 +1132,84 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       }
     });
 
-    // updates rowHistoryObj based on selectedObj
-    for (const key in rowHistoryObj) {
-      if (Object.hasOwn(selectedObj, key)) {
-        if (!rowHistoryObj[key][rowHistoryObj[key]?.length - 1]?.checked) {
-          updateRowHistoryObj(key, true);
-        }
-      } else if (rowHistoryObj[key][rowHistoryObj[key]?.length - 1]?.checked) {
-        updateRowHistoryObj(key, false);
-      }
-    }
-
-    // Get the latest action performed row 
-    const latestRow = findLatest(rowHistoryObj);
-
-    if (latestRow?.backupFieldType?.toLowerCase() === "group" && latestRow?.parentId === '') {
-      // get all child rows of group
-      const groupUid = latestRow?.uid?.toLowerCase();
-      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupUid + '.'));
-      if (childItems && validateArray(childItems)) {
-        if (latestRow?.checked) {
-          const lastEle = getLastElements(rowHistoryObj)
-          let isChildChecked = false
-          childItems?.forEach((child) => {
-            if (lastEle[child?.id]?.checked) {
-              isChildChecked = true
-            }
-          })
-
-          if (isChildChecked) {
-            if (!selectedObj[latestRow?.id]) {
-              selectedObj[latestRow?.id] = true
-            }
-          } else {
-            childItems.forEach((child) => {
-              if (!selectedObj[child?.id]) {
-                selectedObj[child?.id] = true
-              }
-            })
-          }
-
-        } else {
-          childItems?.forEach((child) => {
-            delete selectedObj[child?.id || ''];
-          })
-        }
-      }
-    } else if (latestRow?.parentId && latestRow?._canSelect === true) {
-      // Extract the group UID if item is child of any group
-      const uidBeforeDot = latestRow?.uid?.split?.('.')?.[0]?.toLowerCase();
-      const groupItem = tableData?.find((entry) => entry?.uid?.toLowerCase() === uidBeforeDot);
-      const childItems = tableData?.filter((entry) => entry?.uid?.toLowerCase()?.startsWith(groupItem?.uid?.toLowerCase() + '.'));
-
-      if (latestRow?.checked) {
-        if (!selectedObj[latestRow?.parentId]) {
-          selectedObj[latestRow?.parentId] = true
-        }
-        if (!selectedObj[latestRow?.id]) {
-          selectedObj[latestRow?.id] = true
-        }
-      } else {
-        const lastEle = getLastElements(rowHistoryObj);
-
-        let allChildFalse = 0
-        childItems?.forEach((child) => {
-          if (!lastEle[child?.id]?.checked) {
-            allChildFalse++
-          }
-        })
-        if (childItems?.length === allChildFalse) {
-          if (selectedObj[latestRow?.parentId]) {
-            delete selectedObj[latestRow?.parentId]
-          }
-        } else if (selectedObj[latestRow?.id]) {
-          delete selectedObj[latestRow?.id]
-        }
-      }
-    }
-
-    const updatedTableData = selectedEntries?.map?.((tableItem) => {
-      // Mark the item as deleted if not found in selectedData
-      return {
-        ...tableItem,
-        isDeleted: (tableItem?._canSelect) ? !selectedObj[tableItem?.id] : tableItem?.isDeleted //!found ? true : false,
-      };
+    // Find all items that changed state
+    const changedItems = tableData.filter((item) => {
+      const wasSelected = !!previousRowIds[item?.id];
+      const isSelected = !!selectedObj[item?.id];
+      return wasSelected !== isSelected;
     });
+
+    if (changedItems?.length === 0) {
+      const updatedTableData = tableData?.map((tableItem) => ({
+        ...tableItem,
+        isDeleted: tableItem?._canSelect ? !selectedObj[tableItem?.id] : tableItem?.isDeleted
+      }));
+      setRowIds(selectedObj);
+      setSelectedEntries(updatedTableData);
+      return;
+    }
+
+    // Find the leaf node that changed (if any) - this is likely what user clicked
+    let userClickedItem = changedItems?.find(item => isLeafNode(item));
+    
+    // If no leaf node changed, use the deepest changed item
+    if (!userClickedItem) {
+      changedItems?.sort((a, b) => {
+        const depthA = a?.uid?.split('.')?.length;
+        const depthB = b?.uid?.split('.')?.length;
+        return depthB - depthA; // Deepest first
+      });
+      userClickedItem = changedItems?.[0];
+    }
+
+    const wasChecked = !!previousRowIds[userClickedItem?.id];
+    const isNowChecked = !wasChecked;
+
+    // Update history
+    updateRowHistoryObj(userClickedItem?.id, isNowChecked);
+
+    // Check if this is a parent container
+    const isParentContainer =
+      (userClickedItem?.contentstackFieldType?.toLowerCase() === 'group') ||
+      userClickedItem?.contentstackFieldType?.toLowerCase() === 'modular_blocks' ||
+      userClickedItem?.contentstackFieldType?.toLowerCase() === 'modular_blocks_child';
+
+    if (isParentContainer) {
+      const allDescendants = getAllDescendants(userClickedItem?.uid, tableData);
+      
+      if (isNowChecked) {
+        // Parent checked - cascade DOWN to children AND UP to ancestors
+        selectedObj[userClickedItem?.id] = true;
+        allDescendants?.forEach((descendant) => {
+          selectedObj[descendant?.id] = true;
+        });
+        
+        cascadeCheckParents(userClickedItem?.uid, selectedObj, tableData);
+      } else {
+        delete selectedObj[userClickedItem?.id];
+        allDescendants?.forEach((descendant) => {
+          delete selectedObj?.[descendant?.id];
+        });
+        cascadeUncheckParents(userClickedItem?.uid, selectedObj, tableData);
+      }
+    } else {
+      if (isNowChecked) {
+        selectedObj[userClickedItem?.id] = true;
+        
+        // Cascade UP to ancestors
+        cascadeCheckParents(userClickedItem?.uid, selectedObj, tableData);
+      } else {
+        // Leaf unchecked
+        delete selectedObj[userClickedItem?.id];
+        cascadeUncheckParents(userClickedItem?.uid, selectedObj, tableData);
+      }
+    }
+
+    // Update table data
+    const updatedTableData = tableData?.map((tableItem) => ({
+      ...tableItem,
+      isDeleted: tableItem?._canSelect ? !selectedObj[tableItem?.id] : tableItem?.isDeleted
+    }));
 
     setRowIds(selectedObj);
     setSelectedEntries(updatedTableData);
@@ -2435,13 +2583,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                 <InfiniteScrollTable
                   loading={loading}
                   canSearch={true}
-                  data={tableData?.length ? [...tableData] : []}
+                  totalCounts={Math.max(0, tableData?.length)}
+                  // data={tableData?.length > 0 ? [...tableData] : []}
+                  data={[...tableData]}
                   columns={columns}
                   uniqueKey={'id'}
                   isRowSelect
                   // fullRowSelect
                   itemStatusMap={itemStatusMap}
-                  totalCounts={totalCounts}
                   searchPlaceholder={tableSearchPlaceholder}
                   fetchTableData={fetchData}
                   loadMoreItems={loadMoreItems}
@@ -2451,6 +2600,20 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   initialRowSelectedData={initialRowSelectedData}
                   initialSelectedRowIds={rowIds}
                   itemSize={80}
+                  v2Features={{
+                    isNewEmptyState: true
+                  }}
+                  customEmptyState={
+                    <EmptyState
+                      forPage="list"
+                      heading={<div className="empty_search_heading">No Fields available</div>}
+                      moduleIcon="NoSearchResult"
+                      description="Try changing the search query to find what you are looking for."
+                      version="v2"
+                      testId="no-results-found-page"
+                      className="custom-empty-state"
+                    />
+                  }
                   withExportCta={{
                     component: (
                       <div className='d-flex align-items-center'>
@@ -2521,7 +2684,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             className="mapper-emptystate"
             img={NoDataFound}
             actions={
-              <>
                 <Button buttonType="secondary" size="small" version="v2"
                   onClick={() => {
                     const newMigrationDataObj: INewMigration = {
@@ -2535,14 +2697,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                         }
                       }
                     }
-
                     dispatch(updateNewMigrationData(newMigrationDataObj));
                     handleStepChange(0);
                     const url = `/projects/${projectId}/migration/steps/1`;
                     navigate(url, { replace: true });
                   }}
                   className='ml-10'>Go to Legacy CMS</Button>
-              </>
             }
             version="v2"
             testId="no-results-found-page"

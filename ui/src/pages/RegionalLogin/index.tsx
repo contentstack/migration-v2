@@ -41,7 +41,7 @@ const RegionalLogin = () => {
   return (
     <div className="d-flex vh-100 justify-content-center flex-column">
       <div className="mx-3">
-        <div className="container-fluid">
+        <div className="container">
           <div className="text-center mt-4">
             {heading && <h1>{heading}</h1>}
             {description && description != '' && (
@@ -53,7 +53,7 @@ const RegionalLogin = () => {
             {regions &&
               validateArray(regions) &&
               regions?.map((region, index) => (
-                <div key={`${index.toString()}`} className="col-md-4 col-lg-2 mb-4">
+                <div key={`${index.toString()}`} className="col-md-4 col-lg-3 mb-4">
                   <div className="card h-100">
                     <div className="cardBody">
                       <div className="d-flex align-items-center flex-grow-1">

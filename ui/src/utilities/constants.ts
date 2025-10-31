@@ -26,7 +26,9 @@ export const REGIONS = {
   AZURE_NA: 'AZURE_NA',
   EU: 'EU',
   AZURE_EU: 'AZURE_EU',
-  GCP_NA: 'GCP_NA'
+  GCP_NA: 'GCP_NA',
+  GCP_EU: 'GCP_EU',
+  AU: 'AU'
 };
 
 export const CS_URL: ObjectType = {
@@ -34,7 +36,9 @@ export const CS_URL: ObjectType = {
   EU: 'https://eu-app.contentstack.com/#!',
   AZURE_NA: 'https://azure-na-app.contentstack.com/#!',
   AZURE_EU: 'https://azure-eu-app.contentstack.com/#!',
-  GCP_NA: 'https://gcp-na-app.contentstack.com/#!'
+  GCP_NA: 'https://gcp-na-app.contentstack.com/#!',
+  GCP_EU: 'https://gcp-eu-app.contentstack.com/#!',
+  AU: 'https://au-app.contentstack.com/#!'
 };
 
 export const HEADERS = {
@@ -117,7 +121,8 @@ export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
   contentful:
     'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/bltb14c2df7c5e202ba/67ee3fcdb509b76f5f308ac4/contentful.pdf',
   wordpress: '',
-  drupal: ''
+  drupal: '',
+  aem: ''
 };
 
 

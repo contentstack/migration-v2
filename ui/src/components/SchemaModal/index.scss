@@ -17,6 +17,9 @@
       font-weight: $font-weight-medium;
       padding: 0;
       white-space: nowrap;
+      &.nested-child {
+        padding-left: 1.125rem;
+      }
       .iconsholder {
         align-items: center;
         display: flex;
