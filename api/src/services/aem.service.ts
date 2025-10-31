@@ -144,6 +144,22 @@ function getFieldValue(items: any, fieldName: string): any {
   return undefined;
 }
 
+// Reserved field helper function 
+const RESERVED_FIELD_MAPPINGS: Record<string, string> = {
+  'locale': 'cm_locale'
+  // Add other reserved fields if needed
+};
+
+function getActualFieldUid(uid: string, fieldUid: string): string {
+  if (RESERVED_FIELD_MAPPINGS[uid]) {
+    return RESERVED_FIELD_MAPPINGS[uid];
+  }
+  if (RESERVED_FIELD_MAPPINGS[fieldUid]) {
+    return RESERVED_FIELD_MAPPINGS[fieldUid];
+  }
+  return uid;
+}
+
 /**
  * Finds and returns the asset object from assetJsonData where assetPath matches the given string.
  * @param assetJsonData - The asset JSON data object.
@@ -613,15 +629,16 @@ function processFieldsRecursive(
       }
        
       case 'single_line_text': {
-        const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : getLastKey(field?.uid);
+        const aemFieldName = field?.otherCmsField ? getLastKey(field?.otherCmsField, ' > ') : getLastKey(field?.uid);
         let value = getFieldValue(items, aemFieldName); 
         const uid = getLastKey(field?.contentstackFieldUid);
         
+        const actualUid = getActualFieldUid(uid, field?.uid);
         if (value && typeof value === 'string' && /<[^>]+>/.test(value)) {
           value = stripHtmlTags(value);
         }
         
-        obj[uid] = value !== null && value !== undefined ? String(value) : "";
+        obj[actualUid] = value !== null && value !== undefined ? String(value) : "";
         break;
       }
 
