@@ -356,8 +356,11 @@ upload-api/build
 ui/.env
 upload-api/sitecoreMigrationData
 upload-api/cmsMigrationData
-upload-api/extracted_files
+upload-api/extracted_files*
 *copy*
 .qodo
 .vscode
+*extracted_files*
+*MigrationData*
+*.zip
 app.json
