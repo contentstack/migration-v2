@@ -2,7 +2,7 @@
 sitecore Validator
  */
 interface items {
-  files: object;
+  files: { [key: string]: any };
 }
 
 interface props {
@@ -11,35 +11,67 @@ interface props {
 
 async function sitecoreValidator({ data }: props) {
   try {
-    let templates: any[] = [];
-    let content: any[] = [];
-    const configuration: any[] = [];
-    let blob: any[] = [];
-    let mediaLibrary: any[] = [];
+    const sitecoreFolders = ['installer', 'items', 'metadata', 'properties'];
+    const foundFolders = new Set<string>();
+    let hasNestedZip = false;
+    const nestedZipFiles: string[] = [];
+
     for (const filename of Object.keys(data?.files)) {
-      if (filename.includes('/templates') && !filename.includes('properties/items/master/sitecore/templates')) {
-        templates?.push(filename);
+      // Check for nested zip files
+      if (filename.toLowerCase().endsWith('.zip')) {
+        hasNestedZip = true;
+        nestedZipFiles.push(filename);
+        continue;
       }
-      if (filename.includes('/content')) {
-        content?.push(filename);
-      }
-      // optional
-      if (filename.includes('/Configuration')) {
-        configuration.push(filename);
-      }
-      if (filename?.includes('blob')) {
-        blob?.push(filename);
-      }
-      if (filename?.includes('/media library')) {
-        mediaLibrary?.push(filename);
+
+      // Check for required Sitecore folders
+      for (const folder of sitecoreFolders) {
+        if (filename.includes(`/${folder}/`) || filename.startsWith(`${folder}/`)) {
+          foundFolders.add(folder);
+          break;
+        }
       }
     }
-    templates = await Promise.all(templates);
-    content = await Promise.all(content);
-    blob = await Promise.all(blob);
-    mediaLibrary = await Promise.all(mediaLibrary);
 
-    if (templates?.length > 0 && content?.length > 0 && blob?.length > 0 && mediaLibrary?.length > 0) {
+    // If we have nested zip files, we need to extract and check them
+    if (hasNestedZip) {
+      const JSZip = require('jszip');
+
+      for (const nestedZipPath of nestedZipFiles) {
+        const nestedZipFile = data.files[nestedZipPath];
+        if (nestedZipFile && !nestedZipFile.dir) {
+          try {
+            const nestedZipBuffer = await nestedZipFile.async('nodebuffer');
+            const nestedZip = new JSZip();
+            await nestedZip.loadAsync(nestedZipBuffer);
+
+            // Check nested zip for Sitecore folders
+            for (const nestedFilename of Object.keys(nestedZip.files)) {
+              for (const folder of sitecoreFolders) {
+                if (
+                  nestedFilename.includes(`/${folder}/`) ||
+                  nestedFilename.startsWith(`${folder}/`)
+                ) {
+                  foundFolders.add(folder);
+                  break;
+                }
+              }
+            }
+          } catch (nestedErr: any) {
+            console.warn(
+              '🚀 ~ sitecoreValidator ~ Error processing nested zip:',
+              nestedZipPath,
+              nestedErr.message
+            );
+          }
+        }
+      }
+    }
+    // Check if we have the minimum required folders (at least items and metadata)
+    const requiredMinimum = ['items', 'metadata'];
+    const hasMinimumRequired = requiredMinimum.every((folder) => foundFolders.has(folder));
+
+    if (hasMinimumRequired) {
       return true;
     }
     return false;
