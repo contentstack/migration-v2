@@ -29,13 +29,13 @@ export class BreadcrumbComponent extends ContentstackComponent {
       uid: key,
       displayName: key,
       description: "",
-      defaultValue: schemaProp.value
+      defaultValue: ""
     }).toContentstack(),
     boolean: (key, schemaProp) => new BooleanField({
       uid: key,
       displayName: key,
       description: "",
-      defaultValue: schemaProp.value
+      defaultValue: false
     }).toContentstack(),
     object: (key, schemaProp) => {
       // For breadcrumb, handle the link object
@@ -44,7 +44,7 @@ export class BreadcrumbComponent extends ContentstackComponent {
           uid: key,
           displayName: key,
           description: "",
-          defaultValue: schemaProp?.properties?.url?.value
+          defaultValue: ""
         }).toContentstack();
       }
       return null;
