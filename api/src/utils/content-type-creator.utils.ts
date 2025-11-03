@@ -1,4 +1,6 @@
 /* eslint-disable */
+/* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak */
+
 import fs from 'fs';
 import path from 'path';
 import _, { includes } from 'lodash';
@@ -414,8 +416,17 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
 
     case 'dropdown': {
       // 🔧 CONDITIONAL LOGIC: Check if choices have key-value pairs or just values
-      const choices = field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }];
-      const hasKeyValuePairs = choices.some((choice: any) => choice.key !== undefined && choice.key !== null);
+      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0 
+        ? field?.advanced?.options 
+        : [{ value: "NF" }];
+      
+      // Filter out null/undefined choices and ensure they are valid objects
+      const choices = Array.isArray(rawChoices) 
+        ? rawChoices.filter((choice: any) => choice != null && typeof choice === 'object')
+        : [{ value: "NF" }];
+      
+      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 && 
+        choices.some((choice: any) => choice != null && typeof choice === 'object' && choice.key !== undefined && choice.key !== null);
       
       const data = {
         "data_type": ['dropdownNumber', 'radioNumber', 'ratingNumber'].includes(field.otherCmsType) ? 'number' : "text",
@@ -445,8 +456,17 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
     }
     case 'radio': {
       // 🔧 CONDITIONAL LOGIC: Check if choices have key-value pairs or just values
-      const choices = field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }];
-      const hasKeyValuePairs = choices.some((choice: any) => choice.key !== undefined && choice.key !== null);
+      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0 
+        ? field?.advanced?.options 
+        : [{ value: "NF" }];
+      
+      // Filter out null/undefined choices and ensure they are valid objects
+      const choices = Array.isArray(rawChoices) 
+        ? rawChoices.filter((choice: any) => choice != null && typeof choice === 'object')
+        : [{ value: "NF" }];
+      
+      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 && 
+        choices.some((choice: any) => choice != null && typeof choice === 'object' && choice.key !== undefined && choice.key !== null);
       
       const data = {
         "data_type": ['dropdownNumber', 'radioNumber', 'ratingNumber'].includes(field.otherCmsType) ? 'number' : "text",
@@ -475,8 +495,17 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
     }
     case 'checkbox': {
       // 🔧 CONDITIONAL LOGIC: Check if choices have key-value pairs or just values
-      const choices = field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }];
-      const hasKeyValuePairs = choices.some((choice: any) => choice.key !== undefined && choice.key !== null);
+      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0 
+        ? field?.advanced?.options 
+        : [{ value: "NF" }];
+      
+      // Filter out null/undefined choices and ensure they are valid objects
+      const choices = Array.isArray(rawChoices) 
+        ? rawChoices.filter((choice: any) => choice != null && typeof choice === 'object')
+        : [{ value: "NF" }];
+      
+      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 && 
+        choices.some((choice: any) => choice != null && typeof choice === 'object' && choice.key !== undefined && choice.key !== null);
       
       const data = {
         "data_type": "text",
@@ -829,7 +858,8 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   let globalfields: any[] = [];
   try {
     const data = await fs.promises.readFile(filePath, 'utf8');
-    globalfields = JSON.parse(data);
+    const parsed = JSON.parse(data);
+    globalfields = Array.isArray(parsed) ? parsed : [];
   } catch (readErr: any) {
     if (readErr?.code !== 'ENOENT') {
       console.error("🚀 ~ fs.readFile ~ err:", readErr);
@@ -838,13 +868,33 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
   
   // 🔧 FIX: Check for duplicates before adding
-  const existingIndex = globalfields.findIndex(gf => gf.uid === schema.uid);
-  if (existingIndex !== -1) {
+  if (!schema || typeof schema !== 'object') {
+    console.error("🚀 ~ writeGlobalField ~ Invalid schema provided");
+    return;
+  }
+  
+  if (!schema.uid) {
+    console.error("🚀 ~ writeGlobalField ~ Schema missing uid");
+    return;
+  }
+  
+  if (!Array.isArray(globalfields)) {
+    globalfields = [];
+  }
+  
+  const existingIndex = globalfields.findIndex((gf: any) => gf != null && gf.uid === schema.uid);
+  if (existingIndex !== -1 && existingIndex < globalfields.length) {
     // Replace existing global field instead of duplicating
-    globalfields[existingIndex] = schema;
+    if (schema && typeof schema === 'object' && schema.uid) {
+      globalfields[existingIndex] = schema;
+    }
   } else {
     // Add new global field
-    globalfields.push(schema);
+    if (Array.isArray(globalfields) && schema && typeof schema === 'object' && schema.uid) {
+      globalfields.push(schema);
+    } else {
+      console.error("🚀 ~ writeGlobalField ~ Cannot push schema: invalid schema or globalfields array");
+    }
   }
   
   try {
@@ -974,12 +1024,15 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
       })
       
       // 🔧 FIX: Only add group if it has schema and doesn't already exist
-      if (group?.schema?.length > 0) {
-        const existingGroupIndex = ct?.schema?.findIndex((g: any) => g.uid === group.uid);
-        if (existingGroupIndex !== -1) {
+      if (group?.schema && Array.isArray(group.schema) && group.schema.length > 0 && group?.uid) {
+        if (!ct?.schema || !Array.isArray(ct.schema)) {
+          ct.schema = [];
+        }
+        const existingGroupIndex = ct.schema.findIndex((g: any) => g != null && g.uid === group.uid);
+        if (existingGroupIndex !== -1 && existingGroupIndex < ct.schema.length) {
           ct.schema[existingGroupIndex] = group;
         } else {
-          ct?.schema?.push(group);
+          ct.schema.push(group);
         }
       }
     } else {
