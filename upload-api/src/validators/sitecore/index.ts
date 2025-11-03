@@ -34,7 +34,7 @@ async function sitecoreValidator({ data }: props) {
     }
 
     // If we have nested zip files, we need to extract and check them
-    if (hasNestedZip && nestedZipFiles.length > 0) {
+    if (hasNestedZip) {
       const JSZip = require('jszip');
 
       for (const nestedZipPath of nestedZipFiles) {
