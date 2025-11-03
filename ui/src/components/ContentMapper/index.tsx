@@ -2067,6 +2067,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               isDropDownChanged: false
             }
           };
+
           dispatch(updateNewMigrationData(newMigrationDataObj));
           const resetCT = filteredContentTypes?.map?.(ct =>
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
@@ -2082,9 +2083,13 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           const resetContentTypes = contentTypes?.map?.(ct =>
             ct?.id === selectedContentType?.id ? { ...ct, status: data?.data?.status } : ct
           );
+
           setFilteredContentTypes(filteredCT);
           setContentTypes(resetContentTypes);
           setCount(filteredCT?.length);
+          
+          await fetchFields(selectedContentType?.id ?? '', searchText || '');
+          
           Notification({
             notificationContent: { text: data?.message },
             notificationProps: {
