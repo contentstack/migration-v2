@@ -503,7 +503,7 @@ const contentTypeMapper = ({
                   sourceType = makeUnique({ data: sourceTree?.[item?.content] });
                   compType.content = 'Droplist';
                   if (isKeyPresent('key', sourceType)) {
-                    advanced = false; // 🔧 FIX: Set dropdown advance to false
+                    advanced = false; // 🔧 FIX: Set dropdown advanced to false
                   }
                 }
               }
@@ -562,7 +562,7 @@ const contentTypeMapper = ({
                 } else {
                   sourceType = makeUnique({ data: source?.[item?.content] });
                   if (isKeyPresent('key', sourceType)) {
-                    advanced = false; // 🔧 FIX: Set dropdown advance to false
+                    advanced = false; // 🔧 FIX: Set dropdown advanced to false
                   }
                 }
               }
