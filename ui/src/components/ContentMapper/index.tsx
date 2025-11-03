@@ -2613,13 +2613,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                 <InfiniteScrollTable
                   loading={loading}
                   canSearch={true}
-                  data={tableData?.length ? [...tableData] : []}
+                  totalCounts={Math.max(0, tableData?.length)}
+                  // data={tableData?.length > 0 ? [...tableData] : []}
+                  data={[...tableData]}
                   columns={columns}
                   uniqueKey={'id'}
                   isRowSelect
                   // fullRowSelect
                   itemStatusMap={itemStatusMap}
-                  totalCounts={totalCounts}
                   searchPlaceholder={tableSearchPlaceholder}
                   fetchTableData={fetchData}
                   loadMoreItems={loadMoreItems}
@@ -2629,6 +2630,20 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   initialRowSelectedData={initialRowSelectedData}
                   initialSelectedRowIds={rowIds}
                   itemSize={80}
+                  v2Features={{
+                    isNewEmptyState: true
+                  }}
+                  customEmptyState={
+                    <EmptyState
+                      forPage="list"
+                      heading={<div className="empty_search_heading">No Fields available</div>}
+                      moduleIcon="NoSearchResult"
+                      description="Try changing the search query to find what you are looking for."
+                      version="v2"
+                      testId="no-results-found-page"
+                      className="custom-empty-state"
+                    />
+                  }
                   withExportCta={{
                     component: (
                       <div className='d-flex align-items-center'>
@@ -2699,7 +2714,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             className="mapper-emptystate"
             img={NoDataFound}
             actions={
-              <>
                 <Button buttonType="secondary" size="small" version="v2"
                   onClick={() => {
                     const newMigrationDataObj: INewMigration = {
@@ -2713,14 +2727,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                         }
                       }
                     }
-
                     dispatch(updateNewMigrationData(newMigrationDataObj));
                     handleStepChange(0);
                     const url = `/projects/${projectId}/migration/steps/1`;
                     navigate(url, { replace: true });
                   }}
                   className='ml-10'>Go to Legacy CMS</Button>
-              </>
             }
             version="v2"
             testId="no-results-found-page"
