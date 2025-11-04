@@ -2115,8 +2115,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               position: 'bottom-center',
               hideProgressBar: true
             },
-            type: 'success',
-            autoClose: 2
+            type: 'success'
           });
 
           try {
@@ -2370,7 +2369,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             console.error(err);
             return err;
           }
-
         }
       } catch (error) {
         console.error(error);
@@ -2384,13 +2382,10 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         ...newMigrationData?.content_mapping,
         [isContentType ? 'existingCT' : 'existingGlobal']: contentTypes,
         content_type_mapping: updatedContentTypeMapping
-
       }
-
     }
     dispatch(updateNewMigrationData(newMigrationDataObj));
-
-  }
+  };
 
   const columns = [
     {
