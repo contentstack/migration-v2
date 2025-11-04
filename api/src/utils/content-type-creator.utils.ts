@@ -1,4 +1,6 @@
 /* eslint-disable */
+/* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak */
+
 import fs from 'fs';
 import path from 'path';
 import _, { includes } from 'lodash';
@@ -6,7 +8,7 @@ import customLogger from './custom-logger.utils.js';
 import { getLogMessage } from './index.js';
 import { LIST_EXTENSION_UID, MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import { contentMapperService } from "../services/contentMapper.service.js";
-import appMeta from '../constants/app/index.json';
+import appMeta from '../constants/app/index.json' with { type: 'json' };
 
 const {
   GLOBAL_FIELDS_FILE_NAME,
@@ -311,13 +313,16 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any) => {
+const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
+  // Clean up field UID by removing ALL leading underscores
+  const cleanedUid = field?.uid?.replace(/^_+/, '') || field?.uid;
+  
   switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
         "data_type": "text",
         "display_name": field?.title,
-        uid: field?.uid,
+        uid: cleanedUid,
         "field_metadata": {
           description: "",
           default_value: field?.advanced?.default_value ?? ''
@@ -337,7 +342,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return {
         "data_type": "boolean",
         "display_name": field?.title,
-        uid: field?.uid,
+        uid: cleanedUid,
         "field_metadata": {
           description: "",
           default_value: field?.advanced?.default_value ?? false,
@@ -357,8 +362,8 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       if (["Object", "Array"].includes(field?.otherCmsType)) {
         return {
           data_type: "json",
-          display_name: field?.title ?? field?.uid,
-          uid: field?.uid,
+          display_name: field?.title ?? cleanedUid,
+          uid: cleanedUid,
           "extension_uid": field?.otherCmsTyp === "Array" ? 'listview_extension' : 'jsonobject_extension',
           "field_metadata": {
             extension: true,
@@ -380,8 +385,8 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       } else {
         return {
           "data_type": "json",
-          "display_name": field?.title ?? field?.uid,
-          "uid": field?.uid,
+          "display_name": field?.title ?? cleanedUid,
+          "uid": cleanedUid,
           "field_metadata": {
             "allow_json_rte": true,
             "embed_entry": field?.advanced?.embedObjects?.length ? true : false,
@@ -410,16 +415,29 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
     }
 
     case 'dropdown': {
+      // 🔧 CONDITIONAL LOGIC: Check if choices have key-value pairs or just values
+      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0 
+        ? field?.advanced?.options 
+        : [{ value: "NF" }];
+      
+      // Filter out null/undefined choices and ensure they are valid objects
+      const choices = Array.isArray(rawChoices) 
+        ? rawChoices.filter((choice: any) => choice != null && typeof choice === 'object')
+        : [{ value: "NF" }];
+      
+      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 && 
+        choices.some((choice: any) => choice != null && typeof choice === 'object' && choice.key !== undefined && choice.key !== null);
+      
       const data = {
         "data_type": ['dropdownNumber', 'radioNumber', 'ratingNumber'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
         "display_type": "dropdown",
         "enum": {
-          "advanced": advanced,
-          choices: field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }],
+          "advanced": hasKeyValuePairs, // true if has key-value pairs, false if only values
+          choices: choices,
         },
         "multiple": field?.advanced?.multiple ?? false,
-        uid: field?.uid,
+        uid: cleanedUid,
         "field_metadata": {
           description: "",
           default_value: field?.advanced?.default_value ?? null,
@@ -437,16 +455,29 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return data;
     }
     case 'radio': {
+      // 🔧 CONDITIONAL LOGIC: Check if choices have key-value pairs or just values
+      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0 
+        ? field?.advanced?.options 
+        : [{ value: "NF" }];
+      
+      // Filter out null/undefined choices and ensure they are valid objects
+      const choices = Array.isArray(rawChoices) 
+        ? rawChoices.filter((choice: any) => choice != null && typeof choice === 'object')
+        : [{ value: "NF" }];
+      
+      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 && 
+        choices.some((choice: any) => choice != null && typeof choice === 'object' && choice.key !== undefined && choice.key !== null);
+      
       const data = {
         "data_type": ['dropdownNumber', 'radioNumber', 'ratingNumber'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
         "display_type": "radio",
         "enum": {
-          "advanced": advanced,
-          choices: field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }],
+          "advanced": hasKeyValuePairs, // true if has key-value pairs, false if only values
+          choices: choices,
         },
         "multiple": field?.advanced?.multiple ?? false,
-        uid: field?.uid,
+        uid: cleanedUid,
         "field_metadata": {
           description: field?.advanced?.description || '',
           default_value: field?.advanced?.default_value ?? null,
@@ -463,16 +494,29 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return data;
     }
     case 'checkbox': {
+      // 🔧 CONDITIONAL LOGIC: Check if choices have key-value pairs or just values
+      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0 
+        ? field?.advanced?.options 
+        : [{ value: "NF" }];
+      
+      // Filter out null/undefined choices and ensure they are valid objects
+      const choices = Array.isArray(rawChoices) 
+        ? rawChoices.filter((choice: any) => choice != null && typeof choice === 'object')
+        : [{ value: "NF" }];
+      
+      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 && 
+        choices.some((choice: any) => choice != null && typeof choice === 'object' && choice.key !== undefined && choice.key !== null);
+      
       const data = {
         "data_type": "text",
         "display_name": field?.title,
         "display_type": "checkbox",
         "enum": {
-          "advanced": advanced,
-          choices: field?.advanced?.options?.length ? field?.advanced?.options : [{ value: "NF" }],
+          "advanced": hasKeyValuePairs, // true if has key-value pairs, false if only values
+          choices: choices,
         },
         "multiple": true,
-        uid: field?.uid,
+        uid: cleanedUid,
         "field_metadata": {
           description: field?.advanced?.description || '',
           default_value: field?.advanced?.default_value ?? null,
@@ -493,7 +537,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return {
         "data_type": "file",
         "display_name": field?.title,
-        uid: field?.uid,
+        uid: cleanedUid,
         "extensions": [],
         "field_metadata": {
           description: "",
@@ -514,7 +558,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return {
         "data_type": "link",
         "display_name": field?.title,
-        uid: field?.uid,
+        uid: cleanedUid,
         "field_metadata": {
           description: "",
           "default_value": {
@@ -537,7 +581,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return {
         "data_type": "text",
         "display_name": field?.title,
-        uid: field?.uid,
+        uid: cleanedUid,
         "field_metadata": {
           description: "",
           default_value: field?.advanced?.default_value ?? '',
@@ -557,7 +601,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return {
         "data_type": "text",
         "display_name": field?.title,
-        "uid": field?.uid,
+        "uid": cleanedUid,
         "field_metadata": {
           "description": "",
           "markdown": true,
@@ -578,7 +622,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return {
         "data_type": "number",
         "display_name": field?.title,
-        uid: field?.uid,
+        uid: cleanedUid,
         "field_metadata": {
           description: "",
           default_value: field?.advanced?.default_value ?? ''
@@ -598,7 +642,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       return {
         "data_type": "isodate",
         "display_name": field?.title,
-        uid: field?.uid,
+        uid: cleanedUid,
         "startDate": null,
         "endDate": null,
         "field_metadata": {
@@ -623,7 +667,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
         "data_type": "global_field",
         "display_name": field?.title,
         "reference_to": field?.refrenceTo,
-        "uid": field?.uid,
+        "uid": cleanedUid,
         "mandatory": field?.advanced?.mandatory ?? false,
         "multiple": field?.advanced?.multiple ?? false,
         "unique": field?.advanced?.unique ?? false
@@ -643,7 +687,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
         error_messages: {
           format: field?.advanced?.validationErrorMessage ?? '',
         },
-        uid: field?.uid,
+        uid: cleanedUid,
         mandatory: field?.advanced?.mandatory ?? false,
         multiple: field?.advanced?.multiple ?? false,
         non_localizable: field.advanced?.nonLocalizable ?? false,
@@ -655,7 +699,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       const htmlField: any = {
         "data_type": "text",
         "display_name": field?.title,
-        "uid": field?.uid,
+        "uid": cleanedUid,
         "field_metadata": {
           "allow_rich_text": true,
           "description": "",
@@ -702,7 +746,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
           "field_metadata": {
             "extension": true
           },
-          "uid": field?.uid,
+          "uid": cleanedUid,
           "config": {},
           "data_type": "json",
           "multiple": field?.advanced?.multiple ?? false,
@@ -724,7 +768,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
         });
         return {
           "display_name": field?.title,
-          "uid": field?.uid,
+          "uid": cleanedUid,
           "extension_uid": extensionUid,
           "field_metadata": {
             "extension": true
@@ -744,7 +788,7 @@ const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath }: any
       if (field?.contentstackFieldType) {
         return {
           "display_name": field?.title,
-          "uid": field?.uid,
+          "uid": cleanedUid,
           "data_type": "text",
           "mandatory": field?.advanced?.mandatory ?? false,
           "unique": field?.advanced?.unique ?? false,
@@ -814,14 +858,45 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   let globalfields: any[] = [];
   try {
     const data = await fs.promises.readFile(filePath, 'utf8');
-    globalfields = JSON.parse(data);
+    const parsed = JSON.parse(data);
+    globalfields = Array.isArray(parsed) ? parsed : [];
   } catch (readErr: any) {
     if (readErr?.code !== 'ENOENT') {
       console.error("🚀 ~ fs.readFile ~ err:", readErr);
       return;
     }
   }
-  globalfields.push(schema);
+  
+  // 🔧 FIX: Check for duplicates before adding
+  if (!schema || typeof schema !== 'object') {
+    console.error("🚀 ~ writeGlobalField ~ Invalid schema provided");
+    return;
+  }
+  
+  if (!schema.uid) {
+    console.error("🚀 ~ writeGlobalField ~ Schema missing uid");
+    return;
+  }
+  
+  if (!Array.isArray(globalfields)) {
+    globalfields = [];
+  }
+  
+  const existingIndex = globalfields.findIndex((gf: any) => gf != null && gf.uid === schema.uid);
+  if (existingIndex !== -1 && existingIndex < globalfields.length) {
+    // Replace existing global field instead of duplicating
+    if (schema && typeof schema === 'object' && schema.uid) {
+      globalfields[existingIndex] = schema;
+    }
+  } else {
+    // Add new global field
+    if (Array.isArray(globalfields) && schema && typeof schema === 'object' && schema.uid) {
+      globalfields.push(schema);
+    } else {
+      console.error("🚀 ~ writeGlobalField ~ Cannot push schema: invalid schema or globalfields array");
+    }
+  }
+  
   try {
     await fs.promises.writeFile(filePath, JSON.stringify(globalfields, null, 2));
   } catch (writeErr) {
@@ -909,9 +984,73 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   }
   const ctData: any = buildSchemaTree(contentType?.fieldMapping);
   ctData?.forEach((item: any) => {
-    const schemaField = buildFieldSchema(item, marketPlacePath);
-    if (schemaField) ct?.schema?.push(schemaField);
-  });
+    if (item?.contentstackFieldType === 'group') {
+      const group: Group = {
+        "data_type": "group",
+        "display_name": item?.contentstackField,
+        "field_metadata": {},
+        "schema": [],
+        "uid": item?.contentstackFieldUid,
+        "multiple": false,
+        "mandatory": false,
+        "unique": false
+      }
+      // 🔧 FIX: Track processed fields to prevent duplicates within groups
+      const processedFieldUIDs = new Set();
+      
+      item?.schema?.forEach((element: any) => {
+        const fieldUID = extractValue(element?.contentstackFieldUid, item?.contentstackFieldUid, '.');
+        
+        // Skip if this field UID was already processed in this group
+        if (processedFieldUIDs.has(fieldUID)) {
+          return;
+        }
+        processedFieldUIDs.add(fieldUID);
+        
+        const field: any = {
+          ...element,
+          uid: fieldUID,
+          title: extractValue(element?.contentstackField, item?.contentstackField, ' >')?.trim(),
+        }
+        const schema: any = convertToSchemaFormate({ 
+          field, 
+          advanced: element?.advanced ?? false, // 🔧 FIX: Pass advanced from element data
+          marketPlacePath,
+          keyMapper
+        });
+        if (typeof schema === 'object' && Array.isArray(group?.schema) && element?.isDeleted === false) {
+          group.schema.push(schema);
+        }
+      })
+      
+      // 🔧 FIX: Only add group if it has schema and doesn't already exist
+      if (group?.schema && Array.isArray(group.schema) && group.schema.length > 0 && group?.uid) {
+        if (!ct?.schema || !Array.isArray(ct.schema)) {
+          ct.schema = [];
+        }
+        const existingGroupIndex = ct.schema.findIndex((g: any) => g != null && g.uid === group.uid);
+        if (existingGroupIndex !== -1 && existingGroupIndex < ct.schema.length) {
+          ct.schema[existingGroupIndex] = group;
+        } else {
+          ct.schema.push(group);
+        }
+      }
+    } else {
+      const dt: any = convertToSchemaFormate({
+        field: {
+          ...item,
+          title: item?.contentstackField,
+          uid: item?.contentstackFieldUid
+        },
+        advanced: item?.advanced ?? false, // 🔧 FIX: Pass advanced from item data
+        marketPlacePath,
+        keyMapper
+      });
+      if (dt && item?.isDeleted === false) {
+        ct?.schema?.push(dt);
+      }
+    }
+  })
   if (currentCt?.uid) {
     ct = await mergeTwoCts(ct, currentCt);
   }

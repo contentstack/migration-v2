@@ -48,20 +48,20 @@ export class TitleComponent extends ContentstackComponent {
       uid: key,
       displayName: key,
       description: "",
-      defaultValue: schemaProp.value
+      defaultValue: ""
     }).toContentstack(),
     boolean: (key, schemaProp) => new BooleanField({
       uid: key,
       displayName: key,
       description: "",
-      defaultValue: schemaProp.value
+      defaultValue: false
     }).toContentstack(),
     integer: (key, schemaProp) => new TextField({
       uid: key,
       displayName: key,
       description: "",
       isNumber: true,
-      defaultValue: schemaProp.value
+      defaultValue: ""
     }).toContentstack(),
     object: () => null,
     array: () => null

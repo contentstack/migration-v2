@@ -86,6 +86,7 @@ const Migration = () => {
   const dispatch = useDispatch();
   const stepperRef = useRef<StepperComponentRef>(null);
   const legacyCMSRef = useRef<LegacyCmsRef>(null);
+  const isMountedRef = useRef(true);
 
   const selectedOrganisation = useSelector(
     (state: RootState) => state?.authentication?.selectedOrganisation
@@ -103,6 +104,13 @@ const Migration = () => {
   const [disableMigration, setDisableMigration] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState<boolean>(false);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const saveRef = useRef<ContentTypeSaveHandles>(null);
   const newMigrationDataRef = useRef(newMigrationData);
@@ -135,7 +143,8 @@ const Migration = () => {
         Boolean(label?.trim()) &&
         value !== '' &&
         value !== null &&
-        value !== undefined
+        value !== undefined && 
+        label !== 'undefined'
     );
     //console.info("legacyCMSRef?.current ", legacyCMSRef?.current,legacyCMSRef?.current?.getInternalActiveStepIndex())
     if(legacyCMSRef?.current && newMigrationData?.project_current_step === 1 && legacyCMSRef?.current?.getInternalActiveStepIndex() > -1){
@@ -494,12 +503,16 @@ const Migration = () => {
       event.preventDefault();
 
       //Update Data in backend
-      await updateLegacyCMSData(selectedOrganisation?.value, projectId, {
+      const cmsUpdateData = {
         legacy_cms: newMigrationData?.legacy_cms?.selectedCms?.cms_id
-      });
-      await updateAffixData(selectedOrganisation?.value, projectId, {
+      };
+      await updateLegacyCMSData(selectedOrganisation?.value, projectId, cmsUpdateData);
+
+      const affixData = {
         affix: newMigrationData?.legacy_cms?.affix
-      });
+      };
+      await updateAffixData(selectedOrganisation?.value, projectId, affixData);
+
       await fileformatConfirmation(selectedOrganisation?.value, projectId, {
         fileformat_confirmation: true
       });
@@ -507,8 +520,10 @@ const Migration = () => {
       await affixConfirmation(selectedOrganisation?.value, projectId, {
         affix_confirmation: true
       });
-      await updateFileFormatData(selectedOrganisation?.value, projectId, {
+
+      const fileFormatData = {
         file_format:
+          newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toString() || 
           newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats[0]?.fileformat_id?.toString(),
         file_path: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
         is_fileValid: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
@@ -518,7 +533,21 @@ const Migration = () => {
           bucketName: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
           buketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.buketKey
         }
-      });
+      };
+      try {
+        await updateFileFormatData(selectedOrganisation?.value, projectId, fileFormatData);
+      } catch (error: any) {
+        console.error('Error details:', error?.response?.data);
+        setIsLoading(false);
+        if (isMountedRef.current) {
+          Notification({
+            notificationContent: { text: error?.response?.data?.message || 'Failed to update file format' },
+            type: 'error'
+          });
+        }
+        return; // Stop execution if file format update fails
+      }
+
       const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
 
       if (res?.status === 200) {
@@ -539,11 +568,15 @@ const Migration = () => {
           navigate(url, { replace: true });
         }
       } else {
+        console.error('❌ Failed to update current step:', res);
         setIsLoading(false);
-        Notification({
-          notificationContent: { text: res?.data?.error?.message },
-          type: 'error'
-        });
+        // Only show notification if component is still mounted
+        if (isMountedRef.current) {
+          Notification({
+            notificationContent: { text: res?.data?.error?.message },
+            type: 'error'
+          });
+        }
       }
     } else {
       setIsLoading(false);
@@ -586,13 +619,15 @@ const Migration = () => {
     const hasNonEmptyMapping =
       newMigrationData?.destination_stack?.localeMapping &&
       Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
-        ([label, value]: [string, string]) =>
-          Boolean(label?.trim()) &&
-          value !== '' &&
-          value !== null &&
-          value !== undefined && 
-          label !== 'undefined' &&
-          isNaN(Number(label))
+        ([label, value]: [string, string]) => {
+          const isValid = Boolean(label?.trim()) &&
+            value !== '' &&
+            value !== null &&
+            value !== undefined && 
+            label !== 'undefined';
+          
+          return isValid;
+        }
       );
 
     const master_locale: LocalesType = {};
