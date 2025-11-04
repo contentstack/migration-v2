@@ -71,7 +71,7 @@ type LegacyCmsRef = {
   getInternalActiveStepIndex: () => number;
 };
 type LocalesType = {
-  [key: string]: any
+  [key: string]: string;
 }
 
 /**

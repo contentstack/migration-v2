@@ -30,8 +30,6 @@ export type ExistingFieldType = {
  * @returns {JSX.Element | null} - Returns a JSX element if empty, otherwise null.
  */
 const Mapper = ({
-  key,
-  uid,
   cmsLocaleOptions,
   handleLangugeDelete,
   options,
@@ -252,7 +250,6 @@ const Mapper = ({
     selectedValue: { label: string; value: string },
     index: number,
   ) => {
-    const csLocaleKey = existingField?.[index]?.value;
     const selectedLocaleKey = selectedValue?.value;
     const existingLabel = existingField?.[index];
     //const selectedLocaleKey = selectedMappings[index];
@@ -392,7 +389,7 @@ const Mapper = ({
          
             {locale?.value === 'master_locale' ? (
               <Tooltip
-                content="This is the master locale of above selected stacks and cannot be changed. Please select a corresponding language to map."
+                content="This is the default locale of above selected stacks and cannot be changed. Please select a corresponding language to map."
                 position="top"
               >
                 <div>
@@ -531,7 +528,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
   const [currentStack, setCurrentStack] = useState<IDropDown>(stack);
   const [previousStack, setPreviousStack] = useState<IDropDown>();
   const [isStackChanged, setisStackChanged] = useState<boolean>(false);
-  const [stackValue, setStackValue] = useState<string>(stack?.value)
 
   const prevStackRef:any = useRef(null);
 
