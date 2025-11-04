@@ -45,6 +45,7 @@ export class SearchComponent extends ContentstackComponent {
       uid: key,
       displayName: key,
       description: "",
+      isNumber: true,
       defaultValue: ""
     }).toContentstack(),
     object: () => null,

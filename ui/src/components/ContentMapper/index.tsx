@@ -860,7 +860,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
         const updatedRow = {
           ...row,
-          refrenceTo: updatedSettings?.referenedItems,
+          refrenceTo: updatedSettings?.referenedItems || row?.refrenceTo,
           advanced: { ...row?.advanced, ...updatedSettings }
         };
         return updatedRow;
