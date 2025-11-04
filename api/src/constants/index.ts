@@ -1,10 +1,12 @@
-export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA"];
+export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA", "AU", "GCP_EU"];
 export const DEVURLS: any = {
   NA: "developerhub-api.contentstack.com",
   EU: "eu-developerhub-api.contentstack.com",
   AZURE_NA: "azure-na-developerhub-api.contentstack.com",
   AZURE_EU: "azure-eu-developerhub-api.contentstack.com",
   GCP_NA: "gcp-na-developerhub-api.contentstack.com",
+  AU: "au-developerhub-api.contentstack.com",
+  GCP_EU: "gcp-eu-developerhub-api.contentstack.com",
 };
 export const CMS = {
   CONTENTFUL: "contentful",
@@ -291,3 +293,8 @@ export const GET_AUDIT_DATA = {
   AUDIT_REPORT: "audit-report",
   FILTERALL: "all",
 }
+
+export const RESERVED_FIELD_MAPPINGS: Record<string, string> = {
+  'locale': 'cm_locale'
+  // Add other reserved fields if needed
+};

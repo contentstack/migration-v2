@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak */
+
 const path = require('path');
 const _ = require('lodash');
 const read = require('fs-readdir-recursive');
@@ -8,7 +10,6 @@ const { MIGRATION_DATA_CONFIG } = require('../constants/index');
 
 const extraField = 'title';
 const configChecker = path?.join('content', 'Common', 'Configuration');
-const append = 'a';
 let config = {};
 
 const {
@@ -32,11 +33,31 @@ function startsWithNumber(str) {
 }
 
 const uidCorrector = ({ uid }) => {
-  if (startsWithNumber(uid)) {
-    return `${append}_${_.replace(uid, /[ -]/g, '_')?.toLowerCase()}`.replace(/\$/g, '');
+  if (!uid || typeof uid !== 'string') {
+    return '';
   }
-  const newUid = _.replace(uid, /[ -]/g, '_')?.toLowerCase();
-  return newUid.replace(/\$/g, '');
+
+  let newUid = uid;
+
+  // Note: UIDs starting with numbers and restricted keywords are handled externally in Sitecore
+  // The prefix is applied in contentTypeMaker function when needed
+
+  // Clean up the UID
+  newUid = newUid
+    .replace(/[ -]/g, '_') // Replace spaces and hyphens with underscores
+    .replace(/[^a-zA-Z0-9_]+/g, '_') // Replace non-alphanumeric characters (except underscore)
+    .replace(/\$/g, '') // Remove dollar signs
+    .toLowerCase() // Convert to lowercase
+    .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase
+    .replace(/_+/g, '_') // Replace multiple underscores with single
+    .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+
+  // Ensure UID doesn't start with underscore (Contentstack requirement)
+  if (newUid.startsWith('_')) {
+    newUid = newUid.substring(1);
+  }
+
+  return newUid;
 };
 
 const templatesComponents = ({ path: newPath }) => {
@@ -71,14 +92,17 @@ const templatesComponents = ({ path: newPath }) => {
 const templateStandardValues = ({ components }) => {
   const standardValues = [];
   const data = components?.item?.$ ?? {};
-  components?.item?.fields?.field.forEach((item) => {
-    if (!item?.$?.key.includes('__')) {
-      standardValues.push({
-        content: item.content,
-        ...item.$
-      });
-    }
-  });
+  const fields = components?.item?.fields?.field;
+  if (fields && Array.isArray(fields)) {
+    fields.forEach((item) => {
+      if (!item?.$?.key.includes('__')) {
+        standardValues.push({
+          content: item.content,
+          ...item.$
+        });
+      }
+    });
+  }
   data.fields = standardValues;
   return data;
 };
@@ -111,10 +135,14 @@ const ContentTypeSchema = ({
   choices = [],
   sourLet,
   sitecoreKey,
-  affix,
+  affix
 }) => {
   const isPresent = restrictedUid?.find((item) => item === uid);
-  if (isPresent) {
+  const cleanedUid = uidCorrector({ uid });
+  const startsWithNum = startsWithNumber(cleanedUid);
+
+  // Add affix if UID is restricted OR starts with a number
+  if (isPresent || startsWithNum) {
     uid = `${affix}_${uid}`;
   }
   switch (type) {
@@ -125,7 +153,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'single_line_text',
         backupFieldType: 'single_line_text',
         backupFieldUid: uid,
@@ -140,7 +168,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'boolean',
         backupFieldType: 'boolean',
         backupFieldUid: uid,
@@ -154,7 +182,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'json',
         backupFieldType: 'json',
         backupFieldUid: uid,
@@ -169,7 +197,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'dropdown',
         backupFieldType: 'dropdown',
         backupFieldUid: uid,
@@ -187,7 +215,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'file',
         backupFieldType: 'file',
         backupFieldUid: uid,
@@ -202,7 +230,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'link',
         backupFieldType: 'link',
         backupFieldUid: uid,
@@ -217,7 +245,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'multi_line_text',
         backupFieldType: 'multi_line_text',
         backupFieldUid: uid,
@@ -227,17 +255,30 @@ const ContentTypeSchema = ({
 
     case 'Integer':
     case 'Number': {
+      // Convert default_value to number if possible, otherwise set to null
+      let numericDefaultValue = null;
+      if (default_value !== '' && default_value !== null && default_value !== undefined) {
+        // Only process if it's a string or number type (exclude objects, arrays, etc.)
+        if (typeof default_value === 'string' || typeof default_value === 'number') {
+          const parsedValue = Number(default_value);
+          // Check if conversion was successful (not NaN and is finite)
+          if (!isNaN(parsedValue) && isFinite(parsedValue)) {
+            numericDefaultValue = parsedValue;
+          }
+        }
+      }
+
       return {
         id: id,
         uid: sitecoreKey,
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'number',
         backupFieldType: 'number',
         backupFieldUid: uid,
-        advanced: { default_value: default_value !== '' ? default_value : null }
+        advanced: { default_value: numericDefaultValue }
       };
     }
 
@@ -249,7 +290,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'isodate',
         backupFieldType: 'isodate',
         backupFieldUid: uid,
@@ -265,7 +306,7 @@ const ContentTypeSchema = ({
           otherCmsField: name,
           otherCmsType: type,
           contentstackField: name,
-          contentstackFieldUid: uid,
+          contentstackFieldUid: uidCorrector({ uid }),
           contentstackFieldType: 'dropdown',
           backupFieldType: 'dropdown',
           backupFieldUid: uid,
@@ -285,7 +326,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'reference',
         backupFieldUid: uid,
         backupFieldType: 'reference',
@@ -299,7 +340,7 @@ const ContentTypeSchema = ({
         otherCmsField: name,
         otherCmsType: type,
         contentstackField: name,
-        contentstackFieldUid: uid,
+        contentstackFieldUid: uidCorrector({ uid }),
         contentstackFieldType: 'reference',
         backupFieldUid: uid,
         backupFieldType: 'reference'
@@ -362,14 +403,15 @@ const groupFlat = (data, item) => {
   if (
     data?.data_type === 'group' &&
     Array.isArray(data?.schema) &&
-    data.schema.some(item => item !== undefined)
+    data.schema.some((item) => item !== undefined)
   ) {
+    // Use the already-corrected UID from data.uid (which has affix applied if needed)
     const group = {
       uid: item?.meta?.key,
       otherCmsField: item?.meta?.name,
       otherCmsType: 'Group',
       contentstackField: item?.meta?.name,
-      contentstackFieldUid: uidCorrector({ uid: item?.meta?.key }),
+      contentstackFieldUid: data?.uid, // Use the corrected UID from groupSchema
       contentstackFieldType: 'group',
       backupFieldType: 'group'
     };
@@ -381,8 +423,8 @@ const groupFlat = (data, item) => {
           uid: `${item?.meta?.key}.${element?.uid}`,
           otherCmsField: `${item?.meta?.name} > ${element?.otherCmsField}`,
           contentstackField: `${item?.meta?.name} > ${element?.contentstackField}`,
-          contentstackFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`,
-          backupFieldUid: `${uidCorrector({ uid: item?.meta?.key })}.${element?.contentstackFieldUid}`
+          contentstackFieldUid: `${data?.uid}.${uidCorrector({ uid: element?.contentstackFieldUid })}`, // Use corrected group UID
+          backupFieldUid: `${data?.uid}.${uidCorrector({ uid: element?.contentstackFieldUid })}` // Use corrected group UID
         };
         flat?.push(obj);
       }
@@ -414,12 +456,20 @@ const contentTypeMapper = ({
   let mainSchema = [];
   components?.forEach((item) => {
     if (item?.schema?.length) {
+      const groupUidCleaned = uidCorrector({ uid: item?.meta?.key });
+      const groupStartsWithNum = startsWithNumber(groupUidCleaned);
+      const isGroupRestricted = restrictedUid?.find((uid) => uid === item?.meta?.key);
+
+      // Add affix to group UID if it starts with a number or is restricted
+      const groupUid =
+        isGroupRestricted || groupStartsWithNum ? `${affix}_${groupUidCleaned}` : groupUidCleaned;
+
       const groupSchema = {
         data_type: 'group',
         display_name: item?.meta?.name,
         field_metadata: {},
         schema: [],
-        uid: uidCorrector({ uid: item?.meta?.key }),
+        uid: groupUid,
         multiple: true,
         mandatory: false,
         unique: false
@@ -453,19 +503,9 @@ const contentTypeMapper = ({
                   sourceType = makeUnique({ data: sourceTree?.[item?.content] });
                   compType.content = 'Droplist';
                   if (isKeyPresent('key', sourceType)) {
-                    advanced = true;
+                    advanced = false; // 🔧 FIX: Set dropdown advanced to false
                   }
-                } else {
-                  console.log(
-                    '🚀 ~ file: contenttypes.js:305 ~ field?.fields?.forEach ~ item?.content:',
-                    item?.content
-                  );
                 }
-              } else {
-                console.log(
-                  '🚀 ~ file: contenttypes.js:371 ~ field?.fields?.forEach ~ compType:',
-                  compType?.standardValues?.key
-                );
               }
             } else {
               if (source) {
@@ -522,7 +562,7 @@ const contentTypeMapper = ({
                 } else {
                   sourceType = makeUnique({ data: source?.[item?.content] });
                   if (isKeyPresent('key', sourceType)) {
-                    advanced = true;
+                    advanced = false; // 🔧 FIX: Set dropdown advanced to false
                   }
                 }
               }
@@ -547,7 +587,7 @@ const contentTypeMapper = ({
               sourLet,
               sitecoreKey: field?.key,
               isFromMapper: true,
-              affix,
+              affix
             })
           );
         }
@@ -590,7 +630,9 @@ const contentTypeMapper = ({
 
 const contentTypeMaker = ({ template, basePath, sitecore_folder, affix }) => {
   const isPresent = restrictedUid?.find((item) => item === template?.key);
-  const correctedUid = isPresent ? `${affix}_${uidCorrector({ uid: template?.key })}` : uidCorrector({ uid: template?.key })
+  const correctedUid = isPresent
+    ? `${affix}_${uidCorrector({ uid: template?.key })}`
+    : uidCorrector({ uid: template?.key });
   const content_type = {
     id: template?.id,
     status: 1,
