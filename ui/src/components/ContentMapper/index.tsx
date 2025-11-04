@@ -301,7 +301,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const [isCsCTypeUpdated, setsCsCTypeUpdated] = useState<boolean>(false);
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
   const [activeFilter, setActiveFilter] = useState<string>('');
-   const [isAllCheck, setIsAllCheck] = useState<boolean>(false);
+  const [isAllCheck, setIsAllCheck] = useState<boolean>(false);
+  const [isResetFetch, setIsResetFetch] = useState<boolean>(false);
 
 
   /** ALL HOOKS Here */
@@ -495,6 +496,20 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       document.removeEventListener('click', handleClickOutside, true);
     };
   }, []);
+
+  /**
+   * Debounces a function call by delaying its execution until after the specified delay has elapsed since the last invocation.
+   * @param fn - The function to debounce
+   * @param delay - The delay in milliseconds to wait before executing the function
+   * @returns A debounced version of the function
+   */
+  const debounce = (fn: (...args: any[]) => any, delay: number | undefined) => {
+    let timeoutId: string | number | NodeJS.Timeout | undefined;
+    return (...args: any[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn(...args), delay);
+    };
+  };
 
   const checkAndUpdateField = (
   item: any,
@@ -1342,14 +1357,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               <Button
                 buttonType="light"
                 disabled={newMigrationData?.project_current_step > 4}
+                onClick={() =>
+                  handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
+                }
               >
                 <Icon
                   version="v2"
                   icon="Sliders"
                   size="small"
-                  onClick={() =>
-                    handleAdvancedSetting(fieldLabel, data?.advanced || {}, data?.uid, data)
-                  }
                   disabled={newMigrationData?.project_current_step > 4}
                 />
 
@@ -1838,14 +1853,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                 <Button
                   buttonType="light"
                   disabled={(contentTypeSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 4}
+                  onClick={() => {
+                    handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
+                  }}
                 >
                   <Icon
                     version={'v2'}
                     icon="Sliders"
                     size="small"
-                    onClick={() => {
-                      handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
-                    }}
                   />
                 </Button>
               </Tooltip>
@@ -1998,11 +2013,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     handleDropdownState
   }));
 
-  const handleResetContentType = async () => {
+  const handleResetContentType = debounce(async () => {
+    // Prevent duplicate clicks
+    if (isResetFetch) return;
+
     const orgId = selectedOrganisation?.value;
     const projectID = projectId;
     setIsDropDownChanged(false);
-
+    setIsResetFetch(true);
     const updatedRows: FieldMapType[] = tableData?.map?.((row) => {
       return {
         ...row,
@@ -2056,6 +2074,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         });
 
         if (status === 200) {
+          setIsResetFetch(false);
           const updatedContentMapping = { ...newMigrationData?.content_mapping?.content_type_mapping };
           delete updatedContentMapping[selectedContentType?.contentstackUid];
 
@@ -2094,7 +2113,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             notificationContent: { text: data?.message },
             notificationProps: {
               position: 'bottom-center',
-              hideProgressBar: false
+              hideProgressBar: true
             },
             type: 'success'
           });
@@ -2111,11 +2130,176 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       } catch (error) {
         console.error(error);
         return error;
+      } finally {
+        // Re-enable icon after API completes
+        setIsResetFetch(false);
       }
     }
-  };
+  }, 1500);
+/**
+ * Retrieves existing content types for a given project.
+ * @returns An array containing the retrieved content types or global fields based on condition if itContentType true and if existing content type or global field id is passed then returns an object containing title, uid and schema of that particular content type or global field.
+ */
+  const handleFetchContentType = debounce(async () => {
+    // Prevent duplicate clicks
+    if (isResetFetch) return;
 
+    setIsResetFetch(true);
+    
+    if (isContentType) {
+      try {
+        
+
+        const { data, status } = await getExistingContentTypes(projectId, otherContentType?.id ?? '');
+        if (status == 201 && data?.contentTypes?.length > 0) {
+          (otherContentType?.id === data?.selectedContentType?.uid) && setsCsCTypeUpdated(false);
+          setIsResetFetch(false);
+
+          (otherContentType?.id && otherContentType?.label !== data?.selectedContentType?.title && data?.selectedContentType?.title)
+            && setOtherContentType({
+              label: data?.selectedContentType?.title,
+              value: data?.selectedContentType?.title,
+              id: data?.selectedContentType?.uid
+            })
+          setContentModels(data?.contentTypes);
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            content_mapping: {
+              ...newMigrationData?.content_mapping,
+              existingCT: data?.contentTypes
+            }
+
+          }
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+          Notification({
+            notificationContent: { text: 'Content Types fetched successfully' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'success'
+          });
+          if (data?.selectedContentType?.schema?.length > 0) {
+            setContentTypeSchema(data?.selectedContentType?.schema);
+          }
+        } else {
+          Notification({
+            notificationContent: { text: "No content found in the stack" },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'error'
+          });
+        }
+        if (otherContentType?.id && data?.contentTypes?.every((item: FieldMapType) => item?.uid !== otherContentType?.id)) {
+          await handleCTDeleted(isContentType, data?.contentTypes);
+        }
+      } catch (error) {
+        console.error(error);
+        return error;
+      } finally {
+        // Re-enable icon after API completes
+        setIsResetFetch(false);
+      }
+    } else {
+      try {
+        const { data, status } = await getExistingGlobalFields(projectId, otherContentType?.id ?? '');
+
+        if (status == 201 && data?.globalFields?.length > 0) {
+          (otherContentType?.id === data?.selectedGlobalField?.uid) && setsCsCTypeUpdated(false);
+          setIsResetFetch(false);
+
+          (otherContentType?.id && otherContentType?.label !== data?.selectedGlobalField?.title && data?.selectedGlobalField?.title)
+            && setOtherContentType({
+              label: data?.selectedGlobalField?.title,
+              value: data?.selectedGlobalField?.title,
+              id: data?.selectedGlobalField?.uid
+            })
+          setContentModels(data?.globalFields);
+
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            content_mapping: {
+              ...newMigrationData?.content_mapping,
+              existingGlobal: data?.globalFields
+            }
+
+          }
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+
+          Notification({
+            notificationContent: { text: 'Global Fields fetched successfully' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'success'
+          });
+
+          if (data?.selectedGlobalField?.schema?.length > 0) {
+            setContentTypeSchema(data?.selectedGlobalField?.schema);
+          }
+        } else {
+
+          Notification({
+            notificationContent: { text: "No Global Fields found in the stack" },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: false
+            },
+            type: 'error'
+          });
+        }
+        if (otherContentType?.id && data?.globalFields?.every((item: FieldMapType) => item?.uid !== otherContentType?.id)) {
+          await handleCTDeleted(isContentType, data?.globalFields);
+        }
+      } catch (error) {
+        console.error(error);
+        return error;
+      }  finally {
+        // Re-enable icon after API completes
+        setIsResetFetch(false);
+      }
+    }
+
+    const contentField = contentModels?.find((item: ContentTypeList) => item?.title === otherContentType?.label);
+    const contentFieldKey = Object.keys(contentTypeMapped).find(key => contentTypeMapped[key] === otherContentType?.label);
+
+    if (!contentField && contentFieldKey) {
+      const updatedState = { ...contentTypeMapped };
+      delete updatedState[contentFieldKey];
+
+      setContentTypeMapped((prevState: ContentTypeMap) => {
+        const newState = { ...prevState };
+
+        delete newState[contentFieldKey]
+
+        return newState;
+      });
+      try {
+        await updateContentMapper(selectedOrganisation?.value, projectId, { ...updatedState });
+      } catch (err) {
+        console.error(err);
+        return err;
+      }
+      setOtherContentType({
+        label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`,
+        value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`
+
+      });
+    }
+  }, 1500);
+
+  /**
+   * Handles the deletion of a content type or global field.
+   * @param isContentType - Whether the content type is a content type or global field.
+   * @param contentTypes - The content types to delete.
+   */
   const handleCTDeleted = async (isContentType: boolean, contentTypes: ContentTypeList[]) => {
+    // Prevent duplicate clicks
+    if (isResetFetch) return;
+
     const updatedContentTypeMapping = Object.fromEntries(
       Object.entries(newMigrationData?.content_mapping?.content_type_mapping || {})?.filter(
         ([key]) => !selectedContentType?.contentstackUid?.includes?.(key)
@@ -2185,7 +2369,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             console.error(err);
             return err;
           }
-
         }
       } catch (error) {
         console.error(error);
@@ -2199,153 +2382,10 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         ...newMigrationData?.content_mapping,
         [isContentType ? 'existingCT' : 'existingGlobal']: contentTypes,
         content_type_mapping: updatedContentTypeMapping
-
       }
-
     }
     dispatch(updateNewMigrationData(newMigrationDataObj));
-
-  }
-
-  /**
-   * Retrieves existing content types for a given project.
-   * @returns An array containing the retrieved content types or global fields based on condition if itContentType true and if existing content type or global field id is passed then returns an object containing title, uid and schema of that particular content type or global field.
-   */
-  const handleFetchContentType = async () => {
-    if (isContentType) {
-      try {
-        const { data, status } = await getExistingContentTypes(projectId, otherContentType?.id ?? '');
-        if (status == 201 && data?.contentTypes?.length > 0) {
-          (otherContentType?.id === data?.selectedContentType?.uid) && setsCsCTypeUpdated(false);
-
-          (otherContentType?.id && otherContentType?.label !== data?.selectedContentType?.title && data?.selectedContentType?.title)
-            && setOtherContentType({
-              label: data?.selectedContentType?.title,
-              value: data?.selectedContentType?.title,
-              id: data?.selectedContentType?.uid
-            })
-          setContentModels(data?.contentTypes);
-          const newMigrationDataObj: INewMigration = {
-            ...newMigrationData,
-            content_mapping: {
-              ...newMigrationData?.content_mapping,
-              existingCT: data?.contentTypes
-            }
-
-          }
-          dispatch(updateNewMigrationData(newMigrationDataObj));
-          Notification({
-            notificationContent: { text: 'Content Types fetched successfully' },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: false
-            },
-            type: 'success'
-          });
-          if (data?.selectedContentType?.schema?.length > 0) {
-            setContentTypeSchema(data?.selectedContentType?.schema);
-          }
-        } else {
-          Notification({
-            notificationContent: { text: "No content found in the stack" },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: false
-            },
-            type: 'error'
-          });
-        }
-        if (otherContentType?.id && data?.contentTypes?.every((item: FieldMapType) => item?.uid !== otherContentType?.id)) {
-          await handleCTDeleted(isContentType, data?.contentTypes);
-        }
-      } catch (error) {
-        console.error(error);
-        return error;
-      }
-    } else {
-      try {
-        const { data, status } = await getExistingGlobalFields(projectId, otherContentType?.id ?? '');
-
-        if (status == 201 && data?.globalFields?.length > 0) {
-          (otherContentType?.id === data?.selectedGlobalField?.uid) && setsCsCTypeUpdated(false);
-
-          (otherContentType?.id && otherContentType?.label !== data?.selectedGlobalField?.title && data?.selectedGlobalField?.title)
-            && setOtherContentType({
-              label: data?.selectedGlobalField?.title,
-              value: data?.selectedGlobalField?.title,
-              id: data?.selectedGlobalField?.uid
-            })
-          setContentModels(data?.globalFields);
-
-          const newMigrationDataObj: INewMigration = {
-            ...newMigrationData,
-            content_mapping: {
-              ...newMigrationData?.content_mapping,
-              existingGlobal: data?.globalFields
-            }
-
-          }
-          dispatch(updateNewMigrationData(newMigrationDataObj));
-
-          Notification({
-            notificationContent: { text: 'Global Fields fetched successfully' },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: false
-            },
-            type: 'success'
-          });
-
-          if (data?.selectedGlobalField?.schema?.length > 0) {
-            setContentTypeSchema(data?.selectedGlobalField?.schema);
-          }
-        } else {
-
-          Notification({
-            notificationContent: { text: "No Global Fields found in the stack" },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: false
-            },
-            type: 'error'
-          });
-        }
-        if (otherContentType?.id && data?.globalFields?.every((item: FieldMapType) => item?.uid !== otherContentType?.id)) {
-          await handleCTDeleted(isContentType, data?.globalFields);
-        }
-      } catch (error) {
-        console.error(error);
-        return error;
-      }
-    }
-
-    const contentField = contentModels?.find((item: ContentTypeList) => item?.title === otherContentType?.label);
-    const contentFieldKey = Object.keys(contentTypeMapped).find(key => contentTypeMapped[key] === otherContentType?.label);
-
-    if (!contentField && contentFieldKey) {
-      const updatedState = { ...contentTypeMapped };
-      delete updatedState[contentFieldKey];
-
-      setContentTypeMapped((prevState: ContentTypeMap) => {
-        const newState = { ...prevState };
-
-        delete newState[contentFieldKey]
-
-        return newState;
-      });
-      try {
-        await updateContentMapper(selectedOrganisation?.value, projectId, { ...updatedState });
-      } catch (err) {
-        console.error(err);
-        return err;
-      }
-      setOtherContentType({
-        label: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`,
-        value: `Select ${isContentType ? 'Content Type' : 'Global Field'} from Destination Stack`
-
-      });
-    }
-  }
+  };
 
   const columns = [
     {
@@ -2641,7 +2681,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                             <Tooltip content={'Fetch content types from destination stack'} position="top">
                               <Button className='icon-padding' buttonType="light" icon={onlyIcon ? "v2-FetchTemplate" : ''}
                                 version="v2" onlyIcon={true} onlyIconHoverColor={'primary'}
-                                size='small' onClick={handleFetchContentType}>
+                                size='small' onClick={handleFetchContentType} disabled={isResetFetch}>
                               </Button>
                             </Tooltip>
                           </>
@@ -2650,7 +2690,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                         <Tooltip content={'Reset to system mapping'} position="top">
                           <Button className='icon-padding' buttonType="light" icon={onlyIcon ? "v2-ResetReverse" : ''}
                             version="v2" onlyIcon={true} onlyIconHoverColor={'primary'}
-                            size='small' onClick={handleResetContentType}></Button>
+                            size='small' onClick={handleResetContentType} disabled={isResetFetch}></Button>
                         </Tooltip>
                       </div>
                     ),

@@ -12,15 +12,10 @@ import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 // Utilities
 import { CS_URL } from '../../utilities/constants';
 
-// Service
-import { updateCurrentStepData } from '../../services/api/migration.service';
-
 // Interface
 import { INewMigration } from '../../context/app/app.interface';
-import { ModalObj } from '../Modal/modal.interface';
 
 // Components
-import MigrationCompletionModal from '../Common/MigrationCompletionModal';
 import useBlockNavigation from '../../hooks/userNavigation';
 
 // CSS
