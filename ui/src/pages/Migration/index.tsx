@@ -71,7 +71,7 @@ type LegacyCmsRef = {
   getInternalActiveStepIndex: () => number;
 };
 type LocalesType = {
-  [key: string]: any
+  [key: string]: string;
 }
 
 /**
@@ -771,7 +771,7 @@ const Migration = () => {
           notificationContent: { text: 'Migration Execution process started' },
           notificationProps: {
             position: 'bottom-center',
-            hideProgressBar: false
+            hideProgressBar: true
           },
           type: 'message'
         });

@@ -331,8 +331,6 @@ const AdvancePropertise = (props: SchemaProps) => {
     });
   };
 
-
-
   const handleDrop = (index: number) => {
     if (draggedIndex === null) return;
 
@@ -588,7 +586,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                     props?.data?.contentstackFieldUid
                   );
                 }}
-                options={option}
+                options={option ?? []}
                 placeholder="Add Content Type(s)"
                 version="v2"
                 isSearchable={true}
@@ -673,6 +671,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                           true
                         ))
                     }
+                    disabled={props?.fieldtype === 'Modular Blocks' || props?.fieldtype === 'Block'}
                   />
                 </div>
               )}

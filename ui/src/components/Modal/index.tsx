@@ -100,12 +100,18 @@ const Modal = (props: ProjectModalProps) => {
                 if (result) {
                   Notification({
                     notificationContent: { text: result?.data?.message },
+                    notificationProps: {
+                      hideProgressBar: true
+                    },
                     type: 'success'
                   });
                   closeModal();
                 } else {
                   Notification({
                     notificationContent: { text: 'Error occurred while creating project.' },
+                    notificationProps: {
+                      hideProgressBar: true
+                    },
                     type: 'error'
                   });
                   closeModal();

@@ -92,7 +92,10 @@ const Login: FC<IProps> = () => {
         if (res?.status === 200 && res?.data?.notice === TFA_VIA_SMS_MESSAGE) {
           Notification({
             notificationContent: { text: res?.data?.notice },
-            type: 'success'
+            type: 'success',
+            notificationProps: {
+              hideProgressBar: true
+            }
           });
         }
 
@@ -197,14 +200,6 @@ const Login: FC<IProps> = () => {
       return 'Please enter a password';
     }
   };
-
-  // useEffect(()=>{
-  //   if(region && loginStates?.tfa){
-  //     setIsBlock(true);
-
-  //   }
-
-  // },[loginStates]);
 
   // Function for TFA validation
   const TFAValidation = (value: string): string | undefined => {
