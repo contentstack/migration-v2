@@ -573,12 +573,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                     props?.data?.contentstackFieldUid
                   );
                 }}
-                options={
-                  (Array.isArray(props?.data?.referenceTo) && props?.data?.referenceTo?.length) ? [props.data.referenceTo.map((item: any) => ({
-                    label: item,
-                    value: item
-                  })), ...option]
-                    : option ?? []}
+                options={option ?? []}
                 placeholder="Add Content Type(s)"
                 version="v2"
                 isSearchable={true}
