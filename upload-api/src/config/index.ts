@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: process.env.CMS_TYPE || 'aem',
+  cmsType: process.env.CMS_TYPE || 'contentful',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
@@ -26,5 +26,5 @@ export default {
   },
   localPath:
     process.env.CONTAINER_PATH ||
-    '/Users/saurav.upadhyay/Expert Service/Contentstack Migration/migration-v2/aem_data_structure/templates'
+    '/Users/saurav.upadhyay/Expert Service/Contentstack Migration/migration-v2/contentful.json'
 };

@@ -7,7 +7,7 @@
     "build": "npm --prefix migration-aem run build && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:profile": "node test-profile-removal.js",
-    "start": "PORT=4002 nodemon --exec tsx src/index.ts --ignore drupalMigrationData --ignore migration-* --ignore build --ignore *.log --ignore extracted_files",
+    "start": "PORT=4002 nodemon --exec npx tsx src/index.ts --ignore drupalMigrationData --ignore migration-* --ignore build --ignore *.log --ignore extracted_files",
     "start:prod": "tsc && node build/index.js",
     "validation": "tsc && node build/main.js",
     "prettify": "prettier --write .",

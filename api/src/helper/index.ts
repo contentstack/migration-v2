@@ -3,6 +3,15 @@ import customLogger from '../utils/custom-logger.utils.js';
 
 const createDbConnection = async (config: any, projectId: string = '', stackId: string = ''): Promise<mysql.Connection | null> => {
   try {
+    // 🔍 DEBUG: Log config received in helper
+    console.info(`🔍 helper/index.ts createDbConnection - Received config:`, {
+      host: config?.host,
+      user: config?.user,
+      database: config?.database,
+      port: config?.port,
+      hasPassword: !!config?.password
+    });
+    
     // Create the connection with config values
     const connection = mysql.createConnection({
       host: config?.host,

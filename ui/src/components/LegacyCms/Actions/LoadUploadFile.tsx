@@ -313,6 +313,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       //setIsFormatValid(isFormatValid); 
       setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
       if(!isFormatValid){
+        console.warn('⚠️ LoadUploadFile: File format is not valid, setting isValidated to false');
         setValidationMessage('');
         // ✅ FIX: Properly spread existing data to prevent data loss
         dispatch(updateNewMigrationData({
