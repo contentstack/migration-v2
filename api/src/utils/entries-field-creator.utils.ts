@@ -4,6 +4,8 @@ import { htmlToJson } from '@contentstack/json-rte-serializer';
 // @ts-ignore
 import { HTMLToJSON } from 'html-to-json-parser';
 import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat.js';
+dayjs.extend(customParseFormat);
 
 const append = 'a';
 
@@ -202,7 +204,8 @@ export const entriesFieldCreator = async ({
       // Handle dropdown, radio, and checkbox fields following CSV scenarios
       const choices =
         field?.advanced?.enum?.choices || field?.advanced?.options || [];
-      const isMultiple = field?.advanced?.multiple || false;
+      const isMultiple =
+        field?.advanced?.multiple || field?.advanced?.Multiple || false;
       const displayType = field?.advanced?.display_type || 'dropdown';
 
       // Handle multiple values (arrays) - for checkboxes
@@ -239,8 +242,16 @@ export const entriesFieldCreator = async ({
       );
 
       if (match) {
+        // Handle Multiple flag from incoming branch
+        if (isMultiple) {
+          // For multiple fields, check if we should return the whole object or just value
+          if (!match.key) {
+            return match;
+          }
+          return match;
+        }
         // Always return the value, not the whole choice object
-        return match.value;
+        return match.value ?? null;
       }
 
       // Fallback to default value
@@ -250,9 +261,22 @@ export const entriesFieldCreator = async ({
       if (defaultValue) {
         const defaultMatch = choices.find(
           (choice: any) =>
-            choice?.key === defaultValue || choice?.value === defaultValue
+            choice?.key === defaultValue ||
+            choice?.value === defaultValue ||
+            String(choice?.key) === String(defaultValue) ||
+            String(choice?.value) === String(defaultValue)
         );
-        return defaultMatch ? defaultMatch.value : defaultValue;
+        if (defaultMatch) {
+          if (isMultiple) {
+            if (!defaultMatch.key) {
+              return defaultMatch;
+            }
+            return defaultMatch;
+          }
+          return defaultMatch.value ?? null;
+        }
+        // If no match found, return the default value as-is (from incoming branch)
+        return defaultValue;
       }
 
       return null;
@@ -309,7 +333,8 @@ export const entriesFieldCreator = async ({
           );
           content?.split('|')?.forEach((id: string) => {
             if (id && id.trim()) {
-              const correctedId = idCorrector({ id: id.trim() });
+              const trimmedId = id.trim();
+              const correctedId = idCorrector({ id: trimmedId });
 
               // Check if entry exists in entriesData
               const entryExists =
@@ -317,10 +342,13 @@ export const entriesFieldCreator = async ({
 
               // For Drupal, we create references even if the entry doesn't exist yet
               // as entries might be created in a different order
-              refs?.push({
-                uid: correctedId,
-                _content_type_uid: entry,
-              });
+              // For other CMSs, only create reference if entry exists
+              if (entryExists || !templatePresent) {
+                refs?.push({
+                  uid: correctedId,
+                  _content_type_uid: entry,
+                });
+              }
             }
           });
         });
@@ -412,6 +440,44 @@ export const entriesFieldCreator = async ({
 
     case 'boolean': {
       return typeof content === 'string' && content === '1' ? true : false;
+    }
+
+    case 'date':
+    case 'isodate': {
+      if (!content) return null;
+
+      try {
+        let dayjsDate;
+
+        // Handle Sitecore format like "20220215T000000Z"
+        if (typeof content === 'string' && /^\d{8}T\d{6}Z$/.test(content)) {
+          // Parse Sitecore format: YYYYMMDDTHHMMSSZ
+          dayjsDate = dayjs(content, 'YYYYMMDD[T]HHmmss[Z]');
+        } else {
+          // Use dayjs default parsing for other formats
+          dayjsDate = dayjs(content);
+        }
+
+        // Check if the date is valid
+        if (!dayjsDate.isValid()) {
+          console.warn(
+            `Invalid date format for field: ${
+              field?.contentstackFieldUid || 'unknown'
+            }, value: ${content}`
+          );
+          return null;
+        }
+
+        return dayjsDate.toISOString();
+      } catch (error) {
+        console.error(
+          `Error converting date for field: ${
+            field?.contentstackFieldUid || 'unknown'
+          }, value: ${content}`,
+          error
+        );
+        return null;
+      }
     }
 
     default: {

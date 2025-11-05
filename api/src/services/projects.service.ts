@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak, @typescript-eslint/no-explicit-any */
+
 import { Request } from 'express';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import ContentTypesMapperModelLowdb from '../models/contentTypesMapper-lowdb.js';
@@ -35,8 +37,14 @@ import { v4 as uuidv4 } from 'uuid';
  */
 const getAllProjects = async (req: Request) => {
   const orgId = req?.params?.orgId;
+  if (!orgId) {
+    throw new BadRequestError('Organization ID is required');
+  }
 
-  const decodedToken = req.body.token_payload;
+  const decodedToken = req?.body?.token_payload;
+  if (!decodedToken) {
+    throw new BadRequestError('Token payload is required');
+  }
   const { user_id = '', region = '' } = decodedToken;
 
   await ProjectModelLowdb.read();
@@ -50,7 +58,9 @@ const getAllProjects = async (req: Request) => {
     })
     .value();
 
-  if (!projects) throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  if (!projects || !Array.isArray(projects)) {
+    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
 
   return projects;
 };
@@ -63,8 +73,16 @@ const getAllProjects = async (req: Request) => {
 const getProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
-  const decodedToken = req.body.token_payload;
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const decodedToken = req?.body?.token_payload;
+  if (!decodedToken) {
+    throw new BadRequestError('Token payload is required');
+  }
   const { user_id = '', region = '' } = decodedToken;
+
   // Find the project based on both orgId and projectId, region, owner
   const project = await getProjectUtil(
     projectId,
@@ -88,8 +106,19 @@ const getProject = async (req: Request) => {
  */
 const createProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
-  const { name, description } = req.body;
-  const decodedToken = req.body.token_payload;
+  if (!orgId) {
+    throw new BadRequestError('Organization ID is required');
+  }
+
+  const { name, description } = req?.body || {};
+  if (!name) {
+    throw new BadRequestError('Project name is required');
+  }
+
+  const decodedToken = req?.body?.token_payload;
+  if (!decodedToken) {
+    throw new BadRequestError('Token payload is required');
+  }
   const { user_id = '', region = '' } = decodedToken;
   const srcFunc = 'createProject';
   const projectData = {
@@ -149,6 +178,9 @@ const createProject = async (req: Request) => {
     await ProjectModelLowdb.read();
 
     await ProjectModelLowdb.update((data: any) => {
+      if (!data.projects || !Array.isArray(data.projects)) {
+        data.projects = [];
+      }
       data.projects.push(projectData);
     });
 
@@ -196,8 +228,19 @@ const createProject = async (req: Request) => {
 const updateProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
   const projectId = req?.params?.projectId;
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
   const updateData = req?.body;
-  const decodedToken = req.body.token_payload;
+  if (!updateData) {
+    throw new BadRequestError('Update data is required');
+  }
+
+  const decodedToken = req?.body?.token_payload;
+  if (!decodedToken) {
+    throw new BadRequestError('Token payload is required');
+  }
   const { user_id = '', region = '' } = decodedToken;
   const srcFunc = 'updateProject';
   let project: any;
@@ -218,6 +261,13 @@ const updateProject = async (req: Request) => {
   try {
     // Update the project fields
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
       data.projects[projectIndex].name = updateData?.name;
       data.projects[projectIndex].description = updateData?.description;
       if (
@@ -280,8 +330,19 @@ const updateProject = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs during the update.
  */
 const updateLegacyCMS = async (req: Request) => {
-  const { orgId, projectId } = req.params;
-  const { token_payload, legacy_cms } = req.body;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { token_payload, legacy_cms } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+  if (legacy_cms === undefined || legacy_cms === null) {
+    throw new BadRequestError('Legacy CMS data is required');
+  }
+
   const srcFunc = 'updateLegacyCMS';
 
   await ProjectModelLowdb.read();
@@ -297,7 +358,10 @@ const updateLegacyCMS = async (req: Request) => {
     true
   )) as number;
 
-  const project = ProjectModelLowdb.data.projects[projectIndex];
+  const project = ProjectModelLowdb.data?.projects?.[projectIndex];
+  if (!project) {
+    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
 
   if (
     project.status === NEW_PROJECT_STATUS[4] ||
@@ -322,6 +386,16 @@ const updateLegacyCMS = async (req: Request) => {
 
   try {
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
+      if (!data.projects[projectIndex].legacy_cms) {
+        data.projects[projectIndex].legacy_cms = {};
+      }
       data.projects[projectIndex].legacy_cms.cms = legacy_cms;
       data.projects[projectIndex].current_step = STEPPER_STEPS.LEGACY_CMS;
       data.projects[projectIndex].status = NEW_PROJECT_STATUS[0];
@@ -365,8 +439,18 @@ const updateLegacyCMS = async (req: Request) => {
  */
 const updateAffix = async (req: Request) => {
   const srcFunc = 'updateAffix';
-  const { orgId, projectId } = req.params;
-  const { token_payload, affix } = req.body;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { token_payload, affix } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+  if (affix === undefined || affix === null || affix === '') {
+    throw new BadRequestError('Affix is required');
+  }
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -382,6 +466,16 @@ const updateAffix = async (req: Request) => {
   )) as number;
 
   await ProjectModelLowdb.update((data: any) => {
+    if (
+      !data?.projects ||
+      !Array.isArray(data.projects) ||
+      !data.projects[projectIndex]
+    ) {
+      throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+    }
+    if (!data.projects[projectIndex].legacy_cms) {
+      data.projects[projectIndex].legacy_cms = {};
+    }
     data.projects[projectIndex].legacy_cms.affix = affix;
     data.projects[projectIndex].updated_at = new Date().toISOString();
   });
@@ -402,8 +496,15 @@ const updateAffix = async (req: Request) => {
  */
 const affixConfirmation = async (req: Request) => {
   const srcFunc = 'affixConfirmation';
-  const { orgId, projectId } = req.params;
-  const { token_payload, affix_confirmation } = req.body;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { token_payload, affix_confirmation } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -419,6 +520,16 @@ const affixConfirmation = async (req: Request) => {
   )) as number;
 
   await ProjectModelLowdb.update((data: any) => {
+    if (
+      !data?.projects ||
+      !Array.isArray(data.projects) ||
+      !data.projects[projectIndex]
+    ) {
+      throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+    }
+    if (!data.projects[projectIndex].legacy_cms) {
+      data.projects[projectIndex].legacy_cms = {};
+    }
     data.projects[projectIndex].legacy_cms.affix_confirmation =
       affix_confirmation;
     data.projects[projectIndex].updated_at = new Date().toISOString();
@@ -440,7 +551,11 @@ const affixConfirmation = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs while updating the file format.
  */
 const updateFileFormat = async (req: Request) => {
-  const { orgId, projectId } = req.params;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
   const {
     token_payload,
     file_format,
@@ -451,9 +566,16 @@ const updateFileFormat = async (req: Request) => {
     is_sql,
     mySQLDetails,
     assetsConfig,
-  } = req.body;
+  } = req?.body || {};
+
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
 
   const srcFunc = 'updateFileFormat';
+
+  await ProjectModelLowdb.read();
+
   const projectIndex = (await getProjectUtil(
     projectId,
     {
@@ -466,7 +588,10 @@ const updateFileFormat = async (req: Request) => {
     true
   )) as number;
 
-  const project = ProjectModelLowdb.data.projects[projectIndex];
+  const project = ProjectModelLowdb.data?.projects?.[projectIndex];
+  if (!project) {
+    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
 
   if (
     project.status === NEW_PROJECT_STATUS[4] ||
@@ -495,6 +620,16 @@ const updateFileFormat = async (req: Request) => {
 
   try {
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
+      if (!data.projects[projectIndex].legacy_cms) {
+        data.projects[projectIndex].legacy_cms = {};
+      }
       data.projects[projectIndex].legacy_cms.file_format = file_format;
       data.projects[projectIndex].legacy_cms.file_path = file_path;
       data.projects[projectIndex].legacy_cms.is_fileValid = is_fileValid;
@@ -502,32 +637,63 @@ const updateFileFormat = async (req: Request) => {
       data.projects[projectIndex].current_step = STEPPER_STEPS.LEGACY_CMS;
       data.projects[projectIndex].status = NEW_PROJECT_STATUS[0];
       data.projects[projectIndex].updated_at = new Date().toISOString();
-      data.projects[projectIndex].legacy_cms.awsDetails.awsRegion =
-        awsDetails.awsRegion;
-      data.projects[projectIndex].legacy_cms.awsDetails.bucketName =
-        awsDetails.bucketName;
-      data.projects[projectIndex].legacy_cms.awsDetails.buketKey =
-        awsDetails.buketKey;
-      data.projects[projectIndex].legacy_cms.is_sql = is_sql;
-      data.projects[projectIndex].legacy_cms.mySQLDetails.host =
-        mySQLDetails.host;
-      data.projects[projectIndex].legacy_cms.mySQLDetails.user =
-        mySQLDetails.user;
-      data.projects[projectIndex].legacy_cms.mySQLDetails.database =
-        mySQLDetails.database;
+
+      // Only update awsDetails if they exist
+      if (awsDetails && typeof awsDetails === 'object') {
+        if (!data.projects[projectIndex].legacy_cms.awsDetails) {
+          data.projects[projectIndex].legacy_cms.awsDetails = {};
+        }
+        data.projects[projectIndex].legacy_cms.awsDetails.awsRegion =
+          awsDetails.awsRegion;
+        data.projects[projectIndex].legacy_cms.awsDetails.bucketName =
+          awsDetails.bucketName;
+        data.projects[projectIndex].legacy_cms.awsDetails.buketKey =
+          awsDetails.buketKey;
+      }
+
+      // Update SQL fields if provided
+      if (is_sql !== undefined) {
+        data.projects[projectIndex].legacy_cms.is_sql = is_sql;
+      }
+
+      // Update MySQL details if provided
+      if (mySQLDetails && typeof mySQLDetails === 'object') {
+        if (!data.projects[projectIndex].legacy_cms.mySQLDetails) {
+          data.projects[projectIndex].legacy_cms.mySQLDetails = {};
+        }
+        data.projects[projectIndex].legacy_cms.mySQLDetails.host =
+          mySQLDetails.host;
+        data.projects[projectIndex].legacy_cms.mySQLDetails.user =
+          mySQLDetails.user;
+        data.projects[projectIndex].legacy_cms.mySQLDetails.database =
+          mySQLDetails.database;
+        // Also save password and port if provided
+        if (mySQLDetails.password !== undefined) {
+          data.projects[projectIndex].legacy_cms.mySQLDetails.password =
+            mySQLDetails.password;
+        }
+        if (mySQLDetails.port !== undefined) {
+          data.projects[projectIndex].legacy_cms.mySQLDetails.port =
+            mySQLDetails.port;
+        }
+      }
 
       // Only update assetsConfig if it's provided and has values
       // Don't overwrite existing config with empty strings
-      if (assetsConfig && (assetsConfig.base_url || assetsConfig.public_path)) {
-        data.projects[projectIndex].legacy_cms.assetsConfig.base_url =
-          assetsConfig.base_url ||
-          data.projects[projectIndex].legacy_cms.assetsConfig.base_url ||
-          '';
-        data.projects[projectIndex].legacy_cms.assetsConfig.public_path =
-          assetsConfig.public_path ||
-          data.projects[projectIndex].legacy_cms.assetsConfig.public_path ||
-          '';
-      } else {
+      if (assetsConfig && typeof assetsConfig === 'object') {
+        if (!data.projects[projectIndex].legacy_cms.assetsConfig) {
+          data.projects[projectIndex].legacy_cms.assetsConfig = {};
+        }
+        if (assetsConfig.base_url || assetsConfig.public_path) {
+          data.projects[projectIndex].legacy_cms.assetsConfig.base_url =
+            assetsConfig.base_url ||
+            data.projects[projectIndex].legacy_cms.assetsConfig.base_url ||
+            '';
+          data.projects[projectIndex].legacy_cms.assetsConfig.public_path =
+            assetsConfig.public_path ||
+            data.projects[projectIndex].legacy_cms.assetsConfig.public_path ||
+            '';
+        }
       }
     });
 
@@ -567,8 +733,15 @@ const updateFileFormat = async (req: Request) => {
  */
 const fileformatConfirmation = async (req: Request) => {
   const srcFunc = 'fileformat';
-  const { orgId, projectId } = req.params;
-  const { token_payload, fileformat_confirmation } = req.body;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { token_payload, fileformat_confirmation } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -583,8 +756,21 @@ const fileformatConfirmation = async (req: Request) => {
     true
   )) as number;
 
-  if (!fileformat_confirmation) {
+  if (
+    fileformat_confirmation !== undefined &&
+    fileformat_confirmation !== null
+  ) {
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
+      if (!data.projects[projectIndex].legacy_cms) {
+        data.projects[projectIndex].legacy_cms = {};
+      }
       data.projects[projectIndex].legacy_cms.file_format_confirmation =
         fileformat_confirmation;
       data.projects[projectIndex].updated_at = new Date().toISOString();
@@ -608,8 +794,19 @@ const fileformatConfirmation = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs while updating the destination stack.
  */
 const updateDestinationStack = async (req: Request) => {
-  const { orgId, projectId } = req.params;
-  const { token_payload, stack_api_key } = req.body;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { token_payload, stack_api_key } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+  if (!stack_api_key) {
+    throw new BadRequestError('Stack API key is required');
+  }
+
   const srcFunc = 'updateDestinationStack';
 
   await ProjectModelLowdb.read();
@@ -625,7 +822,10 @@ const updateDestinationStack = async (req: Request) => {
     true
   )) as number;
 
-  const project = ProjectModelLowdb.data.projects[projectIndex];
+  const project = ProjectModelLowdb.data?.projects?.[projectIndex];
+  if (!project) {
+    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  }
 
   const authtoken = await getAuthtoken(
     token_payload?.region,
@@ -670,18 +870,35 @@ const updateDestinationStack = async (req: Request) => {
       })
     );
 
-    if (err)
+    if (err) {
       return {
         data: {
           message: HTTP_TEXTS.DESTINATION_STACK_ERROR,
         },
-        status: err.response.status,
+        status: err?.response?.status || HTTP_CODES.SERVER_ERROR,
       };
+    }
 
-    if (!res.data.stacks.find((stack: any) => stack.api_key === stack_api_key))
+    if (!res?.data?.stacks || !Array.isArray(res.data.stacks)) {
       throw new BadRequestError(HTTP_TEXTS.DESTINATION_STACK_NOT_FOUND);
+    }
+
+    if (
+      !res.data.stacks.find(
+        (stack: any) => stack != null && stack.api_key === stack_api_key
+      )
+    ) {
+      throw new BadRequestError(HTTP_TEXTS.DESTINATION_STACK_NOT_FOUND);
+    }
 
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
       data.projects[projectIndex].destination_stack_id = stack_api_key;
       data.projects[projectIndex].current_step =
         STEPPER_STEPS.DESTINATION_STACK;
@@ -732,7 +949,8 @@ const generateQueriesWithRetry = async (
   stackId: string,
   projectId: string,
   stackType: string,
-  token_payload: any
+  token_payload: any,
+  shouldLogAsWarning: boolean = false // New parameter to control log level
 ): Promise<boolean> => {
   const srcFunc = 'generateQueriesWithRetry';
   const maxRetries = 3;
@@ -760,6 +978,32 @@ const generateQueriesWithRetry = async (
     database: project?.legacy_cms?.mySQLDetails?.database,
     port: project?.legacy_cms?.mySQLDetails?.port || 3306,
   };
+
+  // 🔍 DEBUG: Log dbConfig being passed to query service
+  logger.info(
+    getLogMessage(
+      srcFunc,
+      `🔍 dbConfig for ${stackType} stack query generation: ${JSON.stringify({
+        host: dbConfig.host,
+        user: dbConfig.user,
+        database: dbConfig.database,
+        port: dbConfig.port,
+        hasPassword: !!dbConfig.password,
+      })}`,
+      token_payload
+    )
+  );
+
+  // Validate database configuration
+  if (!dbConfig.host || !dbConfig.user || !dbConfig.database) {
+    const message = getLogMessage(
+      srcFunc,
+      `MySQL details incomplete for ${stackType} stack. Skipping query generation. (host: ${!!dbConfig.host}, user: ${!!dbConfig.user}, database: ${!!dbConfig.database})`,
+      token_payload
+    );
+    await customLogger(projectId, stackId, 'warn', message);
+    return true; // Skip query generation if MySQL details are incomplete
+  }
 
   const logMessage = getLogMessage(
     srcFunc,
@@ -789,23 +1033,43 @@ const generateQueriesWithRetry = async (
 
       return true; // Success
     } catch (error: any) {
+      // Log the actual error details for debugging
+      const actualError =
+        error?.message || error?.toString() || 'Unknown error';
+      const errorStack = error?.stack || '';
+      logger.error(
+        `Query generation error details: ${actualError}`,
+        errorStack
+      );
+
+      // Use warning level if MySQL details are present (non-blocking), error if missing (blocking)
+      const logLevel = shouldLogAsWarning ? 'warn' : 'error';
       const errorMessage = getLogMessage(
         srcFunc,
-        `Query generation attempt ${attempt}/${maxRetries} failed for ${stackType} stack: ${error.message}`,
+        `Query generation attempt ${attempt}/${maxRetries} failed for ${stackType} stack: ${actualError}`,
         token_payload,
         error
       );
-      await customLogger(projectId, stackId, 'error', errorMessage);
+      await customLogger(projectId, stackId, logLevel, errorMessage);
 
       if (attempt === maxRetries) {
-        // Final attempt failed
+        // Final attempt failed - include actual error details
+        const actualError =
+          error?.message || error?.toString() || 'Unknown error';
         const finalErrorMessage = getLogMessage(
           srcFunc,
-          `Query generation failed after ${maxRetries} attempts for ${stackType} stack. Please try again.`,
+          `Query generation failed after ${maxRetries} attempts for ${stackType} stack. Error: ${actualError}. Please check MySQL connection details and try again.`,
           token_payload,
           error
         );
-        await customLogger(projectId, stackId, 'error', finalErrorMessage);
+        // Use warning level if MySQL details are present (non-blocking), error if missing (blocking)
+        if (shouldLogAsWarning) {
+          logger.warn(finalErrorMessage);
+          await customLogger(projectId, stackId, 'warn', finalErrorMessage);
+        } else {
+          logger.error(finalErrorMessage);
+          await customLogger(projectId, stackId, 'error', finalErrorMessage);
+        }
         return false; // All attempts failed
       }
 
@@ -833,8 +1097,16 @@ const generateQueriesWithRetry = async (
  * @throws {ExceptionFunction} If an error occurs while updating the current step.
  */
 const updateCurrentStep = async (req: Request) => {
-  const { orgId, projectId } = req.params;
-  const token_payload = req.body.token_payload;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const token_payload = req?.body?.token_payload;
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+
   const srcFunc = 'updateCurrentStep';
 
   try {
@@ -851,7 +1123,10 @@ const updateCurrentStep = async (req: Request) => {
       true
     )) as number;
 
-    const project = ProjectModelLowdb.data.projects[projectIndex];
+    const project = ProjectModelLowdb.data?.projects?.[projectIndex];
+    if (!project) {
+      throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+    }
 
     const isStepCompleted =
       project?.legacy_cms?.cms && project?.legacy_cms?.file_format;
@@ -870,10 +1145,17 @@ const updateCurrentStep = async (req: Request) => {
         }
 
         await ProjectModelLowdb.update((data: any) => {
+          if (
+            !data?.projects ||
+            !Array.isArray(data.projects) ||
+            !data.projects[projectIndex]
+          ) {
+            throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+          }
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.DESTINATION_STACK;
           data.projects[projectIndex].status =
-            project.current_step <= STEPPER_STEPS.CONTENT_MAPPING
+            project?.current_step <= STEPPER_STEPS.CONTENT_MAPPING
               ? NEW_PROJECT_STATUS[0]
               : NEW_PROJECT_STATUS[1];
           data.projects[projectIndex].updated_at = new Date().toISOString();
@@ -912,13 +1194,21 @@ const updateCurrentStep = async (req: Request) => {
             startMessage
           );
 
+          // Check if MySQL details are present - if yes, log as warning (non-blocking), if no, log as error (blocking)
+          const hasMySQLDetails =
+            project?.legacy_cms?.mySQLDetails?.host &&
+            project?.legacy_cms?.mySQLDetails?.user &&
+            project?.legacy_cms?.mySQLDetails?.database;
+          const shouldLogAsWarning: boolean = Boolean(hasMySQLDetails);
+
           // Generate queries for destination stack
           const destinationSuccess = await generateQueriesWithRetry(
             project,
             project?.destination_stack_id,
             projectId,
             'destination',
-            token_payload
+            token_payload,
+            shouldLogAsWarning
           );
 
           // Generate queries for test stack (if exists)
@@ -929,7 +1219,8 @@ const updateCurrentStep = async (req: Request) => {
               project?.current_test_stack_id,
               projectId,
               'test',
-              token_payload
+              token_payload,
+              shouldLogAsWarning
             );
           }
 
@@ -939,13 +1230,27 @@ const updateCurrentStep = async (req: Request) => {
             if (!destinationSuccess) failedStacks.push('destination');
             if (!testSuccess) failedStacks.push('test');
 
-            const errorMessage = `Query generation failed for ${failedStacks.join(
+            // Check if MySQL details are missing
+            const hasMySQLDetails =
+              project?.legacy_cms?.mySQLDetails?.host &&
+              project?.legacy_cms?.mySQLDetails?.user &&
+              project?.legacy_cms?.mySQLDetails?.database;
+
+            let errorMessage = `Query generation failed for ${failedStacks.join(
               ' and '
-            )} stack(s). Something went wrong. Please try again.`;
+            )} stack(s).`;
 
-            logger.error(getLogMessage(srcFunc, errorMessage, token_payload));
-
-            throw new BadRequestError(errorMessage);
+            if (!hasMySQLDetails) {
+              errorMessage +=
+                ' MySQL connection details (host, user, database) are required but missing. Please update your file format configuration.';
+              logger.error(getLogMessage(srcFunc, errorMessage, token_payload));
+              throw new BadRequestError(errorMessage);
+            } else {
+              // MySQL details present but connection failed - already logged as warning in generateQueriesWithRetry
+              // Just continue without throwing error - allow user to proceed
+              // Query generation can be retried later when MySQL connection is fixed
+              // No need to log again - generateQueriesWithRetry already logged the warning
+            }
           }
 
           const completeMessage = getLogMessage(
@@ -962,10 +1267,16 @@ const updateCurrentStep = async (req: Request) => {
         }
 
         await ProjectModelLowdb.update((data: any) => {
+          if (
+            !data?.projects ||
+            !Array.isArray(data.projects) ||
+            !data.projects[projectIndex]
+          ) {
+            throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+          }
           data.projects[projectIndex].current_step =
             STEPPER_STEPS.CONTENT_MAPPING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
-          // data.projects[projectIndex].status = NEW_PROJECT_STATUS[3];
           data.projects[projectIndex].updated_at = new Date().toISOString();
         });
         break;
@@ -988,6 +1299,13 @@ const updateCurrentStep = async (req: Request) => {
         }
 
         await ProjectModelLowdb.update((data: any) => {
+          if (
+            !data?.projects ||
+            !Array.isArray(data.projects) ||
+            !data.projects[projectIndex]
+          ) {
+            throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+          }
           data.projects[projectIndex].current_step = STEPPER_STEPS.TESTING;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
           data.projects[projectIndex].updated_at = new Date().toISOString();
@@ -1014,6 +1332,13 @@ const updateCurrentStep = async (req: Request) => {
         }
 
         await ProjectModelLowdb.update((data: any) => {
+          if (
+            !data?.projects ||
+            !Array.isArray(data.projects) ||
+            !data.projects[projectIndex]
+          ) {
+            throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+          }
           data.projects[projectIndex].current_step = STEPPER_STEPS.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[4];
           data.projects[projectIndex].updated_at = new Date().toISOString();
@@ -1040,6 +1365,13 @@ const updateCurrentStep = async (req: Request) => {
         }
 
         await ProjectModelLowdb.update((data: any) => {
+          if (
+            !data?.projects ||
+            !Array.isArray(data.projects) ||
+            !data.projects[projectIndex]
+          ) {
+            throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+          }
           data.projects[projectIndex].current_step = STEPPER_STEPS.MIGRATION;
           data.projects[projectIndex].status = NEW_PROJECT_STATUS[5];
           data.projects[projectIndex].updated_at = new Date().toISOString();
@@ -1050,7 +1382,7 @@ const updateCurrentStep = async (req: Request) => {
     logger.info(
       getLogMessage(
         srcFunc,
-        `Successfully progressed to the next step: ${project.current_step} for project [Id : ${projectId}].`,
+        `Successfully progressed to the next step: ${project?.current_step} for project [Id : ${projectId}].`,
         token_payload
       )
     );
@@ -1077,8 +1409,15 @@ const updateCurrentStep = async (req: Request) => {
  * @returns An object with the status and data properties.
  */
 const deleteProject = async (req: Request) => {
-  const { orgId, projectId } = req.params;
-  const decodedToken = req.body.token_payload;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const decodedToken = req?.body?.token_payload;
+  if (!decodedToken) {
+    throw new BadRequestError('Token payload is required');
+  }
   const { user_id = '', region = '' } = decodedToken;
   const srcFunc = 'deleteProject';
 
@@ -1095,7 +1434,7 @@ const deleteProject = async (req: Request) => {
     true
   )) as number;
 
-  const projects = ProjectModelLowdb.data.projects[projectIndex];
+  const projects = ProjectModelLowdb.data?.projects?.[projectIndex];
   if (!projects) throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
 
   if (projects?.status == NEW_PROJECT_STATUS[5]) {
@@ -1103,8 +1442,9 @@ const deleteProject = async (req: Request) => {
 
     await ContentTypesMapperModelLowdb.read();
     await FieldMapperModel.read();
-    if (!isEmpty(content_mapper_id)) {
+    if (!isEmpty(content_mapper_id) && Array.isArray(content_mapper_id)) {
       content_mapper_id.map(async (item: any) => {
+        if (!item) return;
         const contentMapperData = ContentTypesMapperModelLowdb.chain
           .get('ContentTypesMappers')
           .find({ id: item, projectId: projectId })
@@ -1113,8 +1453,9 @@ const deleteProject = async (req: Request) => {
         const fieldMappingIds = contentMapperData?.fieldMapping;
 
         //delete all fieldMapping which is related content Mapper and Project
-        if (!isEmpty(fieldMappingIds)) {
-          (fieldMappingIds || []).forEach((field: any) => {
+        if (!isEmpty(fieldMappingIds) && Array.isArray(fieldMappingIds)) {
+          fieldMappingIds.forEach((field: any) => {
+            if (!field) return;
             const fieldIndex = FieldMapperModel.chain
               .get('field_mapper')
               .findIndex({ id: field, projectId: projectId })
@@ -1138,10 +1479,24 @@ const deleteProject = async (req: Request) => {
     }
     //delete Project
     await ProjectModelLowdb.update((Pdata: any) => {
+      if (
+        !Pdata?.projects ||
+        !Array.isArray(Pdata.projects) ||
+        !Pdata.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
       delete Pdata.projects[projectIndex];
     });
   } else {
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
       data.projects[projectIndex].isDeleted = true;
     });
   }
@@ -1170,7 +1525,14 @@ const deleteProject = async (req: Request) => {
  */
 const revertProject = async (req: Request) => {
   const { orgId, projectId } = req?.params ?? {};
-  const decodedToken = req.body.token_payload;
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const decodedToken = req?.body?.token_payload;
+  if (!decodedToken) {
+    throw new BadRequestError('Token payload is required');
+  }
   const { user_id = '', region = '' } = decodedToken;
   const srcFunc = 'revertProject';
 
@@ -1187,11 +1549,18 @@ const revertProject = async (req: Request) => {
     true
   )) as number;
 
-  const projects = ProjectModelLowdb.data.projects[projectIndex];
+  const projects = ProjectModelLowdb.data?.projects?.[projectIndex];
   if (!projects) {
     throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   } else {
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
       data.projects[projectIndex].isDeleted = false;
     });
     logger.info(
@@ -1220,8 +1589,18 @@ const revertProject = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs during the update.
  */
 const updateStackDetails = async (req: Request) => {
-  const { orgId, projectId } = req.params;
-  const { token_payload, stack_details } = req.body;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { token_payload } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+
+  const stack_details = req?.body?.stack_details;
+
   const srcFunc = 'updateStackDetails';
 
   await ProjectModelLowdb.read();
@@ -1239,6 +1618,13 @@ const updateStackDetails = async (req: Request) => {
 
   try {
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
       data.projects[projectIndex].stackDetails = stack_details;
       data.projects[projectIndex].updated_at = new Date().toISOString();
     });
@@ -1281,8 +1667,16 @@ const updateStackDetails = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs during the update.
  */
 const updateContentMapper = async (req: Request) => {
-  const { orgId, projectId } = req.params;
-  const { token_payload, content_mapper } = req.body;
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { token_payload, content_mapper } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+
   const srcFunc = 'updateContentMapper';
 
   await ProjectModelLowdb.read();
@@ -1300,6 +1694,13 @@ const updateContentMapper = async (req: Request) => {
 
   try {
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
       data.projects[projectIndex].mapperKeys = content_mapper;
       data.projects[projectIndex].updated_at = new Date().toISOString();
     });
@@ -1338,13 +1739,20 @@ const updateContentMapper = async (req: Request) => {
  * @param req - The request object containing parameters and body.
  */
 const updateMigrationExecution = async (req: Request) => {
-  const { orgId, projectId } = req.params; // Extract organization and project IDs from the route parameters
-  const { token_payload, stack_details } = req.body; // Extract token payload and stack details from the request body
+  const { orgId, projectId } = req?.params || {};
+  if (!orgId || !projectId) {
+    throw new BadRequestError('Organization ID and Project ID are required');
+  }
+
+  const { token_payload } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+
   const srcFunc = 'updateMigrationExecutionKey';
 
   // Ensure the `ProjectModelLowdb` database is ready to be read
   await ProjectModelLowdb.read();
-
   // Retrieve the project index using the `getProjectUtil` helper
   const projectIndex = (await getProjectUtil(
     projectId,
@@ -1360,6 +1768,13 @@ const updateMigrationExecution = async (req: Request) => {
   try {
     // Update the project in the `ProjectModelLowdb` database
     await ProjectModelLowdb.update((data: any) => {
+      if (
+        !data?.projects ||
+        !Array.isArray(data.projects) ||
+        !data.projects[projectIndex]
+      ) {
+        throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+      }
       data.projects[projectIndex].migration_execution = true; // Set migration execution to true
       data.projects[projectIndex].updated_at = new Date().toISOString(); // Update the `updated_at` timestamp
     });
@@ -1407,19 +1822,35 @@ const updateMigrationExecution = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs during the process.
  */
 const getMigratedStacks = async (req: Request) => {
-  const { token_payload } = req.body;
+  const { token_payload } = req?.body || {};
+  if (!token_payload) {
+    throw new BadRequestError('Token payload is required');
+  }
+
   const srcFunc = 'getMigratedStacks';
 
   try {
     await ProjectModelLowdb.read();
     const projects = ProjectModelLowdb.data?.projects || [];
 
+    if (!Array.isArray(projects)) {
+      return {
+        status: HTTP_CODES.OK,
+        destinationStacks: [],
+      };
+    }
+
     // Map through projects to extract `destinationstack` key
     const destinationStacks = projects
       .filter(
-        (project: any) => project?.status === 5 && project.current_step === 5
+        (project: any) =>
+          project != null &&
+          project?.status === 5 &&
+          project?.current_step === 5 &&
+          project?.destination_stack_id
       )
-      .map((project: any) => project.destination_stack_id);
+      .map((project: any) => project.destination_stack_id)
+      .filter((stackId: any) => stackId != null && stackId !== '');
 
     return {
       status: HTTP_CODES.OK,

@@ -222,6 +222,7 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
       handleAllStepsComplete(true);
     }
     else{
+      console.warn('❌ Legacy CMS steps NOT completed. Missing one or more required fields.');
       setIsAllStepsCompleted(false);
       handleAllStepsComplete(false);
     }

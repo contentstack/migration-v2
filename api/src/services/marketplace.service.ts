@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak */
+
 import path from 'path';
 import fs from 'fs';
 import getAuthtoken from '../utils/auth.utils.js';
@@ -77,9 +79,9 @@ const createAppManifest = async ({
         manifestUid: key,
       });
       data.manifest = removeKeys(data, KEYTOREMOVE);
-      const extensionUids: any = new Set(value as any) ?? [];
+      const extensionUids: any = new Set(Array.isArray(value) ? value : []);
       const locations: any = [];
-      for (const ext of extensionUids ?? []) {
+      for (const ext of extensionUids) {
         const seprateUid = ext?.split?.('-');
         const type: string = seprateUid?.[1];
         const extUid: string = seprateUid?.[0];
