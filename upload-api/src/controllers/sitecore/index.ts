@@ -1,19 +1,22 @@
-import axios, { AxiosResponse, AxiosError } from "axios";
+import axios, { AxiosResponse, AxiosError } from 'axios';
 import http from 'http';
-import { readFileSync } from "fs";
+import { readFileSync } from 'fs';
 import path from 'path';
-import { deleteFolderSync } from "../../helper";
-import logger from "../../utils/logger";
-import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
+import { deleteFolderSync } from '../../helper';
+import logger from '../../utils/logger';
+import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from '../../constants';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { contentTypes, ExtractConfiguration, reference, ExtractFiles, extractLocales } = require('migration-sitecore');
-
 const {
-  CONTENT_TYPES_DIR_NAME,
-  GLOBAL_FIELDS_DIR_NAME,
-  GLOBAL_FIELDS_FILE_NAME
-} = MIGRATION_DATA_CONFIG;
+  contentTypes,
+  ExtractConfiguration,
+  reference,
+  ExtractFiles,
+  extractLocales
+} = require('migration-sitecore');
+
+const { CONTENT_TYPES_DIR_NAME, GLOBAL_FIELDS_DIR_NAME, GLOBAL_FIELDS_FILE_NAME } =
+  MIGRATION_DATA_CONFIG;
 
 interface RequestParams {
   payload: any;
@@ -25,46 +28,48 @@ interface RequestParams {
 const createLocaleSource = async ({
   app_token,
   localeData,
-  projectId,
+  projectId
 }: {
   app_token: string | string[];
   localeData: any;
   projectId: string | string[];
 }) => {
+  const processedLocales = Array.isArray(localeData) ? localeData : Array.from(localeData ?? []);
+
   const mapperConfig = {
     method: 'post',
     maxBodyLength: Infinity,
     url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
     headers: {
       app_token,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: {
-      locale: Array.isArray(localeData) ? localeData : Array.from(localeData ?? [])
-    },
+      locale: processedLocales
+    }
   };
 
   try {
     const mapRes = await axios.request(mapperConfig);
+
     if (mapRes?.status === 200) {
       logger.info('Legacy CMS', {
         status: HTTP_CODES?.OK,
-        message: HTTP_TEXTS?.LOCALE_SAVED,
+        message: HTTP_TEXTS?.LOCALE_SAVED
       });
     } else {
       logger.warn('Legacy CMS error:', {
         status: mapRes?.status,
-        message: HTTP_TEXTS?.LOCALE_FAILED,
+        message: HTTP_TEXTS?.LOCALE_FAILED
       });
     }
   } catch (error: any) {
     logger.warn('Legacy CMS error:', {
       status: error?.response?.status || HTTP_CODES?.UNAUTHORIZED,
-      message: error?.response?.data?.message || HTTP_TEXTS?.LOCALE_FAILED,
+      message: error?.response?.data?.message || HTTP_TEXTS?.LOCALE_FAILED
     });
   }
 };
-
 
 /**
  * Send an HTTP request with retry capability for handling transient network issues
@@ -100,29 +105,39 @@ const sendRequestWithRetry = async <T = any>(params: RequestParams): Promise<Axi
       retries++;
       const delay = 2000 * retries; // Progressive backoff: 2s, 4s, 6s
 
-      logger.warn(`API request failed (attempt ${retries}/${maxRetries}): ${axiosError.code || axiosError.message}`, {
-        status: axiosError.response?.status || 'NETWORK_ERROR'
-      });
+      logger.warn(
+        `API request failed (attempt ${retries}/${maxRetries}): ${axiosError.code || axiosError.message}`,
+        {
+          status: axiosError.response?.status || 'NETWORK_ERROR'
+        }
+      );
 
       if (retries >= maxRetries) {
         throw axiosError;
       }
 
       logger.info(`Retrying in ${delay / 1000} seconds...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
   // This line is technically unreachable, but TypeScript requires a return
-  throw new Error("Maximum retries reached");
+  throw new Error('Maximum retries reached');
 };
 
-const createSitecoreMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: object) => {
+const createSitecoreMapper = async (
+  filePath: string = '',
+  projectId: string | string[],
+  app_token: string | string[],
+  affix: string | string[],
+  config: object
+) => {
   try {
     const newPath = path.join(filePath, 'items');
-    console.log("🚀 ~ createSitecoreMapper ~ newPath:", newPath)
     await ExtractFiles(newPath);
-    const localeData = await extractLocales(path.join(filePath, 'items', 'master', 'sitecore', 'content'));
+    const localeData = await extractLocales(
+      path.join(filePath, 'items', 'master', 'sitecore', 'content')
+    );
     await createLocaleSource?.({ app_token, localeData, projectId });
     await ExtractConfiguration(newPath);
     await contentTypes(newPath, affix, config);
@@ -130,17 +145,23 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
     if (infoMap?.contentTypeUids?.length) {
       const fieldMapping: any = { contentTypes: [], extractPath: filePath };
       for await (const contentType of infoMap?.contentTypeUids ?? []) {
-        const fileContent = readFileSync(path?.join?.(infoMap?.path, CONTENT_TYPES_DIR_NAME, contentType), 'utf8');
+        const fileContent = readFileSync(
+          path?.join?.(infoMap?.path, CONTENT_TYPES_DIR_NAME, contentType),
+          'utf8'
+        );
         const jsonfileContent = JSON.parse(fileContent);
-        jsonfileContent.type = "content_type";
+        jsonfileContent.type = 'content_type';
         fieldMapping?.contentTypes?.push(jsonfileContent);
       }
-      const fileContent = readFileSync(path?.join(infoMap?.path, GLOBAL_FIELDS_DIR_NAME, GLOBAL_FIELDS_FILE_NAME), 'utf8');
+      const fileContent = readFileSync(
+        path?.join(infoMap?.path, GLOBAL_FIELDS_DIR_NAME, GLOBAL_FIELDS_FILE_NAME),
+        'utf8'
+      );
       const jsonfileContent = JSON.parse(fileContent);
       for (const key in jsonfileContent) {
         if (jsonfileContent.hasOwnProperty(key)) {
           const element = jsonfileContent[key];
-          element.type = "global_field";
+          element.type = 'global_field';
           fieldMapping.contentTypes.push(element);
         }
       }
@@ -154,18 +175,17 @@ const createSitecoreMapper = async (filePath: string = "", projectId: string | s
         deleteFolderSync(infoMap?.path);
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
-          message: HTTP_TEXTS?.MAPPER_SAVED,
+          message: HTTP_TEXTS?.MAPPER_SAVED
         });
       }
     }
   } catch (err: any) {
-    console.error("🚀 ~ createSitecoreMapper ~ err:", err?.response?.data ?? err)
+    console.error('🚀 ~ createSitecoreMapper ~ err:', err?.response?.data ?? err);
     logger.warn('Validation error:', {
       status: HTTP_CODES?.UNAUTHORIZED,
-      message: HTTP_TEXTS?.VALIDATION_ERROR,
+      message: HTTP_TEXTS?.VALIDATION_ERROR
     });
   }
-}
-
+};
 
 export default createSitecoreMapper;

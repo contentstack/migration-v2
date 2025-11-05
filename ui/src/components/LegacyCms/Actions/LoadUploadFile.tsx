@@ -4,7 +4,7 @@ import { FileDetails, ICMSType, INewMigration } from '../../../context/app/app.i
 import { fileValidation } from '../../../services/api/upload.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import { Button, CircularLoader, Paragraph } from '@contentstack/venus-components';
+import { Button, Paragraph } from '@contentstack/venus-components';
 import { isEmptyString } from '../../../utilities/functions';
 import { useParams } from 'react-router';
 import { ICardType } from '../../../components/Common/Card/card.interface';
@@ -251,15 +251,16 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       //setIsFormatValid(isFormatValid); 
       setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
       if(!isFormatValid){
+        console.warn('⚠️ LoadUploadFile: File format is not valid, setting isValidated to false');
         setValidationMessage('');
         dispatch(updateNewMigrationData({
           ...newMigrationData,
           legacy_cms: {
+            ...newMigrationData?.legacy_cms,
             uploadedFile: {
+              ...newMigrationData?.legacy_cms?.uploadedFile,
               isValidated: false,
             }
-
-
           }
         }))
 

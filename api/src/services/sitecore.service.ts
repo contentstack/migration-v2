@@ -25,7 +25,7 @@ const {
   ASSETS_DIR_NAME,
   ASSETS_FILE_NAME,
   ASSETS_SCHEMA_FILE,
-  ENVIRONMENTS_FILE_NAME
+  ENVIRONMENTS_FILE_NAME,
 } = MIGRATION_DATA_CONFIG;
 
 const idCorrector = ({ id }: any) => {
@@ -162,9 +162,8 @@ const createAssets = async ({
       const assetsPath = read(blobPath);
       if (assetsPath?.length) {
         const isIdPresent = assetsPath?.find((ast) => {
-          return ast?.includes(metaData?.id)
-        }
-        );
+          return ast?.includes(metaData?.id);
+        });
         if (isIdPresent) {
           try {
             const assets = fs.readFileSync(path.join(blobPath, isIdPresent));
@@ -225,6 +224,10 @@ const createAssets = async ({
       }
     }
   }
+
+  // Ensure assets directory exists
+  await fs.promises.mkdir(assetsSave, { recursive: true });
+
   const fileMeta = { '1': ASSETS_SCHEMA_FILE };
   await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, ASSETS_FILE_NAME),
@@ -309,7 +312,8 @@ const createEntry = async ({
     for await (const ctType of contentTypes) {
       const message = getLogMessage(
         srcFunc,
-        `Transforming entries of Content Type ${keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
+        `Transforming entries of Content Type ${
+          keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
         } has begun.`,
         {}
       );
@@ -391,8 +395,9 @@ const createEntry = async ({
                   entryLocale[uid] = unflatten(entryObj) ?? {};
                   const message = getLogMessage(
                     srcFunc,
-                    `Entry title "${entryObj?.title}"(${keyMapper?.[ctType?.contentstackUid] ??
-                    ctType?.contentstackUid
+                    `Entry title "${entryObj?.title}"(${
+                      keyMapper?.[ctType?.contentstackUid] ??
+                      ctType?.contentstackUid
                     }) in the ${newLocale} locale has been successfully transformed.`,
                     {}
                   );
@@ -408,7 +413,7 @@ const createEntry = async ({
           );
           const mapperCt: string =
             keyMapper?.[ctType?.contentstackUid] !== '' &&
-              keyMapper?.[ctType?.contentstackUid] !== undefined
+            keyMapper?.[ctType?.contentstackUid] !== undefined
               ? keyMapper?.[ctType?.contentstackUid]
               : ctType?.contentstackUid;
           const fileMeta = { '1': `${newLocale}.json` };
@@ -423,15 +428,12 @@ const createEntry = async ({
       } else {
         const message = getLogMessage(
           srcFunc,
-          `No entries found for the content type ${keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
+          `No entries found for the content type ${
+            keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
           }.`,
           {}
         );
         await customLogger(projectId, destinationStackId, 'error', message);
-        console.info(
-          'Entries missing for',
-          keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
-        );
       }
     }
     return true;
@@ -454,6 +456,7 @@ const createLocale = async (
     const masterLocale = Object?.keys?.(
       project?.master_locale ?? LOCALE_MAPPER?.masterLocale
     )?.[0];
+
     const msLocale: any = {};
     const uid = uuidv4();
     msLocale[uid] = {
@@ -468,10 +471,11 @@ const createLocale = async (
       {}
     );
     await customLogger(projectId, destinationStackId, 'info', message);
+
+    const localesObject = project?.locales ?? LOCALE_MAPPER;
+
     const allLocales: any = {};
-    for (const [key, value] of Object.entries(
-      project?.locales ?? LOCALE_MAPPER
-    )) {
+    for (const [key, value] of Object.entries(localesObject)) {
       const localeUid = uuidv4();
       if (key !== 'masterLocale' && typeof value === 'string') {
         allLocales[localeUid] = {
@@ -486,8 +490,10 @@ const createLocale = async (
           {}
         );
         await customLogger(projectId, destinationStackId, 'info', message);
+      } else {
       }
     }
+
     const masterPath = path.join(localeSave, LOCALE_MASTER_LOCALE);
     const allLocalePath = path.join(localeSave, LOCALE_FILE_NAME);
     fs.access(localeSave, async (err) => {
@@ -540,12 +546,12 @@ const createEnvironment = async (destinationStackId: string) => {
 
   // Write an empty environments file (or replace {} with your actual data)
   await fs.promises.writeFile(environmentFile, JSON.stringify({}), 'utf8');
-}
+};
 
 export const siteCoreService = {
   createEntry,
   createAssets,
   createLocale,
   createVersionFile,
-  createEnvironment
+  createEnvironment,
 };

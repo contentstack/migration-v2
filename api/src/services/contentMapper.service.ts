@@ -55,6 +55,16 @@ const putTestData = async (req: Request) => {
       return { ...item, id, projectId };
     });
 
+    contentTypes?.forEach((items: any) => {
+      items?.fieldMapping?.forEach?.((item: any) => {
+        if (item?.advanced) {
+          item.advanced.initial = structuredClone(item?.advanced);
+        }
+      });
+    });
+
+
+
     /*
     this code snippet iterates over an array of contentTypes and performs 
     some operations on each element. 
@@ -65,7 +75,6 @@ const putTestData = async (req: Request) => {
     Finally, it updates the fieldMapping property of each type in the contentTypes array with the fieldIds array.
     */
     await FieldMapperModel.read();
-
     contentTypes.map((type: any, index: any) => {
       const fieldIds: string[] = [];
       const fields = Array?.isArray?.(type?.fieldMapping) ? type?.fieldMapping?.filter((field: any) => field)?.map?.((field: any) => {
@@ -265,7 +274,15 @@ const getFieldMapping = async (req: Request) => {
 
       return fieldMapper;
     });
-    const fieldMapping: any = fieldData;
+
+    const fieldMapping: any = fieldData?.map((field: any) => {
+      if (field?.advanced?.initial) {
+        const { initial, ...restAdvanced } = field?.advanced;
+        return { ...field, advanced: restAdvanced };
+      }
+      return field;
+    });
+
     if (!isEmpty(fieldMapping)) {
       if (search) {
         filteredResult = fieldMapping?.filter?.((item: any) =>
@@ -633,8 +650,16 @@ const updateContentType = async (req: Request) => {
         );
         if (fieldIndex > -1 && field?.contentstackFieldType !== "") {
           FieldMapperModel.update((data: any) => {
+            const existingField = data?.field_mapper?.[fieldIndex];
+            const preservedInitial = existingField?.advanced?.initial;
+            
+
             data.field_mapper[fieldIndex] = field;
-            //data.field_mapper[fieldIndex].isDeleted = false;
+            
+
+            if (preservedInitial && field?.advanced) {
+              data.field_mapper[fieldIndex].advanced.initial = preservedInitial;
+            }
           });
         }
       });
@@ -750,12 +775,17 @@ const resetToInitialMapping = async (req: Request) => {
         );
         if (fieldIndex > -1) {
           FieldMapperModel.update((data: any) => {
-            data.field_mapper[fieldIndex] = {
-              ...field,
-              contentstackField: field?.otherCmsField,
-              contentstackFieldUid: field?.backupFieldUid,
-              contentstackFieldType: field?.backupFieldType,
-            };
+            
+              data.field_mapper[fieldIndex] = {
+                ...field,
+                contentstackField: field?.otherCmsField,
+                contentstackFieldUid: field?.backupFieldUid,
+                contentstackFieldType: field?.backupFieldType,
+                advanced: {
+                  ...field?.advanced?.initial,
+                  initial: field?.advanced?.initial,
+                }
+              }
           });
         }
       });
