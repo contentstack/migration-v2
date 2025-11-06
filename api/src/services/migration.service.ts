@@ -985,13 +985,29 @@ const startMigration = async (req: Request): Promise<any> => {
           project?.destination_stack_id,
           projectId
         );
+        // 🔍 DEBUG: Log master_locale before passing to createEntry
+        const masterLocaleForContentful = project?.stackDetails?.master_locale;
+        console.info(
+          '🔍 Contentful startMigration - master_locale before createEntry:',
+          {
+            master_locale: masterLocaleForContentful,
+            master_locale_type: typeof masterLocaleForContentful,
+            master_locale_isLowercase:
+              masterLocaleForContentful ===
+              masterLocaleForContentful?.toLowerCase?.(),
+            master_locale_toLowerCase:
+              masterLocaleForContentful?.toLowerCase?.(),
+            project_stackDetails: project?.stackDetails,
+          }
+        );
+
         await contentfulService?.createEntry(
           cleanLocalPath,
           project?.destination_stack_id,
           projectId,
           contentTypes,
           project?.mapperKeys,
-          project?.stackDetails?.master_locale,
+          masterLocaleForContentful,
           project
         );
         await contentfulService?.createVersionFile(
@@ -1481,7 +1497,45 @@ const getLogs = async (req: Request): Promise<any> => {
  */
 export const createSourceLocales = async (req: Request) => {
   const projectId = req?.params?.projectId;
-  const locales = req?.body?.locale;
+  const rawLocales = req?.body?.locale;
+
+  console.info('🔍 [createSourceLocales] Received locales from upload-api:', {
+    rawLocales,
+    rawLocales_type: typeof rawLocales,
+    rawLocales_isArray: Array.isArray(rawLocales),
+    rawLocales_length: Array.isArray(rawLocales) ? rawLocales.length : 'N/A',
+    firstLocale_is_master:
+      Array.isArray(rawLocales) && rawLocales.length > 0
+        ? rawLocales[0]
+        : 'N/A',
+    projectId,
+  });
+
+  // 🔧 CRITICAL: Always normalize to lowercase before saving to database
+  // This is a final safety check - even if upload-api sends uppercase, we normalize here
+  // Master locale is already FIRST element in the array from upload-api
+  const locales = Array.isArray(rawLocales)
+    ? rawLocales
+        .map((locale: any, index: number) => {
+          const localeValue =
+            typeof locale === 'string'
+              ? locale
+              : locale?.code || locale?.value || locale;
+          const normalized = (localeValue || '').toLowerCase();
+          const isMaster = index === 0 ? ' (MASTER - first element)' : '';
+          console.info(
+            `🔍 [createSourceLocales] Normalizing locale [${index}]: "${localeValue}" -> "${normalized}"${isMaster}`
+          );
+          return normalized;
+        })
+        .filter((locale: string) => locale && locale.length > 0)
+    : [];
+
+  console.info('🔍 [createSourceLocales] Final normalized locales to save:', {
+    locales,
+    master_locale_first: locales[0] || 'NONE',
+    total_count: locales.length,
+  });
 
   try {
     // Find the project with the specified projectId
@@ -1493,6 +1547,15 @@ export const createSourceLocales = async (req: Request) => {
     if (index > -1) {
       ProjectModelLowdb?.update?.((data: any) => {
         data.projects[index].source_locales = locales;
+
+        console.info(
+          '✅ [createSourceLocales] Saved source_locales to project:',
+          {
+            projectId,
+            saved_source_locales: locales,
+            first_element_master: locales[0] || 'NONE',
+          }
+        );
       });
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
@@ -1538,18 +1601,23 @@ export const updateLocaleMapper = async (req: Request) => {
 
     if (index > -1) {
       // 🔧 Reconstruct localeMapping from master_locale and locales
+      // 🔧 CRITICAL: Always convert to lowercase for consistent mapping across all CMS types
       const localeMapping: Record<string, string> = {};
 
       // Add master locale mappings with "-master_locale" suffix
       Object.entries(mapperObject?.master_locale || {}).forEach(
         ([source, dest]) => {
-          localeMapping[`${source}-master_locale`] = dest as string;
+          const normalizedSource = (source || '').toLowerCase();
+          const normalizedDest = ((dest as string) || '').toLowerCase();
+          localeMapping[`${normalizedSource}-master_locale`] = normalizedDest;
         }
       );
 
       // Add regular locale mappings
       Object.entries(mapperObject?.locales || {}).forEach(([source, dest]) => {
-        localeMapping[source] = dest as string;
+        const normalizedSource = (source || '').toLowerCase();
+        const normalizedDest = ((dest as string) || '').toLowerCase();
+        localeMapping[normalizedSource] = normalizedDest;
       });
 
       ProjectModelLowdb?.update?.((data: any) => {
@@ -1560,6 +1628,30 @@ export const updateLocaleMapper = async (req: Request) => {
 
       // Write back the updated projects
       await ProjectModelLowdb.write();
+
+      // 🔍 DEBUG: Log what was saved
+      await ProjectModelLowdb?.read?.();
+      const updatedProject = ProjectModelLowdb.chain
+        .get('projects')
+        .find({ id: projectId })
+        .value();
+      console.info(
+        '================================================================================'
+      );
+      console.info(
+        '🔍 [API updateLocaleMapper] Saved locale data to database:'
+      );
+      console.info('  Project ID:', projectId);
+      console.info('  master_locale:', updatedProject?.master_locale);
+      console.info('  locales:', updatedProject?.locales);
+      console.info('  localeMapping:', updatedProject?.localeMapping);
+      console.info(
+        '  localeMapping keys:',
+        Object.keys(updatedProject?.localeMapping || {})
+      );
+      console.info(
+        '================================================================================'
+      );
 
       // 🔍 LOGGING: Log after update
       await ProjectModelLowdb?.read?.();

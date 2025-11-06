@@ -108,6 +108,16 @@ const createStack = async (req: Request): Promise<LoginServiceType> => {
   const orgId = req?.params?.orgId;
   const { token_payload, name, description, master_locale } = req.body;
 
+  // 🔍 DEBUG: Log master_locale before creating stack
+  console.info('🔍 createStack - master_locale before stack creation:', {
+    master_locale,
+    master_locale_type: typeof master_locale,
+    master_locale_isLowercase: master_locale === master_locale?.toLowerCase?.(),
+    master_locale_toLowerCase: master_locale?.toLowerCase?.(),
+    name,
+    description
+  });
+
   try {
     const authtoken = await getAuthtoken(
       token_payload?.region,
@@ -133,6 +143,16 @@ const createStack = async (req: Request): Promise<LoginServiceType> => {
         },
       })
     );
+    
+    // 🔍 DEBUG: Log response
+    if (res && res.data) {
+      console.info('🔍 createStack - Stack created successfully:', {
+        stack_response: res.data,
+        stack_master_locale: res.data?.stack?.master_locale,
+        stack_master_locale_type: typeof res.data?.stack?.master_locale,
+        stack_master_locale_isLowercase: res.data?.stack?.master_locale === res.data?.stack?.master_locale?.toLowerCase?.(),
+      });
+    }
 
     if (err) {
       logger.error(

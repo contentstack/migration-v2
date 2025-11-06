@@ -71,7 +71,7 @@ type LegacyCmsRef = {
   getInternalActiveStepIndex: () => number;
 };
 type LocalesType = {
-  [key: string]: any
+  [key: string]: string;
 }
 
 /**
@@ -815,10 +815,20 @@ const Migration = () => {
         stack_api_key: newMigrationData?.destination_stack?.selectedStack?.value
       });
 
+      // 🔍 DEBUG: Log master_locale before updating stack details
+      const masterLocaleToSave = newMigrationData?.destination_stack?.selectedStack?.master_locale;
+      console.info('🔍 Migration index - master_locale before updateStackDetails:', {
+        master_locale: masterLocaleToSave,
+        master_locale_type: typeof masterLocaleToSave,
+        master_locale_isLowercase: masterLocaleToSave === masterLocaleToSave?.toLowerCase?.(),
+        master_locale_toLowerCase: masterLocaleToSave?.toLowerCase?.(),
+        selectedStack: newMigrationData?.destination_stack?.selectedStack
+      });
+      
       await updateStackDetails(selectedOrganisation?.value, projectId, {
         label: newMigrationData?.destination_stack?.selectedStack?.label,
         value: newMigrationData?.destination_stack?.selectedStack?.value,
-        master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale,
+        master_locale: masterLocaleToSave,
         created_at: newMigrationData?.destination_stack?.selectedStack?.created_at,
         isNewStack: newMigrationData?.destination_stack?.selectedStack?.isNewStack
       });
@@ -991,7 +1001,7 @@ const Migration = () => {
           notificationContent: { text: 'Migration Execution process started' },
           notificationProps: {
             position: 'bottom-center',
-            hideProgressBar: false
+            hideProgressBar: true
           },
           type: 'message'
         });

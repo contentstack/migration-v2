@@ -361,6 +361,9 @@ upload-api/extracted_files*
 .qodo
 .vscode
 app.json
+# Snyk Security Extension - AI Rules (auto-generated)
+.cursor/rules/snyk_rules.mdc
+*extracted_files*
 *MigrationData*
 *.zip
 *extracted_files*
@@ -369,3 +372,7 @@ app.json
 # Snyk Security Extension - AI Rules (auto-generated)
 .cursor/rules/snyk_rules.mdc
 /aem_data_structure
+
+*.csv
+contentful.json
+test-*
