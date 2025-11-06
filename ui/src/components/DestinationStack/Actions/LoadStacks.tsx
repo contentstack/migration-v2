@@ -84,7 +84,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [placeholder] = useState<string>('Select a stack');
-  const [localePlaceholder, setlocalePlaceholder ] = useState<string>('Master Locale will be set after stack selection');
+  const [localePlaceholder, setlocalePlaceholder ] = useState<string>('Default Locale will be set after stack selection');
   const newMigrationDataRef = useRef(newMigrationData);
   const [isStackLoading, setIsStackLoading] = useState<boolean>(true);
 
@@ -97,7 +97,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       setlocalePlaceholder('')
     }
     else{
-      setlocalePlaceholder('Master Locale will be set after stack selection');
+      setlocalePlaceholder('Default Locale will be set after stack selection');
     }
   },[selectedStack])
 
@@ -111,10 +111,20 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
     try {
+      // 🔧 CRITICAL: Ensure master_locale is always lowercase
+      const masterLocale = (data?.locale || '').toLowerCase();
+      
+      console.info('🔍 LoadStacks - Creating new stack:', {
+        stack_name: data?.name,
+        raw_locale: data?.locale,
+        master_locale_lowercase: masterLocale,
+        description: data?.description
+      });
+      
       // Post data to backend
       const resp = await createStacksInOrg(selectedOrganisation?.value, {
         ...data,
-        master_locale: data?.locale
+        master_locale: masterLocale // Always lowercase
       });
 
       if (resp.status === 201) {
@@ -350,10 +360,10 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           </div>
         </div>
         <div className="col-12">
-          <label className="title" htmlFor="master_locale">Master Locale <span className='asterisk_input'></span>
+          <label className="title" htmlFor="master_locale">Default Locale <span className='asterisk_input'></span>
           </label>
           <Tooltip
-            content="Master Locale is auto-selected based on the chosen stack."
+            content="Default Locale is auto-selected based on the chosen stack."
             position="right"
           >
             <Icon icon="Information" version="v2" size="small"></Icon>

@@ -24,7 +24,7 @@ import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 import { CS_ENTRIES } from '../../../utilities/constants';
 
 // Interface
-import { AddStackCMSData, defaultAddStackCMSData } from './addStack.interface';
+import { AddStackCMSData, defaultAddStackCMSData, Errors, Stack } from './addStack.interface';
 
 // Styles
 import './addStack.scss';
@@ -106,16 +106,57 @@ const AddStack = (props: any): JSX.Element => {
               }))
             : [];
         
-        // Detect master locale from source CMS
+        // 🔧 CRITICAL: Always get master locale from source_locales[0] (first element is ALWAYS master)
+        // source_locales comes from backend after file validation
         const sourceLocales = props?.newMigrationData?.destination_stack?.sourceLocale || props?.sourceLocales || [];
-        const masterLocale = sourceLocales.length > 0 ? sourceLocales[0] : 'en-us';
         
-        // Find matching Contentstack locale
-        const matchingLocale = rawMappedLocalesMapped.find(locale => 
-          locale.value === masterLocale || 
-          locale.value === `${masterLocale}-us` ||
-          locale.value === `${masterLocale}-${masterLocale}`
+        // 🔧 CRITICAL: Ensure we always use lowercase for consistent matching
+        const rawMasterLocale = sourceLocales.length > 0 ? sourceLocales[0] : 'en-us';
+        const masterLocale = (typeof rawMasterLocale === 'string' ? rawMasterLocale : rawMasterLocale?.label || rawMasterLocale?.value || 'en-us').toLowerCase();
+        
+        // 🔍 DEBUG: Log master locale detection (FIRST element from source_locales)
+        console.info('================================================================================');
+        console.info('🔍 AddStack - Master locale detection (source_locales[0]):', {
+          sourceLocales,
+          sourceLocales_length: sourceLocales.length,
+          sourceLocales_first_element: sourceLocales[0],
+          rawMasterLocale,
+          masterLocale_after_lowercase: masterLocale,
+          masterLocale_type: typeof masterLocale,
+          isLowercase: masterLocale === masterLocale?.toLowerCase?.(),
+        });
+        console.info('🔍 AddStack - Contentstack locales sample (first 3):', 
+          rawMappedLocalesMapped?.slice(0, 3)?.map(l => ({
+            value: l.value,
+            value_lowercase: l.value?.toLowerCase(),
+            label: l.label
+          }))
         );
+        console.info('================================================================================');
+        
+        // 🔧 CRITICAL: Find matching Contentstack locale (all lowercase comparison)
+        const matchingLocale = rawMappedLocalesMapped.find(locale => {
+          const localeValueLower = (locale.value || '').toLowerCase();
+          const masterLocaleLower = masterLocale.toLowerCase();
+          
+          // Try exact match first
+          if (localeValueLower === masterLocaleLower) return true;
+          
+          // Try with common variants
+          if (localeValueLower === `${masterLocaleLower}-us`) return true;
+          if (localeValueLower === `${masterLocaleLower}-${masterLocaleLower}`) return true;
+          
+          return false;
+        });
+        
+        // 🔍 DEBUG: Log matching result
+        console.info('🔍 AddStack - Matching Contentstack locale:', {
+          matchingLocale,
+          matchingLocale_value: matchingLocale?.value,
+          matchingLocale_value_lowercase: matchingLocale?.value?.toLowerCase(),
+          will_auto_select: !!matchingLocale
+        });
+        console.info('================================================================================');
         
         setAllLocales(rawMappedLocalesMapped);
         
@@ -138,18 +179,47 @@ const AddStack = (props: any): JSX.Element => {
   // Effect to update form with master locale when allLocales are loaded
   useEffect(() => {
     if (allLocales.length > 0 && formRef.current) {
+      // 🔧 CRITICAL: Always get master locale from source_locales[0] (first element is ALWAYS master)
       const sourceLocales = props?.newMigrationData?.destination_stack?.sourceLocale || props?.sourceLocales || [];
-      const masterLocale = sourceLocales.length > 0 ? sourceLocales[0] : 'en-us';
+      const rawMasterLocale = sourceLocales.length > 0 ? sourceLocales[0] : 'en-us';
+      const masterLocale = (typeof rawMasterLocale === 'string' ? rawMasterLocale : rawMasterLocale?.label || rawMasterLocale?.value || 'en-us').toLowerCase();
       
-      // Find matching Contentstack locale
-      const matchingLocale = allLocales.find(locale => 
-        locale.value === masterLocale || 
-        locale.value === `${masterLocale}-us` ||
-        locale.value === `${masterLocale}-${masterLocale}`
-      );
+      // 🔍 DEBUG: Log master locale in useEffect (source_locales[0])
+      console.info('🔍 AddStack useEffect - Re-checking master locale:', {
+        sourceLocales,
+        sourceLocales_first_element: sourceLocales[0],
+        rawMasterLocale,
+        masterLocale_after_lowercase: masterLocale,
+        allLocales_count: allLocales.length
+      });
+      
+      // 🔧 CRITICAL: Find matching Contentstack locale (all lowercase comparison)
+      const matchingLocale = allLocales.find(locale => {
+        const localeValueLower = (locale.value || '').toLowerCase();
+        const masterLocaleLower = masterLocale.toLowerCase();
+        
+        // Try exact match first
+        if (localeValueLower === masterLocaleLower) return true;
+        
+        // Try with common variants
+        if (localeValueLower === `${masterLocaleLower}-us`) return true;
+        if (localeValueLower === `${masterLocaleLower}-${masterLocaleLower}`) return true;
+        
+        return false;
+      });
+      
+      // 🔍 DEBUG: Log matching result in useEffect
+      console.info('🔍 AddStack useEffect - Final matching locale:', {
+        matchingLocale,
+        matchingLocale_value: matchingLocale?.value,
+        will_update_form: !!matchingLocale
+      });
       
       if (matchingLocale) {
+        console.info('✅ AddStack - Auto-selecting master locale:', matchingLocale.value);
         formRef.current.change('locale', matchingLocale);
+      } else {
+        console.warn('⚠️ AddStack - No matching Contentstack locale found for:', masterLocale);
       }
     }
   }, [allLocales, props?.newMigrationData?.destination_stack?.sourceLocale, props?.sourceLocales]);
@@ -166,7 +236,7 @@ const AddStack = (props: any): JSX.Element => {
                 <FinalForm
           onSubmit={onSubmit}
           keepDirtyOnReinitialize={true}
-          validate={(values: any) => {
+          validate={(values: Stack) => {
             const errors: any = {};
             if (!values?.name || values?.name?.trim().length < 1) {
               errors.name = 'Stack name required';
@@ -302,7 +372,7 @@ const AddStack = (props: any): JSX.Element => {
                                 version={'v2'}
                                 placeholder={addStackCMSData?.stack_locale_description}
                               />
-                              <div className="stack-creation-warning"><span className='imp-text'>Important:</span> The master language cannot be changed after the stack has been created.</div>
+                              <div className="stack-creation-warning"><span className='imp-text'>Important:</span> The default language cannot be changed after the stack has been created.</div>
                               {meta?.error && meta?.touched && (
                                 <ValidationMessage
                                   testId="cs-stack-create-language-validation"

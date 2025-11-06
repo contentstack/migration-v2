@@ -78,7 +78,11 @@ const createDrupalMapper = async (
       });
     }
 
-    const localeArray = Array.from(localeData);
+    // 🔧 CRITICAL: Always normalize to lowercase before saving
+    const localeArray = Array.from(localeData).map((locale: any) => {
+      const localeValue = typeof locale === 'string' ? locale : (locale?.code || locale?.value || locale);
+      return (localeValue || '').toLowerCase();
+    }).filter((locale: string) => locale && locale.length > 0);
 
     const mapperConfig = {
       method: 'post',

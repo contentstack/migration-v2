@@ -95,6 +95,25 @@ const getProject = async (req: Request) => {
     'getProject'
   );
 
+  // Type guard: ensure project is not a number (it should be a Project object)
+  if (typeof project === 'number') {
+    throw new BadRequestError('Invalid project data received');
+  }
+
+  // 🔍 DEBUG: Log locale data being sent to frontend
+  console.info(
+    '================================================================================'
+  );
+  console.info('🔍 [API getProject] Sending locale data to frontend:');
+  console.info('  Project ID:', projectId);
+  console.info('  source_locales:', project?.source_locales);
+  console.info('  localeMapping:', project?.localeMapping);
+  console.info('  locales:', project?.locales);
+  console.info('  master_locale:', project?.master_locale);
+  console.info(
+    '================================================================================'
+  );
+
   return project;
 };
 
@@ -1603,6 +1622,17 @@ const updateStackDetails = async (req: Request) => {
 
   const srcFunc = 'updateStackDetails';
 
+  // 🔍 DEBUG: Log stack_details before saving
+  console.info('🔍 updateStackDetails - stack_details received:', {
+    stack_details,
+    master_locale: stack_details?.master_locale,
+    master_locale_type: typeof stack_details?.master_locale,
+    master_locale_isLowercase:
+      stack_details?.master_locale ===
+      stack_details?.master_locale?.toLowerCase?.(),
+    master_locale_toLowerCase: stack_details?.master_locale?.toLowerCase?.(),
+  });
+
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
     projectId,
@@ -1627,6 +1657,19 @@ const updateStackDetails = async (req: Request) => {
       }
       data.projects[projectIndex].stackDetails = stack_details;
       data.projects[projectIndex].updated_at = new Date().toISOString();
+
+      // 🔍 DEBUG: Log what was saved
+      console.info('🔍 updateStackDetails - Saved stackDetails:', {
+        saved_master_locale:
+          data.projects[projectIndex].stackDetails?.master_locale,
+        saved_master_locale_type:
+          typeof data.projects[projectIndex].stackDetails?.master_locale,
+        saved_master_locale_isLowercase:
+          data.projects[projectIndex].stackDetails?.master_locale ===
+          data.projects[
+            projectIndex
+          ].stackDetails?.master_locale?.toLowerCase?.(),
+      });
     });
 
     logger.info(

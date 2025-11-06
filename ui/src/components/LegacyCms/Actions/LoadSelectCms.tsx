@@ -14,12 +14,11 @@ import { DEFAULT_CMS_TYPE, ICMSType, INewMigration } from '../../../context/app/
 
 // Components
 import Card from '../../../components/Common/Card/card';
-import { CircularLoader, EmptyState } from '@contentstack/venus-components';
+import { CircularLoader } from '@contentstack/venus-components';
 
 // Style
 import '../legacyCms.scss';
 
-import { SEARCH_ICON } from '../../../common/assets';
 //import { IFilterStatusType } from '../../../components/Common/Modal/FilterModal/filterModal.interface';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
@@ -39,8 +38,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const dispatch = useDispatch();
 
   const [cmsData, setCmsData] = useState<ICMSType[]>([]);
-  const [searchText] = useState<string>('');
-  //const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
+
   const [cmsType, setCmsType] = useState<ICMSType>(
     newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );
@@ -54,7 +52,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   /****  ALL METHODS HERE  ****/
-
   //Handle Legacy cms selection
   const handleCardClick = async (data: ICMSType) => {
     setSelectedCard({ ...data });
@@ -76,7 +73,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   };
 
   // Filter CMS Data
-  const filterCMSData = async (searchText: string) => {
+  const filterCMSData = async () => {
     try {
       const { all_cms = [] } = migrationData?.legacyCMSData || {};
       setSelectedCard(cmsType);
@@ -157,20 +154,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
      
       dispatch(updateNewMigrationData(newMigrationDataObj)); // Dispatch to save config to Redux
       
-      // setCmsData(filteredCmsData);
-
-      //Normal Search
-      const _filterCmsData = validateArray(all_cms)
-        ? filteredCmsData?.filter(
-            ({ title, cms_id }: ICMSType) =>
-              //Filtering Criteria base on SearchText
-              title?.toLowerCase()?.includes(searchText) ||
-              cms_id?.toLowerCase()?.includes(searchText)
-          )
-        : [];
-
-      setCmsData(_filterCmsData);
-
       setIsLoading(false);
 
       if (!isEmptyString(newSelectedCard?.title)) {
@@ -191,30 +174,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
   /****  ALL USEEffects  HERE  ****/
   useEffect(() => {
-    filterCMSData(searchText);
+    filterCMSData();
   }, []);
-
-
-  // Handle Legacy cms selection for single match
-  // useEffect(() => {
-  //   const isSingleMatch = cmsData?.length === 1;
-  //   if (isSingleMatch) {
-  //     setSelectedCard({ ...selectedCard });
-
-  //     const newMigrationDataObj: INewMigration = {
-  //       ...newMigrationData,
-  //       legacy_cms: {
-  //         ...newMigrationDataRef?.current?.legacy_cms,
-  //         selectedCms: { ...selectedCard }
-  //       }
-  //     };
-  //     console.info("neMigObj ---> ", newMigrationDataObj, cmsData)
-  //     dispatch(updateNewMigrationData(newMigrationDataObj));
-
-  //     // Call for Step Change
-  //     props?.handleStepChange(props?.currentStep);
-  //   }
-  // }, [cmsData]);
 
   return (
     <div>

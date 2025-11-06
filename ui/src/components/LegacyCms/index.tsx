@@ -13,7 +13,7 @@ import {
 } from '../../context/app/app.interface';
 
 import { isEmptyString, validateArray } from '../../utilities/functions';
-import { ICardType, defaultCardType } from '../Common/Card/card.interface';
+import { ICardType } from '../Common/Card/card.interface';
 import './legacyCms.scss';
 import { IFilterType } from '../Common/Modal/FilterModal/filterModal.interface';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
