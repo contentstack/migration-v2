@@ -182,6 +182,12 @@ const AdvancePropertise = (props: SchemaProps) => {
    * @param checkBoxChanged - Indicates if the checkbox was changed.
    */
   const handleToggleChange = (field: string, value: boolean, checkBoxChanged: boolean) => {
+    // If unchecking embedObject toggle, clear the embed objects
+    if (field === 'embedObject' && !value) {
+      setCTValue(null);
+      setEmbedObjectsLabels([]);
+    }
+    
     setToggleStates((prevStates) => ({
       ...prevStates,
       [field]: value
@@ -202,7 +208,7 @@ const AdvancePropertise = (props: SchemaProps) => {
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects: embedObjectsLabels,
+        embedObjects: field === 'embedObject' && !value ? [] : embedObjectsLabels,
         default_value: currentToggleStates?.default_value,
         minChars: currentToggleStates?.minChars,
         maxChars: currentToggleStates?.maxChars,
@@ -611,7 +617,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                       label="Embed Object(s)"
                       labelColor="primary"
                       labelPosition="right"
-                      checked={(ctValue?.length ?? 0) > 0 || toggleStates?.embedObject}
+                      checked={toggleStates?.embedObject}
                       onChange={
                         handleToggleChange &&
                         ((e: React.MouseEvent<HTMLElement>) =>
@@ -624,7 +630,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                     />
                   </div>
 
-                  {((ctValue && ctValue?.length > 0) || toggleStates?.embedObject) && (
+                  {toggleStates?.embedObject && (
                     <Select
                       value={ctValue}
                       isMulti={true}
@@ -633,11 +639,22 @@ const AdvancePropertise = (props: SchemaProps) => {
                         const embedObject = selectedOptions?.map(
                           (item: optionsType) => item?.value
                         ); // Update the state with the selected options
+                        
+                        // If all embed objects are removed, also uncheck the toggle
+                        const shouldToggleOff = !selectedOptions || selectedOptions.length === 0;
+                        if (shouldToggleOff) {
+                          setToggleStates((prevStates) => ({
+                            ...prevStates,
+                            embedObject: false
+                          }));
+                        }
+                        
                         props?.updateFieldSettings(
                           props?.rowId,
                           {
                             validationRegex: toggleStates?.validationRegex ?? '',
-                            embedObjects: embedObject
+                            embedObjects: embedObject,
+                            embedObject: !shouldToggleOff
                           },
                           true,
                           props?.data?.contentstackFieldUid
