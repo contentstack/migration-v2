@@ -39,8 +39,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const dispatch = useDispatch();
 
   const [cmsData, setCmsData] = useState<ICMSType[]>([]);
-  const [searchText] = useState<string>('');
-  //const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
+
   const [cmsType, setCmsType] = useState<ICMSType>(
     newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );
@@ -53,7 +52,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   /****  ALL METHODS HERE  ****/
-
   //Handle Legacy cms selection
   const handleCardClick = async (data: ICMSType) => {
     setSelectedCard({ ...data });
@@ -75,7 +73,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   };
 
   // Filter CMS Data
-  const filterCMSData = async (searchText: string) => {
+  const filterCMSData = async () => {
     try {
       const { all_cms = [] } = migrationData?.legacyCMSData || {};
       setSelectedCard(cmsType);
@@ -116,29 +114,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           setCmsData([]);
         }
       }
-      const newMigrationDataObj = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData?.legacy_cms,
-          selectedFileFormat: filteredCmsData[0].allowed_file_formats[0]
-        }
-      };
-
-      //dispatch(updateNewMigrationData(newMigrationDataObj));
-
-      // setCmsData(filteredCmsData);
-
-      //Normal Search
-      const _filterCmsData = validateArray(all_cms)
-        ? filteredCmsData?.filter(
-            ({ title, cms_id }: ICMSType) =>
-              //Filtering Criteria base on SearchText
-              title?.toLowerCase()?.includes(searchText) ||
-              cms_id?.toLowerCase()?.includes(searchText)
-          )
-        : [];
-
-      setCmsData(_filterCmsData);
 
       let newSelectedCard: ICMSType | undefined;
 
@@ -172,30 +147,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
   /****  ALL USEEffects  HERE  ****/
   useEffect(() => {
-    filterCMSData(searchText);
+    filterCMSData();
   }, []);
-
-
-  // Handle Legacy cms selection for single match
-  // useEffect(() => {
-  //   const isSingleMatch = cmsData?.length === 1;
-  //   if (isSingleMatch) {
-  //     setSelectedCard({ ...selectedCard });
-
-  //     const newMigrationDataObj: INewMigration = {
-  //       ...newMigrationData,
-  //       legacy_cms: {
-  //         ...newMigrationDataRef?.current?.legacy_cms,
-  //         selectedCms: { ...selectedCard }
-  //       }
-  //     };
-  //     console.info("neMigObj ---> ", newMigrationDataObj, cmsData)
-  //     dispatch(updateNewMigrationData(newMigrationDataObj));
-
-  //     // Call for Step Change
-  //     props?.handleStepChange(props?.currentStep);
-  //   }
-  // }, [cmsData]);
 
   return (
     <div>
