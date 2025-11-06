@@ -130,11 +130,7 @@ const AddStack = (props: any): JSX.Element => {
           onSubmit={onSubmit}
           keepDirtyOnReinitialize={true}
           validate={(values: Stack) => {
-            const errors: Errors = {
-              name: '',
-              locale: '',
-              description: ''
-            };
+            const errors: any = {};
             if (!values?.name || values?.name?.trim().length < 1) {
               errors.name = 'Stack name required';
             }
