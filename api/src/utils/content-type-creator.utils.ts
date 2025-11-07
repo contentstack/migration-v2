@@ -37,6 +37,16 @@ interface ContentType {
   schema: any[]; // Replace `any` with the specific type if known
 }
 
+const RESERVED_UIDS = new Set(['locale', 'publish_details', 'tags']);
+
+function sanitizeUid(uid?: string) {
+  if (!uid) return uid;
+  let out = uid?.replace?.(/[^a-zA-Z0-9_]/g, '_').replace?.(/^_+/, '');
+  if (!/^[a-zA-Z]/.test(out)) out = `field_${out}`;
+  if (RESERVED_UIDS.has(out)) out = `cm_${out}`; // avoid reserved values
+  return out.toLowerCase();
+}
+
 function extractFieldName(input: string): string {
   // Extract text inside parentheses (e.g., "JSON Editor-App")
   const match = input.match(/\(([^)]+)\)/);
@@ -208,6 +218,11 @@ function getLastSegmentNew(str: string, separator: string): string {
 }
 
 export function buildSchemaTree(fields: any[], parentUid = '', parentType = ''): any[] {
+
+  if (!Array.isArray(fields)) {
+    console.warn('buildSchemaTree called with invalid fields:', fields);
+    return [];
+  }
   // Build a lookup map for O(1) access
   const fieldMap = new Map<string, any>();
   fields.forEach(f => {
@@ -315,8 +330,8 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
 
 const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
   // Clean up field UID by removing ALL leading underscores
-  const cleanedUid = field?.uid?.replace(/^_+/, '') || field?.uid;
-  
+  const rawUid = field?.uid;
+  const cleanedUid = sanitizeUid(rawUid);
   switch (field?.contentstackFieldType) {
     case 'single_line_text': {
       return {
@@ -416,18 +431,18 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
 
     case 'dropdown': {
       // 🔧 CONDITIONAL LOGIC: Check if choices have key-value pairs or just values
-      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0 
-        ? field?.advanced?.options 
+      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0
+        ? field?.advanced?.options
         : [{ value: "NF" }];
-      
+
       // Filter out null/undefined choices and ensure they are valid objects
-      const choices = Array.isArray(rawChoices) 
+      const choices = Array.isArray(rawChoices)
         ? rawChoices.filter((choice: any) => choice != null && typeof choice === 'object')
         : [{ value: "NF" }];
-      
-      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 && 
+
+      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 &&
         choices.some((choice: any) => choice != null && typeof choice === 'object' && choice.key !== undefined && choice.key !== null);
-      
+
       const data = {
         "data_type": ['dropdownNumber', 'radioNumber', 'ratingNumber'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
@@ -456,18 +471,18 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
     }
     case 'radio': {
       // 🔧 CONDITIONAL LOGIC: Check if choices have key-value pairs or just values
-      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0 
-        ? field?.advanced?.options 
+      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0
+        ? field?.advanced?.options
         : [{ value: "NF" }];
-      
+
       // Filter out null/undefined choices and ensure they are valid objects
-      const choices = Array.isArray(rawChoices) 
+      const choices = Array.isArray(rawChoices)
         ? rawChoices.filter((choice: any) => choice != null && typeof choice === 'object')
         : [{ value: "NF" }];
-      
-      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 && 
+
+      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 &&
         choices.some((choice: any) => choice != null && typeof choice === 'object' && choice.key !== undefined && choice.key !== null);
-      
+
       const data = {
         "data_type": ['dropdownNumber', 'radioNumber', 'ratingNumber'].includes(field.otherCmsType) ? 'number' : "text",
         "display_name": field?.title,
@@ -495,18 +510,18 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
     }
     case 'checkbox': {
       // 🔧 CONDITIONAL LOGIC: Check if choices have key-value pairs or just values
-      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0 
-        ? field?.advanced?.options 
+      const rawChoices = Array.isArray(field?.advanced?.options) && field?.advanced?.options?.length > 0
+        ? field?.advanced?.options
         : [{ value: "NF" }];
-      
+
       // Filter out null/undefined choices and ensure they are valid objects
-      const choices = Array.isArray(rawChoices) 
+      const choices = Array.isArray(rawChoices)
         ? rawChoices.filter((choice: any) => choice != null && typeof choice === 'object')
         : [{ value: "NF" }];
-      
-      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 && 
+
+      const hasKeyValuePairs = Array.isArray(choices) && choices.length > 0 &&
         choices.some((choice: any) => choice != null && typeof choice === 'object' && choice.key !== undefined && choice.key !== null);
-      
+
       const data = {
         "data_type": "text",
         "display_name": field?.title,
@@ -803,7 +818,7 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
           "non_localizable": field.advanced?.nonLocalizable ?? false,
         }
       } else {
-        console.info('Contnet Type Filed', field?.contentstackField)
+        console.info('Content Type Field', field?.contentstackField)
       }
     }
   }
@@ -866,22 +881,22 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
       return;
     }
   }
-  
+
   // 🔧 FIX: Check for duplicates before adding
   if (!schema || typeof schema !== 'object') {
     console.error("🚀 ~ writeGlobalField ~ Invalid schema provided");
     return;
   }
-  
+
   if (!schema.uid) {
     console.error("🚀 ~ writeGlobalField ~ Schema missing uid");
     return;
   }
-  
+
   if (!Array.isArray(globalfields)) {
     globalfields = [];
   }
-  
+
   const existingIndex = globalfields.findIndex((gf: any) => gf != null && gf.uid === schema.uid);
   if (existingIndex !== -1 && existingIndex < globalfields.length) {
     // Replace existing global field instead of duplicating
@@ -896,7 +911,7 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
       console.error("🚀 ~ writeGlobalField ~ Cannot push schema: invalid schema or globalfields array");
     }
   }
-  
+
   try {
     await fs.promises.writeFile(filePath, JSON.stringify(globalfields, null, 2));
   } catch (writeErr) {
@@ -971,90 +986,40 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
 export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
   const marketPlacePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, destinationStackId);
   const srcFunc = 'contenTypeMaker';
+
   let ct: ContentType = {
     title: contentType?.contentstackTitle,
     uid: contentType?.contentstackUid,
     schema: []
-  }
+  };
+
   let currentCt: any = {};
   if (Object?.keys?.(keyMapper)?.length &&
     keyMapper?.[contentType?.contentstackUid] !== "" &&
     keyMapper?.[contentType?.contentstackUid] !== undefined) {
     currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id });
   }
-  const ctData: any = buildSchemaTree(contentType?.fieldMapping);
-  ctData?.forEach((item: any) => {
-    if (item?.contentstackFieldType === 'group') {
-      const group: Group = {
-        "data_type": "group",
-        "display_name": item?.contentstackField,
-        "field_metadata": {},
-        "schema": [],
-        "uid": item?.contentstackFieldUid,
-        "multiple": false,
-        "mandatory": false,
-        "unique": false
-      }
-      // 🔧 FIX: Track processed fields to prevent duplicates within groups
-      const processedFieldUIDs = new Set();
-      
-      item?.schema?.forEach((element: any) => {
-        const fieldUID = extractValue(element?.contentstackFieldUid, item?.contentstackFieldUid, '.');
-        
-        // Skip if this field UID was already processed in this group
-        if (processedFieldUIDs.has(fieldUID)) {
-          return;
-        }
-        processedFieldUIDs.add(fieldUID);
-        
-        const field: any = {
-          ...element,
-          uid: fieldUID,
-          title: extractValue(element?.contentstackField, item?.contentstackField, ' >')?.trim(),
-        }
-        const schema: any = convertToSchemaFormate({ 
-          field, 
-          advanced: element?.advanced ?? false, // 🔧 FIX: Pass advanced from element data
-          marketPlacePath,
-          keyMapper
-        });
-        if (typeof schema === 'object' && Array.isArray(group?.schema) && element?.isDeleted === false) {
-          group.schema.push(schema);
-        }
-      })
-      
-      // 🔧 FIX: Only add group if it has schema and doesn't already exist
-      if (group?.schema && Array.isArray(group.schema) && group.schema.length > 0 && group?.uid) {
-        if (!ct?.schema || !Array.isArray(ct.schema)) {
-          ct.schema = [];
-        }
-        const existingGroupIndex = ct.schema.findIndex((g: any) => g != null && g.uid === group.uid);
-        if (existingGroupIndex !== -1 && existingGroupIndex < ct.schema.length) {
-          ct.schema[existingGroupIndex] = group;
-        } else {
-          ct.schema.push(group);
-        }
-      }
-    } else {
-      const dt: any = convertToSchemaFormate({
-        field: {
-          ...item,
-          title: item?.contentstackField,
-          uid: item?.contentstackFieldUid
-        },
-        advanced: item?.advanced ?? false, // 🔧 FIX: Pass advanced from item data
-        marketPlacePath,
-        keyMapper
-      });
-      if (dt && item?.isDeleted === false) {
-        ct?.schema?.push(dt);
-      }
+
+  // Safe: ensures we never pass undefined to the builder
+  const ctData: any[] = buildSchemaTree(contentType?.fieldMapping || []);
+
+  // Use the deep converter that properly handles groups & modular blocks
+  for (const item of ctData) {
+    if (item?.isDeleted === true) continue;
+
+    const fieldSchema = buildFieldSchema(item, marketPlacePath, '');
+    if (fieldSchema) {
+      ct?.schema.push(fieldSchema);
     }
-  })
+  }
+
+  // dedupe by uid to avoid dup nodes after merges
+  ct.schema = removeDuplicateFields(ct.schema || []);
+
   if (currentCt?.uid) {
     ct = await mergeTwoCts(ct, currentCt);
   }
-  if (ct?.uid && ct?.schema?.length) {
+  if (ct?.uid && Array.isArray(ct?.schema) && ct?.schema.length) {
     if (contentType?.type === 'global_field') {
       const globalSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, GLOBAL_FIELDS_DIR_NAME);
       const message = getLogMessage(srcFunc, `Global Field ${ct?.uid} has been successfully Transformed.`, {});
@@ -1067,6 +1032,6 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
       await saveContent(ct, contentSave);
     }
   } else {
-    console.info(contentType?.contentstackUid, 'missing')
+    console.info(contentType?.contentstackUid, 'missing');
   }
-}
+};
