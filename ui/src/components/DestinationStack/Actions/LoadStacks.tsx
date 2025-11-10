@@ -212,10 +212,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
               master_locale: stack?.master_locale,
               locales: stack?.locales,
               created_at: stack?.created_at,
-              isNewStack: newStackCreated,
-              isDisabled: newMigrationDataRef?.current?.destination_stack?.migratedStacks?.includes(
-                stack?.api_key
-              )
+              isNewStack: newStackCreated
             }))
           : [];
 

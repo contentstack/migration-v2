@@ -54,9 +54,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   const [zoomLevel, setZoomLevel] = useState(1);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-  const selectedOrganisation = useSelector(
-    (state: RootState) => state?.authentication?.selectedOrganisation
-  );
+  
   const user = useSelector((state: RootState) => state?.authentication?.user);
 
   const dispatch = useDispatch();
@@ -157,11 +155,6 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
    * Zooms out the logs container.
    */
   const handleZoomOut = () => {
-    // const logsContainer = document.querySelector('.logs-magnify') as HTMLElement;
-    // if (logsContainer) {
-    // setZoomLevel(prevZoomLevel => prevZoomLevel - 0.1);
-    // logsContainer.style.transform = `scale(${zoomLevel})`;
-    // }
     setZoomLevel((prevZoomLevel) => {
       const newZoomLevel = Math.max(prevZoomLevel - 0.1, 0.6); // added minimum level for zoom out
       return newZoomLevel;
@@ -261,26 +254,11 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
           >
             {logs.map((log, index) => {
               try {
-                //const logObject = JSON.parse(log);
                 const { level, timestamp, message } = log;
 
-                return newMigrationData?.destination_stack?.migratedStacks?.includes(
-                  newMigrationData?.destination_stack?.selectedStack?.value
-                ) ? (
-                  <div
-                    key={`${index?.toString}`}
-                    style={logStyles[level || ''] || logStyles.info}
-                    className="log-entry text-center"
-                  >
-                    <div className="log-message generic-log-message">
-                      Migration has already done in selected stack. Please create a new project.
-                    </div>
-                  </div>
-                ) : (
+                return (
                   <div
                     key={index}
-                    // style={logStyles[level || ''] || logStyles.info}
-                    // className="log-entry logs-bg"
                   >
                     {message === 'Migration logs will appear here once the process begins.' ? (
                       <div
