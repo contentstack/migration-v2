@@ -372,6 +372,14 @@ export const validateFieldTypeConversion = (currentType: string, newType: string
 
 export const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, currentFieldType, keyMapper }: any) => {
   // Clean up field UID by removing ALL leading underscores
+  
+  // Validate field type conversion if currentFieldType is provided
+  if (currentFieldType && field?.contentstackFieldType) {
+    const validation = validateFieldTypeConversion(currentFieldType, field.contentstackFieldType);
+    if (!validation.allowed) {
+      throw new Error(`Field type conversion blocked: ${validation.reason}`);
+    }
+  }
   const rawUid = field?.uid;
   const cleanedUid = sanitizeUid(rawUid);
   switch (field?.contentstackFieldType) {
