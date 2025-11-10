@@ -168,7 +168,10 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
                 res.status(data?.status || 200).json(data);
 
                 if (data?.status === 200) {
-                  const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+                  let filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+                  if (data?.file) {
+                    filePath = path.join(__dirname, '..', '..', 'extracted_files', name, data?.file);
+                  }
                   createMapper(filePath, projectId, app_token, affix, config);
                 }
               } catch (error) {
