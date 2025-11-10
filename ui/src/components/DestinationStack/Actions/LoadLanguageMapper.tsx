@@ -1117,12 +1117,42 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
       const sourceLocaleValue = (singleSourceLocale.value || singleSourceLocale.label || '').toLowerCase();
       const destinationLocale = (stack?.master_locale || 'en-us').toLowerCase();
       
+      const hasExactDestination = allLocales.some(dest => {
+        const destValue = (dest.value || dest.label || '').toLowerCase();
+        return destValue === sourceLocaleValue;
+      });
+      
+      if (!hasExactDestination && sourceLocaleValue !== destinationLocale) {
+        console.info('⚠️ [Single Locale] No exact destination match found. Leaving master locale unmapped.', {
+          sourceLocaleValue,
+          destinationLocale,
+          allLocales: allLocales.map(dest => dest.value || dest.label)
+        });
+        
+        if (cmsLocaleOptions?.length === 0) {
+          setcmsLocaleOptions([{
+            label: destinationLocale,
+            value: destinationLocale
+          }]);
+        }
+        
+        setAutoSelectedSourceLocale(null);
+        setMapperLocaleState({});
+        if (isStackChanged) {
+          setisStackChanged(false);
+        }
+        setTimeout(() => {
+          isProcessingRef.current = false;
+        }, 0);
+        return;
+      }
+      
       console.info('🔥 [Single Locale Auto-Map] Mapping single source to destination master:', {
         source: sourceLocaleValue,
         destination: destinationLocale,
         source_locale_object: singleSourceLocale,
         stack_master_locale: stack?.master_locale,
-        reason: 'Single source locale - no other choice'
+        reason: hasExactDestination ? 'Exact destination match found' : 'Source equals master locale'
       });
       
       const autoMapping = {
@@ -1314,31 +1344,66 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         autoMapping[match.source] = match.dest;
       });
       
-      // 🔥 CRITICAL FIX: Update cmsLocaleOptions with master locale ALWAYS first
-      const destinationLocalesInMapping = new Set<string>();
-      
-      // 🔥 Don't use Set for ordering - use array to maintain master-first order
-      const orderedDestLocales: string[] = [];
-      
-      // 🔥 STEP 1: ALWAYS add master locale first
-      orderedDestLocales.push(normalizedStackMaster);
-      
-      // 🔥 STEP 2: Add all other exact match destinations (excluding master if already added)
+      const leftoverAssignments: Array<{ source: string; dest: string }> = [];
+      const assignedDestinations = new Set<string>();
+      if (masterLocaleMatch) {
+        assignedDestinations.add(masterLocaleMatch.dest);
+      }
       exactMatches.forEach(match => {
-        if (match.dest !== normalizedStackMaster && !orderedDestLocales.includes(match.dest)) {
-          orderedDestLocales.push(match.dest);
+        if (!(match.source === normalizedStackMaster && masterLocaleMatch)) {
+          assignedDestinations.add(match.dest);
         }
+      });
+      assignedDestinations.add(normalizedStackMaster);
+      
+      const availableDestLocales = allLocales
+        .map(dest => (dest.value || dest.label || '').toLowerCase())
+        .filter(dest => dest && dest !== normalizedStackMaster && !assignedDestinations.has(dest));
+      
+      unmatchedSources.forEach((sourceValue, idx) => {
+        const candidateDest = availableDestLocales[idx];
+        if (!candidateDest) {
+          console.info('⚠️ [TC-03/TC-08] No available destination locale to assign for:', { sourceValue });
+          return;
+        }
+        console.info('🎯 [TC-03] Assigning unmatched source to remaining destination:', {
+          sourceValue,
+          candidateDest
+        });
+        autoMapping[sourceValue] = candidateDest;
+        leftoverAssignments.push({ source: sourceValue, dest: candidateDest });
+        assignedDestinations.add(candidateDest);
+      });
+      
+      const destinationLocalesInMapping = new Set<string>();
+      destinationLocalesInMapping.add(normalizedStackMaster);
+      exactMatches.forEach(match => {
+        destinationLocalesInMapping.add(match.dest);
+      });
+      leftoverAssignments.forEach(assign => {
+        destinationLocalesInMapping.add(assign.dest);
       });
       
       setcmsLocaleOptions(() => {
         const newList: { label: string; value: string }[] = [];
+        const processedLocales = new Set<string>();
         
-        // Build list in order from orderedDestLocales array
-        orderedDestLocales.forEach(destLocale => {
+        if (!processedLocales.has(normalizedStackMaster)) {
           newList.push({
-            label: destLocale,
-            value: destLocale
+            label: normalizedStackMaster,
+            value: normalizedStackMaster
           });
+          processedLocales.add(normalizedStackMaster);
+        }
+        
+        destinationLocalesInMapping.forEach(destLocale => {
+          if (!processedLocales.has(destLocale)) {
+            newList.push({
+              label: destLocale,
+              value: destLocale
+            });
+            processedLocales.add(destLocale);
+          }
         });
         
         console.info('🔥 [Multi-locale] Updated cmsLocaleOptions (master GUARANTEED first):', {
@@ -1346,17 +1411,14 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           first: newList[0],
           second: newList[1],
           length: newList.length,
-          orderedDestLocales,
+          orderedDestLocales: Array.from(destinationLocalesInMapping),
           VERIFY_MASTER_IS_FIRST: newList[0]?.label === normalizedStackMaster
         });
         return newList;
       });
       
-      // 🔥 CRITICAL FIX: Update mapperLocaleState with proper keys
       const updatedMapperState: ExistingFieldType = {};
       
-      // 🔥 CRITICAL: Keys MUST be destination locale codes (what appears in cmsLocaleOptions)
-      // Values MUST be source locale objects (what should appear in the source dropdown)
       if (masterLocaleMatch) {
         updatedMapperState[normalizedStackMaster] = {
           label: masterLocaleMatch.source,
@@ -1380,14 +1442,13 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         });
       }
       
-      // 🔥 For other matched rows - use destination locale as key, source locale as value
       exactMatches.forEach(match => {
         if (match.dest === normalizedStackMaster) {
           console.info('🔥 [Multi-locale] Skipping duplicate master:', {
             match_dest: match.dest,
             normalizedStackMaster
           });
-          return; // Already processed as master
+          return;
         }
         
         updatedMapperState[match.dest] = {
@@ -1398,6 +1459,18 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           key: match.dest,
           value: match.source,
           full_object: updatedMapperState[match.dest]
+        });
+      });
+      
+      leftoverAssignments.forEach(assign => {
+        updatedMapperState[assign.dest] = {
+          label: assign.source,
+          value: assign.source
+        };
+        console.info('🔥 [Multi-locale] Set leftover row:', {
+          key: assign.dest,
+          value: assign.source,
+          full_object: updatedMapperState[assign.dest]
         });
       });
       
