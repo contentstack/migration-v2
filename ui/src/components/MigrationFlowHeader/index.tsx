@@ -130,8 +130,7 @@ const MigrationFlowHeader = ({
             isFileValidated :
             isStep4AndNotMigrated || 
             isStepInvalid || 
-            isExecutionStarted || 
-            destinationStackMigrated
+            isExecutionStarted
         }
       >
         {stepValue}
