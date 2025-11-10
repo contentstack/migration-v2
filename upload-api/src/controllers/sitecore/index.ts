@@ -136,7 +136,7 @@ const createSitecoreMapper = async (
     const newPath = path.join(filePath, 'items');
     await ExtractFiles(newPath);
     const localeData = await extractLocales(
-      path.join(filePath, 'items', 'master', 'sitecore', 'content')
+      path.join(filePath, 'items', 'master', 'sitecore')
     );
     await createLocaleSource?.({ app_token, localeData, projectId });
     await ExtractConfiguration(newPath);
