@@ -83,7 +83,6 @@ const Mapper = ({
         // Key format: for 'en-master_locale': 'en', we want selectedMappings['en-master_locale'] = 'en'
         initialMappings[key] = value as string;
       });
-      console.info('✅ Initializing selectedMappings from localeMapping:', initialMappings);
       setSelectedMappings(initialMappings);
       
       // Also set existingLocale to show the source values in the dropdowns
@@ -92,7 +91,6 @@ const Mapper = ({
         const label = key.replace('-master_locale', '');
         localeValues[label] = { label: value as string, value: value as string };
       });
-      console.info('✅ Setting existingLocale for display:', localeValues);
       setexistingLocale(localeValues);
     }
   }, [newMigrationData?.destination_stack?.localeMapping]);
@@ -134,10 +132,25 @@ const Mapper = ({
   // 🔥 Sync with parent state when auto-mapping occurs
   useEffect(() => {
     if (parentLocaleState && Object.keys(parentLocaleState).length > 0) {
-      setexistingLocale(prev => ({
-        ...prev,
-        ...parentLocaleState
-      }));
+      console.info('🔍 [Mapper] Received parentLocaleState update:', {
+        parentLocaleState,
+        parentLocaleState_keys: Object.keys(parentLocaleState),
+        currentExistingLocale: existingLocale,
+        cmsLocaleOptions: cmsLocaleOptions.map(l => ({ label: l.label, value: l.value }))
+      });
+      
+      setexistingLocale(prev => {
+        const updated = {
+          ...prev,
+          ...parentLocaleState
+        };
+        console.info('🔍 [Mapper] Updated existingLocale:', {
+          previous: prev,
+          updated,
+          updated_keys: Object.keys(updated)
+        });
+        return updated;
+      });
     }
   }, [parentLocaleState]);
 
@@ -668,12 +681,28 @@ const Mapper = ({
               className="select-container"
             /> */
               <Select
-                value={
+                value={(() => {
                   // Show locale value for non-master rows, or existingLocale for master
-                  locale?.value && cmsLocaleOptions.indexOf(locale) !== 0
+                  const isNonMaster = locale?.value && cmsLocaleOptions.indexOf(locale) !== 0;
+                  const value = isNonMaster
                     ? { label: locale?.value, value: locale?.value }
-                    : existingLocale[locale?.label]
-                }
+                    : existingLocale[locale?.label];
+                  
+                  // Debug log to see what's being read
+                  if (cmsLocaleOptions.indexOf(locale) === 0 || !isNonMaster) {
+                    console.info(`🔍 [Mapper] Source dropdown value for ${locale?.label}:`, {
+                      locale_label: locale?.label,
+                      locale_value: locale?.value,
+                      existingLocale_key: locale?.label,
+                      existingLocale_value: existingLocale[locale?.label],
+                      existingLocale_keys: Object.keys(existingLocale),
+                      finalValue: value,
+                      isNonMaster
+                    });
+                  }
+                  
+                  return value;
+                })()}
                 onChange={(data: { label: string; value: string }) =>
                   handleSelectedSourceLocale(data, index)
                 }
@@ -969,30 +998,11 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
     // ✅ Declare keys before using it
     const keys = Object?.keys(currentLocaleMapping)?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
     
-    // 🔍 DIAGNOSTIC: Log all relevant data for auto-mapping
-    console.info('================================================================================');
-    console.info('🔍 [LoadLanguageMapper] Auto-mapping effect - Initial state:');
-    console.info('  sourceLocale:', sourceLocale);
-    console.info('  sourceLocale.length:', sourceLocale?.length);
-    console.info('  allLocales:', allLocales);
-    console.info('  allLocales.length:', allLocales?.length);
-    console.info('  stack:', stack);
-    console.info('  stack.master_locale:', stack?.master_locale);
-    console.info('  stack.uid:', stack?.uid);
-    console.info('  isStackChanged:', isStackChanged);
-    console.info('  stackHasChanged:', stackHasChanged);
-    console.info('  cmsLocaleOptions.length:', cmsLocaleOptions?.length);
-    console.info('  currentLocaleMapping:', currentLocaleMapping);
-    console.info('  project_current_step:', newMigrationData?.project_current_step);
-    console.info('  keys (master locale key):', keys);
-    console.info('================================================================================');
-    
     // 🔧 TC-11: Handle empty source locales - but check Redux first
     if (!sourceLocale || sourceLocale.length === 0) {
       // Try to get from Redux as fallback
       const reduxSourceLocale = newMigrationData?.destination_stack?.sourceLocale;
       if (reduxSourceLocale && reduxSourceLocale.length > 0) {
-        console.info('✅ Using sourceLocale from Redux:', reduxSourceLocale);
         sourceLocale = reduxSourceLocale.map((item: string) => ({ label: item, value: item }));
       } else {
         console.warn('❌ No source locales found - exiting auto-mapping');
@@ -1012,42 +1022,33 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
                                 !keys || 
                                 stackHasChanged);
     
-    console.info('🔍 [LoadLanguageMapper] shouldAutoMapSingle calculation:', {
-      shouldAutoMapSingle,
-      currentLocaleMapping_length: Object?.entries(currentLocaleMapping)?.length,
-      currentLocaleMapping_is_empty: Object?.entries(currentLocaleMapping)?.length === 0,
-      keys,
-      not_keys: !keys,
-      stackHasChanged
+    // 🔥 CRITICAL FIX: Check if all source locales are mapped (for multi-locale auto-mapping condition)
+    const mappedSourceLocales = Object.keys(currentLocaleMapping).filter(key => 
+      !key.includes('-master_locale') && currentLocaleMapping[key] !== '' && currentLocaleMapping[key] !== null
+    );
+    const allSourceLocalesMapped = sourceLocale.every(source => {
+      const sourceValue = (source.value || source.label || '').toLowerCase();
+      return mappedSourceLocales.includes(sourceValue) || 
+             currentLocaleMapping[`${sourceValue}-master_locale`] !== undefined;
     });
     
-    // 🔥 CRITICAL FIX: Populate cmsLocaleOptions from allLocales (csLocale) when localeMapping is empty
-    // This ensures auto-mapping can run (it requires cmsLocaleOptions.length > 0)
+    // 🔥 CRITICAL FIX: Populate cmsLocaleOptions ONLY with master locale initially
+    // Only add destination locales that match source locales (not all 269 locales!)
     if (cmsLocaleOptions?.length === 0 && allLocales?.length > 0 && Object?.entries(currentLocaleMapping)?.length === 0) {
-      console.info('🔧 [LoadLanguageMapper] Populating cmsLocaleOptions from allLocales (csLocale)');
       
       // First element is always the master locale
       const masterLocale = (stack?.master_locale || 'en-us').toLowerCase();
       const mappedOptions: { label: string; value: string }[] = [];
       
-      // Add master locale first
+      // Add ONLY the master locale - don't add all 269 destination locales!
       mappedOptions.push({
         label: masterLocale,
         value: masterLocale
       });
       
-      // Add remaining destination locales (skip master to avoid duplicates)
-      allLocales.forEach(locale => {
-        const localeValue = (locale.value || locale.label || '').toLowerCase();
-        if (localeValue !== masterLocale) {
-          mappedOptions.push({
-            label: localeValue,
-            value: localeValue
-          });
-        }
-      });
+      // ❌ REMOVED: Don't add all destination locales here
+      // They will be added later when auto-mapping finds matches with source locales
       
-      console.info('✅ [LoadLanguageMapper] Set cmsLocaleOptions:', mappedOptions);
       setcmsLocaleOptions(mappedOptions);
       
       // Allow effect to re-run with populated cmsLocaleOptions
@@ -1083,7 +1084,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         shouldAutoMapSingle && 
         newMigrationData?.project_current_step <= 2) {
       
-      console.info('✅ [LoadLanguageMapper] Single locale auto-mapping TRIGGERED');
       const singleSourceLocale = sourceLocale[0];
       
       // 🔧 CRITICAL FIX: Check if user has already manually mapped this locale
@@ -1138,11 +1138,9 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
                 value: normalizedValue
               }
             };
-            console.info('✅ Setting mapperLocaleState for single locale auto-mapping:', updatedExistingLocale);
             setMapperLocaleState(prev => ({ ...prev, ...updatedExistingLocale }));
           } else {
             // Master row not ready yet, will try again in next render
-            console.info('⏳ Master row not ready, will set mapperLocaleState in next render');
           }
         }
       };
@@ -1179,15 +1177,16 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
     } 
     // 🆕 NEW: Enhanced multi-locale auto-mapping
     // Enhanced condition: Also trigger on stack changes for existing templates
+    // 🔥 CRITICAL FIX: Also trigger if not all source locales are mapped yet
     else if (sourceLocale?.length > 1 && 
              allLocales?.length > 0 && 
              cmsLocaleOptions?.length > 0 && // ✅ CRITICAL: Wait for cmsLocaleOptions to be ready
+             !allSourceLocalesMapped && // 🔥 CRITICAL: Run if not all source locales are mapped
              (Object?.entries(currentLocaleMapping)?.length === 0 || 
               !keys || 
-              stackHasChanged) && 
+              stackHasChanged ||
+              !allSourceLocalesMapped) && // 🔥 Also trigger if not all mapped
              newMigrationData?.project_current_step <= 2) {
-      
-      console.info('✅ [LoadLanguageMapper] Multi-locale auto-mapping TRIGGERED');
       
       // 🔧 CRITICAL FIX: Check if user has already manually mapped any locales
       const existingMapping = currentLocaleMapping;
@@ -1234,20 +1233,94 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           hasAnyMatches = true;
           
           // 🔥 CRITICAL FIX: Update mapperLocaleState to populate the dropdown immediately
+          // The key must match locale.label from cmsLocaleOptions (which is the master locale value)
           const updatedExistingLocale: ExistingFieldType = {};
           if (cmsLocaleOptions?.length > 0) {
             const masterRow = cmsLocaleOptions[0];
             if (masterRow) {
+              // 🔥 CRITICAL: Use masterRow.label as key (matches what source dropdown expects: existingLocale[locale.label])
               updatedExistingLocale[masterRow.label] = {
                 label: sourceValue,
                 value: sourceValue
               };
-              console.info('✅ Setting mapperLocaleState for multi-locale auto-mapping (match found):', updatedExistingLocale);
+              console.info(`✅ [Auto-mapping] Setting mapperLocaleState for master locale (${masterRow.label}):`, {
+                key: masterRow.label,
+                value: { label: sourceValue, value: sourceValue },
+                masterRow,
+                updatedState: updatedExistingLocale
+              });
               setMapperLocaleState(prev => ({ ...prev, ...updatedExistingLocale }));
+            } else {
+              console.warn('⚠️ [Auto-mapping] Master row not found in cmsLocaleOptions');
             }
+          } else {
+            console.warn('⚠️ [Auto-mapping] cmsLocaleOptions is empty, cannot set master locale mapping');
           }
         }
       }
+      
+      // 🔥 CRITICAL FIX: Find and add rows for other source locales that match destination locales
+      // Only add rows for source locales that have matches, not all 269 destination locales!
+      sourceLocale.forEach(source => {
+        const sourceValue = (source.value || source.label || '').toLowerCase();
+        
+        // Skip if already processed as master locale
+        if (sourceValue === normalizedStackMaster) {
+          return;
+        }
+        
+        // Find matching destination locale
+        const destMatch = allLocales.find(dest => {
+          const destValue = (dest.value || dest.label || '').toLowerCase();
+          return destValue === sourceValue;
+        });
+        
+        if (destMatch) {
+          const destValue = (destMatch.value || destMatch.label || '').toLowerCase();
+          
+          // Add to auto-mapping
+          autoMapping[sourceValue] = destValue;
+          hasAnyMatches = true;
+          
+          // Add row to cmsLocaleOptions ONLY if it doesn't already exist
+          // 🔥 CRITICAL FIX: Also update mapperLocaleState when adding the row
+          setcmsLocaleOptions(prevList => {
+            const exists = prevList.some(item => item.value === destValue || item.label === destValue);
+            if (!exists) {
+              const newList = [
+                ...prevList,
+                {
+                  label: destValue,  // This will be the key in existingLocale
+                  value: destValue
+                }
+              ];
+              
+              // 🔥 CRITICAL: Update mapperLocaleState using destValue as key (matches locale.label)
+              // The source dropdown uses existingLocale[locale.label], so key must be destValue
+              setMapperLocaleState(prev => {
+                const updated = {
+                  ...prev,
+                  [destValue]: {  // Key must match locale.label from cmsLocaleOptions
+                    label: sourceValue,
+                    value: sourceValue
+                  }
+                };
+                console.info(`✅ [Auto-mapping] Setting mapperLocaleState for ${destValue}:`, {
+                  key: destValue,
+                  value: { label: sourceValue, value: sourceValue },
+                  fullState: updated
+                });
+                return updated;
+              });
+              
+              return newList;
+            }
+            return prevList;
+          });
+        } else {
+          console.info(`❌ [Multi-locale auto-mapping] No match found for: ${sourceValue}`);
+        }
+      });
       
       // 🔧 TC-04 & TC-08: Enhanced no-match logic with master locale default
       if (!hasAnyMatches) {
@@ -1331,36 +1404,39 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
       
       // 🔥 CRITICAL FIX: Update existingLocale state for dropdown display
       // The dropdown reads from existingLocale, not from Redux localeMapping
-      const updatedExistingLocale: ExistingFieldType = {};
-      
-      // Map each auto-mapped source locale to the dropdown state
-      // 🔧 CRITICAL: Always use .value and convert to lowercase
-      sourceLocale.forEach(source => {
-        const sourceValue = (source.value || source.label || '').toLowerCase();
-        if (autoMapping[sourceValue]) {
-          // Find the corresponding cmsLocaleOptions index for this source locale
-          const localeRow = cmsLocaleOptions?.find(locale => {
-            const localeValue = (locale.value || locale.label || '').toLowerCase();
-            const isDirectMatch = localeValue === sourceValue;
-            // Master locale is first element
-            const isMasterMatch = cmsLocaleOptions.indexOf(locale) === 0 && sourceValue === localeValue;
-            return isDirectMatch || isMasterMatch;
-          });
-          
-          if (localeRow) {
-            updatedExistingLocale[localeRow.label] = {
+      // Use a callback to read the current state of cmsLocaleOptions (which might have been updated asynchronously)
+      setMapperLocaleState(prev => {
+        const updatedExistingLocale: ExistingFieldType = { ...prev };
+        
+        console.info('🔍 [Auto-mapping] Final mapperLocaleState update:', {
+          previousState: prev,
+          autoMapping,
+          sourceLocale: sourceLocale.map(s => s.value || s.label)
+        });
+        
+        // Map each auto-mapped source locale to the dropdown state
+        // 🔧 CRITICAL: Always use .value and convert to lowercase
+        sourceLocale.forEach(source => {
+          const sourceValue = (source.value || source.label || '').toLowerCase();
+          if (autoMapping[sourceValue]) {
+            // Get current cmsLocaleOptions from state (might have been updated asynchronously)
+            // We need to find the row that matches this source locale
+            const destValue = autoMapping[sourceValue];
+            
+            // 🔥 CRITICAL: Use destValue as the key (which matches locale.label in cmsLocaleOptions)
+            // The source dropdown uses existingLocale[locale.label], so key must be destValue
+            updatedExistingLocale[destValue] = {
               label: sourceValue,
               value: sourceValue
             };
+            
+            console.info(`✅ [Auto-mapping] Final update - Setting ${destValue} = ${sourceValue}`);
           }
-        }
+        });
+        
+        console.info('🔍 [Auto-mapping] Final updatedExistingLocale:', updatedExistingLocale);
+        return updatedExistingLocale;
       });
-      
-      // Update the existingLocale state
-      setMapperLocaleState(prev => ({
-        ...prev,
-        ...updatedExistingLocale
-      }));
       
       // Clear auto-selected source locale for multi-locale scenario
       setAutoSelectedSourceLocale(null);
@@ -1371,20 +1447,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
       }
     } 
     else {
-      console.info('❌ [LoadLanguageMapper] Auto-mapping NOT triggered. Conditions check:');
-      console.info('  Single locale condition:');
-      console.info('    sourceLocale.length === 1:', sourceLocale?.length === 1);
-      console.info('    allLocales.length > 0:', allLocales?.length > 0);
-      console.info('    shouldAutoMapSingle:', shouldAutoMapSingle);
-      console.info('    project_current_step <= 2:', newMigrationData?.project_current_step <= 2);
-      console.info('  Multi-locale condition:');
-      console.info('    sourceLocale.length > 1:', sourceLocale?.length > 1);
-      console.info('    allLocales.length > 0:', allLocales?.length > 0);
-      console.info('    cmsLocaleOptions.length > 0:', cmsLocaleOptions?.length > 0);
-      console.info('    localeMapping is empty:', Object?.entries(currentLocaleMapping)?.length === 0);
-      console.info('    !keys:', !keys);
-      console.info('    stackHasChanged:', stackHasChanged);
-      console.info('    project_current_step <= 2:', newMigrationData?.project_current_step <= 2);
       setAutoSelectedSourceLocale(null);
     }
     
@@ -1402,18 +1464,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
       try {
         setisLoading(true);
         
-        console.info('🔍 LoadLanguageMapper - Starting fetchData');
         const destStack = newMigrationData?.destination_stack;
-        console.info('🔍 newMigrationData?.destination_stack:', {
-          sourceLocale: destStack?.sourceLocale,
-          sourceLocale_type: Array.isArray(destStack?.sourceLocale) ? 'array' : typeof destStack?.sourceLocale,
-          sourceLocale_length: Array.isArray(destStack?.sourceLocale) ? destStack.sourceLocale.length : 'N/A',
-          localeMapping: destStack?.localeMapping,
-          csLocale_type: typeof destStack?.csLocale,
-          csLocale_isArray: Array.isArray(destStack?.csLocale),
-          csLocale_keys: destStack?.csLocale && !Array.isArray(destStack?.csLocale) ? Object.keys(destStack.csLocale) : [],
-          selectedStack: destStack?.selectedStack
-        });
         
         const allLocales: { label: string; value: string }[] = Object?.entries(
           newMigrationData?.destination_stack?.csLocale ?? {}
@@ -1422,16 +1473,8 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           value: key
         }));
         
-        console.info('🔍 allLocales (from csLocale):', allLocales);
-        
         // 🔧 FIX: On page refresh, if sourceLocale is empty, extract from localeMapping
         const rawSourceLocale = newMigrationData?.destination_stack?.sourceLocale;
-        console.info('🔍 Raw sourceLocale from Redux:', {
-          rawSourceLocale,
-          isArray: Array.isArray(rawSourceLocale),
-          length: Array.isArray(rawSourceLocale) ? rawSourceLocale.length : 'N/A',
-          type: typeof rawSourceLocale
-        });
         
         let sourceLocale: { label: string; value: string }[] = Array.isArray(rawSourceLocale) && rawSourceLocale.length > 0
           ? rawSourceLocale.map((item) => ({
@@ -1440,38 +1483,27 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
             }))
           : [];
         
-        console.info('🔍 sourceLocale (mapped from Redux):', sourceLocale);
-        
         if (!sourceLocale || sourceLocale.length === 0) {
-          console.info('⚠️ sourceLocale is empty, attempting to extract from localeMapping...');
           // Extract source locales from existing locale mapping (values are source locales)
           const localeMapping = newMigrationData?.destination_stack?.localeMapping || {};
-          console.info('🔍 localeMapping:', localeMapping);
           
           const extractedSourceLocales = new Set<string>();
           
           Object.values(localeMapping).forEach((value: any) => {
-            console.info('🔍 Processing localeMapping value:', value);
             if (value && typeof value === 'string') {
               extractedSourceLocales.add(value);
             }
           });
-          
-          console.info('🔍 extractedSourceLocales Set:', Array.from(extractedSourceLocales));
           
           if (extractedSourceLocales.size > 0) {
             sourceLocale = Array.from(extractedSourceLocales).map(item => ({
               label: item,
               value: item
             }));
-            console.info('✅ Extracted source locales from locale mapping:', sourceLocale);
           } else {
             console.info('❌ No source locales could be extracted from locale mapping');
           }
         }
-        
-        console.info('🔍 Final sourceLocale to be set:', sourceLocale);
-        console.info('🔍 Final allLocales to be set:', allLocales);
         
         setsourceLocales(sourceLocale);
         setoptions(allLocales);
@@ -1479,26 +1511,11 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
         // Original logic for multiple locales or existing mappings
         const keys = Object?.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
         
-        console.info('🔍 Checking master locale key:', {
-          keys,
-          localeMappingLength: Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length,
-          currentStep: newMigrationData?.project_current_step,
-          willUpdateCmsLocaleOptions: (Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 || !keys) && newMigrationData?.project_current_step <= 2
-        });
-        
         // 🔧 FIX: On page refresh with existing mapping, populate cmsLocaleOptions from localeMapping
         const localeMapping = newMigrationData?.destination_stack?.localeMapping || {};
         const localeMappingEntries = Object?.entries(localeMapping);
         
-        console.info('🔍 [LoadLanguageMapper] localeMapping entries:', {
-          localeMappingEntries,
-          localeMappingEntries_length: localeMappingEntries?.length,
-          cmsLocaleOptions_length: cmsLocaleOptions?.length,
-          sourceLocale_length: sourceLocale?.length
-        });
-        
         if (localeMappingEntries?.length > 0 && cmsLocaleOptions?.length === 0) {
-          console.info('✅ Populating cmsLocaleOptions from existing localeMapping on refresh');
           const mappedOptions: { label: string; value: string }[] = [];
           const processedDestLocales = new Set<string>();
           
@@ -1507,13 +1524,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
             if (key.includes('-master_locale')) {
               const sourceLocaleValue = value as string; // The actual source locale, e.g., "en-us"
               const destLocale = (key.replace('-master_locale', '') || '').toLowerCase(); // Destination locale
-              
-              console.info('🔍 [LoadLanguageMapper] Master locale entry:', {
-                key,
-                destLocale,
-                sourceValue: sourceLocaleValue,
-                normalizedSourceValue: (sourceLocaleValue || '').toLowerCase()
-              });
               
               processedDestLocales.add(destLocale.toLowerCase()); // Add lowercase dest locale to set
               
@@ -1533,12 +1543,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
               const sourceLocaleValue = (value as string || '').toLowerCase();
               const destLocaleKey = normalizedKey; // Destination locale
               
-              console.info('🔍 [LoadLanguageMapper] Regular locale entry:', {
-                destLocaleKey,
-                sourceValue: sourceLocaleValue,
-                will_add: true
-              });
-              
               processedDestLocales.add(normalizedKey);
               
               // 🔧 CRITICAL FIX: label should be DESTINATION locale (the Contentstack locale)
@@ -1556,8 +1560,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
             }
           });
           
-          console.info('✅ cmsLocaleOptions populated:', mappedOptions);
-          console.info('✅ Source locales should show these values:', mappedOptions.map(o => o.value));
           setcmsLocaleOptions(mappedOptions);
         }
         
@@ -1716,15 +1718,6 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
     }));
     });
   };
-  
-  console.info('🔍 LanguageMapper - Rendering with state:', {
-    isLoading,
-    cmsLocaleOptions_length: cmsLocaleOptions?.length,
-    cmsLocaleOptions,
-    sourceLocales_length: sourceLocales?.length,
-    sourceLocales,
-    options_length: options?.length
-  });
   
   return (
     <div>

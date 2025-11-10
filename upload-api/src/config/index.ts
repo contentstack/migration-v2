@@ -2,8 +2,8 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: process.env.CMS_TYPE || 'contentful',
-  isLocalPath: true,
+  cmsType: process.env.CMS_TYPE || 'drupal',
+  isLocalPath: false,
   awsData: {
     awsRegion: 'us-east-2',
     awsAccessKeyId: '',
@@ -12,7 +12,7 @@ export default {
     bucketName: '',
     bucketKey: ''
   },
-  isSQL: false,
+  isSQL: true,
   mysql: {
     host: 'localhost',
     user: 'root',
