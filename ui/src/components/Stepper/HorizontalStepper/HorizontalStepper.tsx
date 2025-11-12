@@ -163,7 +163,7 @@ const HorizontalStepper = forwardRef(
         -1 < newMigrationData?.legacy_cms?.currentStep &&
         newMigrationData?.legacy_cms?.currentStep < 2
       ) {
-        showNotification(newMigrationData?.legacy_cms?.currentStep + 1);
+        // showNotification(newMigrationData?.legacy_cms?.currentStep + 1);
       } else if (
         newMigrationData?.destination_stack?.selectedStack === undefined ||
         newMigrationData?.destination_stack?.selectedStack === null ||
