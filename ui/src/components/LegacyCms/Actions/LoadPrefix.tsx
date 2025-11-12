@@ -30,6 +30,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
   const dispatch = useDispatch();
 
   const [prefix, setPrefix] = useState<string>(newMigrationData?.legacy_cms?.affix || 'cs');
+  const [prefix, setPrefix] = useState<string>(newMigrationData?.legacy_cms?.affix || 'cs');
 
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
