@@ -29,7 +29,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
 
   const dispatch = useDispatch();
 
-  const [prefix, setPrefix] = useState<string>(newMigrationData?.legacy_cms?.affix || '');
+  const [prefix, setPrefix] = useState<string>(newMigrationData?.legacy_cms?.affix || 'cs');
 
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -76,7 +76,6 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
             isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
           }
         };
-
         dispatch(updateNewMigrationData(newMigrationDataObj));
       } else {
         setPrefix(value);
@@ -93,7 +92,6 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         };
 
         dispatch(updateNewMigrationData(newMigrationDataObj));
-
         setIsError(false);
 
         //call for Step Change
@@ -101,17 +99,15 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         return;
       }
     } else {
-      setIsError(true);
-      setErrorMessage('Please enter Affix');
+      setIsError(false);
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         legacy_cms: {
           ...newMigrationData?.legacy_cms,
-          affix: value,
+          affix: 'cs',
           isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
         }
       };
-
       dispatch(updateNewMigrationData(newMigrationDataObj));
     }
   });
