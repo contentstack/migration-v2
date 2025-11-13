@@ -4,7 +4,10 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci \
+# Update CA certificates and install dependencies
+RUN apk add --no-cache ca-certificates \
+    && update-ca-certificates \
+    && npm ci \
     && addgroup -S nodeapp \
     && adduser -S nodeapp -G nodeapp
 

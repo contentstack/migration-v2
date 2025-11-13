@@ -4,7 +4,10 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm ci \
+# Temporarily disable SSL for npm install (DEV ONLY - NOT FOR PRODUCTION)
+RUN npm config set strict-ssl false \
+    && npm ci \
+    && npm config delete strict-ssl \
     && addgroup -S nodeapp \
     && adduser -S nodeapp -G nodeapp
 

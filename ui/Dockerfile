@@ -4,10 +4,10 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-# If you need extra packages, add them below. Otherwise, remove this line.
-# RUN apk add --no-cache <needed-packages>
-
-RUN npm ci \
+# Update CA certificates to fix SSL errors
+RUN apk add --no-cache ca-certificates \
+    && update-ca-certificates \
+    && npm ci \
     && addgroup -S nodeapp \
     && adduser -S nodeapp -G nodeapp
 
