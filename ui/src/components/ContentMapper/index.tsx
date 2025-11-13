@@ -2027,7 +2027,11 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         contentstackFieldType: row?.backupFieldType,
         contentstackField: row?.otherCmsField,
         contentstackFieldUid: row?.backupFieldUid,
-
+        advanced: {
+          validationRegex: row?.advanced?.initial?.validationRegex ?? '',
+          ...row?.advanced?.initial,
+        },
+        refrenceTo: []
       };
     });
     setTableData(updatedRows);
@@ -2106,8 +2110,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           setFilteredContentTypes(filteredCT);
           setContentTypes(resetContentTypes);
           setCount(filteredCT?.length);
-          
-          await fetchFields(selectedContentType?.id ?? '', searchText || '');
           
           Notification({
             notificationContent: { text: data?.message },

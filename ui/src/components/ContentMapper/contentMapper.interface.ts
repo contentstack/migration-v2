@@ -89,6 +89,7 @@ export interface Advanced {
   referenedItems?: string[];
   title?: string;
   url?: string;
+  initial?: Omit<Advanced, 'initial'>;
 }
 
 export interface ItemStatus {
