@@ -2028,10 +2028,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         contentstackField: row?.otherCmsField,
         contentstackFieldUid: row?.backupFieldUid,
         advanced: {
-          validationRegex: row?.advanced?.initial?.validationRegex ?? '',
           ...row?.advanced?.initial,
         },
-        refrenceTo: []
       };
     });
     setTableData(updatedRows);
