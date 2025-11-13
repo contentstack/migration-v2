@@ -71,7 +71,7 @@ export interface FieldMapType {
 }
 
 export interface Advanced {
-  validationRegex: string;
+  validationRegex?: string;
   mandatory?: boolean;
   multiple?: boolean;
   unique?: boolean;
