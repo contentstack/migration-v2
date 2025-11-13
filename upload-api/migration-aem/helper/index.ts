@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import read from 'fs-readdir-recursive';
 import { IReadFiles } from "./types/index.interface";
 import { MergeStrategy } from "./types/index.interface";
 import { v4 as uuidv4 } from "uuid";
@@ -241,13 +242,10 @@ export function findComponentByType(contentstackComponents: any, type: string, e
 export function countComponentTypes(component: any, result: Record<string, number> = {}) {
   if (!component || typeof component !== "object") return result;
 
-  // Check for ':type' at current level
-  const typeField = component[":type"]?.value;
-  if (typeField) {
-    result[typeField] = (result[typeField] || 0) + 1;
-  }
+  const t = component[":type"];
+  const typeField = typeof t === "string" ? t : t?.value;
+  if (typeField) result[typeField] = (result[typeField] || 0) + 1;
 
-  // Recursively check nested properties
   for (const key in component) {
     if (component[key] && typeof component[key] === "object") {
       countComponentTypes(component[key], result);
@@ -332,5 +330,79 @@ export function ensureField(
   );
   if (!found) {
     mainSchema.unshift(fieldConfig);
+  }
+}
+
+/**
+ * Helper function that recursively searches for carousel components and extracts item types
+ */
+function findCarouselsRecursive(obj: any, itemTypes: Set<string>): void {
+  if (!obj || typeof obj !== 'object') return;
+  
+  const typeValue = obj[':type'] || obj['type'];
+  const isCarousel = typeof typeValue === 'string' && typeValue.includes('carousel');
+  
+  if (isCarousel && obj[':items']) { 
+    // Get the items object
+    const items = obj[':items'];
+    
+    if (items && typeof items === 'object') {
+      // Iterate through each item in the carousel
+      for (const [key, value] of Object.entries(items)) {
+        if (value && typeof value === 'object') {
+          const itemType = (value as any)[':type'];
+          
+          if (itemType && typeof itemType === 'string') {
+            // Extract component name from path
+            const componentName = itemType.split('/').pop();
+            if (componentName) {
+              itemTypes.add(componentName);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Recursively search nested objects
+  if (Array.isArray(obj)) {
+    obj.forEach(item => findCarouselsRecursive(item, itemTypes));
+  } else {
+    Object.values(obj).forEach(value => findCarouselsRecursive(value, itemTypes));
+  }
+}
+
+/**
+ * Scans all JSON files to find all unique component types used in carousel items
+ * @param packagePath - Path to the AEM package
+ * @returns Set of all component types found in any carousel
+ */
+export async function scanAllCarouselItemTypes(packagePath: string): Promise<Set<string>> {
+  const carouselItemTypes = new Set<string>();
+  const filesDir = path.resolve(packagePath);
+  
+  try {
+    const allFiles = read(filesDir);
+    const jsonFiles = allFiles.filter(f => f.endsWith('.json'));
+    
+    for (const fileName of jsonFiles) {
+      const filePath = path.join(filesDir, fileName);
+      
+      try {
+        const content = await fs.promises.readFile(filePath, 'utf-8');
+        const data = JSON.parse(content);
+        
+        // Recursively search for carousel components
+        findCarouselsRecursive(data, carouselItemTypes);
+        
+      } catch (err) {
+        // Skip invalid JSON files
+        continue;
+      }
+    }
+    return carouselItemTypes;
+  } catch (err) {
+    console.error('❌ Error scanning carousel items:', err);
+    return carouselItemTypes;
   }
 }
