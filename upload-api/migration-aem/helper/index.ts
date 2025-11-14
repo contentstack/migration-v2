@@ -242,10 +242,12 @@ export function findComponentByType(contentstackComponents: any, type: string, e
 export function countComponentTypes(component: any, result: Record<string, number> = {}) {
   if (!component || typeof component !== "object") return result;
 
+  // Check for ':type' at current level
   const t = component[":type"];
   const typeField = typeof t === "string" ? t : t?.value;
   if (typeField) result[typeField] = (result[typeField] || 0) + 1;
 
+  // Recursively check nested properties
   for (const key in component) {
     if (component[key] && typeof component[key] === "object") {
       countComponentTypes(component[key], result);

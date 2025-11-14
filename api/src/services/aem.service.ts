@@ -42,6 +42,7 @@ interface FieldMapping {
 interface Project {
   master_locale?: object;
   locales?: object;
+  // add other properties as needed
 }
 
 interface ContentType {
@@ -91,35 +92,44 @@ interface AssetJSON {
 async function isAssetJsonCreated(assetJsonPath: string): Promise<boolean> {
   try {
     await fs.promises.access(assetJsonPath, fs.constants.F_OK);
-    return true;
+    return true; // File exists
   } catch {
-    return false;
+    return false; // File does not exist
   }
 }
 
+// Helper function to sanitize data and remove unwanted HTML tags and other chars
 function stripHtmlTags(html: string): string {
   if (!html || typeof html !== 'string') return '';
   
+  // Use JSDOM to parse and extract text content
   const dom = new JSDOM(html);
   const text = dom.window.document.body.textContent || '';
   
+  // Clean up extra whitespace and newlines
   return text.trim().replace(/\s+/g, ' ');
 }
 
+// Helper Function to extract value from items object based on the fieldName
 function getFieldValue(items: any, fieldName: string): any {
   if (!items || !fieldName) return undefined;
   
+  // Try exact match first
   if (items[fieldName] !== undefined) {
     return items[fieldName];
   }
   
+  // Try camelCase conversion (snake_case → camelCase)
+  // Handle both single letter and multiple letter segments
   const camelCaseFieldName = fieldName?.replace(/_([a-z]+)/gi, (_, letters) => {
+    // Capitalize first letter, keep rest as-is for acronyms
     return letters?.charAt(0)?.toUpperCase() + letters?.slice(1);
   });
   if (items[camelCaseFieldName] !== undefined) {
     return items[camelCaseFieldName];
   }
   
+  // Try all uppercase version for acronyms
   const acronymVersion = fieldName?.replace(/_([a-z]+)/gi, (_, letters) => {
     return letters?.toUpperCase();
   });
@@ -127,6 +137,7 @@ function getFieldValue(items: any, fieldName: string): any {
     return items[acronymVersion];
   }
   
+  // Try case-insensitive match as last resort
   const itemKeys = Object.keys(items);
   const matchedKey = itemKeys?.find(key => key.toLowerCase() === fieldName?.toLowerCase());
   if (matchedKey && items[matchedKey] !== undefined) {
@@ -146,6 +157,12 @@ function getActualFieldUid(uid: string, fieldUid: string): string {
   return uid;
 }
 
+/**
+ * Finds and returns the asset object from assetJsonData where assetPath matches the given string.
+ * @param assetJsonData - The asset JSON data object.
+ * @param assetPathToFind - The asset path string to match.
+ * @returns The matching AssetJSON object, or undefined if not found.
+ */
 function findAssetByPath(
   assetJsonData: Record<string, AssetJSON>,
   assetPathToFind: string
@@ -204,11 +221,11 @@ function slugify(text: unknown): string {
   if (typeof text !== 'string') return '';
   return text
     .toLowerCase()
-    .replace(/\|/g, '')
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/\|/g, '') // Remove pipe characters
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with a single hyphen
+    .replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
 }
 
 function addEntryToEntriesData(
@@ -226,6 +243,11 @@ function addEntryToEntriesData(
   entriesData[contentTypeUid][mappedLocale].push(entryObj);
 }
 
+/**
+ * Extracts the current locale from the given parseData object.
+ * @param parseData The parsed data object from the JSON file.
+ * @returns The locale string if found, otherwise undefined.
+ */
 function getCurrentLocale(parseData: any): string | undefined {
   if (parseData.language) {
     return parseData.language;
@@ -264,9 +286,12 @@ export function isImageType(path: string): boolean {
 
 export function isExperienceFragment(data: any) {
   if (data?.templateType && data[':type']) {
+    // Check templateType starts with 'xf-'
     const hasXfTemplate = data?.templateType?.startsWith('xf-');
+    // Check :type contains 'components/xfpage'
     const hasXfComponent = data[':type']?.includes('components/xfpage');
 
+    // Return analysis
     return {
       isXF: hasXfTemplate || hasXfComponent,
       confidence: (hasXfTemplate && hasXfComponent) ? 'high'
@@ -280,17 +305,31 @@ export function isExperienceFragment(data: any) {
   return null;
 }
 
+/**
+ * Ensures the assets directory exists.
+ * If it does not exist, creates it recursively.
+ * @param assetsSave The path to the assets directory.
+ */
 async function ensureAssetsDirectory(assetsSave: string): Promise<void> {
   const fullPath = path.join(process.cwd(), assetsSave);
   try {
     await fs.promises.access(fullPath);
+    // Directory exists, log it
     console.info(`Directory exists: ${fullPath}`);
   } catch (err) {
     await fs.promises.mkdir(fullPath, { recursive: true });
+    // Directory created, log it
     console.info(`Directory created: ${fullPath}`);
   }
 }
 
+
+/**
+ * Fetch files from a directory based on a query.
+ * @param dirPath - The directory to search in.
+ * @param query - The query string (filename, extension, or regex).
+ * @returns Array of matching file paths.
+ */
 export async function fetchFilesByQuery(
   dirPath: string,
   query: string | RegExp
@@ -339,11 +378,12 @@ const createAssets = async ({
   await ensureAssetsDirectory(assetsSave);
   const assetsDir = path.resolve(packagePath);
   
-  const allAssetJSON: Record<string, AssetJSON> = {};
-  const pathToUidMap: Record<string, string> = {};
+  const allAssetJSON: Record<string, AssetJSON> = {}; // UID-based index.json
+  const pathToUidMap: Record<string, string> = {}; // Path to UID mapping
   const seenFilenames = new Map<string, { uid: string; metadata: any; blobPath: string }>();
   const pathToFilenameMap = new Map<string, string>();
   
+  // Discover assets and deduplicate by filename
   for await (const fileName of read(assetsDir)) {
     const filePath = path.join(assetsDir, fileName);
     if (filePath?.startsWith?.(damPath)) {
@@ -367,9 +407,9 @@ const createAssets = async ({
                 if (typeof contentAst === 'string') {
                   const parseData = JSON.parse(contentAst);
                   const filename = parseData?.asset?.name;
-                  
+                  // Store mapping from this AEM path to filename
                   pathToFilenameMap.set(value, filename);
-                  
+                  // Only create asset ONCE per unique filename
                   if (!seenFilenames?.has(filename)) {
                     const uid = uuidv4?.()?.replace?.(/-/g, '');
                     const blobPath = firstJson?.replace?.('.metadata.json', '');
@@ -391,6 +431,7 @@ const createAssets = async ({
     }
   }
   
+  // Create physical asset files (one per unique filename)
   for (const [filename, assetInfo] of seenFilenames?.entries()) {
     const { uid, metadata, blobPath } = assetInfo;
     const nameWithoutExt = typeof filename === 'string'
@@ -426,19 +467,23 @@ const createAssets = async ({
     }
   }
 
+  // Track first path for each asset and build mappings
   const assetFirstPath = new Map<string, string>();
 
+  // Build path-to-UID mapping (ALL paths map to the SAME deduplicated UID)
   for (const [aemPath, filename] of pathToFilenameMap.entries()) {
     const assetInfo = seenFilenames?.get(filename);
     if (assetInfo) {
       pathToUidMap[aemPath] = assetInfo.uid;
 
+      // Track first path for index.json
       if (!assetFirstPath.has(assetInfo.uid)) {
         assetFirstPath.set(assetInfo.uid, aemPath);
       }
     }
   }
 
+  // Create UID-based index.json
   for (const [filename, assetInfo] of seenFilenames?.entries()) {
     const { uid, metadata } = assetInfo;
     const nameWithoutExt = typeof filename === 'string'
@@ -463,17 +508,20 @@ const createAssets = async ({
     };
   }
 
+  // Write files
   const fileMeta = { '1': ASSETS_SCHEMA_FILE };
   await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, ASSETS_FILE_NAME),
     JSON.stringify(fileMeta)
   );
 
+  // index.json - UID-based
   await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, ASSETS_SCHEMA_FILE),
     JSON.stringify(allAssetJSON, null, 2)
   );
 
+  // path-mapping.json - For entry transformation
   await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, 'path-mapping.json'),
     JSON.stringify(pathToUidMap, null, 2)
@@ -1068,7 +1116,7 @@ function processFieldsRecursive(
         break;
       }
       default: {
-        console.info("Unhandled field type:", field?.uid, field?.contentstackFieldType);
+        console.info("🚀 ~ processFieldsRecursive ~ childItems", field?.uid, field?.contentstackFieldType);
         break;
       }
     }
@@ -1108,6 +1156,7 @@ const createEntry = async ({
   let pathToUidMap: Record<string, string> = {};
   let assetDetailsMap: Record<string, AssetJSON> = {};
 
+  // Load path-to-UID mapping
   try {
     const mappingData = await fs.promises.readFile(pathMappingFile, 'utf-8');
     pathToUidMap = JSON.parse(mappingData);
@@ -1115,6 +1164,7 @@ const createEntry = async ({
     console.warn('path-mapping.json not found, assets will not be attached');
   }
 
+  // Load full asset details from index.json
   try {
     const assetIndexData = await fs.promises.readFile(assetIndexFile, 'utf-8');
     assetDetailsMap = JSON.parse(assetIndexData);
@@ -1128,6 +1178,7 @@ const createEntry = async ({
   const allLocales: object = { ...project?.master_locale, ...project?.locales };
   const entryMapping: Record<string, string[]> = {};
 
+  // Process each entry file
   for await (const fileName of read(entriesDir)) {
     const filePath = path.join(entriesDir, fileName);
     if (filePath?.startsWith?.(damPath)) {
