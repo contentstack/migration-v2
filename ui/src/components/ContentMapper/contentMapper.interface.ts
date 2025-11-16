@@ -71,7 +71,7 @@ export interface FieldMapType {
 }
 
 export interface Advanced {
-  validationRegex: string;
+  validationRegex?: string;
   mandatory?: boolean;
   multiple?: boolean;
   unique?: boolean;
@@ -96,6 +96,7 @@ export interface Advanced {
     multiple?: boolean;
     non_localizable?: boolean;
   }>; // Taxonomy UIDs from upload-api
+  initial?: Omit<Advanced, 'initial'>;
 }
 
 export interface ItemStatus {

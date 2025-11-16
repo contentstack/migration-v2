@@ -69,6 +69,7 @@ const extractLocale = async (jsonFilePath) => {
           }
 
           uniqueLanguages.add(normalizedCode);
+          // uniqueLanguages.add(locale?.code?.toLowerCase()); // Normalize to lowercase
         }
       });
     } else {
