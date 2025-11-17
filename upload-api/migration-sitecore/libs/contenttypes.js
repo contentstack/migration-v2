@@ -334,17 +334,18 @@ const ContentTypeSchema = ({
       };
     }
     default: {
-      return {
-        id,
-        uid: sitecoreKey,
-        otherCmsField: name,
-        otherCmsType: type,
-        contentstackField: name,
-        contentstackFieldUid: uidCorrector({ uid }),
-        contentstackFieldType: 'reference',
-        backupFieldUid: uid,
-        backupFieldType: 'reference'
-      };
+      return null;
+      // return {
+      //   id,
+      //   uid: sitecoreKey,
+      //   otherCmsField: name,
+      //   otherCmsType: type,
+      //   contentstackField: name,
+      //   contentstackFieldUid: uidCorrector({ uid }),
+      //   contentstackFieldType: 'reference',
+      //   backupFieldUid: uid,
+      //   backupFieldType: 'reference'
+      // };
     }
   }
 };
@@ -352,29 +353,43 @@ const ContentTypeSchema = ({
 function makeUnique({ data }) {
   const newData = data;
   let tempMapping = {};
+
   if (newData?.[0]?.key) {
     newData?.forEach((choice) => {
       if (choice?.key) {
         if (!tempMapping?.[choice?.value]) {
-          tempMapping[choice?.value] = [];
+          tempMapping[choice?.value] = {
+            keys: [],
+            uids: []
+          };
         }
-        tempMapping[choice?.value].push(choice?.key);
+        tempMapping[choice?.value].keys.push(choice?.key);
+        if (choice?.uid) {
+          tempMapping[choice?.value].uids.push(choice?.uid);
+        }
       }
     });
-    const result = Object?.entries(tempMapping).map(([value, keys]) => {
+
+    const result = Object?.entries(tempMapping).map(([value, data]) => {
       return {
-        key: keys?.join('/'),
-        value: value
+        key: data.keys?.join('/'),
+        value: value,
+        uid: data.uids?.join('/') || undefined
       };
     });
+
     const newValue = [];
     result?.forEach((item) => {
-      if (item?.key === undefined) {
-        newValue?.push({ ...item, key: item?.value });
-      } else {
-        newValue?.push(item);
+      const newItem = {
+        key: item?.key === undefined ? item?.value : item?.key,
+        value: item?.value
+      };
+      if (item?.uid) {
+        newItem.uid = item.uid;
       }
+      newValue?.push(newItem);
     });
+
     return newValue;
   } else {
     let uniqueValues = [];
@@ -386,16 +401,26 @@ function makeUnique({ data }) {
         return true;
       }
     });
+
     const newValue = [];
     result?.forEach((item) => {
-      if (item?.key === undefined) {
-        newValue?.push({ ...item, key: item?.value });
-      } else {
-        newValue?.push(item);
+      const newItem = {
+        key: item?.key === undefined ? item?.value : item?.key,
+        value: item?.value
+      };
+      if (item?.uid) {
+        newItem.uid = item.uid;
       }
+      newValue?.push(newItem);
     });
+
     return newValue;
   }
+}
+
+function findValueByKey(fields, searchKey) {
+  const field = fields.find(f => f.$?.key === searchKey);
+  return field?.content || null;
 }
 
 const groupFlat = (data, item) => {
@@ -506,6 +531,46 @@ const contentTypeMapper = ({
                     advanced = false; // 🔧 FIX: Set dropdown advanced to false
                   }
                 }
+              }
+              const sourcePaths = read(
+                path?.join?.(
+                  sitecore_folder,
+                  'master',
+                  item?.content?.replace?.('Datasource=', '')?.replace?.('Interest', 'interest')
+                )
+              );
+              if (sourcePaths?.length) {
+                const optionsArray = [];
+                let ctDataUid = null;
+                for (const pth of sourcePaths) {
+                  if (pth?.endsWith?.('data.json')) {
+                    const fileData = helper?.readFile?.(
+                      path?.join?.(sitecore_folder, 'master', item?.content?.replace?.('Datasource=', '')?.replace?.('Interest', 'interest'), pth)
+                    );
+                    const fields = fileData?.item?.fields?.field || [];
+                    const key = findValueByKey(fields, "key");
+                    const value = findValueByKey(fields, "value");
+                    if (key && value) {
+                      optionsArray?.push({ key, value, uid: fileData?.item?.$?.id });
+                    } else {
+                      if (pth?.startsWith?.('{') && pth?.endsWith?.('data.json')) {
+                        ctDataUid = fileData?.item?.$?.template
+                      }
+                    }
+                  }
+                }
+                if (optionsArray?.length === 0) {
+                  contentTypeKeyMapper({
+                    template: { id: content_type?.contentstackUid },
+                    contentType: { uid: { name, uid: field?.key, unique: [ctDataUid] } },
+                    contentTypeKey: 'treeListRef'
+                  });
+                } else {
+                  sourceType = makeUnique({ data: optionsArray });
+                  compType.content = 'Droplist';
+                }
+              } else {
+                console.info('No paths found for source:', item?.content);
               }
             } else {
               if (source) {

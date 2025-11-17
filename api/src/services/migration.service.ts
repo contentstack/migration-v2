@@ -461,11 +461,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
-    if (cms !== CMS.AEM) {
-      await testFolderCreator?.({
-        destinationStackId: project?.current_test_stack_id,
-      });
-    }
+    // if (cms !== CMS.AEM) {
+    //   await testFolderCreator?.({
+    //     destinationStackId: project?.current_test_stack_id,
+    //   });
+    // }
     await utilsCli?.runCli(
       region,
       user_id,
@@ -716,7 +716,7 @@ const startMigration = async (req: Request): Promise<any> => {
         );
         break;
       }
-      
+
       default:
         break;
     }

@@ -312,8 +312,7 @@ const createEntry = async ({
     for await (const ctType of contentTypes) {
       const message = getLogMessage(
         srcFunc,
-        `Transforming entries of Content Type ${
-          keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
+        `Transforming entries of Content Type ${keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
         } has begun.`,
         {}
       );
@@ -395,9 +394,8 @@ const createEntry = async ({
                   entryLocale[uid] = unflatten(entryObj) ?? {};
                   const message = getLogMessage(
                     srcFunc,
-                    `Entry title "${entryObj?.title}"(${
-                      keyMapper?.[ctType?.contentstackUid] ??
-                      ctType?.contentstackUid
+                    `Entry title "${entryObj?.title}"(${keyMapper?.[ctType?.contentstackUid] ??
+                    ctType?.contentstackUid
                     }) in the ${newLocale} locale has been successfully transformed.`,
                     {}
                   );
@@ -413,7 +411,7 @@ const createEntry = async ({
           );
           const mapperCt: string =
             keyMapper?.[ctType?.contentstackUid] !== '' &&
-            keyMapper?.[ctType?.contentstackUid] !== undefined
+              keyMapper?.[ctType?.contentstackUid] !== undefined
               ? keyMapper?.[ctType?.contentstackUid]
               : ctType?.contentstackUid;
           const fileMeta = { '1': `${newLocale}.json` };
@@ -428,8 +426,7 @@ const createEntry = async ({
       } else {
         const message = getLogMessage(
           srcFunc,
-          `No entries found for the content type ${
-            keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
+          `No entries found for the content type ${keyMapper?.[ctType?.contentstackUid] ?? ctType?.contentstackUid
           }.`,
           {}
         );
@@ -490,7 +487,6 @@ const createLocale = async (
           {}
         );
         await customLogger(projectId, destinationStackId, 'info', message);
-      } else {
       }
     }
 
