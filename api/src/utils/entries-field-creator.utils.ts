@@ -202,7 +202,12 @@ export const entriesFieldCreator = async ({
 
     case 'dropdown': {
       const isOptionPresent = field?.advanced?.options?.find(
-        (ops: any) => ops?.key === content || ops?.value === content
+        (ops: any) =>
+          ops?.key === content ||
+          ops?.value === content ||
+          ops?.uid === content ||
+          // Check if content matches any part of a compound uid (format: {guid}/{guid})
+          (ops?.uid && ops?.uid.includes('/') && ops?.uid.split('/').includes(content))
       );
       if (isOptionPresent) {
         if (field?.advanced?.Multiple) {
@@ -248,7 +253,7 @@ export const entriesFieldCreator = async ({
           });
           return allAssetJSON?.[assetUid] ?? null;
         } else {
-          console.info('more', item?.attrs);
+          console.info('File not found', item?.attrs);
         }
       }
       return null;
@@ -275,6 +280,7 @@ export const entriesFieldCreator = async ({
     }
 
     case 'reference': {
+      console.info("=====", content, field?.refrenceTo)
       const refs: any = [];
       if (field?.refrenceTo?.length) {
         field?.refrenceTo?.forEach((entry: any) => {
@@ -373,8 +379,7 @@ export const entriesFieldCreator = async ({
         // Check if the date is valid
         if (!dayjsDate.isValid()) {
           console.warn(
-            `Invalid date format for field: ${
-              field?.contentstackFieldUid || 'unknown'
+            `Invalid date format for field: ${field?.contentstackFieldUid || 'unknown'
             }, value: ${content}`
           );
           return null;
@@ -383,8 +388,7 @@ export const entriesFieldCreator = async ({
         return dayjsDate.toISOString();
       } catch (error) {
         console.error(
-          `Error converting date for field: ${
-            field?.contentstackFieldUid || 'unknown'
+          `Error converting date for field: ${field?.contentstackFieldUid || 'unknown'
           }, value: ${content}`,
           error
         );
