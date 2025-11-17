@@ -89,6 +89,12 @@ interface AssetJSON {
   _version?: number;
 }
 
+
+/**
+ * 
+ * @param assetJsonPath - The path to the asset JSON file.
+ * @returns True if the asset JSON file exists, false otherwise.
+ */
 async function isAssetJsonCreated(assetJsonPath: string): Promise<boolean> {
   try {
     await fs.promises.access(assetJsonPath, fs.constants.F_OK);
@@ -366,6 +372,18 @@ function uidCorrector(str: string): string {
 
 declare const contentstackComponents: Record<string, any> | undefined;
 
+/**
+ * Function to create assets for the given destination stack.
+ * @param destinationStackId - The ID of the destination stack.
+ * @param projectId - The ID of the project.
+ * @param packagePath - The path to the package.
+ * @returns void - The function does not return a value.
+ * @description - This function creates the assets for the given destination stack.
+ * The assets are created in the following files:
+ * - index.json - The asset index.
+ * - path-mapping.json - The path to UID mapping.
+ * @throws Will log an error if the assets are not created.
+ */
 const createAssets = async ({
   destinationStackId,
   projectId,
@@ -528,6 +546,33 @@ const createAssets = async ({
   );
 };
 
+/**
+ * 
+ * @param fields - The fields object.
+ * @param items - The items object.
+ * @param title - The title of the entry.
+ * @param pathToUidMap - The path to UID map.
+ * @param assetDetailsMap - The asset details map.
+ * @returns The processed fields object.
+ * @description - This function processes the fields recursively.
+ * The fields are processed in the following order:
+ * - Modular blocks
+ * - Group
+ * - Container
+ * - Single line text
+ * - Multiple line text
+ * - Rich text
+ * - Date
+ * - Number
+ * - Boolean
+ * - Image
+ * - Video
+ * - Audio
+ * - Link
+ * - Embed
+ * - Custom
+ * @throws Will log an error if the fields are not processed.
+ */
 function processFieldsRecursive(
   fields: any[],
   items: any,
@@ -1139,6 +1184,20 @@ const getTitle = (parseData: any) => {
   return parseData?.title ?? parseData?.templateType;
 }
 
+
+/**
+ * 
+ * @param packagePath - The path to the package.
+ * @param contentTypes - The content types.
+ * @param destinationStackId - The ID of the destination stack.
+ * @param projectId - The ID of the project.
+ * @param project - The project object.
+ * @returns void - The function does not return a value.
+ * @description - This function creates the entry for the given destination stack.
+ * The entry is created in the following files:
+ * - index.json - The entry index.
+ * @throws Will log an error if the entry is not created.
+ */
 const createEntry = async ({
   packagePath,
   contentTypes,
@@ -1254,6 +1313,20 @@ const createEntry = async ({
   }
 }
 
+/**
+ * 
+ * @param req - The request object.
+ * @param destinationStackId - The ID of the destination stack.
+ * @param projectId - The ID of the project.
+ * @param project - The project object.
+ * @returns void - The function does not return a value.
+ * @description - This function creates the locales for the given destination stack.
+ * The locales are created in the following files:
+ * - locale.json - The master locale.
+ * - allLocales.json - All the locales.
+ * @throws Will log an error if the file writing operation fails.
+ * @throws Will log an error if the locales are not created.
+ */
 const createLocale = async (
   req: Request,
   destinationStackId: string,
@@ -1328,6 +1401,16 @@ const createLocale = async (
   }
 };
 
+/**
+ * 
+ * @param destinationStackId - The ID of the destination stack.
+ * @returns void - The function does not return a value.
+ * @description - This function creates a version file for the given destination stack.
+ * The version file contains the following information:
+ * - contentVersion: The version of the content schema (set to `2`).
+ * - logsPath: An empty string reserved for future log path information.
+ * @throws Will log an error if the file writing operation fails.
+ */
 const createVersionFile = async (destinationStackId: string) => {
   const baseDir = path.join(baseDirName, destinationStackId);
   fs.writeFile(
