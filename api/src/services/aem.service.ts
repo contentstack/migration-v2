@@ -1,3 +1,6 @@
+/* eslint-disable no-inner-declarations */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-unsafe-optional-chaining */
 import fs from 'fs';
 import path from 'path';
 import read from 'fs-readdir-recursive';
@@ -86,6 +89,12 @@ interface AssetJSON {
   _version?: number;
 }
 
+
+/**
+ * 
+ * @param assetJsonPath - The path to the asset JSON file.
+ * @returns True if the asset JSON file exists, false otherwise.
+ */
 async function isAssetJsonCreated(assetJsonPath: string): Promise<boolean> {
   try {
     await fs.promises.access(assetJsonPath, fs.constants.F_OK);
@@ -143,7 +152,6 @@ function getFieldValue(items: any, fieldName: string): any {
   
   return undefined;
 }
-
 
 function getActualFieldUid(uid: string, fieldUid: string): string {
   if (RESERVED_FIELD_MAPPINGS[uid]) {
@@ -219,11 +227,11 @@ function slugify(text: unknown): string {
   if (typeof text !== 'string') return '';
   return text
     .toLowerCase()
-    .replace(/\|/g, '')           // Remove pipe characters
-    .replace(/[^\w\s-]/g, '')     // Remove non-word, non-space, non-hyphen chars
-    .replace(/\s+/g, '-')         // Replace spaces with hyphens
-    .replace(/-+/g, '-')          // Replace multiple hyphens with one
-    .replace(/^-+|-+$/g, '');     // Trim leading/trailing hyphens
+    .replace(/\|/g, '') // Remove pipe characters
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with a single hyphen
+    .replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
 }
 
 function addEntryToEntriesData(
@@ -260,7 +268,6 @@ function getLocaleFromMapper(mapper: Record<string, string>, locale: string): st
   return Object.keys(mapper).find(key => mapper[key] === locale);
 }
 
-
 const deepFlattenObject = (obj: any, prefix = '', res: any = {}) => {
   if (Array.isArray(obj) || (obj && typeof obj === 'object')) {
     const entries = Array.isArray(obj) ? obj.map((v, i) => [i, v])
@@ -287,7 +294,6 @@ export function isExperienceFragment(data: any) {
   if (data?.templateType && data[':type']) {
     // Check templateType starts with 'xf-'
     const hasXfTemplate = data?.templateType?.startsWith('xf-');
-
     // Check :type contains 'components/xfpage'
     const hasXfComponent = data[':type']?.includes('components/xfpage');
 
@@ -305,21 +311,20 @@ export function isExperienceFragment(data: any) {
   return null;
 }
 
-
 /**
- * Ensures the directory exists at the given path.
+ * Ensures the assets directory exists.
  * If it does not exist, creates it recursively.
- * @param assetsSave - The relative path to the assets directory.
+ * @param assetsSave The path to the assets directory.
  */
 async function ensureAssetsDirectory(assetsSave: string): Promise<void> {
   const fullPath = path.join(process.cwd(), assetsSave);
   try {
     await fs.promises.access(fullPath);
-    // Directory exists
+    // Directory exists, log it
     console.info(`Directory exists: ${fullPath}`);
   } catch (err) {
-    // Directory does not exist, create it
     await fs.promises.mkdir(fullPath, { recursive: true });
+    // Directory created, log it
     console.info(`Directory created: ${fullPath}`);
   }
 }
@@ -361,8 +366,24 @@ function addUidToEntryMapping(
   entryMapping[contentType.contentstackUid].push(uid);
 }
 
+function uidCorrector(str: string): string {
+  return str?.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+}
 
+declare const contentstackComponents: Record<string, any> | undefined;
 
+/**
+ * Function to create assets for the given destination stack.
+ * @param destinationStackId - The ID of the destination stack.
+ * @param projectId - The ID of the project.
+ * @param packagePath - The path to the package.
+ * @returns void - The function does not return a value.
+ * @description - This function creates the assets for the given destination stack.
+ * The assets are created in the following files:
+ * - index.json - The asset index.
+ * - path-mapping.json - The path to UID mapping.
+ * @throws Will log an error if the assets are not created.
+ */
 const createAssets = async ({
   destinationStackId,
   projectId,
@@ -376,7 +397,7 @@ const createAssets = async ({
   const assetsDir = path.resolve(packagePath);
   
   const allAssetJSON: Record<string, AssetJSON> = {}; // UID-based index.json
-  const pathToUidMap: Record<string, string> = {}; // Path-to-UID mapping
+  const pathToUidMap: Record<string, string> = {}; // Path to UID mapping
   const seenFilenames = new Map<string, { uid: string; metadata: any; blobPath: string }>();
   const pathToFilenameMap = new Map<string, string>();
   
@@ -404,10 +425,8 @@ const createAssets = async ({
                 if (typeof contentAst === 'string') {
                   const parseData = JSON.parse(contentAst);
                   const filename = parseData?.asset?.name;
-                  
                   // Store mapping from this AEM path to filename
                   pathToFilenameMap.set(value, filename);
-                  
                   // Only create asset ONCE per unique filename
                   if (!seenFilenames?.has(filename)) {
                     const uid = uuidv4?.()?.replace?.(/-/g, '');
@@ -418,8 +437,6 @@ const createAssets = async ({
                       metadata: parseData,
                       blobPath
                     });
-                  } else {
-                    console.info(`Reusing asset: ${filename} → ${seenFilenames?.get(filename)?.uid}`);
                   }
                 }
               }
@@ -435,10 +452,10 @@ const createAssets = async ({
   // Create physical asset files (one per unique filename)
   for (const [filename, assetInfo] of seenFilenames?.entries()) {
     const { uid, metadata, blobPath } = assetInfo;
-    const nameWithoutExt = typeof filename === 'string' 
-      ? filename.split('.').slice(0, -1).join('.') 
+    const nameWithoutExt = typeof filename === 'string'
+      ? filename.split('.').slice(0, -1).join('.')
       : filename;
-    
+
     try {
       const assets = fs.readFileSync(path.join(blobPath));
       fs.mkdirSync(path.join(assetsSave, 'files', uid), {
@@ -448,14 +465,14 @@ const createAssets = async ({
         path.join(process.cwd(), assetsSave, 'files', uid, filename),
         assets
       );
-      
+
       const message = getLogMessage(
         srcFunc,
         `Asset "${filename}" has been successfully transformed.`,
         {}
       );
       await customLogger(projectId, destinationStackId, 'info', message);
-      
+
     } catch (err) {
       console.error(`Failed to create asset: ${filename}`, err);
       const message = getLogMessage(
@@ -467,30 +484,30 @@ const createAssets = async ({
       await customLogger(projectId, destinationStackId, 'error', message);
     }
   }
-  
+
   // Track first path for each asset and build mappings
   const assetFirstPath = new Map<string, string>();
-  
+
   // Build path-to-UID mapping (ALL paths map to the SAME deduplicated UID)
   for (const [aemPath, filename] of pathToFilenameMap.entries()) {
     const assetInfo = seenFilenames?.get(filename);
     if (assetInfo) {
       pathToUidMap[aemPath] = assetInfo.uid;
-      
+
       // Track first path for index.json
       if (!assetFirstPath.has(assetInfo.uid)) {
         assetFirstPath.set(assetInfo.uid, aemPath);
       }
     }
   }
-  
+
   // Create UID-based index.json
   for (const [filename, assetInfo] of seenFilenames?.entries()) {
     const { uid, metadata } = assetInfo;
-    const nameWithoutExt = typeof filename === 'string' 
-      ? filename?.split('.').slice(0, -1).join('.') 
+    const nameWithoutExt = typeof filename === 'string'
+      ? filename?.split('.').slice(0, -1).join('.')
       : filename;
-    
+
     allAssetJSON[uid] = {
       urlPath: `/assets/${uid}`,
       uid: uid,
@@ -515,13 +532,13 @@ const createAssets = async ({
     path.join(process.cwd(), assetsSave, ASSETS_FILE_NAME),
     JSON.stringify(fileMeta)
   );
-  
+
   // index.json - UID-based
   await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, ASSETS_SCHEMA_FILE),
     JSON.stringify(allAssetJSON, null, 2)
   );
-  
+
   // path-mapping.json - For entry transformation
   await fs.promises.writeFile(
     path.join(process.cwd(), assetsSave, 'path-mapping.json'),
@@ -529,17 +546,44 @@ const createAssets = async ({
   );
 };
 
+/**
+ * 
+ * @param fields - The fields object.
+ * @param items - The items object.
+ * @param title - The title of the entry.
+ * @param pathToUidMap - The path to UID map.
+ * @param assetDetailsMap - The asset details map.
+ * @returns The processed fields object.
+ * @description - This function processes the fields recursively.
+ * The fields are processed in the following order:
+ * - Modular blocks
+ * - Group
+ * - Container
+ * - Single line text
+ * - Multiple line text
+ * - Rich text
+ * - Date
+ * - Number
+ * - Boolean
+ * - Image
+ * - Video
+ * - Audio
+ * - Link
+ * - Embed
+ * - Custom
+ * @throws Will log an error if the fields are not processed.
+ */
 function processFieldsRecursive(
-  fields: any[], 
-  items: any, 
-  title: string, 
+  fields: any[],
+  items: any,
+  title: string,
   pathToUidMap: Record<string, string>,
   assetDetailsMap: Record<string, AssetJSON>
 ) {
   if (!fields) return;
   const obj: any = {};
   const data: any = [];
-  
+
   for (const field of fields) {
     switch (field?.contentstackFieldType) {
       case 'modular_blocks': {
@@ -552,58 +596,304 @@ function processFieldsRecursive(
         }
         break;
       }
-      
+
       case 'modular_blocks_child': {
-        for (const [, value] of Object.entries(items)) {
-          const objData: any = {};
-          const typeValue = (value as { [key: string]: string })[':type'];
+        const list: any[] = (() => {
+          if (Array.isArray(items)) return items;
+          const order = Array.isArray(items?.[':itemsOrder']) ? items[':itemsOrder'] : null;
+          const map = items?.[':items'] || items;
+          if (order && map) return order.map((k: string) => map?.[k]).filter(Boolean);
+          return Object.values(map || {});
+        })();
+
+        const uid = getLastKey(field?.contentstackFieldUid);
+        const blockTypeUid = field?.uid;
+
+        for (const value of list) {
+          if (!value || typeof value !== 'object') continue;
+          const typeValue = (value as any)[':type'] || '';
           const getTypeComp = getLastKey(typeValue, '/');
-          const uid = getLastKey(field?.contentstackFieldUid);
-          if (getTypeComp === field?.uid) {
-            const compValue = processFieldsRecursive(field.schema, value, title, pathToUidMap, assetDetailsMap);
-            if (Object?.keys?.(compValue)?.length) {
-              objData[uid] = compValue;
-              data?.push(objData);
+          if (getTypeComp !== blockTypeUid) continue;
+
+          const compValue = processFieldsRecursive(field.schema, value, title, pathToUidMap, assetDetailsMap);
+          if (compValue && Object.keys(compValue).length) {
+            const objData: any = {};
+            objData[uid] = compValue;
+            data.push(objData);
+          }
+        }
+        break;
+      }
+
+      case 'group': {
+        const uid = getLastKey(field?.contentstackFieldUid);
+      
+        const isMultiple =
+          (field?.multiple === true) ||
+          (field?.advanced && field.advanced.multiple === true) ||
+          (field?.maxInstance && field.maxInstance > 1);
+      
+        const isCarouselItems =
+          uid === 'items' &&
+          items?.[':items'] &&
+          items?.[':itemsOrder'];
+      
+        const carouselPreferredTypeHint =
+          (items && (items['activeItem'] || items['active_item'])) ||
+          (items && items[':type'] && String(items[':type']).split('/').pop()) ||
+          null;
+      
+        let groupValue;
+        if (isCarouselItems) {
+          groupValue = items;
+        } else {
+          groupValue = items?.[field?.uid]?.items ?? items?.[field?.uid];
+        }
+      
+        if (isMultiple) {
+          const groupData: any[] = [];
+      
+          if (isCarouselItems) {
+            const order = items[':itemsOrder'] as string[];
+            const map = items[':items'] as Record<string, any>;
+            if (!Array.isArray(order) || !map) {
+              obj[uid] = groupData;
+              break;
+            }
+      
+            const childSchemasByUid = new Map<string, any>();
+            if (Array.isArray(field?.schema)) {
+              for (const child of field.schema) {
+                const childUid = getLastKey(child?.contentstackFieldUid) || child?.uid;
+                if (childUid) childSchemasByUid.set(childUid, child);
+                if (child?.title) childSchemasByUid.set(uidCorrector(child.title), child);
+              }
+            }
+      
+            const globalCanonical = (typeof contentstackComponents !== 'undefined' && contentstackComponents) ? contentstackComponents : null;
+            const canonicalTeaserFromGlobal = globalCanonical && (globalCanonical['teaser'] || globalCanonical['Teaser'] || globalCanonical[uidCorrector('teaser')]) || null;
+      
+            function buildMinimalSchemaFromSlide(slide: any = {}, hintSchema: any = null) {
+              const fields: any[] = [];
+      
+              if (hintSchema && typeof hintSchema === 'object') {
+                const candidateKeys = Object.keys(hintSchema).filter(k => !k.startsWith(':') && k !== 'id' && k !== 'dataLayer').slice(0, 12);
+                for (const k of candidateKeys) {
+                  fields.push({ uid: k, contentstackFieldUid: k, contentstackFieldType: 'single_line_text' });
+                }
+                if (fields.length) return fields;
+              }
+      
+              if (slide?.title || slide?.titleType) fields.push({ uid: 'title', contentstackFieldUid: 'title', contentstackFieldType: 'single_line_text' });
+              if (slide?.description) fields.push({ uid: 'description', contentstackFieldUid: 'description', contentstackFieldType: 'single_line_text' });
+              if (slide?.imagePath || slide?.src || slide?.image) {
+                fields.push({ uid: 'src', contentstackFieldUid: 'src', contentstackFieldType: 'file' });
+                fields.push({ uid: 'alt', contentstackFieldUid: 'alt', contentstackFieldType: 'single_line_text' });
+              }
+              if (slide?.linkURL || slide?.actions) fields.push({ uid: 'linkURL', contentstackFieldUid: 'linkURL', contentstackFieldType: 'single_line_text' });
+      
+              if (fields.length === 0) fields.push({ uid: 'content', contentstackFieldUid: 'content', contentstackFieldType: 'single_line_text' });
+      
+              return fields;
+            }
+      
+            function findSchemaCandidate(candidateKey: string | null) {
+              if (!candidateKey) return null;
+              const cand = String(candidateKey);
+              const variants = [
+                cand,
+                cand.toLowerCase(),
+                uidCorrector(cand),
+                cand.replace(/[^a-zA-Z0-9]/g, ''),
+                cand.split('_')[0],
+                cand.split('-')[0]
+              ];
+              for (const v of variants) {
+                if (childSchemasByUid.has(v)) return childSchemasByUid.get(v);
+              }
+              return null;
+            }
+      
+            const preferredHint = carouselPreferredTypeHint ? String(carouselPreferredTypeHint).split('/').pop() : null;
+      
+            if (!childSchemasByUid.has('teaser') && canonicalTeaserFromGlobal) {
+              childSchemasByUid.set('teaser', canonicalTeaserFromGlobal);
+            }
+      
+            for (const key of order) {
+              const slide = map?.[key];
+              if (!slide || typeof slide !== 'object') {
+                continue;
+              }
+      
+              const explicitType = slide[':type'] || slide[':Type'] || null;
+              let typeTail = explicitType ? String(explicitType).split('/').pop() : '';
+      
+              if (!typeTail) {
+                const fromKeyMatch = String(key).match(/^[a-zA-Z]+/);
+                if (fromKeyMatch) typeTail = fromKeyMatch[0];
+              }
+              if (!typeTail && preferredHint) typeTail = preferredHint;
+              typeTail = String(typeTail || '').toLowerCase();
+      
+              let targetSchema = findSchemaCandidate(typeTail);
+      
+              if (!targetSchema) {
+                if (typeTail.includes('image')) targetSchema = findSchemaCandidate('image');
+                else if (typeTail.includes('teaser')) targetSchema = findSchemaCandidate('teaser');
+                else if (typeTail.includes('button')) targetSchema = findSchemaCandidate('button');
+                else if (typeTail.includes('textbanner')) targetSchema = findSchemaCandidate('textBanner');
+                else if (typeTail.includes('title')) targetSchema = findSchemaCandidate('title');
+                else if (typeTail.includes('text')) targetSchema = findSchemaCandidate('text');
+                else if (typeTail.includes('search')) targetSchema = findSchemaCandidate('search');
+                else if (typeTail.includes('separator')) targetSchema = findSchemaCandidate('separator');
+                else if (typeTail.includes('spacer')) targetSchema = findSchemaCandidate('spacer');
+              }
+      
+              if (!targetSchema && preferredHint) {
+                targetSchema = findSchemaCandidate(preferredHint) || findSchemaCandidate(uidCorrector(String(preferredHint)));
+              }
+      
+              if (!targetSchema && canonicalTeaserFromGlobal) {
+                targetSchema = canonicalTeaserFromGlobal;
+              }
+      
+              if (!targetSchema && childSchemasByUid.size > 0) {
+                targetSchema = Array.from(childSchemasByUid.values())[0];
+              }
+      
+              if (!targetSchema) {
+                const generatedSchema = buildMinimalSchemaFromSlide(slide);
+                const processed = processFieldsRecursive(generatedSchema, slide, title, pathToUidMap, assetDetailsMap);
+                if (processed && Object.keys(processed).length) {
+                  groupData.push(processed);
+                }
+                continue;
+              }
+      
+              let schemaArray = null;
+              if (Array.isArray(targetSchema)) schemaArray = targetSchema;
+              else if (Array.isArray(targetSchema?.schema)) schemaArray = targetSchema.schema;
+              else if (Array.isArray(targetSchema?.fields)) schemaArray = targetSchema.fields;
+              else if (Array.isArray(targetSchema?.schemaFields)) schemaArray = targetSchema.schemaFields;
+              else if (Array.isArray(targetSchema?.content)) schemaArray = targetSchema.content;
+              else if (Array.isArray(targetSchema?.schemaDefinition)) schemaArray = targetSchema.schemaDefinition;
+      
+              if (!schemaArray || schemaArray.length === 0) {
+                const generatedSchema = buildMinimalSchemaFromSlide(slide, targetSchema);
+                const processed = processFieldsRecursive(generatedSchema, slide, title, pathToUidMap, assetDetailsMap);
+                if (processed && Object.keys(processed).length) {
+                  groupData.push(processed);
+                }
+                continue;
+              }
+      
+              try {
+                const processed = processFieldsRecursive(schemaArray, slide, title, pathToUidMap, assetDetailsMap);
+      
+                if (processed && Object.keys(processed).length) {
+                  groupData.push(processed);
+                } else {
+                  const generatedSchema2 = buildMinimalSchemaFromSlide(slide, targetSchema);
+                  const processed2 = processFieldsRecursive(generatedSchema2, slide, title, pathToUidMap, assetDetailsMap);
+                  if (processed2 && Object.keys(processed2).length) {
+                    groupData.push(processed2);
+                  } else {
+                    if (canonicalTeaserFromGlobal) {
+                      const fallbackSchemaArray = canonicalTeaserFromGlobal?.schema || canonicalTeaserFromGlobal?.fields || canonicalTeaserFromGlobal;
+                      if (Array.isArray(fallbackSchemaArray) && fallbackSchemaArray.length) {
+                        const processed3 = processFieldsRecursive(fallbackSchemaArray, slide, title, pathToUidMap, assetDetailsMap);
+                        if (processed3 && Object.keys(processed3).length) {
+                          groupData.push(processed3);
+                        }
+                      }
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error(`Error processing slide ${key}:`, err);
+              }
+            }
+      
+            obj[uid] = groupData;
+            break;
+          }
+      
+          if (Array.isArray(groupValue)) {
+            if (Array.isArray(field?.schema)) {
+              for (const element of groupValue) {
+                groupData.push(
+                  processFieldsRecursive(field.schema, element, title, pathToUidMap, assetDetailsMap)
+                );
+              }
+            }
+            obj[uid] = groupData;
+            break;
+          }
+      
+          const order2 = Array.isArray(items?.[':itemsOrder']) ? items[':itemsOrder'] : null;
+          const map2 = items?.[':items'] || items;
+          if (order2 && map2) {
+            const baseUid = field?.uid;
+            const keysForThisGroup = order2.filter(
+              (k) => k === baseUid || new RegExp(`^${baseUid}_`).test(k)
+            );
+            if (Array.isArray(field?.schema) && keysForThisGroup.length > 0) {
+              for (const k of keysForThisGroup) {
+                const el = map2[k];
+                if (!el || typeof el !== 'object') continue;
+                const processed = processFieldsRecursive(
+                  field.schema,
+                  el,
+                  title,
+                  pathToUidMap,
+                  assetDetailsMap
+                );
+                if (processed && Object.keys(processed).length) groupData.push(processed);
+              }
+            }
+            obj[uid] = groupData;
+            break;
+          }
+      
+          if (Array.isArray(field?.schema)) {
+            const value = processFieldsRecursive(field.schema, groupValue, title, pathToUidMap, assetDetailsMap);
+            obj[uid] = Array.isArray(value) ? value : (value ? [value] : []);
+          }
+        } else {
+          if (Array.isArray(groupValue)) {
+            const groupData: unknown[] = [];
+            if (Array.isArray(field?.schema)) {
+              for (const element of groupValue) {
+                groupData.push(
+                  processFieldsRecursive(field.schema, element, title, pathToUidMap, assetDetailsMap)
+                );
+              }
+            }
+            obj[uid] = groupData;
+          } else {
+            if (Array.isArray(field?.schema)) {
+              const value = processFieldsRecursive(field.schema, groupValue, title, pathToUidMap, assetDetailsMap);
+              obj[uid] = value;
             }
           }
         }
         break;
       }
       
-      case 'group': {
-        const groupData: unknown[] = [];
-        const groupValue = items?.[field?.uid]?.items ?? items?.[field?.uid];
-        const uid = getLastKey(field?.contentstackFieldUid);
-        if (Array.isArray(groupValue)) {
-          for (const element of groupValue) {
-            if (Array.isArray(field?.schema)) {
-              const value = processFieldsRecursive(field.schema, element, title, pathToUidMap, assetDetailsMap);
-              groupData?.push(value);
-            }
-          }
-          obj[uid] = groupData;
-        } else {
-          if (Array.isArray(field?.schema)) {
-            const value = processFieldsRecursive(field.schema, groupValue, title, pathToUidMap, assetDetailsMap);
-            obj[uid] = value;
-          }
-        }
-        break;
-      }  
-      
       case 'boolean': {
-        const aemFieldName = field?.otherCmsField 
-          ? getLastKey(field.otherCmsField, ' > ') 
+        const aemFieldName = field?.otherCmsField
+          ? getLastKey(field.otherCmsField, ' > ')
           : getLastKey(field?.uid);
         const uid = getLastKey(field?.contentstackFieldUid);
-        const value = getFieldValue(items, aemFieldName); 
-        
+        const value = getFieldValue(items, aemFieldName);
+
         if (typeof value === 'boolean') {
           obj[uid] = value;
-        } 
+        }
         else if (typeof value === 'object' && value !== null && value?.[':type']?.includes('separator')) {
           obj[uid] = true;
-        } 
+        }
         else if (typeof value === 'string') {
           const lowerValue = value?.toLowerCase()?.trim();
           if (lowerValue === 'true' || lowerValue === 'yes' || lowerValue === '1') {
@@ -622,30 +912,30 @@ function processFieldsRecursive(
         }
         break;
       }
-       
+
       case 'single_line_text': {
         const aemFieldName = field?.otherCmsField ? getLastKey(field?.otherCmsField, ' > ') : getLastKey(field?.uid);
-        let value = getFieldValue(items, aemFieldName); 
+        let value = getFieldValue(items, aemFieldName);
         const uid = getLastKey(field?.contentstackFieldUid);
-        
+
         const actualUid = getActualFieldUid(uid, field?.uid);
         if (value && typeof value === 'string' && /<[^>]+>/.test(value)) {
           value = stripHtmlTags(value);
         }
-        
+
         obj[actualUid] = value !== null && value !== undefined ? String(value) : "";
         break;
       }
 
       case 'multi_line_text': {
         const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : getLastKey(field?.uid);
-        let value = getFieldValue(items, aemFieldName); 
+        let value = getFieldValue(items, aemFieldName);
         const uid = getLastKey(field?.contentstackFieldUid);
-        
+
         if (value && typeof value === 'string' && /<[^>]+>/.test(value)) {
           value = stripHtmlTags(value);
         }
-        
+
         obj[uid] = value !== null && value !== undefined ? String(value) : "";
         break;
       }
@@ -654,16 +944,16 @@ function processFieldsRecursive(
         const uid = getLastKey(field?.contentstackFieldUid);
         obj[uid] = title ?? '';
         break;
-      }   
+      }
       case 'url': {
         const uid = getLastKey(field?.contentstackFieldUid);
         obj[uid] = `/${slugify(title)}`;
         break;
-      }     
+      }
       case 'reference': {
         const fieldKey = getLastKey(field?.contentstackFieldUid);
         const refCtUid = field?.referenceTo?.[0] || field?.uid;
-        const references = [];     
+        const references = [];
         for (const [key, val] of Object.entries(items) as [string, Record<string, unknown>][]) {
           if (!val?.configured || (val[':type'] as string) === 'nt:folder') {
             continue;
@@ -688,9 +978,9 @@ function processFieldsRecursive(
       }
       case 'number': {
         const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : getLastKey(field?.uid);
-        const value = getFieldValue(items, aemFieldName); 
+        const value = getFieldValue(items, aemFieldName);
         const uid = getLastKey(field?.contentstackFieldUid);
-        
+
         if (value !== null && value !== undefined && value !== '') {
           const numValue = typeof value === 'number' ? value : Number(value);
           if (!isNaN(numValue)) {
@@ -705,88 +995,173 @@ function processFieldsRecursive(
       }
       case 'json': {
         const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : field?.uid;
-        const value = getFieldValue(items, aemFieldName); 
+        const value = getFieldValue(items, aemFieldName);
         const uid = getLastKey(field?.contentstackFieldUid);
-        
+        const actualUid = getActualFieldUid(uid, field?.uid);
+
         let htmlContent = '';
-        
+
         if (typeof value === 'string') {
           htmlContent = value;
         } else if (value && typeof value === 'object') {
           htmlContent = value.text || value.content || '';
         }
-        
+
         const jsonData = attachJsonRte({ content: htmlContent });
-        obj[uid] = jsonData;
+        obj[actualUid] = jsonData;
         break;
       }
-      case 'html': {  
+      case 'html': {
         const aemFieldName = field?.otherCmsField ? getLastKey(field?.otherCmsField, ' > ') : field?.uid;
-        const value = getFieldValue(items, aemFieldName); 
+        const value = getFieldValue(items, aemFieldName);
         const uid = getLastKey(field?.contentstackFieldUid);
-        
+        const actualUid = getActualFieldUid(uid, field?.uid);
         let htmlContent = '';
-        
+
         if (typeof value === 'string') {
           htmlContent = value;
         } else if (value && typeof value === 'object') {
           htmlContent = value?.text || value?.content || '';
         }
-        obj[uid] = htmlContent;
+        obj[actualUid] = htmlContent;
         break;
       }
       case 'link': {
-        const value = { 
-          title: getFieldValue(items, 'title') ?? '', 
-          href: getFieldValue(items, 'url') ?? '' 
-        };
         const uid = getLastKey(field?.contentstackFieldUid);
+        
+        const aemFieldName = field?.otherCmsField 
+          ? getLastKey(field.otherCmsField, ' > ') 
+          : 'link';
+        
+        let linkUrl = getFieldValue(items, aemFieldName);
+        
+        if (!linkUrl) {
+          const urlCandidates = ['link', 'url', 'href', 'linkURL'];
+          for (const candidate of urlCandidates) {
+            const val = getFieldValue(items, candidate);
+            if (val) {
+              linkUrl = val;
+              break;
+            }
+          }
+        }
+        
+        let linkTitle = getFieldValue(items, 'title');
+        
+        if (!linkTitle) {
+          const titleCandidates = ['text', 'label', 'linkText'];
+          for (const candidate of titleCandidates) {
+            const val = getFieldValue(items, candidate);
+            if (val) {
+              linkTitle = val;
+              break;
+            }
+          }
+        }
+        
+        const value = {
+          title: linkTitle ?? '',
+          href: linkUrl ?? ''
+        };
+        
         obj[uid] = value;
         break;
-      }  
+      }
       case 'file': {
         const uid = getLastKey(field?.contentstackFieldUid);
-        const aemFieldName = field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : 'src';
-        const imageSrc = getFieldValue(items, aemFieldName) || getFieldValue(items, 'src'); 
-        
-        if (!imageSrc || !Object?.keys(pathToUidMap)?.length) {
+
+        const candidateKeys = [
+          field?.otherCmsField ? getLastKey(field.otherCmsField, ' > ') : 'src',
+          'src',
+          'imagePath',
+          'fileReference',
+          'file',
+          'path',
+          'href',
+          'url'
+        ];
+
+        let val: any = undefined;
+        for (const key of candidateKeys) {
+          const v = getFieldValue(items, key);
+          if (v !== undefined && v !== null && v !== '') { val = v; break; }
+        }
+
+        const toArray = (v: any) => Array.isArray(v) ? v : (v != null ? [v] : []);
+        const rawSrcs = toArray(val).map(v => {
+          if (v && typeof v === 'object') {
+            return (
+              v.src ||
+              v.imagePath ||
+              v.fileReference ||
+              v.path ||
+              v.url ||
+              v.href ||
+              null
+            );
+          }
+          return v;
+        }).filter(Boolean);
+
+        if (!rawSrcs.length || !Object?.keys(pathToUidMap)?.length) {
           obj[uid] = null;
           break;
         }
-        const assetUid = pathToUidMap[imageSrc];
-        
-        if (assetUid) {
-          const assetDetails = assetDetailsMap?.[assetUid];
-          
-          if (assetDetails) {
-            obj[uid] = {
-              uid: assetDetails?.uid,
-              filename: assetDetails?.filename,
-              content_type: assetDetails?.content_type,
-              file_size: assetDetails?.file_size,
-              title: assetDetails?.title,
-              url: assetDetails?.url,
-              tags: assetDetails?.tags || [],
-              publish_details: assetDetails?.publish_details || [],
-              parent_uid: assetDetails?.parent_uid || null,
-              is_dir: false,
-              ACL: assetDetails?.ACL || []
-            };
-          } else {
-            obj[uid] = {
-              uid: assetUid
-            };
+
+        const normalize = (p: string) => (p || '')
+          .trim()
+          .replace(/\?.*$/, '')
+          .replace(/^https?:\/\/[^/]+/, '')
+          .replace(/\/jcr:content.*$/, '')
+          .replace(/\/_jcr_content.*$/, '')
+          .replace(/\.transform\/.*$/, '');
+
+        const mapOne = (s: string) => {
+          const n = normalize(s);
+          const candidates = [s, n, decodeURI(n), encodeURI(n)];
+
+          let assetUid: string | undefined;
+          for (const c of candidates) {
+            if (pathToUidMap?.[c]) {
+              assetUid = pathToUidMap[c];
+              break;
+            }
           }
-        } else {
-          obj[uid] = null;
-        }
+
+          if (!assetUid) {
+            console.warn('[ASSET MISS file]', { raw: s, normalized: n });
+            return null;
+          }
+
+          const det = assetDetailsMap?.[assetUid];
+
+          return det ? {
+            uid: det.uid,
+            filename: det.filename,
+            content_type: det.content_type,
+            file_size: det.file_size,
+            title: det.title,
+            url: det.url,
+            tags: det.tags || [],
+            publish_details: det.publish_details || [],
+            parent_uid: det.parent_uid || null,
+            is_dir: false,
+            ACL: det.ACL || []
+          } : { uid: assetUid };
+        };
+
+        const mapped = rawSrcs.map(mapOne).filter(Boolean);
+        const isMultiple = Boolean(field?.multiple || field?.maxInstance > 1 || field?.advanced?.multiple);
+
+        obj[uid] = isMultiple ? mapped : (mapped[0] || null);
         break;
-      } 
+      }
+
       case 'app': {
         break;
-      }     
+      }
       default: {
-        console.info("🚀 ~ processFieldsRecursive ~ childItems:", field?.uid, field?.contentstackFieldType);
+        console.info("🚀 ~ processFieldsRecursive ~ childItems", field?.uid, field?.contentstackFieldType);
         break;
       }
     }
@@ -795,9 +1170,9 @@ function processFieldsRecursive(
 }
 
 const containerCreator = (
-  fieldMapping: any, 
-  items: any, 
-  title: string, 
+  fieldMapping: any,
+  items: any,
+  title: string,
   pathToUidMap: Record<string, string>,
   assetDetailsMap: Record<string, AssetJSON>
 ) => {
@@ -809,6 +1184,20 @@ const getTitle = (parseData: any) => {
   return parseData?.title ?? parseData?.templateType;
 }
 
+
+/**
+ * 
+ * @param packagePath - The path to the package.
+ * @param contentTypes - The content types.
+ * @param destinationStackId - The ID of the destination stack.
+ * @param projectId - The ID of the project.
+ * @param project - The project object.
+ * @returns void - The function does not return a value.
+ * @description - This function creates the entry for the given destination stack.
+ * The entry is created in the following files:
+ * - index.json - The entry index.
+ * @throws Will log an error if the entry is not created.
+ */
 const createEntry = async ({
   packagePath,
   contentTypes,
@@ -822,7 +1211,7 @@ const createEntry = async ({
   const assetsSave = path.join(baseDir, ASSETS_DIR_NAME);
   const pathMappingFile = path.join(assetsSave, 'path-mapping.json');
   const assetIndexFile = path.join(assetsSave, ASSETS_SCHEMA_FILE);
-  
+
   let pathToUidMap: Record<string, string> = {};
   let assetDetailsMap: Record<string, AssetJSON> = {};
 
@@ -848,7 +1237,7 @@ const createEntry = async ({
   const allLocales: object = { ...project?.master_locale, ...project?.locales };
   const entryMapping: Record<string, string[]> = {};
 
-  // FIRST PASS: Process all entries and build mappings
+  // Process each entry file
   for await (const fileName of read(entriesDir)) {
     const filePath = path.join(entriesDir, fileName);
     if (filePath?.startsWith?.(damPath)) {
@@ -924,7 +1313,20 @@ const createEntry = async ({
   }
 }
 
-
+/**
+ * 
+ * @param req - The request object.
+ * @param destinationStackId - The ID of the destination stack.
+ * @param projectId - The ID of the project.
+ * @param project - The project object.
+ * @returns void - The function does not return a value.
+ * @description - This function creates the locales for the given destination stack.
+ * The locales are created in the following files:
+ * - locale.json - The master locale.
+ * - allLocales.json - All the locales.
+ * @throws Will log an error if the file writing operation fails.
+ * @throws Will log an error if the locales are not created.
+ */
 const createLocale = async (
   req: Request,
   destinationStackId: string,
@@ -999,7 +1401,16 @@ const createLocale = async (
   }
 };
 
-
+/**
+ * 
+ * @param destinationStackId - The ID of the destination stack.
+ * @returns void - The function does not return a value.
+ * @description - This function creates a version file for the given destination stack.
+ * The version file contains the following information:
+ * - contentVersion: The version of the content schema (set to `2`).
+ * - logsPath: An empty string reserved for future log path information.
+ * @throws Will log an error if the file writing operation fails.
+ */
 const createVersionFile = async (destinationStackId: string) => {
   const baseDir = path.join(baseDirName, destinationStackId);
   fs.writeFile(
@@ -1015,7 +1426,6 @@ const createVersionFile = async (destinationStackId: string) => {
     }
   );
 };
-
 
 export const aemService = {
   createAssets,

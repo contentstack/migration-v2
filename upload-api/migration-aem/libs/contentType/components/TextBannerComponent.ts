@@ -14,12 +14,11 @@ export class TextBannerComponent extends ContentstackComponent {
     const properties = component?.convertedSchema?.properties;
     if (properties && typeof properties === 'object') {
       const typeField = properties[":type"];
-      if (
+      const isTextBanner = (
         (typeof typeField === "string" && typeField.includes("/components/textbanner")) ||
         (typeof typeField === "object" && typeField.value?.includes("/components/textbanner"))
-      ) {
-        return true;
-      }
+      );
+      return isTextBanner;
     }
     return false;
   }
@@ -85,20 +84,41 @@ export class TextBannerComponent extends ContentstackComponent {
   static mapTextBannerToContentstack(component: any, parentKey: any) {
     const componentSchema = component?.convertedSchema;
     if (componentSchema?.type === 'object' && componentSchema?.properties) {
-      const fields: any[] = [];
+      const fields: any[] = [];   
       for (const [key, value] of Object.entries(componentSchema.properties)) {
-        if (!textBannerExclude.includes(key)) {
-          const schemaProp = value as SchemaProperty;
-          if (schemaProp?.type && TextBannerComponent.fieldTypeMap[schemaProp.type]) {
-            fields.push(TextBannerComponent.fieldTypeMap[schemaProp.type](key, schemaProp));
+        const schemaProp = value as SchemaProperty;
+        
+        if (textBannerExclude.includes(key)) {
+          console.log(`⏭️ Skipping excluded key: ${key}`);
+          continue;
+        }
+        
+        if (schemaProp?.type && TextBannerComponent.fieldTypeMap[schemaProp.type]) {
+          const field = TextBannerComponent.fieldTypeMap[schemaProp.type](key, schemaProp);
+          
+          if (field) {
+            fields.push(field);
+          } else {
+            console.warn(`Field mapping returned null for: ${key} (type: ${schemaProp.type})`);
           }
+        } else {
+          console.warn(`No field type mapper for: ${key}`, {
+            type: schemaProp?.type,
+            availableMappers: Object.keys(TextBannerComponent.fieldTypeMap)
+          });
         }
       }
+      
+      if (fields.length === 0) {
+        console.warn('No fields were generated for textbanner component!');
+        return null;
+      }
+      
       return {
         ...new GroupField({
           uid: parentKey,
           displayName: parentKey,
-          fields,
+          fields: fields,
           required: false,
           multiple: false
         }).toContentstack(),

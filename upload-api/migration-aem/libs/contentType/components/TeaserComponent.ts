@@ -1,6 +1,7 @@
+
 import { isImageType } from "../../../helper";
 import { ContentstackComponent } from "../fields";
-import { BooleanField, GroupField, ImageField, LinkField, TextField } from "../fields/contentstackFields";
+import { BooleanField, Field, GroupField, ImageField, LinkField, TextField } from "../fields/contentstackFields";
 import { SchemaProperty } from "./index.interface";
 
 
@@ -22,25 +23,20 @@ function uidContainsNumber(uid: string): boolean {
 
 export class TeaserComponent extends ContentstackComponent {
   static isTeaser(component: any): boolean {
-    const properties = component?.convertedSchema?.properties;
+    const properties = component?.convertedSchema?.properties;   
     if (properties && typeof properties === 'object') {
       const typeField = properties[":type"];
-      if (
-        (typeof typeField === "string" &&
-          (/\/components\/(teaser|heroTeaser|overlayBoxTeaser)/.test(typeField) ||
-            typeField.includes("/productCategoryTeaserList"))
-        ) ||
-        (typeof typeField === "object" &&
-          (/\/components\/(teaser|heroTeaser|overlayBoxTeaser)/.test(typeField.value ?? "") ||
-            (typeField.value ?? "").includes("/productCategoryTeaserList"))
-        )
-      ) {
-        return true;
-      }
+      const typeValue = typeof typeField === "string" ? typeField : typeField?.value;
+      
+      const isTeaser = 
+        /\/components\/(teaser|heroTeaser|overlayBoxTeaser)/.test(typeValue ?? "") ||
+        (typeValue ?? "").includes("/productCategoryTeaserList");
+      
+      return isTeaser;
     }
+    
     return false;
   }
-
 
   static fieldTypeMap: Record<string, (key: string, schemaProp: SchemaProperty, isImg: boolean) => any> = {
     string: (key, schemaProp, isImg) =>
@@ -69,14 +65,21 @@ export class TeaserComponent extends ContentstackComponent {
       defaultValue: ""
     }).toContentstack(),
     object: (key, schemaProp) => {
-      const data = { convertedSchema: schemaProp }
-      const objectData = this.mapTeaserToContentstack(data, key);
-      if (objectData?.uid && (uidContainsNumber(objectData?.uid) === false) && objectData?.schema?.length) {
+      const data = { convertedSchema: schemaProp };
+      const objectData = TeaserComponent.mapTeaserToContentstack(data, key);
+      // Accept either `schema` or `fields` depending on what toContentstack returns
+      const hasFieldsArray =
+        !!objectData && (
+          (Array.isArray((objectData as any).schema) && (objectData as any).schema.length > 0) ||
+          (Array.isArray((objectData as any).fields) && (objectData as any).fields.length > 0)
+        );
+    
+      if (objectData?.uid && !uidContainsNumber(objectData?.uid) && hasFieldsArray) {
         return objectData;
       }
       const urlValue = schemaProp?.properties?.url?.value;
       if (urlValue !== undefined) {
-        return new LinkField({
+        return new TextField({
           uid: key,
           displayName: key,
           description: "",
@@ -84,58 +87,145 @@ export class TeaserComponent extends ContentstackComponent {
         }).toContentstack();
       }
       return null;
-    },
+    },   
     array: (key, schemaProp) => {
-      if (
-        schemaProp?.type === 'array' &&
-        schemaProp?.items?.properties &&
-        Object.keys(schemaProp?.items?.properties)?.length
-      ) {
-        const componentsData: any[] = [];
-        for (const [key, value] of Object.entries(schemaProp.items.properties)) {
-          const schemaProp = value as SchemaProperty;
-          if (
-            !teaserExclude.includes(key) &&
-            schemaProp?.type &&
-            TeaserComponent.fieldTypeMap[schemaProp.type]
-          ) {
-            const isImg = isImageType(schemaProp?.value)
-            componentsData.push(
-              TeaserComponent.fieldTypeMap[schemaProp.type](key, schemaProp, isImg)
-            );
-          }
-        }
-        return componentsData?.length ? new GroupField({
-          uid: key,
+      // Special-case for actions array
+      if (key === 'actions') {
+
+        const actionFields = [
+          new TextField({
+            uid: 'title',
+            displayName: 'title',
+            description: '',
+            defaultValue: '',
+          }),
+          new TextField({
+            uid: 'url',
+            displayName: 'url',
+            description: '',
+            defaultValue: ''
+          })
+        ];
+      
+        // Return GroupField instance
+        return new GroupField({
+          uid: key, 
           displayName: key,
-          fields: componentsData,
+          fields: actionFields,
           required: false,
           multiple: true
-        }).toContentstack() : null;
+        }).toContentstack();
       }
+      const inferItemSample = (): any | null => {
+        if (schemaProp?.items?.properties && Object.keys(schemaProp.items.properties).length) {
+          return { from: 'items.properties', properties: schemaProp.items.properties };
+        }
+        if (schemaProp?.items?.value && Array.isArray(schemaProp.items.value) && schemaProp.items.value[0] && typeof schemaProp.items.value[0] === 'object') {
+          return { from: 'items.value', sample: schemaProp.items.value[0] };
+        }
+        if (Array.isArray(schemaProp?.value) && schemaProp.value[0] && typeof schemaProp.value[0] === 'object') {
+          return { from: 'value', sample: schemaProp.value[0] };
+        }
+        return null;
+      };
+    
+      const inferred = inferItemSample();
+      if (!inferred) {
+        console.warn(`Array field "${key}" had no schema or sample items to infer from`);
+        return null;
+      }
+    
+      let itemProperties: Record<string, any> | null = null;
+    
+      if (inferred.from === 'items.properties') {
+        itemProperties = inferred.properties;
+      } else if (inferred.from === 'items.value' || inferred.from === 'value') {
+        const sample = inferred.sample;
+        itemProperties = {};
+        for (const k of Object.keys(sample)) {
+          itemProperties[k] = { type: typeof sample[k] === 'number' ? 'integer' : 'string', value: sample[k] };
+        }
+      }
+    
+      if (!itemProperties || !Object.keys(itemProperties).length) {
+        console.warn(`After inference, no item properties found for "${key}"`);
+        return null;
+      }
+    
+      const componentsData: Field[] = []; // Array of Field instances
+    
+      for (const [itemKey, itemProp] of Object.entries(itemProperties)) {
+        const ik = String(itemKey);
+        const inferredType = (itemProp?.type ?? 'string').toLowerCase();
+    
+        if (inferredType === 'string' || inferredType === 'integer') {
+          // Create Field instance
+          componentsData.push(new TextField({
+            uid: ik,
+            displayName: ik,
+            description: "",
+            defaultValue: "",
+            isNumber: inferredType === 'integer'
+          }));
+          continue;
+        }
+    
+        if (inferredType === 'object' && itemProp?.properties) {
+          const nested = TeaserComponent.fieldTypeMap.object(ik, itemProp as SchemaProperty, false);
+          if (nested) {
+            componentsData.push(nested);
+          }
+          continue;
+        }
+      }
+      if (!componentsData.length) {
+        console.warn(`No components generated for array field "${key}" after inference`);
+        return null;
+      }
+    
+      // Return GroupField instance
+      return new GroupField({
+        uid: key,
+        displayName: key,
+        fields: componentsData,
+        required: false,
+        multiple: true
+      }).toContentstack();
     },
   };
-
-
 
   static mapTeaserToContentstack(component: any, parentKey: any) {
     const componentSchema = component?.convertedSchema;
     if (componentSchema?.type === 'object' && componentSchema?.properties) {
-      const componentsData: any[] = [];
+      const componentsData: any[] = [];  
       for (const [key, value] of Object.entries(componentSchema.properties)) {
         const schemaProp = value as SchemaProperty;
-        if (
-          !teaserExclude.includes(key) &&
-          schemaProp?.type &&
-          TeaserComponent.fieldTypeMap[schemaProp.type]
-        ) {
-          const isImg = isImageType(schemaProp?.value)
-          componentsData.push(
-            TeaserComponent.fieldTypeMap[schemaProp.type](key, schemaProp, isImg)
-          );
+        if (teaserExclude.includes(key)) {
+          continue;
         }
+        
+        if (schemaProp?.type && TeaserComponent.fieldTypeMap[schemaProp.type]) {
+          const isImg = isImageType(schemaProp?.value);
+          const fieldData = TeaserComponent.fieldTypeMap[schemaProp.type](key, schemaProp, isImg);
+          
+          if (fieldData) {
+            componentsData.push(fieldData);
+          } else {
+            console.warn(`Field mapping returned null for: ${key} (type: ${schemaProp.type})`);
+          }
+        } else {
+          console.warn(`No field type mapper for: ${key}`, {
+            type: schemaProp?.type,
+            availableMappers: Object.keys(TeaserComponent.fieldTypeMap)
+          });
+        }
+      }  
+      if (componentsData.length === 0) {
+        console.warn('No fields were generated for teaser component!');
+        return null;
       }
-      return componentsData?.length ? {
+      
+      return {
         ...new GroupField({
           uid: parentKey,
           displayName: parentKey,
@@ -144,7 +234,8 @@ export class TeaserComponent extends ContentstackComponent {
           multiple: true
         }).toContentstack(),
         type: component?.convertedSchema?.properties?.[":type"]?.value
-      } : null;
+      };
     }
+    return null;
   }
 }
