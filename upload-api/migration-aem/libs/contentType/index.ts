@@ -42,6 +42,7 @@ function processComponents(components: Record<string, any> | Record<string, any>
     const mappingRules = [
       () => BreadcrumbComponent.isBreadcrumb(component) && BreadcrumbComponent.mapBreadcrumbToContentstack(component, key),
       () => TitleComponent.isTitle(component) && TitleComponent.mapTitleToContentstack(component, key),
+      () => TextBannerComponent.isTextBanner(component) && TextBannerComponent.mapTextBannerToContentstack(component, key),
       () => TextComponent.isText(component) && TextComponent.mapTextToContentstack(component),
       () => NavigationComponent.isNavigation(component) && NavigationComponent.mapNavigationTOContentstack(component, key),
       () => NavigationComponent.isLanguageNavigation(component) && NavigationComponent.mapNavigationTOContentstack(component, key),
@@ -53,7 +54,6 @@ function processComponents(components: Record<string, any> | Record<string, any>
       () => CustomEmbedComponent.isCustomEmbed(component) && CustomEmbedComponent.mapCustomEmbedToContentstack(component, key),
       () => ProductListingComponent.isProductListing(component) && ProductListingComponent.mapProductListingToContentstack(component, key),
       () => ButtonComponent.isButton(component) && ButtonComponent.mapButtonToContentstack(component, key),
-      () => TextBannerComponent.isTextBanner(component) && TextBannerComponent.mapTextBannerToContentstack(component, key),
       () => ImageComponent.isImage(component) && ImageComponent.mapImageToContentstack(component, key),
       () => CarouselComponent.isCarousel(component) && CarouselComponent.mapCarouselToContentstack(component, key),
 
@@ -84,9 +84,78 @@ const mergeChildComponent = (contentstackComponents: any) => {
   return contentstackComponents;
 }
 
+/**
+ * Pre-process components to build schema cache for carousel items
+ * This ensures all standalone components are mapped before carousels
+ */
+async function preBuildComponentSchemas(mergedComponents: Record<string, any>) {
+  let schemasBuilt = 0;
+  
+  for (const [key, component] of Object.entries(mergedComponents)) {
+    // Process standalone components and store their schemas
+    if (TeaserComponent.isTeaser(component)) {
+      const schema = TeaserComponent.mapTeaserToContentstack(component, key);
+      if (schema) {
+        CarouselComponent.storeComponentSchema('teaser', schema);
+        schemasBuilt++;
+      }
+    } else if (ImageComponent.isImage(component)) {
+      const schema = ImageComponent.mapImageToContentstack(component, key);
+      if (schema) {
+        CarouselComponent.storeComponentSchema('image', schema);
+        schemasBuilt++;
+      }
+    } else if (ButtonComponent.isButton(component)) {
+      const schema = ButtonComponent.mapButtonToContentstack(component, key);
+      if (schema) {
+        CarouselComponent.storeComponentSchema('button', schema);
+        schemasBuilt++;
+      }
+    } else if (TextBannerComponent.isTextBanner(component)) {
+      const schema = TextBannerComponent.mapTextBannerToContentstack(component, key);
+      if (schema) {
+        CarouselComponent.storeComponentSchema('textbanner', schema);
+        schemasBuilt++;
+      }
+    } else if (TextComponent.isText(component)) {
+      const schema = TextComponent.mapTextToContentstack(component);
+      if (schema) {
+        CarouselComponent.storeComponentSchema('text', schema);
+        schemasBuilt++;
+      }
+    } else if (TitleComponent.isTitle(component)) {
+      const schema = TitleComponent.mapTitleToContentstack(component, key);
+      if (schema) {
+        CarouselComponent.storeComponentSchema('title', schema);
+        schemasBuilt++;
+      }
+    } else if (SearchComponent.isSearch(component)) {
+      const schema = SearchComponent.mapSearchToContentstack(component, key);
+      if (schema) {
+        CarouselComponent.storeComponentSchema('search', schema);
+        schemasBuilt++;
+      }
+    } else if (SpacerComponent.isSpacer(component)) {
+      const schema = SpacerComponent.mapSpacerToContentstack(component, key);
+      if (schema) {
+        CarouselComponent.storeComponentSchema('spacer', schema);
+        schemasBuilt++;
+      }
+    } else if (SeparatorComponent.isSeparator(component)) {
+      const schema = SeparatorComponent.mapSeparatorToContentstack(component, key);
+      if (schema) {
+        CarouselComponent.storeComponentSchema('separator', schema);
+        schemasBuilt++;
+      }
+    }
+  }
+  
+}
 
 const convertContentType: IConvertContentType = async (dirPath) => {
   const templatesDir = path.resolve(dirPath);
+  await CarouselComponent.initializeCarouselItemTypes(templatesDir);
+  
   const templateFiles = read(templatesDir);
   const damPath = path?.resolve?.(path?.join?.(templatesDir, CONSTANTS.AEM_DAM_DIR));
   const allComponentData: Record<string, any>[] = [];
@@ -100,7 +169,9 @@ const convertContentType: IConvertContentType = async (dirPath) => {
     const trackerData = tracker.getAllComponents();
     allComponentData.push(trackerData);
   }
+  
   const mergedComponents = mergeComponentObjects(allComponentData);
+  await preBuildComponentSchemas(mergedComponents);
   const contentstackComponents: any = processComponents(mergedComponents);
   const mergeChildData = mergeChildComponent(contentstackComponents);
   await writeJsonFile(mergeChildData, CONSTANTS.TMP_FILE);
