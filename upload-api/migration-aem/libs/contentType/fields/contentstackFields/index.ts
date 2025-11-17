@@ -184,6 +184,12 @@ export class GroupField extends Field {
   }
 
   toContentstack() {
+    const processedSchema = this.fields.filter(Boolean).map(field => {
+      if (field && typeof field.toContentstack === 'function') {
+        return field.toContentstack();
+      }
+      return field;
+    });
     return {
       id: this.generateId(),
       uid: this.uid,
@@ -194,7 +200,7 @@ export class GroupField extends Field {
       contentstackFieldType: 'group',
       backupFieldType: 'group',
       backupFieldUid: this.uid,
-      schema: this.fields.filter(Boolean),
+      schema: processedSchema,
       advanced: {
         mandatory: !!this.required,
         multiple: this.multiple,
