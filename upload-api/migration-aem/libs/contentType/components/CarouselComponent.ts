@@ -32,7 +32,7 @@ export class CarouselComponent extends ContentstackComponent {
    * Store a component schema for later reuse
    */
   static storeComponentSchema(componentType: string, schema: any): void {
-    if (!globalComponentSchemas.has(componentType)) {
+    if (!globalComponentSchemas?.has(componentType)) {
       globalComponentSchemas.set(componentType, schema);
     }
   }
@@ -41,7 +41,7 @@ export class CarouselComponent extends ContentstackComponent {
    * Get a stored component schema
    */
   static getStoredComponentSchema(componentType: string): any | null {
-    return globalComponentSchemas.get(componentType) || null;
+    return globalComponentSchemas?.get(componentType) || null;
   }
   
   static isCarousel(component: any): boolean {
@@ -49,8 +49,8 @@ export class CarouselComponent extends ContentstackComponent {
     if (properties && typeof properties === 'object') {
       const typeField = properties[":type"];
       if (
-        (typeof typeField === "string" && typeField.includes("/components/carousel")) ||
-        (typeof typeField === "object" && typeField.value?.includes("/components/carousel"))
+        (typeof typeField === "string" && typeField?.includes("/components/carousel")) ||
+        (typeof typeField === "object" && typeField?.value?.includes("/components/carousel"))
       ) {
         return true;
       }
@@ -87,7 +87,7 @@ export class CarouselComponent extends ContentstackComponent {
       const isCarouselItems = normalizedUid === 'items' || fieldKey === 'items' || fieldKey === ':items';
 
       if (isCarouselItems) {
-        const typesToProcess = globalCarouselItemTypes && globalCarouselItemTypes.size > 0
+        const typesToProcess = globalCarouselItemTypes && globalCarouselItemTypes?.size > 0
           ? globalCarouselItemTypes
           : new Set(Object.keys(countObject).map(t => t.split('/').pop()).filter(Boolean));
         
@@ -101,15 +101,15 @@ export class CarouselComponent extends ContentstackComponent {
           if (componentType === 'teaser' || componentType === 'heroTeaser' || componentType === 'overlayBoxTeaser') {
             
             let teaserData = null;
-            if (currentComponent && TeaserComponent.isTeaser(currentComponent)) {
-              teaserData = TeaserComponent.mapTeaserToContentstack(currentComponent, "teaser");
+            if (currentComponent && TeaserComponent?.isTeaser(currentComponent)) {
+              teaserData = TeaserComponent?.mapTeaserToContentstack(currentComponent, "teaser");
               if (teaserData) {
                 //store for reuse
-                CarouselComponent.storeComponentSchema('teaser', teaserData);
+                CarouselComponent?.storeComponentSchema('teaser', teaserData);
               }
             } else {
               // Try to get from stored schemas
-              teaserData = CarouselComponent.getStoredComponentSchema('teaser');
+              teaserData = CarouselComponent?.getStoredComponentSchema('teaser');
               if (teaserData) {
                 console.log('Reusing previously stored teaser schema');
               } else {
@@ -129,15 +129,15 @@ export class CarouselComponent extends ContentstackComponent {
           } else if (componentType === 'image') {
             
             let imageData = null;
-            if (currentComponent && ImageComponent.isImage(currentComponent)) {
+            if (currentComponent && ImageComponent?.isImage(currentComponent)) {
               imageData = ImageComponent.mapImageToContentstack(currentComponent, "image");
               if (imageData) {
                 // Store for future reuse
-                CarouselComponent.storeComponentSchema('image', imageData);
+                CarouselComponent?.storeComponentSchema('image', imageData);
               }
             } else {
               // Try to get from stored schemas
-              imageData = CarouselComponent.getStoredComponentSchema('image');
+              imageData = CarouselComponent?.getStoredComponentSchema('image');
               if (imageData) {
                 console.log('Reusing previously stored image schema');
               }
@@ -155,13 +155,13 @@ export class CarouselComponent extends ContentstackComponent {
           } else if (componentType === 'button') {
             let buttonData = null;
             
-            if (currentComponent && ButtonComponent.isButton(currentComponent)) {
+            if (currentComponent && ButtonComponent?.isButton(currentComponent)) {
               buttonData = ButtonComponent.mapButtonToContentstack(currentComponent, "button");
               if (buttonData) {
-                CarouselComponent.storeComponentSchema('button', buttonData);
+                CarouselComponent?.storeComponentSchema('button', buttonData);
               }
             } else {
-              buttonData = CarouselComponent.getStoredComponentSchema('button');
+              buttonData = CarouselComponent?.getStoredComponentSchema('button');
             }
             
             if (buttonData) {
@@ -176,13 +176,13 @@ export class CarouselComponent extends ContentstackComponent {
           } else if (componentType === 'textbanner' || componentType === 'textBanner') {
             let textBannerData = null;
             
-            if (currentComponent && TextBannerComponent.isTextBanner(currentComponent)) {
-              textBannerData = TextBannerComponent.mapTextBannerToContentstack(currentComponent, "textBanner");
+            if (currentComponent && TextBannerComponent?.isTextBanner(currentComponent)) {
+              textBannerData = TextBannerComponent?.mapTextBannerToContentstack(currentComponent, "textBanner");
               if (textBannerData) {
-                CarouselComponent.storeComponentSchema('textbanner', textBannerData);
+                CarouselComponent?.storeComponentSchema('textbanner', textBannerData);
               }
             } else {
-              textBannerData = CarouselComponent.getStoredComponentSchema('textbanner');
+              textBannerData = CarouselComponent?.getStoredComponentSchema('textbanner');
             }
             
             if (textBannerData) {
@@ -197,13 +197,13 @@ export class CarouselComponent extends ContentstackComponent {
           } else if (componentType === 'text') {
             let textData = null;
             
-            if (currentComponent && TextComponent.isText(currentComponent)) {
-              textData = TextComponent.mapTextToContentstack(currentComponent);
+            if (currentComponent && TextComponent?.isText(currentComponent)) {
+              textData = TextComponent?.mapTextToContentstack(currentComponent);
               if (textData) {
-                CarouselComponent.storeComponentSchema('text', textData);
+                CarouselComponent?.storeComponentSchema('text', textData);
               }
             } else {
-              textData = CarouselComponent.getStoredComponentSchema('text');
+              textData = CarouselComponent?.getStoredComponentSchema('text');
             }
             
             if (textData) {
@@ -214,13 +214,13 @@ export class CarouselComponent extends ContentstackComponent {
           } else if (componentType === 'title') {
             let titleData = null;
             
-            if (currentComponent && TitleComponent.isTitle(currentComponent)) {
-              titleData = TitleComponent.mapTitleToContentstack(currentComponent, "title");
+            if (currentComponent && TitleComponent?.isTitle(currentComponent)) {
+              titleData = TitleComponent?.mapTitleToContentstack(currentComponent, "title");
               if (titleData) {
-                CarouselComponent.storeComponentSchema('title', titleData);
+                CarouselComponent?.storeComponentSchema('title', titleData);
               }
             } else {
-              titleData = CarouselComponent.getStoredComponentSchema('title');
+              titleData = CarouselComponent?.getStoredComponentSchema('title');
             }
             
             if (titleData) {
@@ -231,13 +231,13 @@ export class CarouselComponent extends ContentstackComponent {
           } else if (componentType === 'search') {
             let searchData = null;
             
-            if (currentComponent && SearchComponent.isSearch(currentComponent)) {
-              searchData = SearchComponent.mapSearchToContentstack(currentComponent, "search");
+            if (currentComponent && SearchComponent?.isSearch(currentComponent)) {
+              searchData = SearchComponent?.mapSearchToContentstack(currentComponent, "search");
               if (searchData) {
-                CarouselComponent.storeComponentSchema('search', searchData);
+                CarouselComponent?.storeComponentSchema('search', searchData);
               }
             } else {
-              searchData = CarouselComponent.getStoredComponentSchema('search');
+              searchData = CarouselComponent?.getStoredComponentSchema('search');
             }
             
             if (searchData) {
@@ -248,13 +248,13 @@ export class CarouselComponent extends ContentstackComponent {
           } else if (componentType === 'spacer') {
             let spacerData = null;
             
-            if (currentComponent && SpacerComponent.isSpacer(currentComponent)) {
-              spacerData = SpacerComponent.mapSpacerToContentstack(currentComponent, "spacer");
+            if (currentComponent && SpacerComponent?.isSpacer(currentComponent)) {
+              spacerData = SpacerComponent?.mapSpacerToContentstack(currentComponent, "spacer");
               if (spacerData) {
-                CarouselComponent.storeComponentSchema('spacer', spacerData);
+                CarouselComponent?.storeComponentSchema('spacer', spacerData);
               }
             } else {
-              spacerData = CarouselComponent.getStoredComponentSchema('spacer');
+              spacerData = CarouselComponent?.getStoredComponentSchema('spacer');
             }
             
             if (spacerData) {
@@ -265,13 +265,13 @@ export class CarouselComponent extends ContentstackComponent {
           } else if (componentType === 'separator') {
             let separatorData = null;
             
-            if (currentComponent && SeparatorComponent.isSeparator(currentComponent)) {
-              separatorData = SeparatorComponent.mapSeparatorToContentstack(currentComponent, "separator");
+            if (currentComponent && SeparatorComponent?.isSeparator(currentComponent)) {
+              separatorData = SeparatorComponent?.mapSeparatorToContentstack(currentComponent, "separator");
               if (separatorData) {
-                CarouselComponent.storeComponentSchema('separator', separatorData);
+                CarouselComponent?.storeComponentSchema?.('separator', separatorData);
               }
             } else {
-              separatorData = CarouselComponent.getStoredComponentSchema('separator');
+              separatorData = CarouselComponent?.getStoredComponentSchema?.('separator');
             }
             
             if (separatorData) {
@@ -284,7 +284,7 @@ export class CarouselComponent extends ContentstackComponent {
           }
         }
       }
-      if (schema.length === 0) {
+      if (schema?.length === 0) {
         console.warn('Carousel items schema is empty! No components were mapped.');
       }
 
@@ -303,11 +303,11 @@ export class CarouselComponent extends ContentstackComponent {
     const componentSchema = component?.convertedSchema;
     if (componentSchema?.type === 'object' && componentSchema?.properties) {
       const fields: any[] = [];
-      for (const [key, value] of Object.entries(componentSchema.properties)) {
+      for (const [key, value] of Object.entries(componentSchema?.properties)) {
         if (!carouselExclude.includes(key)) {
           const schemaProp = value as SchemaProperty;
-          if (schemaProp?.type && CarouselComponent.fieldTypeMap[schemaProp.type]) {
-            const mappedField = CarouselComponent.fieldTypeMap[schemaProp.type](key, schemaProp);
+          if (schemaProp?.type && CarouselComponent?.fieldTypeMap?.[schemaProp?.type]) {
+            const mappedField = CarouselComponent?.fieldTypeMap?.[schemaProp?.type](key, schemaProp);
             if (mappedField) {
               fields.push(mappedField);
             }
