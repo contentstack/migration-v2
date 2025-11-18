@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak */
+
 import path from 'path';
 import fs from 'fs';
 import getAuthtoken from '../utils/auth.utils.js';

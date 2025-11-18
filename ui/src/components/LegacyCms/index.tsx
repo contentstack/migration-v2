@@ -211,10 +211,13 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
   },[newMigrationData]);
   
   useEffect(()=>{
-   if(! isEmptyString(newMigrationData?.legacy_cms?.affix) 
+   const allConditionsMet = !isEmptyString(newMigrationData?.legacy_cms?.affix) 
       && !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.title) &&
     ! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) && 
-    newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+    newMigrationData?.legacy_cms?.uploadedFile?.isValidated;
+    
+   
+   if(allConditionsMet){
       setIsAllStepsCompleted(true);
       handleAllStepsComplete(true);
     }
@@ -222,7 +225,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
       console.warn('❌ Legacy CMS steps NOT completed. Missing one or more required fields.');
       setIsAllStepsCompleted(false);
       handleAllStepsComplete(false);
-
     }
   },[newMigrationData,isAllStepsCompleted])
 

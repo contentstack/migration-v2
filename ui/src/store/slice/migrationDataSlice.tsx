@@ -27,7 +27,34 @@ const migrationSlice = createSlice({
       state.newMigrationData = action?.payload;
     },
     updateNewMigrationData: (state, action) => {
-      state.newMigrationData = { ...state?.newMigrationData, ...action?.payload };
+      // Deep merge for nested objects
+      const payloadDestinationStack = action?.payload?.destination_stack;
+      const payloadSourceLocale = payloadDestinationStack?.sourceLocale;
+      
+      // Ensure sourceLocale is properly set (array should be replaced, not merged)
+      // Priority: payload sourceLocale > existing state sourceLocale
+      const finalSourceLocale = (payloadSourceLocale !== undefined && Array.isArray(payloadSourceLocale) && payloadSourceLocale.length > 0)
+        ? payloadSourceLocale
+        : (state?.newMigrationData?.destination_stack?.sourceLocale || []);
+      
+      state.newMigrationData = {
+        ...state?.newMigrationData,
+        ...action?.payload,
+        legacy_cms: {
+          ...state?.newMigrationData?.legacy_cms,
+          ...action?.payload?.legacy_cms,
+          uploadedFile: {
+            ...state?.newMigrationData?.legacy_cms?.uploadedFile,
+            ...action?.payload?.legacy_cms?.uploadedFile
+          }
+        },
+        destination_stack: {
+          ...state?.newMigrationData?.destination_stack,
+          ...payloadDestinationStack,
+          // Explicitly set sourceLocale to ensure it's not lost
+          sourceLocale: finalSourceLocale
+        }
+      };
     },
     setMigrationData: (state, action) => {
       state.migrationData = action?.payload;

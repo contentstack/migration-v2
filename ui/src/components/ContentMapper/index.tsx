@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useState, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -223,6 +223,11 @@ const Fields: MappingFields = {
     label: 'Block',
     options: {'Block':'modular_blocks_child'},
     type:''
+  },
+  'taxonomy':{
+    label: 'Taxonomy',
+    options: {'Taxonomy':'taxonomy'},
+    type:'taxonomy'
   }
 }
 type contentMapperProps = {
@@ -334,7 +339,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if(field?.backupFieldType === 'reference' &&  field?.refrenceTo?.length === 0) {
+      if(field?.backupFieldType === 'reference' &&  field?.referenceTo?.length === 0) {
+        field._canSelect = false;
+      }else if(field?.backupFieldType === 'taxonomy' && field?.referenceTo?.length === 0) {
         field._canSelect = false;
       }
       else if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
@@ -880,7 +887,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
         const updatedRow = {
           ...row,
-          refrenceTo: updatedSettings?.referenedItems || row?.refrenceTo,
+          referenceTo: updatedSettings?.referenedItems,
           advanced: { ...row?.advanced, ...updatedSettings }
         };
         return updatedRow;
@@ -1141,7 +1148,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
    * @param singleSelectedRowIds - The single selected row IDs
    * @returns void
    */
-  const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
+  const handleSelectedEntries = useCallback((singleSelectedRowIds: string[]) => {
     const selectedObj: UidMap = {};
     const previousRowIds: UidMap = { ...rowIds as UidMap };
 
@@ -1233,10 +1240,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
     setRowIds(selectedObj);
     setSelectedEntries(updatedTableData);
-  };
+  }, [rowIds, selectedEntries, tableData]);
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string, rowContentstackFieldUid: string) => {
+    // Find the field being changed
+    const changedField = selectedEntries?.find?.(
+      (row) => row?.uid === rowIndex && row?.contentstackFieldUid === rowContentstackFieldUid
+    );
+
     setIsDropDownChanged(true);
     setFieldValue(value);
     const updatedRows: FieldMapType[] = selectedEntries?.map?.((row) => {
@@ -1333,6 +1345,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               (data?.contentstackFieldType === 'text') ||
               (data?.contentstackFieldType === 'url') ||
               data?.backupFieldType === 'reference' ||
+              data?.backupFieldType === 'taxonomy' ||
+              data?.backupFieldType === 'file' ||
+              data?.backupFieldType === 'boolean' ||
+              data?.backupFieldType === 'number' ||
+              data?.backupFieldType === 'link' ||
+              data?.backupFieldType === 'date' ||
               data?.contentstackFieldType === "global_field" ||
               data?.otherCmsType === undefined ||
               newMigrationData?.project_current_step > 4 ||
@@ -1801,6 +1819,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               data?.contentstackFieldType === 'group' ||
               data?.contentstackFieldType === 'url' ||
               data?.backupFieldType === "reference" ||
+              data?.backupFieldType === 'taxonomy' ||
+              data?.backupFieldType === 'file' ||
+              data?.backupFieldType === 'boolean' ||
+              data?.backupFieldType === 'number' ||
+              data?.backupFieldType === 'link' ||
+              data?.backupFieldType === 'date' ||
               data?.contentstackFieldType === "global_field" ||
               data?.otherCmsType === undefined ||
               data?.backupFieldType === 'app' ||
@@ -1905,6 +1929,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           fieldMapping: selectedEntries
         }
       };
+
+      // Log field type changes being sent to backend
+      const changedFields = selectedEntries?.filter(field => {
+        const original = tableData?.find(t => t.uid === field.uid);
+        return original && original.contentstackFieldType !== field.contentstackFieldType;
+      });
 
       try {
         const { data } = await updateContentType(
@@ -2705,7 +2735,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
                   name={{
                     singular: '',
-                    plural: `${totalCounts === 0 ? 'Count' : ''}`
+                    plural: totalCounts === 0 ? 'Count' : ''
                   }}
                 />
                 <div className='d-flex align-items-center justify-content-between my-2 mx-3 px-1 py-1'>
