@@ -11,11 +11,12 @@ import {
   Icon,
   Select,
   Radio,
-  Button
+  Button,
+  InstructionText,
 } from '@contentstack/venus-components';
 
 // Service
-import { getContentTypes } from '../../services/api/migration.service';
+import { getContentTypes, getExistingTaxonomies } from '../../services/api/migration.service';
 
 // Utilities
 import { validateArray } from '../../utilities/functions';
@@ -30,6 +31,13 @@ import './index.scss';
 interface ContentTypeOption {
   label: string;
   value: string;
+}
+
+interface Taxonomy {
+  uid: string;
+  name: string;
+  description?: string;
+  source?: string;
 }
 
 /**
@@ -67,7 +75,7 @@ const AdvancePropertise = (props: SchemaProps) => {
     value: item
   }));
 
-  const referencedItems = props?.data?.refrenceTo?.map((item: string) => ({
+  const referencedItems = props?.data?.referenceTo?.map((item: string) => ({
     label: item,
     value: item
   }));
@@ -78,9 +86,11 @@ const AdvancePropertise = (props: SchemaProps) => {
   const [embedObjectsLabels, setEmbedObjectsLabels] = useState<string[]>(
     props?.value?.embedObjects
   );
-  const [referencedCT, setReferencedCT] = useState<ContentTypeOption[] | null>(
-    referencedItems || null
-  );
+  const [referencedCT, setReferencedCT] = useState<ContentTypeOption[] | null>(referencedItems || null);
+  const [sourceTaxonomies, setSourceTaxonomies] = useState<Taxonomy[]>([]);
+  const [destinationTaxonomies, setDestinationTaxonomies] = useState<Taxonomy[]>([]);
+  const [referencedTaxonomies, setReferencedTaxonomies] = useState<ContentTypeOption[] | null>(referencedItems || null);
+  const [isTaxonomiesLoading, setIsTaxonomiesLoading] = useState<boolean>(false);
   const [showOptions, setShowOptions] = useState<Record<number, boolean>>({});
   const [showIcon, setShowIcon] = useState<number>();
   const filterRef = useRef<HTMLDivElement | null>(null);
@@ -88,18 +98,18 @@ const AdvancePropertise = (props: SchemaProps) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (props?.data?.refrenceTo && Array.isArray(props?.data?.refrenceTo)) {
-      const updatedReferencedItems = props?.data?.refrenceTo.map((item: string) => ({
+    if (props?.data?.referenceTo && Array.isArray(props?.data?.referenceTo)) {
+      const updatedReferencedItems = props?.data?.referenceTo.map((item: string) => ({
         label: item,
         value: item
       }));
       setReferencedCT(updatedReferencedItems);
       setToggleStates((prevStates) => ({
         ...prevStates,
-        referenedItems: props?.data?.refrenceTo
+        referenedItems: props?.data?.referenceTo
       }));
     }
-  }, [props?.data?.refrenceTo]);
+  }, [props?.data?.referenceTo]);
   useEffect(() => {
     const defaultIndex = toggleStates?.option?.findIndex(
       (item: optionsType) => toggleStates?.default_value === item?.key
@@ -109,9 +119,68 @@ const AdvancePropertise = (props: SchemaProps) => {
       setShowIcon(defaultIndex);
     }
   }, []);
+  
   useEffect(() => {
     fetchContentTypes('');
+    
+    // Only fetch taxonomies if this is a Taxonomy field
+    if (props?.fieldtype === 'Taxonomy') {
+      fetchTaxonomies();
+    }
   }, []);
+
+  // Update referenced CT when content types are fetched (only for Reference fields)
+  useEffect(() => {
+    if (props?.fieldtype === 'Reference' && contentTypes.length > 0) {
+      // Merge old (upload-api) and new (UI) selections
+      // Reference fields can use embedObjects OR reference_to
+      const oldReferences = props?.data?.advanced?.embedObjects || props?.data?.advanced?.reference_to || [];
+      const newReferences = props?.data?.referenceTo || [];
+      const allReferenceUIDs = Array.from(new Set([...oldReferences, ...newReferences]));
+      
+      if (allReferenceUIDs.length > 0) {
+        const matchedCTs = allReferenceUIDs
+          .map((uid: string) => {
+            const ct = contentTypes.find((c: ContentType) => c.contentstackUid === uid);
+            return ct ? { label: ct.contentstackTitle, value: ct.contentstackUid } : null;
+          })
+          .filter(Boolean) as ContentTypeOption[];
+        
+        if (matchedCTs.length > 0) {
+          setReferencedCT(matchedCTs);
+        }
+      }
+    }
+  }, [contentTypes, props?.data?.referenceTo, props?.data?.advanced, props?.fieldtype]);
+
+  // Update referenced taxonomies when taxonomies are fetched (only for Taxonomy fields)
+  useEffect(() => {
+    if (props?.fieldtype === 'Taxonomy' && (sourceTaxonomies.length > 0 || destinationTaxonomies.length > 0)) {
+      const allTaxonomies = [...sourceTaxonomies, ...destinationTaxonomies];
+      
+      // Merge old (upload-api) and new (UI) selections
+      const oldTaxonomies = (props?.data?.advanced?.taxonomies || []).map((t: { taxonomy_uid?: string } | string) => (typeof t === 'string' ? t : t.taxonomy_uid || ''));
+      const newTaxonomies = props?.data?.referenceTo || [];
+      const allTaxonomyUIDs = Array.from(new Set([...oldTaxonomies, ...newTaxonomies]));
+      
+      
+      
+      if (allTaxonomyUIDs.length > 0) {
+        const matchedTaxonomies = allTaxonomyUIDs
+          .map((uid: string) => {
+            const taxonomy = allTaxonomies.find((t: Taxonomy) => t.uid === uid);
+            return taxonomy ? { label: taxonomy.name || taxonomy.uid, value: taxonomy.uid } : null;
+          })
+          .filter(Boolean) as ContentTypeOption[];
+        
+        
+        
+        if (matchedTaxonomies.length > 0) {
+          setReferencedTaxonomies(matchedTaxonomies);
+        }
+      }
+    }
+  }, [sourceTaxonomies, destinationTaxonomies, props?.data?.referenceTo, props?.data?.advanced, props?.fieldtype]);
   /**
    * Fetches the content types list.
    * @param searchText - The search text.
@@ -123,6 +192,29 @@ const AdvancePropertise = (props: SchemaProps) => {
       setContentTypes(data?.contentTypes);
     } catch (error) {
       return error;
+    }
+  };
+
+  /**
+   * Fetches taxonomies from both source CMS and destination stack.
+   */
+  const fetchTaxonomies = async () => {
+    setIsTaxonomiesLoading(true);
+    try {
+      
+      const { data } = await getExistingTaxonomies(props?.projectId ?? '');
+      
+      
+      
+      setSourceTaxonomies(data?.sourceTaxonomies || []);
+      setDestinationTaxonomies(data?.destinationTaxonomies || []);
+      
+      
+    } catch (error) {
+      console.error('❌ Error fetching taxonomies:', error);
+      return error;
+    } finally {
+      setIsTaxonomiesLoading(false);
     }
   };
 
@@ -601,6 +693,74 @@ const AdvancePropertise = (props: SchemaProps) => {
                 maxMenuHeight={200}
               />
               {/* )} */}
+            </Field>
+          )}
+
+          {props?.fieldtype === 'Taxonomy' && (
+            <Field>
+              <FieldLabel className="option-label" htmlFor="options" version="v2">
+                Referenced Taxonomies
+              </FieldLabel>
+              <Select
+                value={referencedTaxonomies}
+                isMulti={true}
+                isDisabled={isTaxonomiesLoading}
+                onChange={(selectedOptions: ContentTypeOption[]) => {
+                  
+                  setReferencedTaxonomies(selectedOptions);
+                  const taxonomyArray = selectedOptions?.map((item: optionsType) => item?.value);
+                  
+
+                  props?.updateFieldSettings(
+                    props?.rowId,
+                    {
+                      ...props?.value,
+                      validationRegex: toggleStates?.validationRegex ?? '',
+                      referenedItems: taxonomyArray
+                    },
+                    true,
+                    props?.data?.contentstackFieldUid
+                  );
+                }}
+                options={
+                  (() => {
+                    // Combine and deduplicate taxonomies by UID
+                    const allTaxonomies = [...sourceTaxonomies, ...destinationTaxonomies];
+                    const uniqueTaxonomiesMap = new Map<string, Taxonomy>();
+                    
+                    // Use Map to automatically deduplicate by UID (last one wins)
+                    allTaxonomies.forEach((taxonomy: Taxonomy) => {
+                      if (taxonomy?.uid) {
+                        uniqueTaxonomiesMap.set(taxonomy.uid, taxonomy);
+                      }
+                    });
+                    
+                    const dropdownOptions = Array.from(uniqueTaxonomiesMap.values()).map((taxonomy: Taxonomy) => ({
+                      label: `${taxonomy?.name || taxonomy?.uid}`,
+                      value: taxonomy?.uid
+                    }));
+                    
+                    
+                    
+                    return dropdownOptions;
+                  })()
+                }
+                placeholder={isTaxonomiesLoading ? "Loading..." : "Add Taxonomy(ies)"}
+                version="v2"
+                isSearchable={true}
+                isClearable={true}
+                width="350px"
+                maxMenuHeight={200}
+              />
+              {isTaxonomiesLoading ? (
+                <InstructionText>
+                  Loading taxonomies...
+                </InstructionText>
+              ) : sourceTaxonomies?.length === 0 && destinationTaxonomies?.length === 0 ? (
+                <InstructionText>
+                  No taxonomies found. Please upload source data or create taxonomies in your destination stack.
+                </InstructionText>
+              ) : null}
             </Field>
           )}
 

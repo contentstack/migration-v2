@@ -749,6 +749,17 @@ const createEnvironment = async (packagePath: any, destination_stack_id: string,
  */
 const createEntry = async (packagePath: any, destination_stack_id: string, projectId: string, contentTypes: any, mapperKeys: any, master_locale: string, project: any): Promise<void> => {
   const srcFunc = 'createEntry';
+  
+  // 🔍 DEBUG: Log master_locale parameter received
+  console.info('🔍 Contentful createEntry - master_locale parameter:', {
+    master_locale,
+    master_locale_type: typeof master_locale,
+    master_locale_isLowercase: master_locale === master_locale?.toLowerCase?.(),
+    master_locale_toLowerCase: master_locale?.toLowerCase?.(),
+    project_master_locale: project?.master_locale,
+    project_locales: project?.locales,
+  });
+  
   try {
     const entriesSave = path.join(DATA, destination_stack_id, ENTRIES_DIR_NAME);
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
@@ -757,6 +768,13 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
     const entries = JSON.parse(data)?.entries;
     const content = JSON.parse(data)?.contentTypes;
     const LocaleMapper = { masterLocale: project?.master_locale ?? LOCALE_MAPPER?.masterLocale, ...project?.locales ?? {} };
+    
+    // 🔍 DEBUG: Log LocaleMapper
+    console.info('🔍 Contentful createEntry - LocaleMapper:', {
+      LocaleMapper,
+      LocaleMapper_masterLocale: LocaleMapper.masterLocale,
+      LocaleMapper_keys: Object.keys(LocaleMapper),
+    });
     if (entries && entries.length > 0) {
       const assetId = await readFile(assetsSave, ASSETS_SCHEMA_FILE) ?? [];
       const entryId = await readFile(path.join(DATA, destination_stack_id, REFERENCES_DIR_NAME), REFERENCES_FILE_NAME);
@@ -949,8 +967,37 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
       await customLogger(projectId, destination_stack_id, 'error', message);
     }
     const fallbackMapLocales: any = { ...project?.master_locale ?? {}, ...project?.locales ?? {} }
+    
+    // 🔍 DEBUG: Log Contentful locale data
+    console.info('🔍 Contentful createLocale - Raw localeData from Contentful:', locales?.map((l: any) => ({
+      code: l?.code,
+      code_type: typeof l?.code,
+      code_isLowercase: l?.code === l?.code?.toLowerCase(),
+      fallbackCode: l?.fallbackCode
+    })));
+    console.info('🔍 Contentful createLocale - project.master_locale:', project?.master_locale);
+    console.info('🔍 Contentful createLocale - project.locales:', project?.locales);
+    console.info('🔍 Contentful createLocale - fallbackMapLocales:', fallbackMapLocales);
+    
     await Promise?.all(locales?.map?.(async (localeData: any) => {
+      // 🔍 DEBUG: Log each locale processing
+      console.info(`🔍 Processing Contentful locale:`, {
+        raw_code: localeData?.code,
+        raw_code_type: typeof localeData?.code,
+        raw_code_isLowercase: localeData?.code === localeData?.code?.toLowerCase(),
+        raw_code_toLowerCase: localeData?.code?.toLowerCase?.(),
+      });
+      
       const currentMapLocale = getKeyByValue?.(fallbackMapLocales, localeData?.code) ?? `${localeData?.code?.toLowerCase?.()}`;
+      
+      // 🔍 DEBUG: Log mapped locale
+      console.info(`🔍 Contentful locale mapping result:`, {
+        raw_code: localeData?.code,
+        currentMapLocale,
+        currentMapLocale_type: typeof currentMapLocale,
+        currentMapLocale_isLowercase: currentMapLocale === currentMapLocale?.toLowerCase(),
+      });
+      
       const title = localeData?.sys?.id;
       const newLocale: Locale = {
         code: currentMapLocale,
@@ -959,6 +1006,21 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
         uid: `${title}`,
       };
       const masterLocaleCode = getKeyByValue(project?.master_locale, localeData?.code);
+      
+      // 🔍 DEBUG: Log master locale detection
+      if (masterLocaleCode !== undefined) {
+        console.info(`🔍 ✅ Contentful MASTER LOCALE detected:`, {
+          localeData_code: localeData?.code,
+          localeData_code_type: typeof localeData?.code,
+          localeData_code_isLowercase: localeData?.code === localeData?.code?.toLowerCase(),
+          masterLocaleCode,
+          masterLocaleCode_type: typeof masterLocaleCode,
+          masterLocaleCode_isLowercase: masterLocaleCode === masterLocaleCode?.toLowerCase(),
+          newLocale_code: newLocale.code,
+          newLocale_code_isLowercase: newLocale.code === newLocale.code?.toLowerCase(),
+        });
+      }
+      
       if (masterLocaleCode !== undefined) {
         msLocale[title] = newLocale;
         const message = getLogMessage(
@@ -982,6 +1044,20 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
       localeList[title] = newLocale;
     }));
     const masterLocaleData = Object?.values(msLocale)?.[0];
+    
+    // 🔍 DEBUG: Log final master locale
+    if (masterLocaleData) {
+      console.info('🔍 Contentful createLocale - Final masterLocaleData:', {
+        code: masterLocaleData.code,
+        code_type: typeof masterLocaleData.code,
+        code_isLowercase: masterLocaleData.code === masterLocaleData.code?.toLowerCase(),
+        name: masterLocaleData.name,
+        uid: masterLocaleData.uid
+      });
+    } else {
+      console.warn('⚠️ Contentful createLocale - No master locale found!');
+    }
+    
     if (masterLocaleData) {
       for (const [key, value] of Object.entries(allLocales) ?? {}) {
         if (value?.code === masterLocaleData?.fallback_locale) {

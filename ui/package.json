@@ -36,6 +36,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:language-mapper": "node test-language-mapper.js",
+    "test:language-mapper-unit": "react-scripts test --testNamePattern='LoadLanguageMapper' --watchAll=false",
     "eject": "react-scripts eject",
     "prettify": "prettier --write .",
     "lint": "eslint .",

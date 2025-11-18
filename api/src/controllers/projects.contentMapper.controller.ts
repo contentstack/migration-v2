@@ -1,5 +1,5 @@
-import { Request, Response } from "express";
-import { contentMapperService } from "../services/contentMapper.service.js";
+import { Request, Response } from 'express';
+import { contentMapperService } from '../services/contentMapper.service.js';
 /**
  * Handles the PUT request to update test data.
  *
@@ -132,22 +132,43 @@ const getSingleContentTypes = async (
  * @param res - The response object.
  * @returns A Promise that resolves to void.
  */
-const getSingleGlobalField = async(req: Request, res: Response): Promise<void> => {
+const getSingleGlobalField = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const resp = await contentMapperService.getSingleGlobalField(req);
   res.status(201).json(resp);
-}
+};
 
-/** 
-* update content mapping details a project.
-*
-* @param req - The request object.
-* @param res - The response object.
-* @returns A Promise that resolves to void.
-*/
-const updateContentMapper = async (req: Request, res: Response): Promise<void> => {
+/**
+ * update content mapping details a project.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const updateContentMapper = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const project = await contentMapperService.updateContentMapper(req);
   res.status(project.status).json(project);
- }
+};
+
+/**
+ * Retrieves existing taxonomies from both source and destination.
+ *
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
+const getExistingTaxonomies = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const resp = await contentMapperService.getExistingTaxonomies(req);
+  res.status(resp?.status || 200).json(resp);
+};
 
 export const contentMapperController = {
   getContentTypes,
@@ -158,8 +179,9 @@ export const contentMapperController = {
   resetContentType,
   // removeMapping,
   getSingleContentTypes,
+  getExistingTaxonomies,
   removeContentMapper,
   updateContentMapper,
   getExistingGlobalFields,
-  getSingleGlobalField
+  getSingleGlobalField,
 };
