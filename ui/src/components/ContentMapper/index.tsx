@@ -2645,20 +2645,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   initialRowSelectedData={initialRowSelectedData}
                   initialSelectedRowIds={rowIds}
                   itemSize={80}
-                  // v2Features={{
-                  //   isNewEmptyState: true
-                  // }}
-                  // customEmptyState={
-                  //   <EmptyState
-                  //     forPage="list"
-                  //     heading={<div className="empty_search_heading">No Fields available</div>}
-                  //     moduleIcon="NoSearchResult"
-                  //     description="Try changing the search query to find what you are looking for."
-                  //     version="v2"
-                  //     testId="no-results-found-page"
-                  //     className="custom-empty-state"
-                  //   />
-                  // }
                   withExportCta={{
                     component: (
                       <div className='d-flex align-items-center'>
