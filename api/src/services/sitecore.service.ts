@@ -119,9 +119,8 @@ const uidCorrector = ({ uid } :{uid : string}) => {
   newUid = newUid
     .replace(/[ -]/g, '_') // Replace spaces and hyphens with underscores
     .replace(/[^a-zA-Z0-9_]+/g, '_') // Replace non-alphanumeric characters (except underscore)
-    .replace(/\$/g, '') // Remove dollar signs
-    .toLowerCase() // Convert to lowercase
     .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase
+    .toLowerCase() // Convert to lowercase
     .replace(/_+/g, '_') // Replace multiple underscores with single
     .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
 

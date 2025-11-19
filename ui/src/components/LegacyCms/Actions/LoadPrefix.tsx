@@ -122,7 +122,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
       };
       dispatch(updateNewMigrationData(newMigrationDataObj));
     }
-  }
+  };
 
   /****  ALL USEEffects  HERE  ****/
 
@@ -146,9 +146,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           isReadOnly={newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
           onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
             handleOnBlur(e.target.value);
-            
           }}
-          
         />
         {isError && <p className="errorMessage">{errorMessage}</p>}
       </div>
