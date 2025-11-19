@@ -5,7 +5,9 @@ import { getCall, postCall, putCall, patchCall } from './service';
 
 const options = () => ({
   headers: {
-    app_token: getDataFromLocalStorage('app_token')
+    app_token: getDataFromLocalStorage('app_token'),
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
   }
 });
 
@@ -278,10 +280,22 @@ export const updateContentMapper = async (
 export const updateStackDetails = async (orgId: string, projectId: string, data: ObjectType) => {
   try {
     const Data = { stack_details: data };
-    return await patchCall(`${API_VERSION}/org/${orgId}/project/${projectId}/stack-details`, Data, options());
-  } catch (error) {
-    return error;
 
+    // Log exactly what's being sent
+    console.info('updateStackDetails called with:');
+    console.info('orgId:', orgId);
+    console.info('projectId:', projectId);
+    console.info('data:', data);
+    console.info('Data payload:', Data);
+    console.info('options:', options());
+
+    const response = await patchCall(`${API_VERSION}/org/${orgId}/project/${projectId}/stack-details`, Data, options());
+
+    console.info('Response:', response);
+    return response;
+  } catch (error) {
+    console.error('Error in updateStackDetails:', error);
+    return error;
   }
 }
 
@@ -332,7 +346,7 @@ export const updateMigrationKey = async (orgId: string, projectId: string) => {
   }
 };
 
-export const updateLocaleMapper = async(projectId: string, data: any) => {
+export const updateLocaleMapper = async (projectId: string, data: any) => {
   try {
     return await postCall(
       `${API_VERSION}/migration/updateLocales/${projectId}`, data, options());
@@ -341,12 +355,12 @@ export const updateLocaleMapper = async(projectId: string, data: any) => {
   }
 }
 
-export const getMigrationLogs = async (orgId: string, projectId: string, stackId: string, skip:number , limit:number  , startIndex:number, stopIndex:number,searchText:string, filter: string ) => {
+export const getMigrationLogs = async (orgId: string, projectId: string, stackId: string, skip: number, limit: number, startIndex: number, stopIndex: number, searchText: string, filter: string) => {
   try {
-      return await getCall(
-        `${API_VERSION}/migration/get_migration_logs/${orgId}/${projectId}/${stackId}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}/${filter}`,
-        options()
-      );
+    return await getCall(
+      `${API_VERSION}/migration/get_migration_logs/${orgId}/${projectId}/${stackId}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}/${filter}`,
+      options()
+    );
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`${EXECUTION_LOGS_ERROR_TEXT.ERROR}: ${error.message}`);
