@@ -152,14 +152,7 @@
   .Table {
     border-left: 0 none;
     min-height: 26.25rem;
-    // &__rowgroup {
-    //   display: flex;
-    //   flex: 1;
-    //   flex-direction: column;
-    // }
     .Table__body__row {
-      //   height: auto!important;
-      //   min-height: 80px;
         .Table-select-body {
          >.checkbox-wrapper {
           align-items: flex-start;
