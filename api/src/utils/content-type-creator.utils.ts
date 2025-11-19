@@ -598,8 +598,8 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
         "field_metadata": {
           description: "",
           "default_value": {
-            "title": "",
-            "url": '',
+            "title": field?.advanced?.title ?? '',
+            "url": field?.advanced?.url ?? '',
           }
         },
         "format": field?.advanced?.validationRegex ?? '',
