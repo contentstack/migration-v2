@@ -96,7 +96,7 @@ const AutoVerticalStepper = React.forwardRef<
           {data.description && (
             <div 
               className="stepper-discription" 
-              dangerouslySetInnerHTML={{ __html: data.description }}
+              dangerouslySetInnerHTML={{ __html: data?.description }}
             />
           )}
         </>
