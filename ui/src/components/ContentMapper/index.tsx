@@ -762,11 +762,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       setItemStatusMap(itemStatusMap);
       setLoading(true);
 
-
-      // console.info('loading', loading);
-
       const { data } = await getFieldMapping(contentTypeId || '', 0, 1000, searchText || '', projectId);
-
 
       for (let index = 0; index <= 1000; index++) {
         itemStatusMap[index] = 'loaded';
@@ -782,7 +778,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       setSelectedEntries(validTableData ?? []);
       setTotalCounts(validTableData?.length);
       setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item?.isDeleted))
-      // setIsLoading(false);
       generateSourceGroupSchema(validTableData);
     } catch (error) {
       console.error('fetchData -> error', error);
@@ -805,7 +800,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       }
 
       setItemStatusMap({ ...itemStatusMapCopy });
-      // setLoading(true);
+      setLoading(true);
 
       const { data } = await getFieldMapping(contentTypeUid || '', skip, limit, searchText || '', projectId);
 
@@ -816,15 +811,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       }
 
       setItemStatusMap({ ...updateditemStatusMapCopy });
+      setLoading(false);
 
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
 
       // eslint-disable-next-line no-unsafe-optional-chaining
-      setTableData([...tableData, ...validTableData ?? tableData]);
-      setTotalCounts([...tableData, ...validTableData ?? tableData]?.length);
-      setIsLoading(false);
+      setTableData(validTableData ?? []);
+      setSelectedEntries(validTableData ?? []);
+      setTotalCounts(validTableData?.length);
       setIsAllCheck(true);
-
     } catch (error) {
       console.error('loadMoreItems -> error', error);
     }
