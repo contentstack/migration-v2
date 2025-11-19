@@ -357,9 +357,12 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setShowMessage(true);
       setValidationMessage('File validated successfully.');
       setIsDisabled(true);
+      if (
         !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) ||
-        (!isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) &&
-          props.handleStepChange(props?.currentStep, true));
+        !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)
+      ) {
+        props.handleStepChange(props?.currentStep, true);
+      }
     }
     if (newMigrationData?.legacy_cms?.uploadedFile?.reValidate) {
       setValidationMessage('');
@@ -368,10 +371,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setIsDisabled(false);
     }
     setReValidate(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
-   
-    // else{
-    //   setIsValidated(false);
-    // }
   }, [isValidated, newMigrationData]);
 
 
