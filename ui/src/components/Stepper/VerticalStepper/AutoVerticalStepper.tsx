@@ -93,7 +93,12 @@ const AutoVerticalStepper = React.forwardRef<
               </Tooltip>
             ) : null} */}
           </div>
-          {data.description && <div className="stepper-discription"> {data.description}</div>}
+          {data?.description && (
+            <div 
+              className="stepper-discription" 
+              dangerouslySetInnerHTML={{ __html: data?.description }}
+            />
+          )}
         </>
       );
     };

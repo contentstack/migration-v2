@@ -29,7 +29,7 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
 
   const dispatch = useDispatch();
 
-  const [prefix, setPrefix] = useState<string>(newMigrationData?.legacy_cms?.affix || '');
+  const [prefix, setPrefix] = useState<string>(newMigrationData?.legacy_cms?.affix || 'cs');
 
   const [isError, setIsError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -76,7 +76,6 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
             isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
           }
         };
-
         dispatch(updateNewMigrationData(newMigrationDataObj));
       } else {
         setPrefix(value);
@@ -93,7 +92,6 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         };
 
         dispatch(updateNewMigrationData(newMigrationDataObj));
-
         setIsError(false);
 
         //call for Step Change
@@ -101,20 +99,30 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
         return;
       }
     } else {
-      setIsError(true);
-      setErrorMessage('Please enter Affix');
+      setIsError(false);
+      setErrorMessage('');
+      setIsRestrictedKey(false);
+      setPrefix('');
+    }
+  });
+
+  const handleOnBlur = (value: string) => {
+    if (isEmptyString(value?.trim())) {
+      setIsError(false);
+      setErrorMessage('');
+      setIsRestrictedKey(false);
+      setPrefix('cs');
       const newMigrationDataObj: INewMigration = {
         ...newMigrationData,
         legacy_cms: {
           ...newMigrationData?.legacy_cms,
-          affix: value,
+          affix: 'cs',
           isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
         }
       };
-
       dispatch(updateNewMigrationData(newMigrationDataObj));
     }
-  });
+  }
 
   /****  ALL USEEffects  HERE  ****/
 
@@ -136,6 +144,11 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
           aria-label="affix"
           disabled={newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
           isReadOnly={newMigrationData?.legacy_cms?.uploadedFile?.isValidated}
+          onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+            handleOnBlur(e.target.value);
+            
+          }}
+          
         />
         {isError && <p className="errorMessage">{errorMessage}</p>}
       </div>
