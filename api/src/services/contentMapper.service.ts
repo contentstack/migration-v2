@@ -751,7 +751,7 @@ const resetToInitialMapping = async (req: Request) => {
   const fieldMappingData = contentTypeData.fieldMapping.map((itemId: any) => {
     const fieldData = FieldMapperModel.chain
       .get("field_mapper")
-      .find({ id: itemId, projectId: projectId })
+      .find({ id: itemId, projectId: projectId, contentTypeId: contentTypeId})
       .value();
     return fieldData;
   });
@@ -771,7 +771,7 @@ const resetToInitialMapping = async (req: Request) => {
       //await FieldMapperModel.read();
       (fieldMappingData || []).forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
-          (f: any) => f?.id === field?.id
+          (f: any) => f?.id === field?.id && f?.projectId === projectId && f?.contentTypeId === contentTypeId
         );
         if (fieldIndex > -1) {
           FieldMapperModel.update((data: any) => {

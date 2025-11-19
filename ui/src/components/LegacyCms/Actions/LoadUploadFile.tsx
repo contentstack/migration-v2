@@ -154,7 +154,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         setIsDisabled(true);
 
         if (
-          !isEmptyString(newMigrationData?.legacy_cms?.affix) &&
           !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
           !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)
         ) {
@@ -358,23 +357,22 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setShowMessage(true);
       setValidationMessage('File validated successfully.');
       setIsDisabled(true);
-      !isEmptyString(newMigrationData?.legacy_cms?.affix) ||
+      if (
         !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) ||
-        (!isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) &&
-          props.handleStepChange(props?.currentStep, true));
+        !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)
+      ) {
+        props.handleStepChange(props?.currentStep, true);
+      }
     }
     if (newMigrationData?.legacy_cms?.uploadedFile?.reValidate) {
       setValidationMessage('');
     }
-    if(!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
+    if(!newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
       setIsDisabled(false);
     }
     setReValidate(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
-   
-    // else{
-    //   setIsValidated(false);
-    // }
   }, [isValidated, newMigrationData]);
+
 
   useEffect(() => {
     if (newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) {
@@ -448,7 +446,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={!(reValidate || (!isDisabled && !isEmptyString(newMigrationData?.legacy_cms?.affix)))}
+            disabled={!(reValidate || (!isDisabled))}
           > 
             Validate File
           </Button>
