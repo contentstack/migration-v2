@@ -760,15 +760,16 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       }
 
       setItemStatusMap(itemStatusMap);
+      setLoading(true);
 
       const { data } = await getFieldMapping(contentTypeId || '', 0, 1000, searchText || '', projectId);
-
 
       for (let index = 0; index <= 1000; index++) {
         itemStatusMap[index] = 'loaded';
       }
 
       setItemStatusMap({ ...itemStatusMap });
+      setLoading(false);
 
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
 
@@ -777,7 +778,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       setSelectedEntries(validTableData ?? []);
       setTotalCounts(validTableData?.length);
       setInitialRowSelectedData(validTableData?.filter((item: FieldMapType) => !item?.isDeleted))
-      setIsLoading(false);
       generateSourceGroupSchema(validTableData);
     } catch (error) {
       console.error('fetchData -> error', error);
@@ -811,15 +811,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       }
 
       setItemStatusMap({ ...updateditemStatusMapCopy });
+      setLoading(false);
 
       const validTableData = data?.fieldMapping?.filter((field: FieldMapType) => field?.otherCmsType !== undefined);
 
       // eslint-disable-next-line no-unsafe-optional-chaining
-      setTableData([...tableData, ...validTableData ?? tableData]);
-      setTotalCounts([...tableData, ...validTableData ?? tableData]?.length);
-      setIsLoading(false);
+      setTableData(validTableData ?? []);
+      setSelectedEntries(validTableData ?? []);
+      setTotalCounts(validTableData?.length);
       setIsAllCheck(true);
-
     } catch (error) {
       console.error('loadMoreItems -> error', error);
     }
@@ -2645,20 +2645,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   initialRowSelectedData={initialRowSelectedData}
                   initialSelectedRowIds={rowIds}
                   itemSize={80}
-                  v2Features={{
-                    isNewEmptyState: true
-                  }}
-                  customEmptyState={
-                    <EmptyState
-                      forPage="list"
-                      heading={<div className="empty_search_heading">No Fields available</div>}
-                      moduleIcon="NoSearchResult"
-                      description="Try changing the search query to find what you are looking for."
-                      version="v2"
-                      testId="no-results-found-page"
-                      className="custom-empty-state"
-                    />
-                  }
                   withExportCta={{
                     component: (
                       <div className='d-flex align-items-center'>
