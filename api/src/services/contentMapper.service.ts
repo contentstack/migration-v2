@@ -1410,17 +1410,32 @@ const getExistingTaxonomies = async (req: Request) => {
       );
 
       // Path 1: Check api/migration-data (processed taxonomies)
+      // Sanitize stackId to prevent path traversal
+      const sanitizedStackId = path.basename(stackId);
+
       const apiMigrationDataPath = path.join(
         MIGRATION_DATA_CONFIG.DATA,
-        stackId,
+        sanitizedStackId,
         MIGRATION_DATA_CONFIG.TAXONOMIES_DIR_NAME,
         MIGRATION_DATA_CONFIG.TAXONOMIES_FILE_NAME
       );
 
+      // Resolve to absolute path and validate it's within allowed directory
+      const baseDirectory = path.resolve(MIGRATION_DATA_CONFIG.DATA);
+      const resolvedPath = path.resolve(apiMigrationDataPath);
+
+      // Ensure the resolved path is within the base directory
+      if (!resolvedPath.startsWith(baseDirectory)) {
+        logger.error(
+          `Path traversal attempt detected: ${resolvedPath} is outside ${baseDirectory}`
+        );
+        throw new BadRequestError('Invalid file path');
+      }
+
       try {
-        if (fs.existsSync(apiMigrationDataPath)) {
+        if (fs.existsSync(resolvedPath)) {
           const taxonomiesData = await fs.promises.readFile(
-            apiMigrationDataPath,
+            resolvedPath,
             'utf8'
           );
           const taxonomiesObject = JSON.parse(taxonomiesData);
