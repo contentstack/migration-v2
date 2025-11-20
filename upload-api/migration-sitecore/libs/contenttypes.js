@@ -413,7 +413,8 @@ const groupFlat = (data, item) => {
       contentstackField: item?.meta?.name,
       contentstackFieldUid: data?.uid, // Use the corrected UID from groupSchema
       contentstackFieldType: 'group',
-      backupFieldType: 'group'
+      backupFieldType: 'group',
+      backupFieldUid: data?.uid
     };
     flat?.push(group);
     data?.schema?.forEach((element) => {

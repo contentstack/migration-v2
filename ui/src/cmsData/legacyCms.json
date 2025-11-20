@@ -284,7 +284,7 @@
         "uid": "cs6c761d71844ac800"
       },
       "title": "Add Source Affix",
-      "description": "Add a 2–5 character affix for the source name. Use only letters, no numbers or special characters",
+      "description": "Add a 2–5 letter-only affix for the source name. The affix will function as a prefix if the content type UID matches with <a href=\"https://www.contentstack.com/docs/developers/create-content-types/restricted-keywords-for-uids\" target=\"_blank\">restricted UIDs</a>. The affix will function as a suffix for field UIDs. If left blank, \"cs\" will be used by default. Avoid numbers, special characters, and restricted keywords",
       "step_lock_text": "Editing this step is currently disabled. To make changes in Draft mode, please deactivate the migration",
       "lock": false,
       "active": false,

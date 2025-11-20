@@ -97,6 +97,9 @@ const AdvancePropertise = (props: SchemaProps) => {
   const [options, setOptions] = useState(props?.value?.options || []);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   useEffect(() => {
     if (props?.data?.referenceTo && Array.isArray(props?.data?.referenceTo)) {
       const updatedReferencedItems = props?.data?.referenceTo.map((item: string) => ({
@@ -234,6 +237,16 @@ const AdvancePropertise = (props: SchemaProps) => {
       [field]: (event.target as HTMLInputElement)?.value
     }));
 
+    if(field === 'validationRegex') {
+      if(event.target.value?.trim()?.length > 0) {
+        setIsError(true);
+        setErrorMessage('Adding a regex could impact entry creation.');
+      }
+      else {
+        setIsError(false);
+        setErrorMessage('');
+      }
+    }
     const currentToggleStates = {
       ...toggleStates,
       [field]: (event.target as HTMLInputElement)?.value
@@ -582,6 +595,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                       handleOnChange('validationRegex', e, true))
                   }
                 />
+                  {isError && <p className="errorMessage">{errorMessage}</p>}
               </Field>
             </>
           )}
