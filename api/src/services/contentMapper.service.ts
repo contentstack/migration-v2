@@ -65,8 +65,6 @@ const putTestData = async (req: Request) => {
       });
     });
 
-
-
     /*
     this code snippet iterates over an array of contentTypes and performs 
     some operations on each element. 
@@ -742,10 +740,8 @@ const updateContentType = async (req: Request) => {
           FieldMapperModel.update((data: any) => {
             const existingField = data?.field_mapper?.[fieldIndex];
             const preservedInitial = existingField?.advanced?.initial;
-            
 
             data.field_mapper[fieldIndex] = field;
-            
 
             if (preservedInitial && field?.advanced) {
               data.field_mapper[fieldIndex].advanced.initial = preservedInitial;
@@ -841,7 +837,7 @@ const resetToInitialMapping = async (req: Request) => {
   const fieldMappingData = contentTypeData.fieldMapping.map((itemId: any) => {
     const fieldData = FieldMapperModel.chain
       .get('field_mapper')
-      .find({ id: itemId, projectId: projectId })
+      .find({ id: itemId, projectId: projectId, contentTypeId: contentTypeId })
       .value();
     return fieldData;
   });
@@ -861,21 +857,23 @@ const resetToInitialMapping = async (req: Request) => {
       //await FieldMapperModel.read();
       (fieldMappingData || []).forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
-          (f: any) => f?.id === field?.id
+          (f: any) =>
+            f?.id === field?.id &&
+            f?.projectId === projectId &&
+            f?.contentTypeId === contentTypeId
         );
         if (fieldIndex > -1) {
           FieldMapperModel.update((data: any) => {
-            
-              data.field_mapper[fieldIndex] = {
-                ...field,
-                contentstackField: field?.otherCmsField,
-                contentstackFieldUid: field?.backupFieldUid,
-                contentstackFieldType: field?.backupFieldType,
-                advanced: {
-                  ...field?.advanced?.initial,
-                  initial: field?.advanced?.initial,
-                }
-              }
+            data.field_mapper[fieldIndex] = {
+              ...field,
+              contentstackField: field?.otherCmsField,
+              contentstackFieldUid: field?.backupFieldUid,
+              contentstackFieldType: field?.backupFieldType,
+              advanced: {
+                ...field?.advanced?.initial,
+                initial: field?.advanced?.initial,
+              },
+            };
           });
         }
       });

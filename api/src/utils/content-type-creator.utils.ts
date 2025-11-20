@@ -74,12 +74,32 @@ function startsWithNumber(str: string) {
   return /^\d/.test(str);
 }
 
-const uidCorrector = ({ uid }: any) => {
-  if (startsWithNumber(uid)) {
-    return `a_${_.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()}`
+const uidCorrector = ({ uid } : {uid : string}) => {
+  if (!uid || typeof uid !== 'string') {
+    return '';
   }
-  return _.replace(uid, new RegExp("[ -]", "g"), '_')?.toLowerCase()
-}
+
+  let newUid = uid;
+
+  // Note: UIDs starting with numbers and restricted keywords are handled externally in Sitecore
+  // The prefix is applied in contentTypeMaker function when needed
+
+  // Clean up the UID
+  newUid = newUid
+    .replace(/[ -]/g, '_') // Replace spaces and hyphens with underscores
+    .replace(/[^a-zA-Z0-9_]+/g, '_') // Replace non-alphanumeric characters (except underscore)
+    .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase
+    .toLowerCase() // Convert to lowercase
+    .replace(/_+/g, '_') // Replace multiple underscores with single
+    .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+
+  // Ensure UID doesn't start with underscore (Contentstack requirement)
+  if (newUid.startsWith('_')) {
+    newUid = newUid.substring(1);
+  }
+
+  return newUid;
+};
 
 
 function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): any {
@@ -627,8 +647,8 @@ export const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath
         "field_metadata": {
           description: "",
           "default_value": {
-            "title": "",
-            "url": '',
+            "title": field?.advanced?.title ?? '',
+            "url": field?.advanced?.url ?? '',
           }
         },
         "format": field?.advanced?.validationRegex ?? '',

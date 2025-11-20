@@ -40,7 +40,7 @@ export const uploadFilePath = () => {
   return `${UPLOAD_FILE_RELATIVE_URL}upload`;
 };
 
-export const fileValidation = async (projectId: string, affix: string) => {
+export const fileValidation = async (projectId: string, affix = 'cs') => {
   try {
     const options = {
       headers: {
