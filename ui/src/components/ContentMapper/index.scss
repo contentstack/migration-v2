@@ -414,3 +414,16 @@ div .table-row {
     margin: 0 auto;
   }
 }
+
+.table-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;                   
+}
+.table-row .select {
+  flex: 1;                    
+}
+.advanced-setting-button,
+.table-row button {
+  flex-shrink: 0;           
+}
