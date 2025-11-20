@@ -932,22 +932,25 @@ function processFieldsRecursive(
         let value = getFieldValue(items, aemFieldName);
         const uid = getLastKey(field?.contentstackFieldUid);
 
+        const actualUid = getActualFieldUid(uid, field?.uid);
         if (value && typeof value === 'string' && /<[^>]+>/.test(value)) {
           value = stripHtmlTags(value);
         }
 
-        obj[uid] = value !== null && value !== undefined ? String(value) : "";
+        obj[actualUid] = value !== null && value !== undefined ? String(value) : "";
         break;
       }
 
       case 'text': {
         const uid = getLastKey(field?.contentstackFieldUid);
-        obj[uid] = title ?? '';
+        const actualUid = getActualFieldUid(uid, field?.uid);
+        obj[actualUid] = title ?? '';
         break;
       }
       case 'url': {
         const uid = getLastKey(field?.contentstackFieldUid);
-        obj[uid] = `/${slugify(title)}`;
+        const actualUid = getActualFieldUid(uid, field?.uid);
+        obj[actualUid] = `/${slugify(title)}`;
         break;
       }
       case 'reference': {
