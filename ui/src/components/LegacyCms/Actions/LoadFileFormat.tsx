@@ -161,7 +161,7 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
               ? 'DIRECTORY'
               : extractedFormat.toUpperCase()
         };
-        
+                
         dispatch(updateNewMigrationData({
           ...newMigrationData,
           legacy_cms: {
@@ -178,7 +178,7 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
         } else if (extractedFormat === 'directory') {
           setFileIcon('Folder');
         } else {
-        setFileIcon(fileFormatObj.title);
+          setFileIcon(fileFormatObj.title);
         }
       }
     } else if (!isEmptyString(currentFormat)) {
@@ -198,12 +198,12 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
     }, 0);
   }, [newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath, newMigrationData?.legacy_cms?.selectedFileFormat, dispatch, newMigrationData]);
 
-  
   return (
     <div className="p-3">
       <div className="col-12">
         <label htmlFor="file-format">
           <TextInput
+            label="File Format"
             value={
               fileIcon === 'SQL' ? 'SQL' : 
               fileIcon === 'Folder' ? 'DIRECTORY' : 
@@ -212,15 +212,13 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
             }
             version="v2"
             isReadOnly={true}
-            disabled={true}
             width="large"
-            placeholder=""
             prefix={
               <Icon
-                icon={fileIcon === 'SQL' ? 'ApiTokens' : fileIcon ? fileIcon : 'CrashedPage'}
+                icon={fileIcon === 'SQL' ? 'ApiTokens' : fileIcon === 'Folder' ? 'Folder' : fileIcon ? fileIcon : 'CrashedPage'}
                 size="medium"
                 version="v2"
-                aria-label="fileformat"
+                aria-label="File format icon"
               />
             }
           />
