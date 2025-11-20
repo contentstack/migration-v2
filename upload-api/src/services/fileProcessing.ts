@@ -48,7 +48,7 @@ const handleFileProcessing = async (
         }
       };
     }
-  } else if (fileExt === 'xml') {
+  } else if (fileExt === 'xml' && (cmsType === 'wordpress' || cmsType === 'drupal')) {
     if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt })) {
       const $ = Cheerio.load(zipBuffer, { xmlMode: true });
       const fixedXml = $.xml();
