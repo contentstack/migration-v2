@@ -71,7 +71,7 @@ const templatesComponents = ({ path: newPath }) => {
         const components = helper.readFile(path?.join?.(newPath?.[i]?.pth, allPaths?.[j]));
         const data = components?.item?.$ ?? {};
         components?.item?.fields?.field.forEach((item) => {
-          if (item?.$?.key === 'type' || item?.$?.key === 'source' || item?.$?.key === extraField) {
+          if (item?.$?.key === 'type' || item?.$?.key === 'source' || item?.$?.key === extraField || item?.$?.key === 'default value') {
             innerField.push({
               content: item.content,
               ...item.$
@@ -135,7 +135,8 @@ const ContentTypeSchema = ({
   choices = [],
   sourLet,
   sitecoreKey,
-  affix
+  affix,
+  mckCustom
 }) => {
   const isPresent = restrictedUid?.find((item) => item === uid);
   const cleanedUid = uidCorrector({ uid });
@@ -146,7 +147,8 @@ const ContentTypeSchema = ({
     uid = `${affix}_${uid}`;
   }
   switch (type) {
-    case 'Single-Line Text': {
+    case 'Single-Line Text':
+    case 'text': {
       return {
         id: id,
         uid: sitecoreKey,
@@ -160,7 +162,8 @@ const ContentTypeSchema = ({
         advanced: { default_value: default_value !== '' ? default_value : null }
       };
     }
-    case 'Checkbox': {
+    case 'Checkbox':
+    case 'checkbox': {
       default_value = default_value === '1' ? true : false;
       return {
         id: id,
@@ -333,7 +336,28 @@ const ContentTypeSchema = ({
         sourceKey: sourLet
       };
     }
+
+    case 'McK Multi Root TreeList': {
+      if (mckCustom?.length) {
+        return {
+          id: id,
+          uid: sitecoreKey,
+          otherCmsField: name,
+          otherCmsType: type,
+          contentstackField: name,
+          contentstackFieldUid: uidCorrector({ uid }),
+          contentstackFieldType: 'reference',
+          backupFieldUid: uid,
+          backupFieldType: 'reference',
+          sourceKey: sourLet,
+          refrenceTo: mckCustom,
+        };
+      }
+      return null
+    }
+
     default: {
+      // console.log(` ${type}  =>>>> ${name}`);
       return null;
       // return {
       //   id,
@@ -371,10 +395,18 @@ function makeUnique({ data }) {
     });
 
     const result = Object?.entries(tempMapping).map(([value, data]) => {
+      // Check if all keys are the same
+      const uniqueKeys = [...new Set(data.keys)];
+      const finalKey = uniqueKeys.length === 1 ? uniqueKeys[0] : data.keys?.join('/');
+
+      // Check if all UIDs are the same
+      const uniqueUids = [...new Set(data.uids)];
+      const finalUid = uniqueUids.length === 1 ? uniqueUids[0] : data.uids?.join('/');
+
       return {
-        key: data.keys?.join('/'),
+        key: finalKey,
         value: value,
-        uid: data.uids?.join('/') || undefined
+        uid: finalUid || undefined
       };
     });
 
@@ -511,123 +543,170 @@ const contentTypeMapper = ({
             }
           });
         }
-        let compType = {};
+        let compType;
         let sourLet = {};
         let sourceType = [];
         let advanced = false;
         let name = field?.name;
+        let mckCustom;
+        field?.fields?.sort((a, b) => {
+          const order = { 'type': 1, 'source': 2, 'default value': 3 };
+          const aOrder = order[a?.key] || 4;
+          const bOrder = order[b?.key] || 4;
+          return aOrder - bOrder;
+        })
         field?.fields?.forEach((item) => {
           if (item?.key === 'type') {
             compType = item;
           }
           if (item?.key === 'source') {
             sourLet = item;
-            if (compType?.content === 'Droplink') {
-              if (sourceTree) {
-                if (item?.content?.includes(configChecker)) {
-                  sourceType = makeUnique({ data: sourceTree?.[item?.content] });
-                  compType.content = 'Droplist';
-                  if (isKeyPresent('key', sourceType)) {
-                    advanced = false; // 🔧 FIX: Set dropdown advanced to false
-                  }
-                }
-              }
-              const sourcePaths = read(
-                path?.join?.(
-                  sitecore_folder,
-                  'master',
-                  item?.content?.replace?.('Datasource=', '')?.replace?.('Interest', 'interest')
-                )
-              );
-              if (sourcePaths?.length) {
-                const optionsArray = [];
-                let ctDataUid = null;
-                for (const pth of sourcePaths) {
-                  if (pth?.endsWith?.('data.json')) {
-                    const fileData = helper?.readFile?.(
-                      path?.join?.(sitecore_folder, 'master', item?.content?.replace?.('Datasource=', '')?.replace?.('Interest', 'interest'), pth)
-                    );
-                    const fields = fileData?.item?.fields?.field || [];
-                    const key = findValueByKey(fields, "key");
-                    const value = findValueByKey(fields, "value");
-                    if (key && value) {
-                      optionsArray?.push({ key, value, uid: fileData?.item?.$?.id });
-                    } else {
+            //custom for mkc 
+            if (compType?.content === 'McK Multi Root TreeList') {
+              if (item?.content && typeof item?.content === 'string' && item?.content.trim() !== '') {
+                const cleanedString = item?.content.replace(/^datasource=/i, '');
+                // Split by pipe separator and clean up paths
+                const referencePath = cleanedString
+                  .split('|')
+                  .map(path => path.trim())
+                  .filter(path => path.length > 0);
+                const ctAll = new Set();
+                for (const singlePath of referencePath) {
+                  const sourceSinglePath = read(
+                    path?.join?.(
+                      sitecore_folder,
+                      'master',
+                      singlePath
+                    )
+                  );
+
+                  if (sourceSinglePath?.length) {
+                    sourceSinglePath?.forEach((pth) => {
                       if (pth?.startsWith?.('{') && pth?.endsWith?.('data.json')) {
-                        ctDataUid = fileData?.item?.$?.template
+                        // Process the data.json file
+                        const fileData = helper?.readFile?.(
+                          path?.join?.(sitecore_folder, 'master', singlePath, pth)
+                        );
+                        if (fileData?.item?.$?.template) {
+                          ctAll.add(fileData?.item?.$?.template);
+                        }
                       }
-                    }
+                    });
                   }
                 }
-                if (optionsArray?.length === 0) {
-                  contentTypeKeyMapper({
-                    template: { id: content_type?.contentstackUid },
-                    contentType: { uid: { name, uid: field?.key, unique: [ctDataUid] } },
-                    contentTypeKey: 'treeListRef'
-                  });
-                } else {
-                  sourceType = makeUnique({ data: optionsArray });
-                  compType.content = 'Droplist';
+                if (Array.from(ctAll)?.length) {
+                  mckCustom = Array.from(ctAll)
                 }
-              } else {
-                console.info('No paths found for source:', item?.content);
               }
             } else {
-              if (source) {
-                if (item?.content?.includes('datasource=')) {
-                  const gUid = item?.content?.split('}')?.[0]?.replace?.(/datasource=\{\s*/i, '');
-                  if (gUid) {
-                    const dataSourcePaths = read(
-                      path?.join?.(sitecore_folder, 'master', 'sitecore', 'content', 'Common')
-                    );
-                    let isDataSourcePresent = dataSourcePaths?.find((sur) =>
-                      sur?.includes(`{${gUid}}`)
-                    );
-                    isDataSourcePresent = isDataSourcePresent?.split(`{${gUid}}`)?.[0];
-                    if (isDataSourcePresent) {
-                      const optionsPath = read(
-                        path?.join?.(
-                          sitecore_folder,
-                          'master',
-                          'sitecore',
-                          'content',
-                          'Common',
-                          isDataSourcePresent
-                        )
+              if (compType?.content === 'Droplink') {
+                if (sourceTree) {
+                  if (item?.content?.includes(configChecker)) {
+                    sourceType = makeUnique({ data: sourceTree?.[item?.content] });
+                    compType.content = 'Droplist';
+                    if (isKeyPresent('key', sourceType)) {
+                      advanced = false; // 🔧 FIX: Set dropdown advanced to false
+                    }
+                  }
+                }
+                const sourcePaths = read(
+                  path?.join?.(
+                    sitecore_folder,
+                    'master',
+                    item?.content?.replace?.('Datasource=', '')?.replace?.('Interest', 'interest')
+                  )
+                );
+                if (sourcePaths?.length) {
+                  const optionsArray = [];
+                  let ctDataUid = null;
+                  for (const pth of sourcePaths) {
+                    if (pth?.endsWith?.('data.json')) {
+                      const fileData = helper?.readFile?.(
+                        path?.join?.(sitecore_folder, 'master', item?.content?.replace?.('Datasource=', '')?.replace?.('Interest', 'interest'), pth)
                       );
-                      const refName = [];
-                      optionsPath?.forEach((newPath) => {
-                        if (newPath?.endsWith('data.json')) {
-                          const data = helper.readFile(
-                            path?.join?.(
-                              sitecore_folder,
-                              'master',
-                              'sitecore',
-                              'content',
-                              'Common',
-                              isDataSourcePresent,
-                              newPath
-                            )
-                          );
-                          if (data?.item?.$?.template) {
-                            refName.push(data?.item?.$?.template);
-                          }
+                      const fields = fileData?.item?.fields?.field || [];
+                      const key = findValueByKey(fields, "key");
+                      const value = findValueByKey(fields, "value");
+                      if (key && value) {
+                        optionsArray?.push({ key, value, uid: fileData?.item?.$?.id });
+                      } else {
+                        if (pth?.startsWith?.('{') && pth?.endsWith?.('data.json')) {
+                          ctDataUid = fileData?.item?.$?.template
                         }
-                      });
-                      if (refName?.length) {
-                        const unique = [...new Set(refName)];
-                        contentTypeKeyMapper({
-                          template: { id: content_type?.contentstackUid },
-                          contentType: { uid: { name, uid: field?.key, unique } },
-                          contentTypeKey: 'treeListRef'
-                        });
                       }
                     }
                   }
+                  if (optionsArray?.length === 0) {
+                    contentTypeKeyMapper({
+                      template: { id: content_type?.contentstackUid },
+                      contentType: { uid: { name: `${groupSchema.display_name} > ${name}`, uid: `${groupSchema.uid}.${field?.key}`, unique: [ctDataUid] } },
+                      contentTypeKey: 'treeListRef'
+                    });
+                  } else {
+                    // console.info('Options found for Droplink source:', item?.content, name, field?.key,);
+                    sourceType = makeUnique({ data: optionsArray });
+                    compType.content = 'Droplist';
+                  }
                 } else {
-                  sourceType = makeUnique({ data: source?.[item?.content] });
-                  if (isKeyPresent('key', sourceType)) {
-                    advanced = false; // 🔧 FIX: Set dropdown advanced to false
+                  console.info('No paths found for source:', item?.content);
+                }
+              } else {
+                if (source) {
+                  if (item?.content?.includes('datasource=')) {
+                    const gUid = item?.content?.split('}')?.[0]?.replace?.(/datasource=\{\s*/i, '');
+                    if (gUid) {
+                      const dataSourcePaths = read(
+                        path?.join?.(sitecore_folder, 'master', 'sitecore', 'content', 'Common')
+                      );
+                      let isDataSourcePresent = dataSourcePaths?.find((sur) =>
+                        sur?.includes(`{${gUid}}`)
+                      );
+                      isDataSourcePresent = isDataSourcePresent?.split(`{${gUid}}`)?.[0];
+                      if (isDataSourcePresent) {
+                        const optionsPath = read(
+                          path?.join?.(
+                            sitecore_folder,
+                            'master',
+                            'sitecore',
+                            'content',
+                            'Common',
+                            isDataSourcePresent
+                          )
+                        );
+                        const refName = [];
+                        optionsPath?.forEach((newPath) => {
+                          if (newPath?.endsWith('data.json')) {
+                            const data = helper.readFile(
+                              path?.join?.(
+                                sitecore_folder,
+                                'master',
+                                'sitecore',
+                                'content',
+                                'Common',
+                                isDataSourcePresent,
+                                newPath
+                              )
+                            );
+                            if (data?.item?.$?.template) {
+                              refName.push(data?.item?.$?.template);
+                            }
+                          }
+                        });
+                        if (refName?.length) {
+                          const unique = [...new Set(refName)];
+                          contentTypeKeyMapper({
+                            template: { id: content_type?.contentstackUid },
+                            contentType: { uid: { name, uid: field?.key, unique } },
+                            contentTypeKey: 'treeListRef'
+                          });
+                        }
+                      }
+                    }
+                  } else {
+                    sourceType = makeUnique({ data: source?.[item?.content] });
+                    if (isKeyPresent('key', sourceType)) {
+                      advanced = false; // 🔧 FIX: Set dropdown advanced to false
+                    }
                   }
                 }
               }
@@ -638,6 +717,11 @@ const contentTypeMapper = ({
               name = item?.content;
             }
           }
+          if (item?.key === 'default value') {
+            if (item?.content && item?.content !== '') {
+              compType.defaultValue = item?.content;
+            }
+          }
         });
         if (compType?.content !== 'Droptree') {
           groupSchema?.schema?.push(
@@ -645,14 +729,15 @@ const contentTypeMapper = ({
               name,
               uid: uidCorrector({ uid: field?.key }),
               type: compType?.content,
-              default_value: compType?.standardValues?.content,
+              default_value: compType?.standardValues?.content ?? compType.defaultValue,
               id: field?.id,
               choices: sourceType?.slice(0, config?.plan?.dropdown?.optionLimit - 2 ?? 98),
               advanced,
               sourLet,
               sitecoreKey: field?.key,
               isFromMapper: true,
-              affix
+              affix,
+              mckCustom
             })
           );
         }

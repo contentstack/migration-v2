@@ -352,6 +352,13 @@ const createEntry = async ({
                         fsc?.contentstackFieldUid
                       ] = `/${entry?.meta?.key}`;
                     }
+                    //hardcode because of profile ct deafult value and not present in entry
+                    if (ctType?.contentstackUid === 'profile') {
+                      if (!entryObj.contact_details) {
+                        entryObj.contact_details = {};
+                      }
+                      entryObj.contact_details.enable_contact_form = true;
+                    }
                     if (getLastKey(fsc?.uid) === field?.$?.key) {
                       const content: any = await entriesFieldCreator({
                         field: fsc,

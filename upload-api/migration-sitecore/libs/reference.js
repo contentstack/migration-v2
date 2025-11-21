@@ -52,7 +52,7 @@ function ExtractRef() {
       if (contentType?.id || contentType?.contentstackUid) {
         if (contentType?.fieldMapping?.length) {
           for (const field of contentType?.fieldMapping ?? []) {
-            if (field?.contentstackFieldType === "reference" && field?.sourceKey) {
+            if (field?.contentstackFieldType === "reference" && field?.sourceKey && field?.refrenceTo?.length === 0) {
               const matches = field?.sourceKey?.content?.match?.(/\{[A-F0-9-]{36}\}/gi);
               const uids = [];
               if (matches?.length) {
