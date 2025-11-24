@@ -9,7 +9,7 @@ import { getConfig } from '../../../services/api/upload.service';
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 
 // Interface
-import { defaultCardType } from '../../../components/Common/Card/card.interface';
+import { defaultCardType, ICardType } from '../../../components/Common/Card/card.interface';
 import { DEFAULT_CMS_TYPE, ICMSType, INewMigration } from '../../../context/app/app.interface';
 
 // Components
@@ -102,11 +102,33 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         );
         setIsLoading(false);
 
+        const currentFormat = newMigrationData?.legacy_cms?.selectedFileFormat?.title;
+        // filteredCmsData?.forEach((data: ICMSType) => {
+        //   // Check if filter returned any results and if the file format is not the same as the current format
+        //   if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() !== currentFormat?.toLowerCase()) && filteredCmsData?.length > 0) {
+        //     console.info('inside if', data);
+        //     setIsError(true);
+        //     setErrorMessage('Current file format is not supported for this CMS. Please add the correct CMS')
+        //   } else if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() === currentFormat?.toLowerCase()) && filteredCmsData?.length > 0) {
+        //     setIsError(false);
+        //   }
+        // });
+
         
         // Check if filter returned any results
         if (filteredCmsData?.length > 0) {
-          setCmsData(filteredCmsData);
-          setIsError(false);
+          filteredCmsData?.forEach((data: ICMSType) => {
+            // Check if filter returned any results and if the file format is not the same as the current format
+            if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() !== currentFormat?.toLowerCase())) {
+              setIsError(true);
+              setErrorMessage('Current file format is not supported for this CMS. Please add the correct CMS');
+              setCmsData(filteredCmsData);
+            } else if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() === currentFormat?.toLowerCase())) {
+              setIsError(false);
+              setErrorMessage('');
+              setCmsData(filteredCmsData);
+            }
+          });
         } else {
           // cmstype is not empty but no matches found
           setIsError(true);
@@ -171,7 +193,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
                   onCardClick={data?.cms_id !== selectedCard?.cms_id ? handleCardClick : undefined}
                   selectedCard={selectedCard}
                   idField="cms_id"
-                  disabled={newMigrationData?.project_current_step > 1}
+                  disabled={newMigrationData?.project_current_step > 1 || isError}
                 />
               ))}
             </div>
