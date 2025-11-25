@@ -1324,20 +1324,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             options={option}
             menuPlacement="auto"
             isDisabled={
-              data?.contentstackFieldType === 'group' ||
-              (data?.contentstackFieldType === 'text') ||
-              (data?.contentstackFieldType === 'url') ||
-              data?.backupFieldType === 'reference' ||
-              data?.contentstackFieldType === "global_field" ||
+              !(data?.contentstackFieldType === 'single_line_text' ||
+              data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
               data?.otherCmsType === undefined ||
-              newMigrationData?.project_current_step > 4 ||
-              data?.backupFieldType === 'extension' ||
-              data?.backupFieldType === 'app'
+              newMigrationData?.project_current_step > 4
             }
           />
         </div>
         {!(
-          data?.contentstackFieldType === 'Group' ||
+          data?.contentstackFieldType === 'group' ||
           data?.contentstackFieldType === 'text' ||
           data?.contentstackFieldType === 'url' ||
           data?.contentstackFieldType === 'global_field' ||
@@ -1792,14 +1787,10 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           ? {
             label: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
             value: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
-            isDisabled: data?.contentstackFieldType === 'text' ||
-              data?.contentstackFieldType === 'group' ||
-              data?.contentstackFieldType === 'url' ||
-              data?.backupFieldType === "reference" ||
-              data?.contentstackFieldType === "global_field" ||
-              data?.otherCmsType === undefined ||
-              data?.backupFieldType === 'app' ||
-              data?.backupFieldType === 'extension'
+            isDisabled: !(data?.contentstackFieldType === 'single_line_text' ||
+              data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
+              data?.otherCmsType === undefined
+              
           }
           : {
             label: `${selectedOption} matches`,
