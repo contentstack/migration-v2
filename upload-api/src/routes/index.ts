@@ -168,7 +168,21 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
                 res.status(data?.status || 200).json(data);
 
                 if (data?.status === 200) {
-                  const filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+                  let filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+
+                  // Define excluded directories that should not be used in file paths
+                  const EXCLUDED_DIRECTORIES = ['blob', 'installer', 'items', 'metadata', 'properties'];
+
+                  // Check if data.file is a valid, non-excluded directory
+                  const isValidFile = data?.file &&
+                    typeof data?.file === 'string' &&
+                    data?.file?.trim() !== '' &&
+                    !EXCLUDED_DIRECTORIES.includes(data?.file?.toLowerCase());
+
+                  if (isValidFile && data?.file) {
+                    filePath = path.join(__dirname, '..', '..', 'extracted_files', name, data?.file);
+                  }
+
                   createMapper(filePath, projectId, app_token, affix, config);
                 }
               } catch (error) {
