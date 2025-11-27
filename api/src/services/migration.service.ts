@@ -1020,7 +1020,7 @@ const startMigration = async (req: Request): Promise<any> => {
         await aemService.createAssets({
           projectId,
           packagePath,
-          destinationStackId: project?.current_test_stack_id,
+          destinationStackId: project?.destination_stack_id,
         });
         await aemService.createEntry({
           packagePath,

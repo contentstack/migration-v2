@@ -370,18 +370,51 @@ router.get(
 
           //buffer fully stremd
           bodyStream.on('end', async () => {
-            if (!zipBuffer) {
-              throw new Error('No data collected from the stream.');
-            }
+            try {
+              if (!zipBuffer) {
+                throw new Error('No data collected from the stream.');
+              }
 
-            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
-            res.json(data);
-            res.send('file validated successfully.');
-            let filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
-            if (data?.file !== undefined) {
-              filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName, data?.file);
+              console.log('📦 Processing S3 file with handleFileProcessing...');
+              const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
+              console.log('✓ S3 file processing complete.');
+
+              console.log('📦 SENDING FILE VALIDATION RESPONSE TO UI (S3):');
+              console.log('  ✓ Status:', data?.status || 200);
+              console.log('  ✓ Message:', data?.message);
+
+              res.status(data?.status || 200).json(data);
+
+              if (data?.status === 200) {
+                let filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
+
+                // If the processor returned a specific file/folder, update the path
+                if (data?.file) {
+                  filePath = path.join(
+                    __dirname,
+                    '..',
+                    '..',
+                    'extracted_files',
+                    fileName,
+                    data.file
+                  );
+                }
+
+                createMapper(filePath, projectId, app_token, affix, config);
+              }
+            } catch (error: any) {
+              console.error('Processing error:', error);
+              if (!res.headersSent) {
+                res.status(500).json({ error: 'Failed to process file' });
+              }
             }
-            createMapper(filePath, projectId, app_token, affix, config);
+          });
+
+          bodyStream.on('error', (error) => {
+            console.error('Stream error:', error);
+            if (!res.headersSent) {
+              res.status(500).json({ error: 'Stream processing failed' });
+            }
           });
         }
       }

@@ -826,6 +826,10 @@ const AdvancePropertise = (props: SchemaProps) => {
                         props?.updateFieldSettings(
                           props?.rowId,
                           {
+                            ...props?.value,
+                            mandatory: toggleStates?.mandatory, 
+                            nonLocalizable: toggleStates?.nonLocalizable, 
+                            referenedItems: toggleStates?.referenedItems,
                             validationRegex: toggleStates?.validationRegex ?? '',
                             embedObjects: embedObject,
                             embedObject: !shouldToggleOff
