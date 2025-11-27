@@ -1336,26 +1336,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             options={option}
             menuPlacement="auto"
             isDisabled={
-              data?.contentstackFieldType === 'group' ||
-              (data?.contentstackFieldType === 'text') ||
-              (data?.contentstackFieldType === 'url') ||
-              data?.backupFieldType === 'reference' ||
-              data?.backupFieldType === 'taxonomy' ||
-              data?.backupFieldType === 'file' ||
-              data?.backupFieldType === 'boolean' ||
-              data?.backupFieldType === 'number' ||
-              data?.backupFieldType === 'link' ||
-              data?.backupFieldType === 'date' ||
-              data?.contentstackFieldType === "global_field" ||
+              !(data?.contentstackFieldType === 'single_line_text' ||
+              data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
               data?.otherCmsType === undefined ||
-              newMigrationData?.project_current_step > 4 ||
-              data?.backupFieldType === 'extension' ||
-              data?.backupFieldType === 'app'
+              newMigrationData?.project_current_step > 4
             }
           />
         </div>
         {!(
-          data?.contentstackFieldType === 'Group' ||
+          data?.contentstackFieldType === 'group' ||
           data?.contentstackFieldType === 'text' ||
           data?.contentstackFieldType === 'url' ||
           data?.contentstackFieldType === 'global_field' ||
@@ -1810,20 +1799,10 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           ? {
             label: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
             value: Fields[data?.contentstackFieldType]?.label ?? 'No Option',
-            isDisabled: data?.contentstackFieldType === 'text' ||
-              data?.contentstackFieldType === 'group' ||
-              data?.contentstackFieldType === 'url' ||
-              data?.backupFieldType === "reference" ||
-              data?.backupFieldType === 'taxonomy' ||
-              data?.backupFieldType === 'file' ||
-              data?.backupFieldType === 'boolean' ||
-              data?.backupFieldType === 'number' ||
-              data?.backupFieldType === 'link' ||
-              data?.backupFieldType === 'date' ||
-              data?.contentstackFieldType === "global_field" ||
-              data?.otherCmsType === undefined ||
-              data?.backupFieldType === 'app' ||
-              data?.backupFieldType === 'extension'
+            isDisabled: !(data?.contentstackFieldType === 'single_line_text' ||
+              data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
+              data?.otherCmsType === undefined
+              
           }
           : {
             label: `${selectedOption} matches`,
@@ -2420,10 +2399,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const columns = [
     {
       disableSortBy: true,
-      Header: `${newMigrationData?.legacy_cms?.selectedCms?.title}: ${otherCmsTitle}`,
+      Header: (
+        <span className="nowrap-header">
+          {`${newMigrationData?.legacy_cms?.selectedCms?.title}: ${otherCmsTitle}`}
+        </span>
+      ),
       accessor: accessorCall,
-      // accessor: 'otherCmsField',
-      default: false,
       id: 'uuid'
     }
   ];
@@ -2433,19 +2414,25 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   if (!isNewStack) {
     columns?.push({
       disableSortBy: true,
-      Header: `Contentstack: ${isOtherContentType ? otherContentType?.label : otherCmsTitle}`,
+      Header: (
+        <span className="nowrap-header">
+          {`Contentstack: ${isOtherContentType ? otherContentType?.label : otherCmsTitle}`}
+        </span>
+      ),
       // accessor: 'ct_field',
       accessor: SelectAccessorOfColumn,
       id: 'contentstack_field',
-      default: false
     });
   } else {
     columns?.push({
       disableSortBy: true,
-      Header: `Contentstack: ${isNewStack ? otherCmsTitle : otherContentType?.label ?? ''}`,
+      Header: (
+        <span className="nowrap-header">
+          {`Contentstack: ${isNewStack ? otherCmsTitle : otherContentType?.label ?? ''}`}
+        </span>
+      ),
       accessor: SelectAccessor,
       id: 'contentstack_cms_field',
-      default: false
     });
   }
 
@@ -2719,7 +2706,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     plural: totalCounts === 0 ? 'Count' : ''
                   }}
                 />
-                <div className='d-flex align-items-center justify-content-between my-2 mx-3 px-1 py-1'>
+                <div className="mapper-footer">
                   <div>Total Fields: <strong>{totalCounts}</strong></div>
                   <Button
                     className="saveButton"
