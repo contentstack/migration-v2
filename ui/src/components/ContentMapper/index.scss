@@ -59,7 +59,6 @@
   overflow-x: hidden;
 }
 .ct-list {
-  border-right: 1px solid $color-brand-secondary-lightest;
   list-style-type: none;
   padding: 15px 0 15px 0;
   li {
@@ -151,9 +150,19 @@
   }
   .Table {
     border-left: 0 none;
-    min-height: inherit;
+    min-height: 24.25rem;
+    .Table__body__row {
+        .Table-select-body {
+         >.checkbox-wrapper {
+          align-items: flex-start;
+        }
+      }
+    }
     .Table__body__column {
       padding: 0 1.25rem;
+      &:not(:last-of-type) {
+        display: block;
+      }
     }
     .Table-select-body {
       width: 68px;
@@ -308,7 +317,7 @@ div .table-row {
   display: block;
 }
 .advanced-setting-button {
-  padding: 5px;
+  padding: 5px 10px;
 }
 .field-count {
   font-size: $size-font-large;
@@ -321,4 +330,142 @@ div .table-row {
 .icon-padding{
   padding: 10px 10px;
   margin-left: 6px;
+}
+// Parent-child table structure styles
+.table-row-content {
+  &.parent-row {
+    font-weight: 600;
+    // margin-left: 16px;
+  }
+  
+  &.child-row {
+    margin-left: 26px;
+  }
+  
+  &.child-row-level-2 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 36px;
+    padding-left: 16px;
+  }
+  
+  &.child-row-level-3 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 62px;
+    padding-left: 16px;
+  }
+  
+  &.child-row-level-4 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 98px;
+    padding-left: 16px;
+  }
+  &.child-row-level-5 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 134px;
+    padding-left: 16px;
+  }
+  &.child-row-level-6 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 164px;
+    padding-left: 16px;
+  }
+  &.child-row-level-7 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 194px;
+    padding-left: 16px;
+  }
+  &.child-row-level-8 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 220px;
+    padding-left: 16px;
+  }
+  &.child-row-level-9 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 248px;
+    padding-left: 16px;
+  }
+  &.child-row-level-10 {
+    border-left: 1px solid $color-brand-secondary-lightest;
+    margin-left: 278px;
+    padding-left: 16px;
+  }
+}
+.instruction-text-indent {
+  margin-left: 26px;
+}
+
+// UID text styling to prevent table column breaking
+.uid-text {
+  word-break: break-all;
+  // white-space: normal;
+  overflow-wrap: break-word;
+  max-width: 230px;
+  display: inline-flex;
+  line-height: 1.2!important;
+}
+
+.custom-empty-state {
+  .Icon--original {
+    width: 207px !important;
+    height: auto !important;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+  }
+}
+
+.table-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;                   
+}
+.table-row .select {
+  flex: 1;                    
+}
+.advanced-setting-button,
+.table-row button {
+  flex-shrink: 0;           
+}
+
+// Prevent header wrapping
+.nowrap-header {
+  white-space: nowrap;
+  display: inline-block;
+}
+
+// Make sure table and save button stay fully visible
+.table-wrapper {
+  position: relative;
+  padding-bottom: 70px;
+}
+
+// Sticky footer for Save button
+.mapper-footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding: 12px 18px;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+}
+
+// Ensure Save button is never clipped
+.saveButton {
+  min-width: 90px;
+}
+
+// Prevent bottom overflow issues with InfiniteScrollTable
+.infinite-scroll-table,
+.infinite-scroll-table-wrapper {
+  overflow-y: auto !important;
+}
+
+// Safety for small screens 
+@media (max-height: 800px) {
+  .mapper-footer {
+    padding: 10px;
+  }
 }

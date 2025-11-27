@@ -356,7 +356,14 @@ upload-api/build
 ui/.env
 upload-api/sitecoreMigrationData
 upload-api/cmsMigrationData
-upload-api/extracted_files
+upload-api/extracted_files*
 *copy*
 .qodo
 .vscode
+app.json
+# Snyk Security Extension - AI Rules (auto-generated)
+.cursor/rules/snyk_rules.mdc
+*extracted_files*
+*MigrationData*
+*.zip
+app.json
