@@ -60,7 +60,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       ...newMigrationData,
       legacy_cms: {
         ...newMigrationData.legacy_cms,
-        selectedCms: { ...data }
+        selectedCms: { ...data },
+        affix: newMigrationData?.legacy_cms?.affix || 'cs' // Preserve or set default affix
       }
     };
     dispatch(updateNewMigrationData(newMigrationDataObj));
@@ -136,6 +137,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           ...newMigrationData?.legacy_cms,
           selectedCms: newSelectedCard, // Include selectedCms in this dispatch
           selectedFileFormat: filteredCmsData[0].allowed_file_formats[0],
+          affix: newMigrationData?.legacy_cms?.affix || 'cs', // Preserve or set default affix
           uploadedFile: {
             ...newMigrationData?.legacy_cms?.uploadedFile,
             file_details: {
