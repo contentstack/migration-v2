@@ -27,6 +27,8 @@ export type ConfigType = {
     AZURE_NA: string;
     AZURE_EU?: string;
     GCP_NA?: string;
+    AU?: string;
+    GCP_EU?: string;
   };
   CS_URL: {
     NA: string;
@@ -34,6 +36,8 @@ export type ConfigType = {
     AZURE_NA: string;
     AZURE_EU?: string;
     GCP_NA?: string;
+    AU?: string;
+    GCP_EU?: string;
   };
   LOG_FILE_PATH: string;
 };

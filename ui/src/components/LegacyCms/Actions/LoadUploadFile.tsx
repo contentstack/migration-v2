@@ -4,7 +4,7 @@ import { FileDetails, ICMSType, INewMigration } from '../../../context/app/app.i
 import { fileValidation } from '../../../services/api/upload.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import { Button, CircularLoader, Paragraph } from '@contentstack/venus-components';
+import { Button, Paragraph } from '@contentstack/venus-components';
 import { isEmptyString } from '../../../utilities/functions';
 import { useParams } from 'react-router';
 import { ICardType } from '../../../components/Common/Card/card.interface';
@@ -154,7 +154,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         setIsDisabled(true);
 
         if (
-          !isEmptyString(newMigrationData?.legacy_cms?.affix) &&
           !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
           !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)
         ) {
@@ -251,15 +250,16 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       //setIsFormatValid(isFormatValid); 
       setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
       if(!isFormatValid){
+        console.warn('⚠️ LoadUploadFile: File format is not valid, setting isValidated to false');
         setValidationMessage('');
         dispatch(updateNewMigrationData({
           ...newMigrationData,
           legacy_cms: {
+            ...newMigrationData?.legacy_cms,
             uploadedFile: {
+              ...newMigrationData?.legacy_cms?.uploadedFile,
               isValidated: false,
             }
-
-
           }
         }))
 
@@ -357,23 +357,22 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setShowMessage(true);
       setValidationMessage('File validated successfully.');
       setIsDisabled(true);
-      !isEmptyString(newMigrationData?.legacy_cms?.affix) ||
+      if (
         !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) ||
-        (!isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) &&
-          props.handleStepChange(props?.currentStep, true));
+        !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)
+      ) {
+        props.handleStepChange(props?.currentStep, true);
+      }
     }
     if (newMigrationData?.legacy_cms?.uploadedFile?.reValidate) {
       setValidationMessage('');
     }
-    if(!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
+    if(!newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate){
       setIsDisabled(false);
     }
     setReValidate(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
-   
-    // else{
-    //   setIsValidated(false);
-    // }
   }, [isValidated, newMigrationData]);
+
 
   useEffect(() => {
     if (newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id) {
@@ -405,10 +404,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               // <div className='file-icon-group'>
               <FileComponent fileDetails={fileDetails || {}} />
             ) : (
-              // </div>
-              <div className="loader">
-                <CircularLoader />
-              </div>
+              <div className='errorMessage fs-6'>No file added. Please add the file to validate.</div>
             )}
             {showMessage && !showProgress && (
               <div className="message-container">
@@ -450,7 +446,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={!(reValidate || (!isDisabled && !isEmptyString(newMigrationData?.legacy_cms?.affix)))}
+            disabled={!(reValidate || (!isDisabled))}
           > 
             Validate File
           </Button>

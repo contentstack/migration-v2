@@ -24,7 +24,7 @@ import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 import { CS_ENTRIES } from '../../../utilities/constants';
 
 // Interface
-import { AddStackCMSData, defaultAddStackCMSData } from './addStack.interface';
+import { AddStackCMSData, defaultAddStackCMSData, Errors, Stack } from './addStack.interface';
 
 // Styles
 import './addStack.scss';
@@ -129,7 +129,7 @@ const AddStack = (props: any): JSX.Element => {
         <FinalForm
           onSubmit={onSubmit}
           keepDirtyOnReinitialize={true}
-          validate={(values: any) => {
+          validate={(values: Stack) => {
             const errors: any = {};
             if (!values?.name || values?.name?.trim().length < 1) {
               errors.name = 'Stack name required';
@@ -263,7 +263,7 @@ const AddStack = (props: any): JSX.Element => {
                                 version={'v2'}
                                 placeholder={addStackCMSData?.stack_locale_description}
                               />
-                              <div className="stack-creation-warning"><span className='imp-text'>Important:</span> The master language cannot be changed after the stack has been created.</div>
+                              <div className="stack-creation-warning"><span className='imp-text'>Important:</span> The default language cannot be changed after the stack has been created.</div>
                               {meta?.error && meta?.touched && (
                                 <ValidationMessage
                                   testId="cs-stack-create-language-validation"

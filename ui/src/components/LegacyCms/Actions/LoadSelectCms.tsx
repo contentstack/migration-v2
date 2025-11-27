@@ -39,8 +39,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   const dispatch = useDispatch();
 
   const [cmsData, setCmsData] = useState<ICMSType[]>([]);
-  const [searchText] = useState<string>('');
-  //const [cmsFilterStatus, setCmsFilterStatus] = useState<IFilterStatusType>({});
+
   const [cmsType, setCmsType] = useState<ICMSType>(
     newMigrationData?.legacy_cms?.selectedCms || defaultCardType
   );
@@ -50,9 +49,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   //const [setErrorMessage] = useState<string>('');
   const [isError, setIsError] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   /****  ALL METHODS HERE  ****/
-
   //Handle Legacy cms selection
   const handleCardClick = async (data: ICMSType) => {
     setSelectedCard({ ...data });
@@ -74,7 +73,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   };
 
   // Filter CMS Data
-  const filterCMSData = async (searchText: string) => {
+  const filterCMSData = async () => {
     try {
       const { all_cms = [] } = migrationData?.legacyCMSData || {};
       setSelectedCard(cmsType);
@@ -91,34 +90,30 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       const cmstype = !isEmptyString(cmsType?.cms_id) ? cmsType?.parent : cms; // Fetch the specific CMS type
 
       let filteredCmsData = all_cms;
-      if (cmstype) {
+      // Check if cmstype is empty
+      if (isEmptyString(cmstype)) {
+        setIsError(true);
+        setErrorMessage('No CMS found! Please add the correct CMS');
+        setCmsData([]);
+      } else {
+        // cmstype is not empty, apply filter
         filteredCmsData = all_cms.filter(
           (cms: ICMSType) => cms?.parent?.toLowerCase() === cmstype?.toLowerCase()
         );
-      }
-      const newMigrationDataObj = {
-        ...newMigrationData,
-        legacy_cms: {
-          ...newMigrationData?.legacy_cms,
-          selectedFileFormat: filteredCmsData[0].allowed_file_formats[0]
+        setIsLoading(false);
+
+        
+        // Check if filter returned any results
+        if (filteredCmsData?.length > 0) {
+          setCmsData(filteredCmsData);
+          setIsError(false);
+        } else {
+          // cmstype is not empty but no matches found
+          setIsError(true);
+          setErrorMessage('Please add the correct CMS');
+          setCmsData([]);
         }
-      };
-
-      //dispatch(updateNewMigrationData(newMigrationDataObj));
-
-      setCmsData(filteredCmsData);
-
-      //Normal Search
-      const _filterCmsData = validateArray(all_cms)
-        ? filteredCmsData?.filter(
-            ({ title, cms_id }: ICMSType) =>
-              //Filtering Criteria base on SearchText
-              title?.toLowerCase()?.includes(searchText) ||
-              cms_id?.toLowerCase()?.includes(searchText)
-          )
-        : [];
-
-      setCmsData(_filterCmsData);
+      }
 
       let newSelectedCard: ICMSType | undefined;
 
@@ -152,41 +147,14 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
 
   /****  ALL USEEffects  HERE  ****/
   useEffect(() => {
-    filterCMSData(searchText);
+    filterCMSData();
   }, []);
-
-
-  // Handle Legacy cms selection for single match
-  // useEffect(() => {
-  //   const isSingleMatch = cmsData?.length === 1;
-  //   if (isSingleMatch) {
-  //     setSelectedCard({ ...selectedCard });
-
-  //     const newMigrationDataObj: INewMigration = {
-  //       ...newMigrationData,
-  //       legacy_cms: {
-  //         ...newMigrationDataRef?.current?.legacy_cms,
-  //         selectedCms: { ...selectedCard }
-  //       }
-  //     };
-  //     console.info("neMigObj ---> ", newMigrationDataObj, cmsData)
-  //     dispatch(updateNewMigrationData(newMigrationDataObj));
-
-  //     // Call for Step Change
-  //     props?.handleStepChange(props?.currentStep);
-  //   }
-  // }, [cmsData]);
 
   return (
     <div>
       <div className="col-12">
-        {isError && (
-          <div className="empty_search_description">
-            <EmptyState
-              heading={<div className="empty_search_heading">No matching CMS found!</div>}
-              img={SEARCH_ICON}
-            />
-          </div>
+      {isError && (
+          <div className="px-3 py-1 fs-6 errorMessage">{errorMessage}</div>
         )}
         {isLoading ? (
           <div className="loader">

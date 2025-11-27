@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   api:
     container_name: migration-api
@@ -6,10 +7,18 @@ services:
       context: ./api
     ports:
       - "5001:5001"
-    restart: always
+    restart: unless-stopped
     volumes:
-      - ${CMS_DATA_PATH}:${CONTAINER_PATH}
+      - ${DOCKER_MOUNT_PATH:-${CMS_DATA_PATH}}:${CONTAINER_PATH}:ro
       - shared_data:/app/extracted_files
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - CMS_TYPE=${CMS_TYPE}
+      - CONTAINER_PATH=${CONTAINER_PATH}
+      - CMS_DATA_PATH=${CMS_DATA_PATH}
+      - AEM_TEMPLATES_DIR=${AEM_TEMPLATES_DIR:-templates}
+    networks:
+      - migration-network
     security_opt:
       - no-new-privileges:true
 
@@ -19,12 +28,23 @@ services:
       context: ./upload-api
     ports:
       - "4002:4002"
-    restart: always
+    restart: unless-stopped
     volumes:
-      - ${CMS_DATA_PATH}:${CONTAINER_PATH}
+      - ${DOCKER_MOUNT_PATH:-${CMS_DATA_PATH}}:${CONTAINER_PATH}:ro
       - shared_data:/app/extracted_files
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - CMS_TYPE=${CMS_TYPE}
+      - CONTAINER_PATH=${CONTAINER_PATH}
+      - CMS_DATA_PATH=${CMS_DATA_PATH}
+      - NODE_BACKEND_API=${NODE_BACKEND_API:-http://migration-api:5001}
+      - AEM_TEMPLATES_DIR=${AEM_TEMPLATES_DIR:-templates}
+    networks:
+      - migration-network
     security_opt:
       - no-new-privileges:true
+    depends_on:
+      - api
 
   ui:
     container_name: migration-ui
@@ -32,9 +52,23 @@ services:
       context: ./ui
     ports:
       - "3000:3000"
-    restart: always
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:5001}
+      - REACT_APP_UPLOAD_API_URL=${REACT_APP_UPLOAD_API_URL:-http://localhost:4002}
+    networks:
+      - migration-network
     security_opt:
       - no-new-privileges:true
+    depends_on:
+      - api
+      - upload-api
+
+networks:
+  migration-network:
+    driver: bridge
 
 volumes:
   shared_data:
+    driver: local
