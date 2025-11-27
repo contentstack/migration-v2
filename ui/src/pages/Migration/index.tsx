@@ -354,7 +354,7 @@ const Migration = () => {
         ...newMigrationData?.legacy_cms,
         selectedCms: selectedCmsData,
         selectedFileFormat: selectedFileFormatData,
-        affix:  projectData?.legacy_cms?.affix ,
+        affix: projectData?.legacy_cms?.affix || newMigrationData?.legacy_cms?.affix || 'cs',
         uploadedFile: projectData?.legacy_cms?.is_fileValid ? {
           ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
           file_details: {
@@ -630,6 +630,10 @@ const Migration = () => {
             break;
         }
         if (currentIndex !== 3) {
+          console.info('❌ Legacy CMS Step Completion Check Failed:', {
+            currentIndex,
+            missingStep: result
+          });
           Notification({
             notificationContent: {
               text:

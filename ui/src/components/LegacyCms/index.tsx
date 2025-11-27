@@ -197,17 +197,18 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
 
       //Make Step 2 complete
       if (
-        !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id)
+        !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && 
+        !isEmptyString(newMigrationData?.legacy_cms?.affix)
       ) {
         setInternalActiveStepIndex(1);
       }
 
-    if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
-      setInternalActiveStepIndex(3);
-    }
-    setisProjectMapped(newMigrationData?.isprojectMapped)
+      if(!isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) && newMigrationData?.legacy_cms?.uploadedFile?.isValidated){
+        setInternalActiveStepIndex(3);
+      }
+      setisProjectMapped(newMigrationData?.isprojectMapped)
 
-  },[newMigrationData]);
+    },[newMigrationData]);
   
   useEffect(()=>{
    const allConditionsMet = !isEmptyString(newMigrationData?.legacy_cms?.affix) 
@@ -215,7 +216,6 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
     !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.title) && 
     newMigrationData?.legacy_cms?.uploadedFile?.isValidated;
     
-   
    if(allConditionsMet){
       setIsAllStepsCompleted(true);
       handleAllStepsComplete(true);
