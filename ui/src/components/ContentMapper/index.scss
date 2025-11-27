@@ -426,3 +426,46 @@ div .table-row {
 .table-row button {
   flex-shrink: 0;           
 }
+
+// Prevent header wrapping
+.nowrap-header {
+  white-space: nowrap;
+  display: inline-block;
+}
+
+// Make sure table and save button stay fully visible
+.table-wrapper {
+  position: relative;
+  padding-bottom: 70px;
+}
+
+// Sticky footer for Save button
+.mapper-footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding: 12px 18px;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+}
+
+// Ensure Save button is never clipped
+.saveButton {
+  min-width: 90px;
+}
+
+// Prevent bottom overflow issues with InfiniteScrollTable
+.infinite-scroll-table,
+.infinite-scroll-table-wrapper {
+  overflow-y: auto !important;
+}
+
+// Safety for small screens 
+@media (max-height: 800px) {
+  .mapper-footer {
+    padding: 10px;
+  }
+}

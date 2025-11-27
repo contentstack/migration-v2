@@ -695,7 +695,7 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.AEM: {
-        await aemService.createAssets({ projectId, packagePath, destinationStackId: project?.current_test_stack_id });
+        await aemService.createAssets({ projectId, packagePath, destinationStackId: project?.destination_stack_id });
         await aemService.createEntry({
           packagePath,
           contentTypes,
