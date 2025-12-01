@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
-import { LOCALE_MAPPER, MIGRATION_DATA_CONFIG } from '../../constants/index.js';
+import { MIGRATION_DATA_CONFIG } from '../../constants/index.js';
 import { Locale } from '../../models/types.js';
 import { getAllLocales, getLogMessage } from '../../utils/index.js';
 import customLogger from '../../utils/custom-logger.utils.js';

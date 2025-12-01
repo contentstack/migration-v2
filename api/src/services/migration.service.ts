@@ -1283,7 +1283,7 @@ const getAuditData = async (req: Request): Promise<any> => {
           });
         });
       }
-      if (searchText && searchText !== null && searchText !== 'null') {
+      if (searchText && searchText !== 'null') {
         transformedData = transformedData?.filter((item) => {
           return Object?.values(item)?.some(
             (value) =>
@@ -1308,7 +1308,7 @@ const getAuditData = async (req: Request): Promise<any> => {
         });
       });
     }
-    if (searchText && searchText !== null && searchText !== 'null') {
+    if (searchText && searchText !== null) {
       transformedData = transformedData?.filter((item: any) => {
         return Object?.values(item)?.some(
           (value) =>
