@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires, operator-linebreak */
 
 import { HTTP_TEXTS, HTTP_CODES } from '../constants';
-import { parseXmlToJson, saveJson, saveZip, getDbConnection } from '../helper';
+import { parseXmlToJson, saveJson, saveZip } from '../helper';
 import JSZip from 'jszip';
 import validator from '../validators';
 import config from '../config/index';

@@ -30,16 +30,6 @@ async function writeFile(dirPath: string, filename: string, data: any) {
 }
 
 /**
- * Helper function to get key by value from an object
- */
-function getKeyByValue(
-  obj: Record<string, string>,
-  targetValue: string
-): string | undefined {
-  return Object.entries(obj).find(([_, value]) => value === targetValue)?.[0];
-}
-
-/**
  * Maps source locale to destination locale based on user-selected mapping from UI.
  * Similar to WordPress/Contentful/Sitecore mapLocales function.
  *
@@ -113,21 +103,6 @@ export function mapDrupalLocales({
 
   // Priority 6: Return locale as-is (lowercase)
   return locale?.toLowerCase?.() || locale;
-}
-
-/**
- * Fetches locale names from Contentstack API
- */
-async function fetchContentstackLocales(): Promise<Record<string, string>> {
-  try {
-    const response = await axios.get(
-      'https://app.contentstack.com/api/v3/locales?include_all=true'
-    );
-    return response.data?.locales || {};
-  } catch (error) {
-    console.error('Error fetching Contentstack locales:', error);
-    return {};
-  }
 }
 
 /**
@@ -299,7 +274,7 @@ export const createLocale = async (
     const localesFromProject = project?.locales || {};
 
     // 4. Fetch locale names from Contentstack API
-    const [err, localesApiResponse] = await getAllLocales();
+    const [localesApiResponse] = await getAllLocales();
     const contentstackLocales = localesApiResponse || {}; // ✅ FIX: getAllLocales already returns the locales object
 
     // 5. Map source locales to destination locales using user selection
