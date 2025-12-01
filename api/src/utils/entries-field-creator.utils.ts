@@ -206,7 +206,6 @@ export const entriesFieldCreator = async ({
         field?.advanced?.enum?.choices || field?.advanced?.options || [];
       const isMultiple =
         field?.advanced?.multiple || field?.advanced?.Multiple || false;
-      const displayType = field?.advanced?.display_type || 'dropdown';
 
       // Handle multiple values (arrays) - for checkboxes
       if (Array.isArray(content)) {

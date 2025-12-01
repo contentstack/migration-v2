@@ -10,7 +10,7 @@ import {
   UploadPartCommand
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
-import { fileOperationLimiter, getDbConnection } from '../helper';
+import { fileOperationLimiter } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import config from '../config/index';
 import createMapper from '../services/createMapper';

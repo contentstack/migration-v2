@@ -3,9 +3,7 @@ import path from 'path';
 import mysql from 'mysql2';
 import { getDbConnection } from '../../helper/index.js';
 import customLogger from '../../utils/custom-logger.utils.js';
-import { getLogMessage } from '../../utils/index.js';
 import { MIGRATION_DATA_CONFIG } from '../../constants/index.js';
-import OptimizedQueryBuilder from '../../utils/optimized-query-builder.utils.js';
 
 const { DATA } = MIGRATION_DATA_CONFIG;
 
@@ -132,8 +130,6 @@ const generateQueriesForFields = async (
   projectId: string,
   destination_stack_id: string
 ): Promise<QueryConfig> => {
-  const srcFunc = 'generateQueriesForFields';
-
   try {
     const select: { [contentType: string]: string } = {};
     const countQuery: { [contentType: string]: string } = {};
@@ -330,7 +326,6 @@ export const createQuery = async (
   destination_stack_id: string,
   projectId: string
 ): Promise<void> => {
-  const srcFunc = 'createQuery';
   let connection: mysql.Connection | null = null;
 
   try {
@@ -346,26 +341,31 @@ export const createQuery = async (
       user: dbConfig?.user,
       database: dbConfig?.database,
       port: dbConfig?.port,
-      hasPassword: !!dbConfig?.password
+      hasPassword: !!dbConfig?.password,
     });
 
     const message = `Generating dynamic queries from Drupal database...`;
     await customLogger(projectId, destination_stack_id, 'info', message);
 
     // Create database connection
-    console.info(`🔍 query.service.ts - About to call getDbConnection with config:`, {
-      host: dbConfig?.host,
-      user: dbConfig?.user,
-      database: dbConfig?.database
-    });
-    
+    console.info(
+      `🔍 query.service.ts - About to call getDbConnection with config:`,
+      {
+        host: dbConfig?.host,
+        user: dbConfig?.user,
+        database: dbConfig?.database,
+      }
+    );
+
     connection = await getDbConnection(
       dbConfig,
       projectId,
       destination_stack_id
     );
-    
-    console.info(`🔍 query.service.ts - Database connection established successfully`);
+
+    console.info(
+      `🔍 query.service.ts - Database connection established successfully`
+    );
 
     // SQL query to extract field configuration from Drupal
     const configQuery =

@@ -1,17 +1,17 @@
-import fs from "fs";
-import path from "path";
-import mysql from "mysql2";
-import { getDbConnection } from "../../helper/index.js";
-import customLogger from "../../utils/custom-logger.utils.js";
-import { getLogMessage } from "../../utils/index.js";
-import { MIGRATION_DATA_CONFIG } from "../../constants/index.js";
+import fs from 'fs';
+import path from 'path';
+import mysql from 'mysql2';
+import { getDbConnection } from '../../helper/index.js';
+import customLogger from '../../utils/custom-logger.utils.js';
+import { getLogMessage } from '../../utils/index.js';
+import { MIGRATION_DATA_CONFIG } from '../../constants/index.js';
 
 const { DATA, TAXONOMIES_DIR_NAME } = MIGRATION_DATA_CONFIG;
 
 interface DrupalTaxonomyTerm {
-  taxonomy_uid: string;  // vid (vocabulary id)
-  term_tid: number;      // term id
-  term_name: string;     // term name
+  taxonomy_uid: string; // vid (vocabulary id)
+  term_tid: number; // term id
+  term_name: string; // term name
   term_description: string | null; // term description
 }
 
@@ -34,7 +34,10 @@ interface TaxonomyStructure {
 /**
  * Execute SQL query with promise support
  */
-const executeQuery = async (connection: mysql.Connection, query: string): Promise<any[]> => {
+const executeQuery = async (
+  connection: mysql.Connection,
+  query: string
+): Promise<any[]> => {
   return new Promise((resolve, reject) => {
     connection.query(query, (error, results) => {
       if (error) {
@@ -47,17 +50,6 @@ const executeQuery = async (connection: mysql.Connection, query: string): Promis
 };
 
 /**
- * Generate slug from name (similar to Contentstack uid format)
- */
-const generateSlug = (name: string): string => {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .substring(0, 50); // Limit length
-};
-
-/**
  * Get vocabulary names from Drupal database
  * Note: In Drupal 8+, vocabulary names are in the config table
  */
@@ -67,7 +59,7 @@ const getVocabularyNames = async (
   destination_stack_id: string
 ): Promise<Record<string, string>> => {
   const srcFunc = 'getVocabularyNames';
-  
+
   try {
     // Try to get vocabulary names from config table (Drupal 8+)
     const configQuery = `
@@ -78,26 +70,25 @@ const getVocabularyNames = async (
       WHERE name LIKE 'taxonomy.vocabulary.%'
       AND data IS NOT NULL
     `;
-    
+
     const vocabularies = await executeQuery(connection, configQuery);
-    
+
     const vocabNames: Record<string, string> = {};
-    
+
     for (const vocab of vocabularies) {
       if (vocab.vid && vocab.name) {
         vocabNames[vocab.vid] = vocab.name;
       }
     }
-    
+
     const message = getLogMessage(
       srcFunc,
       `Found ${Object.keys(vocabNames).length} vocabularies in config.`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', message);
-    
+
     return vocabNames;
-    
   } catch (error: any) {
     // Fallback: use vid as name if config method fails
     const message = getLogMessage(
@@ -107,7 +98,7 @@ const getVocabularyNames = async (
       error
     );
     await customLogger(projectId, destination_stack_id, 'warn', message);
-    
+
     return {};
   }
 };
@@ -122,7 +113,7 @@ const getTermHierarchy = async (
   destination_stack_id: string
 ): Promise<Record<number, number[]>> => {
   const srcFunc = 'getTermHierarchy';
-  
+
   try {
     // Try different possible hierarchy table structures
     const hierarchyQueries = [
@@ -130,15 +121,15 @@ const getTermHierarchy = async (
       `SELECT entity_id as tid, parent_target_id as parent_tid 
        FROM taxonomy_term__parent 
        WHERE parent_target_id IS NOT NULL AND parent_target_id != 0`,
-      
+
       // Drupal 7 style hierarchy
       `SELECT tid, parent 
        FROM taxonomy_term_hierarchy 
-       WHERE parent IS NOT NULL AND parent != 0`
+       WHERE parent IS NOT NULL AND parent != 0`,
     ];
-    
+
     let hierarchyData: any[] = [];
-    
+
     for (const query of hierarchyQueries) {
       try {
         hierarchyData = await executeQuery(connection, query);
@@ -150,13 +141,13 @@ const getTermHierarchy = async (
         continue;
       }
     }
-    
+
     const hierarchy: Record<number, number[]> = {};
-    
+
     for (const item of hierarchyData) {
       const childTid = item.tid || item.entity_id;
       const parentTid = item.parent || item.parent_tid || item.parent_target_id;
-      
+
       if (childTid && parentTid) {
         if (!hierarchy[parentTid]) {
           hierarchy[parentTid] = [];
@@ -164,16 +155,15 @@ const getTermHierarchy = async (
         hierarchy[parentTid].push(childTid);
       }
     }
-    
+
     const message = getLogMessage(
       srcFunc,
       `Found ${Object.keys(hierarchy).length} parent-child relationships.`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', message);
-    
+
     return hierarchy;
-    
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
@@ -182,7 +172,7 @@ const getTermHierarchy = async (
       error
     );
     await customLogger(projectId, destination_stack_id, 'warn', message);
-    
+
     return {};
   }
 };
@@ -198,45 +188,47 @@ const processTaxonomyData = async (
   destination_stack_id: string
 ): Promise<Record<string, TaxonomyStructure>> => {
   const srcFunc = 'processTaxonomyData';
-  
+
   try {
     const taxonomies: Record<string, TaxonomyStructure> = {};
-    
+
     // Group terms by vocabulary
     const termsByVocabulary: Record<string, DrupalTaxonomyTerm[]> = {};
-    
+
     for (const term of terms) {
       if (!termsByVocabulary[term.taxonomy_uid]) {
         termsByVocabulary[term.taxonomy_uid] = [];
       }
       termsByVocabulary[term.taxonomy_uid].push(term);
     }
-    
+
     // Create taxonomy structure for each vocabulary
     for (const [vid, vocabTerms] of Object.entries(termsByVocabulary)) {
       const vocabularyName = vocabularyNames[vid] || vid;
-      
+
       const taxonomyStructure: TaxonomyStructure = {
         taxonomy: {
           uid: vid,
           name: vocabularyName,
-          description: ""
+          description: '',
         },
-        terms: []
+        terms: [],
       };
-      
+
       // Convert terms to Contentstack format
       for (const term of vocabTerms) {
         // 🏷️ Generate term UID using vocabulary prefix + term ID format
         const vocabularyPrefix = vid.toLowerCase();
         const termUid = `${vocabularyPrefix}_${term.term_tid}`;
-        
+
         // Find parent if exists
         let parentUid: string | null = null;
         for (const [parentTid, childTids] of Object.entries(hierarchy)) {
           if (childTids.includes(term.term_tid)) {
             // Find parent term in the same vocabulary
-            const parentTerm = vocabTerms.find(t => t.term_tid === parseInt(parentTid));
+            const parentTerm = vocabTerms.find(
+              (t) => t.term_tid === parseInt(parentTid)
+            );
             if (parentTerm) {
               // 🏷️ Generate parent UID using same vocabulary prefix + term ID format
               parentUid = `${vocabularyPrefix}_${parentTerm.term_tid}`;
@@ -244,27 +236,28 @@ const processTaxonomyData = async (
             break;
           }
         }
-        
+
         taxonomyStructure.terms.push({
           uid: termUid,
           name: term.term_name,
           parent_uid: parentUid,
-          description: term.term_description || ""
+          description: term.term_description || '',
         });
       }
-      
+
       taxonomies[vid] = taxonomyStructure;
     }
-    
+
     const message = getLogMessage(
       srcFunc,
-      `Processed ${Object.keys(taxonomies).length} vocabularies with ${terms.length} total terms.`,
+      `Processed ${Object.keys(taxonomies).length} vocabularies with ${
+        terms.length
+      } total terms.`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', message);
-    
+
     return taxonomies;
-    
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
@@ -287,16 +280,20 @@ const saveTaxonomyFiles = async (
   destination_stack_id: string
 ): Promise<void> => {
   const srcFunc = 'saveTaxonomyFiles';
-  
+
   try {
     let filesSaved = 0;
-    
+
     // Save individual taxonomy files (existing functionality)
     for (const [vid, taxonomy] of Object.entries(taxonomies)) {
       const filePath = path.join(taxonomiesPath, `${vid}.json`);
-      await fs.promises.writeFile(filePath, JSON.stringify(taxonomy, null, 2), 'utf8');
+      await fs.promises.writeFile(
+        filePath,
+        JSON.stringify(taxonomy, null, 2),
+        'utf8'
+      );
       filesSaved++;
-      
+
       const message = getLogMessage(
         srcFunc,
         `Saved taxonomy file: ${vid}.json with ${taxonomy.terms.length} terms.`,
@@ -304,35 +301,45 @@ const saveTaxonomyFiles = async (
       );
       await customLogger(projectId, destination_stack_id, 'info', message);
     }
-    
+
     // Create consolidated taxonomies.json file with just vocabulary metadata
     const taxonomiesDataObject: Record<string, any> = {};
-    
+
     for (const [vid, taxonomy] of Object.entries(taxonomies)) {
       taxonomiesDataObject[vid] = {
         uid: taxonomy.taxonomy.uid,
         name: taxonomy.taxonomy.name,
-        description: taxonomy.taxonomy.description
+        description: taxonomy.taxonomy.description,
       };
     }
-    
+
     const taxonomiesFilePath = path.join(taxonomiesPath, 'taxonomies.json');
-    await fs.promises.writeFile(taxonomiesFilePath, JSON.stringify(taxonomiesDataObject, null, 2), 'utf8');
-    
+    await fs.promises.writeFile(
+      taxonomiesFilePath,
+      JSON.stringify(taxonomiesDataObject, null, 2),
+      'utf8'
+    );
+
     const consolidatedMessage = getLogMessage(
       srcFunc,
-      `Saved consolidated taxonomies.json with ${Object.keys(taxonomiesDataObject).length} vocabularies.`,
+      `Saved consolidated taxonomies.json with ${
+        Object.keys(taxonomiesDataObject).length
+      } vocabularies.`,
       {}
     );
-    await customLogger(projectId, destination_stack_id, 'info', consolidatedMessage);
-    
+    await customLogger(
+      projectId,
+      destination_stack_id,
+      'info',
+      consolidatedMessage
+    );
+
     const summaryMessage = getLogMessage(
       srcFunc,
       `Successfully saved ${filesSaved} individual taxonomy files + 1 consolidated taxonomies.json file.`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', summaryMessage);
-    
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
@@ -347,7 +354,7 @@ const saveTaxonomyFiles = async (
 
 /**
  * Creates taxonomy files from Drupal database for migration to Contentstack.
- * 
+ *
  * Extracts taxonomy vocabularies and terms from Drupal database,
  * organizes them by vocabulary, and saves individual JSON files
  * for each vocabulary in the format expected by Contentstack.
@@ -359,23 +366,27 @@ export const createTaxonomy = async (
 ): Promise<void> => {
   const srcFunc = 'createTaxonomy';
   let connection: mysql.Connection | null = null;
-  
+
   try {
-    const taxonomiesPath = path.join(DATA, destination_stack_id, TAXONOMIES_DIR_NAME);
-    
+    const taxonomiesPath = path.join(
+      DATA,
+      destination_stack_id,
+      TAXONOMIES_DIR_NAME
+    );
+
     // Create taxonomies directory
     await fs.promises.mkdir(taxonomiesPath, { recursive: true });
 
-    const message = getLogMessage(
-      srcFunc,
-      `Exporting taxonomies...`,
-      {}
-    );
+    const message = getLogMessage(srcFunc, `Exporting taxonomies...`, {});
     await customLogger(projectId, destination_stack_id, 'info', message);
 
     // Create database connection
-    connection = await getDbConnection(dbConfig, projectId, destination_stack_id);
-    
+    connection = await getDbConnection(
+      dbConfig,
+      projectId,
+      destination_stack_id
+    );
+
     // Main SQL query to fetch taxonomy terms
     const taxonomyQuery = `
       SELECT
@@ -386,26 +397,31 @@ export const createTaxonomy = async (
       FROM taxonomy_term_field_data f
       ORDER BY f.vid, f.tid
     `;
-    
+
     // Fetch taxonomy data
     const taxonomyTerms = await executeQuery(connection, taxonomyQuery);
-    
+
     if (taxonomyTerms.length === 0) {
       const noDataMessage = getLogMessage(
         srcFunc,
         `No taxonomy terms found in database.`,
         {}
       );
-      await customLogger(projectId, destination_stack_id, 'info', noDataMessage);
+      await customLogger(
+        projectId,
+        destination_stack_id,
+        'info',
+        noDataMessage
+      );
       return;
     }
-    
+
     // Get vocabulary names and hierarchy
     const [vocabularyNames, hierarchy] = await Promise.all([
       getVocabularyNames(connection, projectId, destination_stack_id),
-      getTermHierarchy(connection, projectId, destination_stack_id)
+      getTermHierarchy(connection, projectId, destination_stack_id),
     ]);
-    
+
     // Process taxonomy data
     const taxonomies = await processTaxonomyData(
       taxonomyTerms,
@@ -414,17 +430,23 @@ export const createTaxonomy = async (
       projectId,
       destination_stack_id
     );
-    
+
     // Save taxonomy files
-    await saveTaxonomyFiles(taxonomies, taxonomiesPath, projectId, destination_stack_id);
+    await saveTaxonomyFiles(
+      taxonomies,
+      taxonomiesPath,
+      projectId,
+      destination_stack_id
+    );
 
     const successMessage = getLogMessage(
       srcFunc,
-      `Successfully exported ${Object.keys(taxonomies).length} taxonomies with ${taxonomyTerms.length} total terms.`,
+      `Successfully exported ${
+        Object.keys(taxonomies).length
+      } taxonomies with ${taxonomyTerms.length} total terms.`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', successMessage);
-
   } catch (err) {
     const message = getLogMessage(
       srcFunc,

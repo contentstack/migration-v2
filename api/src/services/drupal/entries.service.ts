@@ -9,11 +9,7 @@ import {
   jsonToHtml,
   jsonToMarkdown,
 } from '@contentstack/json-rte-serializer';
-import {
-  CHUNK_SIZE,
-  LOCALE_MAPPER,
-  MIGRATION_DATA_CONFIG,
-} from '../../constants/index.js';
+import { CHUNK_SIZE, MIGRATION_DATA_CONFIG } from '../../constants/index.js';
 import { getLogMessage } from '../../utils/index.js';
 import customLogger from '../../utils/custom-logger.utils.js';
 import { getDbConnection } from '../../helper/index.js';
@@ -27,26 +23,33 @@ import {
   type AssetFieldMapping,
 } from './field-analysis.service.js';
 import FieldFetcherService from './field-fetcher.service.js';
-import {
-  entriesFieldCreator,
-  unflatten,
-} from '../../utils/entries-field-creator.utils.js';
 import { mapDrupalLocales } from './locales.service.js';
 // Dynamic import for phpUnserialize will be used in the function
 
 // Local utility functions (extracted from entries-field-creator.utils.ts patterns)
-const append = 'a';
+// Default prefix fallback if none provided
+const DEFAULT_PREFIX = 'cs';
 
 function startsWithNumber(str: string) {
   return /^\d/.test(str);
 }
 
-const uidCorrector = ({ uid, id }: any) => {
+const uidCorrector = ({
+  uid,
+  id,
+  prefix,
+}: {
+  uid?: string;
+  id?: string;
+  prefix?: string;
+}) => {
   const value = uid || id;
   if (!value) return '';
 
+  const effectivePrefix = prefix || DEFAULT_PREFIX;
+
   if (startsWithNumber(value)) {
-    return `${append}_${_.replace(
+    return `${effectivePrefix}_${_.replace(
       value,
       new RegExp('[ -]', 'g'),
       '_'
@@ -69,9 +72,7 @@ interface TaxonomyFieldOutput {
 const {
   DATA,
   ENTRIES_DIR_NAME,
-  ENTRIES_MASTER_FILE,
   ASSETS_DIR_NAME,
-  ASSETS_SCHEMA_FILE,
   REFERENCES_DIR_NAME,
   REFERENCES_FILE_NAME,
   TAXONOMIES_DIR_NAME,
@@ -188,34 +189,6 @@ async function readFile(filePath: string, fileName: string) {
   } catch (err) {
     return {};
   }
-}
-
-/**
- * Splits the given entry data into chunks that are under the specified size in bytes.
- */
-function makeChunks(entryData: any) {
-  let currentChunkSize = 0;
-  const chunkSize = CHUNK_SIZE; // 1 MB in bytes
-  let currentChunkId = uuidv4();
-  const chunks: { [key: string]: any } = {};
-
-  for (const [key, value] of Object.entries(entryData)) {
-    const tempObj = { [(value as { uid: string }).uid]: value };
-    chunks[currentChunkId] = { ...chunks[currentChunkId], ...tempObj };
-
-    currentChunkSize = Buffer.byteLength(
-      JSON.stringify(chunks[currentChunkId]),
-      'utf8'
-    );
-
-    if (currentChunkSize > chunkSize) {
-      currentChunkId = uuidv4();
-      currentChunkSize = 0;
-      chunks[currentChunkId] = {};
-    }
-  }
-
-  return chunks;
 }
 
 /**
@@ -663,7 +636,8 @@ const processFieldData = async (
   referenceFieldMapping: ReferenceFieldMapping,
   assetFieldMapping: any,
   taxonomyReferenceLookup: Record<number, TaxonomyFieldOutput>,
-  contentType: string
+  contentType: string,
+  prefix: string = DEFAULT_PREFIX
 ): Promise<any> => {
   const fieldNames = Object.keys(entryData);
   const isoDate = new Date();
@@ -872,7 +846,10 @@ const processFieldData = async (
     } else if (fieldName.endsWith('_tid')) {
       ctValue[fieldName] = [value];
     } else if (fieldName === 'nid') {
-      ctValue.uid = uidCorrector({ id: `content_type_entries_title_${value}` });
+      ctValue.uid = uidCorrector({
+        id: `content_type_entries_title_${value}`,
+        prefix,
+      });
     } else if (fieldName === 'langcode') {
       // Use the actual langcode from the entry for proper multilingual support
       ctValue.locale = value || 'en-us'; // fallback to en-us if langcode is empty
@@ -1149,7 +1126,6 @@ const processEntries = async (
     // This replaces the old hardcoded transformation rules with dynamic user mapping
     const transformedEntriesByLocale: { [locale: string]: any[] } = {};
     const allLocales = Object.keys(entriesByLocale);
-    const hasUnd = allLocales.includes('und');
     const hasEn = allLocales.includes('en');
     const hasEnUs = allLocales.includes('en-us');
 
@@ -1252,6 +1228,9 @@ const processEntries = async (
       const existingLocaleContent =
         (await readFile(localeFolderPath, localeFileName)) || {};
 
+      // Extract prefix from project for UID correction
+      const prefix = project?.legacy_cms?.affix || DEFAULT_PREFIX;
+
       // Process each entry in this locale
       for (const entry of localeEntries) {
         let processedEntry = await processFieldData(
@@ -1264,7 +1243,8 @@ const processEntries = async (
           referenceFieldMapping,
           assetFieldMapping,
           taxonomyReferenceLookup,
-          contentType
+          contentType,
+          prefix
         );
 
         // 🏷️ TAXONOMY CONSOLIDATION: Merge all taxonomy fields into single 'taxonomies' field
@@ -1412,6 +1392,7 @@ const processEntries = async (
         if (typeof entry.nid === 'number') {
           const entryUid = uidCorrector({
             id: `content_type_entries_title_${entry.nid}`,
+            prefix,
           });
           existingLocaleContent[entryUid] = processedEntry;
           allProcessedContent[entryUid] = processedEntry;
@@ -1525,7 +1506,6 @@ const processContentType = async (
 
     // 🧪 Process entries in batches (test migration: single entry, main migration: all entries)
     const effectiveLimit = isTest ? 1 : LIMIT;
-    const maxIterations = isTest ? 1 : Math.ceil(totalCount / LIMIT); // Test: single iteration, Main: full pagination
 
     for (
       let i = 0;
@@ -1623,11 +1603,6 @@ export const createEntry = async (
       DATA,
       destination_stack_id,
       REFERENCES_DIR_NAME
-    );
-    const taxonomiesSave = path.join(
-      DATA,
-      destination_stack_id,
-      TAXONOMIES_DIR_NAME
     );
 
     // Initialize directories
