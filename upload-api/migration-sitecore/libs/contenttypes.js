@@ -337,7 +337,8 @@ const ContentTypeSchema = ({
       };
     }
 
-    case 'McK Multi Root TreeList': {
+    case 'McK Multi Root TreeList':
+    case 'Specialized Treelist': {
       if (mckCustom?.length) {
         return {
           id: id,
@@ -562,7 +563,7 @@ const contentTypeMapper = ({
           if (item?.key === 'source') {
             sourLet = item;
             //custom for mkc 
-            if (compType?.content === 'McK Multi Root TreeList') {
+            if (compType?.content === 'McK Multi Root TreeList' || compType?.content === 'Specialized Treelist') {
               if (item?.content && typeof item?.content === 'string' && item?.content.trim() !== '') {
                 const cleanedString = item?.content.replace(/^datasource=/i, '');
                 // Split by pipe separator and clean up paths

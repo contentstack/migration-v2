@@ -359,7 +359,7 @@ const createEntry = async ({
                       }
                       entryObj.contact_details.enable_contact_form = true;
                     }
-                    if (getLastKey(fsc?.uid) === field?.$?.key) {
+                    if (getLastKey(fsc?.uid) === field?.$?.key || fsc?.contentstackFieldType === 'global_field') {
                       const content: any = await entriesFieldCreator({
                         field: fsc,
                         content: field?.content,
@@ -368,6 +368,8 @@ const createEntry = async ({
                         contentTypes,
                         entriesData,
                         locale,
+                        keyForGf: field?.$?.key,
+                        fieldContent: entry?.fields,
                       });
                       const gpData: any = ctType?.fieldMapping?.find(
                         (elemant: any) =>

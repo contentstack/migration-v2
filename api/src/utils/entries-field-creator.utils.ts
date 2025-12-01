@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import { JSDOM } from 'jsdom';
 import { htmlToJson } from '@contentstack/json-rte-serializer';
-// @ts-ignore
 import { HTMLToJSON } from 'html-to-json-parser';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
@@ -187,6 +186,8 @@ export const entriesFieldCreator = async ({
   contentTypes,
   entriesData,
   locale,
+  keyForGf,
+  fieldContent
 }: any) => {
   switch (field?.contentstackFieldType) {
     case 'multi_line_text':
@@ -280,25 +281,39 @@ export const entriesFieldCreator = async ({
     }
 
     case 'reference': {
-      console.info("=====", content, field?.refrenceTo)
       const refs: any = [];
       if (field?.refrenceTo?.length) {
         field?.refrenceTo?.forEach((entry: any) => {
           const templatePresent = entriesData?.find(
             (tel: any) => uidCorrector({ uid: tel?.template }) === entry
           );
-          content?.split('|')?.forEach((id: string) => {
-            const entryid =
-              templatePresent?.locale?.[locale]?.[idCorrector({ id })];
-            if (entryid) {
-              refs?.push({
-                uid: idCorrector({ id }),
-                _content_type_uid: entry,
-              });
-            } else {
-              // console.info("no entry for following id", id)
+          if (content?.includes('|')) {
+            content?.split('|')?.forEach((id: string) => {
+              const entryid =
+                templatePresent?.locale?.[locale]?.[idCorrector({ id })];
+              if (entryid) {
+                refs?.push({
+                  uid: idCorrector({ id }),
+                  _content_type_uid: entry,
+                });
+              } else {
+                // console.info("no entry for following id", locale, id)
+              }
+            });
+          } else {
+            if (content?.endsWith?.('}')) {
+              const entryid =
+                templatePresent?.locale?.[locale]?.[idCorrector({ id: content })];
+              if (entryid) {
+                refs?.push({
+                  uid: idCorrector({ id: content }) ?? content,
+                  _content_type_uid: entry,
+                });
+              } else {
+                // console.info("no entry for following id => content", locale, content)
+              }
             }
-          });
+          }
         });
       } else {
         console.info('test ====>');
@@ -315,18 +330,46 @@ export const entriesFieldCreator = async ({
       if (globalFieldsSchema?.fieldMapping) {
         const mainSchema = [];
         const group: any = {};
+        let nested: any;
         globalFieldsSchema?.fieldMapping?.forEach((item: any) => {
           if (item?.contentstackFieldType === 'group') {
             group[item?.contentstackFieldUid] = { ...item, fieldMapping: [] };
           } else {
-            const groupSchema =
-              group[item?.contentstackFieldUid?.split('.')?.[0]];
-            if (groupSchema) {
-              group?.[groupSchema?.contentstackFieldUid]?.fieldMapping?.push(
-                item
+            if (item?.contentstackFieldType === 'global_field') {
+              const globalFieldNested = contentTypes?.find?.(
+                (gfd: any) =>
+                  gfd?.contentstackUid === item?.contentstackFieldUid &&
+                  gfd?.type === 'global_field'
               );
+              const nstGroup: any = {};
+              const mainSchemaNst: any = [];
+              nested = globalFieldNested;
+              globalFieldNested?.fieldMapping?.forEach((nst: any) => {
+                if (nst?.contentstackFieldType === 'group') {
+                  nstGroup[nst?.contentstackFieldUid] = { ...nst, fieldMapping: [] };
+                } else {
+                  const groupSchemaNst =
+                    nstGroup[nst?.contentstackFieldUid?.split('.')?.[0]];
+                  if (groupSchemaNst) {
+                    nstGroup?.[groupSchemaNst?.contentstackFieldUid]?.fieldMapping?.push(
+                      nst
+                    );
+                  } else {
+                    mainSchemaNst?.push(nst);
+                  }
+                }
+                mainSchema?.push(nstGroup);
+              })
             } else {
-              mainSchema?.push(item);
+              const groupSchema =
+                group[item?.contentstackFieldUid?.split('.')?.[0]];
+              if (groupSchema) {
+                group?.[groupSchema?.contentstackFieldUid]?.fieldMapping?.push(
+                  item
+                );
+              } else {
+                mainSchema?.push(item);
+              }
             }
           }
         });
@@ -336,22 +379,71 @@ export const entriesFieldCreator = async ({
           if (field?.['uid']) {
             obj[field?.contentstackFieldUid] = await entriesFieldCreator({
               field,
+              idCorrector,
               content,
             });
           } else {
             Object?.values(field)?.forEach((item: any) => {
               if (item?.contentstackFieldType === 'group') {
                 item?.fieldMapping?.forEach(async (ele: any) => {
-                  obj[ele?.contentstackFieldUid] = await entriesFieldCreator({
-                    field: ele,
-                    content,
-                  });
+                  if (nested?.id === ele?.contentTypeId) {
+                    const value = ele?.['uid']?.split?.('.')?.at(-1);
+                    const fieldContentValue = fieldContent?.field?.find?.(((f: any) => f?.$?.key === value));
+                    if (fieldContentValue?.content) {
+                      obj[ele?.contentstackFieldUid] = await entriesFieldCreator({
+                        field: ele,
+                        idCorrector,
+                        content: fieldContentValue?.content,
+                        locale,
+                        contentTypes,
+                        entriesData,
+                      });
+                    }
+                  } else {
+                    obj[ele?.contentstackFieldUid] = await entriesFieldCreator({
+                      field: ele,
+                      idCorrector,
+                      content,
+                      locale,
+                      contentTypes,
+                      entriesData,
+                    });
+                  }
                 });
               }
             });
           }
         });
-        return await obj;
+        if (Object.keys(await obj).length) {
+          const newObj: any = {};
+          for (const [key, value] of Object.entries(obj)) {
+            let isNested = false;
+            for (const element of nested?.fieldMapping ?? []) {
+              if (element.contentstackFieldUid === key) {
+                newObj[`${nested?.contentstackUid}.${key}`] = value;
+                isNested = true;
+                break;
+              }
+            }
+            if (!isNested) {
+              newObj[key] = value;
+            }
+          }
+          const cleanedFlattenedObj = Object.fromEntries(
+            Object.entries(newObj).filter(([key, value]) =>
+              key && key.trim() !== '' && value !== null && value !== undefined
+            )
+          );
+
+          const result = unflatten(cleanedFlattenedObj);
+          return result || {};
+        }
+        const cleanedObj = Object.fromEntries(
+          Object.entries(obj).filter(([key, value]) =>
+            key && key.trim() !== '' && value !== null && value !== undefined
+          )
+        );
+        return unflatten(cleanedObj) || {};
       }
       break;
     }
@@ -397,8 +489,9 @@ export const entriesFieldCreator = async ({
     }
 
     default: {
-      console.info(field?.contentstackFieldType, 'field missing');
-      return content;
+      // console.info(field?.contentstackFieldType, 'field missing', content);
+      // return content;
+      return null;
     }
   }
 };
