@@ -325,7 +325,7 @@ async function drupalValidator({
     const nodeFieldDataQuery = 'SELECT COUNT(*) as count FROM node_field_data LIMIT 1';
 
     try {
-      const [nodeRows] = await connection.execute(nodeFieldDataQuery);
+      await connection.execute(nodeFieldDataQuery);
       logger.info('Drupal validator: node_field_data table exists and accessible');
     } catch (nodeError: any) {
       logger.error('Drupal validator: node_field_data table check failed', {

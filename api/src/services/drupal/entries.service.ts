@@ -363,7 +363,7 @@ const processFieldByType = (
             'Failed to convert JSON RTE to single line text:',
             error
           );
-          return String(value || '');
+          return String(value);
         }
       } else if (typeof value === 'string') {
         if (/<\/?[a-z][\s\S]*>/i.test(value)) {
@@ -377,7 +377,7 @@ const processFieldByType = (
         // Multi-line to single line
         return value.replace(/\s+/g, ' ').trim();
       }
-      return String(value || '');
+      return String(value);
     }
 
     case 'text':
@@ -402,7 +402,7 @@ const processFieldByType = (
           );
         } catch (error) {
           console.error('Failed to convert JSON RTE to HTML:', error);
-          return String(value || '');
+          return String(value);
         }
       }
       // HTML and plain text can stay as-is for multi-line

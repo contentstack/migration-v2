@@ -244,7 +244,7 @@ const createDropdownOrRadioFieldObject = (
   numericType = null
 ) => {
   // Determine display type and multiple based on CSV scenarios
-  let displayType = 'dropdown';
+  let displayType;
   let multiple = false;
 
   // Map based on CSV scenarios from drupal_field_mapping.csv

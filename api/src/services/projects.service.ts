@@ -985,7 +985,7 @@ const generateQueriesWithRetry = async (
       `No ${stackType} stack ID found, skipping query generation`,
       token_payload
     );
-    await customLogger(projectId, stackId || 'unknown', 'warn', message);
+    await customLogger(projectId, stackId, 'warn', message);
     return true; // Skip if no stack ID
   }
 
