@@ -2381,10 +2381,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const columns = [
     {
       disableSortBy: true,
-      Header: `${newMigrationData?.legacy_cms?.selectedCms?.title}: ${otherCmsTitle}`,
+      Header: (
+        <span className="nowrap-header">
+          {`${newMigrationData?.legacy_cms?.selectedCms?.title}: ${otherCmsTitle}`}
+        </span>
+      ),
       accessor: accessorCall,
-      // accessor: 'otherCmsField',
-      default: false,
       id: 'uuid'
     }
   ];
@@ -2394,19 +2396,25 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   if (!isNewStack) {
     columns?.push({
       disableSortBy: true,
-      Header: `Contentstack: ${isOtherContentType ? otherContentType?.label : otherCmsTitle}`,
+      Header: (
+        <span className="nowrap-header">
+          {`Contentstack: ${isOtherContentType ? otherContentType?.label : otherCmsTitle}`}
+        </span>
+      ),
       // accessor: 'ct_field',
       accessor: SelectAccessorOfColumn,
       id: 'contentstack_field',
-      default: false
     });
   } else {
     columns?.push({
       disableSortBy: true,
-      Header: `Contentstack: ${isNewStack ? otherCmsTitle : otherContentType?.label ?? ''}`,
+      Header: (
+        <span className="nowrap-header">
+          {`Contentstack: ${isNewStack ? otherCmsTitle : otherContentType?.label ?? ''}`}
+        </span>
+      ),
       accessor: SelectAccessor,
       id: 'contentstack_cms_field',
-      default: false
     });
   }
 
@@ -2680,7 +2688,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     plural: `${totalCounts === 0 ? 'Count' : ''}`
                   }}
                 />
-                <div className='d-flex align-items-center justify-content-between my-2 mx-3 px-1 py-1'>
+                <div className="mapper-footer">
                   <div>Total Fields: <strong>{totalCounts}</strong></div>
                   <Button
                     className="saveButton"
