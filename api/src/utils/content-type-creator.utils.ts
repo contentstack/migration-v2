@@ -701,7 +701,7 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
       return {
         "data_type": "global_field",
         "display_name": field?.title,
-        "reference_to": field?.refrenceTo,
+        "reference_to": field?.refrenceTo ?? [],
         "uid": cleanedUid,
         "mandatory": field?.advanced?.mandatory ?? false,
         "multiple": field?.advanced?.multiple ?? false,
