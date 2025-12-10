@@ -237,7 +237,7 @@ function getLastSegmentNew(str: string, separator: string): string {
   return segments[segments.length - 1].trim();
 }
 
-export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', oldPrentUid = ''): any[] {
+export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', oldParentUid = ''): any[] {
 
   if (!Array.isArray(fields)) {
     console.warn('buildSchemaTree called with invalid fields:', fields);
@@ -253,25 +253,25 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
 
   // Filter direct children of current parent
   const directChildren = fields.filter(field => {
-    const fieldUid = field.contentstackFieldUid || '';
+    const fieldUid = field?.contentstackFieldUid || '';
 
     if (!parentUid) {
       // Root level - only fields without dots
-      return fieldUid && !fieldUid.includes('.');
+      return fieldUid && !fieldUid?.includes('.');
     }
 
     // Check if field is a direct child of parentUid
-    if (fieldUid.startsWith(parentUid + '.')) {
-      const remainder = fieldUid.substring(parentUid.length + 1);
+    if (fieldUid?.startsWith(parentUid + '.')) {
+      const remainder = fieldUid?.substring(parentUid.length + 1);
       // Verify it's exactly one level deeper (no more dots in remainder)
-      return remainder && !remainder.includes('.');
+      return remainder && !remainder?.includes('.');
     }
 
     // Fallback: check if field is a direct child of oldPrentUid (if provided and different)
-    if (oldPrentUid && oldPrentUid !== parentUid && fieldUid.startsWith(oldPrentUid + '.')) {
-      const remainder = fieldUid.substring(oldPrentUid.length + 1);
+    if (oldParentUid && oldParentUid !== parentUid && fieldUid?.startsWith(oldParentUid + '.')) {
+      const remainder = fieldUid?.substring(oldParentUid.length + 1);
       // Verify it's exactly one level deeper (no more dots in remainder)
-      return remainder && !remainder.includes('.');
+      return remainder && !remainder?.includes('.');
     }
 
     // Not a direct child
@@ -280,7 +280,7 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
 
   return directChildren.map(field => {
     const uid = getLastSegmentNew(field.contentstackFieldUid, '.');
-    const displayName = field.display_name || getLastSegmentNew(field.contentstackField || '', '>').trim();
+    const displayName = field?.display_name || getLastSegmentNew(field?.contentstackField || '', '>').trim();
 
     // Base field structure
     const result: any = {
@@ -290,25 +290,25 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
     };
 
     // Determine if field should have nested schema
-    const fieldUid = field.contentstackFieldUid;
-    const fieldType = field.contentstackFieldType;
-    const oldFieldtUid = field.backupFieldUid;
+    const fieldUid = field?.contentstackFieldUid;
+    const fieldType = field?.contentstackFieldType;
+    const oldFieldUid = field?.backupFieldUid;
     
     // Check if this field has direct children (exactly one level deeper)
     const hasChildren = fields.some(f => {
-      const fUid = f.contentstackFieldUid || '';
+      const fUid = f?.contentstackFieldUid || '';
       if (!fUid) return false;
       
       // Check if field starts with current fieldUid and is exactly one level deeper
       if (fieldUid && fUid.startsWith(fieldUid + '.')) {
-        const remainder = fUid.substring(fieldUid.length + 1);
-        return remainder && !remainder.includes('.');
+        const remainder = fUid?.substring(fieldUid.length + 1);
+        return remainder && !remainder?.includes('.');
       }
       
       // Check if field starts with oldFieldtUid and is exactly one level deeper
-      if (oldFieldtUid && fUid.startsWith(oldFieldtUid + '.')) {
-        const remainder = fUid.substring(oldFieldtUid.length + 1);
-        return remainder && !remainder.includes('.');
+      if (oldFieldUid && fUid.startsWith(oldFieldUid + '.')) {
+        const remainder = fUid.substring(oldFieldUid.length + 1);
+        return remainder && !remainder?.includes('.');
       }
       
       return false;
@@ -338,7 +338,7 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
       } else if (fieldType === 'group' ||
         (fieldType === 'modular_blocks_child' && hasChildren)) {
         // Recursively build schema for groups and modular block children with nested content
-        result.schema = buildSchemaTree(fields, fieldUid, fieldType, oldFieldtUid);
+        result.schema = buildSchemaTree(fields, fieldUid, fieldType, oldFieldUid);
       }
     }
 
