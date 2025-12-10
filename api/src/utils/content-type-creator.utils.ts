@@ -279,7 +279,7 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
   });
 
   return directChildren.map(field => {
-    const uid = getLastSegmentNew(field.contentstackFieldUid, '.');
+    const uid = getLastSegmentNew(field?.contentstackFieldUid, '.');
     const displayName = field?.display_name || getLastSegmentNew(field?.contentstackField || '', '>').trim();
 
     // Base field structure
@@ -300,14 +300,14 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
       if (!fUid) return false;
       
       // Check if field starts with current fieldUid and is exactly one level deeper
-      if (fieldUid && fUid.startsWith(fieldUid + '.')) {
+      if (fieldUid && fUid?.startsWith(fieldUid + '.')) {
         const remainder = fUid?.substring(fieldUid.length + 1);
         return remainder && !remainder?.includes('.');
       }
       
       // Check if field starts with oldFieldtUid and is exactly one level deeper
-      if (oldFieldUid && fUid.startsWith(oldFieldUid + '.')) {
-        const remainder = fUid.substring(oldFieldUid.length + 1);
+      if (oldFieldUid && fUid?.startsWith(oldFieldUid + '.')) {
+        const remainder = fUid?.substring(oldFieldUid.length + 1);
         return remainder && !remainder?.includes('.');
       }
       
