@@ -1,0 +1,24 @@
+{
+  "watch": ["src"],
+  "ext": "ts,js,json",
+  "ignore": [
+    "database/**/*",
+    "logs/**/*",
+    "*.log",
+    "node_modules/**/*",
+    "dist/**/*",
+    "build/**/*",
+    "cmsMigrationData/**/*",
+    "test_output.log",
+    "combine.log",
+    "sample.log",
+    "upload-api/**/*",
+    "ui/**/*"
+  ],
+  "exec": "tsx ./src/server.ts",
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "delay": "1000",
+  "verbose": true
+}

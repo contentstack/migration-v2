@@ -4,6 +4,7 @@ import path from 'path';
 import xml2js from 'xml2js';
 import { HTTP_TEXTS, HTTP_CODES, MACOSX_FOLDER } from '../constants';
 import logger from '../utils/logger';
+import mysql from 'mysql2';
 
 const getFileName = (params: { Key: string }) => {
   const obj: { fileName?: string; fileExt?: string } = {};
@@ -209,4 +210,74 @@ function deleteFolderSync(folderPath: string): void {
   }
 }
 
-export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson };
+/**
+ * Establishes a MySQL database connection
+ * @returns Promise that resolves to the connection object or null if connection fails
+ */
+const createDbConnection = async (config: any): Promise<mysql.Connection | null> => {
+  try {
+    // Create the connection with config values
+    const connection = mysql.createConnection({
+      host: config?.host,
+      user: config?.user,
+      password: config?.password,
+      database: config?.database,
+      port: Number(config?.port)
+    });
+
+    // Test the connection by wrapping the connect method in a promise
+    return new Promise((resolve, reject) => {
+      connection.connect((err) => {
+        if (err) {
+          logger.error('Database connection failed:', {
+            error: err.message,
+            code: err.code,
+            stack: err.stack
+          });
+          reject(err);
+          return;
+        }
+
+        logger.info('Database connection established successfully', {
+          host: config?.mysql?.host,
+          database: config?.mysql?.database
+        });
+
+        resolve(connection);
+      });
+    });
+  } catch (error: any) {
+    logger.error('Failed to create database connection:', {
+      error: error.message,
+      stack: error.stack
+    });
+    return null;
+  }
+};
+
+// Usage example
+const getDbConnection = async (config: any) => {
+  try {
+    const connection = await createDbConnection(config);
+    if (!connection) {
+      throw new Error('Could not establish database connection');
+    }
+    return connection;
+  } catch (error: any) {
+    logger.error('Database connection error:', {
+      message: error.message,
+      stack: error.stack
+    });
+    throw error; // Re-throw so caller can handle it
+  }
+};
+
+export {
+  getFileName,
+  saveZip,
+  saveJson,
+  fileOperationLimiter,
+  deleteFolderSync,
+  parseXmlToJson,
+  getDbConnection
+};

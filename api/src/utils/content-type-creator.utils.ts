@@ -373,8 +373,58 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
+// Field type conversion validation to prevent data loss
+export const validateFieldTypeConversion = (currentType: string, newType: string): { allowed: boolean; reason?: string } => {
+  // Define field type hierarchy (simple → complex)
+  const typeHierarchy = {
+    'single_line_text': 1,
+    'multi_line_text': 2,
+    'html': 3,
+    'json': 4
+  };
+
+  const currentLevel = typeHierarchy[currentType as keyof typeof typeHierarchy] || 0;
+  const newLevel = typeHierarchy[newType as keyof typeof typeHierarchy] || 0;
+
+  // Allow same type or upgrades (simple → complex)
+  if (currentLevel <= newLevel) {
+    return { allowed: true };
+  }
+
+  // Special case: Allow JSON RTE → HTML RTE (both are rich content types)
+  if (currentType === 'json' && newType === 'html') {
+    return { allowed: true };
+  }
+
+  // Block downgrades (complex → simple) to prevent data loss
+  const reasons = {
+    'multi_line_text_to_single': 'Converting multi-line to single-line may lose line breaks and formatting',
+    'html_to_text': 'Converting HTML RTE to text fields will lose rich content formatting',
+    'json_to_text': 'Converting JSON RTE to text fields will lose structured data and assets'
+  };
+
+  let reason = 'This conversion may result in data loss';
+  if (currentType === 'multi_line_text' && newType === 'single_line_text') {
+    reason = reasons.multi_line_text_to_single;
+  } else if (currentType === 'html' && ['single_line_text', 'multi_line_text'].includes(newType)) {
+    reason = reasons.html_to_text;
+  } else if (currentType === 'json' && ['single_line_text', 'multi_line_text'].includes(newType)) {
+    reason = reasons.json_to_text;
+  }
+
+  return { allowed: false, reason };
+};
+
+export const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, currentFieldType, keyMapper }: any) => {
   // Clean up field UID by removing ALL leading underscores
+  
+  // Validate field type conversion if currentFieldType is provided
+  if (currentFieldType && field?.contentstackFieldType) {
+    const validation = validateFieldTypeConversion(currentFieldType, field.contentstackFieldType);
+    if (!validation.allowed) {
+      throw new Error(`Field type conversion blocked: ${validation.reason}`);
+    }
+  }
   const rawUid = field?.uid;
   const cleanedUid = sanitizeUid(rawUid);
   switch (field?.contentstackFieldType) {
@@ -657,6 +707,55 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
         "non_localizable": field.advanced?.nonLocalizable ?? false
       }
     }
+
+    case "text": {
+      // Handle generic text field - determine if it should be single line or multi line based on metadata
+      const isMultiline = field?.advanced?.multiline === true;
+      return {
+        "data_type": "text",
+        "display_name": field?.title,
+        uid: field?.uid,
+        "field_metadata": {
+          description: "",
+          default_value: field?.advanced?.default_value ?? '',
+          ...(isMultiline && { "multiline": true })
+        },
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
+      }
+    }
+
+    case "html": {
+      return {
+        "data_type": "text",
+        "display_name": field?.title,
+        uid: field?.uid,
+        "field_metadata": {
+          "allow_rich_text": true,
+          "description": "",
+          default_value: field?.advanced?.default_value ?? '',
+          "multiline": false,
+          "rich_text_type": "advanced",
+          "options": [],
+          "ref_multiple_content_types": true,
+          "embed_entry": field?.advanced?.embedObjects?.length ? true : false
+        },
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
+      }
+    }
     case 'markdown': {
       return {
         "data_type": "text",
@@ -735,10 +834,13 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
     }
 
     case "reference": {
+      // Get reference fields from multiple possible sources
+      const referenceFields = field?.referenceTo || field?.refrenceTo || field?.advanced?.embedObjects || [];
+      
       return {
         data_type: "reference",
         display_name: field?.title,
-        reference_to: field?.refrenceTo ?? [],
+        reference_to: referenceFields ?? [],
         field_metadata: {
           ref_multiple: true,
           ref_multiple_content_types: true
@@ -755,6 +857,27 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
       };
     }
 
+    case "taxonomy": {
+      return {
+        data_type: "taxonomy",
+        display_name: field?.title,
+        uid: field?.uid,
+        taxonomies: field?.advanced?.taxonomies || [],
+        field_metadata: {
+          description: field?.advanced?.field_metadata?.description || "",
+          default_value: field?.advanced?.field_metadata?.default_value || ""
+        },
+        format: field?.advanced?.validationRegex ?? '',
+        error_messages: {
+          format: field?.advanced?.validationErrorMessage ?? '',
+        },
+        mandatory: field?.advanced?.mandatory ?? false,
+        multiple: field?.advanced?.multiple ?? true,
+        non_localizable: field?.advanced?.non_localizable ?? false,
+        unique: field?.advanced?.unique ?? false
+      };
+    }
+
     case 'html': {
       const htmlField: any = {
         "data_type": "text",
@@ -765,7 +888,6 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
           "description": "",
           "multiline": false,
           "rich_text_type": "advanced",
-          "version": 3,
           "options": [],
           "ref_multiple_content_types": true,
           "embed_entry": field?.advanced?.embedObjects?.length ? true : false,

@@ -2,7 +2,7 @@ import path from 'path';
 import multer from 'multer';
 import { Readable } from 'stream';
 import express, { Router, Request, Response } from 'express';
-import { createReadStream, createWriteStream } from 'fs';
+import { createReadStream, createWriteStream, statSync } from 'fs';
 import {
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
@@ -32,7 +32,6 @@ router.post('/upload', upload.single('file'), async function (req: Request, res:
       // Add file data to the stream
       fileStream.push(req.file.buffer);
       fileStream.push(null);
-      console.info('🚀 ~ router.post ~ fileStream:', fileStream);
 
       //multipart upload session in S3
       const createMultipartUploadCommand = new CreateMultipartUploadCommand({
@@ -89,177 +88,349 @@ router.post('/upload', upload.single('file'), async function (req: Request, res:
 });
 
 // deepcode ignore NoRateLimitingForExpensiveWebOperation: <alredy implemetes>
-router.get('/validator', express.json(), fileOperationLimiter, async function (req: Request, res: Response) {
-  try {
-    const projectId: string | string[] = req?.headers?.projectid ?? "";
-    const app_token: string | string[] = req?.headers?.app_token ?? "";
-    const affix: string | string[] = req?.headers?.affix ?? "csm";
-    const cmsType = config?.cmsType?.toLowerCase();
+router.get(
+  '/validator',
+  express.json(),
+  fileOperationLimiter,
+  async function (req: Request, res: Response) {
+    try {
+      const projectId: string | string[] = req?.headers?.projectid ?? '';
+      const app_token: string | string[] = req?.headers?.app_token ?? '';
+      const affix: string | string[] = req?.headers?.affix ?? 'csm';
+      const cmsType = config?.cmsType?.toLowerCase();
 
-    if (config?.isLocalPath) {
-      const fileName = path.basename(config?.localPath || "");
-      const isFile = !!path.extname(fileName);
-
-      if (!fileName) {
-        res.send('Filename could not be determined from the local path.');
+      console.log('=== VALIDATOR REQUEST DEBUG ===');
+      console.log('CMS Type:', cmsType);
+      console.log('config.isLocalPath:', config?.isLocalPath);
+      console.log('config.isSQL:', config?.isSQL);
+      console.log('config.localPath:', config?.localPath);
+      console.log('');
+      console.log('=== LOGIC FLOW ===');
+      console.log(
+        'Priority 1: isLocalPath =',
+        config?.isLocalPath,
+        '→',
+        config?.isLocalPath ? 'USE LOCAL PATH (file or folder)' : 'Skip to next check'
+      );
+      if (!config?.isLocalPath) {
+        console.log(
+          'Priority 2: isSQL =',
+          config?.isSQL,
+          '→',
+          config?.isSQL ? 'USE SQL CONNECTION' : 'USE AWS S3'
+        );
       }
+      console.log('');
 
-      if (fileName) {
-        if (isFile) {
-          const name = fileName?.split?.('.')?.[0];
-          const fileExt = fileName?.split('.')?.pop() ?? '';
-          const bodyStream = createReadStream(config?.localPath?.replace(/\/$/, ""));
+      if (config?.isLocalPath) {
+        console.log('✓ Using LOCAL PATH mode');
+        console.log('  Ignoring isSQL and AWS settings...');
+        console.log('');
+        const localPath = config?.localPath || '';
 
-          bodyStream.on('error', (error: any) => {
-            console.error(error);
+        // Check if the path is a directory or file
+        let isDirectory = false;
+        try {
+          const stats = statSync(localPath);
+          isDirectory = stats.isDirectory();
+          console.log('Path is directory:', isDirectory);
+        } catch (error) {
+          console.error('Error accessing local path:', error);
+          return res.status(500).json({
+            status: 'error',
+            message: 'Error accessing local path.',
+            file_details: config
+          });
+        }
+
+        // Handle directory paths (e.g., for AEM folder structure)
+        if (isDirectory) {
+          const fileExt = 'folder';
+          const name = path.basename(localPath);
+
+          console.log('Processing as folder - fileExt:', fileExt, 'name:', name);
+
+          // For folders, pass the directory path directly to the validator
+          const data = await handleFileProcessing(fileExt, localPath, cmsType, name);
+
+          console.log('📤 ROUTES - Folder validation result received from handleFileProcessing:');
+          console.log('  data.file_details.isSQL:', data?.file_details?.isSQL);
+          console.log('  data.file_details.isLocalPath:', data?.file_details?.isLocalPath);
+          console.log('  data.file_details.cmsType:', data?.file_details?.cmsType);
+          console.log('');
+          console.log('📦 SENDING RESPONSE TO UI:');
+          console.log('  ✓ Status:', data?.status || 200);
+          console.log('  ✓ Message:', data?.message);
+          console.log('  ✓ file_details.isLocalPath:', data?.file_details?.isLocalPath);
+          console.log('  ✓ file_details.isSQL:', data?.file_details?.isSQL);
+          console.log('  ✓ file_details.cmsType:', data?.file_details?.cmsType);
+          console.log('  ✓ file_details.localPath:', data?.file_details?.localPath);
+          console.log('');
+
+          // Create mapper for folders (e.g., AEM)
+          if (data?.status === 200) {
+            console.log('🔧 Creating mapper for folder/directory...');
+            console.log('  Calling createMapper with localPath:', localPath);
+            createMapper(localPath, projectId, app_token, affix, config);
+          }
+
+          return res.status(data?.status || 200).json(data);
+        }
+
+        // Handle file paths
+        const fileName = path.basename(localPath);
+
+        if (!fileName) {
+          return res.send('Filename could not be determined from the local path.');
+        }
+
+        const name = fileName?.split?.('.')?.[0];
+        const fileExt = fileName?.split('.')?.pop() ?? '';
+
+        console.log('Processing as file - fileExt:', fileExt, 'name:', name);
+
+        const bodyStream = createReadStream(localPath);
+
+        bodyStream.on('error', (error: any) => {
+          console.error('Error reading file stream:', error);
+          return res.status(500).json({
+            status: 'error',
+            message: 'Error reading file.',
+            file_details: config
+          });
+        });
+
+        if (fileExt === 'xml') {
+          let xmlData = '';
+
+          // Collect the data from the stream as a string
+          bodyStream.on('data', (chunk) => {
+            if (typeof chunk !== 'string' && !Buffer.isBuffer(chunk)) {
+              throw new Error('Expected chunk to be a string or a Buffer');
+            } else {
+              // Convert chunk to string (if it's a Buffer)
+              xmlData += chunk.toString();
+            }
+          });
+
+          // When the stream ends, process the XML data
+          bodyStream.on('end', async () => {
+            if (!xmlData) {
+              throw new Error('No data collected from the stream.');
+            }
+
+            const data = await handleFileProcessing(fileExt, xmlData, cmsType, name);
+
+            console.log('📦 SENDING XML VALIDATION RESPONSE TO UI:');
+            console.log('  ✓ Status:', data?.status || 200);
+            console.log('  ✓ Message:', data?.message);
+            console.log('  ✓ file_details.isLocalPath:', data?.file_details?.isLocalPath);
+            console.log('  ✓ file_details.isSQL:', data?.file_details?.isSQL);
+            console.log('  ✓ file_details.cmsType:', data?.file_details?.cmsType);
+            console.log('');
+
+            res.status(data?.status || 200).json(data);
+            if (data?.status === 200) {
+              const filePath = path.join(__dirname, '..', '..', 'extracted_files', `${name}.json`);
+              createMapper(filePath, projectId, app_token, affix, config);
+            }
+          });
+        } else {
+          // Create a writable stream to save the downloaded zip file
+          let zipBuffer = Buffer.alloc(0);
+
+          // Collect the data from the stream into a buffer
+          bodyStream.on('data', (chunk) => {
+            if (!Buffer.isBuffer(chunk)) {
+              throw new Error('Expected chunk to be a Buffer');
+            } else {
+              zipBuffer = Buffer.concat([zipBuffer, chunk]);
+            }
+          });
+
+          //buffer fully stremd
+          bodyStream.on('end', async () => {
+            if (!zipBuffer) {
+              throw new Error('No data collected from the stream.');
+            }
+            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
+
+            console.log('📦 SENDING FILE VALIDATION RESPONSE TO UI:');
+            console.log('  ✓ Status:', data?.status || 200);
+            console.log('  ✓ Message:', data?.message);
+            console.log('  ✓ file_details.isLocalPath:', data?.file_details?.isLocalPath);
+            console.log('  ✓ file_details.isSQL:', data?.file_details?.isSQL);
+            console.log('  ✓ file_details.cmsType:', data?.file_details?.cmsType);
+            console.log('');
+
+            res.status(data?.status || 200).json(data);
+            if (data?.status === 200) {
+              let filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+              if (data?.file !== undefined) {
+                filePath = path.join(__dirname, '..', '..', 'extracted_files', name, data?.file);
+              }
+              createMapper(filePath, projectId, app_token, affix, config);
+            }
+          });
+        }
+      } else {
+        console.log('✗ isLocalPath is FALSE, checking next priority...');
+        console.log('');
+
+        if (config?.isSQL) {
+          console.log('✓ Using SQL CONNECTION mode');
+          console.log('  Ignoring AWS settings...');
+          console.log('');
+
+          const fileExt = 'sql';
+          const name = 'sql';
+
+          // For SQL files, we don't need to read from S3, just validate the database connection
+          const result = await handleFileProcessing(fileExt, null, cmsType, name);
+          if (!result) {
+            console.error('File processing returned no result');
             return res.status(500).json({
-              status: "error",
-              message: "Error reading file.",
+              status: 500,
+              message: 'File processing failed to return a result',
               file_details: config
             });
-          });
-          if (fileExt === 'xml') {
-            let xmlData = '';
-            // Collect the data from the stream as a string
-            bodyStream.on('data', (chunk) => {
-              if (typeof chunk !== 'string' && !Buffer.isBuffer(chunk)) {
-                throw new Error('Expected chunk to be a string or a Buffer');
-              } else {
-                // Convert chunk to string (if it's a Buffer)
-                xmlData += chunk.toString();
-              }
-            });
+          }
 
-            // When the stream ends, process the XML data
-            bodyStream.on('end', async () => {
-              if (!xmlData) {
+          // Only create mapper if validation was successful (status 200)
+          if (result.status === 200) {
+            const filePath = '';
+            createMapper(filePath, projectId, app_token, affix, config);
+          }
+
+          // Ensure we're sending back the complete file_details
+          const response = {
+            ...result,
+            file_details: {
+              ...result.file_details,
+              isSQL: config.isSQL,
+              mySQLDetails: config.mysql, // Changed from mysql to mySQLDetails
+              assetsConfig: config.assetsConfig
+            }
+          };
+
+          console.log('📦 SENDING SQL VALIDATION RESPONSE TO UI:');
+          console.log('  ✓ Status:', result.status);
+          console.log('  ✓ Message:', response?.message);
+          console.log('  ✓ file_details.isLocalPath:', response?.file_details?.isLocalPath);
+          console.log('  ✓ file_details.isSQL:', response?.file_details?.isSQL);
+          console.log('  ✓ file_details.cmsType:', response?.file_details?.cmsType);
+          console.log('  ✓ file_details.mysql.host:', response?.file_details?.mySQLDetails?.host);
+          console.log(
+            '  ✓ file_details.mysql.database:',
+            response?.file_details?.mySQLDetails?.database
+          );
+          console.log('');
+
+          return res.status(result.status).json(response);
+        } else {
+          console.log('✗ isSQL is FALSE, using final option...');
+          console.log('✓ Using AWS S3 mode');
+          console.log('');
+
+          const params = {
+            Bucket: config?.awsData?.bucketName,
+            Key: config?.awsData?.bucketKey
+          };
+          const getObjectCommand = new GetObjectCommand(params);
+          // Get the object from S3
+          const s3File = await client.send(getObjectCommand);
+          //file Name From key
+          const fileName = params?.Key?.split?.('/')?.pop?.() ?? '';
+          //file ext from fileName
+          const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
+
+          if (!s3File?.Body) {
+            throw new Error('Empty response body from S3');
+          }
+
+          const bodyStream: Readable = s3File?.Body as Readable;
+
+          // Create a writable stream to save the downloaded zip file
+          const zipFileStream = createWriteStream(`${fileName}`);
+
+          // // Pipe the S3 object's body to the writable stream
+          bodyStream.pipe(zipFileStream);
+
+          // Create a writable stream to save the downloaded zip file
+          let zipBuffer: Buffer | null = null;
+
+          // Collect the data from the stream into a buffer
+          bodyStream.on('data', (chunk) => {
+            if (zipBuffer === null) {
+              zipBuffer = chunk;
+            } else {
+              zipBuffer = Buffer.concat([zipBuffer, chunk]);
+            }
+          });
+
+          //buffer fully stremd
+          bodyStream.on('end', async () => {
+            try {
+              if (!zipBuffer) {
                 throw new Error('No data collected from the stream.');
               }
 
-              const data = await handleFileProcessing(fileExt, xmlData, cmsType, name);
+              console.log('📦 Processing S3 file with handleFileProcessing...');
+              const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
+              console.log('✓ S3 file processing complete.');
+
+              console.log('📦 SENDING FILE VALIDATION RESPONSE TO UI (S3):');
+              console.log('  ✓ Status:', data?.status || 200);
+              console.log('  ✓ Message:', data?.message);
+
               res.status(data?.status || 200).json(data);
+
               if (data?.status === 200) {
-                const filePath = path.join(__dirname, '..', '..', 'extracted_files', `${name}.json`);
+                let filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
+
+                // If the processor returned a specific file/folder, update the path
+                if (data?.file) {
+                  filePath = path.join(
+                    __dirname,
+                    '..',
+                    '..',
+                    'extracted_files',
+                    fileName,
+                    data.file
+                  );
+                }
+
                 createMapper(filePath, projectId, app_token, affix, config);
               }
-            });
-          }
-          else {
-            const chunks: Buffer[] = [];
-            let totalLength = 0;
-
-            bodyStream.on('data', (chunk) => {
-              if (!Buffer.isBuffer(chunk)) {
-                throw new Error('Expected chunk to be a Buffer');
-              }
-              chunks.push(chunk);
-              totalLength += chunk.length;
-            });
-
-            bodyStream.on('end', async () => {
-              try {
-                if (chunks.length === 0) {
-                  return res.status(400).json({ error: 'No data collected from the stream.' });
-                }
-
-                const zipBuffer = Buffer.concat(chunks, totalLength);
-                const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, name);
-
-                res.status(data?.status || 200).json(data);
-
-                if (data?.status === 200) {
-                  let filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
-
-                  // Define excluded directories that should not be used in file paths
-                  const EXCLUDED_DIRECTORIES = ['blob', 'installer', 'items', 'metadata', 'properties'];
-
-                  // Check if data.file is a valid, non-excluded directory
-                  const isValidFile = data?.file &&
-                    typeof data?.file === 'string' &&
-                    data?.file?.trim() !== '' &&
-                    !EXCLUDED_DIRECTORIES.includes(data?.file?.toLowerCase());
-
-                  if (isValidFile && data?.file) {
-                    filePath = path.join(__dirname, '..', '..', 'extracted_files', name, data?.file);
-                  }
-
-                  createMapper(filePath, projectId, app_token, affix, config);
-                }
-              } catch (error) {
-                console.error('Processing error:', error);
+            } catch (error: any) {
+              console.error('Processing error:', error);
+              if (!res.headersSent) {
                 res.status(500).json({ error: 'Failed to process file' });
               }
-            });
+            }
+          });
 
-            bodyStream.on('error', (error) => {
-              console.error('Stream error:', error);
+          bodyStream.on('error', (error) => {
+            console.error('Stream error:', error);
+            if (!res.headersSent) {
               res.status(500).json({ error: 'Stream processing failed' });
-            });
-          }
-        } else {
-          const data = await handleFileProcessing("folder", config?.localPath, cmsType, fileName);
-          res.status(data?.status || 200).json(data);
-          if (data?.status === 200) {
-            createMapper(config?.localPath, projectId, app_token, affix, config);
-          }
+            }
+          });
         }
       }
-    } else {
-      const params = {
-        Bucket: config?.awsData?.bucketName,
-        Key: config?.awsData?.bucketKey
-      };
-      const getObjectCommand = new GetObjectCommand(params);
-      // Get the object from S3
-      const s3File = await client.send(getObjectCommand);
-      //file Name From key
-      const fileName = params?.Key?.split?.('/')?.pop?.() ?? '';
-      //file ext from fileName
-      const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
-
-      if (!s3File?.Body) {
-        throw new Error('Empty response body from S3');
+    } catch (err: any) {
+      console.error('🚀 ~ router.get ~ err:', err);
+      // Only send error response if no response has been sent yet
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 500,
+          message: 'Internal server error',
+          error: err.message
+        });
       }
-
-      const bodyStream: Readable = s3File?.Body as Readable;
-
-      // Create a writable stream to save the downloaded zip file
-      const zipFileStream = createWriteStream(`${fileName}`);
-
-      // // Pipe the S3 object's body to the writable stream
-      bodyStream.pipe(zipFileStream);
-
-      // Create a writable stream to save the downloaded zip file
-      let zipBuffer: Buffer | null = null;
-
-      // Collect the data from the stream into a buffer
-      bodyStream.on('data', (chunk) => {
-        if (zipBuffer === null) {
-          zipBuffer = chunk;
-        } else {
-          zipBuffer = Buffer.concat([zipBuffer, chunk]);
-        }
-      });
-
-      //buffer fully stremd
-      bodyStream.on('end', async () => {
-        if (!zipBuffer) {
-          throw new Error('No data collected from the stream.');
-        }
-
-        const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
-        res.json(data);
-        res.send('file valited sucessfully.');
-        const filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
-        console.log("🚀 ~ bodyStream.on ~ filePath:", filePath)
-        createMapper(filePath, projectId, app_token, affix, config);
-      });
     }
   }
-  catch (err: any) {
-    console.error('🚀 ~ router.get ~ err:', err);
-  }
-});
+);
 
 router.get('/config', async function (req: Request, res: Response) {
   res.json(config);

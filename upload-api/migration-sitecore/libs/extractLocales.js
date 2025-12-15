@@ -38,10 +38,12 @@ const extractLocales = (dir) => {
             const language = jsonData?.item?.$?.language;
 
             if (language) {
-              uniqueLanguages?.add?.(language);
+              // 🔧 CRITICAL: Always normalize to lowercase for consistent mapping across all CMS types
+              const normalizedLanguage = (language || '').toLowerCase();
+              uniqueLanguages?.add?.(normalizedLanguage);
               processedFiles++;
               console.info(
-                `🔍 [DEBUG] extractLocales - Found locale: "${language}" in ${fullPath}`
+                `🔍 [DEBUG] extractLocales - Found locale: "${language}" -> normalized to "${normalizedLanguage}" in ${fullPath}`
               );
             }
           } catch (error) {

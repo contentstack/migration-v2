@@ -15,8 +15,10 @@ const extractLocale = (path) => {
     const uniqueLanguages = new Set();
 
     // Extract global language (if exists)
+    // 🔧 CRITICAL: Always normalize to lowercase for consistent mapping across all CMS types
     if (jsonData.rss?.channel?.language) {
-      uniqueLanguages.add(jsonData.rss.channel.language);
+      const normalizedLanguage = (jsonData.rss.channel.language || '').toLowerCase();
+      uniqueLanguages.add(normalizedLanguage);
     }
 
     // Extract entry-level languages (if available)
@@ -27,7 +29,9 @@ const extractLocale = (path) => {
           : [item['wp:postmeta']];
         postMeta.forEach((meta) => {
           if (meta['wp:meta_key']?.toLowerCase() === 'language' && meta['wp:meta_value']) {
-            uniqueLanguages.add(meta['wp:meta_value']);
+            // Normalize to lowercase: "en_US" -> "en_us", "fr_FR" -> "fr_fr"
+            const normalizedValue = (meta['wp:meta_value'] || '').toLowerCase();
+            uniqueLanguages.add(normalizedValue);
           }
         });
       }
