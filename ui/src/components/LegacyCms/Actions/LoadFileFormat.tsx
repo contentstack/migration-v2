@@ -4,7 +4,7 @@ import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
-import { isEmptyString } from '../../../utilities/functions';
+import { isEmptyString, getFileExtension } from '../../../utilities/functions';
 
 // Components
 import { RootState } from '../../../store';
@@ -24,16 +24,6 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
   const newMigrationDataRef = useRef(newMigrationData);
 
   const [fileIcon, setFileIcon]  = useState(newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat?.title);
-
-  /****  ALL METHODS HERE  ****/
-
-  const getFileExtension = (filePath: string): string => {
-    const normalizedPath = filePath?.replace(/\\/g, "/")?.replace(/\/$/, "");
-    const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
-    const ext = match ? match?.[1]?.toLowerCase() : "";
-    const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
-    return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
-  };
 
   /****  ALL USEEffects  HERE  ****/
   // Update ref whenever newMigrationData changes

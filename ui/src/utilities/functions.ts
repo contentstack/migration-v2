@@ -171,3 +171,11 @@ export const isValidPrefix = (data: string): boolean => {
 
   return regEx.test(data);
 };
+
+export const getFileExtension = (filePath: string): string => {
+  const normalizedPath = filePath?.replace(/\\/g, "/")?.replace(/\/$/, "");
+  const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
+  const ext = match ? match?.[1]?.toLowerCase() : "";
+  const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
+  return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
+};
