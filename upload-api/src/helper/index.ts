@@ -31,7 +31,7 @@ const saveZip = async (zip: any, name: string) => {
     const newMainFolderName = name;
     const keys = Object.keys(zip.files);
     let filePathSaved = undefined;
-    const sitecoreFolders = ['blob','installer', 'items', 'metadata', 'properties'];
+    const sitecoreFolders = ['blob', 'installer', 'items', 'metadata', 'properties'];
 
     for await (const filename of keys) {
       const file = zip.files[filename];
