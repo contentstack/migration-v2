@@ -293,7 +293,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   let updatedRows: FieldMapType[] = tableData;
   let updatedExstingField: ExistingFieldType = existingField;
   const updatedSelectedOptions: string[] = selectedOptions;
-  const [initialRowSelectedData, setInitialRowSelectedData] = useState();
+  const [initialRowSelectedData, setInitialRowSelectedData] = useState<FieldMapType[]>([]);
   const deletedExstingField: ExistingFieldType = existingField;
   const isNewStack = newMigrationData?.stackDetails?.isNewStack;
   const [isFieldDeleted, setIsFieldDeleted] = useState<boolean>(false);
@@ -2093,6 +2093,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           setFilteredContentTypes(filteredCT);
           setContentTypes(resetContentTypes);
           setCount(filteredCT?.length);
+          
+          const updatedRowIds: Record<string, boolean> = {};
+            updatedRows?.forEach((item: FieldMapType) => {
+              if (item?.id) {
+                updatedRowIds[item.id] = true;
+              }
+            });
+            setRowIds(updatedRowIds);
           
           Notification({
             notificationContent: { text: data?.message },
