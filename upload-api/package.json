@@ -55,6 +55,7 @@
     "migration-contentful": "file:migration-contentful",
     "migration-sitecore": "file:migration-sitecore",
     "migration-wordpress": "file:migration-wordpress",
+    "migration-coremedia": "file:migration-coremedia",
     "multer": "^2.0.1",
     "node-fetch": "^2.7.0",
     "nodemon": "^3.1.9",
