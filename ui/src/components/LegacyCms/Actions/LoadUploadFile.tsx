@@ -92,8 +92,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id
   );
   const [processing, setProcessing] = useState('');
-  //const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
-  //const [setIsFormatValid] = useState<boolean>(false);
   const [affix, setAffix] = useState<string>(newMigrationData?.legacy_cms?.affix);
   const [reValidate, setReValidate] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
 
@@ -169,9 +167,14 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         setValidationMessage('Rate limit exceeded. Please wait and try again.');
         setIsValidationAttempted(true);
         setProgressPercentage(100);
+      } else if (status === 401) {
+        setIsValidated(false);
+        setValidationMessage(`${data?.message} Please add correct file with ${newMigrationData?.legacy_cms?.selectedCms?.cms_id} supported format.`);
+        setIsValidationAttempted(true);
+        setProgressPercentage(100);
       } else {
         setIsValidated(false);
-        setValidationMessage('Validation failed.');
+        setValidationMessage(`${data?.message}`);
         setIsValidationAttempted(true);
         setProgressPercentage(100);
       }
@@ -251,7 +254,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
       if(!isFormatValid){
         console.warn('⚠️ LoadUploadFile: File format is not valid, setting isValidated to false');
-        setValidationMessage('');
+        setValidationMessage('⚠️ File format is not valid');
+        setIsValidated(false);
         dispatch(updateNewMigrationData({
           ...newMigrationData,
           legacy_cms: {
@@ -263,9 +267,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           }
         }))
 
-      } 
-
-    
+      }
     //}
   // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
   //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
@@ -297,17 +299,17 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       //setIsValidated(savedState?.isValidated);
       setValidationMessage(savedState?.validationMessage);
       //setIsDisabled(savedState?.isDisabled);
-      setCmsType(savedState.cmsType);
+      setCmsType(savedState?.cmsType);
       //setFileDetails(savedState.fileDetails);
-      setFileExtension(savedState.fileExtension);
-      setProgressPercentage(savedState.progressPercentage);
-      setShowProgress(savedState.showProgress);
-      setFileFormat(savedState.fileFormat);
-      setProcessing(savedState.processing);
+      setFileExtension(savedState?.fileExtension);
+      setProgressPercentage(savedState?.progressPercentage);
+      setShowProgress(savedState?.showProgress);
+      setFileFormat(savedState?.fileFormat);
+      setProcessing(savedState?.processing);
     }
     if (
       savedState &&
-      savedState.isLoading &&
+      savedState?.isLoading &&
       !newMigrationData?.legacy_cms?.uploadedFile?.isValidated
     ) {
       handleOnFileUploadCompletion();
@@ -414,7 +416,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                   variant="p2"
                   text={validationMessgae}
                 />
-                {!isValidated && validationMessgae === 'Validation failed.' && (
+                {!isValidated && validationMessgae === 'File validation failed.' && (
                   <p className={`${validationClassName} p2 doc-link`}>
                     Please check the requirements{' '}
                     <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">
