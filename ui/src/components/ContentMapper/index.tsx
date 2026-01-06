@@ -2094,6 +2094,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           setContentTypes(resetContentTypes);
           setCount(filteredCT?.length);
           
+          const updatedRowIds: Record<string, boolean> = {};
+            updatedRows?.forEach((item: FieldMapType) => {
+              if (item?.id) {
+                updatedRowIds[item.id] = true;
+              }
+            });
+          setRowIds(updatedRowIds);
+          
           Notification({
             notificationContent: { text: data?.message },
             notificationProps: {
