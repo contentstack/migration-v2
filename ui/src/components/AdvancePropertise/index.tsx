@@ -623,7 +623,7 @@ const AdvancePropertise = (props: SchemaProps) => {
               Other Options
             </FieldLabel>
             <div className="options-class">
-              {(props?.fieldtype === 'HTML Rich text Editor' ||
+              {(props?.fieldtype === 'HTML Rich Text Editor' ||
                 props?.fieldtype === 'JSON Rich Text Editor') && (
                 <>
                   <div className="ToggleWrap">
