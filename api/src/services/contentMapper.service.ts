@@ -277,7 +277,7 @@ const getFieldMapping = async (req: Request) => {
 
     const fieldMapping: any = fieldData?.map((field: any) => {
       if (field?.advanced?.initial) {
-        const { initial, ...restAdvanced } = field?.advanced;
+        const { initial, ...restAdvanced } = field?.advanced ?? {};
         return { ...field, advanced: restAdvanced };
       }
       return field;
@@ -775,7 +775,6 @@ const resetToInitialMapping = async (req: Request) => {
         );
         if (fieldIndex > -1) {
           FieldMapperModel.update((data: any) => {
-            
               data.field_mapper[fieldIndex] = {
                 ...field,
                 contentstackField: field?.otherCmsField,
@@ -784,7 +783,8 @@ const resetToInitialMapping = async (req: Request) => {
                 advanced: {
                   ...field?.advanced?.initial,
                   initial: field?.advanced?.initial,
-                }
+                },
+                isDeleted: false,
               }
           });
         }
