@@ -5,7 +5,7 @@
   "dependencies": {
     "@contentstack/json-rte-serializer": "^3.0.4",
     "@contentstack/venus-components": "^3.0.2",
-    "@reduxjs/toolkit": "^2.8.2",
+    "@reduxjs/toolkit": "^2.11.2",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
