@@ -57,7 +57,7 @@
     "migration-wordpress": "file:migration-wordpress",
     "multer": "^2.0.1",
     "node-fetch": "^2.7.0",
-    "nodemon": "^3.1.9",
+    "nodemon": "^3.1.11",
     "prettier": "^3.3.3",
     "uuid": "^9.0.1",
     "xml2js": "^0.6.2"
