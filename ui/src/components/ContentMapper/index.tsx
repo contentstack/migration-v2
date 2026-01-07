@@ -2012,9 +2012,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         contentstackFieldType: row?.backupFieldType,
         contentstackField: row?.otherCmsField,
         contentstackFieldUid: row?.backupFieldUid,
-        advanced: {
-          ...row?.advanced?.initial,
-        },
+        advanced: row?.advanced?.initial,
+        ...(row?.refrenceTo && { refrenceTo: row?.initialRefrenceTo }),
+       
       };
     });
     setTableData(updatedRows);
