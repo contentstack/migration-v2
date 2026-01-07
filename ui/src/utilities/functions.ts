@@ -1,6 +1,6 @@
 import { Notification } from '@contentstack/venus-components';
 import { WEBSITE_BASE_URL } from './constants';
-import { Image, ObjectType, MigrationStatesValues } from './constants.interface';
+import { Image, ObjectType, MigrationStatesValues, RouterLocation } from './constants.interface';
 
 export const Locales = {
   en: 'en-us',
@@ -178,4 +178,31 @@ export const getFileExtension = (filePath: string): string => {
   const ext = match ? match?.[1]?.toLowerCase() : "";
   const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
   return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
+};
+
+/**
+ * Extracts a safe path from React Router's location object.
+ * Uses React Router's internal validated state instead of window.location
+ * to avoid Open Redirect vulnerabilities (CWE-601).
+ *
+ * @param location - React Router's location object containing pathname, search, and hash
+ * @param includeSearchAndHash - If true, includes search params and hash in the path. Default: false
+ * @returns A safe path string, defaulting to '/' if no valid path is found
+ */
+export const getSafeRouterPath = (
+  location: RouterLocation,
+  includeSearchAndHash = false
+): string => {
+  // Extract pathname from React Router's validated location state
+  const pathname = location?.pathname || '/';
+
+  if (!includeSearchAndHash) {
+    return pathname;
+  }
+
+  // Build full path including search and hash when needed
+  const search = location?.search || '';
+  const hash = location?.hash || '';
+
+  return pathname + search + hash;
 };
