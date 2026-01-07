@@ -60,6 +60,9 @@ const putTestData = async (req: Request) => {
         if (item?.advanced) {
           item.advanced.initial = structuredClone(item?.advanced);
         }
+        if( item?.refrenceTo) {
+          item.initialRefrenceTo = item?.refrenceTo;
+        }
       });
     });
 
@@ -277,8 +280,7 @@ const getFieldMapping = async (req: Request) => {
 
     const fieldMapping: any = fieldData?.map((field: any) => {
       if (field?.advanced?.initial) {
-        const { initial, ...restAdvanced } = field?.advanced ?? {};
-        return { ...field, advanced: restAdvanced };
+        return { ...field, advanced: field?.advanced };
       }
       return field;
     });
@@ -784,6 +786,9 @@ const resetToInitialMapping = async (req: Request) => {
                   ...field?.advanced?.initial,
                   initial: field?.advanced?.initial,
                 },
+                ...(field?.referenceTo && {
+                  referenceTo: field?.initialRefrenceTo
+                }),
                 isDeleted: false,
               }
           });
