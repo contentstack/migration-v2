@@ -35,7 +35,6 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "migration-shared": "file:../shared",
     "@aws-sdk/client-s3": "^3.529.0",
     "@contentstack/cli-utilities": "^1.14.2",
     "@typescript-eslint/parser": "^8.0.0",
