@@ -60,7 +60,7 @@ const putTestData = async (req: Request) => {
         if (item?.advanced) {
           item.advanced.initial = structuredClone(item?.advanced);
         }
-        if( item?.refrenceTo) {
+        if(item?.refrenceTo) {
           item.initialRefrenceTo = item?.refrenceTo;
         }
       });
