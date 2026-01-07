@@ -964,23 +964,42 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
 };
 
-const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id }: any) => {
+const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id, type}: any) => {
   try {
     const ctUid = keyMapper?.[contentTypeUid];
-    const req: any = {
-      params: {
-        projectId,
-        contentTypeUid: ctUid
-      },
-      body: {
-        token_payload: {
-          region,
-          user_id
+
+    if(type === 'global_field') {
+      
+      const req: any = {
+        params: {
+          projectId,
+          globalFieldUid: ctUid
+        },
+        body: {
+          token_payload: {
+            region,
+            user_id
+          }
         }
       }
+      const contentTypeSchema = await contentMapperService.getSingleGlobalField(req);
+      return contentTypeSchema ?? null;
+    } else {
+      const req: any = {
+        params: {
+          projectId,
+          contentTypeUid: ctUid
+        },
+        body: {
+          token_payload: {
+            region,
+            user_id
+          }
+        }
+      }
+      const contentTypeSchema = await contentMapperService.getExistingContentTypes(req);
+      return contentTypeSchema?.selectedContentType ?? null;
     }
-    const contentTypeSchema = await contentMapperService.getExistingContentTypes(req);
-    return contentTypeSchema?.selectedContentType;
   } catch (err) {
     console.error("Error while getting the existing contentType from contenstack", err)
     return {};
@@ -1042,7 +1061,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   if (Object?.keys?.(keyMapper)?.length &&
     keyMapper?.[contentType?.contentstackUid] !== "" &&
     keyMapper?.[contentType?.contentstackUid] !== undefined) {
-    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id });
+    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id , type: contentType?.type});
   }
 
   // Safe: ensures we never pass undefined to the builder
