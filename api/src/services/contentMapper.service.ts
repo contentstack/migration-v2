@@ -107,11 +107,11 @@ const putTestData = async (req: Request) => {
               fieldIds.push(id);
     
               return {
+                ...safeField,
                 id,
                 projectId,
                 contentTypeId: type?.id,
                 isDeleted: false,
-                ...safeField,
               };
             })
         : [];
