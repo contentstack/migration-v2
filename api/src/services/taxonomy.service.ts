@@ -6,6 +6,7 @@ import fs from 'fs';
 import { HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../constants/index.js";
 import path from "path";
 import logger from "../utils/logger.js";
+import AuthenticationModel from "../models/authentication.js";
 
 const {
   TAXONOMIES_DIR_NAME,
@@ -142,21 +143,35 @@ const createTaxonomy = async ({stackId,region,userId,current_test_stack_id} :
     const srcFun = "createTaxonomy";
     const taxonomiesPath = path.join(MIGRATION_DATA_CONFIG.DATA, current_test_stack_id, TAXONOMIES_DIR_NAME);
     await fs.promises.mkdir(taxonomiesPath, { recursive: true });
+    let headers: any = {
+        api_key : stackId,
+    }
+    let authtoken = "";
+    await AuthenticationModel.read();
+    const userIndex = AuthenticationModel.chain
+      .get('users')
+      .findIndex({ region, user_id: userId })
+      .value();
+    
+    const userData = AuthenticationModel?.data?.users[userIndex];
+    if(userData?.access_token) {
+  
+      authtoken = `Bearer ${userData?.access_token}`;
+      headers.authorization = authtoken;
+    } else if(userData?.authtoken) {
+      authtoken = userData?.authtoken;
+      headers.authtoken = authtoken;
+    }else{
+      throw new Error("No authentication token found");
+    }
     try {
-        const authtoken = await getAuthtoken(
-            region,
-            userId
-        );
         const [err, res] = await safePromise(
             https({
                 method: "GET",
                 url: `${config.CS_API[
                 region as keyof typeof config.CS_API
                 ]!}/taxonomies?include_terms_count=true&include_count=true`,
-                headers: {
-                api_key : stackId,
-                authtoken,
-                },
+                headers: headers,
             })
         );
         if (err) {

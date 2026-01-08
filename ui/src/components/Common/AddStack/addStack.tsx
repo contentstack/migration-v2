@@ -24,7 +24,7 @@ import { getCMSDataFromFile } from '../../../cmsData/cmsSelector';
 import { CS_ENTRIES } from '../../../utilities/constants';
 
 // Interface
-import { AddStackCMSData, defaultAddStackCMSData, Errors, Stack } from './addStack.interface';
+import { AddStackCMSData, defaultAddStackCMSData, Stack } from './addStack.interface';
 
 // Styles
 import './addStack.scss';
@@ -59,12 +59,20 @@ const AddStack = (props: any): JSX.Element => {
     if (resp) {
       Notification({
         notificationContent: { text: 'Stack created successfully' },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
         type: 'success'
       });
       props?.closeModal();
     } else {
       Notification({
         notificationContent: { text: 'Stack creation failed. Please try again.' },
+        notificationProps: {
+          position: 'bottom-center',
+          hideProgressBar: true
+        },
         type: 'error'
       });
     }

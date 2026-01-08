@@ -15,7 +15,7 @@ import {
 import logger from "../utils/logger.js";
 import { config } from "../config/index.js";
 import https from "../utils/https.utils.js";
-import getAuthtoken from "../utils/auth.utils.js";
+import getAuthtoken, { getAccessToken } from "../utils/auth.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
 import fetchAllPaginatedData from "../utils/pagination.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
@@ -60,10 +60,25 @@ const putTestData = async (req: Request) => {
         if (item?.advanced) {
           item.advanced.initial = structuredClone(item?.advanced);
         }
+        if(item?.refrenceTo) {
+          item.initialRefrenceTo = item?.refrenceTo;
+        }
       });
     });
 
 
+
+    const sanitizeObject = (obj: Record<string, any>) => {
+      const blockedKeys = ['__proto__', 'prototype', 'constructor'];
+      const safeObj: Record<string, any> = {};
+    
+      for (const key in obj) {
+        if (!blockedKeys.includes(key)) {
+          safeObj[key] = obj[key];
+        }
+      }
+      return safeObj;
+    };    
 
     /*
     this code snippet iterates over an array of contentTypes and performs 
@@ -75,18 +90,38 @@ const putTestData = async (req: Request) => {
     Finally, it updates the fieldMapping property of each type in the contentTypes array with the fieldIds array.
     */
     await FieldMapperModel.read();
-    contentTypes.map((type: any, index: any) => {
+    contentTypes.forEach((type: any, index: number) => {
       const fieldIds: string[] = [];
-      const fields = Array?.isArray?.(type?.fieldMapping) ? type?.fieldMapping?.filter((field: any) => field)?.map?.((field: any) => {
-        const id = field?.id ? field?.id?.replace(/[{}]/g, "")?.toLowerCase() : uuidv4();
-        field.id = id;
-        fieldIds.push(id);
-        return { id, projectId, contentTypeId: type?.id, isDeleted: false, ...field };
-      }) : [];
-
+    
+      const fields = Array.isArray(type?.fieldMapping) ?
+        type.fieldMapping
+            .filter(Boolean)
+            .map((field: any) => {
+              const safeField = sanitizeObject(field);
+    
+              const id =
+                safeField?.id ?
+                  safeField.id.replace(/[{}]/g, '').toLowerCase()
+                  : uuidv4();
+    
+              fieldIds.push(id);
+    
+              return {
+                ...safeField,
+                id,
+                projectId,
+                contentTypeId: type?.id,
+                isDeleted: false,
+              };
+            })
+        : [];
+    
       FieldMapperModel.update((data: any) => {
-        data.field_mapper = [...(data?.field_mapper ?? []), ...(fields ?? [])];
-      });
+        data.field_mapper = [
+          ...(Array.isArray(data?.field_mapper) ? data.field_mapper : []),
+          ...fields,
+        ];
+      });  
       if (
         Array?.isArray?.(contentType) &&
         Number?.isInteger?.(index) &&
@@ -277,8 +312,7 @@ const getFieldMapping = async (req: Request) => {
 
     const fieldMapping: any = fieldData?.map((field: any) => {
       if (field?.advanced?.initial) {
-        const { initial, ...restAdvanced } = field?.advanced;
-        return { ...field, advanced: restAdvanced };
+        return { ...field, advanced: field?.advanced };
       }
       return field;
     });
@@ -332,26 +366,29 @@ const getExistingContentTypes = async (req: Request) => {
 
   const { token_payload } = req.body;
 
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id
-  );
 
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain
     .get("projects")
     .find({ id: projectId })
     .value();
-  const stackId = project?.destination_stack_id;
 
   const baseUrl = `${config.CS_API[
     token_payload?.region as keyof typeof config.CS_API
   ]!}/content_types`;
-
-  const headers = {
-    api_key: stackId,
-    authtoken,
-  };
+  let headers: any = {
+    api_key: project?.destination_stack_id,
+  }
+  if(token_payload?.is_sso) {
+    const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+    headers.authorization = `Bearer ${accessToken}`;
+  } else if (token_payload?.is_sso === false) {
+    const authtoken = await getAuthtoken(
+      token_payload?.region,
+      token_payload?.user_id
+    );
+    headers.authtoken = authtoken;
+  }
 
   try {
     // Step 1: Fetch the updated list of all content types
@@ -775,7 +812,6 @@ const resetToInitialMapping = async (req: Request) => {
         );
         if (fieldIndex > -1) {
           FieldMapperModel.update((data: any) => {
-            
               data.field_mapper[fieldIndex] = {
                 ...field,
                 contentstackField: field?.otherCmsField,
@@ -784,7 +820,11 @@ const resetToInitialMapping = async (req: Request) => {
                 advanced: {
                   ...field?.advanced?.initial,
                   initial: field?.advanced?.initial,
-                }
+                },
+                ...(field?.referenceTo && {
+                  referenceTo: field?.initialRefrenceTo
+                }),
+                isDeleted: false,
               }
           });
         }

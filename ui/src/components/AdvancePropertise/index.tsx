@@ -62,12 +62,12 @@ const AdvancePropertise = (props: SchemaProps) => {
     referenedItems: props?.value?.referenedItems || []
   });
 
-  const embedObjects = props?.value?.embedObjects?.map((item: string) => ({
+  const embedObjects = props?.value?.embedObjects?.map?.((item: string) => ({
     label: item,
     value: item
   }));
 
-  const referencedItems = props?.data?.refrenceTo?.map((item: string) => ({
+  const referencedItems = props?.data?.refrenceTo?.map?.((item: string) => ({
     label: item,
     value: item
   }));
@@ -623,7 +623,7 @@ const AdvancePropertise = (props: SchemaProps) => {
               Other Options
             </FieldLabel>
             <div className="options-class">
-              {(props?.fieldtype === 'HTML Rich text Editor' ||
+              {(props?.fieldtype === 'HTML Rich Text Editor' ||
                 props?.fieldtype === 'JSON Rich Text Editor') && (
                 <>
                   <div className="ToggleWrap">
@@ -690,7 +690,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   )}
                 </>
               )}
-              {props?.fieldtype !== 'Global' && props?.fieldtype !== 'Boolean' && (
+              {props?.fieldtype !== 'Global Field' && props?.fieldtype !== 'Boolean' && (
                 <div className="ToggleWrap">
                   <ToggleSwitch
                     label="Mandatory"

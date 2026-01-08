@@ -1,11 +1,11 @@
 import { getLogMessage, safePromise } from "../utils/index.js";
-import getAuthtoken from "../utils/auth.utils.js";
 import { config } from "../config/index.js";
 import https from "../utils/https.utils.js";
 import fs from 'fs';
 import { HTTP_TEXTS, MIGRATION_DATA_CONFIG} from "../constants/index.js";
 import path from "path";
 import logger from "../utils/logger.js";
+import AuthenticationModel from "../models/authentication.js";
 
 const {
   GLOBAL_FIELDS_FILE_NAME,
@@ -25,7 +25,26 @@ const createGlobalField = async ({
   current_test_stack_id?: string;
 }) => {
   const srcFun = "createGlobalField"; 
-  const authtoken = await getAuthtoken(region, user_id); 
+  let headers: any = {
+    api_key : stackId,
+  }
+  let authtoken = "";
+  await AuthenticationModel.read();
+  const userIndex = AuthenticationModel.chain
+    .get('users')
+    .findIndex({ region, user_id: user_id })
+    .value();
+  
+  const userData = AuthenticationModel?.data?.users[userIndex];
+  if(userData?.access_token) {
+    authtoken = `Bearer ${userData?.access_token}`;
+    headers.authorization = authtoken;
+  } else if(userData?.authtoken) {
+    authtoken = userData?.authtoken;
+    headers.authtoken = authtoken;
+  }else{
+    throw new Error("No authentication token found");
+  }
   try {
      const [err, res] = await safePromise(
                 https({
@@ -33,10 +52,7 @@ const createGlobalField = async ({
                     url: `${config.CS_API[
                     region as keyof typeof config.CS_API
                     ]!}/global_fields?include_global_field_schema=true`,
-                    headers: {
-                    api_key : stackId,
-                    authtoken,
-                    },
+                    headers: headers,
                 })
             );
     const globalSave = path.join(MIGRATION_DATA_CONFIG.DATA, current_test_stack_id ?? '', GLOBAL_FIELDS_DIR_NAME);
@@ -56,13 +72,19 @@ const createGlobalField = async ({
     }
     }
     
+    const safeFileGlobalFields = fileGlobalFields;
+    
+    const existingUids = new Set(
+      safeFileGlobalFields?.map?.((gf: { uid: string }) => gf?.uid)
+    );
+    
     const mergedGlobalFields = [
-    ...globalfields,
-    ...(fileGlobalFields?.filter(
-        (fileField: { uid: string }) =>
-        !globalfields?.some((gf: { uid: string }) => gf?.uid === fileField?.uid)
-    ) || [])
+        ...globalfields.filter(
+        (fileField: { uid: string }) => !existingUids?.has(fileField?.uid)
+      ),
+      ...safeFileGlobalFields,
     ];
+    
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     await fs.promises.writeFile(filePath, JSON.stringify(mergedGlobalFields, null, 2));
    

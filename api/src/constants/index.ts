@@ -8,6 +8,21 @@ export const DEVURLS: any = {
   AU: "au-developerhub-api.contentstack.com",
   GCP_EU: "gcp-eu-developerhub-api.contentstack.com",
 };
+export const CSAUTHHOST: any = {
+  NA:"https://app.contentstack.com/apps-api/token",
+  EU:"https://eu-app.contentstack.com/apps-api/token",
+  AZURE_NA:"https://azure-na-app.contentstack.com/apps-api/token",
+  AZURE_EU:"https://azure-eu-app.contentstack.com/apps-api/token",
+  GCP_NA:"https://gcp-na-app.contentstack.com/apps-api/token",
+}
+
+export const regionalApiHosts = {
+  NA: 'api.contentstack.io',
+  EU: 'eu-api.contentstack.com',
+  AZURE_NA: 'azure-na-api.contentstack.com',
+  AZURE_EU: 'azure-eu-api.contentstack.com',
+  GCP_NA: 'gcp-na-api.contentstack.com'
+};
 export const CMS = {
   CONTENTFUL: "contentful",
   SITECORE_V8: "sitecore v8",
