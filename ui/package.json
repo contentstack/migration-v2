@@ -17,6 +17,7 @@
     "chokidar": "^3.6.0",
     "final-form": "^4.20.10",
     "html-react-parser": "^4.2.9",
+    "js-yaml": "^4.1.1",
     "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -71,6 +72,9 @@
     ]
   },
   "overrides": {
-    "http-proxy-middleware": "latest"
+    "nth-check": ">=2.0.1",
+    "postcss": ">=8.4.31",
+    "serialize-javascript": ">=6.0.2",
+    "@babel/runtime": ">=7.26.10"
   }
 }
