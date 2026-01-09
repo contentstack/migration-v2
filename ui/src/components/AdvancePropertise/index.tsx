@@ -62,12 +62,12 @@ const AdvancePropertise = (props: SchemaProps) => {
     referenedItems: props?.value?.referenedItems || []
   });
 
-  const embedObjects = props?.value?.embedObjects?.map((item: string) => ({
+  const embedObjects = props?.value?.embedObjects?.map?.((item: string) => ({
     label: item,
     value: item
   }));
 
-  const referencedItems = props?.data?.refrenceTo?.map((item: string) => ({
+  const referencedItems = props?.data?.refrenceTo?.map?.((item: string) => ({
     label: item,
     value: item
   }));
@@ -86,6 +86,9 @@ const AdvancePropertise = (props: SchemaProps) => {
   const filterRef = useRef<HTMLDivElement | null>(null);
   const [options, setOptions] = useState(props?.value?.options || []);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     if (props?.data?.refrenceTo && Array.isArray(props?.data?.refrenceTo)) {
@@ -142,6 +145,16 @@ const AdvancePropertise = (props: SchemaProps) => {
       [field]: (event.target as HTMLInputElement)?.value
     }));
 
+    if(field === 'validationRegex') {
+      if(event.target.value?.trim()?.length > 0) {
+        setIsError(true);
+        setErrorMessage('Adding a regex could impact entry creation.');
+      }
+      else {
+        setIsError(false);
+        setErrorMessage('');
+      }
+    }
     const currentToggleStates = {
       ...toggleStates,
       [field]: (event.target as HTMLInputElement)?.value
@@ -490,6 +503,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                       handleOnChange('validationRegex', e, true))
                   }
                 />
+                  {isError && <p className="errorMessage">{errorMessage}</p>}
               </Field>
             </>
           )}
@@ -609,7 +623,7 @@ const AdvancePropertise = (props: SchemaProps) => {
               Other Options
             </FieldLabel>
             <div className="options-class">
-              {(props?.fieldtype === 'HTML Rich text Editor' ||
+              {(props?.fieldtype === 'HTML Rich Text Editor' ||
                 props?.fieldtype === 'JSON Rich Text Editor') && (
                 <>
                   <div className="ToggleWrap">
@@ -652,6 +666,10 @@ const AdvancePropertise = (props: SchemaProps) => {
                         props?.updateFieldSettings(
                           props?.rowId,
                           {
+                            ...props?.value,
+                            mandatory: toggleStates?.mandatory, 
+                            nonLocalizable: toggleStates?.nonLocalizable, 
+                            referenedItems: toggleStates?.referenedItems,
                             validationRegex: toggleStates?.validationRegex ?? '',
                             embedObjects: embedObject,
                             embedObject: !shouldToggleOff
@@ -672,7 +690,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   )}
                 </>
               )}
-              {props?.fieldtype !== 'Global' && props?.fieldtype !== 'Boolean' && (
+              {props?.fieldtype !== 'Global Field' && props?.fieldtype !== 'Boolean' && (
                 <div className="ToggleWrap">
                   <ToggleSwitch
                     label="Mandatory"

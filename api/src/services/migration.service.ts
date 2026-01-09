@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+
 import { Request } from 'express';
 import path from 'path';
 import ProjectModelLowdb from '../models/project-lowdb.js';
@@ -13,7 +15,7 @@ import {
   LOCALE_MAPPER,
   STEPPER_STEPS,
   CMS,
-  GET_AUDIT_DATA
+  GET_AUDIT_DATA,
 } from '../constants/index.js';
 import {
   BadRequestError,
@@ -34,7 +36,7 @@ import fsPromises from 'fs/promises';
 import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
-import { getSafePath } from '../utils/sanitize-path.utils.js';
+import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
 
 /**
@@ -123,8 +125,9 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     return {
       data: {
         data: res.data,
-        url: `${config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
-          }/stack/${res.data.stack.api_key}/dashboard`,
+        url: `${
+          config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
+        }/stack/${res.data.stack.api_key}/dashboard`,
       },
       status: res.status,
     };
@@ -266,45 +269,88 @@ const startTestMigration = async (req: Request): Promise<any> => {
       projectLogPath: string
     ) => {
       try {
-        // Path to source logs
-        const importLogsPath = path.join(
-          process.cwd(),
-          'migration-data',
-          stackUid,
+        // Sanitize stackUid using dedicated sanitization function to prevent path traversal
+        const sanitizedStackUid = sanitizeStackId(stackUid);
+
+        // Validate the sanitized stackUid - sanitizeStackId returns null for invalid inputs
+        if (sanitizedStackUid === null) {
+          console.error('Invalid stack UID provided');
+          return;
+        }
+
+        // Define base directory for validation
+        const baseDir = path.join(process.cwd(), 'migration-data');
+        const resolvedBaseDir = path.resolve(baseDir);
+
+        // Construct safe paths using only the validated sanitized stackUid
+        const errorLogPath = path.join(
+          resolvedBaseDir,
+          sanitizedStackUid,
           'logs',
-          'import'
+          'import',
+          'error.log'
+        );
+        const successLogPath = path.join(
+          resolvedBaseDir,
+          sanitizedStackUid,
+          'logs',
+          'import',
+          'success.log'
         );
 
-        // Read error and success logs
-        const errorLogPath = path.join(importLogsPath, 'error.log');
-        const successLogPath = path.join(importLogsPath, 'success.log');
+        // Final validation to ensure paths are within the expected base directory
+        if (
+          !path.resolve(errorLogPath).startsWith(resolvedBaseDir + path.sep) ||
+          !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
+        ) {
+          console.error(
+            'Invalid path detected, potential path traversal attempt'
+          );
+          return;
+        }
 
         let combinedLogs = '';
 
-        // Read and combine error logs
-        if (
-          await fsPromises
-            .access(errorLogPath)
-            .then(() => true)
-            .catch(() => false)
-        ) {
-          const errorLogs = await fsPromises.readFile(errorLogPath, 'utf8');
-          combinedLogs += errorLogs + '\n';
+        // Read and combine error logs - use realpath to canonicalize and validate path
+        try {
+          const canonicalErrorPath = await fsPromises.realpath(errorLogPath);
+          // Verify canonical path is still within base directory
+          if (canonicalErrorPath.startsWith(resolvedBaseDir + path.sep)) {
+            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
+            // path containment check, and realpath canonicalization before reading
+            const errorLogs = await fsPromises.readFile(
+              canonicalErrorPath,
+              'utf8'
+            );
+            combinedLogs += errorLogs + '\n';
+          }
+        } catch {
+          // File doesn't exist or access denied - skip
         }
 
-        // Read and combine success logs
-        if (
-          await fsPromises
-            .access(successLogPath)
-            .then(() => true)
-            .catch(() => false)
-        ) {
-          const successLogs = await fsPromises.readFile(successLogPath, 'utf8');
-          combinedLogs += successLogs;
+        // Read and combine success logs - use realpath to canonicalize and validate path
+        try {
+          const canonicalSuccessPath = await fsPromises.realpath(
+            successLogPath
+          );
+          // Verify canonical path is still within base directory
+          if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
+            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
+            // path containment check, and realpath canonicalization before reading
+            const successLogs = await fsPromises.readFile(
+              canonicalSuccessPath,
+              'utf8'
+            );
+            combinedLogs += successLogs;
+          }
+        } catch {
+          // File doesn't exist or access denied - skip
         }
 
         // Write combined logs to test stack log file
-        await fsPromises.appendFile(projectLogPath, combinedLogs);
+        if (combinedLogs) {
+          await fsPromises.appendFile(projectLogPath, combinedLogs);
+        }
       } catch (error) {
         console.error('Error copying logs:', error);
       }
@@ -354,7 +400,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             destinationStackId: project?.current_test_stack_id,
             projectId,
             keyMapper: project?.mapperKeys,
-            project
+            project,
           });
           await siteCoreService?.createLocale(
             req,
@@ -364,7 +410,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
           );
           await siteCoreService?.createEnvironment(
             project?.current_test_stack_id
-          )
+          );
           await siteCoreService?.createVersionFile(
             project?.current_test_stack_id
           );
@@ -373,20 +419,102 @@ const startTestMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
-          await wordpressService?.getAllAssets(file_path, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.createAssetFolderFile(file_path, project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllreference(file_path, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.extractChunks(file_path, packagePath, project?.current_test_stack_id, projectId)
-          await wordpressService?.getAllAuthors(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.createLocale(
+            req,
+            project?.current_test_stack_id,
+            projectId,
+            project
+          );
+          await wordpressService?.getAllAssets(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.createAssetFolderFile(
+            file_path,
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.getAllreference(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.extractChunks(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.getAllAuthors(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
           //await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id, contentTypes)
-          await wordpressService?.getAllTerms(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractPosts(packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractPages(packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractGlobalFields(project?.current_test_stack_id, projectId)
-          await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
+          await wordpressService?.getAllTerms(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.getAllTags(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.getAllCategories(
+            file_path,
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractPosts(
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractPages(
+            packagePath,
+            project?.current_test_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractGlobalFields(
+            project?.current_test_stack_id,
+            projectId
+          );
+          await wordpressService?.createVersionFile(
+            project?.current_test_stack_id,
+            projectId
+          );
         }
         break;
       }
@@ -436,7 +564,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
       }
 
       case CMS.AEM: {
-        await aemService.createAssets({ projectId, packagePath, destinationStackId: project?.current_test_stack_id });
+        await aemService.createAssets({
+          projectId,
+          packagePath,
+          destinationStackId: project?.current_test_stack_id,
+        });
         await aemService.createEntry({
           packagePath,
           contentTypes,
@@ -444,17 +576,15 @@ const startTestMigration = async (req: Request): Promise<any> => {
           destinationStackId: project?.current_test_stack_id,
           projectId,
           keyMapper: project?.mapperKeys,
-          project
-        })
+          project,
+        });
         await aemService?.createLocale(
           req,
           project?.current_test_stack_id,
           projectId,
           project
         );
-        await aemService?.createVersionFile(
-          project?.current_test_stack_id
-        );
+        await aemService?.createVersionFile(project?.current_test_stack_id);
         break;
       }
 
@@ -530,45 +660,88 @@ const startMigration = async (req: Request): Promise<any> => {
       projectLogPath: string
     ) => {
       try {
-        // Path to source logs
-        const importLogsPath = path.join(
-          process.cwd(),
-          'migration-data',
-          stackUid,
+        // Sanitize stackUid using dedicated sanitization function to prevent path traversal
+        const sanitizedStackUid = sanitizeStackId(stackUid);
+
+        // Validate the sanitized stackUid - sanitizeStackId returns null for invalid inputs
+        if (sanitizedStackUid === null) {
+          console.error('Invalid stack UID provided');
+          return;
+        }
+
+        // Define base directory for validation
+        const baseDir = path.join(process.cwd(), 'migration-data');
+        const resolvedBaseDir = path.resolve(baseDir);
+
+        // Construct safe paths using only the validated sanitized stackUid
+        const errorLogPath = path.join(
+          resolvedBaseDir,
+          sanitizedStackUid,
           'logs',
-          'import'
+          'import',
+          'error.log'
+        );
+        const successLogPath = path.join(
+          resolvedBaseDir,
+          sanitizedStackUid,
+          'logs',
+          'import',
+          'success.log'
         );
 
-        // Read error and success logs
-        const errorLogPath = path.join(importLogsPath, 'error.log');
-        const successLogPath = path.join(importLogsPath, 'success.log');
+        // Final validation to ensure paths are within the expected base directory
+        if (
+          !path.resolve(errorLogPath).startsWith(resolvedBaseDir + path.sep) ||
+          !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
+        ) {
+          console.error(
+            'Invalid path detected, potential path traversal attempt'
+          );
+          return;
+        }
 
         let combinedLogs = '';
 
-        // Read and combine error logs
-        if (
-          await fsPromises
-            .access(errorLogPath)
-            .then(() => true)
-            .catch(() => false)
-        ) {
-          const errorLogs = await fsPromises.readFile(errorLogPath, 'utf8');
-          combinedLogs += errorLogs + '\n';
+        // Read and combine error logs - use realpath to canonicalize and validate path
+        try {
+          const canonicalErrorPath = await fsPromises.realpath(errorLogPath);
+          // Verify canonical path is still within base directory
+          if (canonicalErrorPath.startsWith(resolvedBaseDir + path.sep)) {
+            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
+            // path containment check, and realpath canonicalization before reading
+            const errorLogs = await fsPromises.readFile(
+              canonicalErrorPath,
+              'utf8'
+            );
+            combinedLogs += errorLogs + '\n';
+          }
+        } catch {
+          // File doesn't exist or access denied - skip
         }
 
-        // Read and combine success logs
-        if (
-          await fsPromises
-            .access(successLogPath)
-            .then(() => true)
-            .catch(() => false)
-        ) {
-          const successLogs = await fsPromises.readFile(successLogPath, 'utf8');
-          combinedLogs += successLogs;
+        // Read and combine success logs - use realpath to canonicalize and validate path
+        try {
+          const canonicalSuccessPath = await fsPromises.realpath(
+            successLogPath
+          );
+          // Verify canonical path is still within base directory
+          if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
+            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
+            // path containment check, and realpath canonicalization before reading
+            const successLogs = await fsPromises.readFile(
+              canonicalSuccessPath,
+              'utf8'
+            );
+            combinedLogs += successLogs;
+          }
+        } catch {
+          // File doesn't exist or access denied - skip
         }
 
         // Write combined logs to stack log file
-        await fsPromises.appendFile(projectLogPath, combinedLogs);
+        if (combinedLogs) {
+          await fsPromises.appendFile(projectLogPath, combinedLogs);
+        }
       } catch (error) {
         console.error('Error copying logs:', error);
       }
@@ -618,7 +791,7 @@ const startMigration = async (req: Request): Promise<any> => {
             destinationStackId: project?.destination_stack_id,
             projectId,
             keyMapper: project?.mapperKeys,
-            project
+            project,
           });
           await siteCoreService?.createLocale(
             req,
@@ -634,20 +807,102 @@ const startMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
-          await wordpressService?.getAllAssets(file_path, packagePath, project?.destination_stack_id, projectId,)
-          await wordpressService?.createAssetFolderFile(file_path, project?.destination_stack_id, projectId)
-          await wordpressService?.getAllreference(file_path, packagePath, project?.destination_stack_id, projectId)
-          await wordpressService?.extractChunks(file_path, packagePath, project?.destination_stack_id, projectId)
-          await wordpressService?.getAllAuthors(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
+          await wordpressService?.createLocale(
+            req,
+            project?.current_test_stack_id,
+            projectId,
+            project
+          );
+          await wordpressService?.getAllAssets(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.createAssetFolderFile(
+            file_path,
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.getAllreference(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.extractChunks(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.getAllAuthors(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
-          await wordpressService?.getAllTerms(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.getAllTags(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.getAllCategories(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractPosts(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractPages(packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project)
-          await wordpressService?.extractGlobalFields(project?.destination_stack_id, projectId)
-          await wordpressService?.createVersionFile(project?.destination_stack_id, projectId);
+          await wordpressService?.getAllTerms(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.getAllTags(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.getAllCategories(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractPosts(
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractPages(
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.extractGlobalFields(
+            project?.destination_stack_id,
+            projectId
+          );
+          await wordpressService?.createVersionFile(
+            project?.destination_stack_id,
+            projectId
+          );
         }
         break;
       }
@@ -695,7 +950,11 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.AEM: {
-        await aemService.createAssets({ projectId, packagePath, destinationStackId: project?.current_test_stack_id });
+        await aemService.createAssets({
+          projectId,
+          packagePath,
+          destinationStackId: project?.destination_stack_id,
+        });
         await aemService.createEntry({
           packagePath,
           contentTypes,
@@ -703,20 +962,18 @@ const startMigration = async (req: Request): Promise<any> => {
           destinationStackId: project?.destination_stack_id,
           projectId,
           keyMapper: project?.mapperKeys,
-          project
-        })
+          project,
+        });
         await aemService?.createLocale(
           req,
           project?.destination_stack_id,
           projectId,
           project
         );
-        await aemService?.createVersionFile(
-          project?.destination_stack_id
-        );
+        await aemService?.createVersionFile(project?.destination_stack_id);
         break;
       }
-      
+
       default:
         break;
     }
@@ -739,24 +996,36 @@ const getAuditData = async (req: Request): Promise<any> => {
   const stopIndex = startIndex + limit;
   const searchText = req?.params?.searchText;
   const filter = req?.params?.filter;
-  const srcFunc = "getAuditData";
-  if (projectId?.includes('..') || stackId?.includes('..') || moduleName?.includes('..')) {
-    throw new BadRequestError("Invalid projectId, stackId, or moduleName");
+  const srcFunc = 'getAuditData';
+  if (
+    projectId?.includes('..') ||
+    stackId?.includes('..') ||
+    moduleName?.includes('..')
+  ) {
+    throw new BadRequestError('Invalid projectId, stackId, or moduleName');
   }
 
   try {
-    const mainPath = process?.cwd()
+    const mainPath = process?.cwd();
     const logsDir = path.join(mainPath, GET_AUDIT_DATA?.MIGRATION_DATA_DIR);
 
     const stackFolders = fs.readdirSync(logsDir);
 
-    const stackFolder = stackFolders?.find(folder => folder?.startsWith?.(stackId));
+    const stackFolder = stackFolders?.find((folder) =>
+      folder?.startsWith?.(stackId)
+    );
     if (!stackFolder) {
-      throw new BadRequestError("Migration data not found for this stack");
+      throw new BadRequestError('Migration data not found for this stack');
     }
-    const auditLogPath = path?.resolve(logsDir, stackFolder, GET_AUDIT_DATA?.LOGS_DIR, GET_AUDIT_DATA?.AUDIT_DIR, GET_AUDIT_DATA?.AUDIT_REPORT);
+    const auditLogPath = path?.resolve(
+      logsDir,
+      stackFolder,
+      GET_AUDIT_DATA?.LOGS_DIR,
+      GET_AUDIT_DATA?.AUDIT_DIR,
+      GET_AUDIT_DATA?.AUDIT_REPORT
+    );
     if (!fs.existsSync(auditLogPath)) {
-      throw new BadRequestError("Audit log path not found");
+      throw new BadRequestError('Audit log path not found');
     }
     const filePath = path?.resolve(auditLogPath, `${moduleName}.json`);
     let fileData;
@@ -770,7 +1039,7 @@ const getAuditData = async (req: Request): Promise<any> => {
         if (Array.isArray(parsed)) {
           combinedData = combinedData.concat(parsed);
         } else if (parsed && typeof parsed === 'object') {
-          Object.values(parsed).forEach(val => {
+          Object.values(parsed).forEach((val) => {
             if (Array.isArray(val)) {
               combinedData = combinedData.concat(val);
             } else if (val && typeof val === 'object') {
@@ -786,14 +1055,20 @@ const getAuditData = async (req: Request): Promise<any> => {
           throw new BadRequestError('Access to this file is not allowed.');
         }
 
-        const fileContent = await fsPromises?.readFile(safeEntriesSelectFieldPath, 'utf8');
+        const fileContent = await fsPromises?.readFile(
+          safeEntriesSelectFieldPath,
+          'utf8'
+        );
         try {
           if (typeof fileContent === 'string') {
             const parsed = JSON?.parse(fileContent);
             addToCombined(parsed);
           }
         } catch (error) {
-          logger.error(`Error parsing JSON from file ${entriesSelectFieldPath}:`, error);
+          logger.error(
+            `Error parsing JSON from file ${entriesSelectFieldPath}:`,
+            error
+          );
           throw new BadRequestError('Invalid JSON format in audit file');
         }
       }
@@ -827,7 +1102,9 @@ const getAuditData = async (req: Request): Promise<any> => {
           safeFilePath.includes('..') ||
           !safeFilePath.startsWith(auditLogPath)
         ) {
-          throw new BadRequestError('Path traversal detected or access to this file is not allowed.');
+          throw new BadRequestError(
+            'Path traversal detected or access to this file is not allowed.'
+          );
         }
         const fileContent = await fsPromises?.readFile(safeFilePath, 'utf8');
         try {
@@ -842,27 +1119,32 @@ const getAuditData = async (req: Request): Promise<any> => {
     }
 
     if (!fileData) {
-      throw new BadRequestError(`No audit data found for module: ${moduleName}`);
+      throw new BadRequestError(
+        `No audit data found for module: ${moduleName}`
+      );
     }
     let transformedData = transformAndFlattenData(fileData);
     if (moduleName === 'Entries_Select_feild') {
       if (filter != GET_AUDIT_DATA?.FILTERALL) {
-        const filters = filter?.split("-");
+        const filters = filter?.split('-');
         transformedData = transformedData?.filter((log) => {
           return filters?.some((filter) => {
             return (
-              log?.display_type?.toLowerCase()?.includes(filter?.toLowerCase()) ||
+              log?.display_type
+                ?.toLowerCase()
+                ?.includes(filter?.toLowerCase()) ||
               log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase())
             );
           });
         });
       }
-      if (searchText && searchText !== null && searchText !== "null") {
+      if (searchText && searchText !== null && searchText !== 'null') {
         transformedData = transformedData?.filter((item) => {
-          return Object?.values(item)?.some(value =>
-            value &&
-            typeof value === 'string' &&
-            value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
+          return Object?.values(item)?.some(
+            (value) =>
+              value &&
+              typeof value === 'string' &&
+              value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
           );
         });
       }
@@ -870,25 +1152,24 @@ const getAuditData = async (req: Request): Promise<any> => {
       return {
         data: finalData,
         totalCount: transformedData?.length,
-        status: HTTP_CODES?.OK
+        status: HTTP_CODES?.OK,
       };
     }
     if (filter != GET_AUDIT_DATA?.FILTERALL) {
-      const filters = filter?.split("-");
+      const filters = filter?.split('-');
       transformedData = transformedData?.filter((log) => {
         return filters?.some((filter) => {
-          return (
-            log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase())
-          );
+          return log?.data_type?.toLowerCase()?.includes(filter?.toLowerCase());
         });
       });
     }
-    if (searchText && searchText !== null && searchText !== "null") {
+    if (searchText && searchText !== null && searchText !== 'null') {
       transformedData = transformedData?.filter((item: any) => {
-        return Object?.values(item)?.some(value =>
-          value &&
-          typeof value === 'string' &&
-          value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
+        return Object?.values(item)?.some(
+          (value) =>
+            value &&
+            typeof value === 'string' &&
+            value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
         );
       });
     }
@@ -897,9 +1178,8 @@ const getAuditData = async (req: Request): Promise<any> => {
     return {
       data: paginatedData,
       totalCount: transformedData?.length,
-      status: HTTP_CODES?.OK
+      status: HTTP_CODES?.OK,
     };
-
   } catch (error: any) {
     logger.error(
       getLogMessage(
@@ -918,14 +1198,16 @@ const getAuditData = async (req: Request): Promise<any> => {
  * Transforms and flattens nested data structure into an array of items
  * with sequential tuid values
  */
-const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: number }> => {
+const transformAndFlattenData = (
+  data: any
+): Array<{ [key: string]: any; id: number }> => {
   try {
     const flattenedItems: Array<{ [key: string]: any }> = [];
     if (Array.isArray(data)) {
       data?.forEach((item, index) => {
         flattenedItems?.push({
-          ...item ?? {},
-          uid: item?.uid || `item-${index}`
+          ...(item ?? {}),
+          uid: item?.uid || `item-${index}`,
         });
       });
     } else if (typeof data === 'object' && data !== null) {
@@ -933,24 +1215,24 @@ const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: num
         if (Array.isArray(value)) {
           value?.forEach((item, index) => {
             flattenedItems?.push({
-              ...item ?? {},
+              ...(item ?? {}),
               parentKey: key,
-              uid: item?.uid || `${key}-${index}`
+              uid: item?.uid || `${key}-${index}`,
             });
           });
         } else if (typeof value === 'object' && value !== null) {
           flattenedItems?.push({
             ...value,
             key,
-            uid: (value as any)?.uid || key
+            uid: (value as any)?.uid || key,
           });
         }
       });
     }
 
     return flattenedItems?.map((item, index) => ({
-      ...item ?? {},
-      id: index + 1
+      ...(item ?? {}),
+      id: index + 1,
     }));
   } catch (error) {
     console.error('Error transforming data:', error);
@@ -958,41 +1240,47 @@ const transformAndFlattenData = (data: any): Array<{ [key: string]: any, id: num
   }
 };
 const getLogs = async (req: Request): Promise<any> => {
-  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId) : "";
-  const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : "";
+  const projectId = req?.params?.projectId
+    ? path?.basename(req.params.projectId)
+    : '';
+  const stackId = req?.params?.stackId
+    ? path?.basename(req.params.stackId)
+    : '';
   const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
-  const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;
+  const startIndex = req?.params?.startIndex
+    ? parseInt(req.params.startIndex)
+    : 0;
   const stopIndex = startIndex + limit;
   const searchText = req?.params?.searchText ?? null;
-  const filter = req?.params?.filter ?? "all";
-  const srcFunc = "getLogs";
+  const filter = req?.params?.filter ?? 'all';
+  const srcFunc = 'getLogs';
   if (
     !projectId ||
     !stackId ||
-    projectId?.includes("..") ||
-    stackId?.includes("..")
+    projectId?.includes('..') ||
+    stackId?.includes('..')
   ) {
-    throw new BadRequestError("Invalid projectId or stackId");
+    throw new BadRequestError('Invalid projectId or stackId');
   }
   try {
     const mainPath = process?.cwd();
     if (!mainPath) {
-      throw new BadRequestError("Invalid application path");
+      throw new BadRequestError('Invalid application path');
     }
-    const logsDir = path?.join(mainPath, "logs");
+    const logsDir = path?.join(mainPath, 'logs');
     const loggerPath = path?.join(logsDir, projectId, `${stackId}.log`);
     const absolutePath = path?.resolve(loggerPath);
     if (!absolutePath?.startsWith(logsDir)) {
-      throw new BadRequestError("Access to this file is not allowed.");
+      throw new BadRequestError('Access to this file is not allowed.');
     }
     if (fs.existsSync(absolutePath)) {
       let index = 0;
-      const logs = await fs?.promises?.readFile?.(absolutePath, "utf8");
+      const logs = await fs?.promises?.readFile?.(absolutePath, 'utf8');
       let logEntries = logs
-        ?.split("\n")
+        ?.split('\n')
         ?.map((line) => {
           try {
-            const parsedLine = JSON?.parse(line)
+            const parsedLine = JSON?.parse(line);
             parsedLine && (parsedLine['id'] = index);
 
             ++index;
@@ -1003,23 +1291,34 @@ const getLogs = async (req: Request): Promise<any> => {
         })
         ?.filter?.((entry) => entry !== null);
       if (!logEntries?.length) {
-        return { logs: [], total: 0, filterOptions: [], status: HTTP_CODES?.OK };
+        return {
+          logs: [],
+          total: 0,
+          filterOptions: [],
+          status: HTTP_CODES?.OK,
+        };
       }
-      const filterOptions = Array?.from(new Set(logEntries?.map((log) => log?.level)));
-      const auditStartIndex = logEntries?.findIndex?.(log => log?.message?.includes("Starting audit process"));
-      const auditEndIndex = logEntries?.findIndex?.(log => log?.message?.includes("Audit process completed"));
+      const filterOptions = Array?.from(
+        new Set(logEntries?.map((log) => log?.level))
+      );
+      logEntries?.findIndex?.((log) =>
+        log?.message?.includes('Starting audit process')
+      );
+      logEntries?.findIndex?.((log) =>
+        log?.message?.includes('Audit process completed')
+      );
       logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
-      if (filter !== "all") {
-        const filters = filter?.split("-") ?? [];
+      if (filter !== 'all') {
+        const filters = filter?.split('-') ?? [];
         logEntries = logEntries?.filter((log) => {
           return filters?.some((filter) => {
             return log?.level
               ?.toLowerCase()
-              ?.includes?.(filter?.toLowerCase() ?? "");
+              ?.includes?.(filter?.toLowerCase() ?? '');
           });
         });
       }
-      if (searchText && searchText !== "null") {
+      if (searchText && searchText !== 'null') {
         logEntries = logEntries?.filter?.((log) =>
           matchesSearchText(log, searchText)
         );
@@ -1029,7 +1328,7 @@ const getLogs = async (req: Request): Promise<any> => {
         logs: paginatedLogs,
         total: logEntries?.length ?? 0,
         filterOptions: filterOptions,
-        status: HTTP_CODES?.OK
+        status: HTTP_CODES?.OK,
       };
     } else {
       logger.error(getLogMessage(srcFunc, HTTP_TEXTS?.LOGS_NOT_FOUND));
@@ -1144,5 +1443,5 @@ export const migrationService = {
   getLogs,
   createSourceLocales,
   updateLocaleMapper,
-  getAuditData
+  getAuditData,
 };

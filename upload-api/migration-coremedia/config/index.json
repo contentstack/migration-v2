@@ -1,0 +1,56 @@
+{
+  "data": "./MigrationData",
+  "backup": "./backupMigrationData",
+  "filename": "",
+  "json_file": "",
+  "masterLocale": "",
+  "json_filename": "data.json",
+  "entryfolder": "entries",
+  "path":"",
+  "modules": {
+      "contentTypes": {
+          "dirName": "content_types",
+          "fileName": "contenttype.json",
+          "masterfile": "schema.json"
+      },
+      "globalFields": {
+          "dirName": "global_fields",
+          "fileName": "globalfields.json"
+      },
+      "authors": {
+          "dirName": "authors"
+      },
+      "categories": {
+          "dirName": "categories"
+      },
+      "tag": {
+          "dirName": "tag"
+      },
+      "terms": {
+          "dirName": "terms"
+      },
+      "locale": {
+          "dirName": "locales",
+          "fileName": "locales.json",
+          "masterfile": "master-locale.json"
+      },
+      "references": {
+          "dirName": "reference",
+          "fileName": "reference.json"
+      },
+      "asset": {
+          "dirName": "assets",
+          "fileName": "assets.json",
+          "featuredfileName": "_featured.json",
+          "masterfile": "url_master.json"
+      },
+      "posts": {
+          "dirName": "posts"
+      },
+      "entries": {
+          "dirName": "entries",
+          "fileName": "en-us.json",
+          "masterfile": "entries.json"
+      }
+  }
+}

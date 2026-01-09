@@ -60,10 +60,25 @@ const putTestData = async (req: Request) => {
         if (item?.advanced) {
           item.advanced.initial = structuredClone(item?.advanced);
         }
+        if(item?.refrenceTo) {
+          item.initialRefrenceTo = item?.refrenceTo;
+        }
       });
     });
 
 
+
+    const sanitizeObject = (obj: Record<string, any>) => {
+      const blockedKeys = ['__proto__', 'prototype', 'constructor'];
+      const safeObj: Record<string, any> = {};
+    
+      for (const key in obj) {
+        if (!blockedKeys.includes(key)) {
+          safeObj[key] = obj[key];
+        }
+      }
+      return safeObj;
+    };    
 
     /*
     this code snippet iterates over an array of contentTypes and performs 
@@ -75,18 +90,38 @@ const putTestData = async (req: Request) => {
     Finally, it updates the fieldMapping property of each type in the contentTypes array with the fieldIds array.
     */
     await FieldMapperModel.read();
-    contentTypes.map((type: any, index: any) => {
+    contentTypes.forEach((type: any, index: number) => {
       const fieldIds: string[] = [];
-      const fields = Array?.isArray?.(type?.fieldMapping) ? type?.fieldMapping?.filter((field: any) => field)?.map?.((field: any) => {
-        const id = field?.id ? field?.id?.replace(/[{}]/g, "")?.toLowerCase() : uuidv4();
-        field.id = id;
-        fieldIds.push(id);
-        return { id, projectId, contentTypeId: type?.id, isDeleted: false, ...field };
-      }) : [];
-
+    
+      const fields = Array.isArray(type?.fieldMapping) ?
+        type.fieldMapping
+            .filter(Boolean)
+            .map((field: any) => {
+              const safeField = sanitizeObject(field);
+    
+              const id =
+                safeField?.id ?
+                  safeField.id.replace(/[{}]/g, '').toLowerCase()
+                  : uuidv4();
+    
+              fieldIds.push(id);
+    
+              return {
+                ...safeField,
+                id,
+                projectId,
+                contentTypeId: type?.id,
+                isDeleted: false,
+              };
+            })
+        : [];
+    
       FieldMapperModel.update((data: any) => {
-        data.field_mapper = [...(data?.field_mapper ?? []), ...(fields ?? [])];
-      });
+        data.field_mapper = [
+          ...(Array.isArray(data?.field_mapper) ? data.field_mapper : []),
+          ...fields,
+        ];
+      });  
       if (
         Array?.isArray?.(contentType) &&
         Number?.isInteger?.(index) &&
@@ -277,8 +312,7 @@ const getFieldMapping = async (req: Request) => {
 
     const fieldMapping: any = fieldData?.map((field: any) => {
       if (field?.advanced?.initial) {
-        const { initial, ...restAdvanced } = field?.advanced;
-        return { ...field, advanced: restAdvanced };
+        return { ...field, advanced: field?.advanced };
       }
       return field;
     });
@@ -751,7 +785,7 @@ const resetToInitialMapping = async (req: Request) => {
   const fieldMappingData = contentTypeData.fieldMapping.map((itemId: any) => {
     const fieldData = FieldMapperModel.chain
       .get("field_mapper")
-      .find({ id: itemId, projectId: projectId })
+      .find({ id: itemId, projectId: projectId, contentTypeId: contentTypeId})
       .value();
     return fieldData;
   });
@@ -771,11 +805,10 @@ const resetToInitialMapping = async (req: Request) => {
       //await FieldMapperModel.read();
       (fieldMappingData || []).forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
-          (f: any) => f?.id === field?.id
+          (f: any) => f?.id === field?.id && f?.projectId === projectId && f?.contentTypeId === contentTypeId
         );
         if (fieldIndex > -1) {
           FieldMapperModel.update((data: any) => {
-            
               data.field_mapper[fieldIndex] = {
                 ...field,
                 contentstackField: field?.otherCmsField,
@@ -784,7 +817,11 @@ const resetToInitialMapping = async (req: Request) => {
                 advanced: {
                   ...field?.advanced?.initial,
                   initial: field?.advanced?.initial,
-                }
+                },
+                ...(field?.referenceTo && {
+                  referenceTo: field?.initialRefrenceTo
+                }),
+                isDeleted: false,
               }
           });
         }

@@ -5,21 +5,20 @@
  * schema format. It maps property types and creates JSON schema files
  * for each content type.
  */
-import { MIGRATION_DATA_CONFIG } from "../../migration-sitecore/constants";
-// const config = require("../config");
+const config = require("../config");
 const fs = require("fs");
 const path = require("path");
 const mkdirp = require("mkdirp");
-const handleStructType = require("../utils/handleStruct");
-const contenttypeFolder = MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME;
+const handleStructType = require("../utils/handleStruct.js");
+const contenttypeFolder = config?.modules?.contentTypes?.dirName;
 
 // Ensure the content type folder exists before writing schema files
-if (!fs.existsSync(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, contenttypeFolder))) {
-  mkdirp.sync(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, contenttypeFolder));
+if (!fs.existsSync(path.join(process.cwd(), config.data, contenttypeFolder))) {
+  mkdirp.sync(path.join(process.cwd(), config.data, contenttypeFolder));
 }
 
 // Track processed content types to avoid duplicate schema creation
-const templetes: string[] = [];
+const templetes = [];
 
 // List of property keys to skip during schema mapping
 // These are CoreMedia-specific metadata fields not needed in Contentstack schema
@@ -72,7 +71,7 @@ async function schemaMapper(properties) {
         skipKeys.push("htmlTitle");
         
         // Get the property type in lowercase for case-insensitive matching
-        const type = (prop as any).type?.toLowerCase?.();
+        const type = prop?.type?.toLowerCase?.();
 
         // Map each CoreMedia type to corresponding Contentstack field type
         switch (type) {
@@ -108,7 +107,7 @@ async function schemaMapper(properties) {
                   mandatory: false,
                   unique: false,
               };
-            break;
+            
           case "integer":
             // Map integer type to Contentstack number field
             return {
@@ -123,7 +122,7 @@ async function schemaMapper(properties) {
               mandatory: false,
               unique: false,
             };
-            break;
+            
           case "date":
             // Map date type to Contentstack ISO date field
             return {
@@ -140,7 +139,7 @@ async function schemaMapper(properties) {
               mandatory: false,
               unique: false,
             };
-            break;
+            
           case "boolean":
             // Map boolean type to Contentstack boolean field
             return {
@@ -155,7 +154,7 @@ async function schemaMapper(properties) {
               mandatory: false,
               unique: false,
             };
-            break;
+            
           case "struct": {
             // Handle complex structured types by delegating to handleStructType
             const structSchema = await handleStructType(key, prop);
@@ -174,16 +173,16 @@ async function schemaMapper(properties) {
             } else {
               return null;
             }
-            break;
+            
           }
           case "linklist": {
             // Handle reference lists (links to other content types)
-            if ((prop as any)?.references?.length > 0) {
+            if (prop?.references?.length > 0) {
               //const parts = data?.id.split("/").filter(Boolean);
               //const lastTwo = parts.slice(-2).join("_");
               
               // Extract referenced content type IDs, removing "CM" prefix
-              const referencedId = (prop as any)?.references?.map((item: any) =>
+              const referencedId = prop?.references?.map((item) =>
                 item?.type?.replace(/^CM/, "")?.toLowerCase()
               );
 
@@ -230,7 +229,7 @@ async function schemaMapper(properties) {
       error_messages: { format: "" },
       multiple: false,
       non_localizable: false,
-    } as any);
+    });
   }
   return filtered.filter(Boolean);
 }
@@ -286,7 +285,7 @@ async function createSchema(data) {
     fs.writeFileSync(
       path.join(
         process.cwd(),
-        MIGRATION_DATA_CONFIG.DATA,
+        config.data,
         contenttypeFolder,
         `${type?.toLowerCase()}.json`
       ),

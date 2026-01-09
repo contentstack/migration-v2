@@ -11,24 +11,24 @@ import when from "when";
 import unzipper from "unzipper";
 import readdirRecursive from "fs-readdir-recursive";
 import chalk from "chalk";
-import { MIGRATION_DATA_CONFIG } from "../../migration-sitecore/constants";
+// import { MIGRATION_DATA_CONFIG } from "../../migration-sitecore/constants";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const createSchema = require("./createSchema");
 
 // Load configuration for content types module
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-// const config = require("../config");
-// const contenttypeFolder = config?.modules?.contentTypes;
+const config = require("../config");
+const contenttypeFolder = config?.modules?.contentTypes;
 
 // Array to accumulate all processed schema objects
-const Schema_Array: any[] = [];
+const Schema_Array = [];
 
 // Path to the master schema file where all content type schemas will be written
 const schemaPath = path.join(
   process.cwd(),
-  MIGRATION_DATA_CONFIG.DATA,
-  MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME,
-  MIGRATION_DATA_CONFIG.CONTENT_TYPES_MASTER_FILE
+  config.data,
+  contenttypeFolder?.dirName,
+  contenttypeFolder?.masterfile
 );
 
 /**
@@ -60,7 +60,7 @@ async function processEachFile(filePath) {
       
       if (data) {
         // Generate schema object from the data using createSchema module
-        const contentObject: any = await createSchema(data);
+        const contentObject = await createSchema(data);
 
         // Add the schema object to the array if it was successfully created
         contentObject && Schema_Array.push(contentObject);

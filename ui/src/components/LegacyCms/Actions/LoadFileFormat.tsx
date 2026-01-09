@@ -4,7 +4,7 @@ import { Icon, TextInput } from '@contentstack/venus-components';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Utilities
-import { isEmptyString } from '../../../utilities/functions';
+import { isEmptyString, getFileExtension } from '../../../utilities/functions';
 
 // Components
 import { RootState } from '../../../store';
@@ -24,16 +24,6 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
   const newMigrationDataRef = useRef(newMigrationData);
 
   const [fileIcon, setFileIcon]  = useState(newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat?.title);
-
-  /****  ALL METHODS HERE  ****/
-
-  const getFileExtension = (filePath: string): string => {
-    const normalizedPath = filePath?.replace(/\\/g, "/")?.replace(/\/$/, "");
-    const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
-    const ext = match ? match?.[1]?.toLowerCase() : "";
-    const validExtensionRegex = /\.(pdf|zip|xml|json)$/i;
-    return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
-  };
 
   /****  ALL USEEffects  HERE  ****/
   // Update ref whenever newMigrationData changes
@@ -58,9 +48,7 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
           isactive: true,
           title: extractedFormat === 'zip' ? 'Zip' : extractedFormat.toUpperCase()
         };
-        
-        console.info('LoadFileFormat: DISPATCHING FILE FORMAT:', fileFormatObj);
-        
+                
         dispatch(updateNewMigrationData({
           ...newMigrationData,
           legacy_cms: {
@@ -69,31 +57,29 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
           }
         }));
         
-        setFileIcon(fileFormatObj.title);
+        setFileIcon(fileFormatObj?.title);
       }
     } else if (!isEmptyString(currentFormat)) {
       setFileIcon(currentFormat);
     }
   }, [newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath, newMigrationData?.legacy_cms?.selectedFileFormat, dispatch, newMigrationData]);
 
-  
   return (
     <div className="p-3">
       <div className="col-12">
         <label htmlFor="file-format">
           <TextInput
-            value={fileIcon === 'Folder' ? 'DIRECTORY' : fileIcon ? fileIcon :  'file extension not found'}
+            label="File Format"
+            value={fileIcon || 'File extension not found'}
             version="v2"
             isReadOnly={true}
-            disabled={true}
             width="large"
-            placeholder=""
             prefix={
               <Icon
-                icon={fileIcon ? fileIcon : 'CrashedPage'}
+                icon={fileIcon === 'DIRECTORY' ? 'Folder' : fileIcon ? fileIcon : 'CrashedPage'}
                 size="medium"
                 version="v2"
-                aria-label="fileformat"
+                aria-label="File format icon"
               />
             }
           />
