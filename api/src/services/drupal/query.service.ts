@@ -335,27 +335,8 @@ export const createQuery = async (
     // Create query directory
     await fs.promises.mkdir(queryDir, { recursive: true });
 
-    // 🔍 DEBUG: Log dbConfig received in query service
-    console.info(`🔍 query.service.ts createQuery - Received dbConfig:`, {
-      host: dbConfig?.host,
-      user: dbConfig?.user,
-      database: dbConfig?.database,
-      port: dbConfig?.port,
-      hasPassword: !!dbConfig?.password,
-    });
-
     const message = `Generating dynamic queries from Drupal database...`;
     await customLogger(projectId, destination_stack_id, 'info', message);
-
-    // Create database connection
-    console.info(
-      `🔍 query.service.ts - About to call getDbConnection with config:`,
-      {
-        host: dbConfig?.host,
-        user: dbConfig?.user,
-        database: dbConfig?.database,
-      }
-    );
 
     connection = await getDbConnection(
       dbConfig,

@@ -1493,43 +1493,19 @@ export const createSourceLocales = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const rawLocales = req?.body?.locale;
 
-  console.info('🔍 [createSourceLocales] Received locales from upload-api:', {
-    rawLocales,
-    rawLocales_type: typeof rawLocales,
-    rawLocales_isArray: Array.isArray(rawLocales),
-    rawLocales_length: Array.isArray(rawLocales) ? rawLocales.length : 'N/A',
-    firstLocale_is_master:
-      Array.isArray(rawLocales) && rawLocales.length > 0
-        ? rawLocales[0]
-        : 'N/A',
-    projectId,
-  });
-
-  // 🔧 CRITICAL: Always normalize to lowercase before saving to database
-  // This is a final safety check - even if upload-api sends uppercase, we normalize here
+  // Normalize locales to lowercase before saving to database
   // Master locale is already FIRST element in the array from upload-api
   const locales = Array.isArray(rawLocales)
     ? rawLocales
-        .map((locale: any, index: number) => {
+        .map((locale: any) => {
           const localeValue =
             typeof locale === 'string'
               ? locale
               : locale?.code || locale?.value || locale;
-          const normalized = (localeValue || '').toLowerCase();
-          const isMaster = index === 0 ? ' (MASTER - first element)' : '';
-          console.info(
-            `🔍 [createSourceLocales] Normalizing locale [${index}]: "${localeValue}" -> "${normalized}"${isMaster}`
-          );
-          return normalized;
+          return (localeValue || '').toLowerCase();
         })
         .filter((locale: string) => locale && locale.length > 0)
     : [];
-
-  console.info('🔍 [createSourceLocales] Final normalized locales to save:', {
-    locales,
-    master_locale_first: locales[0] || 'NONE',
-    total_count: locales.length,
-  });
 
   try {
     // Find the project with the specified projectId

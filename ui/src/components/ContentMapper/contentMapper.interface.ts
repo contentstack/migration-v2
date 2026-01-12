@@ -68,6 +68,7 @@ export interface FieldMapType {
   _invalid?: boolean;
   backupFieldUid: string;
   referenceTo: string[];
+  initialReferenceTo?: string[];
 }
 
 export interface Advanced {

@@ -60,7 +60,9 @@ const putTestData = async (req: Request) => {
     contentTypes?.forEach((items: any) => {
       items?.fieldMapping?.forEach?.((item: any) => {
         if (item?.advanced) {
-          item.advanced.initial = structuredClone(item?.advanced);
+          // Clone only non-initial properties to avoid circular reference
+          const { initial: _, ...advancedWithoutInitial } = item.advanced;
+          item.advanced.initial = structuredClone(advancedWithoutInitial);
         }
       });
     });
@@ -75,10 +77,13 @@ const putTestData = async (req: Request) => {
     Finally, it updates the fieldMapping property of each type in the contentTypes array with the fieldIds array.
     */
     await FieldMapperModel.read();
-    contentTypes.map((type: any, index: any) => {
+    // Iterate over contentType (transformed array) to ensure consistent indexing
+    contentType.forEach((type: any, index: number) => {
       const fieldIds: string[] = [];
-      const fields = Array?.isArray?.(type?.fieldMapping)
-        ? type?.fieldMapping
+      // Use contentTypes[index] to get the original fieldMapping data
+      const originalType = contentTypes[index];
+      const fields = Array?.isArray?.(originalType?.fieldMapping)
+        ? originalType?.fieldMapping
             ?.filter((field: any) => field)
             ?.map?.((field: any) => {
               const id = field?.id
@@ -107,13 +112,28 @@ const putTestData = async (req: Request) => {
                 );
               }
 
+              // Ensure advanced.initial is always preserved for reset operations
+              const advancedWithInitial = field?.advanced
+                ? {
+                    ...field.advanced,
+                    initial:
+                      field.advanced.initial ??
+                      structuredClone(
+                        // Exclude any existing initial to avoid circular reference
+                        (({ initial: _, ...rest }) => rest)(field.advanced)
+                      ),
+                  }
+                : undefined;
+
               return {
+                ...field,
                 id,
                 projectId,
                 contentTypeId: type?.id,
                 isDeleted: false,
-                ...field,
                 referenceTo, // Initialize referenceTo field
+                initialReferenceTo: [...referenceTo], // Store initial value for reset capability
+                ...(advancedWithInitial && { advanced: advancedWithInitial }), // Preserve advanced with initial
               };
             })
         : [];
@@ -121,14 +141,8 @@ const putTestData = async (req: Request) => {
       FieldMapperModel.update((data: any) => {
         data.field_mapper = [...(data?.field_mapper ?? []), ...(fields ?? [])];
       });
-      if (
-        Array?.isArray?.(contentType) &&
-        Number?.isInteger?.(index) &&
-        index >= 0 &&
-        index < contentType?.length
-      ) {
-        contentType[index].fieldMapping = fieldIds;
-      }
+      // Update the transformed contentType array directly
+      contentType[index].fieldMapping = fieldIds;
     });
 
     await ContentTypesMapperModelLowdb.update((data: any) => {
@@ -166,6 +180,9 @@ const putTestData = async (req: Request) => {
         (
           ProjectModelLowdb.data.projects[index].legacy_cms as any
         ).mySQLDetails = req.body.mySQLDetails;
+        // Set is_sql flag when MySQL details are provided
+        (ProjectModelLowdb.data.projects[index].legacy_cms as any).is_sql =
+          true;
       }
 
       // Store taxonomies if provided
@@ -178,14 +195,6 @@ const putTestData = async (req: Request) => {
       }
 
       await ProjectModelLowdb.write();
-
-      // Re-read from disk to verify persistence
-      await ProjectModelLowdb.read();
-      const verifyIndex = ProjectModelLowdb.chain
-        .get('projects')
-        .findIndex({ id: projectId })
-        .value();
-      const verifyProject = ProjectModelLowdb.data.projects[verifyIndex];
     } else {
       throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
     }
@@ -719,18 +728,6 @@ const updateContentType = async (req: Request) => {
     if (Array?.isArray?.(fieldMapping) && !isEmpty(fieldMapping)) {
       await FieldMapperModel.read();
 
-      // Log reference/taxonomy fields being updated
-      const refTaxFields = fieldMapping.filter(
-        (f: any) =>
-          (f.backupFieldType === 'reference' ||
-            f.backupFieldType === 'taxonomy') &&
-          f.referenceTo &&
-          f.referenceTo.length > 0
-      );
-      if (refTaxFields.length > 0) {
-        refTaxFields.forEach((f: any) => {});
-      }
-
       fieldMapping.forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) =>
@@ -743,7 +740,11 @@ const updateContentType = async (req: Request) => {
 
             data.field_mapper[fieldIndex] = field;
 
-            if (preservedInitial && field?.advanced) {
+            // Always preserve initial if it existed, ensuring advanced object exists
+            if (preservedInitial) {
+              if (!data.field_mapper[fieldIndex].advanced) {
+                data.field_mapper[fieldIndex].advanced = {};
+              }
               data.field_mapper[fieldIndex].advanced.initial = preservedInitial;
             }
           });
@@ -869,6 +870,13 @@ const resetToInitialMapping = async (req: Request) => {
               contentstackField: field?.otherCmsField,
               contentstackFieldUid: field?.backupFieldUid,
               contentstackFieldType: field?.backupFieldType,
+              // Reset referenceTo to initial value for reference/taxonomy fields
+              // Support both new property name and old typo for backward compatibility
+              referenceTo:
+                field?.initialReferenceTo ??
+                field?.initialRefrenceTo ??
+                field?.referenceTo ??
+                [],
               advanced: {
                 ...field?.advanced?.initial,
                 initial: field?.advanced?.initial,
@@ -1382,6 +1390,8 @@ const getExistingTaxonomies = async (req: Request) => {
 
     if (!project) {
       return {
+        sourceTaxonomies: [],
+        destinationTaxonomies: [],
         data: 'Project not found',
         status: 404,
       };
@@ -1410,6 +1420,13 @@ const getExistingTaxonomies = async (req: Request) => {
       );
 
       // Path 1: Check api/migration-data (processed taxonomies)
+      // Validate stackId exists before using it
+      if (!stackId) {
+        logger.error(
+          'stackId is null or undefined, cannot construct taxonomy path'
+        );
+        throw new BadRequestError('Invalid stack ID');
+      }
       // Sanitize stackId to prevent path traversal
       const sanitizedStackId = path.basename(stackId);
 
@@ -1424,8 +1441,10 @@ const getExistingTaxonomies = async (req: Request) => {
       const baseDirectory = path.resolve(MIGRATION_DATA_CONFIG.DATA);
       const resolvedPath = path.resolve(apiMigrationDataPath);
 
-      // Ensure the resolved path is within the base directory
-      if (!resolvedPath.startsWith(baseDirectory)) {
+      // Ensure the resolved path is within the base directory using path.relative()
+      // This is safer than startsWith() which can be bypassed on Windows (e.g., C:\data_evil vs C:\data)
+      const relativePath = path.relative(baseDirectory, resolvedPath);
+      if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
         logger.error(
           `Path traversal attempt detected: ${resolvedPath} is outside ${baseDirectory}`
         );
@@ -1433,11 +1452,22 @@ const getExistingTaxonomies = async (req: Request) => {
       }
 
       try {
-        if (fs.existsSync(resolvedPath)) {
-          const taxonomiesData = await fs.promises.readFile(
-            resolvedPath,
-            'utf8'
-          );
+        // Use lstat to check file exists WITHOUT following symlinks (prevents TOCTOU attacks)
+        const stats = await fs.promises.lstat(resolvedPath).catch(() => null);
+        if (stats && stats.isFile() && !stats.isSymbolicLink()) {
+          // Re-validate the real path after confirming it's not a symlink using path.relative()
+          const realPath = await fs.promises.realpath(resolvedPath);
+          const realRelativePath = path.relative(baseDirectory, realPath);
+          if (
+            realRelativePath.startsWith('..') ||
+            path.isAbsolute(realRelativePath)
+          ) {
+            logger.error(
+              `Symlink escape attempt detected: ${realPath} is outside ${baseDirectory}`
+            );
+            throw new BadRequestError('Invalid file path');
+          }
+          const taxonomiesData = await fs.promises.readFile(realPath, 'utf8');
           const taxonomiesObject = JSON.parse(taxonomiesData);
 
           // Convert object to array with proper structure
@@ -1502,15 +1532,17 @@ const getExistingTaxonomies = async (req: Request) => {
     const response = {
       sourceTaxonomies,
       destinationTaxonomies,
-      status: 201,
+      status: 200, // GET requests should return 200 OK, not 201 Created
     };
 
     return response;
   } catch (error: any) {
     logger.error(`Error in getExistingTaxonomies: ${error.message}`);
     return {
+      sourceTaxonomies: [],
+      destinationTaxonomies: [],
       data: error.message,
-      status: error.status || 500,
+      status: error?.statusCode || error?.status || 500, // Check statusCode first (custom errors use this)
     };
   }
 };
