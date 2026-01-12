@@ -148,8 +148,8 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
     for (const blockItem of schema) {
       if (blockItem?.contentstackFieldType !== 'modular_blocks_child') continue;
 
-      const blockRawUid = getCleanUid(blockItem?.contentstackFieldUid || blockItem?.uid);
-      const blockUid = toSnakeCase(blockRawUid);  // Apply snake_case
+      const blockRawUid = getCleanUid(blockItem?.contentstackField);
+      const blockUid = toSnakeCase(getCleanUid(blockItem?.contentstackFieldUid || blockItem?.uid));  // Apply snake_case
       const blockSchema: any[] = [];
 
       const blockElements = blockItem?.schema || [];
@@ -840,6 +840,36 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
           "non_localizable": field.advanced?.nonLocalizable ?? false,
           "data_type": "json",
         }
+      }
+      break;
+    }
+
+    case 'taxonomy': {
+      const taxonomies = field?.advanced?.terms?.map((term: any) => {
+        return {
+          "taxonomy_uid": term,
+            "mandatory": false,
+          "multiple": true,
+          "non_localizable": false
+        }
+      });
+      return {
+        "data_type": "taxonomy",
+        "display_name": "Categories",
+        "uid": "taxonomies",
+        "taxonomies": taxonomies,
+        "field_metadata": {
+            "description": "",
+            "default_value": ""
+        },
+        "format": "",
+        "error_messages": {
+            "format": ""
+        },
+        "mandatory": false,
+        "multiple": true,
+        "non_localizable": false,
+        "unique": false
       }
       break;
     }

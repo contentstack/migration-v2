@@ -1,18 +1,20 @@
 import axios from "axios";
 import logger from "../../utils/logger";
-import { HTTP_CODES, HTTP_TEXTS } from "../../constants";
+import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { extractContentTypes, contentTypeMaker, extractLocale } = require('migration-wordpress')
+import { extractContentTypes, extractLocale } from 'migration-wordpress';
+import { deleteFolderSync } from "../../helper";
+import path from "path";
 
 
 
-const createWordpressMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[]) => {
+const createWordpressMapper = async (filePath: string = "", projectId: string | string[], app_token: string | string[], affix: string | string[], config: any) => {
   try {
-    
     const localeData = await extractLocale(filePath);
+
+    const contentTypeData : any = await extractContentTypes(affix as string, filePath, config);
+    //const contentTypeData = await contentTypeMaker(affix, filePath)
     
-    await extractContentTypes(affix);
-    const contentTypeData = await contentTypeMaker(affix)
     if(contentTypeData){
       const fieldMapping: any = { contentTypes: [], extractPath: filePath };
       contentTypeData.forEach((contentType: any) => {
@@ -33,10 +35,12 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
       };
       const {data} = await axios.request(config);
       if (data?.data?.content_mapper?.length) {
+        deleteFolderSync(path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA));
         logger.info('Validation success:', {
           status: HTTP_CODES?.OK,
-          message: HTTP_TEXTS?.MAPPER_SAVED,
+          message: HTTP_TEXTS?.MAPPER_SAVED
         });
+       
       }
 
 

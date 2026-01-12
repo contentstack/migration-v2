@@ -54,7 +54,9 @@
     "shelljs": "^0.9.0",
     "socket.io": "^4.7.5",
     "uuid": "^9.0.1",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "cheerio": "^1.0.0-rc.12",
+    "@wordpress/block-library": "^9.30.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -77,7 +79,10 @@
     "lodash": "^4.17.21",
     "prettier": "^2.4.1",
     "tsx": "^4.7.1",
-    "typescript": "^5.4.3"
+    "typescript": "^5.4.3",
+    "@types/wordpress__block-library": "^2.6.3",
+    "@types/wordpress__block-serialization-spec-parser": "^3.1.3",
+    "@types/wordpress__blocks": "^12.5.18"
   },
   "keywords": []
 }

@@ -24,7 +24,6 @@ import {
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
 import { siteCoreService } from './sitecore.service.js';
 import { wordpressService } from './wordpress.service.js';
-import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { setLogFilePath } from '../server.js';
@@ -38,6 +37,7 @@ import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
+import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 
 /**
  * Creates a test stack.
@@ -373,14 +373,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
     await extensionService?.createExtension({
       destinationStackId: project?.current_test_stack_id,
     });
-    await taxonomyService?.createTaxonomy({
-      orgId,
-      projectId,
-      stackId: project?.destination_stack_id,
-      current_test_stack_id: project?.current_test_stack_id,
-      region,
-      userId: user_id,
-    });
+    // await taxonomyService?.createTaxonomy({
+    //   orgId,
+    //   projectId,
+    //   stackId: project?.destination_stack_id,
+    //   current_test_stack_id: project?.current_test_stack_id,
+    //   region,
+    //   userId: user_id,
+    // });
     await globalFieldServie?.createGlobalField({
       region,
       user_id,
@@ -419,102 +419,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
       }
       case CMS.WORDPRESS: {
         if (packagePath) {
-          await wordpressService?.createLocale(
-            req,
-            project?.current_test_stack_id,
-            projectId,
-            project
-          );
-          await wordpressService?.getAllAssets(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.createAssetFolderFile(
-            file_path,
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.getAllreference(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.extractChunks(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.getAllAuthors(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          //await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id, contentTypes)
-          await wordpressService?.getAllTerms(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.getAllTags(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.getAllCategories(
-            file_path,
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractPosts(
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractPages(
-            packagePath,
-            project?.current_test_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractGlobalFields(
-            project?.current_test_stack_id,
-            projectId
-          );
-          await wordpressService?.createVersionFile(
-            project?.current_test_stack_id,
-            projectId
-          );
+          await wordpressService?.getAllAssets(file_path, packagePath, project?.current_test_stack_id, projectId);
+          await wordpressService?.createTaxonomy(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await wordpressService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          // await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
+           await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
         }
         break;
       }
@@ -819,86 +728,10 @@ const startMigration = async (req: Request): Promise<any> => {
             project?.destination_stack_id,
             projectId
           );
-          await wordpressService?.createAssetFolderFile(
-            file_path,
-            project?.destination_stack_id,
-            projectId
-          );
-          await wordpressService?.getAllreference(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId
-          );
-          await wordpressService?.extractChunks(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId
-          );
-          await wordpressService?.getAllAuthors(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
+          await wordpressService?.createTaxonomy(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await wordpressService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+       
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
-          await wordpressService?.getAllTerms(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.getAllTags(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.getAllCategories(
-            file_path,
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractPosts(
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractPages(
-            packagePath,
-            project?.destination_stack_id,
-            projectId,
-            contentTypes,
-            project?.mapperKeys,
-            project?.stackDetails?.master_locale,
-            project
-          );
-          await wordpressService?.extractGlobalFields(
-            project?.destination_stack_id,
-            projectId
-          );
           await wordpressService?.createVersionFile(
             project?.destination_stack_id,
             projectId
@@ -1240,16 +1073,10 @@ const transformAndFlattenData = (
   }
 };
 const getLogs = async (req: Request): Promise<any> => {
-  const projectId = req?.params?.projectId
-    ? path?.basename(req.params.projectId)
-    : '';
-  const stackId = req?.params?.stackId
-    ? path?.basename(req.params.stackId)
-    : '';
+  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId): '';
+  const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : '';
   const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
-  const startIndex = req?.params?.startIndex
-    ? parseInt(req.params.startIndex)
-    : 0;
+  const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;
   const stopIndex = startIndex + limit;
   const searchText = req?.params?.searchText ?? null;
   const filter = req?.params?.filter ?? 'all';
