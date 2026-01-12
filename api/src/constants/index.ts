@@ -258,9 +258,9 @@ export const MIGRATION_DATA_CONFIG = {
   ENTRIES_DIR_NAME: 'entries',
   ENTRIES_MASTER_FILE: 'index.json',
 
-  AUTHORS_DIR_NAME: 'authors',
-  AUTHORS_FILE_NAME: 'en-us.json',
-  AUTHORS_MASTER_FILE: 'authors.json',
+  AUTHORS_DIR_NAME: "author",
+  AUTHORS_FILE_NAME: "en-us.json",
+  AUTHORS_MASTER_FILE: "authors.json",
 
   CATEGORIES_DIR_NAME: 'categories',
   CATEGORIES_FILE_NAME: 'en-us.json',
