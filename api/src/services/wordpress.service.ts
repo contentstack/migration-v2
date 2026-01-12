@@ -30,6 +30,10 @@ let assetsSave = path.join(
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
 );
 
+const contentTypeFolderPath = path.join(
+  MIGRATION_DATA_CONFIG.DATA,
+  MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME
+);
 const entrySave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME
@@ -39,7 +43,6 @@ let postFolderPath = path.join(
   MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
   MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
 );
-
 let authorsFolderPath = path.join(
   entrySave,
   MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME
@@ -49,12 +52,10 @@ let authorsFilePath = path.join(
   MIGRATION_DATA_CONFIG.AUTHORS_FILE_NAME
 );
 
-
 const TaxonomiesSave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.TAXONOMIES_DIR_NAME
 );
-
 
 let assetMasterFolderPath = path.join(
   MIGRATION_DATA_CONFIG.DATA,
@@ -1075,7 +1076,6 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     await fs.promises.mkdir(assetPath, { recursive: true });
   }
 
-
   if (fs.existsSync(assetPath)) {
     console.error(`Asset already present: ${customId}`);
     return assets["wp:post_id"];
@@ -1085,7 +1085,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     const response = await axios.get(url, { responseType: "arraybuffer" });
     // Ensure files directory exists
     fs.mkdirSync(
-      path.resolve(assetsSave, "files", customId),
+      path.resolve(assetsSave, "files"),
       { recursive: true }
     );
     fs.writeFileSync(path.resolve(assetsSave, "files", customId, filename), response.data);

@@ -891,9 +891,9 @@ const startMigration = async (req: Request): Promise<any> => {
             project?.destination_stack_id,
             projectId
           );
-          await wordpressService?.createTaxonomy(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          await wordpressService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-
+          await wordpressService?.createTaxonomy(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await wordpressService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+       
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
           await wordpressService?.createVersionFile(
             project?.destination_stack_id,
@@ -1352,7 +1352,7 @@ const transformAndFlattenData = (
   }
 };
 const getLogs = async (req: Request): Promise<any> => {
-  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId) : '';
+  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId): '';
   const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : '';
   const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
   const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;
