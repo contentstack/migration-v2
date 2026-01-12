@@ -13,6 +13,7 @@ interface AuthenticationDocument {
     authtoken: string;
     created_at: string;
     updated_at: string;
+    access_token: string;
   }[];
 }
 

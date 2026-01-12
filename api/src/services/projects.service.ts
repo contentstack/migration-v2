@@ -15,13 +15,14 @@ import {
   HTTP_CODES,
   STEPPER_STEPS,
   NEW_PROJECT_STATUS,
-} from '../constants/index.js';
-import { config } from '../config/index.js';
-import { getLogMessage, isEmpty, safePromise } from '../utils/index.js';
-import getAuthtoken from '../utils/auth.utils.js';
-import https from '../utils/https.utils.js';
-import getProjectUtil from '../utils/get-project.utils.js';
-import logger from '../utils/logger.js';
+} from "../constants/index.js";
+import { config } from "../config/index.js";
+import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
+import getAuthtoken, { getAccessToken } from "../utils/auth.utils.js";
+import https from "../utils/https.utils.js";
+import getProjectUtil from "../utils/get-project.utils.js";
+import logger from "../utils/logger.js";
+import AuthenticationModel from "../models/authentication.js";
 // import { contentMapperService } from "./contentMapper.service.js";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -103,21 +104,23 @@ const getProject = async (req: Request) => {
  */
 const createProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
-  if (!orgId) {
-    throw new BadRequestError('Organization ID is required');
+  const { name, description } = req.body;
+  const decodedToken = req.body.token_payload;
+  const { user_id = "", region = "" } = decodedToken;
+  let isSSO = false;
+  const srcFunc = "createProject";
+  await AuthenticationModel.read();
+  const userIndex = AuthenticationModel.chain
+    .get("users")
+    .findIndex({
+      user_id: user_id,
+      region: region,
+    })
+    .value();
+  const userRecord = AuthenticationModel.data.users[userIndex];
+  if(userRecord?.access_token){
+    isSSO = true;
   }
-
-  const { name, description } = req?.body || {};
-  if (!name) {
-    throw new BadRequestError('Project name is required');
-  }
-
-  const decodedToken = req?.body?.token_payload;
-  if (!decodedToken) {
-    throw new BadRequestError('Token payload is required');
-  }
-  const { user_id = '', region = '' } = decodedToken;
-  const srcFunc = 'createProject';
   const projectData = {
     id: uuidv4(),
     region,
@@ -156,8 +159,9 @@ const createProject = async (req: Request) => {
     },
     mapperKeys: {},
     isMigrationStarted: false,
-    isMigrationCompleted: false,
-    migration_execution: false,
+    isMigrationCompleted:false,
+    migration_execution:false,
+    isSSO: isSSO,
   };
 
   try {
@@ -761,15 +765,18 @@ const updateDestinationStack = async (req: Request) => {
     true
   )) as number;
 
-  const project = ProjectModelLowdb.data?.projects?.[projectIndex];
-  if (!project) {
-    throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
+  const project = ProjectModelLowdb.data.projects[projectIndex];
+  const headers :any = {
+    organization_uid: orgId,
+  }
+  if (project?.isSSO) {
+    const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+    headers.authorization = `Bearer ${accessToken}`;
+  }else{
+    headers.authtoken = await getAuthtoken(token_payload?.region, token_payload?.user_id);
   }
 
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id
-  );
+
 
   if (
     project.status === NEW_PROJECT_STATUS[4] ||
@@ -802,10 +809,7 @@ const updateDestinationStack = async (req: Request) => {
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          organization_uid: orgId,
-          authtoken,
-        },
+        headers: headers,
       })
     );
 

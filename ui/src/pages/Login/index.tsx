@@ -26,7 +26,7 @@ import { clearLocalStorage, failtureNotification, setDataInLocalStorage } from '
 
 // API Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
-import { userSession, requestSMSToken } from '../../services/api/login.service';
+import { userSession, requestSMSToken, getAppConfig, checkSSOAuthStatus } from '../../services/api/login.service';
 
 // Interface
 import { IProps, IStates, defaultStates, User, UserRes, LoginType } from './login.interface';
@@ -238,6 +238,170 @@ const Login: FC<IProps> = () => {
     };
   };
 
+  const handleSSOLogin = async () => {
+    setIsLoading(true);
+    try {
+      const currentRegion = region;
+      
+      await getAppConfig()
+        .then((res: any) => {
+          if (res?.status === 404) {
+            failtureNotification('Kindly setup the SSO first');
+            setIsLoading(false);
+            return;
+          }
+          
+          if (res?.status === 400) {
+            failtureNotification('Something went wrong please try normal login method');
+            setIsLoading(false);
+            return;
+          }
+          
+          if (res?.status === 500) {
+            failtureNotification('Something went wrong please try normal login method');
+            setIsLoading(false);
+            return;
+          }
+  
+          const appConfig = res?.data;
+          
+          // Check if authUrl exists
+          if (!appConfig?.authUrl) {
+            failtureNotification('Something went wrong please try normal login method');
+            setIsLoading(false);
+            return;
+          }
+  
+          // Checks if region matches
+          if (appConfig?.region?.key && appConfig?.region?.key !== currentRegion) {
+            failtureNotification('Kindly choose correct region as the SSO region');
+            setIsLoading(false);
+            return;
+          }
+  
+          const authURL = appConfig?.authUrl;
+          const ssoWindow = window.open(authURL, '_blank', 'noopener,noreferrer');
+          
+          if (appConfig?.user?.uid) {
+            startSSOPolling(appConfig?.user?.uid, ssoWindow);
+          } else {
+            failtureNotification('Missing user information in SSO configuration');
+            setIsLoading(false);
+          }
+          
+        })
+        .catch((err: any) => {
+          failtureNotification('Something went wrong please try normal login method');
+          setIsLoading(false);
+        });
+        
+    } catch (error) {
+      failtureNotification('Something went wrong please try normal login method');
+      setIsLoading(false);
+    }
+  };
+  
+
+  const startSSOPolling = (userId: string, ssoWindow: Window | null) => {
+    const pollInterval = 2000; 
+    const maxPollTime = 300000; 
+    let pollCount = 0;
+    const maxPolls = maxPollTime / pollInterval; 
+    const poll = async () => {
+      pollCount++;
+      
+      try {
+        if (ssoWindow?.closed) {
+          failtureNotification('SSO login was cancelled');
+          setIsLoading(false);
+          return;
+        }
+        
+        await checkSSOAuthStatus(userId)
+          .then((authRes: any) => {
+            
+            if (authRes?.status === 200 && authRes?.data?.authenticated === true) {
+              
+              if (ssoWindow && !ssoWindow.closed) {
+                ssoWindow.close();
+              }
+              
+              handleSuccessfulSSOLogin(authRes?.data);
+              return;
+            }
+            
+            if (pollCount < maxPolls) {
+              setTimeout(poll, pollInterval);
+            } else {
+              failtureNotification('SSO authentication timed out. Please try again.');
+              setIsLoading(false);
+              if (ssoWindow && !ssoWindow.closed) {
+                ssoWindow.close();
+              }
+            }
+          })
+          .catch((error: any) => {
+            
+            
+            if (pollCount < maxPolls) {
+              setTimeout(poll, pollInterval);
+            } else {
+              failtureNotification('Something went wrong please try normal login method');
+              setIsLoading(false);
+              if (ssoWindow && !ssoWindow.closed) {
+                ssoWindow.close();
+              }
+            }
+          });
+          
+      } catch (error) {
+        failtureNotification('Something went wrong please try normal login method');
+        setIsLoading(false);
+        if (ssoWindow && !ssoWindow.closed) {
+          ssoWindow.close();
+        }
+      }
+    };
+    
+    setTimeout(poll, pollInterval);
+  };
+  
+
+  const handleSuccessfulSSOLogin = (authData: any) => {
+    
+    try {
+      setIsLoading(false);
+      
+      setDataInLocalStorage('app_token', authData?.app_token);
+      
+      localStorage?.removeItem('organization');
+      dispatch(clearOrganisationData());
+    
+      
+      const authenticationObj = {
+        authToken: authData?.app_token,
+        isAuthenticated: true
+      };
+      
+      const userObj = {
+        ...user,
+        region: region
+      };
+      
+      dispatch(setUser(userObj));
+      dispatch(setAuthToken(authenticationObj));
+      setLoginStates((prev) => ({ ...prev, submitted: true }));
+      
+      dispatch(getUserDetails());
+      
+      navigate(`/projects`, { replace: true });
+      
+    } catch (error) {
+      console.error('Error processing SSO login success:', error);
+      failtureNotification('Login successful but navigation failed. Please refresh the page.');
+    }
+  };
+
   // useEffect(()=>{
   //   const handlePopState = (event: PopStateEvent) => {
   //     event.preventDefault();
@@ -281,7 +445,7 @@ const Login: FC<IProps> = () => {
           {twoFactorAuthentication?.title && (
             <h2 className="mb-40">{twoFactorAuthentication?.title}</h2>
           )}
-
+  
           <FinalForm
             onSubmit={onSubmit}
             render={({ handleSubmit }): JSX.Element => (
@@ -461,10 +625,9 @@ const Login: FC<IProps> = () => {
                           }}
                         </FinalField>
                       </Field>
-
+  
                       <div className="AccountForm__actions">
                         <div className="mb-16">
-                          {/* disabled={errors && Object.keys(errors).length ? true : false} */}
                           <Button
                             className="AccountForm__actions__login_button"
                             isFullWidth={true}
@@ -477,6 +640,22 @@ const Login: FC<IProps> = () => {
                             isLoading={isLoading}
                           >
                             {login?.cta?.title}
+                          </Button>
+                        </div>
+                        <div className="mb-16">
+                          <Button
+                            className="AccountForm__actions__sso_button"
+                            isFullWidth={true}
+                            version="v2"
+                            testId="cs-sso-login"
+                            buttonType="secondary"
+                            type="button"
+                            icon="v2-CloudArrowUp"
+                            tabIndex={0}
+                            isLoading={isLoading}
+                            onClick={handleSSOLogin}
+                          >
+                            Log in via SSO
                           </Button>
                         </div>
                       </div>
