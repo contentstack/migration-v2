@@ -114,13 +114,6 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       // 🔧 CRITICAL: Ensure master_locale is always lowercase
       const masterLocale = (data?.locale || '').toLowerCase();
       
-      console.info('🔍 LoadStacks - Creating new stack:', {
-        stack_name: data?.name,
-        raw_locale: data?.locale,
-        master_locale_lowercase: masterLocale,
-        description: data?.description
-      });
-      
       // Post data to backend
       const resp = await createStacksInOrg(selectedOrganisation?.value, {
         ...data,

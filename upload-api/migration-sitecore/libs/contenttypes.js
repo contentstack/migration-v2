@@ -678,7 +678,7 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder, a
       const data = helper?.readFile(path?.join?.(templatePaths, newPath?.[i]));
       if (data?.item?.$?.template === 'template section') {
         templatesComponentsPath?.push({
-          pth: path?.join?.(templatePaths, newPath?.[i] ?? '')?.split('/{')?.[0],
+          pth: path?.join?.(templatePaths, newPath?.[i] ?? '')?.split(`${path.sep}{`)?.[0],
           obj: data
         });
       } else if (data?.item?.$?.template === 'template') {

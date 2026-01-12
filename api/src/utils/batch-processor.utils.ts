@@ -15,7 +15,7 @@ export class BatchProcessor<T> {
   constructor(options: BatchProcessorOptions) {
     this.options = {
       delayBetweenBatches: 100, // Default 100ms delay
-      ...options
+      ...options,
     };
   }
 
@@ -25,23 +25,27 @@ export class BatchProcessor<T> {
   async processBatches<R>(
     items: T[],
     processor: (item: T) => Promise<R>,
-    onBatchComplete?: (batchIndex: number, totalBatches: number, results: R[]) => void
+    onBatchComplete?: (
+      batchIndex: number,
+      totalBatches: number,
+      results: R[]
+    ) => void
   ): Promise<R[]> {
     const { batchSize, concurrency, delayBetweenBatches } = this.options;
     const totalBatches = Math.ceil(items.length / batchSize);
     const allResults: R[] = [];
-
-    console.log(`📦 Processing ${items.length} items in ${totalBatches} batches (${batchSize} items per batch, concurrency: ${concurrency})`);
 
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
       const startIndex = batchIndex * batchSize;
       const endIndex = Math.min(startIndex + batchSize, items.length);
       const batch = items.slice(startIndex, endIndex);
 
-      console.log(`📋 Processing batch ${batchIndex + 1}/${totalBatches} (${batch.length} items)`);
-
       // Process batch with controlled concurrency
-      const batchResults = await this.processBatchWithConcurrency(batch, processor, concurrency);
+      const batchResults = await this.processBatchWithConcurrency(
+        batch,
+        processor,
+        concurrency
+      );
       allResults.push(...batchResults);
 
       // Callback for batch completion
@@ -50,7 +54,11 @@ export class BatchProcessor<T> {
       }
 
       // Delay between batches to allow file handles to close
-      if (batchIndex < totalBatches - 1 && delayBetweenBatches && delayBetweenBatches > 0) {
+      if (
+        batchIndex < totalBatches - 1 &&
+        delayBetweenBatches &&
+        delayBetweenBatches > 0
+      ) {
         await this.delay(delayBetweenBatches);
       }
 
@@ -60,7 +68,6 @@ export class BatchProcessor<T> {
       }
     }
 
-    console.log(`✅ Completed processing ${items.length} items in ${totalBatches} batches`);
     return allResults;
   }
 
@@ -73,7 +80,7 @@ export class BatchProcessor<T> {
     concurrency: number
   ): Promise<R[]> {
     const results: R[] = [];
-    
+
     for (let i = 0; i < batch.length; i += concurrency) {
       const chunk = batch.slice(i, i + concurrency);
       const chunkPromises = chunk.map(processor);
@@ -88,7 +95,7 @@ export class BatchProcessor<T> {
    * Delay utility
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -99,7 +106,11 @@ export async function processBatches<T, R>(
   items: T[],
   processor: (item: T) => Promise<R>,
   options: BatchProcessorOptions,
-  onBatchComplete?: (batchIndex: number, totalBatches: number, results: R[]) => void
+  onBatchComplete?: (
+    batchIndex: number,
+    totalBatches: number,
+    results: R[]
+  ) => void
 ): Promise<R[]> {
   const batchProcessor = new BatchProcessor<T>(options);
   return batchProcessor.processBatches(items, processor, onBatchComplete);

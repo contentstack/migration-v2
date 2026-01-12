@@ -691,7 +691,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       //       delete updatedOptions[key];
       //     }
       //   });
-      //   console.info("updatedOptions", updatedOptions);
       //   return updatedOptions;
       // });
 

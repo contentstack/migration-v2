@@ -1073,19 +1073,6 @@ const startMigration = async (req: Request): Promise<any> => {
         );
         // 🔍 DEBUG: Log master_locale before passing to createEntry
         const masterLocaleForContentful = project?.stackDetails?.master_locale;
-        console.info(
-          '🔍 Contentful startMigration - master_locale before createEntry:',
-          {
-            master_locale: masterLocaleForContentful,
-            master_locale_type: typeof masterLocaleForContentful,
-            master_locale_isLowercase:
-              masterLocaleForContentful ===
-              masterLocaleForContentful?.toLowerCase?.(),
-            master_locale_toLowerCase:
-              masterLocaleForContentful?.toLowerCase?.(),
-            project_stackDetails: project?.stackDetails,
-          }
-        );
 
         await contentfulService?.createEntry(
           cleanLocalPath,
@@ -1603,15 +1590,6 @@ export const createSourceLocales = async (req: Request) => {
     if (index > -1) {
       ProjectModelLowdb?.update?.((data: any) => {
         data.projects[index].source_locales = locales;
-
-        console.info(
-          '✅ [createSourceLocales] Saved source_locales to project:',
-          {
-            projectId,
-            saved_source_locales: locales,
-            first_element_master: locales[0] || 'NONE',
-          }
-        );
       });
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
@@ -1691,23 +1669,6 @@ export const updateLocaleMapper = async (req: Request) => {
         .get('projects')
         .find({ id: projectId })
         .value();
-      console.info(
-        '================================================================================'
-      );
-      console.info(
-        '🔍 [API updateLocaleMapper] Saved locale data to database:'
-      );
-      console.info('  Project ID:', projectId);
-      console.info('  master_locale:', updatedProject?.master_locale);
-      console.info('  locales:', updatedProject?.locales);
-      console.info('  localeMapping:', updatedProject?.localeMapping);
-      console.info(
-        '  localeMapping keys:',
-        Object.keys(updatedProject?.localeMapping || {})
-      );
-      console.info(
-        '================================================================================'
-      );
 
       // 🔍 LOGGING: Log after update
       await ProjectModelLowdb?.read?.();

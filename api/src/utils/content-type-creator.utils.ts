@@ -960,7 +960,7 @@ export const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath
           "non_localizable": field.advanced?.nonLocalizable ?? false,
         }
       } else {
-        console.info('Content Type Field', field?.contentstackField)
+        console.error('Content Type Field', field?.contentstackField)
       }
     }
   }
@@ -1174,6 +1174,6 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
       await saveContent(ct, contentSave);
     }
   } else {
-    console.info(contentType?.contentstackUid, 'missing');
+    console.error(contentType?.contentstackUid, 'missing');
   }
 };

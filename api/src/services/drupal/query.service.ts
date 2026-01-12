@@ -344,10 +344,6 @@ export const createQuery = async (
       destination_stack_id
     );
 
-    console.info(
-      `🔍 query.service.ts - Database connection established successfully`
-    );
-
     // SQL query to extract field configuration from Drupal
     const configQuery =
       "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'";
@@ -376,7 +372,7 @@ export const createQuery = async (
           });
         }
       } catch (err: any) {
-        console.warn(`Couldn't parse row ${i}:`, err.message);
+        console.error(`Couldn't parse row ${i}:`, err.message);
       }
     }
 

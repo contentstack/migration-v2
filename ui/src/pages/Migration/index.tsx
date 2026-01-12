@@ -341,13 +341,6 @@ const Migration = () => {
       ...projectData?.locales
     };
 
-    console.info('🔍 fetchProjectData - Backend data:', {
-      source_locales: projectData?.source_locales,
-      master_locale: projectData?.master_locale,
-      locales: projectData?.locales,
-      computed_locales: locales
-    });
-
     const projectMapper = {
       ...newMigrationData,
       legacy_cms: {
@@ -386,17 +379,12 @@ const Migration = () => {
           const backendSourceLocales = projectData?.source_locales;
           const reduxSourceLocales = newMigrationData?.destination_stack?.sourceLocale;
           
-          console.info('🔍 Setting sourceLocale - Backend:', backendSourceLocales, 'Redux:', reduxSourceLocales);
-          
           if (backendSourceLocales && Array.isArray(backendSourceLocales) && backendSourceLocales.length > 0) {
-            console.info('✅ Using backend source_locales:', backendSourceLocales);
             return backendSourceLocales;
           }
           if (reduxSourceLocales && Array.isArray(reduxSourceLocales) && reduxSourceLocales.length > 0) {
-            console.info('✅ Using Redux sourceLocale:', reduxSourceLocales);
             return reduxSourceLocales;
           }
-          console.warn('⚠️ No sourceLocale found, returning empty array');
           return [];
         })(),
         localeMapping: locales,
@@ -426,21 +414,9 @@ const Migration = () => {
       isContentMapperGenerated: projectData?.content_mapper?.length > 0,
     };
 
-    console.info('🔍 fetchProjectData - About to dispatch projectMapper:', {
-      sourceLocale: projectMapper.destination_stack.sourceLocale,
-      sourceLocale_type: Array.isArray(projectMapper.destination_stack.sourceLocale) ? 'array' : typeof projectMapper.destination_stack.sourceLocale,
-      sourceLocale_length: Array.isArray(projectMapper.destination_stack.sourceLocale) ? projectMapper.destination_stack.sourceLocale.length : 'N/A',
-      sourceLocale_content: Array.isArray(projectMapper.destination_stack.sourceLocale) ? projectMapper.destination_stack.sourceLocale : 'Not an array',
-      localeMapping: projectMapper.destination_stack.localeMapping,
-      csLocale_type: typeof projectMapper.destination_stack.csLocale,
-      csLocale_isArray: Array.isArray(projectMapper.destination_stack.csLocale),
-      csLocale_keys: projectMapper.destination_stack.csLocale ? Object.keys(projectMapper.destination_stack.csLocale) : []
-    });
-
     dispatch(updateNewMigrationData(projectMapper));
     
     // Verify what was dispatched
-    console.info('✅ Dispatched updateNewMigrationData with sourceLocale:', projectMapper.destination_stack.sourceLocale);
     setIsProjectMapper(false);
   };
 
@@ -630,10 +606,6 @@ const Migration = () => {
             break;
         }
         if (currentIndex !== 3) {
-          console.info('❌ Legacy CMS Step Completion Check Failed:', {
-            currentIndex,
-            missingStep: result
-          });
           Notification({
             notificationContent: {
               text:
@@ -821,13 +793,6 @@ const Migration = () => {
 
       // 🔍 DEBUG: Log master_locale before updating stack details
       const masterLocaleToSave = newMigrationData?.destination_stack?.selectedStack?.master_locale;
-      console.info('🔍 Migration index - master_locale before updateStackDetails:', {
-        master_locale: masterLocaleToSave,
-        master_locale_type: typeof masterLocaleToSave,
-        master_locale_isLowercase: masterLocaleToSave === masterLocaleToSave?.toLowerCase?.(),
-        master_locale_toLowerCase: masterLocaleToSave?.toLowerCase?.(),
-        selectedStack: newMigrationData?.destination_stack?.selectedStack
-      });
       
       await updateStackDetails(selectedOrganisation?.value, projectId, {
         label: newMigrationData?.destination_stack?.selectedStack?.label,
@@ -839,27 +804,8 @@ const Migration = () => {
       
       await updateLocaleMapper(projectId, { master_locale: master_locale, locales: locales });
       
-      // Debug: Log project state before updating current step
-      console.info('🔍 About to update current step. Checking project state...');
-      const preCheckData = await getMigrationData(selectedOrganisation?.value, projectId);
-      const mySQLDetails = preCheckData?.data?.legacy_cms?.mySQLDetails;
-      console.info('🔍 Project data before step update:', {
-        current_step: preCheckData?.data?.current_step,
-        status: preCheckData?.data?.status,
-        has_cms: !!preCheckData?.data?.legacy_cms?.cms,
-        has_file_format: !!preCheckData?.data?.legacy_cms?.file_format,
-        has_destination_stack_id: !!preCheckData?.data?.destination_stack_id,
-        has_mySQLDetails: !!mySQLDetails,
-        mySQLDetails_host: mySQLDetails?.host,
-        mySQLDetails_user: mySQLDetails?.user,
-        mySQLDetails_database: mySQLDetails?.database,
-        mySQLDetails_port: mySQLDetails?.port,
-        cms_type: preCheckData?.data?.legacy_cms?.cms
-      });
-      
       try {
         const res = await updateCurrentStepData(selectedOrganisation?.value, projectId);
-        console.info('🔍 updateCurrentStepData response:', res);
         
         if (res?.status === 200) {
           handleStepChange(2);

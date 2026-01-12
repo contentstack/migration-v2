@@ -126,14 +126,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
       const { data, status } = await fileValidation(projectId, newMigrationData?.legacy_cms?.affix);
 
-      /* eslint-disable no-console */
-      console.log('📥 UI - API Response received:');
-      console.log('  status:', status);
-      console.log('  data.file_details.isSQL:', data?.file_details?.isSQL);
-      console.log('  data.file_details.cmsType:', data?.file_details?.cmsType);
-      console.log('  Full data:', data);
-      /* eslint-enable no-console */
-
       setProgressPercentage(70);
       setProcessing('Processing...70%');
 
@@ -312,7 +304,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       //setIsFormatValid(isFormatValid); 
       setIsDisabled(!isFormatValid || isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix));
       if(!isFormatValid){
-        console.warn('⚠️ LoadUploadFile: File format is not valid, setting isValidated to false');
         setValidationMessage('');
         // ✅ FIX: Properly spread existing data to prevent data loss
         dispatch(updateNewMigrationData({
@@ -526,12 +517,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             disabled={!(reValidate || (!isDisabled))}
           > 
             {(() => {
-              /* eslint-disable no-console */
-              console.log('=== BUTTON LABEL DEBUG ===');
-              console.log('fileDetails:', fileDetails);
-              console.log('fileDetails.isLocalPath:', fileDetails?.isLocalPath);
-              console.log('fileDetails.isSQL:', fileDetails?.isSQL);
-              
               // Logic: If using local path, always "File Validate"
               // If not using local path AND using SQL, then "Check Connection"
               // Otherwise "File Validate"
@@ -539,8 +524,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                 ? 'File Validate' 
                 : (fileDetails?.isSQL ? 'Check Connection' : 'File Validate');
               
-              console.log('Button text will be:', buttonText);
-              /* eslint-enable no-console */
               return buttonText;
             })()}
           </Button>

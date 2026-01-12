@@ -7,7 +7,7 @@ import path from 'path';
  * @param filename - The input filename to sanitize.
  * @returns A safe, sanitized filename.
  */
-export const sanitizeFilename = (filename: string): string => {
+const sanitizeFilename = (filename: string): string => {
   return path.basename(filename).replace(/[^a-zA-Z0-9_.\s-]/g, '');
 };
 
