@@ -7,8 +7,66 @@ import path from 'path';
  * @param filename - The input filename to sanitize.
  * @returns A safe, sanitized filename.
  */
-const sanitizeFilename = (filename: string): string => {
+export const sanitizeFilename = (filename: string): string => {
   return path.basename(filename).replace(/[^a-zA-Z0-9_.\s-]/g, '');
+};
+
+/**
+ * Validates if a path segment (like projectId or stackId) is safe.
+ * Returns true if the segment doesn't contain path traversal characters.
+ *
+ * @param segment - The path segment to validate.
+ * @returns True if safe, false if it contains traversal characters.
+ */
+export const isValidPathSegment = (
+  segment: string | undefined | null
+): boolean => {
+  if (!segment || typeof segment !== 'string') {
+    return false;
+  }
+  // Check if basename equals the original (no directory components)
+  const sanitized = path.basename(segment);
+  return sanitized === segment && sanitized.length > 0;
+};
+
+/**
+ * Validates a path segment and throws an error if invalid.
+ *
+ * @param segment - The path segment to validate.
+ * @param name - Name of the segment for error messages (e.g., 'projectId').
+ * @throws Error if the segment is invalid.
+ * @returns The validated segment.
+ */
+export const validatePathSegment = (
+  segment: string | undefined | null,
+  name: string = 'path segment'
+): string => {
+  if (!isValidPathSegment(segment)) {
+    throw new Error(`Invalid ${name}: path traversal attempt detected`);
+  }
+  return segment as string;
+};
+
+/**
+ * Validates that a resolved path is within the expected base directory.
+ *
+ * @param resolvedPath - The fully resolved absolute path.
+ * @param baseDir - The base directory that the path must be within.
+ * @returns True if path is safely within baseDir, false otherwise.
+ */
+export const isPathWithinBase = (
+  resolvedPath: string,
+  baseDir: string
+): boolean => {
+  const safeBaseDir = path.resolve(baseDir);
+  const relativePath = path.relative(safeBaseDir, resolvedPath);
+
+  // Path is safe if relative path doesn't escape base
+  return (
+    relativePath === '' ||
+    relativePath === '.' ||
+    (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
+  );
 };
 
 /**

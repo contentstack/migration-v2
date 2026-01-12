@@ -107,9 +107,11 @@ const putTestData = async (req: Request) => {
                 field?.backupFieldType === 'taxonomy' &&
                 field?.advanced?.taxonomies
               ) {
-                referenceTo = field.advanced.taxonomies.map(
-                  (t: any) => t.taxonomy_uid || t
-                );
+                // Ensure taxonomies is an array before calling .map()
+                const taxonomies = Array.isArray(field.advanced.taxonomies)
+                  ? field.advanced.taxonomies
+                  : [field.advanced.taxonomies]; // Wrap single object in array
+                referenceTo = taxonomies.map((t: any) => t?.taxonomy_uid || t);
               }
 
               // Ensure advanced.initial is always preserved for reset operations
@@ -736,16 +738,37 @@ const updateContentType = async (req: Request) => {
         if (fieldIndex > -1 && field?.contentstackFieldType !== '') {
           FieldMapperModel.update((data: any) => {
             const existingField = data?.field_mapper?.[fieldIndex];
+
+            // Preserve values needed for reset operations
             const preservedInitial = existingField?.advanced?.initial;
+            const preservedInitialReferenceTo =
+              existingField?.initialReferenceTo;
+            const preservedInitialRefrenceTo = existingField?.initialRefrenceTo; // Support old typo
 
             data.field_mapper[fieldIndex] = field;
 
-            // Always preserve initial if it existed, ensuring advanced object exists
+            // Always preserve advanced.initial if it existed
             if (preservedInitial) {
               if (!data.field_mapper[fieldIndex].advanced) {
                 data.field_mapper[fieldIndex].advanced = {};
               }
               data.field_mapper[fieldIndex].advanced.initial = preservedInitial;
+            }
+
+            // Always preserve initialReferenceTo if it existed (needed for reset operations)
+            // Only preserve if the incoming field doesn't already have it set
+            if (preservedInitialReferenceTo && !field?.initialReferenceTo) {
+              data.field_mapper[fieldIndex].initialReferenceTo =
+                preservedInitialReferenceTo;
+            }
+            // Also preserve old typo version for backward compatibility
+            if (
+              preservedInitialRefrenceTo &&
+              !field?.initialRefrenceTo &&
+              !field?.initialReferenceTo
+            ) {
+              data.field_mapper[fieldIndex].initialRefrenceTo =
+                preservedInitialRefrenceTo;
             }
           });
         }

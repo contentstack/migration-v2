@@ -28,6 +28,7 @@ import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { setLogFilePath } from '../server.js';
 import fs from 'fs';
+import { isPathWithinBase } from '../utils/sanitize-path.utils.js';
 import { contentfulService } from './contentful.service.js';
 import { marketPlaceAppService } from './marketplace.service.js';
 import { extensionService } from './extension.service.js';
@@ -295,51 +296,94 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
 const startTestMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id } = req?.body?.token_payload ?? {};
+
+  // Validate projectId to prevent path traversal attacks
+  const sanitizedProjectId = path.basename(projectId || '');
+  if (!sanitizedProjectId || sanitizedProjectId !== projectId) {
+    throw new ExceptionFunction('Invalid project ID', HTTP_CODES.BAD_REQUEST);
+  }
+
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
-    .find({ id: projectId })
+    .find({ id: sanitizedProjectId })
     .value();
   const packagePath = project?.extract_path;
   if (project?.current_test_stack_id) {
+    // Validate stack ID to prevent path traversal
+    const sanitizedTestStackId = path.basename(
+      project?.current_test_stack_id || ''
+    );
+    if (
+      !sanitizedTestStackId ||
+      sanitizedTestStackId !== project?.current_test_stack_id
+    ) {
+      throw new ExceptionFunction('Invalid stack ID', HTTP_CODES.BAD_REQUEST);
+    }
+
     const {
       legacy_cms: { cms, file_path },
     } = project;
+
+    // Validate logger path is within expected directory
+    const logsBaseDir = path.join(process.cwd(), 'logs');
     const loggerPath = path.join(
-      process.cwd(),
-      'logs',
-      projectId,
-      `${project?.current_test_stack_id}.log`
+      logsBaseDir,
+      sanitizedProjectId,
+      `${sanitizedTestStackId}.log`
     );
+    const resolvedLoggerPath = path.resolve(loggerPath);
+    if (!isPathWithinBase(resolvedLoggerPath, logsBaseDir)) {
+      throw new ExceptionFunction(
+        'Invalid log path detected',
+        HTTP_CODES.BAD_REQUEST
+      );
+    }
     const message = getLogMessage(
       'startTestMigration',
       'Starting Test Migration...',
       {}
     );
     await customLogger(
-      projectId,
-      project?.current_test_stack_id,
+      sanitizedProjectId,
+      sanitizedTestStackId,
       'info',
       message
     );
-    await setLogFilePath(loggerPath);
+    await setLogFilePath(resolvedLoggerPath);
     const copyLogsToTestStack = async (
       stackUid: string,
       projectLogPath: string
     ) => {
       try {
-        // Path to source logs
+        // Validate stackUid to prevent path traversal attacks
+        const sanitizedStackUid = path.basename(stackUid);
+        if (!sanitizedStackUid || sanitizedStackUid !== stackUid) {
+          console.error('Invalid stackUid detected, skipping log copy');
+          return;
+        }
+
+        // Path to source logs with validated base directory
+        const baseDirectory = path.join(process.cwd(), 'migration-data');
         const importLogsPath = path.join(
-          process.cwd(),
-          'migration-data',
-          stackUid,
+          baseDirectory,
+          sanitizedStackUid,
           'logs',
           'import'
         );
 
+        // Validate the resolved path is within the base directory
+        const resolvedImportPath = path.resolve(importLogsPath);
+        if (!isPathWithinBase(resolvedImportPath, baseDirectory)) {
+          console.error(
+            'Path traversal attempt detected in copyLogsToTestStack'
+          );
+          return;
+        }
+
         // Read error and success logs
-        const errorLogPath = path.join(importLogsPath, 'error.log');
-        const successLogPath = path.join(importLogsPath, 'success.log');
+        const errorLogPath = path.join(resolvedImportPath, 'error.log');
+        const successLogPath = path.join(resolvedImportPath, 'success.log');
 
         let combinedLogs = '';
 
@@ -372,11 +416,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
       }
     };
 
-    await copyLogsToTestStack(project?.current_test_stack_id, loggerPath);
+    await copyLogsToTestStack(sanitizedTestStackId, resolvedLoggerPath);
     const contentTypes = await fieldAttacher({
       orgId,
-      projectId,
-      destinationStackId: project?.current_test_stack_id,
+      projectId: sanitizedProjectId,
+      destinationStackId: sanitizedTestStackId,
       region,
       user_id,
     });
@@ -709,15 +753,22 @@ const startTestMigration = async (req: Request): Promise<any> => {
 const startMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id } = req?.body?.token_payload ?? {};
+
+  // Validate projectId to prevent path traversal attacks
+  const sanitizedProjectId = path.basename(projectId || '');
+  if (!sanitizedProjectId || sanitizedProjectId !== projectId) {
+    throw new ExceptionFunction('Invalid project ID', HTTP_CODES.BAD_REQUEST);
+  }
+
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
-    .find({ id: projectId })
+    .find({ id: sanitizedProjectId })
     .value();
 
   const index = ProjectModelLowdb.chain
     .get('projects')
-    .findIndex({ id: projectId })
+    .findIndex({ id: sanitizedProjectId })
     .value();
   if (index > -1) {
     await ProjectModelLowdb.update((data: any) => {
@@ -727,45 +778,80 @@ const startMigration = async (req: Request): Promise<any> => {
 
   const packagePath = project?.extract_path;
   if (project?.destination_stack_id) {
+    // Validate destination stack ID to prevent path traversal
+    const sanitizedDestStackId = path.basename(
+      project?.destination_stack_id || ''
+    );
+    if (
+      !sanitizedDestStackId ||
+      sanitizedDestStackId !== project?.destination_stack_id
+    ) {
+      throw new ExceptionFunction('Invalid stack ID', HTTP_CODES.BAD_REQUEST);
+    }
+
     const {
       legacy_cms: { cms, file_path },
     } = project;
+
+    // Validate logger path is within expected directory
+    const logsBaseDir = path.join(process.cwd(), 'logs');
     const loggerPath = path.join(
-      process.cwd(),
-      'logs',
-      projectId,
-      `${project?.destination_stack_id}.log`
+      logsBaseDir,
+      sanitizedProjectId,
+      `${sanitizedDestStackId}.log`
     );
+    const resolvedLoggerPath = path.resolve(loggerPath);
+    if (!isPathWithinBase(resolvedLoggerPath, logsBaseDir)) {
+      throw new ExceptionFunction(
+        'Invalid log path detected',
+        HTTP_CODES.BAD_REQUEST
+      );
+    }
+
     const message = getLogMessage(
       'start Migration',
       'Starting Migration...',
       {}
     );
     await customLogger(
-      projectId,
-      project?.destination_stack_id,
+      sanitizedProjectId,
+      sanitizedDestStackId,
       'info',
       message
     );
-    await setLogFilePath(loggerPath);
+    await setLogFilePath(resolvedLoggerPath);
 
     const copyLogsToStack = async (
       stackUid: string,
       projectLogPath: string
     ) => {
       try {
-        // Path to source logs
+        // Validate stackUid to prevent path traversal attacks
+        const sanitizedStackUid = path.basename(stackUid);
+        if (!sanitizedStackUid || sanitizedStackUid !== stackUid) {
+          console.error('Invalid stackUid detected, skipping log copy');
+          return;
+        }
+
+        // Path to source logs with validated base directory
+        const baseDirectory = path.join(process.cwd(), 'migration-data');
         const importLogsPath = path.join(
-          process.cwd(),
-          'migration-data',
-          stackUid,
+          baseDirectory,
+          sanitizedStackUid,
           'logs',
           'import'
         );
 
+        // Validate the resolved path is within the base directory
+        const resolvedImportPath = path.resolve(importLogsPath);
+        if (!isPathWithinBase(resolvedImportPath, baseDirectory)) {
+          console.error('Path traversal attempt detected in copyLogsToStack');
+          return;
+        }
+
         // Read error and success logs
-        const errorLogPath = path.join(importLogsPath, 'error.log');
-        const successLogPath = path.join(importLogsPath, 'success.log');
+        const errorLogPath = path.join(resolvedImportPath, 'error.log');
+        const successLogPath = path.join(resolvedImportPath, 'success.log');
 
         let combinedLogs = '';
 
@@ -798,12 +884,12 @@ const startMigration = async (req: Request): Promise<any> => {
       }
     };
 
-    await copyLogsToStack(project?.destination_stack_id, loggerPath);
+    await copyLogsToStack(sanitizedDestStackId, resolvedLoggerPath);
 
     const contentTypes = await fieldAttacher({
       orgId,
-      projectId,
-      destinationStackId: project?.destination_stack_id,
+      projectId: sanitizedProjectId,
+      destinationStackId: sanitizedDestStackId,
       region,
       user_id,
     });

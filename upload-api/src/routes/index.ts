@@ -14,6 +14,7 @@ import { fileOperationLimiter } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import config from '../config/index';
 import createMapper from '../services/createMapper';
+import { sanitizeId, sanitizeFilename, isPathWithinBase } from '../utils/sanitize-path.utils';
 
 const router: Router = express.Router();
 // Use memory storage to avoid saving the file locally
@@ -94,9 +95,10 @@ router.get(
   fileOperationLimiter,
   async function (req: Request, res: Response) {
     try {
-      const projectId: string | string[] = req?.headers?.projectid ?? '';
+      // Sanitize user inputs to prevent path traversal attacks
+      const projectId: string = sanitizeId(req?.headers?.projectid ?? '');
       const app_token: string | string[] = req?.headers?.app_token ?? '';
-      const affix: string | string[] = req?.headers?.affix ?? 'csm';
+      const affix: string = sanitizeId(req?.headers?.affix ?? 'csm');
       const cmsType = config?.cmsType?.toLowerCase();
 
       console.log('=== VALIDATOR REQUEST DEBUG ===');
@@ -171,6 +173,7 @@ router.get(
           if (data?.status === 200) {
             console.log('🔧 Creating mapper for folder/directory...');
             console.log('  Calling createMapper with localPath:', localPath);
+            // Path is from config (server-side), projectId and affix are sanitized
             createMapper(localPath, projectId, app_token, affix, config);
           }
 
@@ -231,8 +234,16 @@ router.get(
 
             res.status(data?.status || 200).json(data);
             if (data?.status === 200) {
-              const filePath = path.join(__dirname, '..', '..', 'extracted_files', `${name}.json`);
-              createMapper(filePath, projectId, app_token, affix, config);
+              // Sanitize the filename before constructing path
+              const safeName = sanitizeFilename(name);
+              const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+              const filePath = path.join(baseDir, `${safeName}.json`);
+              // Validate path is within expected directory
+              if (isPathWithinBase(filePath, baseDir)) {
+                createMapper(filePath, projectId, app_token, affix, config);
+              } else {
+                console.error('Path traversal attempt detected');
+              }
             }
           });
         } else {
@@ -265,11 +276,20 @@ router.get(
 
             res.status(data?.status || 200).json(data);
             if (data?.status === 200) {
-              let filePath = path.join(__dirname, '..', '..', 'extracted_files', name);
+              // Sanitize the filename before constructing path
+              const safeName = sanitizeFilename(name);
+              const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+              let filePath = path.join(baseDir, safeName);
               if (data?.file !== undefined) {
-                filePath = path.join(__dirname, '..', '..', 'extracted_files', name, data?.file);
+                const safeFile = sanitizeFilename(data.file);
+                filePath = path.join(baseDir, safeName, safeFile);
               }
-              createMapper(filePath, projectId, app_token, affix, config);
+              // Validate path is within expected directory
+              if (isPathWithinBase(filePath, baseDir)) {
+                createMapper(filePath, projectId, app_token, affix, config);
+              } else {
+                console.error('Path traversal attempt detected');
+              }
             }
           });
         }
@@ -386,21 +406,23 @@ router.get(
               res.status(data?.status || 200).json(data);
 
               if (data?.status === 200) {
-                let filePath = path.join(__dirname, '..', '..', 'extracted_files', fileName);
+                // Sanitize the filename before constructing path
+                const safeFileName = sanitizeFilename(fileName);
+                const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+                let filePath = path.join(baseDir, safeFileName);
 
                 // If the processor returned a specific file/folder, update the path
                 if (data?.file) {
-                  filePath = path.join(
-                    __dirname,
-                    '..',
-                    '..',
-                    'extracted_files',
-                    fileName,
-                    data.file
-                  );
+                  const safeDataFile = sanitizeFilename(data.file);
+                  filePath = path.join(baseDir, safeFileName, safeDataFile);
                 }
 
-                createMapper(filePath, projectId, app_token, affix, config);
+                // Validate path is within expected directory
+                if (isPathWithinBase(filePath, baseDir)) {
+                  createMapper(filePath, projectId, app_token, affix, config);
+                } else {
+                  console.error('Path traversal attempt detected');
+                }
               }
             } catch (error: any) {
               console.error('Processing error:', error);

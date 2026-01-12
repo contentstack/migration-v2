@@ -1,24 +1,70 @@
 import mysql from 'mysql2';
 import customLogger from '../utils/custom-logger.utils.js';
 
+// Default connection timeout in milliseconds (30 seconds)
+const CONNECTION_TIMEOUT_MS = 30000;
+
 const createDbConnection = async (
   config: any,
   projectId: string = '',
-  stackId: string = ''
+  stackId: string = '',
+  timeoutMs: number = CONNECTION_TIMEOUT_MS
 ): Promise<mysql.Connection | null> => {
   try {
-    // Create the connection with config values
+    // Create the connection with config values and built-in timeout
     const connection = mysql.createConnection({
       host: config?.host,
       user: config?.user,
       password: config?.password,
       database: config?.database,
       port: Number(config?.port),
+      connectTimeout: timeoutMs, // MySQL2 built-in connection timeout
     });
 
-    // Test the connection by wrapping the connect method in a promise
+    // Test the connection by wrapping the connect method in a promise with timeout
     return new Promise((resolve, reject) => {
+      let isSettled = false;
+      let timeoutId: NodeJS.Timeout | null = null;
+
+      // Timeout handler to prevent indefinite hanging
+      timeoutId = setTimeout(() => {
+        if (!isSettled) {
+          isSettled = true;
+          // Attempt to destroy the connection on timeout
+          try {
+            connection.destroy();
+          } catch {
+            // Ignore errors during destroy
+          }
+          const timeoutError = new Error(
+            `Database connection timed out after ${timeoutMs}ms`
+          );
+          customLogger(projectId, stackId, 'error', timeoutError.message).catch(
+            () => {}
+          );
+          reject(timeoutError);
+        }
+      }, timeoutMs);
+
       connection.connect((err) => {
+        // Clear timeout since callback was invoked
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+
+        // Prevent double-settlement if timeout already fired
+        if (isSettled) {
+          // Connection callback came after timeout, clean up
+          try {
+            connection.destroy();
+          } catch {
+            // Ignore cleanup errors
+          }
+          return;
+        }
+        isSettled = true;
+
         if (err) {
           // Close the connection properly with callback to prevent resource leaks
           // Wait for connection.end() to complete before rejecting
@@ -74,7 +120,7 @@ const createDbConnection = async (
       });
     });
   } catch (error: any) {
-    // Use .catch() for consistency with the Promise callback pattern above
+    // Handles synchronous errors from mysql.createConnection() or other setup
     customLogger(
       projectId,
       stackId,
