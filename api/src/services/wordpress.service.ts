@@ -1116,7 +1116,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     const response = await axios.get(url, { responseType: "arraybuffer" });
     // Ensure files directory exists
     fs.mkdirSync(
-      path.resolve(assetsSave, "files", customId),
+      path.resolve(assetsSave, "files"),
       { recursive: true }
     );
     fs.writeFileSync(path.resolve(assetsSave, "files", customId, filename), response.data);
