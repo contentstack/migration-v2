@@ -56,19 +56,13 @@ const createGlobalField = async ({
     }
     }
     
-    const safeFileGlobalFields = fileGlobalFields;
-    
-    const existingUids = new Set(
-      safeFileGlobalFields?.map?.((gf: { uid: string }) => gf?.uid)
-    );
-    
     const mergedGlobalFields = [
-        ...globalfields.filter(
-        (fileField: { uid: string }) => !existingUids?.has(fileField?.uid)
-      ),
-      ...safeFileGlobalFields,
+    ...globalfields,
+    ...(fileGlobalFields?.filter(
+        (fileField: { uid: string }) =>
+        !globalfields?.some((gf: { uid: string }) => gf?.uid === fileField?.uid)
+    ) || [])
     ];
-    
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
     await fs.promises.writeFile(filePath, JSON.stringify(mergedGlobalFields, null, 2));
    

@@ -14,5 +14,5 @@ data
 #Log files 
 error.log
 combine.log
-
+*MigrationData*
 tmp

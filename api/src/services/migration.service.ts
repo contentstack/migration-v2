@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-
 import { Request } from 'express';
 import path from 'path';
 import ProjectModelLowdb from '../models/project-lowdb.js';
@@ -24,6 +22,7 @@ import {
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
 import { siteCoreService } from './sitecore.service.js';
 import { wordpressService } from './wordpress.service.js';
+import { drupalService } from './drupal.service.js';
 import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
@@ -36,7 +35,7 @@ import fsPromises from 'fs/promises';
 import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
-import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
+import { getSafePath } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
 
 /**
@@ -112,6 +111,66 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       .findIndex({ id: projectId })
       .value();
     if (index > -1) {
+      // ✅ NEW: Generate queries for new test stack (Drupal only)
+      const project = ProjectModelLowdb.data.projects[index];
+      if (project?.legacy_cms?.cms === CMS.DRUPAL) {
+        try {
+          const startMessage = getLogMessage(
+            srcFun,
+            `Generating dynamic queries for new test stack (${res?.data?.stack?.api_key})...`,
+            token_payload
+          );
+          await customLogger(
+            projectId,
+            res?.data?.stack?.api_key,
+            'info',
+            startMessage
+          );
+
+          // Get database configuration from project
+          const dbConfig = {
+            host: project?.legacy_cms?.mySQLDetails?.host,
+            user: project?.legacy_cms?.mySQLDetails?.user,
+            password: project?.legacy_cms?.mySQLDetails?.password || '',
+            database: project?.legacy_cms?.mySQLDetails?.database,
+            port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+          };
+
+          // Generate dynamic queries for the new test stack
+          await drupalService.createQuery(
+            dbConfig,
+            res?.data?.stack?.api_key,
+            projectId
+          );
+
+          const successMessage = getLogMessage(
+            srcFun,
+            `Successfully generated queries for test stack (${res?.data?.stack?.api_key})`,
+            token_payload
+          );
+          await customLogger(
+            projectId,
+            res?.data?.stack?.api_key,
+            'info',
+            successMessage
+          );
+        } catch (error: any) {
+          const errorMessage = getLogMessage(
+            srcFun,
+            `Failed to generate queries for test stack: ${error.message}. Test migration may fail.`,
+            token_payload,
+            error
+          );
+          await customLogger(
+            projectId,
+            res?.data?.stack?.api_key,
+            'error',
+            errorMessage
+          );
+          // Don't throw error - let test stack creation succeed even if query generation fails
+        }
+      }
+
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_step = STEPPER_STEPS['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
@@ -269,88 +328,45 @@ const startTestMigration = async (req: Request): Promise<any> => {
       projectLogPath: string
     ) => {
       try {
-        // Sanitize stackUid using dedicated sanitization function to prevent path traversal
-        const sanitizedStackUid = sanitizeStackId(stackUid);
-
-        // Validate the sanitized stackUid - sanitizeStackId returns null for invalid inputs
-        if (sanitizedStackUid === null) {
-          console.error('Invalid stack UID provided');
-          return;
-        }
-
-        // Define base directory for validation
-        const baseDir = path.join(process.cwd(), 'migration-data');
-        const resolvedBaseDir = path.resolve(baseDir);
-
-        // Construct safe paths using only the validated sanitized stackUid
-        const errorLogPath = path.join(
-          resolvedBaseDir,
-          sanitizedStackUid,
+        // Path to source logs
+        const importLogsPath = path.join(
+          process.cwd(),
+          'migration-data',
+          stackUid,
           'logs',
-          'import',
-          'error.log'
-        );
-        const successLogPath = path.join(
-          resolvedBaseDir,
-          sanitizedStackUid,
-          'logs',
-          'import',
-          'success.log'
+          'import'
         );
 
-        // Final validation to ensure paths are within the expected base directory
-        if (
-          !path.resolve(errorLogPath).startsWith(resolvedBaseDir + path.sep) ||
-          !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
-        ) {
-          console.error(
-            'Invalid path detected, potential path traversal attempt'
-          );
-          return;
-        }
+        // Read error and success logs
+        const errorLogPath = path.join(importLogsPath, 'error.log');
+        const successLogPath = path.join(importLogsPath, 'success.log');
 
         let combinedLogs = '';
 
-        // Read and combine error logs - use realpath to canonicalize and validate path
-        try {
-          const canonicalErrorPath = await fsPromises.realpath(errorLogPath);
-          // Verify canonical path is still within base directory
-          if (canonicalErrorPath.startsWith(resolvedBaseDir + path.sep)) {
-            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
-            // path containment check, and realpath canonicalization before reading
-            const errorLogs = await fsPromises.readFile(
-              canonicalErrorPath,
-              'utf8'
-            );
-            combinedLogs += errorLogs + '\n';
-          }
-        } catch {
-          // File doesn't exist or access denied - skip
+        // Read and combine error logs
+        if (
+          await fsPromises
+            .access(errorLogPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          const errorLogs = await fsPromises.readFile(errorLogPath, 'utf8');
+          combinedLogs += errorLogs + '\n';
         }
 
-        // Read and combine success logs - use realpath to canonicalize and validate path
-        try {
-          const canonicalSuccessPath = await fsPromises.realpath(
-            successLogPath
-          );
-          // Verify canonical path is still within base directory
-          if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
-            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
-            // path containment check, and realpath canonicalization before reading
-            const successLogs = await fsPromises.readFile(
-              canonicalSuccessPath,
-              'utf8'
-            );
-            combinedLogs += successLogs;
-          }
-        } catch {
-          // File doesn't exist or access denied - skip
+        // Read and combine success logs
+        if (
+          await fsPromises
+            .access(successLogPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          const successLogs = await fsPromises.readFile(successLogPath, 'utf8');
+          combinedLogs += successLogs;
         }
 
         // Write combined logs to test stack log file
-        if (combinedLogs) {
-          await fsPromises.appendFile(projectLogPath, combinedLogs);
-        }
+        await fsPromises.appendFile(projectLogPath, combinedLogs);
       } catch (error) {
         console.error('Error copying logs:', error);
       }
@@ -588,6 +604,84 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
 
+      case CMS.DRUPAL: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+        };
+
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        // Priority: project config > request body > environment variables > empty (auto-detection)
+        const drupalAssetsConfig = {
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
+            '',
+          public_path:
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
+            '',
+        };
+
+        // Run Drupal migration services in proper order (following test-drupal-services sequence)
+        // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId
+        );
+
+        // Step 2: Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
+        await drupalService?.generateContentTypeSchemas(
+          project?.current_test_stack_id,
+          projectId
+        );
+
+        await drupalService?.createAssets(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true,
+          drupalAssetsConfig
+        );
+        await drupalService?.createRefrence(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true
+        );
+        await drupalService?.createTaxonomy(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId
+        );
+        await drupalService?.createEntry(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true,
+          project?.stackDetails?.master_locale,
+          project?.content_mapper || [],
+          project
+        );
+        await drupalService?.createLocale(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          project
+        );
+        await drupalService?.createVersionFile(
+          project?.current_test_stack_id,
+          projectId
+        );
+        break;
+      }
       default:
         break;
     }
@@ -660,88 +754,45 @@ const startMigration = async (req: Request): Promise<any> => {
       projectLogPath: string
     ) => {
       try {
-        // Sanitize stackUid using dedicated sanitization function to prevent path traversal
-        const sanitizedStackUid = sanitizeStackId(stackUid);
-
-        // Validate the sanitized stackUid - sanitizeStackId returns null for invalid inputs
-        if (sanitizedStackUid === null) {
-          console.error('Invalid stack UID provided');
-          return;
-        }
-
-        // Define base directory for validation
-        const baseDir = path.join(process.cwd(), 'migration-data');
-        const resolvedBaseDir = path.resolve(baseDir);
-
-        // Construct safe paths using only the validated sanitized stackUid
-        const errorLogPath = path.join(
-          resolvedBaseDir,
-          sanitizedStackUid,
+        // Path to source logs
+        const importLogsPath = path.join(
+          process.cwd(),
+          'migration-data',
+          stackUid,
           'logs',
-          'import',
-          'error.log'
-        );
-        const successLogPath = path.join(
-          resolvedBaseDir,
-          sanitizedStackUid,
-          'logs',
-          'import',
-          'success.log'
+          'import'
         );
 
-        // Final validation to ensure paths are within the expected base directory
-        if (
-          !path.resolve(errorLogPath).startsWith(resolvedBaseDir + path.sep) ||
-          !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
-        ) {
-          console.error(
-            'Invalid path detected, potential path traversal attempt'
-          );
-          return;
-        }
+        // Read error and success logs
+        const errorLogPath = path.join(importLogsPath, 'error.log');
+        const successLogPath = path.join(importLogsPath, 'success.log');
 
         let combinedLogs = '';
 
-        // Read and combine error logs - use realpath to canonicalize and validate path
-        try {
-          const canonicalErrorPath = await fsPromises.realpath(errorLogPath);
-          // Verify canonical path is still within base directory
-          if (canonicalErrorPath.startsWith(resolvedBaseDir + path.sep)) {
-            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
-            // path containment check, and realpath canonicalization before reading
-            const errorLogs = await fsPromises.readFile(
-              canonicalErrorPath,
-              'utf8'
-            );
-            combinedLogs += errorLogs + '\n';
-          }
-        } catch {
-          // File doesn't exist or access denied - skip
+        // Read and combine error logs
+        if (
+          await fsPromises
+            .access(errorLogPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          const errorLogs = await fsPromises.readFile(errorLogPath, 'utf8');
+          combinedLogs += errorLogs + '\n';
         }
 
-        // Read and combine success logs - use realpath to canonicalize and validate path
-        try {
-          const canonicalSuccessPath = await fsPromises.realpath(
-            successLogPath
-          );
-          // Verify canonical path is still within base directory
-          if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
-            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
-            // path containment check, and realpath canonicalization before reading
-            const successLogs = await fsPromises.readFile(
-              canonicalSuccessPath,
-              'utf8'
-            );
-            combinedLogs += successLogs;
-          }
-        } catch {
-          // File doesn't exist or access denied - skip
+        // Read and combine success logs
+        if (
+          await fsPromises
+            .access(successLogPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          const successLogs = await fsPromises.readFile(successLogPath, 'utf8');
+          combinedLogs += successLogs;
         }
 
         // Write combined logs to stack log file
-        if (combinedLogs) {
-          await fsPromises.appendFile(projectLogPath, combinedLogs);
-        }
+        await fsPromises.appendFile(projectLogPath, combinedLogs);
       } catch (error) {
         console.error('Error copying logs:', error);
       }
@@ -934,13 +985,29 @@ const startMigration = async (req: Request): Promise<any> => {
           project?.destination_stack_id,
           projectId
         );
+        // 🔍 DEBUG: Log master_locale before passing to createEntry
+        const masterLocaleForContentful = project?.stackDetails?.master_locale;
+        console.info(
+          '🔍 Contentful startMigration - master_locale before createEntry:',
+          {
+            master_locale: masterLocaleForContentful,
+            master_locale_type: typeof masterLocaleForContentful,
+            master_locale_isLowercase:
+              masterLocaleForContentful ===
+              masterLocaleForContentful?.toLowerCase?.(),
+            master_locale_toLowerCase:
+              masterLocaleForContentful?.toLowerCase?.(),
+            project_stackDetails: project?.stackDetails,
+          }
+        );
+
         await contentfulService?.createEntry(
           cleanLocalPath,
           project?.destination_stack_id,
           projectId,
           contentTypes,
           project?.mapperKeys,
-          project?.stackDetails?.master_locale,
+          masterLocaleForContentful,
           project
         );
         await contentfulService?.createVersionFile(
@@ -974,6 +1041,84 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
 
+      case CMS.DRUPAL: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+        };
+
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        // Priority: project config > request body > environment variables > empty (auto-detection)
+        const drupalAssetsConfig = {
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
+            '',
+          public_path:
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
+            '',
+        };
+
+        // Run Drupal migration services in proper order (following test-drupal-services sequence)
+        // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId
+        );
+
+        // Step 2: Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
+        await drupalService?.generateContentTypeSchemas(
+          project?.destination_stack_id,
+          projectId
+        );
+
+        await drupalService?.createAssets(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false,
+          drupalAssetsConfig
+        );
+        await drupalService?.createRefrence(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false
+        );
+        await drupalService?.createTaxonomy(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId
+        );
+        await drupalService?.createLocale(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          project
+        );
+        await drupalService?.createEntry(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false,
+          project?.stackDetails?.master_locale,
+          project?.content_mapper || [],
+          project
+        );
+        await drupalService?.createVersionFile(
+          project?.destination_stack_id,
+          projectId
+        );
+        break;
+      }
       default:
         break;
     }
@@ -1138,7 +1283,7 @@ const getAuditData = async (req: Request): Promise<any> => {
           });
         });
       }
-      if (searchText && searchText !== null && searchText !== 'null') {
+      if (searchText && searchText !== 'null') {
         transformedData = transformedData?.filter((item) => {
           return Object?.values(item)?.some(
             (value) =>
@@ -1163,7 +1308,7 @@ const getAuditData = async (req: Request): Promise<any> => {
         });
       });
     }
-    if (searchText && searchText !== null && searchText !== 'null') {
+    if (searchText && searchText !== null) {
       transformedData = transformedData?.filter((item: any) => {
         return Object?.values(item)?.some(
           (value) =>
@@ -1301,12 +1446,6 @@ const getLogs = async (req: Request): Promise<any> => {
       const filterOptions = Array?.from(
         new Set(logEntries?.map((log) => log?.level))
       );
-      logEntries?.findIndex?.((log) =>
-        log?.message?.includes('Starting audit process')
-      );
-      logEntries?.findIndex?.((log) =>
-        log?.message?.includes('Audit process completed')
-      );
       logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
       if (filter !== 'all') {
         const filters = filter?.split('-') ?? [];
@@ -1352,7 +1491,45 @@ const getLogs = async (req: Request): Promise<any> => {
  */
 export const createSourceLocales = async (req: Request) => {
   const projectId = req?.params?.projectId;
-  const locales = req?.body?.locale;
+  const rawLocales = req?.body?.locale;
+
+  console.info('🔍 [createSourceLocales] Received locales from upload-api:', {
+    rawLocales,
+    rawLocales_type: typeof rawLocales,
+    rawLocales_isArray: Array.isArray(rawLocales),
+    rawLocales_length: Array.isArray(rawLocales) ? rawLocales.length : 'N/A',
+    firstLocale_is_master:
+      Array.isArray(rawLocales) && rawLocales.length > 0
+        ? rawLocales[0]
+        : 'N/A',
+    projectId,
+  });
+
+  // 🔧 CRITICAL: Always normalize to lowercase before saving to database
+  // This is a final safety check - even if upload-api sends uppercase, we normalize here
+  // Master locale is already FIRST element in the array from upload-api
+  const locales = Array.isArray(rawLocales)
+    ? rawLocales
+        .map((locale: any, index: number) => {
+          const localeValue =
+            typeof locale === 'string'
+              ? locale
+              : locale?.code || locale?.value || locale;
+          const normalized = (localeValue || '').toLowerCase();
+          const isMaster = index === 0 ? ' (MASTER - first element)' : '';
+          console.info(
+            `🔍 [createSourceLocales] Normalizing locale [${index}]: "${localeValue}" -> "${normalized}"${isMaster}`
+          );
+          return normalized;
+        })
+        .filter((locale: string) => locale && locale.length > 0)
+    : [];
+
+  console.info('🔍 [createSourceLocales] Final normalized locales to save:', {
+    locales,
+    master_locale_first: locales[0] || 'NONE',
+    total_count: locales.length,
+  });
 
   try {
     // Find the project with the specified projectId
@@ -1364,6 +1541,15 @@ export const createSourceLocales = async (req: Request) => {
     if (index > -1) {
       ProjectModelLowdb?.update?.((data: any) => {
         data.projects[index].source_locales = locales;
+
+        console.info(
+          '✅ [createSourceLocales] Saved source_locales to project:',
+          {
+            projectId,
+            saved_source_locales: locales,
+            first_element_master: locales[0] || 'NONE',
+          }
+        );
       });
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
@@ -1406,12 +1592,68 @@ export const updateLocaleMapper = async (req: Request) => {
       ?.get?.('projects')
       ?.findIndex?.({ id: projectId })
       ?.value?.();
+
     if (index > -1) {
+      // 🔧 Reconstruct localeMapping from master_locale and locales
+      // 🔧 CRITICAL: Always convert to lowercase for consistent mapping across all CMS types
+      const localeMapping: Record<string, string> = {};
+
+      // Add master locale mappings with "-master_locale" suffix
+      Object.entries(mapperObject?.master_locale || {}).forEach(
+        ([source, dest]) => {
+          const normalizedSource = (source || '').toLowerCase();
+          const normalizedDest = ((dest as string) || '').toLowerCase();
+          localeMapping[`${normalizedSource}-master_locale`] = normalizedDest;
+        }
+      );
+
+      // Add regular locale mappings
+      Object.entries(mapperObject?.locales || {}).forEach(([source, dest]) => {
+        const normalizedSource = (source || '').toLowerCase();
+        const normalizedDest = ((dest as string) || '').toLowerCase();
+        localeMapping[normalizedSource] = normalizedDest;
+      });
+
       ProjectModelLowdb?.update?.((data: any) => {
         data.projects[index].master_locale = mapperObject?.master_locale;
         data.projects[index].locales = mapperObject?.locales;
+        data.projects[index].localeMapping = localeMapping; // ✅ SAVE localeMapping!
       });
+
       // Write back the updated projects
+      await ProjectModelLowdb.write();
+
+      // 🔍 DEBUG: Log what was saved
+      await ProjectModelLowdb?.read?.();
+      const updatedProject = ProjectModelLowdb.chain
+        .get('projects')
+        .find({ id: projectId })
+        .value();
+      console.info(
+        '================================================================================'
+      );
+      console.info(
+        '🔍 [API updateLocaleMapper] Saved locale data to database:'
+      );
+      console.info('  Project ID:', projectId);
+      console.info('  master_locale:', updatedProject?.master_locale);
+      console.info('  locales:', updatedProject?.locales);
+      console.info('  localeMapping:', updatedProject?.localeMapping);
+      console.info(
+        '  localeMapping keys:',
+        Object.keys(updatedProject?.localeMapping || {})
+      );
+      console.info(
+        '================================================================================'
+      );
+
+      // 🔍 LOGGING: Log after update
+      await ProjectModelLowdb?.read?.();
+      logger.info('Locale mapping updated successfully', {
+        projectId,
+        masterLocaleKeys: Object.keys(mapperObject?.master_locale || {}),
+        localesKeys: Object.keys(mapperObject?.locales || {}),
+      });
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
@@ -1419,11 +1661,7 @@ export const updateLocaleMapper = async (req: Request) => {
       });
     }
   } catch (err: any) {
-    console.error(
-      '🚀 ~ updateLocaleMapper ~ err:',
-      err?.response?.data ?? err,
-      err
-    );
+    console.error('Error details:', err?.response?.data ?? err);
     logger.warn('Bad Request', {
       status: HTTP_CODES?.BAD_REQUEST,
       message: HTTP_TEXTS?.INTERNAL_ERROR,

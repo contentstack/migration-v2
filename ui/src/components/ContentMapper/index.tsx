@@ -1,5 +1,5 @@
 // Libraries
-import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useState, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -79,7 +79,7 @@ const Fields: MappingFields = {
     options: {
       'Single Line Textbox': 'single_line_text',
       'Multi Line Textbox': 'multi_line_text',
-      'HTML Rich Text Editor': 'html',
+      'HTML Rich text Editor': 'html',
       'JSON Rich Text Editor': 'json'
     },
     type: 'text'
@@ -88,7 +88,7 @@ const Fields: MappingFields = {
     label: 'Multi Line Textbox',
     options: {
       'Multi Line Textbox': 'multi_line_text',
-      'HTML Rich Text Editor': 'html',
+      'HTML Rich text Editor': 'html',
       'JSON Rich Text Editor': 'json'
     },
     type: 'multiline'
@@ -97,14 +97,14 @@ const Fields: MappingFields = {
     label: 'JSON Rich Text Editor',
     options: {
       'JSON Rich Text Editor': 'json',
-      'HTML Rich Text Editor': 'html'
+      'HTML Rich text Editor': 'html'
     },
     type: 'json',
   },
   'html': {
-    label: 'HTML Rich Text Editor',
+    label: 'HTML Rich text Editor',
     options: {
-      'HTML Rich Text Editor': 'html',
+      'HTML Rich text Editor': 'html',
       'JSON Rich Text Editor': 'json'
     },
     type: 'allow_rich_text'
@@ -114,7 +114,7 @@ const Fields: MappingFields = {
     label: 'Markdown',
     options: {
       'Markdown': 'markdown',
-      'HTML Rich Text Editor': 'html',
+      'HTML Rich text Editor': 'html',
       'JSON Rich Text Editor': 'json'
     },
     type: 'markdown'
@@ -195,8 +195,8 @@ const Fields: MappingFields = {
     type: ''
   },
   'global_field': {
-    label: 'Global Field',
-    options: { 'Global Field': 'global_field' },
+    label: 'Global',
+    options: { 'Global': 'global_field' },
     type: ""
   },
   'group': {
@@ -223,6 +223,11 @@ const Fields: MappingFields = {
     label: 'Block',
     options: {'Block':'modular_blocks_child'},
     type:''
+  },
+  'taxonomy':{
+    label: 'Taxonomy',
+    options: {'Taxonomy':'taxonomy'},
+    type:'taxonomy'
   }
 }
 type contentMapperProps = {
@@ -310,7 +315,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const navigate = useNavigate();
 
   const filterRef = useRef<HTMLDivElement | null>(null);
-  const tableWrapperRef = useRef<HTMLDivElement | null>(null);
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -335,7 +339,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if(field?.backupFieldType === 'reference' &&  field?.refrenceTo?.length === 0) {
+      if(field?.backupFieldType === 'reference' &&  field?.referenceTo?.length === 0) {
+        field._canSelect = false;
+      }else if(field?.backupFieldType === 'taxonomy' && field?.referenceTo?.length === 0) {
         field._canSelect = false;
       }
       else if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
@@ -346,6 +352,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   useEffect(() => {
     const mappedContentType = contentModels && contentModels?.find((item) => item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || '']);
+    // if (contentTypeMapped && otherCmsTitle  ) {
 
     if (mappedContentType?.uid) {
       setOtherContentType({
@@ -495,7 +502,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     return () => {
       document.removeEventListener('click', handleClickOutside, true);
     };
-  }, []); 
+  }, []);
 
   /**
    * Debounces a function call by delaying its execution until after the specified delay has elapsed since the last invocation.
@@ -692,6 +699,22 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   }, [otherContentType]);
 
+  // To dispatch the changed dropdown state
+  // useEffect(() => {
+  //   const newMigrationDataObj: INewMigration = {
+  //     ...newMigrationData,
+  //     content_mapping: {
+  //       ...newMigrationData?.content_mapping,
+  //       isDropDownChanged: isDropDownChanged,
+  //       content_type_mapping: [
+  //         ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
+  //       ]
+  //     }
+  //   };
+
+  //   dispatch(updateNewMigrationData((newMigrationDataObj)));
+  // }, [isDropDownChanged]);
+
 
   useBlockNavigation(isModalOpen);
   // Method to fetch content types
@@ -835,16 +858,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   };
 
   const openContentType = (i: number) => {
-    // Reset scroll position to top immediately when switching content types
-    if (tableWrapperRef?.current) {
-      const elements = tableWrapperRef.current?.querySelectorAll('.Table__body');
-      elements?.forEach(el => {
-        if (el instanceof HTMLElement) {
-          el.scrollTop = 0;
-        }
-      });
-    }
-    
     setIsAllCheck(true);
     setIsFieldDeleted(false);
     setActive(i);
@@ -869,7 +882,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
         const updatedRow = {
           ...row,
-          refrenceTo: updatedSettings?.referenedItems || row?.refrenceTo,
+          referenceTo: updatedSettings?.referenedItems,
           advanced: { ...row?.advanced, ...updatedSettings }
         };
         return updatedRow;
@@ -1130,7 +1143,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
    * @param singleSelectedRowIds - The single selected row IDs
    * @returns void
    */
-  const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
+  const handleSelectedEntries = useCallback((singleSelectedRowIds: string[]) => {
     const selectedObj: UidMap = {};
     const previousRowIds: UidMap = { ...rowIds as UidMap };
 
@@ -1222,7 +1235,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
     setRowIds(selectedObj);
     setSelectedEntries(updatedTableData);
-  };
+  }, [rowIds, selectedEntries, tableData]);
 
   // Method for change select value
   const handleValueChange = (value: FieldTypes, rowIndex: string, rowContentstackFieldUid: string) => {
@@ -1626,7 +1639,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       'json': 'allow_rich_text',
       'Multi-Line Text': 'multiline',
       'multiline': 'multiline',
-      'HTML Rich Text Editor': 'allow_rich_text',
+      'HTML Rich text Editor': 'allow_rich_text',
       'JSON Rich Text Editor': 'json',
       'Rich Text': 'allow_rich_text',
       'Group': 'Group',
@@ -1675,7 +1688,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
           const array = groupArray?.[0]?.child || []
 
-          if (value?.data_type === 'group') {
+          if (value.data_type === 'group') {
             processSchema(value, data, array, groupArray, OptionsForRow, fieldsOfContentstack)
           }
           else if (!array?.some(item => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
@@ -2012,9 +2025,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         contentstackFieldType: row?.backupFieldType,
         contentstackField: row?.otherCmsField,
         contentstackFieldUid: row?.backupFieldUid,
-        advanced: row?.advanced?.initial,
-        ...(row?.refrenceTo && { refrenceTo: row?.initialRefrenceTo }),
-       
+        advanced: {
+          ...row?.advanced?.initial,
+        },
       };
     });
     setTableData(updatedRows);
@@ -2093,14 +2106,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           setFilteredContentTypes(filteredCT);
           setContentTypes(resetContentTypes);
           setCount(filteredCT?.length);
-          
-          const updatedRowIds: Record<string, boolean> = {};
-            updatedRows?.forEach((item: FieldMapType) => {
-              if (item?.id) {
-                updatedRowIds[item.id] = true;
-              }
-            });
-          setRowIds(updatedRowIds);
           
           Notification({
             notificationContent: { text: data?.message },
@@ -2625,7 +2630,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
             {/* Content Type Fields */}
             <div className="content-types-fields-wrapper">
-              <div className="table-wrapper" ref={tableWrapperRef}>
+              <div className="table-wrapper">
                 <InfiniteScrollTable
                   loading={loading}
                   canSearch={true}
@@ -2687,7 +2692,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
                   name={{
                     singular: '',
-                    plural: `${totalCounts === 0 ? 'Count' : ''}`
+                    plural: totalCounts === 0 ? 'Count' : ''
                   }}
                 />
                 <div className="mapper-footer">

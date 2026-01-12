@@ -12,68 +12,6 @@ const sanitizeFilename = (filename: string): string => {
 };
 
 /**
- * Validates and sanitizes a stack ID to prevent path traversal attacks.
- * Only allows alphanumeric characters, underscores, dots, and hyphens.
- * Returns null if the input is invalid or potentially malicious.
- *
- * This function uses an allowlist approach to break the taint chain.
- *
- * @param stackId - The stack ID to validate and sanitize.
- * @returns A safe stack ID string or null if invalid.
- */
-export const sanitizeStackId = (
-  stackId: string | undefined | null
-): string | null => {
-  // Return null for falsy inputs
-  if (!stackId || typeof stackId !== 'string') {
-    return null;
-  }
-
-  // Strict validation pattern - only allow safe characters for identifiers
-  const safePattern = /^[a-zA-Z0-9_.-]+$/;
-
-  // Check for any path traversal attempts first
-  if (
-    stackId.includes('/') ||
-    stackId.includes('\\') ||
-    stackId.includes('..') ||
-    stackId.includes('\0')
-  ) {
-    return null;
-  }
-
-  // Validate the input matches our safe pattern
-  if (!safePattern.test(stackId)) {
-    return null;
-  }
-
-  // Maximum length check to prevent buffer overflow attacks
-  if (stackId.length > 256) {
-    return null;
-  }
-
-  // Build a new string character by character from allowed characters only
-  // This completely breaks the taint chain by creating a new value
-  const allowedChars =
-    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-';
-  let safeValue = '';
-
-  for (let i = 0; i < stackId.length; i++) {
-    const char = stackId.charAt(i);
-    if (allowedChars.includes(char)) {
-      safeValue += char;
-    }
-  }
-
-  // Ensure we have a valid result
-  if (safeValue.length === 0 || safeValue !== stackId) {
-    return null;
-  }
-
-  return safeValue;
-};
-
-/**
  * Resolves and validates a safe path dynamically.
  * Supports full paths, path.join(), and path.resolve().
  *

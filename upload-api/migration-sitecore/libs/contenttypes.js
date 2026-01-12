@@ -673,13 +673,12 @@ function singleContentTypeCreate({ templatePaths, globalPath, sitecore_folder, a
   const templatesComponentsPath = [];
   let templatesStandaedValuePath = {};
   let templatesMetaDataPath = {};
-  const separator = path?.sep;
   for (let i = 0; i < newPath?.length; i++) {
     if (findExactPath(newPath?.[i], 'data.json')) {
       const data = helper?.readFile(path?.join?.(templatePaths, newPath?.[i]));
       if (data?.item?.$?.template === 'template section') {
         templatesComponentsPath?.push({
-          pth: path?.join?.(templatePaths, newPath?.[i] ?? '')?.split(`${separator}{`)?.[0],
+          pth: path?.join?.(templatePaths, newPath?.[i] ?? '')?.split('/{')?.[0],
           obj: data
         });
       } else if (data?.item?.$?.template === 'template') {
@@ -714,12 +713,11 @@ function ExtractContentTypes(sitecore_folder, affix, configData) {
   config = configData;
   const folder = read(sitecore_folder);
   const templatePaths = [];
-  const separator = path?.sep;
   for (let i = 0; i < folder?.length; i++) {
     if (folder?.[i]?.includes('templates') && folder?.[i]?.endsWith('data.json')) {
       const data = helper?.readFile(path?.join?.(sitecore_folder, folder?.[i]));
       if (data?.item?.$?.template === 'template') {
-        templatePaths?.push(path?.join?.(sitecore_folder, folder?.[i])?.split(`${separator}{`)?.[0]);
+        templatePaths?.push(path?.join?.(sitecore_folder, folder?.[i])?.split('/{')?.[0]);
       }
     }
   }

@@ -75,7 +75,11 @@ export const updateDestinationStack = (orgId: string, projectId: string, data: O
 
 export const updateCurrentStepData = (orgId: string, projectId: string, data: ObjectType = {}) => {
   try {
-    return putCall(`${API_VERSION}/org/${orgId}/project/${projectId}/current-step`, data, options());
+    return putCall(
+      `${API_VERSION}/org/${orgId}/project/${projectId}/current-step`,
+      data,
+      options()
+    );
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`${error.message}`);
@@ -221,7 +225,10 @@ export const resetToInitialMapping = async (
 
 export const getExistingContentTypes = async (projectId: string, contentTypeUid?: string) => {
   try {
-    return await getCall(`${API_VERSION}/mapper/${projectId}/contentTypes/${contentTypeUid ?? ''}`, options());
+    return await getCall(
+      `${API_VERSION}/mapper/${projectId}/contentTypes/${contentTypeUid ?? ''}`,
+      options()
+    );
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`${error.message}`);
@@ -229,11 +236,14 @@ export const getExistingContentTypes = async (projectId: string, contentTypeUid?
       throw new Error('Unknown error');
     }
   }
-}
+};
 
 export const getExistingGlobalFields = async (projectId: string, globalFieldUid?: string) => {
   try {
-    return await getCall(`${API_VERSION}/mapper/${projectId}/globalFields/${globalFieldUid ?? ''}`, options());
+    return await getCall(
+      `${API_VERSION}/mapper/${projectId}/globalFields/${globalFieldUid ?? ''}`,
+      options()
+    );
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`${error.message}`);
@@ -241,24 +251,18 @@ export const getExistingGlobalFields = async (projectId: string, globalFieldUid?
       throw new Error('Unknown error');
     }
   }
-}
-
+};
 
 export const removeContentMapper = async (orgId: string, projectId: string) => {
   try {
     return await getCall(`${API_VERSION}/mapper/${orgId}/${projectId}/content-mapper`, options());
   } catch (error) {
     return error;
-
   }
-}
+};
 
-export const updateContentMapper = async (
-  orgId: string,
-  projectId: string,
-  data: ObjectType
-) => {
-  const mapperKeys = { content_mapper: data }
+export const updateContentMapper = async (orgId: string, projectId: string, data: ObjectType) => {
+  const mapperKeys = { content_mapper: data };
 
   try {
     return await patchCall(
@@ -278,12 +282,15 @@ export const updateContentMapper = async (
 export const updateStackDetails = async (orgId: string, projectId: string, data: ObjectType) => {
   try {
     const Data = { stack_details: data };
-    return await patchCall(`${API_VERSION}/org/${orgId}/project/${projectId}/stack-details`, Data, options());
+    return await patchCall(
+      `${API_VERSION}/org/${orgId}/project/${projectId}/stack-details`,
+      Data,
+      options()
+    );
   } catch (error) {
     return error;
-
   }
-}
+};
 
 export const getOrgDetails = async (orgId: string) => {
   try {
@@ -291,7 +298,7 @@ export const getOrgDetails = async (orgId: string) => {
   } catch (error) {
     return error;
   }
-}
+};
 
 export const createTestStack = async (orgId: string, projectId: string, data: ObjectType) => {
   try {
@@ -308,7 +315,10 @@ export const createTestStack = async (orgId: string, projectId: string, data: Ob
 export const createTestMigration = async (orgId: string, projectId: string) => {
   try {
     return await postCall(
-      `${API_VERSION}/migration/test-stack/${orgId}/${projectId}`, {}, options());
+      `${API_VERSION}/migration/test-stack/${orgId}/${projectId}`,
+      {},
+      options()
+    );
   } catch (error) {
     return error;
   }
@@ -316,8 +326,7 @@ export const createTestMigration = async (orgId: string, projectId: string) => {
 
 export const startMigration = async (orgId: string, projectId: string) => {
   try {
-    return await postCall(
-      `${API_VERSION}/migration/start/${orgId}/${projectId}`, {}, options());
+    return await postCall(`${API_VERSION}/migration/start/${orgId}/${projectId}`, {}, options());
   } catch (error) {
     return error;
   }
@@ -326,27 +335,51 @@ export const startMigration = async (orgId: string, projectId: string) => {
 export const updateMigrationKey = async (orgId: string, projectId: string) => {
   try {
     return await putCall(
-      `${API_VERSION}/org/${orgId}/project/${projectId}/migration-excution`, {}, options());
+      `${API_VERSION}/org/${orgId}/project/${projectId}/migration-excution`,
+      {},
+      options()
+    );
   } catch (error) {
     return error;
   }
 };
 
-export const updateLocaleMapper = async(projectId: string, data: any) => {
+export const updateLocaleMapper = async (projectId: string, data: ObjectType) => {
   try {
-    return await postCall(
-      `${API_VERSION}/migration/updateLocales/${projectId}`, data, options());
+    return await postCall(`${API_VERSION}/migration/updateLocales/${projectId}`, data, options());
   } catch (error) {
     return error;
   }
-}
+};
 
-export const getMigrationLogs = async (orgId: string, projectId: string, stackId: string, skip:number , limit:number  , startIndex:number, stopIndex:number,searchText:string, filter: string ) => {
+export const getExistingTaxonomies = async (projectId: string) => {
   try {
-      return await getCall(
-        `${API_VERSION}/migration/get_migration_logs/${orgId}/${projectId}/${stackId}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}/${filter}`,
-        options()
-      );
+    return await getCall(`${API_VERSION}/mapper/${projectId}/taxonomies`, options());
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
+
+export const getMigrationLogs = async (
+  orgId: string,
+  projectId: string,
+  stackId: string,
+  skip: number,
+  limit: number,
+  startIndex: number,
+  stopIndex: number,
+  searchText: string,
+  filter: string
+) => {
+  try {
+    return await getCall(
+      `${API_VERSION}/migration/get_migration_logs/${orgId}/${projectId}/${stackId}/${skip}/${limit}/${startIndex}/${stopIndex}/${searchText}/${filter}`,
+      options()
+    );
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`${EXECUTION_LOGS_ERROR_TEXT.ERROR}: ${error.message}`);
@@ -354,4 +387,4 @@ export const getMigrationLogs = async (orgId: string, projectId: string, stackId
       throw new Error(`Unknown ${EXECUTION_LOGS_ERROR_TEXT.ERROR}`);
     }
   }
-}
+};
