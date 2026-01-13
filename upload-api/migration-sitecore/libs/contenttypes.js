@@ -717,7 +717,7 @@ function ExtractContentTypes(sitecore_folder, affix, configData) {
     if (folder?.[i]?.includes('templates') && folder?.[i]?.endsWith('data.json')) {
       const data = helper?.readFile(path?.join?.(sitecore_folder, folder?.[i]));
       if (data?.item?.$?.template === 'template') {
-        templatePaths?.push(path?.join?.(sitecore_folder, folder?.[i])?.split('/{')?.[0]);
+        templatePaths?.push(path?.join?.(sitecore_folder, folder?.[i])?.split(`${path.sep}{`)?.[0]);
       }
     }
   }
