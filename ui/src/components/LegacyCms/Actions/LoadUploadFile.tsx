@@ -105,7 +105,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   );
   const [processing, setProcessing] = useState('');
   //const [isCancelLoading, setIsCancelLoading] = useState<boolean>(false);
-  //const [setIsFormatValid] = useState<boolean>(false);
   const [affix, setAffix] = useState<string>(newMigrationData?.legacy_cms?.affix);
   const [reValidate, setReValidate] = useState<boolean>(newMigrationData?.legacy_cms?.uploadedFile?.reValidate || false);
 
