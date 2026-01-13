@@ -698,23 +698,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   }, [otherContentType]);
 
-  // To dispatch the changed dropdown state
-  // useEffect(() => {
-  //   const newMigrationDataObj: INewMigration = {
-  //     ...newMigrationData,
-  //     content_mapping: {
-  //       ...newMigrationData?.content_mapping,
-  //       isDropDownChanged: isDropDownChanged,
-  //       content_type_mapping: [
-  //         ...newMigrationData?.content_mapping?.content_type_mapping ?? [],
-  //       ]
-  //     }
-  //   };
-
-  //   dispatch(updateNewMigrationData((newMigrationDataObj)));
-  // }, [isDropDownChanged]);
-
-
   useBlockNavigation(isModalOpen);
   // Method to fetch content types
   const fetchContentTypes = async (searchText: string) => {
