@@ -105,7 +105,6 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
           parsedLogsArray.push(plogs);
         } catch (error) {
           // Silently skip malformed log entries
-          // console.error('error in parsing logs : ', error);
         }
       });
       setLogs((prevLogs) => [
