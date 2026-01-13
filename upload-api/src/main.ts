@@ -1,10 +1,6 @@
 import { cliux, messageHandler } from '@contentstack/cli-utilities';
 import isEmpty from 'lodash.isempty';
 
-// const migFunction = () => {
-//   console.log('test');
-// };
-
 function inquireRequireFieldValidation(input: any): string | boolean {
   if (isEmpty(input)) {
     return messageHandler.parse('please entre the path');
@@ -76,8 +72,7 @@ async function XMLMigration() {
     name: 'value',
     message: 'Choose the option to proceed'
   });
-  const data = await typeSwitcher(typeOfImport);
-  console.log('🚀 ~ XMLMigration ~ data:', data);
+  await typeSwitcher(typeOfImport);
 }
 
 // calling  the function

@@ -34,7 +34,14 @@ const createLocaleSource = async ({
   localeData: any;
   projectId: string | string[];
 }) => {
-  const processedLocales = Array.isArray(localeData) ? localeData : Array.from(localeData ?? []);
+  // 🔧 CRITICAL: Always normalize to lowercase before saving
+  // Convert to array and normalize each locale to lowercase
+  const rawLocales = Array.isArray(localeData) ? localeData : Array.from(localeData ?? []);
+  const processedLocales = rawLocales.map((locale: any) => {
+    // Handle both string and object formats
+    const localeValue = typeof locale === 'string' ? locale : (locale?.code || locale?.value || locale);
+    return (localeValue || '').toLowerCase();
+  }).filter((locale: string) => locale && locale.length > 0); // Remove empty values
 
   const mapperConfig = {
     method: 'post',

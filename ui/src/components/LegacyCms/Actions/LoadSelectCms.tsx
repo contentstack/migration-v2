@@ -9,17 +9,16 @@ import { getConfig } from '../../../services/api/upload.service';
 import { isEmptyString, validateArray } from '../../../utilities/functions';
 
 // Interface
-import { defaultCardType, ICardType } from '../../../components/Common/Card/card.interface';
+import { defaultCardType } from '../../../components/Common/Card/card.interface';
 import { DEFAULT_CMS_TYPE, ICMSType, INewMigration } from '../../../context/app/app.interface';
 
 // Components
 import Card from '../../../components/Common/Card/card';
-import { CircularLoader, EmptyState } from '@contentstack/venus-components';
+import { CircularLoader } from '@contentstack/venus-components';
 
 // Style
 import '../legacyCms.scss';
 
-import { SEARCH_ICON } from '../../../common/assets';
 //import { IFilterStatusType } from '../../../components/Common/Modal/FilterModal/filterModal.interface';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
@@ -49,6 +48,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
   //const [setErrorMessage] = useState<string>('');
   const [isError, setIsError] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [configDetails, setConfigDetails] = useState<any>(null); // Store config details (mysql, assetsConfig)
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   /****  ALL METHODS HERE  ****/
@@ -60,7 +60,8 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       ...newMigrationData,
       legacy_cms: {
         ...newMigrationData.legacy_cms,
-        selectedCms: { ...data }
+        selectedCms: { ...data },
+        affix: newMigrationData?.legacy_cms?.affix || 'cs' // Preserve or set default affix
       }
     };
     dispatch(updateNewMigrationData(newMigrationDataObj));
@@ -80,6 +81,13 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       setIsLoading(true);
 
       const { data } = await getConfig(); // api call to get cms type from upload service
+      // Store config details to display in UI
+      setConfigDetails({
+        mySQLDetails: data?.mysql,
+        assetsConfig: data?.assetsConfig,
+        isSQL: data?.isSQL,
+        cmsType: data?.cmsType
+      });
 
       const cms = data?.cmsType?.toLowerCase();
 
@@ -102,33 +110,11 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         );
         setIsLoading(false);
 
-        const currentFormat = newMigrationData?.legacy_cms?.selectedFileFormat?.title;
-        // filteredCmsData?.forEach((data: ICMSType) => {
-        //   // Check if filter returned any results and if the file format is not the same as the current format
-        //   if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() !== currentFormat?.toLowerCase()) && filteredCmsData?.length > 0) {
-        //     console.info('inside if', data);
-        //     setIsError(true);
-        //     setErrorMessage('Current file format is not supported for this CMS. Please add the correct CMS')
-        //   } else if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() === currentFormat?.toLowerCase()) && filteredCmsData?.length > 0) {
-        //     setIsError(false);
-        //   }
-        // });
-
         
         // Check if filter returned any results
         if (filteredCmsData?.length > 0) {
-          filteredCmsData?.forEach((data: ICMSType) => {
-            // Check if filter returned any results and if the file format is not the same as the current format
-            if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() !== currentFormat?.toLowerCase())) {
-              setIsError(true);
-              setErrorMessage('Current file format is not supported for this CMS. Please add the correct CMS');
-              setCmsData(filteredCmsData);
-            } else if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() === currentFormat?.toLowerCase())) {
-              setIsError(false);
-              setErrorMessage('');
-              setCmsData(filteredCmsData);
-            }
-          });
+          setCmsData(filteredCmsData);
+          setIsError(false);
         } else {
           // cmstype is not empty but no matches found
           setIsError(true);
@@ -137,13 +123,39 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         }
       }
 
+      // Determine which CMS to set as selected
       let newSelectedCard: ICMSType | undefined;
-
       if (filteredCmsData?.length === 1) {
         newSelectedCard = filteredCmsData[0];
       } else {
         newSelectedCard = DEFAULT_CMS_TYPE;
       }
+      
+      const newMigrationDataObj = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData?.legacy_cms,
+          selectedCms: newSelectedCard, // Include selectedCms in this dispatch
+          selectedFileFormat: filteredCmsData[0].allowed_file_formats[0],
+          affix: newMigrationData?.legacy_cms?.affix || 'cs', // Preserve or set default affix
+          uploadedFile: {
+            ...newMigrationData?.legacy_cms?.uploadedFile,
+            file_details: {
+              ...newMigrationData?.legacy_cms?.uploadedFile?.file_details,
+              mySQLDetails: data?.mysql, // Store mysql as mySQLDetails
+              assetsConfig: data?.assetsConfig, // Store assetsConfig
+              isSQL: data?.isSQL,
+              cmsType: data?.cmsType,
+              localPath: data?.localPath,
+              awsData: data?.awsData
+            }
+          }
+        }
+      };
+      
+     
+      dispatch(updateNewMigrationData(newMigrationDataObj)); // Dispatch to save config to Redux
+      
       setIsLoading(false);
 
       if (!isEmptyString(newSelectedCard?.title)) {
@@ -151,15 +163,10 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         //setErrorMessage('');
         setIsError(false);
 
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          legacy_cms: {
-            ...newMigrationData?.legacy_cms,
-            selectedCms: newSelectedCard
-          }
-        };
+        // The dispatch already happened above (line 150) with all the data including selectedCms
+        // No need to dispatch again here
+        
         //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
-        dispatch(updateNewMigrationData(newMigrationDataObj));
         props?.handleStepChange(props?.currentStep);
       }
     } catch (error) {
@@ -193,7 +200,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
                   onCardClick={data?.cms_id !== selectedCard?.cms_id ? handleCardClick : undefined}
                   selectedCard={selectedCard}
                   idField="cms_id"
-                  disabled={newMigrationData?.project_current_step > 1 || isError}
+                  disabled={newMigrationData?.project_current_step > 1}
                 />
               ))}
             </div>

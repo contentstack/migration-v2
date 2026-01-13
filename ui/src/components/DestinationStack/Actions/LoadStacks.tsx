@@ -111,10 +111,13 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
     try {
+      // 🔧 CRITICAL: Ensure master_locale is always lowercase
+      const masterLocale = (data?.locale || '').toLowerCase();
+      
       // Post data to backend
       const resp = await createStacksInOrg(selectedOrganisation?.value, {
         ...data,
-        master_locale: data?.locale
+        master_locale: masterLocale // Always lowercase
       });
 
       if (resp.status === 201) {
@@ -199,48 +202,61 @@ const LoadStacks = (props: LoadFileFormatProps) => {
   };
 
   const fetchData = async () => {
-    try {
-      if (allStack?.length <= 0) {
-        setAllStack(loadingOption);
-        const stackData = await getAllStacksInOrg(selectedOrganisation?.value, ''); // org id will always be there
-        const csLocales = await getStackLocales(selectedOrganisation?.value);
-        const stackArray = validateArray(stackData?.data?.stacks)
-          ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
-              label: stack?.name,
-              value: stack?.api_key,
-              uid: stack?.api_key,
-              master_locale: stack?.master_locale,
-              locales: stack?.locales,
-              created_at: stack?.created_at,
-              isNewStack: newStackCreated,
-              isDisabled: newMigrationDataRef?.current?.destination_stack?.migratedStacks?.includes(
-                stack?.api_key
-              )
-            }))
-          : [];
+  try {
+    if (allStack?.length <= 0) {
+      setAllStack(loadingOption);
+      const stackData = await getAllStacksInOrg(selectedOrganisation?.value, '');
+      const csLocales = await getStackLocales(selectedOrganisation?.value);
 
-        stackArray.sort(
-          (a: IDropDown, b: IDropDown) =>
-            new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
-        );
+      const stackArray = validateArray(stackData?.data?.stacks)
+        ? stackData?.data?.stacks?.map((stack: StackResponse) => ({
+            label: stack?.name,
+            value: stack?.api_key,
+            uid: stack?.api_key,
+            master_locale: stack?.master_locale,
+            locales: stack?.locales,
+            created_at: stack?.created_at,
+            isNewStack: newStackCreated,
+            isDisabled: newMigrationDataRef?.current?.destination_stack?.migratedStacks?.includes(
+              stack?.api_key
+            )
+          }))
+        : [];
 
-        setAllStack(stackArray);
-        //Set selected Stack
+      stackArray.sort(
+        (a: IDropDown, b: IDropDown) =>
+          new Date(b?.created_at)?.getTime() - new Date(a?.created_at)?.getTime()
+      );
+
+      setAllStack(stackArray);
+
+      // ✅ Auto-select if only one option
+      if (stackArray.length === 1) {
+        const onlyStack = stackArray[0];
+        setSelectedStack(onlyStack);
+
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          destination_stack: {
+            ...newMigrationData?.destination_stack,
+            selectedStack: onlyStack,
+            stackArray: stackArray
+          }
+        };
+        dispatch(updateNewMigrationData(newMigrationDataObj));
+      } else {
+        // If multiple, restore previously selected
         const selectedStackData = validateArray(stackArray)
-          ? stackArray.find((stack: IDropDown) => {
-              return stack?.value === newMigrationData?.destination_stack?.selectedStack?.value;
-            })
+          ? stackArray.find(
+              (stack: IDropDown) =>
+                stack?.value === newMigrationData?.destination_stack?.selectedStack?.value
+            )
           : null;
-        // if (stackData?.data?.stacks?.length === 0 && (!stackData?.data?.stack)) {
-        //   setIsError(true);
-        //   setErrorMessage("Please create new stack there is no stack available");
-        // }
 
         if (selectedStackData) {
           setSelectedStack(selectedStackData);
           setNewStackCreated(false);
           const newMigrationDataObj: INewMigration = {
-            // ...newMigrationDataRef?.current,
             ...newMigrationData,
             destination_stack: {
               ...newMigrationData?.destination_stack,
@@ -248,24 +264,25 @@ const LoadStacks = (props: LoadFileFormatProps) => {
               stackArray: stackArray
             }
           };
-          // Dispatch the updated migration data to Redux
           dispatch(updateNewMigrationData(newMigrationDataObj));
         }
-        const newMigrationDataObj: INewMigration = {
-           ...newMigrationDataRef?.current,
-          //...newMigrationData,
-          destination_stack: {
-            ...newMigrationDataRef?.current?.destination_stack,
-            csLocale: csLocales?.data?.locales
-          }
-        };  
-        // Dispatch the updated migration data to Redux
-        dispatch(updateNewMigrationData(newMigrationDataObj));
       }
-    } catch (error) {
-      return error;
+
+      // update locales in Redux
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationDataRef?.current,
+        destination_stack: {
+          ...newMigrationDataRef?.current?.destination_stack,
+          csLocale: csLocales?.data?.locales
+        }
+      };
+      dispatch(updateNewMigrationData(newMigrationDataObj));
     }
-  };
+  } catch (error) {
+    return error;
+  }
+};
+
 
   const handleCreateNewStack = () => {
     cbModal({
@@ -278,6 +295,8 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           onSubmit={handleOnSave}
           defaultValues={defaultStack}
           selectedOrganisation={selectedOrganisation?.value}
+          sourceLocales={newMigrationData?.destination_stack?.sourceLocale}
+          newMigrationData={newMigrationData}
           {...props}
         />
       ),
@@ -364,7 +383,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
       && (
         <div className="language-mapper">
           <div className="info-lang">
-            <div className="stackTitle language-title">Language Mapping</div>
+            <div className="stackTitle language-title">Language Mappings</div>
             <Tooltip
               content={`Match your source CMS languages with Contentstack to ensure a seamless migration`}
               position="right"

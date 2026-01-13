@@ -70,8 +70,16 @@ const createLocaleSource = async ({
   projectId: string | string[];
 }) => {
   try {
+    // 🔧 CRITICAL: Always normalize to lowercase before saving
+    const rawLocales = Array?.from?.(localeData) ?? [];
+    const normalizedLocales = rawLocales.map((locale: any) => {
+      // Handle both string and object formats
+      const localeValue = typeof locale === 'string' ? locale : (locale?.code || locale?.value || locale);
+      return (localeValue || '').toLowerCase();
+    }).filter((locale: string) => locale && locale.length > 0); // Remove empty values
+    
     const payload = {
-      locale: Array?.from?.(localeData) ?? [],
+      locale: normalizedLocales,
     };
 
     const { status } = await sendRequestWithRetry({

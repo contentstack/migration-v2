@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-
 import { Request } from 'express';
 import path from 'path';
 import ProjectModelLowdb from '../models/project-lowdb.js';
@@ -24,11 +22,13 @@ import {
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
 import { siteCoreService } from './sitecore.service.js';
 import { wordpressService } from './wordpress.service.js';
+import { drupalService } from './drupal.service.js';
 import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { setLogFilePath } from '../server.js';
 import fs from 'fs';
+import { isPathWithinBase } from '../utils/sanitize-path.utils.js';
 import { contentfulService } from './contentful.service.js';
 import { marketPlaceAppService } from './marketplace.service.js';
 import { extensionService } from './extension.service.js';
@@ -36,7 +36,7 @@ import fsPromises from 'fs/promises';
 import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
-import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
+import { getSafePath } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
 
 /**
@@ -112,6 +112,66 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       .findIndex({ id: projectId })
       .value();
     if (index > -1) {
+      // ✅ NEW: Generate queries for new test stack (Drupal only)
+      const project = ProjectModelLowdb.data.projects[index];
+      if (project?.legacy_cms?.cms === CMS.DRUPAL) {
+        try {
+          const startMessage = getLogMessage(
+            srcFun,
+            `Generating dynamic queries for new test stack (${res?.data?.stack?.api_key})...`,
+            token_payload
+          );
+          await customLogger(
+            projectId,
+            res?.data?.stack?.api_key,
+            'info',
+            startMessage
+          );
+
+          // Get database configuration from project
+          const dbConfig = {
+            host: project?.legacy_cms?.mySQLDetails?.host,
+            user: project?.legacy_cms?.mySQLDetails?.user,
+            password: project?.legacy_cms?.mySQLDetails?.password || '',
+            database: project?.legacy_cms?.mySQLDetails?.database,
+            port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+          };
+
+          // Generate dynamic queries for the new test stack
+          await drupalService.createQuery(
+            dbConfig,
+            res?.data?.stack?.api_key,
+            projectId
+          );
+
+          const successMessage = getLogMessage(
+            srcFun,
+            `Successfully generated queries for test stack (${res?.data?.stack?.api_key})`,
+            token_payload
+          );
+          await customLogger(
+            projectId,
+            res?.data?.stack?.api_key,
+            'info',
+            successMessage
+          );
+        } catch (error: any) {
+          const errorMessage = getLogMessage(
+            srcFun,
+            `Failed to generate queries for test stack: ${error.message}. Test migration may fail.`,
+            token_payload,
+            error
+          );
+          await customLogger(
+            projectId,
+            res?.data?.stack?.api_key,
+            'error',
+            errorMessage
+          );
+          // Don't throw error - let test stack creation succeed even if query generation fails
+        }
+      }
+
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_step = STEPPER_STEPS['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
@@ -236,131 +296,131 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
 const startTestMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id } = req?.body?.token_payload ?? {};
+
+  // Validate projectId to prevent path traversal attacks
+  const sanitizedProjectId = path.basename(projectId || '');
+  if (!sanitizedProjectId || sanitizedProjectId !== projectId) {
+    throw new ExceptionFunction('Invalid project ID', HTTP_CODES.BAD_REQUEST);
+  }
+
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
-    .find({ id: projectId })
+    .find({ id: sanitizedProjectId })
     .value();
   const packagePath = project?.extract_path;
   if (project?.current_test_stack_id) {
+    // Validate stack ID to prevent path traversal
+    const sanitizedTestStackId = path.basename(
+      project?.current_test_stack_id || ''
+    );
+    if (
+      !sanitizedTestStackId ||
+      sanitizedTestStackId !== project?.current_test_stack_id
+    ) {
+      throw new ExceptionFunction('Invalid stack ID', HTTP_CODES.BAD_REQUEST);
+    }
+
     const {
       legacy_cms: { cms, file_path },
     } = project;
+
+    // Validate logger path is within expected directory
+    const logsBaseDir = path.join(process.cwd(), 'logs');
     const loggerPath = path.join(
-      process.cwd(),
-      'logs',
-      projectId,
-      `${project?.current_test_stack_id}.log`
+      logsBaseDir,
+      sanitizedProjectId,
+      `${sanitizedTestStackId}.log`
     );
+    const resolvedLoggerPath = path.resolve(loggerPath);
+    if (!isPathWithinBase(resolvedLoggerPath, logsBaseDir)) {
+      throw new ExceptionFunction(
+        'Invalid log path detected',
+        HTTP_CODES.BAD_REQUEST
+      );
+    }
     const message = getLogMessage(
       'startTestMigration',
       'Starting Test Migration...',
       {}
     );
     await customLogger(
-      projectId,
-      project?.current_test_stack_id,
+      sanitizedProjectId,
+      sanitizedTestStackId,
       'info',
       message
     );
-    await setLogFilePath(loggerPath);
+    await setLogFilePath(resolvedLoggerPath);
     const copyLogsToTestStack = async (
       stackUid: string,
       projectLogPath: string
     ) => {
       try {
-        // Sanitize stackUid using dedicated sanitization function to prevent path traversal
-        const sanitizedStackUid = sanitizeStackId(stackUid);
-
-        // Validate the sanitized stackUid - sanitizeStackId returns null for invalid inputs
-        if (sanitizedStackUid === null) {
-          console.error('Invalid stack UID provided');
+        // Validate stackUid to prevent path traversal attacks
+        const sanitizedStackUid = path.basename(stackUid);
+        if (!sanitizedStackUid || sanitizedStackUid !== stackUid) {
+          console.error('Invalid stackUid detected, skipping log copy');
           return;
         }
 
-        // Define base directory for validation
-        const baseDir = path.join(process.cwd(), 'migration-data');
-        const resolvedBaseDir = path.resolve(baseDir);
-
-        // Construct safe paths using only the validated sanitized stackUid
-        const errorLogPath = path.join(
-          resolvedBaseDir,
+        // Path to source logs with validated base directory
+        const baseDirectory = path.join(process.cwd(), 'migration-data');
+        const importLogsPath = path.join(
+          baseDirectory,
           sanitizedStackUid,
           'logs',
-          'import',
-          'error.log'
-        );
-        const successLogPath = path.join(
-          resolvedBaseDir,
-          sanitizedStackUid,
-          'logs',
-          'import',
-          'success.log'
+          'import'
         );
 
-        // Final validation to ensure paths are within the expected base directory
-        if (
-          !path.resolve(errorLogPath).startsWith(resolvedBaseDir + path.sep) ||
-          !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
-        ) {
+        // Validate the resolved path is within the base directory
+        const resolvedImportPath = path.resolve(importLogsPath);
+        if (!isPathWithinBase(resolvedImportPath, baseDirectory)) {
           console.error(
-            'Invalid path detected, potential path traversal attempt'
+            'Path traversal attempt detected in copyLogsToTestStack'
           );
           return;
         }
+
+        // Read error and success logs
+        const errorLogPath = path.join(resolvedImportPath, 'error.log');
+        const successLogPath = path.join(resolvedImportPath, 'success.log');
 
         let combinedLogs = '';
 
-        // Read and combine error logs - use realpath to canonicalize and validate path
-        try {
-          const canonicalErrorPath = await fsPromises.realpath(errorLogPath);
-          // Verify canonical path is still within base directory
-          if (canonicalErrorPath.startsWith(resolvedBaseDir + path.sep)) {
-            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
-            // path containment check, and realpath canonicalization before reading
-            const errorLogs = await fsPromises.readFile(
-              canonicalErrorPath,
-              'utf8'
-            );
-            combinedLogs += errorLogs + '\n';
-          }
-        } catch {
-          // File doesn't exist or access denied - skip
+        // Read and combine error logs
+        if (
+          await fsPromises
+            .access(errorLogPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          const errorLogs = await fsPromises.readFile(errorLogPath, 'utf8');
+          combinedLogs += errorLogs + '\n';
         }
 
-        // Read and combine success logs - use realpath to canonicalize and validate path
-        try {
-          const canonicalSuccessPath = await fsPromises.realpath(
-            successLogPath
-          );
-          // Verify canonical path is still within base directory
-          if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
-            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
-            // path containment check, and realpath canonicalization before reading
-            const successLogs = await fsPromises.readFile(
-              canonicalSuccessPath,
-              'utf8'
-            );
-            combinedLogs += successLogs;
-          }
-        } catch {
-          // File doesn't exist or access denied - skip
+        // Read and combine success logs
+        if (
+          await fsPromises
+            .access(successLogPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          const successLogs = await fsPromises.readFile(successLogPath, 'utf8');
+          combinedLogs += successLogs;
         }
 
         // Write combined logs to test stack log file
-        if (combinedLogs) {
-          await fsPromises.appendFile(projectLogPath, combinedLogs);
-        }
+        await fsPromises.appendFile(projectLogPath, combinedLogs);
       } catch (error) {
         console.error('Error copying logs:', error);
       }
     };
 
-    await copyLogsToTestStack(project?.current_test_stack_id, loggerPath);
+    await copyLogsToTestStack(sanitizedTestStackId, resolvedLoggerPath);
     const contentTypes = await fieldAttacher({
       orgId,
-      projectId,
-      destinationStackId: project?.current_test_stack_id,
+      projectId: sanitizedProjectId,
+      destinationStackId: sanitizedTestStackId,
       region,
       user_id,
     });
@@ -588,6 +648,84 @@ const startTestMigration = async (req: Request): Promise<any> => {
         break;
       }
 
+      case CMS.DRUPAL: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+        };
+
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        // Priority: project config > request body > environment variables > empty (auto-detection)
+        const drupalAssetsConfig = {
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
+            '',
+          public_path:
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
+            '',
+        };
+
+        // Run Drupal migration services in proper order (following test-drupal-services sequence)
+        // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId
+        );
+
+        // Step 2: Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
+        await drupalService?.generateContentTypeSchemas(
+          project?.current_test_stack_id,
+          projectId
+        );
+
+        await drupalService?.createAssets(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true,
+          drupalAssetsConfig
+        );
+        await drupalService?.createRefrence(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true
+        );
+        await drupalService?.createTaxonomy(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId
+        );
+        await drupalService?.createEntry(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true,
+          project?.stackDetails?.master_locale,
+          project?.content_mapper || [],
+          project
+        );
+        await drupalService?.createLocale(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          project
+        );
+        await drupalService?.createVersionFile(
+          project?.current_test_stack_id,
+          projectId
+        );
+        break;
+      }
       default:
         break;
     }
@@ -615,15 +753,22 @@ const startTestMigration = async (req: Request): Promise<any> => {
 const startMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id } = req?.body?.token_payload ?? {};
+
+  // Validate projectId to prevent path traversal attacks
+  const sanitizedProjectId = path.basename(projectId || '');
+  if (!sanitizedProjectId || sanitizedProjectId !== projectId) {
+    throw new ExceptionFunction('Invalid project ID', HTTP_CODES.BAD_REQUEST);
+  }
+
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
-    .find({ id: projectId })
+    .find({ id: sanitizedProjectId })
     .value();
 
   const index = ProjectModelLowdb.chain
     .get('projects')
-    .findIndex({ id: projectId })
+    .findIndex({ id: sanitizedProjectId })
     .value();
   if (index > -1) {
     await ProjectModelLowdb.update((data: any) => {
@@ -633,126 +778,118 @@ const startMigration = async (req: Request): Promise<any> => {
 
   const packagePath = project?.extract_path;
   if (project?.destination_stack_id) {
+    // Validate destination stack ID to prevent path traversal
+    const sanitizedDestStackId = path.basename(
+      project?.destination_stack_id || ''
+    );
+    if (
+      !sanitizedDestStackId ||
+      sanitizedDestStackId !== project?.destination_stack_id
+    ) {
+      throw new ExceptionFunction('Invalid stack ID', HTTP_CODES.BAD_REQUEST);
+    }
+
     const {
       legacy_cms: { cms, file_path },
     } = project;
+
+    // Validate logger path is within expected directory
+    const logsBaseDir = path.join(process.cwd(), 'logs');
     const loggerPath = path.join(
-      process.cwd(),
-      'logs',
-      projectId,
-      `${project?.destination_stack_id}.log`
+      logsBaseDir,
+      sanitizedProjectId,
+      `${sanitizedDestStackId}.log`
     );
+    const resolvedLoggerPath = path.resolve(loggerPath);
+    if (!isPathWithinBase(resolvedLoggerPath, logsBaseDir)) {
+      throw new ExceptionFunction(
+        'Invalid log path detected',
+        HTTP_CODES.BAD_REQUEST
+      );
+    }
+
     const message = getLogMessage(
       'start Migration',
       'Starting Migration...',
       {}
     );
     await customLogger(
-      projectId,
-      project?.destination_stack_id,
+      sanitizedProjectId,
+      sanitizedDestStackId,
       'info',
       message
     );
-    await setLogFilePath(loggerPath);
+    await setLogFilePath(resolvedLoggerPath);
 
     const copyLogsToStack = async (
       stackUid: string,
       projectLogPath: string
     ) => {
       try {
-        // Sanitize stackUid using dedicated sanitization function to prevent path traversal
-        const sanitizedStackUid = sanitizeStackId(stackUid);
-
-        // Validate the sanitized stackUid - sanitizeStackId returns null for invalid inputs
-        if (sanitizedStackUid === null) {
-          console.error('Invalid stack UID provided');
+        // Validate stackUid to prevent path traversal attacks
+        const sanitizedStackUid = path.basename(stackUid);
+        if (!sanitizedStackUid || sanitizedStackUid !== stackUid) {
+          console.error('Invalid stackUid detected, skipping log copy');
           return;
         }
 
-        // Define base directory for validation
-        const baseDir = path.join(process.cwd(), 'migration-data');
-        const resolvedBaseDir = path.resolve(baseDir);
-
-        // Construct safe paths using only the validated sanitized stackUid
-        const errorLogPath = path.join(
-          resolvedBaseDir,
+        // Path to source logs with validated base directory
+        const baseDirectory = path.join(process.cwd(), 'migration-data');
+        const importLogsPath = path.join(
+          baseDirectory,
           sanitizedStackUid,
           'logs',
-          'import',
-          'error.log'
-        );
-        const successLogPath = path.join(
-          resolvedBaseDir,
-          sanitizedStackUid,
-          'logs',
-          'import',
-          'success.log'
+          'import'
         );
 
-        // Final validation to ensure paths are within the expected base directory
-        if (
-          !path.resolve(errorLogPath).startsWith(resolvedBaseDir + path.sep) ||
-          !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
-        ) {
-          console.error(
-            'Invalid path detected, potential path traversal attempt'
-          );
+        // Validate the resolved path is within the base directory
+        const resolvedImportPath = path.resolve(importLogsPath);
+        if (!isPathWithinBase(resolvedImportPath, baseDirectory)) {
+          console.error('Path traversal attempt detected in copyLogsToStack');
           return;
         }
+
+        // Read error and success logs
+        const errorLogPath = path.join(resolvedImportPath, 'error.log');
+        const successLogPath = path.join(resolvedImportPath, 'success.log');
 
         let combinedLogs = '';
 
-        // Read and combine error logs - use realpath to canonicalize and validate path
-        try {
-          const canonicalErrorPath = await fsPromises.realpath(errorLogPath);
-          // Verify canonical path is still within base directory
-          if (canonicalErrorPath.startsWith(resolvedBaseDir + path.sep)) {
-            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
-            // path containment check, and realpath canonicalization before reading
-            const errorLogs = await fsPromises.readFile(
-              canonicalErrorPath,
-              'utf8'
-            );
-            combinedLogs += errorLogs + '\n';
-          }
-        } catch {
-          // File doesn't exist or access denied - skip
+        // Read and combine error logs
+        if (
+          await fsPromises
+            .access(errorLogPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          const errorLogs = await fsPromises.readFile(errorLogPath, 'utf8');
+          combinedLogs += errorLogs + '\n';
         }
 
-        // Read and combine success logs - use realpath to canonicalize and validate path
-        try {
-          const canonicalSuccessPath = await fsPromises.realpath(
-            successLogPath
-          );
-          // Verify canonical path is still within base directory
-          if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
-            // deepcode ignore PT: Path is sanitized via sanitizeStackId (allowlist validation),
-            // path containment check, and realpath canonicalization before reading
-            const successLogs = await fsPromises.readFile(
-              canonicalSuccessPath,
-              'utf8'
-            );
-            combinedLogs += successLogs;
-          }
-        } catch {
-          // File doesn't exist or access denied - skip
+        // Read and combine success logs
+        if (
+          await fsPromises
+            .access(successLogPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          const successLogs = await fsPromises.readFile(successLogPath, 'utf8');
+          combinedLogs += successLogs;
         }
 
         // Write combined logs to stack log file
-        if (combinedLogs) {
-          await fsPromises.appendFile(projectLogPath, combinedLogs);
-        }
+        await fsPromises.appendFile(projectLogPath, combinedLogs);
       } catch (error) {
         console.error('Error copying logs:', error);
       }
     };
 
-    await copyLogsToStack(project?.destination_stack_id, loggerPath);
+    await copyLogsToStack(sanitizedDestStackId, resolvedLoggerPath);
 
     const contentTypes = await fieldAttacher({
       orgId,
-      projectId,
-      destinationStackId: project?.destination_stack_id,
+      projectId: sanitizedProjectId,
+      destinationStackId: sanitizedDestStackId,
       region,
       user_id,
     });
@@ -934,13 +1071,16 @@ const startMigration = async (req: Request): Promise<any> => {
           project?.destination_stack_id,
           projectId
         );
+        // 🔍 DEBUG: Log master_locale before passing to createEntry
+        const masterLocaleForContentful = project?.stackDetails?.master_locale;
+
         await contentfulService?.createEntry(
           cleanLocalPath,
           project?.destination_stack_id,
           projectId,
           contentTypes,
           project?.mapperKeys,
-          project?.stackDetails?.master_locale,
+          masterLocaleForContentful,
           project
         );
         await contentfulService?.createVersionFile(
@@ -974,6 +1114,84 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
 
+      case CMS.DRUPAL: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+        };
+
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        // Priority: project config > request body > environment variables > empty (auto-detection)
+        const drupalAssetsConfig = {
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
+            '',
+          public_path:
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
+            '',
+        };
+
+        // Run Drupal migration services in proper order (following test-drupal-services sequence)
+        // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId
+        );
+
+        // Step 2: Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
+        await drupalService?.generateContentTypeSchemas(
+          project?.destination_stack_id,
+          projectId
+        );
+
+        await drupalService?.createAssets(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false,
+          drupalAssetsConfig
+        );
+        await drupalService?.createRefrence(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false
+        );
+        await drupalService?.createTaxonomy(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId
+        );
+        await drupalService?.createLocale(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          project
+        );
+        await drupalService?.createEntry(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false,
+          project?.stackDetails?.master_locale,
+          project?.content_mapper || [],
+          project
+        );
+        await drupalService?.createVersionFile(
+          project?.destination_stack_id,
+          projectId
+        );
+        break;
+      }
       default:
         break;
     }
@@ -1138,7 +1356,7 @@ const getAuditData = async (req: Request): Promise<any> => {
           });
         });
       }
-      if (searchText && searchText !== null && searchText !== 'null') {
+      if (searchText && searchText !== 'null') {
         transformedData = transformedData?.filter((item) => {
           return Object?.values(item)?.some(
             (value) =>
@@ -1163,7 +1381,7 @@ const getAuditData = async (req: Request): Promise<any> => {
         });
       });
     }
-    if (searchText && searchText !== null && searchText !== 'null') {
+    if (searchText && searchText !== null) {
       transformedData = transformedData?.filter((item: any) => {
         return Object?.values(item)?.some(
           (value) =>
@@ -1301,12 +1519,6 @@ const getLogs = async (req: Request): Promise<any> => {
       const filterOptions = Array?.from(
         new Set(logEntries?.map((log) => log?.level))
       );
-      logEntries?.findIndex?.((log) =>
-        log?.message?.includes('Starting audit process')
-      );
-      logEntries?.findIndex?.((log) =>
-        log?.message?.includes('Audit process completed')
-      );
       logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
       if (filter !== 'all') {
         const filters = filter?.split('-') ?? [];
@@ -1352,7 +1564,21 @@ const getLogs = async (req: Request): Promise<any> => {
  */
 export const createSourceLocales = async (req: Request) => {
   const projectId = req?.params?.projectId;
-  const locales = req?.body?.locale;
+  const rawLocales = req?.body?.locale;
+
+  // Normalize locales to lowercase before saving to database
+  // Master locale is already FIRST element in the array from upload-api
+  const locales = Array.isArray(rawLocales)
+    ? rawLocales
+        .map((locale: any) => {
+          const localeValue =
+            typeof locale === 'string'
+              ? locale
+              : locale?.code || locale?.value || locale;
+          return (localeValue || '').toLowerCase();
+        })
+        .filter((locale: string) => locale && locale.length > 0)
+    : [];
 
   try {
     // Find the project with the specified projectId
@@ -1406,12 +1632,51 @@ export const updateLocaleMapper = async (req: Request) => {
       ?.get?.('projects')
       ?.findIndex?.({ id: projectId })
       ?.value?.();
+
     if (index > -1) {
+      // 🔧 Reconstruct localeMapping from master_locale and locales
+      // 🔧 CRITICAL: Always convert to lowercase for consistent mapping across all CMS types
+      const localeMapping: Record<string, string> = {};
+
+      // Add master locale mappings with "-master_locale" suffix
+      Object.entries(mapperObject?.master_locale || {}).forEach(
+        ([source, dest]) => {
+          const normalizedSource = (source || '').toLowerCase();
+          const normalizedDest = ((dest as string) || '').toLowerCase();
+          localeMapping[`${normalizedSource}-master_locale`] = normalizedDest;
+        }
+      );
+
+      // Add regular locale mappings
+      Object.entries(mapperObject?.locales || {}).forEach(([source, dest]) => {
+        const normalizedSource = (source || '').toLowerCase();
+        const normalizedDest = ((dest as string) || '').toLowerCase();
+        localeMapping[normalizedSource] = normalizedDest;
+      });
+
       ProjectModelLowdb?.update?.((data: any) => {
         data.projects[index].master_locale = mapperObject?.master_locale;
         data.projects[index].locales = mapperObject?.locales;
+        data.projects[index].localeMapping = localeMapping; // ✅ SAVE localeMapping!
       });
+
       // Write back the updated projects
+      await ProjectModelLowdb.write();
+
+      // 🔍 DEBUG: Log what was saved
+      await ProjectModelLowdb?.read?.();
+      const updatedProject = ProjectModelLowdb.chain
+        .get('projects')
+        .find({ id: projectId })
+        .value();
+
+      // 🔍 LOGGING: Log after update
+      await ProjectModelLowdb?.read?.();
+      logger.info('Locale mapping updated successfully', {
+        projectId,
+        masterLocaleKeys: Object.keys(mapperObject?.master_locale || {}),
+        localesKeys: Object.keys(mapperObject?.locales || {}),
+      });
     } else {
       logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
@@ -1419,11 +1684,7 @@ export const updateLocaleMapper = async (req: Request) => {
       });
     }
   } catch (err: any) {
-    console.error(
-      '🚀 ~ updateLocaleMapper ~ err:',
-      err?.response?.data ?? err,
-      err
-    );
+    console.error('Error details:', err?.response?.data ?? err);
     logger.warn('Bad Request', {
       status: HTTP_CODES?.BAD_REQUEST,
       message: HTTP_TEXTS?.INTERNAL_ERROR,

@@ -1,18 +1,26 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import fs from "fs";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
-import _ from "lodash";
-import axios from "axios";
-import jsonpath from "jsonpath";
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import _ from 'lodash';
+import axios from 'axios';
+import jsonpath from 'jsonpath';
 import pLimit from 'p-limit';
-import { JSDOM } from "jsdom";
-import { jsonToHtml, jsonToMarkdown, htmlToJson } from '@contentstack/json-rte-serializer';
-import { CHUNK_SIZE, LOCALE_MAPPER, MIGRATION_DATA_CONFIG } from "../constants/index.js";
-import { Locale } from "../models/types.js";
-import jsonRTE from "./contentful/jsonRTE.js";
-import { getAllLocales, getLogMessage } from "../utils/index.js";
-import customLogger from "../utils/custom-logger.utils.js";
+import { JSDOM } from 'jsdom';
+import {
+  jsonToHtml,
+  jsonToMarkdown,
+  htmlToJson,
+} from '@contentstack/json-rte-serializer';
+import {
+  CHUNK_SIZE,
+  LOCALE_MAPPER,
+  MIGRATION_DATA_CONFIG,
+} from '../constants/index.js';
+import { Locale } from '../models/types.js';
+import jsonRTE from './contentful/jsonRTE.js';
+import { getAllLocales, getLogMessage } from '../utils/index.js';
+import customLogger from '../utils/custom-logger.utils.js';
 
 const {
   DATA,
@@ -41,7 +49,6 @@ const {
   WEBHOOKS_FILE_NAME,
   RTE_REFERENCES_FILE_NAME,
   GLOBAL_FIELDS_FILE_NAME,
-
 } = MIGRATION_DATA_CONFIG;
 
 interface AssetMetaData {
@@ -50,11 +57,10 @@ interface AssetMetaData {
   filename: string;
 }
 
-
 /**
  * Splits the given asset data into chunks that are under the specified size
  * in bytes. The size of each chunk is determined by the {@link CHUNK_SIZE}
- * constant. 
+ * constant.
  * @param {object} assetData - The asset data to split into chunks.
  * @returns {object} - An object where each key is a unique chunk ID and the
  * value is an object containing the assets for that chunk.
@@ -71,7 +77,7 @@ function makeChunks(assetData: any) {
 
     currentChunkSize = Buffer.byteLength(
       JSON.stringify(chunks[currentChunkId]),
-      "utf8"
+      'utf8'
     );
 
     if (currentChunkSize > chunkSize) {
@@ -86,7 +92,7 @@ function makeChunks(assetData: any) {
 
 const mapLocales = ({ masterLocale, locale, locales, isNull = false }: any) => {
   if (locales?.masterLocale?.[masterLocale ?? ''] === locale) {
-    return Object?.keys(locales?.masterLocale)?.[0]
+    return Object?.keys(locales?.masterLocale)?.[0];
   }
   for (const [key, value] of Object?.entries?.(locales) ?? {}) {
     if (typeof value !== 'object' && value === locale) {
@@ -98,7 +104,7 @@ const mapLocales = ({ masterLocale, locale, locales, isNull = false }: any) => {
   } else {
     return null;
   }
-}
+};
 
 const transformCloudinaryObject = (input: any) => {
   const result: any = [];
@@ -122,27 +128,27 @@ const transformCloudinaryObject = (input: any) => {
         tags: metaData?.tags,
         metadata: metaData?.metadata,
         created_at: metaData?.created_at,
-        access_mode: "public",
+        access_mode: 'public',
         access_control: [],
         created_by: {
-          type: "",
-          id: ""
+          type: '',
+          id: '',
         },
         uploaded_by: {
-          type: "",
-          id: ""
+          type: '',
+          id: '',
         },
         folder_id: uuidv4(),
         id: uuidv4(),
-        folder: "",
+        folder: '',
         cs_metadata: {
-          config_label: "default_multi_config_key"
-        }
+          config_label: 'default_multi_config_key',
+        },
       });
     }
   }
   return result;
-}
+};
 
 /**
  * Reads a file from the given file path and returns its JSON content.
@@ -153,7 +159,10 @@ const transformCloudinaryObject = (input: any) => {
  */
 async function readFile(filePath: string, fileName: string) {
   try {
-    const data = await fs.promises.readFile(path.join(filePath, fileName), "utf8");
+    const data = await fs.promises.readFile(
+      path.join(filePath, fileName),
+      'utf8'
+    );
     return JSON.parse(data);
   } catch (err) {
     return undefined;
@@ -169,7 +178,7 @@ async function readFile(filePath: string, fileName: string) {
 async function writeOneFile(indexPath: string, fileMeta: any) {
   fs.writeFile(indexPath, JSON.stringify(fileMeta), (err) => {
     if (err) {
-      console.error("Error writing file: 3", err);
+      console.error('Error writing file: 3', err);
     }
   });
 }
@@ -183,11 +192,11 @@ async function writeOneFile(indexPath: string, fileMeta: any) {
  * @returns {Promise<void>} Resolves when the file is successfully written.
  *
  * @description
- * This function ensures that the specified directory exists, creating it recursively if necessary. 
+ * This function ensures that the specified directory exists, creating it recursively if necessary.
  * Then, it writes the provided data to a file at the given directory and filename.
  * If an error occurs during directory creation or file writing, it logs an error message to the console.
  *
-*/
+ */
 async function writeFile(dirPath: string, filename: string, data: any) {
   try {
     // Ensure directory exists or create it recursively
@@ -202,7 +211,7 @@ async function writeFile(dirPath: string, filename: string, data: any) {
 
 function convertToArray(data: any) {
   if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
-    return [data]// Converts object values into an array
+    return [data]; // Converts object values into an array
   }
   return data ?? []; // Return as is if it's already an array or not an object
 }
@@ -215,7 +224,7 @@ const mktApp = (type: string, data: any) => {
       return convertToArray(data);
     }
   }
-}
+};
 
 const processField = (
   lang_value: any,
@@ -238,7 +247,9 @@ const processField = (
 
     case 'dropdown':
     case 'radio': {
-      const isPresent = fieldData?.advanced?.options?.find((option: any) => lang_value === option?.value);
+      const isPresent = fieldData?.advanced?.options?.find(
+        (option: any) => lang_value === option?.value
+      );
       return isPresent?.value ?? fieldData?.advanced?.default_value;
     }
 
@@ -247,14 +258,14 @@ const processField = (
         const assetsData: any = [];
         for (const asset of lang_value) {
           if (asset?.sys?.id in assetId) {
-            assetsData?.push(assetId?.[asset?.sys?.id])
+            assetsData?.push(assetId?.[asset?.sys?.id]);
           }
         }
         return assetsData;
       } else {
         const id = lang_value?.sys?.id;
         if (assetId && id in assetId) {
-          return assetId?.[id]
+          return assetId?.[id];
         }
         return null;
       }
@@ -272,16 +283,15 @@ const processField = (
         return refs;
       }
       const id = lang_value?.sys?.id;
-      if(Array?.isArray(entryId?.id)){
+      if (Array?.isArray(entryId?.id)) {
         return entryId?.[id];
-      }
-      else{
+      } else {
         return [entryId?.[id]];
       }
     }
 
     case 'app': {
-      return mktApp(fieldData?.otherCmsType, lang_value)
+      return mktApp(fieldData?.otherCmsType, lang_value);
     }
 
     case 'boolean': {
@@ -290,7 +300,7 @@ const processField = (
 
     case 'number': {
       if (typeof lang_value === 'string') {
-        return parseInt?.(lang_value)
+        return parseInt?.(lang_value);
       }
       return lang_value;
     }
@@ -304,33 +314,45 @@ const processField = (
     }
 
     case 'html': {
-      const jsonValue = processRTEOrNestedObject(lang_value, lang, destination_stack_id);
-      return jsonToHtml(
-        jsonValue,
-        {
+      const jsonValue = processRTEOrNestedObject(
+        lang_value,
+        lang,
+        destination_stack_id
+      );
+      return (
+        jsonToHtml(jsonValue, {
           customElementTypes: {
-            "social-embed": (attrs, child, jsonBlock) => {
+            'social-embed': (attrs, child, jsonBlock) => {
               return `<social-embed${attrs}>${child}</social-embed>`;
             },
           },
           customTextWrapper: {
-            "color": (child, value) => {
+            color: (child, value) => {
               return `<color data-color="${value}">${child}</color>`;
             },
           },
-        }
-      ) ?? '<p></p>';
+        }) ?? '<p></p>'
+      );
     }
 
     case 'markdown': {
-      const jsonValue = processRTEOrNestedObject(lang_value, lang, destination_stack_id);
+      const jsonValue = processRTEOrNestedObject(
+        lang_value,
+        lang,
+        destination_stack_id
+      );
       return jsonToMarkdown(jsonValue);
     }
 
     case 'extension': {
       if (['listInput', 'tagEditor']?.includes(fieldData?.otherCmsType)) {
         if (Array.isArray(lang_value) && lang_value?.length) {
-          return { value: lang_value?.map((element: any) => ({ key: element, value: element })) }
+          return {
+            value: lang_value?.map((element: any) => ({
+              key: element,
+              value: element,
+            })),
+          };
         }
         return { value: [] };
       }
@@ -346,30 +368,29 @@ const processField = (
       if (Array.isArray(lang_value)) {
         return processArrayFields(lang_value, entryId, assetId);
       }
-      if (typeof lang_value !== "object") {
-        return typeof lang_value === "number" ? lang_value
+      if (typeof lang_value !== 'object') {
+        return typeof lang_value === 'number'
+          ? lang_value
           : cleanBrackets(lang_value);
       }
-      console.info("Missing ===>", fieldData?.contentstackFieldType)
       break;
     }
   }
 };
 
-
 // Helper function to clean up brackets in non-numeric lang_value
 const cleanBrackets = (lang_value: any) => {
   const myJSON = JSON.stringify(lang_value);
   const withoutEmptyBrac = myJSON
-    .replace("__,", "**")
-    .replace("##", "#")
-    .replace("###", "#");
+    .replace('__,', '**')
+    .replace('##', '#')
+    .replace('###', '#');
   return JSON.parse(withoutEmptyBrac);
 };
 
 // Helper function to process arrays and resolve IDs for entries and assets
 const processArrayFields = (array: any, entryId: any, assetId: any) => {
-  const ids = jsonpath.query(array, "$..id");
+  const ids = jsonpath.query(array, '$..id');
   ids.forEach((id: any, i: number) => {
     if (id in entryId) {
       array.splice(i, 1, entryId[id]);
@@ -379,21 +400,25 @@ const processArrayFields = (array: any, entryId: any, assetId: any) => {
   });
   // Clean up empty objects
   const cleanedArray = JSON.stringify(array)
-    .replace(/{},/g, "")
-    .replace(/,{}/g, "")
-    .replace(/,{},/g, "")
-    .replace(/{}/g, "");
+    .replace(/{},/g, '')
+    .replace(/,{}/g, '')
+    .replace(/,{},/g, '')
+    .replace(/{}/g, '');
   const result = typeof cleanedArray === 'string' && JSON.parse(cleanedArray);
   return result.length > 0 ? result : undefined;
 };
 
 // Helper function to process Rich Text Editor (RTE) or nested object
-const processRTEOrNestedObject = (lang_value: any, lang: any, destination_stack_id: string) => {
+const processRTEOrNestedObject = (
+  lang_value: any,
+  lang: any,
+  destination_stack_id: string
+) => {
   if (lang_value?.data) {
     return jsonRTE(lang_value, lang.toLowerCase(), destination_stack_id);
   } else {
     const dom = new JSDOM(lang_value);
-    const htmlDoc = dom.window.document.querySelector("body");
+    const htmlDoc = dom.window.document.querySelector('body');
     return htmlToJson(htmlDoc);
   }
 };
@@ -407,14 +432,14 @@ const processRTEOrNestedObject = (lang_value: any, lang: any, destination_stack_
  *
  * @description
  * This function searches the `displayField` object for an entry that matches the provided key.
- * The match is determined by normalizing the key and content type names (removing non-alphanumeric characters 
+ * The match is determined by normalizing the key and content type names (removing non-alphanumeric characters
  * and ignoring case). If a match is found, the associated `displayField` value is returned.
  */
 function getDisplayName(key: string, displayField: any) {
-  let path = "";
+  let path = '';
   Object.entries(displayField).forEach(([item, value]) => {
     if (
-      item.replace(/[^a-zA-Z0-9]+/g, "").toLowerCase() === key.toLowerCase()
+      item.replace(/[^a-zA-Z0-9]+/g, '').toLowerCase() === key.toLowerCase()
     ) {
       path = (value as { displayField: string }).displayField;
     }
@@ -460,24 +485,33 @@ const saveAsset = async (
     const publishDetails: { environment: any; version: number; locale: any }[] =
       [];
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
-    const environmentsId = await readFile(path.join(DATA, destination_stack_id, ENVIRONMENTS_DIR_NAME), ENVIRONMENTS_FILE_NAME) ?? {};
-    const localeId = await readFile(path.join(DATA, destination_stack_id, LOCALE_DIR_NAME), LOCALE_CF_LANGUAGE);
+    const environmentsId =
+      (await readFile(
+        path.join(DATA, destination_stack_id, ENVIRONMENTS_DIR_NAME),
+        ENVIRONMENTS_FILE_NAME
+      )) ?? {};
+    const localeId = await readFile(
+      path.join(DATA, destination_stack_id, LOCALE_DIR_NAME),
+      LOCALE_CF_LANGUAGE
+    );
 
     if (assets.fields.file && assets.fields.title) {
-      Object?.values?.(environmentsId)?.length && Object.values(environmentsId).forEach((env: any) => {
-        if (env?.name === assets?.sys?.environment?.sys?.id) {
-          Object.values(localeId).forEach((locale: any) => {
-            publishDetails.push({
-              environment: env?.uid,
-              version: 1,
-              locale: locale.code,
+      Object?.values?.(environmentsId)?.length &&
+        Object.values(environmentsId).forEach((env: any) => {
+          if (env?.name === assets?.sys?.environment?.sys?.id) {
+            Object.values(localeId).forEach((locale: any) => {
+              publishDetails.push({
+                environment: env?.uid,
+                version: 1,
+                locale: locale.code,
+              });
             });
-          });
-        }
-      });
+          }
+        });
 
-      const fileUrl = `https:${(Object.values(assets?.fields?.file)[0] as { url: string }).url
-        }`;
+      const fileUrl = `https:${
+        (Object.values(assets?.fields?.file)[0] as { url: string }).url
+      }`;
       const assetTitle = Object.values(assets?.fields?.title)[0];
       const fileName = path.basename(
         (Object.values(assets?.fields?.file)[0] as { fileName: string })
@@ -488,12 +522,13 @@ const saveAsset = async (
       )
         .map((desc) =>
           typeof Object.values(desc as { [key: string]: unknown })[0] ===
-            "string" ? (
-              Object.values(desc as { [key: string]: unknown })[0] as string
-            ).slice(0, 255)
-            : ""
+          'string'
+            ? (
+                Object.values(desc as { [key: string]: unknown })[0] as string
+              ).slice(0, 255)
+            : ''
         )
-        .join("");
+        .join('');
 
       if (fs.existsSync(path.resolve(assetsSave, assets.sys.id, fileName))) {
         return assets.sys.id; // Asset already exists
@@ -501,9 +536,9 @@ const saveAsset = async (
 
       try {
         const response = await axios.get(fileUrl, {
-          responseType: "arraybuffer",
+          responseType: 'arraybuffer',
         });
-        const assetPath = path.resolve(assetsSave, "files", assets.sys.id);
+        const assetPath = path.resolve(assetsSave, 'files', assets.sys.id);
 
         assetData[assets.sys.id] = {
           uid: assets.sys.id,
@@ -512,17 +547,18 @@ const saveAsset = async (
           content_type: (
             Object.values(assets?.fields?.file)[0] as { contentType: string }
           ).contentType,
-          file_size: `${(
-            Object.values(assets?.fields?.file)[0] as {
-              details: { size: string };
-            }
-          )?.details.size
-            }`,
+          file_size: `${
+            (
+              Object.values(assets?.fields?.file)[0] as {
+                details: { size: string };
+              }
+            )?.details.size
+          }`,
           tag: assets?.metadata?.tags,
           filename: fileName,
           url: fileUrl,
           is_dir: false,
-          parent_uid: "migrationasset",
+          parent_uid: 'migrationasset',
           _version: 1,
           title: assetTitle,
           description,
@@ -532,11 +568,19 @@ const saveAsset = async (
           srcFunc,
           `Asset "${fileName}" has been successfully transformed.`,
           {}
-        )
+        );
         await fs.promises.mkdir(assetPath, { recursive: true });
         // Write file as binary
-        await fs.promises.writeFile(path.join(assetPath, fileName), Buffer.from(response.data), "binary");
-        await writeFile(assetPath, `_contentstack_${assets.sys.id}.json`, assetData[assets.sys.id]);
+        await fs.promises.writeFile(
+          path.join(assetPath, fileName),
+          Buffer.from(response.data),
+          'binary'
+        );
+        await writeFile(
+          assetPath,
+          `_contentstack_${assets.sys.id}.json`,
+          assetData[assets.sys.id]
+        );
         metadata.push({ uid: assets.sys.id, url: fileUrl, filename: fileName });
         delete failedJSON[assets.sys.id];
         await customLogger(projectId, destination_stack_id, 'info', message);
@@ -546,16 +590,25 @@ const saveAsset = async (
             failedUid: assets.sys.id,
             name: assetTitle,
             url: fileUrl,
-            file_size: `${(
-              Object.values(assets?.fields?.file)[0] as {
-                details: { size: string };
-              }
-            ).details.size
-              }`,
+            file_size: `${
+              (
+                Object.values(assets?.fields?.file)[0] as {
+                  details: { size: string };
+                }
+              ).details.size
+            }`,
             reason_for_error: err?.message,
           };
         } else {
-          return await saveAsset(assets, failedJSON, assetData, metadata, projectId, destination_stack_id, 1);
+          return await saveAsset(
+            assets,
+            failedJSON,
+            assetData,
+            metadata,
+            projectId,
+            destination_stack_id,
+            1
+          );
         }
       }
     }
@@ -566,36 +619,45 @@ const saveAsset = async (
 };
 
 /**
-* Creates and processes assets from a given package file, saving them to the destination stack directory.
-*
-* @param {any} packagePath - The path to the package file containing asset data.
-* @param {string} destination_stack_id - The ID of the destination stack where assets will be saved.
-* @param {string} projectId - The ID of the current project for logging purposes.
-* @returns {Promise<void>} Resolves when all assets have been successfully created or errors have been logged.
-*
-* @description
-* This function performs the following tasks:
-* 1. Reads and parses the package file containing asset data.
-* 2. Creates and processes each asset using the `saveAsset` function, handling failures in `failedJSON`.
-* 3. Saves the processed asset data, metadata, and chunked references to the destination directory.
-* 4. Generates and writes the following files:
-*    - Schema file with complete asset data.
-*    - Chunked files for asset references.
-*    - Metadata file containing additional information about the assets.
-*    - A file to track failed assets, if any.
-* 5. Logs appropriate messages if no assets are found or if an error occurs during processing.
-*
-* @throws Will log errors encountered during file reading, writing, or asset processing.
-*/
-const createAssets = async (packagePath: any, destination_stack_id: string, projectId: string, isTest = false) => {
+ * Creates and processes assets from a given package file, saving them to the destination stack directory.
+ *
+ * @param {any} packagePath - The path to the package file containing asset data.
+ * @param {string} destination_stack_id - The ID of the destination stack where assets will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when all assets have been successfully created or errors have been logged.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file containing asset data.
+ * 2. Creates and processes each asset using the `saveAsset` function, handling failures in `failedJSON`.
+ * 3. Saves the processed asset data, metadata, and chunked references to the destination directory.
+ * 4. Generates and writes the following files:
+ *    - Schema file with complete asset data.
+ *    - Chunked files for asset references.
+ *    - Metadata file containing additional information about the assets.
+ *    - A file to track failed assets, if any.
+ * 5. Logs appropriate messages if no assets are found or if an error occurs during processing.
+ *
+ * @throws Will log errors encountered during file reading, writing, or asset processing.
+ */
+const createAssets = async (
+  packagePath: any,
+  destination_stack_id: string,
+  projectId: string,
+  isTest = false
+) => {
   const srcFunc = 'createAssets';
   try {
-    const assetsSave = path?.join?.(DATA, destination_stack_id, ASSETS_DIR_NAME);
-    const data = await fs?.promises?.readFile?.(packagePath, "utf8");
+    const assetsSave = path?.join?.(
+      DATA,
+      destination_stack_id,
+      ASSETS_DIR_NAME
+    );
+    const data = await fs?.promises?.readFile?.(packagePath, 'utf8');
     const failedJSON: any = {};
     const assetData: any = {};
     const metadata: AssetMetaData[] = [];
-    const fileMeta = { "1": ASSETS_SCHEMA_FILE };
+    const fileMeta = { '1': ASSETS_SCHEMA_FILE };
     let assets = JSON.parse(data)?.assets;
 
     if (assets && assets.length > 0) {
@@ -604,7 +666,17 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
       }
       const limit = pLimit(10); // Limit concurrent operations to 10
       const tasks = assets.map((asset: any) =>
-        limit(() => saveAsset(asset, failedJSON, assetData, metadata, projectId, destination_stack_id, 0))
+        limit(() =>
+          saveAsset(
+            asset,
+            failedJSON,
+            assetData,
+            metadata,
+            projectId,
+            destination_stack_id,
+            0
+          )
+        )
       );
 
       await Promise.all(tasks);
@@ -626,13 +698,14 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
 
       await writeOneFile(path.join(assetsSave, ASSETS_FILE_NAME), fileMeta);
       // await writeOneFile(path.join(assetsSave, ASSETS_METADATA_FILE), metadata);
-      failedJSON && await writeFile(assetMasterFolderPath, ASSETS_FAILED_FILE, failedJSON);
+      failedJSON &&
+        (await writeFile(
+          assetMasterFolderPath,
+          ASSETS_FAILED_FILE,
+          failedJSON
+        ));
     } else {
-      const message = getLogMessage(
-        srcFunc,
-        `No assets found.`,
-        {},
-      )
+      const message = getLogMessage(srcFunc, `No assets found.`, {});
       await customLogger(projectId, destination_stack_id, 'info', message);
     }
   } catch (err) {
@@ -641,51 +714,59 @@ const createAssets = async (packagePath: any, destination_stack_id: string, proj
       `Error encountered while creating assets.`,
       {},
       err
-    )
+    );
     await customLogger(projectId, destination_stack_id, 'error', message);
   }
 };
 
 /**
-* Creates environment configurations from a given package file and saves them to the destination stack directory.
-*
-* @param {any} packagePath - The path to the package file containing environment data.
-* @param {string} destination_stack_id - The ID of the destination stack where environments will be saved.
-* @param {string} projectId - The ID of the current project for logging purposes.
-* @returns {Promise<void>} Resolves when the environments are successfully created or errors have been logged.
-*
-* @description
-* This function performs the following tasks:
-* 1. Reads and parses the package file to extract environment data (`editorInterfaces`).
-* 2. Retrieves the master locale for the destination stack from the saved locale data.
-* 3. Processes and creates unique environment configurations by:
-*    - Extracting titles and names from the parsed data.
-*    - Ensuring each environment has a unique name.
-*    - Associating each environment with the master locale.
-* 4. Writes the consolidated environment configurations to a JSON file in the destination stack directory.
-* 5. Logs a message if no environments are found in the package file.
-* 6. Handles errors gracefully by logging them with relevant details.
-*
-* @throws Will log errors encountered during file reading, writing, or processing of environments.
-*/
-const createEnvironment = async (packagePath: any, destination_stack_id: string, projectId: string,) => {
+ * Creates environment configurations from a given package file and saves them to the destination stack directory.
+ *
+ * @param {any} packagePath - The path to the package file containing environment data.
+ * @param {string} destination_stack_id - The ID of the destination stack where environments will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when the environments are successfully created or errors have been logged.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file to extract environment data (`editorInterfaces`).
+ * 2. Retrieves the master locale for the destination stack from the saved locale data.
+ * 3. Processes and creates unique environment configurations by:
+ *    - Extracting titles and names from the parsed data.
+ *    - Ensuring each environment has a unique name.
+ *    - Associating each environment with the master locale.
+ * 4. Writes the consolidated environment configurations to a JSON file in the destination stack directory.
+ * 5. Logs a message if no environments are found in the package file.
+ * 6. Handles errors gracefully by logging them with relevant details.
+ *
+ * @throws Will log errors encountered during file reading, writing, or processing of environments.
+ */
+const createEnvironment = async (
+  packagePath: any,
+  destination_stack_id: string,
+  projectId: string
+) => {
   const srcFunc = 'createEnvironment';
   try {
     const localeSave = path.join(DATA, destination_stack_id, LOCALE_DIR_NAME);
-    const environmentSave = path.join(DATA, destination_stack_id, ENVIRONMENTS_DIR_NAME);
-    const data = await fs.promises.readFile(packagePath, "utf8");
+    const environmentSave = path.join(
+      DATA,
+      destination_stack_id,
+      ENVIRONMENTS_DIR_NAME
+    );
+    const data = await fs.promises.readFile(packagePath, 'utf8');
     const environments = JSON.parse(data)?.editorInterfaces;
     if (environments && environments.length > 0) {
-      const defaultLocale = await readFile(localeSave, LOCALE_MASTER_LOCALE)
+      const defaultLocale = await readFile(localeSave, LOCALE_MASTER_LOCALE);
 
       const masterLocale = Object.values(defaultLocale)
         .map((locale: any) => locale.code)
         .join();
 
-      const environmentsJSON: { [key: string]: any } = {}
+      const environmentsJSON: { [key: string]: any } = {};
       environments.forEach((env: any) => {
         const title = env?.sys?.createdBy?.sys?.id;
-        const name = env?.sys?.environment?.sys?.id || "master";
+        const name = env?.sys?.environment?.sys?.id || 'master';
         const isUnique = !Object.values(environmentsJSON).some(
           (existingEnv) => existingEnv.name === name
         );
@@ -693,20 +774,19 @@ const createEnvironment = async (packagePath: any, destination_stack_id: string,
           environmentsJSON[title] = {
             uid: title,
             urlPath: `/environments/${name}`,
-            urls: [{ url: "", locale: masterLocale }],
+            urls: [{ url: '', locale: masterLocale }],
             name,
           };
         }
-      }
-      );
+      });
 
-      await writeFile(environmentSave, ENVIRONMENTS_FILE_NAME, environmentsJSON);
+      await writeFile(
+        environmentSave,
+        ENVIRONMENTS_FILE_NAME,
+        environmentsJSON
+      );
     } else {
-      const message = getLogMessage(
-        srcFunc,
-        `No environments found.`,
-        {},
-      )
+      const message = getLogMessage(srcFunc, `No environments found.`, {});
       await customLogger(projectId, destination_stack_id, 'info', message);
     }
   } catch (err) {
@@ -715,11 +795,10 @@ const createEnvironment = async (packagePath: any, destination_stack_id: string,
       `Error encountered while creating environment.`,
       {},
       err
-    )
+    );
     await customLogger(projectId, destination_stack_id, 'error', message);
   }
 };
-
 
 /**
  * Creates and processes entries from a given package file and saves them to the destination stack directory.
@@ -747,28 +826,47 @@ const createEnvironment = async (packagePath: any, destination_stack_id: string,
  *
  * @throws Will log errors encountered during file reading, processing, or writing of entries.
  */
-const createEntry = async (packagePath: any, destination_stack_id: string, projectId: string, contentTypes: any, mapperKeys: any, master_locale: string, project: any): Promise<void> => {
+const createEntry = async (
+  packagePath: any,
+  destination_stack_id: string,
+  projectId: string,
+  contentTypes: any,
+  mapperKeys: any,
+  master_locale: string,
+  project: any
+): Promise<void> => {
   const srcFunc = 'createEntry';
+
   try {
     const entriesSave = path.join(DATA, destination_stack_id, ENTRIES_DIR_NAME);
     const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
-    const environmentSave = path.join(DATA, destination_stack_id, ENVIRONMENTS_DIR_NAME);
-    const data = await fs.promises.readFile(packagePath, "utf8");
+    const environmentSave = path.join(
+      DATA,
+      destination_stack_id,
+      ENVIRONMENTS_DIR_NAME
+    );
+    const data = await fs.promises.readFile(packagePath, 'utf8');
     const entries = JSON.parse(data)?.entries;
     const content = JSON.parse(data)?.contentTypes;
-    const LocaleMapper = { masterLocale: project?.master_locale ?? LOCALE_MAPPER?.masterLocale, ...project?.locales ?? {} };
+    const LocaleMapper = {
+      masterLocale: project?.master_locale ?? LOCALE_MAPPER?.masterLocale,
+      ...(project?.locales ?? {}),
+    };
+
     if (entries && entries.length > 0) {
-      const assetId = await readFile(assetsSave, ASSETS_SCHEMA_FILE) ?? [];
-      const entryId = await readFile(path.join(DATA, destination_stack_id, REFERENCES_DIR_NAME), REFERENCES_FILE_NAME);
-      const environmentsId = await readFile(environmentSave, ENVIRONMENTS_FILE_NAME) ?? {};
-      const displayField: { [key: string]: any } = {}
-      content.map((item: any) => {
-        displayField[item?.sys?.id] =
-        {
-          displayField: item?.displayField || "untitled",
-        };
-      }
+      const assetId = (await readFile(assetsSave, ASSETS_SCHEMA_FILE)) ?? [];
+      const entryId = await readFile(
+        path.join(DATA, destination_stack_id, REFERENCES_DIR_NAME),
+        REFERENCES_FILE_NAME
       );
+      const environmentsId =
+        (await readFile(environmentSave, ENVIRONMENTS_FILE_NAME)) ?? {};
+      const displayField: { [key: string]: any } = {};
+      content.map((item: any) => {
+        displayField[item?.sys?.id] = {
+          displayField: item?.displayField || 'untitled',
+        };
+      });
       // Process entries
       const result = entries.reduce(
         (
@@ -779,7 +877,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
               contentType: {
                 sys: { id: name },
               },
-              environment: { sys: { id: environment_id = "" } = {} } = {},
+              environment: { sys: { id: environment_id = '' } = {} } = {},
             },
             fields,
           }: any
@@ -787,14 +885,22 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           entryData[name] ??= {};
 
           Object.entries(fields).forEach(([key, value]) => {
-            const currentCT = contentTypes?.find((ct: any) => ct?.otherCmsUid === name);
+            const currentCT = contentTypes?.find(
+              (ct: any) => ct?.otherCmsUid === name
+            );
             const locales: string[] = [];
             Object.entries(value as object).forEach(([lang, langValue]) => {
               entryData[name][lang] ??= {};
               entryData[name][lang][id] ??= {};
               locales.push(lang);
-              const fieldData = currentCT?.fieldMapping?.find?.((item: any) => (key === item?.uid) && (!["text", "url"]?.includes?.(item?.backupFieldType)));
-              const newId = fieldData?.contentstackFieldUid ?? `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, "_");
+              const fieldData = currentCT?.fieldMapping?.find?.(
+                (item: any) =>
+                  key === item?.uid &&
+                  !['text', 'url']?.includes?.(item?.backupFieldType)
+              );
+              const newId =
+                fieldData?.contentstackFieldUid ??
+                `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, '_');
               entryData[name][lang][id][newId] = processField(
                 langValue,
                 entryId,
@@ -806,21 +912,27 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
             });
             const pathName = getDisplayName(name, displayField);
             locales.forEach((locale) => {
-              const localeCode = mapLocales({ masterLocale: master_locale, locale, locales: LocaleMapper });
-              const publishDetails = Object?.values?.(environmentsId)?.length ? Object?.values?.(environmentsId)
-                .filter((env: any) => env?.name === environment_id)
-                ?.map((env: any) => ({
-                  environment: env?.uid,
-                  version: 1,
-                  locale: localeCode,
-                })) : [];
-              const title = fields?.[pathName]?.[locale] || "";
+              const localeCode = mapLocales({
+                masterLocale: master_locale,
+                locale,
+                locales: LocaleMapper,
+              });
+              const publishDetails = Object?.values?.(environmentsId)?.length
+                ? Object?.values?.(environmentsId)
+                    .filter((env: any) => env?.name === environment_id)
+                    ?.map((env: any) => ({
+                      environment: env?.uid,
+                      version: 1,
+                      locale: localeCode,
+                    }))
+                : [];
+              const title = fields?.[pathName]?.[locale] || '';
               const urlTitle = title
-                ?.replace?.(/[^a-zA-Z0-9]+/g, "-")
+                ?.replace?.(/[^a-zA-Z0-9]+/g, '-')
                 ?.toLowerCase?.();
               entryData[name][locale][id] = {
                 ...entryData[name][locale][id],
-                title: title?.trim?.() === "" ? (urlTitle || id) : title,
+                title: title?.trim?.() === '' ? urlTitle || id : title,
                 uid: id,
                 url: `/${name?.toLowerCase?.()}/${urlTitle}`,
                 locale: localeCode,
@@ -844,30 +956,43 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
         {}
       );
       for await (const [newKey, values] of Object.entries(result)) {
-        const currentCT = contentTypes?.find((ct: any) => ct?.otherCmsUid === newKey);
-        const ctName = currentCT?.contentstackUid in mapperKeys ?
-          mapperKeys?.[currentCT?.contentstackUid] : (currentCT?.contentstackUid ?? newKey.replace(/([A-Z])/g, "_$1").toLowerCase());
+        const currentCT = contentTypes?.find(
+          (ct: any) => ct?.otherCmsUid === newKey
+        );
+        const ctName =
+          currentCT?.contentstackUid in mapperKeys
+            ? mapperKeys?.[currentCT?.contentstackUid]
+            : currentCT?.contentstackUid ??
+              newKey.replace(/([A-Z])/g, '_$1').toLowerCase();
         for await (const [localeKey, localeValues] of Object.entries(
           values as { [key: string]: any }
         )) {
-          const localeCode = mapLocales({ masterLocale: master_locale, locale: localeKey, locales: LocaleMapper, isNull: true });
+          const localeCode = mapLocales({
+            masterLocale: master_locale,
+            locale: localeKey,
+            locales: LocaleMapper,
+            isNull: true,
+          });
           const chunks = makeChunks(localeValues);
           for (const [entryKey, entryValue] of Object.entries(localeValues)) {
             const message = getLogMessage(
               srcFunc,
-              `Entry title "${(entryValue as { title: string })?.title}"(${ctName}) in the ${localeCode} locale has been successfully transformed.`,
+              `Entry title "${
+                (entryValue as { title: string })?.title
+              }"(${ctName}) in the ${localeCode} locale has been successfully transformed.`,
               {}
             );
-            await customLogger(projectId, destination_stack_id, "info", message);
+            await customLogger(
+              projectId,
+              destination_stack_id,
+              'info',
+              message
+            );
           }
           const refs: { [key: string]: any } = {};
           let chunkIndex = 1;
           if (localeCode) {
-            const filePath = path.join(
-              entriesSave,
-              ctName,
-              localeCode
-            );
+            const filePath = path.join(entriesSave, ctName, localeCode);
             for await (const [chunkId, chunkData] of Object.entries(chunks)) {
               refs[chunkIndex++] = `${chunkId}-entries.json`;
               await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
@@ -877,26 +1002,24 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
         }
       }
     } else {
-      const message = getLogMessage(
-        srcFunc,
-        `No entries found.`,
-        {}
-      )
+      const message = getLogMessage(srcFunc, `No entries found.`, {});
       await customLogger(projectId, destination_stack_id, 'info', message);
     }
   } catch (err) {
-    console.error("🚀 ~ createEntry ~ err:", err)
     const message = getLogMessage(
       srcFunc,
       `Error encountered while creating entries.`,
       {},
       err
-    )
+    );
     await customLogger(projectId, destination_stack_id, 'error', message);
   }
 };
 
-function getKeyByValue(obj: Record<string, string>, targetValue: string): string | undefined {
+function getKeyByValue(
+  obj: Record<string, string>,
+  targetValue: string
+): string | undefined {
   return Object.entries(obj).find(([_, value]) => value === targetValue)?.[0];
 }
 
@@ -924,17 +1047,26 @@ function getKeyByValue(obj: Record<string, string>, targetValue: string): string
  *
  * @throws Will log errors encountered during file reading, processing, or writing of locale configurations.
  */
-const createLocale = async (packagePath: string, destination_stack_id: string, projectId: string, project: any) => {
+const createLocale = async (
+  packagePath: string,
+  destination_stack_id: string,
+  projectId: string,
+  project: any
+) => {
   const srcFunc = 'createLocale';
   const localeSave = path.join(DATA, destination_stack_id, LOCALE_DIR_NAME);
-  const globalFieldSave = path.join(DATA, destination_stack_id, GLOBAL_FIELDS_DIR_NAME);
+  const globalFieldSave = path.join(
+    DATA,
+    destination_stack_id,
+    GLOBAL_FIELDS_DIR_NAME
+  );
 
   try {
     const msLocale: Record<string, Locale> = {};
     const allLocales: Record<string, Locale> = {};
     const localeList: Record<string, Locale> = {};
 
-    const data = await fs.promises.readFile(packagePath, "utf8");
+    const data = await fs.promises.readFile(packagePath, 'utf8');
 
     const locales = JSON.parse(data)?.locales;
     const [err, localeCodes] = await getAllLocales();
@@ -945,59 +1077,82 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
         `Error encountered while fetching locales list.`,
         {},
         err
-      )
+      );
       await customLogger(projectId, destination_stack_id, 'error', message);
     }
-    const fallbackMapLocales: any = { ...project?.master_locale ?? {}, ...project?.locales ?? {} }
-    await Promise?.all(locales?.map?.(async (localeData: any) => {
-      const currentMapLocale = getKeyByValue?.(fallbackMapLocales, localeData?.code) ?? `${localeData?.code?.toLowerCase?.()}`;
-      const title = localeData?.sys?.id;
-      const newLocale: Locale = {
-        code: currentMapLocale,
-        name: localeCodes?.[currentMapLocale] || "English - United States",
-        fallback_locale: getKeyByValue(fallbackMapLocales, localeData?.fallbackCode) ?? '',
-        uid: `${title}`,
-      };
-      const masterLocaleCode = getKeyByValue(project?.master_locale, localeData?.code);
-      if (masterLocaleCode !== undefined) {
-        msLocale[title] = newLocale;
-        const message = getLogMessage(
-          srcFunc,
-          `Master Locale ${newLocale?.code} has been successfully transformed.`,
-          {}
-        )
-        await customLogger(projectId, destination_stack_id, 'info', message);
-      } else {
-        const newValueLocale = getKeyByValue(project?.locales, localeData?.code);
-        if (newValueLocale) {
-          allLocales[title] = newLocale;
+    const fallbackMapLocales: any = {
+      ...(project?.master_locale ?? {}),
+      ...(project?.locales ?? {}),
+    };
+
+    await Promise?.all(
+      locales?.map?.(async (localeData: any) => {
+        const currentMapLocale =
+          getKeyByValue?.(fallbackMapLocales, localeData?.code) ??
+          `${localeData?.code?.toLowerCase?.()}`;
+
+        const title = localeData?.sys?.id;
+        const newLocale: Locale = {
+          code: currentMapLocale,
+          name: localeCodes?.[currentMapLocale] || 'English - United States',
+          fallback_locale:
+            getKeyByValue(fallbackMapLocales, localeData?.fallbackCode) ?? '',
+          uid: `${title}`,
+        };
+        const masterLocaleCode = getKeyByValue(
+          project?.master_locale,
+          localeData?.code
+        );
+
+        if (masterLocaleCode !== undefined) {
+          msLocale[title] = newLocale;
           const message = getLogMessage(
             srcFunc,
-            `Locale ${newLocale?.code} has been successfully transformed.`,
+            `Master Locale ${newLocale?.code} has been successfully transformed.`,
             {}
-          )
+          );
           await customLogger(projectId, destination_stack_id, 'info', message);
+        } else {
+          const newValueLocale = getKeyByValue(
+            project?.locales,
+            localeData?.code
+          );
+          if (newValueLocale) {
+            allLocales[title] = newLocale;
+            const message = getLogMessage(
+              srcFunc,
+              `Locale ${newLocale?.code} has been successfully transformed.`,
+              {}
+            );
+            await customLogger(
+              projectId,
+              destination_stack_id,
+              'info',
+              message
+            );
+          }
         }
-      }
-      localeList[title] = newLocale;
-    }));
+        localeList[title] = newLocale;
+      })
+    );
     const masterLocaleData = Object?.values(msLocale)?.[0];
+
     if (masterLocaleData) {
       for (const [key, value] of Object.entries(allLocales) ?? {}) {
         if (value?.code === masterLocaleData?.fallback_locale) {
-          allLocales[key].fallback_locale = masterLocaleData?.code
+          allLocales[key].fallback_locale = masterLocaleData?.code;
         }
       }
     }
-    await writeFile(localeSave, LOCALE_FILE_NAME, allLocales)
-    await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale)
-    await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList)
-  
+    await writeFile(localeSave, LOCALE_FILE_NAME, allLocales);
+    await writeFile(localeSave, LOCALE_MASTER_LOCALE, msLocale);
+    await writeFile(localeSave, LOCALE_CF_LANGUAGE, localeList);
+
     const message = getLogMessage(
       srcFunc,
       `locales have been successfully transformed.`,
       {}
-    )
+    );
     await customLogger(projectId, destination_stack_id, 'info', message);
   } catch (err) {
     const message = getLogMessage(
@@ -1005,43 +1160,47 @@ const createLocale = async (packagePath: string, destination_stack_id: string, p
       `error while Createing the locales.`,
       {},
       err
-    )
+    );
     await customLogger(projectId, destination_stack_id, 'error', message);
   }
 };
 
 /**
-* Processes and transforms webhook configurations from a given package file and saves them to the destination stack directory.
-*
-* @param {string} packagePath - The path to the package file containing webhook data.
-* @param {string} destination_stack_id - The ID of the destination stack where webhooks will be saved.
-* @param {string} projectId - The ID of the current project for logging purposes.
-* @returns {Promise<void>} Resolves when all webhooks have been successfully processed and saved, or errors have been logged.
-*
-* @description
-* This function performs the following tasks:
-* 1. Reads and parses the package file to extract webhook data.
-* 2. Iterates through the webhooks, transforming their configurations:
-*    - Processes `topics` for webhook events and constructs appropriate channel topics.
-*    - Handles data transformation based on the type of webhook event (`contentType`, `entries`, `assets`, `releases`).
-*    - Filters out ignored events and applies custom transformations to topics.
-* 3. Builds webhook objects with necessary attributes like `urlPath`, `channels`, `destinations`, etc.
-* 4. Logs success messages for each webhook transformation.
-* 5. Saves the processed webhooks to a JSON file in the destination stack directory.
-* 6. Logs a message confirming the successful transformation of webhooks or logs errors encountered during processing.
-*
-* @throws Will log errors encountered during file reading, processing, or writing of webhook configurations.
-*
-* @example
-* // Example usage
-* await createWebhooks('/path/to/package.json', 'stack123', 'project456');
-*/
-const createWebhooks = async (packagePath: string, destination_stack_id: string, projectId: string,) => {
+ * Processes and transforms webhook configurations from a given package file and saves them to the destination stack directory.
+ *
+ * @param {string} packagePath - The path to the package file containing webhook data.
+ * @param {string} destination_stack_id - The ID of the destination stack where webhooks will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when all webhooks have been successfully processed and saved, or errors have been logged.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file to extract webhook data.
+ * 2. Iterates through the webhooks, transforming their configurations:
+ *    - Processes `topics` for webhook events and constructs appropriate channel topics.
+ *    - Handles data transformation based on the type of webhook event (`contentType`, `entries`, `assets`, `releases`).
+ *    - Filters out ignored events and applies custom transformations to topics.
+ * 3. Builds webhook objects with necessary attributes like `urlPath`, `channels`, `destinations`, etc.
+ * 4. Logs success messages for each webhook transformation.
+ * 5. Saves the processed webhooks to a JSON file in the destination stack directory.
+ * 6. Logs a message confirming the successful transformation of webhooks or logs errors encountered during processing.
+ *
+ * @throws Will log errors encountered during file reading, processing, or writing of webhook configurations.
+ *
+ * @example
+ * // Example usage
+ * await createWebhooks('/path/to/package.json', 'stack123', 'project456');
+ */
+const createWebhooks = async (
+  packagePath: string,
+  destination_stack_id: string,
+  projectId: string
+) => {
   const srcFunc = 'createWebhooks';
   const webhooksSave = path.join(DATA, destination_stack_id, WEBHOOKS_DIR_NAME);
 
   try {
-    const data = await fs.promises.readFile(packagePath, "utf8");
+    const data = await fs.promises.readFile(packagePath, 'utf8');
     const webhookJSON: any = {};
 
     const webhooks = JSON.parse(data)?.webhooks;
@@ -1049,151 +1208,153 @@ const createWebhooks = async (packagePath: string, destination_stack_id: string,
     if (webhooks && webhooks.length > 0) {
       for (const webhooksData of webhooks) {
         const channelTopic = [];
-        const rest = ["publish", "unpublish"];
-        const custom = ["create", "delete", "update"];
-        const ignore = ["save", "archive", "unarchive"];
+        const rest = ['publish', 'unpublish'];
+        const custom = ['create', 'delete', 'update'];
+        const ignore = ['save', 'archive', 'unarchive'];
         const required = [
-          "content_types",
-          "content_types.entries",
-          "assets",
-          "releases",
+          'content_types',
+          'content_types.entries',
+          'assets',
+          'releases',
         ];
 
         // Function definitions for different data transformations
         const contentTypeFirst = (data: any, value: any) => {
           const contenttype = data
-            .split(".")[0]
-            .replace("*", value)
-            .concat(`.${data.split(".")[1]}`);
+            .split('.')[0]
+            .replace('*', value)
+            .concat(`.${data.split('.')[1]}`);
           channelTopic.push(contenttype);
         };
 
         const contentTypeLast = (data: any, value: any) => {
           const contenttype = data
-            .split(".")[0]
-            .replace("ContentType", "content_types")
+            .split('.')[0]
+            .replace('ContentType', 'content_types')
             .concat(`.${value}`);
           channelTopic.push(contenttype);
         };
 
         const restFieldFirstSuccess = (data: any, value: any) => {
           const entries = data
-            .split(".")[0]
-            .replace("*", value)
-            .concat(`.environments.${data.split(".")[1]}.success`);
+            .split('.')[0]
+            .replace('*', value)
+            .concat(`.environments.${data.split('.')[1]}.success`);
           channelTopic.push(entries);
         };
 
         const restFieldFirst = (data: any, value: any) => {
           const entries = data
-            .split(".")[0]
-            .replace("*", value)
-            .concat(`.${data.split(".")[1]}`);
+            .split('.')[0]
+            .replace('*', value)
+            .concat(`.${data.split('.')[1]}`);
           channelTopic.push(entries);
         };
 
         const releasesFirst = (data: any) => {
           const releases = data
-            .split(".")[0]
-            .replace("*", "releases")
-            .concat(".environments.deploy");
+            .split('.')[0]
+            .replace('*', 'releases')
+            .concat('.environments.deploy');
           channelTopic.push(releases);
         };
 
         const releasesLast = (data: any) => {
           const releases = data
-            .split(".")[0]
-            .replace("Release", "releases")
-            .concat(".environments.deploy");
+            .split('.')[0]
+            .replace('Release', 'releases')
+            .concat('.environments.deploy');
           channelTopic.push(releases);
         };
 
         for (const data of webhooksData.topics) {
-          if (data.split(".")[0].includes("*")) {
-            if (!ignore.includes(data.split(".")[1])) {
+          if (data.split('.')[0].includes('*')) {
+            if (!ignore.includes(data.split('.')[1])) {
               for (const value of required) {
-                if (value === "content_types") contentTypeFirst(data, value);
-                if (value === "content_types.entries" || value === "assets") {
-                  if (rest.includes(data.split(".")[1])) {
+                if (value === 'content_types') contentTypeFirst(data, value);
+                if (value === 'content_types.entries' || value === 'assets') {
+                  if (rest.includes(data.split('.')[1])) {
                     restFieldFirstSuccess(data, value);
                   } else {
                     restFieldFirst(data, value);
                   }
                 }
-                if (value === "releases") releasesFirst(data);
+                if (value === 'releases') releasesFirst(data);
               }
             }
-          } else if (data.split(".")[1].includes("*")) {
-            if (data.split(".")[0].includes("ContentType")) {
+          } else if (data.split('.')[1].includes('*')) {
+            if (data.split('.')[0].includes('ContentType')) {
               for (const value of custom) contentTypeLast(data, value);
             }
-            if (data.split(".")[0].includes("Entry")) {
+            if (data.split('.')[0].includes('Entry')) {
               for (const value of custom) {
                 const entries = data
-                  .split(".")[0]
-                  .replace("Entry", "content_types.entries")
+                  .split('.')[0]
+                  .replace('Entry', 'content_types.entries')
                   .concat(`.${value}`);
                 channelTopic.push(entries);
               }
               for (const value of rest) {
                 const entries = data
-                  .split(".")[0]
-                  .replace("Entry", "content_type.entries")
+                  .split('.')[0]
+                  .replace('Entry', 'content_type.entries')
                   .concat(`.environments.${value}.success`);
                 channelTopic.push(entries);
               }
             }
-            if (data.split(".")[0].includes("Asset")) {
+            if (data.split('.')[0].includes('Asset')) {
               for (const value of custom) {
                 const asset = data
-                  .split(".")[0]
-                  .replace("Asset", "assets")
+                  .split('.')[0]
+                  .replace('Asset', 'assets')
                   .concat(`.${value}`);
                 channelTopic.push(asset);
               }
               for (const value of rest) {
                 const asset = data
-                  .split(".")[0]
-                  .replace("Asset", "assets")
+                  .split('.')[0]
+                  .replace('Asset', 'assets')
                   .concat(`.environments.${value}.success`);
                 channelTopic.push(asset);
               }
             }
             if (
-              data.split(".")[0].includes("Release") &&
-              !data.split(".")[0].includes("ReleaseAction")
+              data.split('.')[0].includes('Release') &&
+              !data.split('.')[0].includes('ReleaseAction')
             ) {
               releasesLast(data);
             }
           } else {
-            if (!ignore.includes(data.split(".")[1])) {
-              if (data.split(".")[0].includes("ContentType")) {
-                if (!rest.includes(data.split(".")[1]))
-                  contentTypeFirst(data, "");
+            if (!ignore.includes(data.split('.')[1])) {
+              if (data.split('.')[0].includes('ContentType')) {
+                if (!rest.includes(data.split('.')[1]))
+                  contentTypeFirst(data, '');
               }
-              if (data.split(".")[0].includes("Entry")) {
+              if (data.split('.')[0].includes('Entry')) {
                 const entries = data
-                  .split(".")[0]
-                  .replace("Entry", "content_type.entries")
+                  .split('.')[0]
+                  .replace('Entry', 'content_type.entries')
                   .concat(
-                    rest.includes(data.split(".")[1]) ? `.environments.${data.split(".")[1]}.success`
-                      : `.${data.split(".")[1]}`
+                    rest.includes(data.split('.')[1])
+                      ? `.environments.${data.split('.')[1]}.success`
+                      : `.${data.split('.')[1]}`
                   );
                 channelTopic.push(entries);
               }
-              if (data.split(".")[0].includes("Asset")) {
+              if (data.split('.')[0].includes('Asset')) {
                 const asset = data
-                  .split(".")[0]
-                  .replace("Asset", "assets")
+                  .split('.')[0]
+                  .replace('Asset', 'assets')
                   .concat(
-                    rest.includes(data.split(".")[1]) ? `.environments.${data.split(".")[1]}.success`
-                      : `.${data.split(".")[1]}`
+                    rest.includes(data.split('.')[1])
+                      ? `.environments.${data.split('.')[1]}.success`
+                      : `.${data.split('.')[1]}`
                   );
                 channelTopic.push(asset);
               }
               if (
-                data.split(".")[0].includes("Release") &&
-                !data.split(".")[0].includes("ReleaseAction")
+                data.split('.')[0].includes('Release') &&
+                !data.split('.')[0].includes('ReleaseAction')
               ) {
                 releasesLast(data);
               }
@@ -1203,8 +1364,8 @@ const createWebhooks = async (packagePath: string, destination_stack_id: string,
 
         const customHeader = {
           custom_header: webhooksData.headers
-            .filter((x: any) => Object.keys(x).includes("value"))
-            .map((x: any) => ({ value: x["value"], header_name: x["key"] })),
+            .filter((x: any) => Object.keys(x).includes('value'))
+            .map((x: any) => ({ value: x['value'], header_name: x['key'] })),
         };
 
         const title = webhooksData.sys.id;
@@ -1212,7 +1373,7 @@ const createWebhooks = async (packagePath: string, destination_stack_id: string,
           urlPath: `/webhooks/${title}`,
           concise_payload: false,
           disabled: true,
-          retry_policy: "manual",
+          retry_policy: 'manual',
           channels: _.uniq(channelTopic),
           destinations: [{ ...customHeader, target_url: webhooksData.url }],
           name: webhooksData.name,
@@ -1221,17 +1382,13 @@ const createWebhooks = async (packagePath: string, destination_stack_id: string,
         const message = getLogMessage(
           srcFunc,
           `Webhook ${webhooksData.name} has been successfully transformed.`,
-          {},
+          {}
         );
         await customLogger(projectId, destination_stack_id, 'info', message);
       }
-      await writeFile(webhooksSave, WEBHOOKS_FILE_NAME, webhookJSON)
+      await writeFile(webhooksSave, WEBHOOKS_FILE_NAME, webhookJSON);
     } else {
-      const message = getLogMessage(
-        srcFunc,
-        `No webhooks found.`,
-        {},
-      );
+      const message = getLogMessage(srcFunc, `No webhooks found.`, {});
       await customLogger(projectId, destination_stack_id, 'info', message);
     }
   } catch (err) {
@@ -1240,38 +1397,50 @@ const createWebhooks = async (packagePath: string, destination_stack_id: string,
       `error while Creating the Webhooks.`,
       {},
       err
-    )
+    );
     await customLogger(projectId, destination_stack_id, 'error', message);
   }
 };
 
 /**
-* Processes and generates reference and rich-text editor (RTE) reference mappings from entries in a given package file.
-*
-* @param {string} packagePath - The path to the package file containing entry data.
-* @param {string} destination_stack_id - The ID of the destination stack where references will be saved.
-* @param {string} projectId - The ID of the current project for logging purposes.
-* @returns {Promise<void>} Resolves when reference and RTE reference files are successfully generated and saved.
-*
-* @description
-* This function performs the following tasks:
-* 1. Reads and parses the package file to extract entries.
-* 2. Iterates through the entries to:
-*    - Construct a mapping of `references`, associating entry IDs with their content type and UID.
-*    - Construct a mapping of `rteReferences`, associating language-specific references for each entry ID and content type.
-* 3. Saves the generated mappings to separate JSON files:
-*    - `references.json` for general references.
-*    - `rte_references.json` for rich-text editor-specific references.
-* 4. Logs an error message if any issue occurs during file processing or saving.
-*
-* @throws Will log errors encountered during file reading, data transformation, or file writing.
-*/
-const createRefrence = async (packagePath: string, destination_stack_id: string, projectId: string,) => {
+ * Processes and generates reference and rich-text editor (RTE) reference mappings from entries in a given package file.
+ *
+ * @param {string} packagePath - The path to the package file containing entry data.
+ * @param {string} destination_stack_id - The ID of the destination stack where references will be saved.
+ * @param {string} projectId - The ID of the current project for logging purposes.
+ * @returns {Promise<void>} Resolves when reference and RTE reference files are successfully generated and saved.
+ *
+ * @description
+ * This function performs the following tasks:
+ * 1. Reads and parses the package file to extract entries.
+ * 2. Iterates through the entries to:
+ *    - Construct a mapping of `references`, associating entry IDs with their content type and UID.
+ *    - Construct a mapping of `rteReferences`, associating language-specific references for each entry ID and content type.
+ * 3. Saves the generated mappings to separate JSON files:
+ *    - `references.json` for general references.
+ *    - `rte_references.json` for rich-text editor-specific references.
+ * 4. Logs an error message if any issue occurs during file processing or saving.
+ *
+ * @throws Will log errors encountered during file reading, data transformation, or file writing.
+ */
+const createRefrence = async (
+  packagePath: string,
+  destination_stack_id: string,
+  projectId: string
+) => {
   const srcFunc = 'createRefrence';
-  const refrencesSave = path.join(DATA, destination_stack_id, REFERENCES_DIR_NAME);
-  const rteRefrencesSave = path.join(DATA, destination_stack_id, RTE_REFERENCES_DIR_NAME);
+  const refrencesSave = path.join(
+    DATA,
+    destination_stack_id,
+    REFERENCES_DIR_NAME
+  );
+  const rteRefrencesSave = path.join(
+    DATA,
+    destination_stack_id,
+    RTE_REFERENCES_DIR_NAME
+  );
   try {
-    const data = await fs.promises.readFile(packagePath, "utf8");
+    const data = await fs.promises.readFile(packagePath, 'utf8');
     const entries = JSON.parse(data)?.entries;
 
     const result = entries.reduce(
@@ -1293,7 +1462,7 @@ const createRefrence = async (packagePath: string, destination_stack_id: string,
         }
         entryData.refrences[id] = {
           uid: id,
-          _content_type_uid: name.replace(/([A-Z])/g, "_$1").toLowerCase(),
+          _content_type_uid: name.replace(/([A-Z])/g, '_$1').toLowerCase(),
         };
 
         Object.entries(fields).forEach(([key, value]) => {
@@ -1301,7 +1470,7 @@ const createRefrence = async (packagePath: string, destination_stack_id: string,
             entryData.rteRefrences[lang.toLowerCase()] ??= {};
             entryData.rteRefrences[lang.toLowerCase()][id] ??= {
               uid: id,
-              _content_type_uid: name.replace(/([A-Z])/g, "_$1").toLowerCase(),
+              _content_type_uid: name.replace(/([A-Z])/g, '_$1').toLowerCase(),
             };
           });
         });
@@ -1310,17 +1479,20 @@ const createRefrence = async (packagePath: string, destination_stack_id: string,
       {}
     );
     await writeFile(refrencesSave, REFERENCES_FILE_NAME, result.refrences);
-    await writeFile(rteRefrencesSave, RTE_REFERENCES_FILE_NAME, result.rteRefrences);
+    await writeFile(
+      rteRefrencesSave,
+      RTE_REFERENCES_FILE_NAME,
+      result.rteRefrences
+    );
   } catch (err) {
     const message = getLogMessage(
       srcFunc,
       `error while Createing the Refrence.`,
       {},
       err
-    )
+    );
     await customLogger(projectId, destination_stack_id, 'error', message);
   }
-
 };
 
 /**
@@ -1341,20 +1513,26 @@ const createRefrence = async (packagePath: string, destination_stack_id: string,
  *
  * @throws Will log an error if the file writing operation fails.
  */
-const createVersionFile = async (destination_stack_id: string, projectId: string) => {
+const createVersionFile = async (
+  destination_stack_id: string,
+  projectId: string
+) => {
   try {
-    await writeFile(path?.join?.(DATA, destination_stack_id), EXPORT_INFO_FILE,
+    await writeFile(
+      path?.join?.(DATA, destination_stack_id),
+      EXPORT_INFO_FILE,
       {
         contentVersion: 2,
-        logsPath: "",
-      })
+        logsPath: '',
+      }
+    );
   } catch (err) {
     const message = getLogMessage(
-      "createVersionFile",
+      'createVersionFile',
       `Error writing file: ${err}`,
       {},
       err
-    )
+    );
     await customLogger(projectId, destination_stack_id, 'error', message);
   }
 };

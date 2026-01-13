@@ -1,29 +1,38 @@
-export const CS_REGIONS = ["NA", "EU", "AZURE_NA", "AZURE_EU", "GCP_NA", "AU", "GCP_EU"];
+export const CS_REGIONS = [
+  'NA',
+  'EU',
+  'AZURE_NA',
+  'AZURE_EU',
+  'GCP_NA',
+  'AU',
+  'GCP_EU',
+];
 export const DEVURLS: any = {
-  NA: "developerhub-api.contentstack.com",
-  EU: "eu-developerhub-api.contentstack.com",
-  AZURE_NA: "azure-na-developerhub-api.contentstack.com",
-  AZURE_EU: "azure-eu-developerhub-api.contentstack.com",
-  GCP_NA: "gcp-na-developerhub-api.contentstack.com",
-  AU: "au-developerhub-api.contentstack.com",
-  GCP_EU: "gcp-eu-developerhub-api.contentstack.com",
+  NA: 'developerhub-api.contentstack.com',
+  EU: 'eu-developerhub-api.contentstack.com',
+  AZURE_NA: 'azure-na-developerhub-api.contentstack.com',
+  AZURE_EU: 'azure-eu-developerhub-api.contentstack.com',
+  GCP_NA: 'gcp-na-developerhub-api.contentstack.com',
+  AU: 'au-developerhub-api.contentstack.com',
+  GCP_EU: 'gcp-eu-developerhub-api.contentstack.com',
 };
 export const CMS = {
-  CONTENTFUL: "contentful",
-  SITECORE_V8: "sitecore v8",
-  SITECORE_V9: "sitecore v9",
-  SITECORE_V10: "sitecore v10",
-  WORDPRESS: "wordpress",
-  AEM: "aem",
+  CONTENTFUL: 'contentful',
+  SITECORE_V8: 'sitecore v8',
+  SITECORE_V9: 'sitecore v9',
+  SITECORE_V10: 'sitecore v10',
+  WORDPRESS: 'wordpress',
+  DRUPAL: 'drupal',
+  AEM: 'aem',
 };
 export const MODULES = [
-  "Project",
-  "Migration",
-  "Content Mapping",
-  "Legacy CMS",
-  "Destination Stack",
+  'Project',
+  'Migration',
+  'Content Mapping',
+  'Legacy CMS',
+  'Destination Stack',
 ];
-export const MODULES_ACTIONS = ["Create", "Update", "Delete"];
+export const MODULES_ACTIONS = ['Create', 'Update', 'Delete'];
 export const AXIOS_TIMEOUT = 60 * 1000;
 export const HTTP_CODES = {
   OK: 200,
@@ -40,19 +49,19 @@ export const HTTP_CODES = {
 };
 export const HTTP_TEXTS = {
   UNAUTHORIZED: "You're unauthorized to access this resource.",
-  S3_ERROR: "Something went wrong while handing the file",
-  INTERNAL_ERROR: "Internal server error, please try again later.",
+  S3_ERROR: 'Something went wrong while handing the file',
+  INTERNAL_ERROR: 'Internal server error, please try again later.',
   SOMETHING_WENT_WRONG:
-    "Something went wrong while processing your request, please try again.",
-  CS_ERROR: "Contentstack API error",
-  NO_CS_USER: "No user found with the credentials",
-  SUCCESS_LOGIN: "Login Successful.",
-  TOKEN_ERROR: "Error occurred during token generation.",
-  LOGIN_ERROR: "Error occurred during login",
-  ROUTE_ERROR: "Sorry, the requested resource is not available.",
-  PROJECT_NOT_FOUND: "Sorry, the requested project does not exists.",
-  PROJECT_CREATION_FAILED: "Error occurred while creating project.",
-  NO_PROJECT: "resource not found with the given ID(s).",
+    'Something went wrong while processing your request, please try again.',
+  CS_ERROR: 'Contentstack API error',
+  NO_CS_USER: 'No user found with the credentials',
+  SUCCESS_LOGIN: 'Login Successful.',
+  TOKEN_ERROR: 'Error occurred during token generation.',
+  LOGIN_ERROR: 'Error occurred during login',
+  ROUTE_ERROR: 'Sorry, the requested resource is not available.',
+  PROJECT_NOT_FOUND: 'Sorry, the requested project does not exists.',
+  PROJECT_CREATION_FAILED: 'Error occurred while creating project.',
+  NO_PROJECT: 'resource not found with the given ID(s).',
   AFFIX_UPDATED: "Project's Affix updated successfully",
   AFFIX_CONFIRMATION_UPDATED:
     "Project's Affix confirmation updated successfully",
@@ -65,82 +74,82 @@ export const HTTP_TEXTS = {
   FILE_FORMAT_UPDATED: "Project's migration file format updated successfully",
   DESTINATION_STACK_UPDATED:
     "Project's migration destination stack updated successfully",
-  DESTINATION_STACK_NOT_FOUND: "Destination stack does not exist",
-  DESTINATION_STACK_ERROR: "Error occurred during verifying destination stack",
-  INVALID_ID: "Provided $ ID is invalid.",
-  CONTENT_TYPE_NOT_FOUND: "ContentType does not exist",
-  CONTENT_TYPE_MISSING: "ContentType is missing in request.",
-  INVALID_CONTENT_TYPE: "Provide valid ContentType data",
+  DESTINATION_STACK_NOT_FOUND: 'Destination stack does not exist',
+  DESTINATION_STACK_ERROR: 'Error occurred during verifying destination stack',
+  INVALID_ID: 'Provided $ ID is invalid.',
+  CONTENT_TYPE_NOT_FOUND: 'ContentType does not exist',
+  CONTENT_TYPE_MISSING: 'ContentType is missing in request.',
+  INVALID_CONTENT_TYPE: 'Provide valid ContentType data',
   RESET_CONTENT_MAPPING:
-    "ContentType has been successfully restored to its initial mapping",
-  UPLOAD_SUCCESS: "File uploaded successfully",
+    'ContentType has been successfully restored to its initial mapping',
+  UPLOAD_SUCCESS: 'File uploaded successfully',
   CANNOT_UPDATE_LEGACY_CMS:
-    "Updating the legacy CMS is not possible as the migration process is either in progress or has already been successfully completed.",
+    'Updating the legacy CMS is not possible as the migration process is either in progress or has already been successfully completed.',
   CANNOT_UPDATE_FILE_FORMAT:
-    "Updating the file format is not possible as the migration process is either in progress or has already been successfully completed.",
+    'Updating the file format is not possible as the migration process is either in progress or has already been successfully completed.',
   CANNOT_UPDATE_DESTINATION_STACK:
-    "Updating the destination stack is restricted. Please verify the status and review preceding actions.",
+    'Updating the destination stack is restricted. Please verify the status and review preceding actions.',
   CANNOT_PROCEED_LEGACY_CMS:
-    "You cannot proceed if the project is not in draft or if any Legacy CMS details are missing.",
+    'You cannot proceed if the project is not in draft or if any Legacy CMS details are missing.',
   CANNOT_PROCEED_DESTINATION_STACK:
-    "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack details are missing.",
+    'You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack details are missing.',
   CANNOT_PROCEED_CONTENT_MAPPING:
-    "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping details are missing.",
+    'You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping details are missing.',
   CANNOT_PROCEED_TEST_MIGRATION:
-    "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping or Test Migration details are missing.",
+    'You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping or Test Migration details are missing.',
   CANNOT_PROCEED_MIGRATION:
-    "You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping or Test Migration details are missing or Migration is not completed.",
+    'You cannot proceed if the project is not in draft or if any Legacy CMS or Destination Stack or Content Mapping or Test Migration details are missing or Migration is not completed.',
   CANNOT_UPDATE_CONTENT_MAPPING:
-    "Updating the content mapping is restricted. Please verify the status and review preceding actions.",
+    'Updating the content mapping is restricted. Please verify the status and review preceding actions.',
   CANNOT_RESET_CONTENT_MAPPING:
-    "Reseting the content mapping is restricted. Please verify the status and review preceding actions.",
+    'Reseting the content mapping is restricted. Please verify the status and review preceding actions.',
   CONTENTMAPPER_NOT_FOUND:
-    "Sorry, the requested content mapper id does not exists.",
+    'Sorry, the requested content mapper id does not exists.',
   ADMIN_LOGIN_ERROR:
     "Sorry, You Don't have admin access in any of the Organisation",
-  PROJECT_DELETE: "Project Deleted Successfully",
-  PROJECT_REVERT: "Project Reverted Successfully",
-  LOGS_NOT_FOUND: "Sorry, no logs found for requested stack migration.",
+  PROJECT_DELETE: 'Project Deleted Successfully',
+  PROJECT_REVERT: 'Project Reverted Successfully',
+  LOGS_NOT_FOUND: 'Sorry, no logs found for requested stack migration.',
   MIGRATION_EXECUTION_KEY_UPDATED:
     "Project's migration execution key updated successfully",
-  CONTENT_TYPE_INVALID: "Invalid contentTypes: Expected an array."
+  CONTENT_TYPE_INVALID: 'Invalid contentTypes: Expected an array.',
 };
 
 export const HTTP_RESPONSE_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Content-Type": "application/json",
-  Connection: "close",
+  'Access-Control-Allow-Origin': '*',
+  'Content-Type': 'application/json',
+  Connection: 'close',
 };
 export const METHODS_TO_INCLUDE_DATA_IN_AXIOS = [
-  "PUT",
-  "POST",
-  "DELETE",
-  "PATCH",
+  'PUT',
+  'POST',
+  'DELETE',
+  'PATCH',
 ];
 export const VALIDATION_ERRORS = {
-  INVALID_EMAIL: "Given email ID is invalid.",
+  INVALID_EMAIL: 'Given email ID is invalid.',
   EMAIL_LIMIT: "Email's max limit reached.",
   LENGTH_LIMIT: "$'s max limit reached.",
-  STRING_REQUIRED: "Provided $ should be a string.",
-  BOOLEAN_REQUIRED: "Provided $ should be a boolean.",
+  STRING_REQUIRED: 'Provided $ should be a string.',
+  BOOLEAN_REQUIRED: 'Provided $ should be a boolean.',
   INVALID_REGION: "Provided region doesn't exists.",
   FIELD_REQUIRED: "Field '$' is required.",
-  INVALID_AFFIX: "Invalid affix format",
+  INVALID_AFFIX: 'Invalid affix format',
 };
-export const POPULATE_CONTENT_MAPPER = "content_mapper";
-export const POPULATE_FIELD_MAPPING = "fieldMapping";
+export const POPULATE_CONTENT_MAPPER = 'content_mapper';
+export const POPULATE_FIELD_MAPPING = 'fieldMapping';
 export const CONTENT_TYPE_POPULATE_FIELDS =
-  "otherCmsTitle otherCmsUid isUpdated updateAt contentstackTitle contentstackUid";
+  'otherCmsTitle otherCmsUid isUpdated updateAt contentstackTitle contentstackUid';
 export const PROJECT_UNSELECTED_FIELDS =
-  "-content_mapper -legacy_cms -destination_stack_id -execution_log";
-export const EXCLUDE_CONTENT_MAPPER = "-content_mapper -execution_log";
+  '-content_mapper -legacy_cms -destination_stack_id -execution_log';
+export const EXCLUDE_CONTENT_MAPPER = '-content_mapper -execution_log';
 export const AFFIX_REGEX = /^[a-zA-Z][a-zA-Z0-9]{1,4}$/;
 export const PROJECT_STATUS = {
-  DRAFT: "Draft",
-  READY: "Ready",
-  INPROGRESS: "InProgress",
-  FAILED: "Failed",
-  SUCCESS: "Success",
+  DRAFT: 'Draft',
+  READY: 'Ready',
+  INPROGRESS: 'InProgress',
+  FAILED: 'Failed',
+  SUCCESS: 'Success',
 };
 export const STEPPER_STEPS: any = {
   LEGACY_CMS: 1,
@@ -150,11 +159,11 @@ export const STEPPER_STEPS: any = {
   MIGRATION: 5,
 };
 export const PREDEFINED_STATUS = [
-  "Draft",
-  "Ready",
-  "InProgress",
-  "Failed",
-  "Success",
+  'Draft',
+  'Ready',
+  'InProgress',
+  'Failed',
+  'Success',
 ];
 export const PREDEFINED_STEPS = [1, 2, 3, 4, 5];
 
@@ -178,123 +187,123 @@ export const CONTENT_TYPE_STATUS = {
 export const LOCALE_MAPPER: any = {
   //not more than one locale mapping in master locale
   masterLocale: {
-    "en-us": "en",
+    'en-us': 'en',
   },
-  locales: { fr: "fr-fr", }
+  locales: { fr: 'fr-fr' },
 };
 export const CHUNK_SIZE = 1048576;
 
-export const LIST_EXTENSION_UID = "bltc44e51cc9f4b0d80";
+export const LIST_EXTENSION_UID = 'bltc44e51cc9f4b0d80';
 
 export const KEYTOREMOVE = [
-  "update",
-  "fetch",
-  "delete",
-  "oauth",
-  "hosting",
-  "install",
-  "reinstall",
-  "upgrade",
-  "getRequests",
-  "authorize",
-  "authorization",
-  "listInstallations",
+  'update',
+  'fetch',
+  'delete',
+  'oauth',
+  'hosting',
+  'install',
+  'reinstall',
+  'upgrade',
+  'getRequests',
+  'authorize',
+  'authorization',
+  'listInstallations',
 ];
 
 export const MIGRATION_DATA_CONFIG = {
-  DATA: "./cmsMigrationData",
+  DATA: './cmsMigrationData',
 
-  BACKUP_DATA: "migration-data",
-  BACKUP_LOG_DIR: "logs",
-  BACKUP_FOLDER_NAME: "import",
-  BACKUP_FILE_NAME: "success.log",
+  BACKUP_DATA: 'migration-data',
+  BACKUP_LOG_DIR: 'logs',
+  BACKUP_FOLDER_NAME: 'import',
+  BACKUP_FILE_NAME: 'success.log',
 
-  LOCALE_DIR_NAME: "locales",
-  LOCALE_FILE_NAME: "locales.json",
-  LOCALE_MASTER_LOCALE: "master-locale.json",
-  LOCALE_CF_LANGUAGE: "language.json",
+  LOCALE_DIR_NAME: 'locales',
+  LOCALE_FILE_NAME: 'locales.json',
+  LOCALE_MASTER_LOCALE: 'master-locale.json',
+  LOCALE_CF_LANGUAGE: 'language.json',
 
-  WEBHOOKS_DIR_NAME: "webhooks",
-  WEBHOOKS_FILE_NAME: "webhooks.json",
+  WEBHOOKS_DIR_NAME: 'webhooks',
+  WEBHOOKS_FILE_NAME: 'webhooks.json',
 
-  ENVIRONMENTS_DIR_NAME: "environments",
-  ENVIRONMENTS_FILE_NAME: "environments.json",
+  ENVIRONMENTS_DIR_NAME: 'environments',
+  ENVIRONMENTS_FILE_NAME: 'environments.json',
 
-  CONTENT_TYPES_DIR_NAME: "content_types",
-  EXTENSIONS_MAPPER_DIR_NAME: "extension-mapper.json",
-  CUSTOM_MAPPER_FILE_NAME: "custmon-mapper.json",
-  CONTENT_TYPES_FILE_NAME: "contenttype.json",
-  CONTENT_TYPES_MASTER_FILE: "contenttypes.json",
-  CONTENT_TYPES_SCHEMA_FILE: "schema.json",
-  MARKETPLACE_APPS_DIR_NAME: "marketplace_apps",
-  MARKETPLACE_APPS_FILE_NAME: "marketplace_apps.json",
-  EXTENSION_APPS_DIR_NAME: "extensions",
-  EXTENSION_APPS_FILE_NAME: "extensions.json",
-  REFERENCES_DIR_NAME: "reference",
-  REFERENCES_FILE_NAME: "reference.json",
-  TAXONOMIES_DIR_NAME: "taxonomies",
-  TAXONOMIES_FILE_NAME: "taxonomies.json",
+  CONTENT_TYPES_DIR_NAME: 'content_types',
+  EXTENSIONS_MAPPER_DIR_NAME: 'extension-mapper.json',
+  CUSTOM_MAPPER_FILE_NAME: 'custmon-mapper.json',
+  CONTENT_TYPES_FILE_NAME: 'contenttype.json',
+  CONTENT_TYPES_MASTER_FILE: 'contenttypes.json',
+  CONTENT_TYPES_SCHEMA_FILE: 'schema.json',
+  MARKETPLACE_APPS_DIR_NAME: 'marketplace_apps',
+  MARKETPLACE_APPS_FILE_NAME: 'marketplace_apps.json',
+  EXTENSION_APPS_DIR_NAME: 'extensions',
+  EXTENSION_APPS_FILE_NAME: 'extensions.json',
+  REFERENCES_DIR_NAME: 'reference',
+  REFERENCES_FILE_NAME: 'reference.json',
+  TAXONOMIES_DIR_NAME: 'taxonomies',
+  TAXONOMIES_FILE_NAME: 'taxonomies.json',
 
-  RTE_REFERENCES_DIR_NAME: "rteReference",
-  RTE_REFERENCES_FILE_NAME: "rteReference.json",
+  RTE_REFERENCES_DIR_NAME: 'rteReference',
+  RTE_REFERENCES_FILE_NAME: 'rteReference.json',
 
-  ASSETS_DIR_NAME: "assets",
-  ASSETS_FILE_NAME: "assets.json",
+  ASSETS_DIR_NAME: 'assets',
+  ASSETS_FILE_NAME: 'assets.json',
   // ASSETS_SCHEMA_FILE : "index.json",
-  ASSETS_SCHEMA_FILE: "index.json",
-  ASSETS_FAILED_FILE: "cs_failed.json",
-  ASSETS_METADATA_FILE: "metadata.json",
-  ASSETS_FOLDER_FILE_NAME: "folders.json",
+  ASSETS_SCHEMA_FILE: 'index.json',
+  ASSETS_FAILED_FILE: 'cs_failed.json',
+  ASSETS_METADATA_FILE: 'metadata.json',
+  ASSETS_FOLDER_FILE_NAME: 'folders.json',
 
-  ENTRIES_DIR_NAME: "entries",
-  ENTRIES_MASTER_FILE: "index.json",
+  ENTRIES_DIR_NAME: 'entries',
+  ENTRIES_MASTER_FILE: 'index.json',
 
-  AUTHORS_DIR_NAME: "authors",
-  AUTHORS_FILE_NAME: "en-us.json",
-  AUTHORS_MASTER_FILE: "authors.json",
+  AUTHORS_DIR_NAME: 'authors',
+  AUTHORS_FILE_NAME: 'en-us.json',
+  AUTHORS_MASTER_FILE: 'authors.json',
 
-  CATEGORIES_DIR_NAME: "categories",
-  CATEGORIES_FILE_NAME: "en-us.json",
-  CATEGORIES_MASTER_FILE: "categories.json",
+  CATEGORIES_DIR_NAME: 'categories',
+  CATEGORIES_FILE_NAME: 'en-us.json',
+  CATEGORIES_MASTER_FILE: 'categories.json',
 
-  TAG_DIR_NAME: "tag",
-  TAG_FILE_NAME: "en-us.json",
-  TAG_MASTER_FILE: "tag.json",
+  TAG_DIR_NAME: 'tag',
+  TAG_FILE_NAME: 'en-us.json',
+  TAG_MASTER_FILE: 'tag.json',
 
-  TERMS_DIR_NAME: "terms",
-  TERMS_FILE_NAME: "en-us.json",
-  TERMS_MASTER_FILE: "terms.json",
+  TERMS_DIR_NAME: 'terms',
+  TERMS_FILE_NAME: 'en-us.json',
+  TERMS_MASTER_FILE: 'terms.json',
 
-  POSTS_DIR_NAME: "posts",
-  POSTS_FOLDER_NAME: "en-us",
-  POSTS_FILE_NAME: "en-us.json",
-  POSTS_MASTER_FILE: "posts.json",
+  POSTS_DIR_NAME: 'posts',
+  POSTS_FOLDER_NAME: 'en-us',
+  POSTS_FILE_NAME: 'en-us.json',
+  POSTS_MASTER_FILE: 'posts.json',
 
-  PAGES_DIR_NAME: "pages",
-  PAGES_FOLDER_NAME: "en-us",
-  PAGES_FILE_NAME: "en-us.json",
-  PAGES_MASTER_FILE: "pages.json",
+  PAGES_DIR_NAME: 'pages',
+  PAGES_FOLDER_NAME: 'en-us',
+  PAGES_FILE_NAME: 'en-us.json',
+  PAGES_MASTER_FILE: 'pages.json',
 
-  CHUNKS_DIR_NAME: "chunks",
+  CHUNKS_DIR_NAME: 'chunks',
 
-  GLOBAL_FIELDS_DIR_NAME: "global_fields",
-  GLOBAL_FIELDS_FILE_NAME: "globalfields.json",
+  GLOBAL_FIELDS_DIR_NAME: 'global_fields',
+  GLOBAL_FIELDS_FILE_NAME: 'globalfields.json',
 
-  EXPORT_INFO_FILE: "export-info.json",
+  EXPORT_INFO_FILE: 'export-info.json',
 
-  AEM_DAM_DIR: 'dam-downloads'
+  AEM_DAM_DIR: 'dam-downloads',
 };
 export const GET_AUDIT_DATA = {
-  MIGRATION: "migration-v2",
-  API_DIR: "api",
-  MIGRATION_DATA_DIR: "migration-data",
-  LOGS_DIR: "logs",
-  AUDIT_DIR: "audit",
-  AUDIT_REPORT: "audit-report",
-  FILTERALL: "all",
-}
+  MIGRATION: 'migration-v2',
+  API_DIR: 'api',
+  MIGRATION_DATA_DIR: 'migration-data',
+  LOGS_DIR: 'logs',
+  AUDIT_DIR: 'audit',
+  AUDIT_REPORT: 'audit-report',
+  FILTERALL: 'all',
+};
 
 export const RESERVED_FIELD_MAPPINGS: Record<string, string> = {
-  'locale': 'cm_locale'
+  locale: 'cm_locale',
   // Add other reserved fields if needed
 };

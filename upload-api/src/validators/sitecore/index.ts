@@ -76,7 +76,7 @@ async function sitecoreValidator({ data }: props) {
     }
     return false;
   } catch (err) {
-    console.info('🚀 ~ sitecoreValidator ~ err:', err);
+    console.error('🚀 ~ sitecoreValidator ~ err:', err);
     return false;
   }
 }

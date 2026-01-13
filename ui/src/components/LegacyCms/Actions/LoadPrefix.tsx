@@ -44,6 +44,21 @@ const LoadPreFix = (props: LoadSelectCmsProps) => {
     fetchRestrictedKeywords();
   }, []);
 
+  // Set default affix 'cs' if not already set
+  useEffect(() => {
+    if (isEmptyString(newMigrationData?.legacy_cms?.affix)) {
+      const newMigrationDataObj: INewMigration = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData?.legacy_cms,
+          affix: 'cs',
+          isRestictedKeywordCheckboxChecked: isCheckedBoxChecked
+        }
+      };
+      dispatch(updateNewMigrationData(newMigrationDataObj));
+    }
+  }, []);
+
   const fetchRestrictedKeywords = async () => {
     const restrictedIds = await getRestrictedKeywords();
 

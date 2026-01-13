@@ -75,6 +75,7 @@
     "nth-check": ">=2.0.1",
     "postcss": ">=8.4.31",
     "serialize-javascript": ">=6.0.2",
-    "@babel/runtime": ">=7.26.10"
+    "@babel/runtime": ">=7.26.10",
+    "@remix-run/router": ">=1.21.0"
   }
 }

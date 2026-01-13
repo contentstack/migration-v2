@@ -36,7 +36,16 @@
     "postcss": ">=8.4.31",
     "serialize-javascript": ">=6.0.2",
     "@babel/runtime": ">=7.26.10",
-    "tmp": "^0.2.5"
+    "glob": ">=10.5.0",
+    "@contentstack/cli-utilities": {
+      "inquirer-search-checkbox": {
+        "inquirer": {
+          "external-editor": {
+            "tmp": "$tmp"
+          }
+        }
+      }
+    }
   },
   "husky": {
     "hooks": {
@@ -48,7 +57,7 @@
     "errorMsg": "Please add valid branch name!"
   },
   "dependencies": {
-    "@contentstack/cli-utilities": "^1.14.4",
+    "@contentstack/cli-utilities": "^1.16.0",
     "express-validator": "^7.3.1",
     "js-yaml": "^4.1.1",
     "qs": "^6.14.1",

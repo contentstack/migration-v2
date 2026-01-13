@@ -175,10 +175,13 @@ const TestMigration = () => {
     }
 
     // Prepare data for stack creation
+    // 🔧 CRITICAL: Ensure master_locale is always lowercase
+    const masterLocale = (newMigrationData?.destination_stack?.selectedStack?.master_locale || '').toLowerCase();
+    
     const data = {
       name: newMigrationData?.destination_stack?.selectedStack?.label,
       description: 'test migration stack',
-      master_locale: newMigrationData?.destination_stack?.selectedStack?.master_locale
+      master_locale: masterLocale // Always lowercase
     };
 
     try {

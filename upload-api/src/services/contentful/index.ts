@@ -13,10 +13,26 @@ const createContentfulMapper = async (
   affix: string | string[],
   config: Config
 ) => {
+  console.log('');
+  console.log('🔄 [createContentfulMapper] STARTING CONTENTFUL MAPPER CREATION');
+  console.log('🔄 [createContentfulMapper] Project ID:', projectId);
+  console.log('🔄 [createContentfulMapper] Config:', config);
+  
   try {
     const { localPath } = config;
     const cleanLocalPath = localPath?.replace?.(/\/$/, '');
-    const fetchedLocales: [] = await extractLocale(cleanLocalPath);
+    console.log('🔄 [createContentfulMapper] Calling extractLocale with path:', cleanLocalPath);
+    
+    const fetchedLocales = await extractLocale(cleanLocalPath);
+    
+    console.log('🔄 [createContentfulMapper] Received locales from extractLocale:', fetchedLocales);
+    console.log('🔄 [createContentfulMapper] First locale (master):', fetchedLocales?.[0]);
+    console.log('🔄 [createContentfulMapper] All locales:', fetchedLocales);
+
+    // 🔧 extractLocale already normalizes and puts master locale first
+    const normalizedLocales = fetchedLocales || [];
+    
+    console.log('🔄 [createContentfulMapper] Final locales to save (master is first):', normalizedLocales);
 
     await extractContentTypes(cleanLocalPath, affix);
     const initialMapper = await createInitialMapper(cleanLocalPath, affix);
@@ -38,6 +54,10 @@ const createContentfulMapper = async (
       });
     }
 
+    console.log('🔄 [createContentfulMapper] Sending locales to backend API...');
+    console.log('🔄 [createContentfulMapper] API URL:', `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`);
+    console.log('🔄 [createContentfulMapper] Payload (master is first):', { locale: normalizedLocales });
+    
     const mapperConfig = {
       method: 'post',
       maxBodyLength: Infinity,
@@ -47,16 +67,19 @@ const createContentfulMapper = async (
         'Content-Type': 'application/json'
       },
       data: {
-        locale: Array.from(fetchedLocales)
+        locale: normalizedLocales // Master locale is always first element
       }
     };
 
     const mapRes = await axios.request(mapperConfig);
+    console.log('✅ [createContentfulMapper] Backend API response status:', mapRes?.status);
+    
     if (mapRes?.status == 200) {
       logger.info('Legacy CMS', {
         status: HTTP_CODES?.OK,
         message: HTTP_TEXTS?.LOCALE_SAVED
       });
+      console.log('✅ [createContentfulMapper] Locales saved successfully to backend!');
     }
   } catch (err: any) {
     console.error('🚀 ~ createContentfulMapper ~ err:', err?.response?.data ?? err);
