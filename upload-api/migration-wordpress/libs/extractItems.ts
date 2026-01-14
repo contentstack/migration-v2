@@ -178,13 +178,18 @@ function findDuplicateModularBlockChild(newFieldschema: Field[], CT: CT): Field 
   return null;
 }
 
-const extractItems = async (item: any, config: DataConfig, type: string, affix: string, categories: any) => {
+function getLastUid(uid : string) {
+  return uid?.split?.('.')?.[uid?.split?.('.')?.length - 1];
+}
+
+const extractItems = async (item: any, config: DataConfig, type: string, affix: string, categories: any, terms: any) => {
     const localPath = config.localPath;
     const xmlData = await fs.promises.readFile(localPath, "utf8");
     const $ = cheerio.load(xmlData, { xmlMode: true });
     const items = $('item');
     const authorsData = $('wp\\author');
     const CT: CT = [];
+    let isCategories : boolean = false;
     CT?.push({
         "isDeleted": false,
         "uid": "title",
@@ -229,14 +234,44 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
      // Create the content type directory if it doesn't exist
      mkdirp(contentTypeFolderPath);
 
-    const category = await extractTaxonomy(categories, 'categories');
-    
+    //const category = await extractTaxonomy(categories, 'categories');
+    const categoryArray: Field = 
+    {       uid: 'category',
+            otherCmsField: 'category',
+            otherCmsType: 'category',
+            contentstackField: 'category',
+            contentstackFieldUid: 'taxonomies',
+            contentstackFieldType: 'taxonomy',
+            backupFieldType: 'taxonomy',
+            backupFieldUid: 'taxonomies',
+            advanced: {
+                terms : []
+            },
+    };
 
     for (const data of item) {
       const processedSimilarBlocks = new Set();
         const targetItem = items?.filter((i, el) => {
             return $(el)?.find("title")?.text() === data?.title;
         })?.first();
+        if(data?.category){
+          const categoryData = Array?.isArray(data?.category) ? data?.category : [data?.category];
+          const domain = categoryData?.some((item: any) => item?.attributes?.domain === 'category');
+          if(domain){
+            isCategories = true;
+          }
+          const category = await extractTaxonomy(data?.category, categories, 'categories');
+          if (!categoryArray?.advanced) {
+            categoryArray.advanced = { terms: [] };
+          }
+          categoryArray.advanced.terms = Array?.from(
+            new Set([
+              ...(categoryArray?.advanced?.terms || []),
+              ...(category || [])
+            ])
+          );
+        }
+        //const taxonomy = await extractTerms(data?.category, terms, categories,'taxonomy');
 
         const contentEncoded = targetItem?.find("content\\:encoded")?.text() || '';
         const blocksJson = await setupWordPressBlocks(contentEncoded);
@@ -314,7 +349,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 // No duplicate found - add the modular block child
                 if(Schema?.length > 0){
                   CT?.push?.({
-                  "uid": getFieldUid(`${field?.name}_${field?.clientId}`, affix),
+                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${field?.clientId}`, affix)}`,
                   "backupFieldUid": `modular_blocks.${fieldUid}`,
                   "contentstackFieldUid": `modular_blocks.${fieldUid}`,
                   "otherCmsField": contentstackFieldName,
@@ -333,7 +368,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                     // Check if any similar field already exists
                     const exists = CT?.find(
                       (item: Field) =>
-                        item?.uid === schemaObj?.uid &&
+                        getLastUid(item?.uid) === getLastUid(schemaObj?.uid) &&
                         item?.contentstackFieldType === schemaObj?.contentstackFieldType &&
                         item?.contentstackField === schemaObj?.contentstackField
                         //&& item?.contentstackFieldUid === schemaObj?.contentstackFieldUid
@@ -384,7 +419,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 // No duplicate found - add the modular block child
                 if(Schema?.length > 0){ 
                   CT?.push?.({
-                  "uid": getFieldUid(`${field?.name}_${field?.clientId}`, affix),
+                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${field?.clientId}`, affix)}`,
                   "backupFieldUid": `modular_blocks.${fieldUid}`,
                   "contentstackFieldUid": `modular_blocks.${fieldUid}`,
                   "otherCmsField": contentstackFieldName,
@@ -402,7 +437,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                   // Check if any similar field already exists
                   const exists = CT?.find(
                     (item: Field) =>
-                      item?.uid === schemaObj?.uid &&
+                      getLastUid(item?.uid) === getLastUid(schemaObj?.uid) &&
                       item?.contentstackFieldType === schemaObj?.contentstackFieldType &&
                       item?.contentstackField === schemaObj?.contentstackField
                       //&& item?.contentstackFieldUid === schemaObj?.contentstackFieldUid
@@ -436,14 +471,14 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
      }
 
     // Push category only once, outside the loop
-    if (category) {
+    if (categories?.length > 0 && isCategories) {
         const existingCategory = CT?.find((item: Field) => 
             item?.uid === 'categories' && 
             item?.contentstackFieldType === 'taxonomy'
         );
         
         if (!existingCategory) {
-            CT?.push?.(category);
+            CT?.push?.(categoryArray);
         }
     }
     if(authorsData){

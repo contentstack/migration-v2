@@ -56,8 +56,9 @@ async function extractContentTypes(affix: string, filePath: string, DataConfig: 
     const authorData = alldataParsed?.rss?.channel?.["wp:author"];
     await extractAuthor(authorData, 'author');
     const categoriesData = alldataParsed?.rss?.channel?.["wp:category"];
+    const termsData = alldataParsed?.rss?.channel?.["wp:term"];
     //await extractCategories(categoriesData, 'category');
-    await extractTaxonomy(categoriesData, 'categories');
+    //await extractTaxonomy(categoriesData, 'categories');
     const itemsArray = Array?.isArray(items) ? items : (items ? [items] : []);
    
     const groupedByType = itemsArray?.reduce((acc: any, item: any) => {
@@ -79,7 +80,7 @@ async function extractContentTypes(affix: string, filePath: string, DataConfig: 
       // Now process each type dynamically
       for (const [type, items] of Object.entries(groupedByType)) {
         if (Array?.isArray(items) && items?.length > 0) {
-          await extractItems(items, DataConfig, type, affix, categoriesData);
+          await extractItems(items, DataConfig, type, affix, categoriesData, termsData);
         } else {
           console.log(`No ${type} found to extract`);
         }
