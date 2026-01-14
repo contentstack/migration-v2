@@ -137,6 +137,11 @@ const getLocale = (master_locale: string, project: any) => {
   }
   //return project?.master_locale?.[master_locale] ? project.master_locale[master_locale] : master_locale;
 }
+
+function getLastUid(uid : string) {
+  return uid?.split?.('.')?.[uid?.split?.('.')?.length - 1];
+}
+
 async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any) {
   const schema : any = {
     title: title,
@@ -159,7 +164,7 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
     for (const field of fields) {
       if (field?.contentstackFieldType === 'modular_blocks') {
         const modularBlocksArray: any[] = [];
-        const modularBlocksFieldUid = field?.contentstackFieldUid || field?.uid;
+        const modularBlocksFieldUid = field?.contentstackFieldUid || getLastUid(field?.uid);
         
         // Find all modular_blocks_child fields that belong to this modular_blocks field
         const modularBlockChildren = fields.filter((f: any) => {
@@ -188,25 +193,25 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
             
             //if (matchingChildField) {
               // Process innerBlocks (children) if they exist
-              if (block?.innerBlocks?.length > 0 && Array.isArray(block.innerBlocks) && matchingModularBlockChild?.uid) {
+              if (block?.innerBlocks?.length > 0 && Array.isArray(block?.innerBlocks) && matchingModularBlockChild?.uid) {
                 const childrenObject: Record<string, any> = {};
             
-                block.innerBlocks.forEach((child: any, childIndex: number) => {
+                block?.innerBlocks?.forEach((child: any, childIndex: number) => {
                   try {
                     // Find the field that matches this inner block
                     // Look for fields that belong to this modular_blocks_child
-                    const childFieldUid = matchingModularBlockChild?.contentstackFieldUid || matchingModularBlockChild?.uid;
+                    const childFieldUid = matchingModularBlockChild?.contentstackFieldUid || getLastUid(matchingModularBlockChild?.uid);
                     const childField = fields.find((f: any) => {
                       const fUid = f?.contentstackFieldUid || '';
                       const fOtherCmsField = f?.otherCmsType?.toLowerCase();
                       const childBlockName = (child?.attrs?.metadata?.name?.toLowerCase() || getFieldName(child?.blockName?.toLowerCase()));
                       // Check if this field belongs to the modular_blocks_child and matches the block name
                       return fUid.startsWith(childFieldUid + '.') &&
-                        (fOtherCmsField === childBlockName) && !childrenObject[f?.uid];
+                        (fOtherCmsField === childBlockName) && !childrenObject[getLastUid(f?.uid)];
                     });
                     
                     if (childField) {
-                      const childKey = childField?.uid;
+                      const childKey = getLastUid(childField?.uid);
                       
                       if (childField?.contentstackFieldType === 'group') {
                       
@@ -241,12 +246,12 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                 });
                 
                 // Add the block to the modular blocks array with the child field's UID as the key
-                Object.keys(childrenObject).length > 0 && modularBlocksArray.push({[matchingModularBlockChild?.uid] : childrenObject });
-              } else if(matchingModularBlockChild?.uid && matchingChildField){
+                Object.keys(childrenObject).length > 0 && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.uid)] : childrenObject });
+              } else if(getLastUid(matchingModularBlockChild?.uid) && matchingChildField){
                 // Handle blocks with no inner blocks - format the block itself
                 const formattedBlock = formatChildByType(block, matchingChildField, assetData);
                 
-                formattedBlock &&modularBlocksArray.push({[matchingModularBlockChild?.uid] : { [matchingChildField?.uid]: formattedBlock }});
+                formattedBlock && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.uid)] : { [getLastUid(matchingChildField?.uid)]: formattedBlock }});
               }
             //}
           } catch (blockError) {
@@ -270,13 +275,13 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
 // Recursive helper function to process nested group structures
 function processNestedGroup(child: any, childField: any, allFields: any[]): Record<string, any> {
   const nestedChildrenObject: Record<string, any> = {};
-  if (!child?.innerBlocks?.length || !Array.isArray(child.innerBlocks)) {
+  if (!child?.innerBlocks?.length || !Array.isArray(child?.innerBlocks)) {
     // No nested children, return empty object for group type
     return {};
   }
   
   // Find nested fields for this group by checking contentstackFieldUid
-  const groupFieldUid = childField?.contentstackFieldUid || childField?.uid;
+  const groupFieldUid = childField?.contentstackFieldUid || getLastUid(childField?.uid);
   const nestedFields = allFields?.filter((field: any) => {
     const fieldUid = field?.contentstackFieldUid || '';
     if (!fieldUid || !groupFieldUid) return false;
@@ -289,23 +294,23 @@ function processNestedGroup(child: any, childField: any, allFields: any[]): Reco
     return remainder && !remainder.includes('.');
   }) || [];
 
-  if (nestedFields.length === 0) {
+  if (nestedFields?.length === 0) {
     // No nested fields found, return empty object
     return {};
   }
  
-  child.innerBlocks.forEach((nestedChild: any, nestedIndex: number) => {
+  child?.innerBlocks?.forEach((nestedChild: any, nestedIndex: number) => {
     try {
      
       const nestedChildField = nestedFields?.find((field: any) => 
-        field?.otherCmsType?.toLowerCase() === (nestedChild?.attrs?.metadata?.name?.toLowerCase() ?? getFieldName(nestedChild?.blockName?.toLowerCase()))?.toLowerCase() && !nestedChildrenObject[field?.uid]?.length
+        field?.otherCmsType?.toLowerCase() === (nestedChild?.attrs?.metadata?.name?.toLowerCase() ?? getFieldName(nestedChild?.blockName?.toLowerCase()))?.toLowerCase() && !nestedChildrenObject[getLastUid(field?.uid)]?.length
       );
       
       if (!nestedChildField) {
         return;
       }
       
-      const nestedChildKey = nestedChildField?.uid;
+      const nestedChildKey = getLastUid(nestedChildField?.uid);
       
       if (nestedChildField?.contentstackFieldType === 'group') {
         // Recursively process nested groups
@@ -532,16 +537,16 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         // })
         // .first();
         //console.info("matching xml item 1 --> ", matchingXmlItem);
-        if (xmlItem && xmlItem.length > 0) {
+        if (xmlItem && xmlItem?.length > 0) {
           // Extract individual content encoded for this specific item
-          const contentEncoded = $(xmlItem).find("content\\:encoded").text() || '';
+          const contentEncoded = $(xmlItem)?.find("content\\:encoded")?.text() || '';
           const blocksJson = await setupWordPressBlocks(contentEncoded);
           customLogger(project?.id, destinationStackId,'info', `Processed blocks for entry ${uid}`);
           //await writeFileAsync(`${uid}.json`, JSON.stringify(blocksJson, null, 4), 4);
 
           // Pass individual content to createSchema
           entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData);
-          entryData[uid]['taxonomies'] = taxonomies;
+          item?.['category']?.length > 0 && (entryData[uid]['taxonomies'] = taxonomies);
           entryData[uid]['tags'] = tags?.map((tag: any) => tag?.text);
           entryData[uid]['author'] = authorData;
           entryData[uid]['locale'] = locale
@@ -603,9 +608,31 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
     await fs.promises.mkdir(path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
       MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME), { recursive: true });
   }
+  const authorContentTypes = contentTypes?.filter((contentType: any) => contentType?.contentstackUid === 'author');
+  if(authorContentTypes?.length > 0){
+    const postsFolderName = authorContentTypes?.[0]?.contentstackUid;
+  
+    // Create master locale folder and file
+    postFolderPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
+      MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, postsFolderName, locale);
+    if(! existsSync(postFolderPath)){
+      await fs.promises.mkdir(postFolderPath, { recursive: true });
+    }
+    const authorContent = await saveAuthors(authors, destinationStackId, projectId,authorContentTypes[0],master_locale, project?.locales, project);
+
+    const filePath = path.join(postFolderPath,  `${locale}.json`);
+
+    await writeFileAsync(filePath, authorContent, 4);
+
+    await fs.promises.writeFile(path.join(postFolderPath, "index.json"),
+      JSON.stringify({ "1":  `${locale}.json` }, null, 4), "utf-8"
+    );
+  }
+  const postContentTypes = contentTypes?.filter((contentType: any) => contentType?.contentstackUid !== 'author');
+
   
   
-  for(const contentType of contentTypes){
+  for(const contentType of postContentTypes){
     //await startingDirPosts(contentType?.contentstackUid, master_locale, project?.locales); 
     const postsFolderName = contentType?.contentstackUid;
   
@@ -627,7 +654,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
       //     console.log(`No ${type} found to extract`);
       //   }
       // }
-      const content = contentType?.contentstackUid === 'author' ? await saveAuthors(authors, destinationStackId, projectId,contentType,master_locale, project?.locales, project)  : await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, categories, master_locale, destinationStackId, project) || {};
+      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, categories, master_locale, destinationStackId, project) || {};
       
       const filePath = path.join(postFolderPath,  `${locale}.json`);
       await writeFileAsync(filePath, content, 4);
@@ -921,14 +948,12 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
   // Use customId as filename to ensure uniqueness, preserve extension
 
   const filename = `${customId}${fileExtension}`;
-  const assetPath = path.resolve(assetsSave, "files", filename);
+  const assetPath = path.resolve(assetsSave, "files", customId);
 
   if(!existsSync(assetPath)) {
     await fs.promises.mkdir(assetPath, { recursive: true });
   }
-  if(!existsSync(path.resolve(assetPath, "files"))) {
-    await fs.promises.mkdir(path.resolve(assetPath, "files"), { recursive: true });
-  }
+
 
   if (fs.existsSync(assetPath)) {
     console.error(`Asset already present: ${customId}`);
@@ -950,12 +975,12 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
 
     acc[key] = {
       uid: key,
-      urlPath: `/assets/files/${filename}`,
+      urlPath: `/assets/${customId}`,
       status: true,
       content_type: getExtension(fileExtension?.split('.')?.[1]),
       file_size: `${stats.size}`,
       tag: [],
-      filename: originalName,
+      filename: filename,
       url,
       is_dir: false,
       parent_uid,
@@ -1201,12 +1226,12 @@ async function saveAssetFromUrl(
     
     acc[key] = {
       uid: key,
-      urlPath: `/assets/files/${filename}`,
+      urlPath: `/assets/${customId}`,
       status: true,
       content_type: getExtension(fileExtension?.split('.')?.[1]),
       file_size: `${stats.size}`,
       tag: [],
-      filename: originalName,
+      filename: filename,
       url: encodedUrl,
       is_dir: false,
       parent_uid,
