@@ -84,7 +84,7 @@ async function handleAttributesSchema(schema : any, parentUid: string | null = n
             switch(type) {
                 case 'string':
                     attributeSchema?.push?.({
-                    uid: field,
+                    uid: fieldUid,
                     otherCmsField: getFieldName(field),
                     otherCmsType: getFieldName(field),
                     contentstackField: fieldName,
@@ -97,7 +97,7 @@ async function handleAttributesSchema(schema : any, parentUid: string | null = n
                 break;
             case 'boolean':
                 attributeSchema.push({
-                    uid: field,
+                    uid: fieldUid,
                     otherCmsField: getFieldName(field),
                     otherCmsType: getFieldName(field),
                     contentstackField: fieldName,
@@ -110,7 +110,7 @@ async function handleAttributesSchema(schema : any, parentUid: string | null = n
                 break;
             case 'number':
                 attributeSchema.push({
-                    uid: field,
+                    uid: fieldUid,
                     otherCmsField: getFieldName(field),
                     otherCmsType: getFieldName(field),
                     contentstackField: fieldName,
@@ -123,7 +123,7 @@ async function handleAttributesSchema(schema : any, parentUid: string | null = n
                 break;
             default:
                 attributeSchema.push({
-                    uid: field,
+                    uid: fieldUid,
                     otherCmsField: getFieldName(field),
                     otherCmsType: getFieldName(field),
                     contentstackField: fieldName,
@@ -189,7 +189,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}`
             : getFieldUid(`${key?.name}_${key?.clientIdkey}`, affix);
             return {
-                uid: getFieldUid(`${key?.name}_${key?.clientId}`, affix),
+                uid: rteUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType:getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: fieldName ,
@@ -208,7 +208,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             const fileUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
             
             return {
-                uid: getFieldUid(`${key?.name}_${key?.clientId}`, affix),
+                uid: fileUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: fieldName,
@@ -225,7 +225,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/list-item': {
             const textUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
             return {
-                uid: getFieldUid(`${key?.name}_${key?.clientId}`, affix),
+                uid: textUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: fieldName,
@@ -242,7 +242,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
            
             const LinkUid = parentUid ? `${parentUid}.${getFieldUid(key?.name, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
             return {
-                uid: getFieldUid(`${key?.name}_${key?.clientId}`, affix),
+                uid: LinkUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: fieldName,
@@ -270,7 +270,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 fieldName
             );
             innerBlocks?.length > 0 && groupSchema.push({
-                uid: getFieldUid(`${key?.name}_${key?.clientId}`, affix),
+                uid: groupUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: fieldName,
@@ -302,7 +302,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             const searchEleUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
             const searchEle = await processAttributes(key, searchEleUid,fieldName, affix);
             searchEle.push({
-                uid: getFieldUid(`${key?.name}_${key?.clientId}`, affix),
+                uid: searchEleUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: fieldName,
@@ -319,7 +319,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             const buttonUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
             const button = await processAttributes(key, buttonUid, fieldName, affix);
             button.push({
-                uid: getFieldUid(key?.name, affix),
+                uid: buttonUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: fieldName,
@@ -349,7 +349,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 fieldName
             );
             innerBlocks?.length > 0 && groupSchema.push({
-                uid: getFieldUid(`${key?.name}_${key?.clientId}`, affix),
+                uid: groupUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                 contentstackField: fieldName,
