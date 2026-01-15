@@ -9,6 +9,7 @@ import extractItems from './extractItems';
 import extractAuthor from './extractAuthor';
 import extractTaxonomy from './extractTaxonomy';
 import { CT, DataConfig } from '../interface/interface';
+import extractTerms from './extractTerms';
 
 
 const { contentTypes: contentTypesConfig } = config.modules;
@@ -57,6 +58,7 @@ async function extractContentTypes(affix: string, filePath: string, DataConfig: 
     await extractAuthor(authorData, 'author');
     const categoriesData = alldataParsed?.rss?.channel?.["wp:category"];
     const termsData = alldataParsed?.rss?.channel?.["wp:term"];
+    await extractTerms(termsData, 'terms');
     //await extractCategories(categoriesData, 'category');
     //await extractTaxonomy(categoriesData, 'categories');
     const itemsArray = Array?.isArray(items) ? items : (items ? [items] : []);

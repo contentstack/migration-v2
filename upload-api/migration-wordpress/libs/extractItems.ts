@@ -190,7 +190,13 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     const authorsData = $('wp\\author');
     const CT: CT = [];
     let isCategories : boolean = false;
-    CT?.push({
+    let isTermReffered : boolean = false;
+
+    const isAllContentEmpty = item.every((data: any) =>
+      !data?.['content:encoded'] || data?.['content:encoded']?.trim() === ''
+    );
+    if(!isAllContentEmpty){
+      CT?.push({
         "isDeleted": false,
         "uid": "title",
         "backupFieldUid": "title",
@@ -231,6 +237,9 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         
       }
     );
+      
+    }
+    
      // Create the content type directory if it doesn't exist
      mkdirp(contentTypeFolderPath);
 
@@ -257,6 +266,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         if(data?.category){
           const categoryData = Array?.isArray(data?.category) ? data?.category : [data?.category];
           const domain = categoryData?.some((item: any) => item?.attributes?.domain === 'category');
+          const termsDomain = categoryData?.find((item: any) => item?.attributes?.domain !== 'category');
+          isTermReffered = terms?.some((item: any) => item?.['wp:term_taxonomy'] === termsDomain?.attributes?.domain);
           if(domain){
             isCategories = true;
           }
@@ -471,7 +482,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
      }
 
     // Push category only once, outside the loop
-    if (categories?.length > 0 && isCategories) {
+    if (categories?.length > 0 && isCategories && !isAllContentEmpty) {
         const existingCategory = CT?.find((item: Field) => 
             item?.uid === 'categories' && 
             item?.contentstackFieldType === 'taxonomy'
@@ -481,7 +492,23 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             CT?.push?.(categoryArray);
         }
     }
-    if(authorsData){
+    if(isTermReffered && !isAllContentEmpty){
+        CT?.push?.({
+          "uid": 'terms',
+          "contentstackFieldUid": 'terms',
+          "contentstackField": 'Terms',
+          "contentstackFieldType": 'reference',
+          "backupFieldType": 'reference',
+          "otherCmsField": 'terms',
+          "otherCmsType": 'reference',
+          "backupFieldUid": 'terms',
+          "refrenceTo": ['terms'],
+          "advanced": {
+            "mandatory": false}
+        });
+      
+    }
+    if(authorsData && !isAllContentEmpty){
       CT?.push?.({
         "uid": 'author',
         "contentstackFieldUid": 'author',
