@@ -1798,11 +1798,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           ...option,
           isDisabled: selectedOptions?.includes?.(option?.label ?? '')
         }));
+   
+    const isTypeMatch = checkConditions(Fields[data?.contentstackFieldType]?.type?.toLowerCase(), existingField[data?.backupFieldUid]?.value, data);
+
     return (
       <div className="table-row">
         <div className="select">
           <Select
-            value={(OptionsForRow?.length === 0 || (Fields[data?.contentstackFieldType]?.type?.toLowerCase() !== existingField[data?.backupFieldUid]?.value?.data_type || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
+            value={(OptionsForRow?.length === 0 || (! isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
 
             existingField[data?.backupFieldUid]}
             onChange={(selectedOption: FieldTypes) => {
@@ -1815,7 +1818,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
-            isClearable={data?.backupFieldType === existingField[data?.backupFieldUid]?.value?.data_type && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
+            isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
             options={adjustedOptions}
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
             menuPlacement="auto"
