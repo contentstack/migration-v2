@@ -103,7 +103,7 @@ const putTestData = async (req: Request) => {
                 safeField?.id ?
                   safeField.id.replace(/[{}]/g, '').toLowerCase()
                   : uuidv4();
-              safeField.id = id
+              safeField.id = id;
     
               fieldIds.push(id);
     

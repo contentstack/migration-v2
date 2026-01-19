@@ -1805,7 +1805,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       <div className="table-row">
         <div className="select">
           <Select
-            value={(OptionsForRow?.length === 0 || (! isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
+            value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
 
             existingField[data?.backupFieldUid]}
             onChange={(selectedOption: FieldTypes) => {
