@@ -10,12 +10,7 @@ import { store } from './store';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
-  <BrowserRouter
-    future={{
-      v7_startTransition: true,
-      v7_relativeSplatPath: true
-    }}
-  >
+  <BrowserRouter>
     <Provider store={store}>
       <App />
     </Provider>
