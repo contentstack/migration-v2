@@ -18,7 +18,6 @@ import { logger } from "express-winston/index.js";
 
 const { JSDOM } = jsdom;
 
-const virtualConsole = new jsdom.VirtualConsole();
 // Get the current file's path
 const __filename = fileURLToPath(import.meta.url);
 
@@ -479,8 +478,21 @@ function formatChildByType(child: any, field: any, assetData: any) {
   
   return formatted;
 }
+const extractCategoryReference = (categories: any) => {
+  const categoryArray = Array?.isArray(categories) ? categories : [categories];
 
-async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any) {
+  const categoryReference = categoryArray?.filter((category: any) => category?.attributes?.domain === 'category');
+
+  return categoryReference;
+
+}
+
+const extractTermsReference = (terms: any) => {
+  const termArray = Array?.isArray(terms) ? terms : [terms];
+  const termReference = termArray?.filter((term: any) => term?.attributes?.domain !== 'category');
+  return termReference;
+}
+async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any) {
   const srcFunc = 'saveEntry';
   const locale = getLocale(master_locale, project);
   const authorsCtName = MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
@@ -501,10 +513,11 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         const taxonomies: any = [];
         const tags: any = [];
         const item = entry[i];
+        const terms = [];
         if(item?.['category']?.length > 0){
           const category = item?.['category']?.filter((category: any) => category?.attributes?.domain === 'category');
           tags.push(...item?.['category']?.filter((category: any) => category?.attributes?.domain === 'post_tag') || []);
-          
+
           for(const cat of category){
             const parentCategoryUid = categories?.find((category: any) => category?.["wp:category_nicename"] === cat?.attributes?.nicename)?.["wp:category_parent"];
             const parentCategory = parentCategoryUid ? categories?.find((category: any) => category?.["wp:category_nicename"] === parentCategoryUid)?.['wp:term_id'] 
@@ -516,6 +529,16 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
               "term_uid": parentCategoryUid ?   categoryName : `${categoryName}_${parentCategory}`
             });
           } 
+
+          const termCategory = item?.['category']?.filter((category: any) => category?.attributes?.domain !== 'category');
+          for(const term of termCategory){
+            const uid = allTerms?.find((item: any) => term?.attributes?.nicename === item?.["wp:term_slug"])?.["wp:term_id"];
+            terms.push({
+              "uid": `terms_${uid}`,
+              "_content_type_uid": 'terms'
+            })
+
+          }
         }
         const uid = idCorrector(`posts_${item?.["wp:post_id"]}`);
         const author = Object?.keys(authorsData)?.find((key: any) => authorsData[key]?.title?.toLowerCase() === item?.['dc:creator']?.toLowerCase());
@@ -546,7 +569,14 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
 
           // Pass individual content to createSchema
           entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData);
-          item?.['category']?.length > 0 && (entryData[uid]['taxonomies'] = taxonomies);
+          const categoryReference = extractCategoryReference(item?.['category']);
+          if (categoryReference?.length > 0) {
+            entryData[uid]['taxonomies'] = taxonomies;
+          }
+          const termsReference = extractTermsReference(item?.['category']);
+          if(termsReference?.length > 0) {
+            entryData[uid]['terms'] = terms;
+          }
           entryData[uid]['tags'] = tags?.map((tag: any) => tag?.text);
           entryData[uid]['author'] = authorData;
           entryData[uid]['locale'] = locale
@@ -579,8 +609,12 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
   const entriesJsonData = JSON.parse(Jsondata);
   const entries = entriesJsonData?.rss?.channel?.["item"];
   const categories = entriesJsonData?.rss?.channel?.["wp:category"];
+
   const authorsData = entriesJsonData?.rss?.channel?.["wp:author"];
   const authors = Array?.isArray(authorsData) ? authorsData : [authorsData];
+
+  const termsData = entriesJsonData?.rss?.channel?.["wp:term"];
+  const allTerms = Array?.isArray(termsData) ? termsData : [termsData];
  
   assetsSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME);
   const assetsSchemaPath = path.join(assetsSave, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
@@ -628,14 +662,40 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
       JSON.stringify({ "1":  `${locale}.json` }, null, 4), "utf-8"
     );
   }
-  const postContentTypes = contentTypes?.filter((contentType: any) => contentType?.contentstackUid !== 'author');
+
+  const termsContentTypes = contentTypes?.filter((contentType: any) => contentType?.contentstackUid === 'terms');
+  if(termsContentTypes?.length > 0){
+    const termsFolderName = termsContentTypes?.[0]?.contentstackUid;
+
+    const termsFolderPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
+      MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, termsFolderName, locale);
+
+    if(! existsSync(termsFolderPath)){
+      await fs.promises.mkdir(termsFolderPath, { recursive: true });
+    }
+    const termsContent = await createTerms(allTerms, destinationStackId, projectId, termsContentTypes[0],master_locale, project?.locales, project);
+   
+    const filePath = path.join(termsFolderPath,  `${locale}.json`);
+
+    await writeFileAsync(filePath, termsContent, 4);
+
+    await fs.promises.writeFile(path.join(termsFolderPath, "index.json"),
+      JSON.stringify({ "1":  `${locale}.json` }, null, 4), "utf-8"
+    );
+  }
+  const postContentTypes = contentTypes?.filter(
+    (contentType: any) =>
+      contentType?.contentstackUid !== 'author' &&
+      contentType?.contentstackUid !== 'terms'
+  );
+  
 
   
   
   for(const contentType of postContentTypes){
     //await startingDirPosts(contentType?.contentstackUid, master_locale, project?.locales); 
     const postsFolderName = contentType?.contentstackUid;
-  
+
     // Create master locale folder and file
     postFolderPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
       MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, postsFolderName, locale);
@@ -654,7 +714,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
       //     console.log(`No ${type} found to extract`);
       //   }
       // }
-      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, categories, master_locale, destinationStackId, project) || {};
+      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, categories, master_locale, destinationStackId, project, allTerms) || {};
       
       const filePath = path.join(postFolderPath,  `${locale}.json`);
       await writeFileAsync(filePath, content, 4);
@@ -743,77 +803,180 @@ async function writeOneFile(indexPath: string, fileMeta: any) {
     });
   }
 
-  const getKeys = (obj: Record<string, any>): string[] => { //Function to fetch all the locale codes
-    return Object.keys(obj);
-  };
+const getKeys = (obj: Record<string, any>): string[] => { //Function to fetch all the locale codes
+  return Object.keys(obj);
+};
 
 /************  Locale module functions start *********/
   
-  const createLocale = async (req: any, destinationStackId: string, projectId: string, project: any) => {
-    const srcFunc = 'createLocale';
-    try {
-      const baseDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
-      const localeSave = path.join(baseDir, MIGRATION_DATA_CONFIG.LOCALE_DIR_NAME);
-      const allLocalesResp = await orgService.getLocales(req)
-      const masterLocale = Object?.keys?.(project?.master_locale ?? LOCALE_MAPPER?.masterLocale)?.[0];
-      const msLocale: any = {};
-      const uid = uuidv4();
-      msLocale[uid] = {
-        "code": masterLocale,
-        "fallback_locale": null,
-        "uid": uid,
-        "name": allLocalesResp?.data?.locales?.[masterLocale] ?? ''
-      }
-      const message = getLogMessage(
-        srcFunc,
-        `Master locale ${masterLocale} has been successfully transformed.`,
-        {}
-      )
-      await customLogger(projectId, destinationStackId, 'info', message);
-      const allLocales: any = {};
-      for (const [key, value] of Object.entries(project?.locales ?? LOCALE_MAPPER.locales)) {
-        const localeUid = uuidv4();
-        if (key !== 'masterLocale' && typeof value === 'string') {
-          allLocales[localeUid] = {
-            "code": key,
-            "fallback_locale": masterLocale,
-            "uid": localeUid,
-            "name": allLocalesResp?.data?.locales?.[key] ?? ''
-          }
-          const message = getLogMessage(
-            srcFunc,
-            `locale ${value} has been successfully transformed.`,
-            {}
-          )
-          await customLogger(projectId, destinationStackId, 'info', message);
-        }
-      }
-      const masterPath = path.join(localeSave, MIGRATION_DATA_CONFIG.LOCALE_MASTER_LOCALE);
-      const allLocalePath = path.join(localeSave, MIGRATION_DATA_CONFIG.LOCALE_FILE_NAME);
-      fs.access(localeSave, async (err) => {
-        if (err) {
-          fs.mkdir(localeSave, { recursive: true }, async (err) => {
-            if (!err) {
-              await writeOneFile(masterPath, msLocale);
-              await writeOneFile(allLocalePath, allLocales);
-            }
-          })
-        } else {
-          await writeOneFile(masterPath, msLocale);
-          await writeOneFile(allLocalePath, allLocales);
-        }
-      })
-    } catch (err) {
-      const message = getLogMessage(
-        srcFunc,
-        `error while Createing the locales.`,
-        {},
-        err
-      )
-      await customLogger(projectId, destinationStackId, 'error', message);
+const createLocale = async (req: any, destinationStackId: string, projectId: string, project: any) => {
+  const srcFunc = 'createLocale';
+  try {
+    const baseDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
+    const localeSave = path.join(baseDir, MIGRATION_DATA_CONFIG.LOCALE_DIR_NAME);
+    const allLocalesResp = await orgService.getLocales(req)
+    const masterLocale = Object?.keys?.(project?.master_locale ?? LOCALE_MAPPER?.masterLocale)?.[0];
+    const msLocale: any = {};
+    const uid = uuidv4();
+    msLocale[uid] = {
+      "code": masterLocale,
+      "fallback_locale": null,
+      "uid": uid,
+      "name": allLocalesResp?.data?.locales?.[masterLocale] ?? ''
     }
+    const message = getLogMessage(
+      srcFunc,
+      `Master locale ${masterLocale} has been successfully transformed.`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+    const allLocales: any = {};
+    for (const [key, value] of Object.entries(project?.locales ?? LOCALE_MAPPER.locales)) {
+      const localeUid = uuidv4();
+      if (key !== 'masterLocale' && typeof value === 'string') {
+        allLocales[localeUid] = {
+          "code": key,
+          "fallback_locale": masterLocale,
+          "uid": localeUid,
+          "name": allLocalesResp?.data?.locales?.[key] ?? ''
+        }
+        const message = getLogMessage(
+          srcFunc,
+          `locale ${value} has been successfully transformed.`,
+          {}
+        )
+        await customLogger(projectId, destinationStackId, 'info', message);
+      }
+    }
+    const masterPath = path.join(localeSave, MIGRATION_DATA_CONFIG.LOCALE_MASTER_LOCALE);
+    const allLocalePath = path.join(localeSave, MIGRATION_DATA_CONFIG.LOCALE_FILE_NAME);
+    fs.access(localeSave, async (err) => {
+      if (err) {
+        fs.mkdir(localeSave, { recursive: true }, async (err) => {
+          if (!err) {
+            await writeOneFile(masterPath, msLocale);
+            await writeOneFile(allLocalePath, allLocales);
+          }
+        })
+      } else {
+        await writeOneFile(masterPath, msLocale);
+        await writeOneFile(allLocalePath, allLocales);
+      }
+    })
+  } catch (err) {
+    const message = getLogMessage(
+      srcFunc,
+      `error while Createing the locales.`,
+      {},
+      err
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
   }
+}
 
+const getTermsFieldValue = (field: any, data: any, url: string) => {
+  const fieldUid = field?.uid;
+  const otherCmsField = field?.otherCmsField;
+  const fieldUidLower = fieldUid?.toLowerCase();
+  const otherCmsFieldLower = otherCmsField?.toLowerCase();
+  
+  // Field mapping for common WordPress author fields
+  const fieldMapping: Record<string, string> = {
+    'term_taxonomy': 'wp:term_taxonomy',
+    'term_slug': 'wp:term_slug',
+    'term_parent': 'wp:term_parent',
+    'term_name': 'wp:term_name',
+    'termmeta': 'wp:termmeta',
+    'term_description': 'wp:term_description',
+
+  };
+  const wpFieldKey = fieldMapping[fieldUidLower] || fieldMapping[otherCmsFieldLower];
+  if (wpFieldKey) {
+    const value = data[wpFieldKey];
+    // Handle special cases
+    if (wpFieldKey === 'wp:term_name' && !value) {
+      return data['wp:term_name'];
+    }
+    return value;
+  }
+  return null;
+}
+const createTerms = async (allTerms: any, destinationStackId: string, projectId: string, contentType: any, master_locale: string, locales: object, project: any) => {
+  const srcFunc = 'createTerms';
+  const localeKeys = getKeys(locales)
+  try {
+    const baseDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
+    const termsSave = path.join(baseDir, MIGRATION_DATA_CONFIG.TERMS_DIR_NAME);
+    const termsData:{ [key: string]: any } = {}
+
+    for (const data of allTerms) {
+      const uid = `terms_${data["wp:term_id"]}`;
+      const title = data?.["wp:term_name"];
+      const url = `/${title?.toLowerCase()?.replace(/ /g, "_")}`;
+      const customId = idCorrector(uid);
+
+      const termdataEntry: any = {
+        uid: uid,
+        title: data?.["wp:term_name"],
+        url: url,
+      };
+
+      // Process each field in the content type's field mapping
+      if (contentType?.fieldMapping && Array?.isArray(contentType?.fieldMapping)) {
+        for (const field of contentType.fieldMapping) {
+          const fieldValue = getTermsFieldValue(field, data, url);
+          
+          // Store the field value in authordataEntry using field.uid
+          if (field?.uid && fieldValue !== undefined && fieldValue !== null) {
+            termdataEntry[field?.contentstackFieldUid] = formatChildByType(fieldValue, field, assetData);
+          }
+        }
+      }
+      termsData[customId] = termdataEntry
+      termsData[customId].publish_details = [];
+      const message = getLogMessage(
+        srcFunc,
+        `Entry title ${data["wp:term_name"]} (terms) in the ${master_locale} locale has been successfully transformed.`,
+        {}
+      );
+      await customLogger(projectId, destinationStackId, 'info', message);
+    }
+
+    for (const loc of localeKeys) {
+        if (loc === master_locale) continue;
+      
+        const localeFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME, loc);
+        const indexPath = path.join(localeFolderPath, "index.json");
+      
+        try {
+          await fs.promises.writeFile(
+            indexPath,
+            JSON.stringify({ "1": `${loc}.json` }, null, 4)
+          );
+        } catch (err) {
+          console.error(`Error writing index.json for locale ${loc}:`, err);
+        }
+    }
+
+    const message = getLogMessage(
+      srcFunc,
+      `${allTerms?.length} Authors exported successfully`,
+      {}
+    )
+    await customLogger(projectId, destinationStackId, 'info', message);
+
+
+    return termsData;
+  } catch (err) {
+    const message = getLogMessage(
+      srcFunc,
+      `error while Createing the terms.`,
+      {},
+      err
+    )
+    await customLogger(projectId, destinationStackId, 'error', message);
+  }
+}
 
 /************  Assests module functions start *********/
 async function startingDirAssests(destinationStackId: string) {
