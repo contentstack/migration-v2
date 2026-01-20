@@ -50,3 +50,15 @@ export const checkSSOAuthStatus = (userId: string) => {
     }
   }
 };
+
+export const logout = (email: string) => {
+  try {
+    return postCall(`${AUTH_ROUTES}/logout`, { email });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in logout: ${error.message}`);
+    } else {
+      throw new Error('Unknown error in logout');
+    }
+  }
+};

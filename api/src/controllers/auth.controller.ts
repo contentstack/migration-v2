@@ -79,14 +79,17 @@ export const getAppConfigHandler = async (req: Request, res: Response): Promise<
  * @param req - The request object.
  * @param res - The response object.
  */
-export const getSSOAuthStatus = async (req: Request, res: Response): Promise<void> => {
+export const getSSOAuthStatus = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { userId } = req.params;
 
     if (!userId) {
       res.status(400).json({
         error: 'Missing user ID',
-        message: 'User ID parameter is required'
+        message: 'User ID parameter is required',
       });
       return;
     }
@@ -98,27 +101,22 @@ export const getSSOAuthStatus = async (req: Request, res: Response): Promise<voi
   } catch (error: any) {
     console.error('Error in getSSOAuthStatus controller:', error);
 
-    if (error?.message?.includes('User not found in authentication records')) {
-      res.status(404).json({
-        error: 'User not found',
-        message: 'User not found in authentication records'
-      });
-      return;
-    }
-
-    if (error?.message?.includes('SSO authentication not completed')) {
-      res.status(202).json({
-        authenticated: false,
-        message: 'SSO authentication not completed'
-      });
-      return;
-    }
-
     res.status(500).json({
       error: 'Server error',
-      message: 'Unable to check SSO authentication status'
+      message: 'Unable to check SSO authentication status',
     });
   }
+};
+
+
+/**
+ * Handles the request for logging out a user.
+ * @param req - The request object.
+ * @param res - The response object.
+ */
+const logout = async (req: Request, res: Response) => {
+  const resp = await authService.logout(req);
+  res.status(resp?.status).json(resp?.data);
 };
 
 export const authController = {
@@ -126,5 +124,6 @@ export const authController = {
   RequestSms,
   saveOAuthToken,
   getAppConfigHandler,
-  getSSOAuthStatus
+  getSSOAuthStatus,
+  logout
 };

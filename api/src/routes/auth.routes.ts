@@ -66,4 +66,11 @@ router.get('/app-config', authController.getAppConfigHandler);
  */
 router.get('/sso-status/:userId', authController.getSSOAuthStatus);
 
+/**
+ * @route POST /v2/auth/logout
+ * @desc Log out a user
+ * @access Public
+ */
+router.post('/logout', authController.logout);
+
 export default router;

@@ -302,6 +302,7 @@ module.exports = async ({
         code_challenge: code_challenge,
       },
       authUrl: authUrl,
+      isDefault: false,
     };
 
     fs.writeFileSync("app.json", JSON.stringify(appData, null, 2));

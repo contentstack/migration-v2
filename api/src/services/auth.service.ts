@@ -15,6 +15,7 @@ import logger from "../utils/logger.js";
 import path from "path";
 import fs from "fs";
 import axios from "axios";
+import { getAppOrganizationUID } from "../utils/auth.utils.js";
 // import { createHash, randomBytes } from 'crypto';
 
 /**
@@ -121,6 +122,62 @@ const login = async (req: Request): Promise<LoginServiceType> => {
     };
   } catch (error: any) {
     logger.error(getLogMessage(srcFun, "Error while logging in", {}, error));
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+};
+
+/**
+ * Logs out a user by removing their authentication data from the database.
+ * @param req - Express Request object containing user_id in the decoded token
+ * @returns Success response with logout confirmation
+ */
+const logout = async (req: Request): Promise<LoginServiceType> => {
+  const srcFun = "Logout";
+  try {
+    const userEmail = (req as any)?.body?.email;
+
+    if (!userEmail) {
+      throw new BadRequestError("User not found in request");
+    }
+    await AuthenticationModel.read();
+    const userRecord = AuthenticationModel.chain
+      .get("users")
+      .find({ email: userEmail })
+      .value();
+
+    if (!userRecord) {
+      logger.warn(
+        getLogMessage(srcFun, "User not found in database", { userEmail }, {})
+      );
+      throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
+    }
+    // Remove the user from the database
+    AuthenticationModel.update((data: any) => {
+      data.users = data.users.filter((user: any) => user.email !== userEmail);
+    });
+
+    logger.info(
+      getLogMessage(
+        srcFun,
+        "User logged out successfully",
+        { userEmail },
+        {}
+      )
+    );
+
+    return {
+      data: {
+        message: "Logged out successfully",
+      },
+      status: HTTP_CODES.OK,
+    };
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(srcFun, "Error while logging out", {}, error)
+    );
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
@@ -369,6 +426,10 @@ export const getAppData = async () => {
     const appConfigData = fs.readFileSync(appConfigPath, 'utf8');
     const appConfig: any = JSON.parse(appConfigData);
 
+    if(appConfig?.isDefault === true) {
+      throw new Error('SSO is not configured. Please run the setup script first.');
+    }
+
     return appConfig;
 
   } catch (error: any) {
@@ -390,46 +451,69 @@ export const getAppData = async () => {
 export const checkSSOAuthStatus = async (userId: string) => {
   try {
     await AuthenticationModel.read();
-    const userRecord = AuthenticationModel.chain.get("users").find({ user_id: userId }).value();
-    
+
+    const userRecord = AuthenticationModel
+      .chain
+      .get('users')
+      .find({ user_id: userId })
+      .value();
+
     if (!userRecord || !userRecord?.access_token) {
-      throw new Error('SSO authentication not completed');
+      return {
+        authenticated: false,
+        message: 'SSO authentication not completed'
+      };
     }
 
-    // Only consider tokens created in the last 10 minutes as "fresh"
-    const tokenAge = new Date()?.getTime() - new Date(userRecord?.updated_at)?.getTime();
-    const maxTokenAge = 10 * 60 * 1000; // 10 minutes in milliseconds
-    
-    if (tokenAge > maxTokenAge) {
-      throw new Error('SSO authentication not completed');
+    if (!userRecord?.organization_uid) {
+      return {
+        authenticated: false,
+        message: 'Organization not linked to user'
+      };
     }
 
-    // Token is fresh, proceed with authentication
-    const appTokenPayload = {
-      region: userRecord?.region,
+    const appOrgUID = getAppOrganizationUID();
+
+    if (userRecord.organization_uid !== appOrgUID) {
+      return {
+        authenticated: false,
+        message: 'Organization mismatch'
+      };
+    }
+
+    const tokenAge =
+      Date.now() - new Date(userRecord.updated_at).getTime();
+
+    if (tokenAge > 10 * 60 * 1000) {
+      return {
+        authenticated: false,
+        message: 'SSO authentication expired'
+      };
+    }
+
+    const appToken = generateToken({
+      region: userRecord.region,
       user_id: userRecord.user_id,
       is_sso: true,
-    };
-    
-    const appToken = generateToken(appTokenPayload);
-    
+    });
+
     return {
       authenticated: true,
       message: 'SSO authentication successful',
       app_token: appToken,
       user: {
-        email: userRecord?.email,
-        uid: userRecord?.user_id,
-        region: userRecord?.region,
-        organization_uid: userRecord?.organization_uid
+        email: userRecord.email,
+        uid: userRecord.user_id,
+        region: userRecord.region,
+        organization_uid: userRecord.organization_uid
       }
     };
 
   } catch (error: any) {
-    if (error?.message?.includes('SSO authentication not completed')) {
-      throw error;
-    }
-    throw new Error(`Failed to check SSO authentication status: ${error?.message}`);
+    logger.error('SSO status check failed', error);
+    throw new Error(
+      `Failed to check SSO authentication status: ${error?.message}`
+    );
   }
 };
 
@@ -439,5 +523,6 @@ export const authService = {
   saveOAuthToken,
   refreshOAuthToken,
   getAppData,
-  checkSSOAuthStatus
+  checkSSOAuthStatus, 
+  logout
 };

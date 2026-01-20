@@ -28,7 +28,7 @@
     "@contentstack/cli-utilities": "^1.16.0",
     "@contentstack/json-rte-serializer": "^3.0.4",
     "@contentstack/marketplace-sdk": "^1.4.1",
-    "axios": "^1.12.0",
+    "axios": "^1.13.2",
     "chokidar": "^3.6.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.18",

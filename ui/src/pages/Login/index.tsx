@@ -252,22 +252,29 @@ const Login: FC<IProps> = () => {
           }
           
           if (res?.status === 400) {
-            failtureNotification('Something went wrong please try normal login method');
+            failtureNotification('Invalid SSO configuration. Please try again.');
             setIsLoading(false);
             return;
           }
           
           if (res?.status === 500) {
-            failtureNotification('Something went wrong please try normal login method');
+            failtureNotification('Kindly setup the SSO first');
             setIsLoading(false);
             return;
           }
   
           const appConfig = res?.data;
+
+          console.info('appConfig', appConfig);
           
+          if (appConfig?.isDefault) {
+            failtureNotification('SSO is not configured. Please run the setup script first.');
+            setIsLoading(false);
+            return;
+          }
           // Check if authUrl exists
           if (!appConfig?.authUrl) {
-            failtureNotification('Something went wrong please try normal login method');
+            failtureNotification('Invalid Auth URL. Please try again.');
             setIsLoading(false);
             return;
           }
@@ -367,40 +374,47 @@ const Login: FC<IProps> = () => {
   };
   
 
-  const handleSuccessfulSSOLogin = (authData: any) => {
-    
+  const handleSuccessfulSSOLogin = async (authData: any) => {
     try {
       setIsLoading(false);
-      
-      setDataInLocalStorage('app_token', authData?.app_token);
-      
-      localStorage?.removeItem('organization');
+  
+      if (!authData?.app_token) {
+        throw new Error("Missing app token");
+      }
+  
+      // 1️⃣ Store token FIRST
+      setDataInLocalStorage('app_token', authData.app_token);
+  
+      localStorage.removeItem('organization');
       dispatch(clearOrganisationData());
-    
-      
-      const authenticationObj = {
-        authToken: authData?.app_token,
+  
+      // 2️⃣ Update redux auth
+      dispatch(setAuthToken({
+        authToken: authData.app_token,
         isAuthenticated: true
-      };
-      
-      const userObj = {
+      }));
+  
+      dispatch(setUser({
         ...user,
-        region: region
-      };
-      
-      dispatch(setUser(userObj));
-      dispatch(setAuthToken(authenticationObj));
-      setLoginStates((prev) => ({ ...prev, submitted: true }));
-      
-      dispatch(getUserDetails());
-      
-      navigate(`/projects`, { replace: true });
-      
+        region,
+        is_sso: true
+      }));
+  
+      // 3️⃣ WAIT for user hydration
+      await dispatch(getUserDetails()).unwrap();
+  
+      setLoginStates(prev => ({ ...prev, submitted: true }));
+  
+      // 4️⃣ Navigate LAST
+      navigate('/projects', { replace: true });
+  
     } catch (error) {
       console.error('Error processing SSO login success:', error);
-      failtureNotification('Login successful but navigation failed. Please refresh the page.');
+      failtureNotification(
+        'Login successful but setup failed. Please refresh.'
+      );
     }
-  };
+  };  
 
   // useEffect(()=>{
   //   const handlePopState = (event: PopStateEvent) => {

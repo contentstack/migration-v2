@@ -10,6 +10,7 @@ import {
 import AuthenticationModel from "../models/authentication.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
 import logger from "../utils/logger.js";
+import { getAppOrganization } from "../utils/auth.utils.js";
 
 /**
  * Retrieves the user profile based on the provided request.
@@ -29,21 +30,67 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
       .findIndex({
         user_id: appTokenPayload?.user_id,
         region: appTokenPayload?.region,
+        is_sso: appTokenPayload?.is_sso,
       })
       .value();
 
     if (userIndex < 0) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
+    const { uid: org_uid, name: org_name } = getAppOrganization();
+    const userRecord = AuthenticationModel.data.users[userIndex];
+    if (appTokenPayload.is_sso === true) {
+      if (!userRecord?.access_token) {
+        throw new BadRequestError("SSO authentication not completed");
+      }
 
-    const userRecord = AuthenticationModel?.data?.users[userIndex];
-    let headers: any = {
-      "Content-Type": "application/json",
-    };
-    if (appTokenPayload?.is_sso) {
-      headers.authorization = `Bearer ${userRecord?.access_token}`;
-    } else if (appTokenPayload?.is_sso === false) {
-      headers.authtoken = userRecord?.authtoken;
-    } else {
-      throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+      const [err, res] = await safePromise(
+        https({
+          method: "GET",
+          url: `${config.CS_API[
+            appTokenPayload?.region as keyof typeof config.CS_API
+          ]!}/user?include_orgs_roles=true`,
+          headers: {
+            authorization: `Bearer ${userRecord?.access_token}`,
+            "Content-Type": "application/json",
+          },
+        })
+      );
+
+      if (err) {
+        logger.error(
+          getLogMessage(
+            srcFun,
+            HTTP_TEXTS.CS_ERROR,
+            appTokenPayload,
+            err.response.data
+          )
+        );
+        return { data: err.response.data, status: err.response.status };
+      }
+
+      if (
+        !res?.data?.user?.organizations?.some(
+          (org: any) => org.uid === org_uid
+        )
+      ) {
+        throw new BadRequestError("Organization access revoked");
+      }
+
+      return {
+        data: {
+          user: {
+            email: res?.data?.user?.email,
+            first_name: res?.data?.user?.first_name,
+            last_name: res?.data?.user?.last_name,
+            orgs: [
+              {
+                org_id: org_uid,
+                org_name: org_name,
+              },
+            ],
+          },
+        },
+        status: res?.status,
+      };
     }
 
     const [err, res] = await safePromise(
@@ -52,7 +99,10 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
         url: `${config.CS_API[
           appTokenPayload?.region as keyof typeof config.CS_API
         ]!}/user?include_orgs_roles=true`,
-        headers: headers,
+        headers: {
+          authtoken: userRecord?.authtoken,
+          "Content-Type": "application/json",
+        },
       })
     );
 
@@ -72,36 +122,35 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
       };
     }
 
-    if (!res?.data?.user) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
+    const adminOrgs = res?.data?.user?.organizations
+        ?.filter((org: any) =>
+          org?.org_roles?.some((r: any) => r?.admin)
+        )
+        ?.map(({ uid, name }: any) => ({
+          org_id: uid,
+          org_name: name,
+        })) || [];
 
-    const orgs = (res?.data?.user?.organizations || [])
-      ?.filter((org: any) => org?.org_roles?.some((item: any) => item?.admin))
-      ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
+    const ownerOrgs = res?.data?.user?.organizations
+        ?.filter((org: any) => org?.is_owner)
+        ?.map(({ uid, name }: any) => ({
+          org_id: uid,
+          org_name: name,
+        })) || [];
 
-    const ownerOrgs = (res?.data?.user?.organizations || [])?.filter((org:any)=> org?.is_owner)
-    ?.map(({ uid, name }: any) => ({ org_id: uid, org_name: name }));
-
-    const allOrgs = [...orgs, ...ownerOrgs]
     return {
       data: {
         user: {
           email: res?.data?.user?.email,
           first_name: res?.data?.user?.first_name,
           last_name: res?.data?.user?.last_name,
-          orgs: allOrgs,
+          orgs: [...adminOrgs, ...ownerOrgs],
         },
       },
       status: res?.status,
     };
   } catch (error: any) {
-    logger.error(
-      getLogMessage(
-        srcFun,
-        "Error while getting user profile",
-        appTokenPayload,
-        error
-      )
-    );
+    logger.error(getLogMessage(srcFun, "Error while getting user profile", appTokenPayload, error));
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
