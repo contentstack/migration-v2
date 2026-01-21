@@ -533,24 +533,24 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               ...newMigrationData?.legacy_cms,
               uploadedFile: {
                 ...newMigrationData?.legacy_cms?.uploadedFile,
-                isValidated: false,
+                isValidated: false
               }
-          }
-        }))
-
+            }
+          })
+        );
       }
-    //}
-  // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
-  //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
-  //   {     
-  //     setIsValidated(false);
-  //     setValidationMessage('file format is not appropriate');
-  //     setIsValidationAttempted(true);
-  //     setShowMessage(true);
-  //     setIsLoading(false);
-  //     setIsDisabled(true);
-  //   }
-     setIsConfigLoading(false);
+      //}
+      // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) &&
+      //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
+      //   {
+      //     setIsValidated(false);
+      //     setValidationMessage('file format is not appropriate');
+      //     setIsValidationAttempted(true);
+      //     setShowMessage(true);
+      //     setIsLoading(false);
+      //     setIsDisabled(true);
+      //   }
+      setIsConfigLoading(false);
     } catch (error) {
       return error;
     }
