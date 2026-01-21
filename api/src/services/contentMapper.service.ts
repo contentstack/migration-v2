@@ -144,7 +144,7 @@ const putTestData = async (req: Request) => {
         data.field_mapper = [...(data?.field_mapper ?? []), ...(fields ?? [])];
       });
       // Update the transformed contentType array directly
-      contentType[index].fieldMapping = fieldIds;
+        contentType[index].fieldMapping = fieldIds;
     });
 
     await ContentTypesMapperModelLowdb.update((data: any) => {

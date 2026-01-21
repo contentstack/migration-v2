@@ -19,6 +19,34 @@ interface TestStack {
 import utilitiesHandler from '@contentstack/cli-utilities';
 
 /**
+ * Maps short region codes to CLI-compatible AWS region format
+ * UI uses: NA, EU, AU
+ * CLI needs: AWS-NA, AWS-EU, AWS-AU
+ */
+const REGION_TO_CLI_FORMAT: Record<string, string> = {
+  'NA': 'AWS_NA',
+  'EU': 'AWS_EU',
+  'AU': 'AWS_AU',
+  // These are already in correct format
+  'AWS_NA': 'AWS_NA',
+  'AWS_EU': 'AWS_EU',
+  'AWS_AU': 'AWS_AU',
+  'AZURE_NA': 'AZURE_NA',
+  'AZURE_EU': 'AZURE_EU',
+  'GCP_NA': 'GCP_NA',
+  'GCP_EU': 'GCP_EU',
+};
+
+/**
+ * Converts a region code to CLI-compatible format
+ * @param region - Region code from UI (e.g., 'NA', 'EU', 'AU')
+ * @returns CLI-compatible region (e.g., 'AWS_NA', 'AWS_EU', 'AWS_AU')
+ */
+const convertRegionForCli = (region: string): string => {
+  return REGION_TO_CLI_FORMAT[region] || region;
+};
+
+/**
  * Determines log level based on message content without removing ANSI codes
  */
 const determineLogLevel = (text: string): string => {
@@ -146,16 +174,17 @@ export const runCli = async (
   transformePath: string
 ) => {
   try {
-    // Format region string for CLI compatibility
-    const regionPresent =
-      CS_REGIONS.find((item) => item === rg) ?? 'NA'.replace(/_/g, '-');
-    const regionCli = regionPresent.replace(/_/g, '-');
+    // Convert region to CLI-compatible format (NA -> AWS_NA, EU -> AWS_EU, AU -> AWS_AU)
+    const cliRegion = convertRegionForCli(rg);
+    // Format region string for CLI (replace underscores with hyphens)
+    const regionCli = cliRegion.replace(/_/g, '-');
 
-    // Fetch user authentication data
+    // Fetch user authentication data using ORIGINAL region (rg), not converted region
+    // User was authenticated with NA/EU/AU, not AWS_NA/AWS_EU/AWS_AU
     await AuthenticationModel.read();
     const userData = AuthenticationModel.chain
       .get('users')
-      .find({ region: regionPresent, user_id })
+      .find({ region: rg, user_id })
       .value();
 
     // Configure CLI with region settings

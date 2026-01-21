@@ -523,10 +523,7 @@ const saveAsset = async (
         const commonPaths = [
           '/sites/default/files/',
           '/sites/all/files/',
-          '/sites/g/files/bxs2566/files/', // Rice University specific
-          'sites/default/files/',
-          'sites/all/files/',
-        ];
+          ];
 
         // Only try fallback if current path is the user-provided path
         const isUserProvidedPath =
