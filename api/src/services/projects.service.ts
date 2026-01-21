@@ -2,8 +2,8 @@
 
 import { Request } from 'express';
 import ProjectModelLowdb from '../models/project-lowdb.js';
-import ContentTypesMapperModelLowdb from '../models/contentTypesMapper-lowdb.js';
-import FieldMapperModel from '../models/FieldMapper.js';
+import getContentTypesMapperDb from '../models/contentTypesMapper-lowdb.js';
+import getFieldMapperDb from '../models/FieldMapper.js';
 
 import {
   BadRequestError,
@@ -158,6 +158,7 @@ const createProject = async (req: Request) => {
     isMigrationStarted: false,
     isMigrationCompleted: false,
     migration_execution: false,
+    iteration: 1,
   };
 
   try {
@@ -538,6 +539,7 @@ const affixConfirmation = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs while updating the file format.
  */
 const updateFileFormat = async (req: Request) => {
+  console.info('updateFileFormat', req?.body);
   const { orgId, projectId } = req?.params || {};
   if (!orgId || !projectId) {
     throw new BadRequestError('Organization ID and Project ID are required');
@@ -1138,8 +1140,11 @@ const deleteProject = async (req: Request) => {
 
   if (projects?.status == NEW_PROJECT_STATUS[5]) {
     const content_mapper_id = projects?.content_mapper;
+    const iteration = projects?.iteration || 1;
 
+    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
     await ContentTypesMapperModelLowdb.read();
+    const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await FieldMapperModel.read();
     if (!isEmpty(content_mapper_id) && Array.isArray(content_mapper_id)) {
       content_mapper_id.map(async (item: any) => {

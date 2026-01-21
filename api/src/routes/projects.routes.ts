@@ -44,7 +44,7 @@ router.put(
 // Update project's file format
 router.put(
   "/:projectId/file-format",
-  validator("file_format"),
+  validator("file_path"),
   asyncRouter(projectController.updateFileFormat)
 );
 

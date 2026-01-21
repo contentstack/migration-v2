@@ -1,6 +1,6 @@
 import ProjectModelLowdb from "../models/project-lowdb.js";
-import ContentTypesMapperModelLowdb from "../models/contentTypesMapper-lowdb.js";
-import FieldMapperModel from "../models/FieldMapper.js";
+import getContentTypesMapperDb from "../models/contentTypesMapper-lowdb.js";
+import getFieldMapperDb from "../models/FieldMapper.js";
 import { contenTypeMaker } from "./content-type-creator.utils.js";
 
 export const fieldAttacher = async ({ projectId, orgId, destinationStackId, region, user_id }: any) => {
@@ -9,7 +9,10 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
     id: projectId,
     org_id: orgId,
   }).value()
+  const iteration = projectData?.iteration || 1;
+  const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
   await ContentTypesMapperModelLowdb.read();
+  const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await FieldMapperModel.read();
   const contentTypes = [];
   if (projectData?.content_mapper?.length) {

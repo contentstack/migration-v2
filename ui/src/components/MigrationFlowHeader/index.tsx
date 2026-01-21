@@ -1,10 +1,11 @@
 // Libraries
 import { useEffect, useState } from 'react';
 import { Button, Tooltip } from '@contentstack/venus-components';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Params, useNavigate, useParams } from 'react-router';
 
 import { RootState } from '../../store';
+import { updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Interfaces
 import { MigrationResponse } from '../../services/api/service.interface';
@@ -39,6 +40,7 @@ const MigrationFlowHeader = ({
 
   const navigate = useNavigate();
   const params: Params<string> = useParams();
+  const dispatch = useDispatch();
 
   const selectedOrganisation = useSelector(
     (state: RootState) => state?.authentication?.selectedOrganisation
@@ -62,14 +64,26 @@ const MigrationFlowHeader = ({
     navigate(url, { replace: true });
   };
 
-  let stepValue;
-  if (params?.stepId === '3' || params?.stepId === '4') {
-    stepValue = 'Continue';
-  } else if (params?.stepId === '5') {
-    stepValue = 'Start Migration';
-  } else {
-    stepValue = 'Save and Continue';
-  }
+  // Update stepValue in Redux based on current conditions
+  useEffect(() => {
+    let newStepValue;
+    
+    // Check conditions in priority order
+    if (newMigrationData?.legacy_cms?.projectStatus === 5 && newMigrationData?.migration_execution?.migrationCompleted) {
+      newStepValue = 'Restart Migration';
+    } else if (params?.stepId === '5') {
+      newStepValue = 'Start Migration';
+    } else if (params?.stepId === '3' || params?.stepId === '4') {
+      newStepValue = 'Continue';
+    } else {
+      newStepValue = 'Save and Continue';
+    }
+    
+    // Only update if the value has changed
+    if (newStepValue !== newMigrationData?.stepValue) {
+      dispatch(updateNewMigrationData({ stepValue: newStepValue }));
+    }
+  }, [params?.stepId, newMigrationData?.legacy_cms?.projectStatus, newMigrationData?.migration_execution?.migrationCompleted, newMigrationData?.stepValue, dispatch]);
 
   const isStep4AndNotMigrated =
     params?.stepId === '4' &&
@@ -129,12 +143,12 @@ const MigrationFlowHeader = ({
           isProjectStatusThreeAndMapperNotGenerated ?
             isFileValidated :
             isStep4AndNotMigrated || 
-            isStepInvalid || 
-            isExecutionStarted || 
-            destinationStackMigrated
+            isStepInvalid 
+            // isExecutionStarted || 
+            // destinationStackMigrated
         }
       >
-        {stepValue}
+        {newMigrationData?.stepValue || 'Save and Continue'}
       </Button>
     </div>
   );

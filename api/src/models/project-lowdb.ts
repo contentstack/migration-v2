@@ -76,6 +76,7 @@ interface Project {
   isMigrationStarted: boolean;
   isMigrationCompleted:boolean;
   migration_execution: boolean;
+  iteration: number;
 }
 
 interface ProjectDocument {

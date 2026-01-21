@@ -117,6 +117,13 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
 
   useBlockNavigation(isModalOpen);
 
+  // Update stepValue to 'Restart Migration' when migration is completed
+  useEffect(() => {
+    if (newMigrationData?.migration_execution?.migrationCompleted) {
+      dispatch(updateNewMigrationData({ stepValue: 'Restart Migration' }));
+    }
+  }, [newMigrationData?.migration_execution?.migrationCompleted, dispatch]);
+
   /**
    * Scrolls to the top of the logs container.
    */
@@ -189,7 +196,8 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
               ...newMigrationData?.migration_execution,
               migrationStarted: false,
               migrationCompleted: true
-            }
+            },
+            stepValue: 'Restart Migration'
           };
 
           dispatch(updateNewMigrationData(newMigrationDataObj));

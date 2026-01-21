@@ -355,3 +355,12 @@ export const getMigrationLogs = async (orgId: string, projectId: string, stackId
     }
   }
 }
+
+export const restartMigration = async (orgId: string, projectId: string) => {
+  try {
+    return await postCall(
+      `${API_VERSION}/migration/restart/${orgId}/${projectId}`, {}, options());
+  } catch (error) {
+    return error;
+  }
+}

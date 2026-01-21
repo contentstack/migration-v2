@@ -94,3 +94,16 @@ export const getAuditData = async (orgId: string, projectId: string, stackId: st
     }
   }
 };
+
+export const updateFileFormat = async (orgId: string, projectId: string, data: ObjectType) => {
+  console.info('updateFileFormat', data);
+  try {
+    return await putCall(`${API_VERSION}/org/${orgId}/project/${projectId}/file-format`, data, options());
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in updating file format: ${error?.message}`);
+    } else {
+      throw new Error('Unknown error in updating file format');
+    }
+  }
+};

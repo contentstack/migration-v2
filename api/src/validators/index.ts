@@ -5,6 +5,7 @@ import authValidator from "./auth.validator.js";
 import projectValidator from "./project.validator.js";
 import cmsValidator from "./cms.validator.js";
 import fileFormatValidator from "./file-format.validator.js";
+import filePathValidator from "./file-path.validator.js";
 import destinationStackValidator from "./destination-stack.validator.js";
 import affixValidator from "./affix.validator.js";
 import affixConfirmationValidator from "./affix-confirmation.validator.js";
@@ -23,6 +24,7 @@ export default (route: string = "") =>
       project: projectValidator,
       cms: cmsValidator,
       file_format: fileFormatValidator,
+      file_path: filePathValidator,
       destination_stack: destinationStackValidator,
       affix: affixValidator,
       affix_confirmation_validator: affixConfirmationValidator,

@@ -20,6 +20,7 @@ import {
 import {
   BadRequestError,
   ExceptionFunction,
+  NotFoundError,
 } from '../utils/custom-errors.utils.js';
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
 import { siteCoreService } from './sitecore.service.js';
@@ -1435,6 +1436,41 @@ export const updateLocaleMapper = async (req: Request) => {
   }
 };
 
+const restartMigration = async (req: Request): Promise<any> => {
+  const { orgId, projectId } = req?.params ?? {};
+  await ProjectModelLowdb.read();
+  const projectIndex = ProjectModelLowdb.chain
+    .get("projects")
+    .findIndex({ id: projectId, org_id: orgId })
+    .value();
+  console.info('projectIndex', projectIndex);
+  if (projectIndex > -1) {
+    await ProjectModelLowdb.update((data: any) => {
+      data.projects[projectIndex].migration_execution = false;
+      data.projects[projectIndex].isMigrationCompleted = false;
+      data.projects[projectIndex].isMigrationStarted = false;
+      data.projects[projectIndex].current_step = 1;
+      data.projects[projectIndex].status = 0;
+      data.projects[projectIndex].iteration = 1;
+      data.projects[projectIndex].isMigrationStarted = false;
+      data.projects[projectIndex].isMigrationCompleted = false;
+      data.projects[projectIndex].migration_execution = false;
+      data.projects[projectIndex].legacy_cms = {
+        ...data.projects[projectIndex].legacy_cms,
+        is_fileValid: false,
+      };
+      data.projects[projectIndex].iteration = 1 + (data.projects[projectIndex].iteration || 0);
+      data.projects[projectIndex].updated_at = new Date().toISOString();
+    });
+  } else {
+    throw new NotFoundError(HTTP_TEXTS?.PROJECT_NOT_FOUND);
+  }
+  return {
+    status: HTTP_CODES?.OK,
+    message: "Migration restarted successfully",
+  };
+};
+
 export const migrationService = {
   createTestStack,
   deleteTestStack,
@@ -1444,4 +1480,5 @@ export const migrationService = {
   createSourceLocales,
   updateLocaleMapper,
   getAuditData,
+  restartMigration,
 };
