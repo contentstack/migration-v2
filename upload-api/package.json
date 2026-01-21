@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm --prefix migration-aem run build && tsc",
+    "build": "npm --prefix migration-wordpress run build && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npm run build &&tsc && node build/index.js",
     "startNew": "tsc && node build/index.js",
