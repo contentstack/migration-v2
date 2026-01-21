@@ -70,6 +70,7 @@ interface Project {
   migration_execution: boolean;
   iteration: number;
   taxonomies?: any[];
+  iteration: number;
 }
 
 interface ProjectDocument {

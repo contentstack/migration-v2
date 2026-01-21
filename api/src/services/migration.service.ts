@@ -1526,6 +1526,7 @@ const restartMigration = async (req: Request): Promise<any> => {
       data.projects[projectIndex].isMigrationStarted = false;
       data.projects[projectIndex].current_step = 1;
       data.projects[projectIndex].status = 0;
+      data.projects[projectIndex].iteration = 1;
       data.projects[projectIndex].isMigrationStarted = false;
       data.projects[projectIndex].isMigrationCompleted = false;
       data.projects[projectIndex].migration_execution = false;

@@ -122,8 +122,8 @@ const Migration = () => {
 
   useWarnOnRefresh(isSaved);
   /**
- * Dispatches the isprojectMapped key to redux
- */
+   * Dispatches the isprojectMapped key to redux
+   */
   // useEffect(()=> {
   //   dispatch(updateNewMigrationData({
   //     ...newMigrationDataRef?.current,
@@ -135,27 +135,33 @@ const Migration = () => {
 
   useBlockNavigation(isModalOpen);
 
-  useEffect (()=>{
+  useEffect(() => {
     const hasNonEmptyMapping =
-    newMigrationData?.destination_stack?.localeMapping &&
-    Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
-      ([label, value]: [string, string]) =>
-        Boolean(label?.trim()) &&
-        value !== '' &&
-        value !== null &&
-        value !== undefined && 
-        label !== 'undefined'
-    );
-    if(legacyCMSRef?.current && newMigrationData?.project_current_step === 1 && legacyCMSRef?.current?.getInternalActiveStepIndex() > -1){
-      setIsSaved(true);    
-    }
-    else if ((isCompleted && !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) && newMigrationData?.project_current_step === 2)){
-     setIsSaved(true);
-    }
-    else if(newMigrationData?.content_mapping?.isDropDownChanged){
+      newMigrationData?.destination_stack?.localeMapping &&
+      Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
+        ([label, value]: [string, string]) =>
+          Boolean(label?.trim()) &&
+          value !== '' &&
+          value !== null &&
+          value !== undefined &&
+          label !== 'undefined'
+      );
+    //console.info("legacyCMSRef?.current ", legacyCMSRef?.current,legacyCMSRef?.current?.getInternalActiveStepIndex())
+    if (
+      legacyCMSRef?.current &&
+      newMigrationData?.project_current_step === 1 &&
+      legacyCMSRef?.current?.getInternalActiveStepIndex() > -1
+    ) {
       setIsSaved(true);
-    }
-    else{
+    } else if (
+      isCompleted &&
+      !isEmptyString(newMigrationData?.destination_stack?.selectedStack?.value) &&
+      newMigrationData?.project_current_step === 2
+    ) {
+      setIsSaved(true);
+    } else if (newMigrationData?.content_mapping?.isDropDownChanged) {
+      setIsSaved(true);
+    } else {
       setIsSaved(false);
     }
   }, [isCompleted, newMigrationData]);
@@ -230,37 +236,40 @@ const Migration = () => {
   };
 
   const getFileExtension = (filePath: string): string => {
-    const normalizedPath = filePath?.replace(/\\/g, "/")?.replace(/\/$/, "");
+    const normalizedPath = filePath?.replace(/\\/g, '/')?.replace(/\/$/, '');
 
     // Use regex to extract the file extension
     const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
-    
+
     // Check if it has a file extension (dot followed by 1-5 alphanumeric characters at the end)
     const isDirectory = !/\.[a-zA-Z0-9]{1,5}$/.test(normalizedPath);
-    
-    const ext = match ? match?.[1]?.toLowerCase() : isDirectory ? "directory" : "";
+
+    const ext = match ? match?.[1]?.toLowerCase() : isDirectory ? 'directory' : '';
 
     // const fileName = filePath?.split('/')?.pop();
     //const ext = fileName?.split('.')?.pop();
     const validExtensionRegex = /\.(pdf|zip|xml|json|directory|sql)$/i;
     return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
   };
- 
+
   // funcrion to form file format object from config response
   const fetchFileFormat = (data: FileDetails) => {
     const filePath = data?.localPath?.toLowerCase();
-    const fileFormat =  getFileExtension(filePath ?? '');
+    const fileFormat = getFileExtension(filePath ?? '');
     const selectedFileFormatObj = {
-      description: "",
+      description: '',
       fileformat_id: fileFormat,
       group_name: fileFormat,
       isactive: true,
-      title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
-    }
+      title:
+        fileFormat === 'zip'
+          ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1)
+          : fileFormat?.toUpperCase()
+    };
     return selectedFileFormatObj;
-  }
+  };
 
-// funcrion to form upload object from config response
+  // funcrion to form upload object from config response
   const getFileInfo = (data: FileDetails) => {
     const newMigrationDataObj = {
         ...newMigrationData?.legacy_cms?.uploadedFile,
@@ -280,25 +289,29 @@ const Migration = () => {
           cmsType: data?.cmsType  
     };
     return newMigrationDataObj;
-  }
+  };
 
   /**
    * Fetch the project data
    */
   const fetchProjectData = async () => {
-  if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
-  setIsProjectMapper(true);
-  const migrationData = await getMigrationData(selectedOrganisation?.value, params?.projectId ?? '');
-  const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId );
-  const {data} = await getConfig();
-  const fileFormat =  fetchFileFormat(data);
-  const uploadObj = getFileInfo(data);
- 
-  if (migrationData) {
-    setIsLoading(false);
-    setProjectData(migrationData?.data);
-  }
-  const projectData = migrationData?.data;
+    if (isEmptyString(selectedOrganisation?.value) || isEmptyString(params?.projectId)) return;
+    setIsProjectMapper(true);
+    const migrationData = await getMigrationData(
+      selectedOrganisation?.value,
+      params?.projectId ?? ''
+    );
+    const migratedstacks = await getMigratedStacks(selectedOrganisation?.value, projectId);
+    const { data } = await getConfig();
+    const fileFormat = fetchFileFormat(data);
+    const uploadObj = getFileInfo(data);
+
+    if (migrationData) {
+      setIsLoading(false);
+      setProjectData(migrationData?.data);
+    }
+    const projectData = migrationData?.data;
+
     const legacyCmsData: ILegacyCMSComponent = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
 
     // Config's cmsType is the source of truth (may differ from stored project CMS if config changed)
@@ -306,7 +319,7 @@ const Migration = () => {
 
     // Look up stored CMS from project data
     const storedCmsData: ICMSType | undefined = validateArray(legacyCmsData?.all_cms)
-      ? legacyCmsData?.all_cms?.find(
+      ? (legacyCmsData?.all_cms?.find(
           (cms: ICMSType) => cms?.cms_id === projectData?.legacy_cms?.cms
         )
       : undefined;
@@ -324,6 +337,8 @@ const Migration = () => {
       (storedCmsData && storedCmsData?.parent?.toLowerCase() === configCmsType)
         ? storedCmsData
         : (configCmsData ?? storedCmsData ?? DEFAULT_CMS_TYPE);
+        ) ?? DEFAULT_CMS_TYPE)
+      : DEFAULT_CMS_TYPE;
 
     const selectedFileFormatData: ICardType | undefined = validateArray(
       selectedCmsData?.allowed_file_formats
@@ -555,7 +570,7 @@ const Migration = () => {
 
       const fileFormatData = {
         file_format:
-          newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toString() || 
+          newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toString() ||
           newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats[0]?.fileformat_id?.toString(),
         file_path: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
         is_fileValid: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
@@ -573,8 +588,9 @@ const Migration = () => {
         setIsLoading(false);
         if (isMountedRef.current) {
           Notification({
-            notificationContent: { 
-              text: error?.response?.data?.message || 'Failed to update file format' },
+            notificationContent: {
+              text: error?.response?.data?.message || 'Failed to update file format'
+            },
             type: 'error'
           });
         }
@@ -653,12 +669,13 @@ const Migration = () => {
       newMigrationData?.destination_stack?.localeMapping &&
       Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
         ([label, value]: [string, string]) => {
-          const isValid = Boolean(label?.trim()) &&
+          const isValid =
+            Boolean(label?.trim()) &&
             value !== '' &&
             value !== null &&
-            value !== undefined && 
+            value !== undefined &&
             label !== 'undefined';
-          
+
           return isValid;
         }
       );
@@ -749,7 +766,6 @@ const Migration = () => {
         }
       });
     } else {
-
       const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
       setIsLoading(false);
       event.preventDefault();
@@ -769,9 +785,9 @@ const Migration = () => {
 
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
     //if (res?.status === 200) {
-      handleStepChange(4);
-      const url = `/projects/${projectId}/migration/steps/5`;
-      navigate(url, { replace: true });
+    handleStepChange(4);
+    const url = `/projects/${projectId}/migration/steps/5`;
+    navigate(url, { replace: true });
     //}
   };
 
@@ -782,44 +798,45 @@ const Migration = () => {
     setIsLoading(true);
 
     if (newMigrationData?.stepValue !== 'Restart Migration') {
-    try {
-      const migrationRes = await startMigration(
-        newMigrationData?.destination_stack?.selectedOrg?.value,
-        projectId
-      );
+      try {
+        const migrationRes = await startMigration(
+          newMigrationData?.destination_stack?.selectedOrg?.value,
+          projectId
+        );
 
-      if (migrationRes?.status === 200) {
-        setIsLoading(false);
-        setDisableMigration(true);
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          migration_execution: {
-            ...newMigrationData?.migration_execution,
-            migrationStarted: true
-          }
-        };
-        dispatch(updateNewMigrationData(newMigrationDataObj));
+        if (migrationRes?.status === 200) {
+          setIsLoading(false);
+          setDisableMigration(true);
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            migration_execution: {
+              ...newMigrationData?.migration_execution,
+              migrationStarted: true
+            }
+          };
+          dispatch(updateNewMigrationData(newMigrationDataObj));
 
-        Notification({
-          notificationContent: { text: 'Migration Execution process started' },
-          notificationProps: {
-            position: 'bottom-center',
-            hideProgressBar: true
-          },
-          type: 'message'
-        });
+          Notification({
+            notificationContent: { text: 'Migration Execution process started' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'message'
+          });
+        }
+      } catch (error) {
+        // return error;
+        console.error(error);
       }
-    } catch (error) {
-      // return error;
-      console.error(error);
-    }}
-    else{
+    } else {
       setIsLoading(false);
       handleRestartMigration();
     }
   };
 
   const handleRestartMigration = async () => {
+    console.info('restart migration');
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       legacy_cms: {
