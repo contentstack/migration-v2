@@ -71,6 +71,7 @@ interface Project {
   iteration: number;
   taxonomies?: any[];
   isSSO: boolean;
+  iteration: number;
 }
 
 interface  ProjectDocument {

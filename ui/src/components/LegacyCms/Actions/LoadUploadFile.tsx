@@ -263,6 +263,42 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       if (status === 200 && !newMigrationDataObj.legacy_cms.selectedFileFormat) {
         newMigrationDataObj.legacy_cms.selectedFileFormat =
           newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat;
+      dispatch(updateNewMigrationData(newMigrationDataObj));
+
+      if (status === 200) {
+        setIsValidated(true);
+        setValidationMessage('File validated successfully.');
+
+        setIsDisabled(true);
+
+        if (
+          !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
+          !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)
+        ) {
+          props.handleStepChange(props?.currentStep, true);
+        }
+      } else if (status === 500) {
+        setIsValidated(false);
+        setValidationMessage('File not found');
+        setIsValidationAttempted(true);
+        setProgressPercentage(100);
+      } else if (status === 429) {
+        setIsValidated(false);
+        setValidationMessage('Rate limit exceeded. Please wait and try again.');
+        setIsValidationAttempted(true);
+        setProgressPercentage(100);
+      } else if (status === 401) {
+        setIsValidated(false);
+        setValidationMessage(
+          `${data?.message} Please add correct file with ${newMigrationData?.legacy_cms?.selectedCms?.cms_id} supported format.`
+        );
+        setIsValidationAttempted(true);
+        setProgressPercentage(100);
+      } else {
+        setIsValidated(false);
+        setValidationMessage(`${data?.message}`);
+        setIsValidationAttempted(true);
+        setProgressPercentage(100);
       }
 
       // Update the ref immediately before dispatching to avoid stale data in subsequent operations
@@ -674,5 +710,4 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     </div>
   );
 };
-
-export default LoadUploadFile;
+export default LoadUploadFile
