@@ -968,7 +968,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             <div className={`${isModularBlock || isModularBlockChild || isGroup ? "instruction-text-indent" : ""}`}>
               Type: {data?.otherCmsType}
               <br />
-              UID: <span className="uid-text">{data?.uid}</span>
+              <div className="uid-line">
+                <span className="uid-label">UID:</span><span className="uid-text">{data?.uid}</span>
+              </div>
             </div>
           </InstructionText>
         </div>

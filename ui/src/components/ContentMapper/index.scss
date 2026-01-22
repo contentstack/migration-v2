@@ -394,14 +394,29 @@ div .table-row {
   margin-left: 26px;
 }
 
-// UID text styling to prevent table column breaking
+// UID line styling to keep label and value on same line
+.uid-line {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.2 !important;
+}
+
+.uid-label {
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+// UID text styling to prevent table column breaking and limit to 2 lines
 .uid-text {
   word-break: break-all;
-  // white-space: normal;
   overflow-wrap: break-word;
-  max-width: 230px;
-  display: inline-flex;
-  line-height: 1.2!important;
+  // max-width: 200px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2 !important;
 }
 
 .custom-empty-state {
