@@ -16,6 +16,9 @@ const createDrupalMapper = async (
   affix: string | string[]
 ) => {
   try {
+    // NOTE: Cleanup is now handled at the createMapper level (clearAllMigrationData)
+    // This ensures ALL CMS migration data is cleared before ANY migration starts
+
     // this is to fetch the locales from the drupal database
     // const fetchedLocales:[]= await extractLocale(config)
 
@@ -29,11 +32,9 @@ const createDrupalMapper = async (
     // Read extracted taxonomies from file
     let taxonomies: any[] = [];
     try {
+      // NOTE: Must use process.cwd() to match how migration-drupal writes files
       const taxonomyPath = path.join(
-        __dirname,
-        '..',
-        '..',
-        '..',
+        process.cwd(),
         'drupalMigrationData',
         'taxonomySchema',
         'taxonomySchema.json'

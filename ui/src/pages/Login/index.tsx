@@ -5,25 +5,25 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { clearOrganisationData, getUserDetails, setAuthToken, setUser, clearAuthToken } from '../../store/slice/authSlice';
 import
-  {
-    Button,
-    Field,
-    FieldLabel,
-    TextInput,
-    ValidationMessage,
-    Link,
-    Notification
-  } from '@contentstack/venus-components';
+{
+  Button,
+  Field,
+  FieldLabel,
+  TextInput,
+  ValidationMessage,
+  Link,
+  Notification
+} from '@contentstack/venus-components';
 import { Field as FinalField, Form as FinalForm } from 'react-final-form';
 
 // Utilities
 import
-  {
-    LOGIN_SUCCESSFUL_MESSAGE,
-    TFA_MESSAGE,
-    TFA_VIA_SMS_MESSAGE,
-    CS_ENTRIES
-  } from '../../utilities/constants';
+{
+  LOGIN_SUCCESSFUL_MESSAGE,
+  TFA_MESSAGE,
+  TFA_VIA_SMS_MESSAGE,
+  CS_ENTRIES
+} from '../../utilities/constants';
 import { clearLocalStorage, failtureNotification, setDataInLocalStorage } from '../../utilities/functions';
 
 // API Service
@@ -163,7 +163,7 @@ const Login: FC<IProps> = () =>
     };
 
     const response = await userSession( userAuth?.user );
-    if ( response?.data?.error_code === 294 && response?.data?.error_message === TFA_MESSAGE )
+    if ( ( response?.status === 294 || response?.data?.error_code === 294 ) && response?.data?.error_message === TFA_MESSAGE )
     {
       setIsLoading( false );
       setLoginStates( ( prev ) => ( { ...prev, tfa: true } ) );

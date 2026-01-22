@@ -459,6 +459,7 @@ const createTaxonomyFieldObject = (item, taxonomySchema, targetVocabularies = []
  * @param {Array} contentTypes - Array of available content types for reference resolution.
  * @param {string} prefix - The prefix to be used for UID correction.
  * @param {Object} dbConfig - Database configuration for taxonomy extraction fallback.
+ * @param {Set} actualTaxonomyUsage - Set of vocabulary uids actually used in entry data (optional).
  * @returns {Promise<Array>} A schema array with field objects and corresponding properties based on the Drupal field item.
  *
  * @description
@@ -480,7 +481,7 @@ const createTaxonomyFieldObject = (item, taxonomySchema, targetVocabularies = []
  * - Special handling for complex types like Entity references, File fields, and Taxonomy terms.
  * - Taxonomy fields with automatic vocabulary detection and mapping.
  */
-const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) => {
+const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null, actualTaxonomyUsage = new Set()) => {
   // Load taxonomy schema for taxonomy field processing
   const taxonomySchema = await loadTaxonomySchema(dbConfig);
 
@@ -724,9 +725,21 @@ const contentTypeMapper = async (data, contentTypes, prefix, dbConfig = null) =>
     });
   }
 
-  // 🏷️ TAXONOMY CONSOLIDATION: Create single consolidated taxonomy field if any taxonomies were collected
+  // 🏷️ TAXONOMY CONSOLIDATION: Create single consolidated taxonomy field
+  // Priority: Use ACTUAL taxonomy usage from entry data over field configuration
+  // This ensures taxonomies like 'people' are included even if field config only shows 'news_categories', 'tags'
+  
+  // Merge actualTaxonomyUsage with collectedTaxonomies
+  if (actualTaxonomyUsage && actualTaxonomyUsage.size > 0) {
+    for (const vocab of actualTaxonomyUsage) {
+      if (!collectedTaxonomies.includes(vocab)) {
+        collectedTaxonomies.push(vocab);
+      }
+    }
+  }
+
   if (collectedTaxonomies.length > 0) {
-    // Create consolidated taxonomy field with fixed properties
+    // Create consolidated taxonomy field with collected taxonomies (from both config AND actual usage)
     const consolidatedTaxonomyField = {
       uid: 'taxonomies',
       otherCmsField: 'Taxonomy',
