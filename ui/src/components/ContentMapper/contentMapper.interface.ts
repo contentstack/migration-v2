@@ -67,8 +67,8 @@ export interface FieldMapType {
   contentstackUid: string;
   _invalid?: boolean;
   backupFieldUid: string;
-  refrenceTo: string[];
-  initialRefrenceTo: string[];
+  referenceTo: string[];
+  initialReferenceTo?: string[];
 }
 
 export interface Advanced {
@@ -79,6 +79,8 @@ export interface Advanced {
   nonLocalizable?: boolean;
   embedObject?: boolean;
   embedObjects?: any;
+  reference_to?: string[];
+  taxonomies?: Array<{ taxonomy_uid?: string } | string>;
   minChars?: string;
   maxChars?: number;
   minRange?: number;

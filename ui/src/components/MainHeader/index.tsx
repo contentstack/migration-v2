@@ -167,7 +167,7 @@ const MainHeader = () => {
       <div className="d-flex align-items-center">
         {logo?.image?.url ? (
           <div className="logo" onClick={handleonClick}>
-            <Tooltip position="right" content="Projects" wrapperElementType="div">
+            <Tooltip position="right" content="Projects">
               <Link to={`${logo?.url}`} onClick={(e) => e.preventDefault()}>
                 <img src={logo?.image?.url} width={28} alt="Contentstack" />
               </Link>

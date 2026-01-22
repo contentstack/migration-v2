@@ -11,7 +11,7 @@ interface FieldMapping {
   backupFieldType?: string;
   backupFieldUid?: string;
   isDeleted?: boolean;
-  refrenceTo?: string[];
+  referenceTo?: string[];
   blocks?: BlockItem[];
   schema?: any;
   advanced?: any;

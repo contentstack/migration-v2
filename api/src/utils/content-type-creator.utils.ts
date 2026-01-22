@@ -200,7 +200,7 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
       data_type: "group",
       display_name: item?.display_name || rawUid,  // Keep original for display
       field_metadata: {},
-      schema: removeDuplicateFields(groupSchema),
+      schema: groupSchema,
       uid: itemUid,  // Snake case uid
       multiple: item?.advanced?.multiple || false,
       mandatory: item?.advanced?.mandatory || false,
@@ -237,7 +237,7 @@ function getLastSegmentNew(str: string, separator: string): string {
   return segments[segments.length - 1].trim();
 }
 
-export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', oldParentUid = ''): any[] {
+export function buildSchemaTree(fields: any[], parentUid = '', parentType = ''): any[] {
 
   if (!Array.isArray(fields)) {
     console.warn('buildSchemaTree called with invalid fields:', fields);
@@ -245,42 +245,32 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
   }
   // Build a lookup map for O(1) access
   const fieldMap = new Map<string, any>();
-  fields?.forEach(f => {
-    if (f?.contentstackFieldUid) {
-      fieldMap?.set(f?.contentstackFieldUid, f);
+  fields.forEach(f => {
+    if (f.contentstackFieldUid) {
+      fieldMap.set(f.contentstackFieldUid, f);
     }
   });
 
   // Filter direct children of current parent
   const directChildren = fields.filter(field => {
-    const fieldUid = field?.contentstackFieldUid || '';
+    const fieldUid = field.contentstackFieldUid || '';
 
     if (!parentUid) {
       // Root level - only fields without dots
-      return fieldUid && !fieldUid?.includes('.');
+      return fieldUid && !fieldUid.includes('.');
     }
 
-    // Check if field is a direct child of parentUid
-    if (fieldUid?.startsWith(parentUid + '.')) {
-      const remainder = fieldUid?.substring(parentUid.length + 1);
-      // Verify it's exactly one level deeper (no more dots in remainder)
-      return remainder && !remainder?.includes('.');
-    }
+    // Check if direct child of parent
+    if (!fieldUid.startsWith(parentUid + '.')) return false;
 
-    // Fallback: check if field is a direct child of oldPrentUid (if provided and different)
-    if (oldParentUid && oldParentUid !== parentUid && fieldUid?.startsWith(oldParentUid + '.')) {
-      const remainder = fieldUid?.substring(oldParentUid.length + 1);
-      // Verify it's exactly one level deeper (no more dots in remainder)
-      return remainder && !remainder?.includes('.');
-    }
-
-    // Not a direct child
-    return false;
+    // Verify it's exactly one level deeper
+    const remainder = fieldUid.substring(parentUid.length + 1);
+    return remainder && !remainder.includes('.');
   });
 
   return directChildren.map(field => {
-    const uid = getLastSegmentNew(field?.contentstackFieldUid, '.');
-    const displayName = field?.display_name || getLastSegmentNew(field?.contentstackField || '', '>').trim();
+    const uid = getLastSegmentNew(field.contentstackFieldUid, '.');
+    const displayName = field.display_name || getLastSegmentNew(field.contentstackField || '', '>').trim();
 
     // Base field structure
     const result: any = {
@@ -290,29 +280,14 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
     };
 
     // Determine if field should have nested schema
-    const fieldUid = field?.contentstackFieldUid;
-    const fieldType = field?.contentstackFieldType;
-    const oldFieldUid = field?.backupFieldUid;
-    
-    // Check if this field has direct children (exactly one level deeper)
-    const hasChildren = fields.some(f => {
-      const fUid = f?.contentstackFieldUid || '';
-      if (!fUid) return false;
-      
-      // Check if field starts with current fieldUid and is exactly one level deeper
-      if (fieldUid && fUid?.startsWith(fieldUid + '.')) {
-        const remainder = fUid?.substring(fieldUid.length + 1);
-        return remainder && !remainder?.includes('.');
-      }
-      
-      // Check if field starts with oldFieldtUid and is exactly one level deeper
-      if (oldFieldUid && fUid?.startsWith(oldFieldUid + '.')) {
-        const remainder = fUid?.substring(oldFieldUid.length + 1);
-        return remainder && !remainder?.includes('.');
-      }
-      
-      return false;
-    });
+    const fieldUid = field.contentstackFieldUid;
+    const fieldType = field.contentstackFieldType;
+
+    // Check if this field has children
+    const hasChildren = fields.some(f =>
+      f.contentstackFieldUid &&
+      f.contentstackFieldUid.startsWith(fieldUid + '.')
+    );
 
     if (hasChildren) {
       if (fieldType === 'modular_blocks') {
@@ -332,13 +307,13 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
             ...child,
             uid: childUid,
             display_name: childDisplay,
-            schema: buildSchemaTree(fields, child.contentstackFieldUid, 'modular_blocks_child', child?.backupFieldUid)
+            schema: buildSchemaTree(fields, child.contentstackFieldUid, 'modular_blocks_child')
           };
         });
       } else if (fieldType === 'group' ||
         (fieldType === 'modular_blocks_child' && hasChildren)) {
         // Recursively build schema for groups and modular block children with nested content
-        result.schema = buildSchemaTree(fields, fieldUid, fieldType, oldFieldUid);
+        result.schema = buildSchemaTree(fields, fieldUid, fieldType);
       }
     }
 
@@ -373,8 +348,58 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
+// Field type conversion validation to prevent data loss
+export const validateFieldTypeConversion = (currentType: string, newType: string): { allowed: boolean; reason?: string } => {
+  // Define field type hierarchy (simple → complex)
+  const typeHierarchy = {
+    'single_line_text': 1,
+    'multi_line_text': 2,
+    'html': 3,
+    'json': 4
+  };
+
+  const currentLevel = typeHierarchy[currentType as keyof typeof typeHierarchy] || 0;
+  const newLevel = typeHierarchy[newType as keyof typeof typeHierarchy] || 0;
+
+  // Allow same type or upgrades (simple → complex)
+  if (currentLevel <= newLevel) {
+    return { allowed: true };
+  }
+
+  // Special case: Allow JSON RTE → HTML RTE (both are rich content types)
+  if (currentType === 'json' && newType === 'html') {
+    return { allowed: true };
+  }
+
+  // Block downgrades (complex → simple) to prevent data loss
+  const reasons = {
+    'multi_line_text_to_single': 'Converting multi-line to single-line may lose line breaks and formatting',
+    'html_to_text': 'Converting HTML RTE to text fields will lose rich content formatting',
+    'json_to_text': 'Converting JSON RTE to text fields will lose structured data and assets'
+  };
+
+  let reason = 'This conversion may result in data loss';
+  if (currentType === 'multi_line_text' && newType === 'single_line_text') {
+    reason = reasons.multi_line_text_to_single;
+  } else if (currentType === 'html' && ['single_line_text', 'multi_line_text'].includes(newType)) {
+    reason = reasons.html_to_text;
+  } else if (currentType === 'json' && ['single_line_text', 'multi_line_text'].includes(newType)) {
+    reason = reasons.json_to_text;
+  }
+
+  return { allowed: false, reason };
+};
+
+export const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath, currentFieldType, keyMapper }: any) => {
   // Clean up field UID by removing ALL leading underscores
+  
+  // Validate field type conversion if currentFieldType is provided
+  if (currentFieldType && field?.contentstackFieldType) {
+    const validation = validateFieldTypeConversion(currentFieldType, field.contentstackFieldType);
+    if (!validation.allowed) {
+      throw new Error(`Field type conversion blocked: ${validation.reason}`);
+    }
+  }
   const rawUid = field?.uid;
   const cleanedUid = sanitizeUid(rawUid);
   switch (field?.contentstackFieldType) {
@@ -657,6 +682,55 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
         "non_localizable": field.advanced?.nonLocalizable ?? false
       }
     }
+
+    case "text": {
+      // Handle generic text field - determine if it should be single line or multi line based on metadata
+      const isMultiline = field?.advanced?.multiline === true;
+      return {
+        "data_type": "text",
+        "display_name": field?.title,
+        uid: field?.uid,
+        "field_metadata": {
+          description: "",
+          default_value: field?.advanced?.default_value ?? '',
+          ...(isMultiline && { "multiline": true })
+        },
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
+      }
+    }
+
+    case "html": {
+      return {
+        "data_type": "text",
+        "display_name": field?.title,
+        uid: field?.uid,
+        "field_metadata": {
+          "allow_rich_text": true,
+          "description": "",
+          default_value: field?.advanced?.default_value ?? '',
+          "multiline": false,
+          "rich_text_type": "advanced",
+          "options": [],
+          "ref_multiple_content_types": true,
+          "embed_entry": field?.advanced?.embedObjects?.length ? true : false
+        },
+        "format": field?.advanced?.validationRegex ?? '',
+        "error_messages": {
+          "format": field?.advanced?.validationErrorMessage ?? '',
+        },
+        "multiple": field?.advanced?.multiple ?? false,
+        "mandatory": field?.advanced?.mandatory ?? false,
+        "unique": field?.advanced?.unique ?? false,
+        "non_localizable": field.advanced?.nonLocalizable ?? false
+      }
+    }
     case 'markdown': {
       return {
         "data_type": "text",
@@ -726,7 +800,8 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
       return {
         "data_type": "global_field",
         "display_name": field?.title,
-        "reference_to": field?.refrenceTo ?? [],
+        // Support both correct spelling and old typo for backward compatibility
+        "reference_to": field?.referenceTo || field?.refrenceTo,
         "uid": cleanedUid,
         "mandatory": field?.advanced?.mandatory ?? false,
         "multiple": field?.advanced?.multiple ?? false,
@@ -735,10 +810,13 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
     }
 
     case "reference": {
+      // Get reference fields from multiple possible sources
+      const referenceFields = field?.referenceTo || field?.refrenceTo || field?.advanced?.embedObjects || [];
+      
       return {
         data_type: "reference",
         display_name: field?.title,
-        reference_to: field?.refrenceTo ?? [],
+        reference_to: referenceFields ?? [],
         field_metadata: {
           ref_multiple: true,
           ref_multiple_content_types: true
@@ -755,6 +833,27 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
       };
     }
 
+    case "taxonomy": {
+      return {
+        data_type: "taxonomy",
+        display_name: field?.title,
+        uid: field?.uid,
+        taxonomies: field?.advanced?.taxonomies || [],
+        field_metadata: {
+          description: field?.advanced?.field_metadata?.description || "",
+          default_value: field?.advanced?.field_metadata?.default_value || ""
+        },
+        format: field?.advanced?.validationRegex ?? '',
+        error_messages: {
+          format: field?.advanced?.validationErrorMessage ?? '',
+        },
+        mandatory: field?.advanced?.mandatory ?? false,
+        multiple: field?.advanced?.multiple ?? true,
+        non_localizable: field?.advanced?.non_localizable ?? false,
+        unique: field?.advanced?.unique ?? false
+      };
+    }
+
     case 'html': {
       const htmlField: any = {
         "data_type": "text",
@@ -765,7 +864,6 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
           "description": "",
           "multiline": false,
           "rich_text_type": "advanced",
-          "version": 3,
           "options": [],
           "ref_multiple_content_types": true,
           "embed_entry": field?.advanced?.embedObjects?.length ? true : false,
@@ -863,7 +961,7 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
           "non_localizable": field.advanced?.nonLocalizable ?? false,
         }
       } else {
-        console.info('Content Type Field', field?.contentstackField)
+        console.error('Content Type Field', field?.contentstackField)
       }
     }
   }
@@ -964,42 +1062,23 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
 };
 
-const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id, type}: any) => {
+const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id }: any) => {
   try {
     const ctUid = keyMapper?.[contentTypeUid];
-
-    if(type === 'global_field') {
-      
-      const req: any = {
-        params: {
-          projectId,
-          globalFieldUid: ctUid
-        },
-        body: {
-          token_payload: {
-            region,
-            user_id
-          }
+    const req: any = {
+      params: {
+        projectId,
+        contentTypeUid: ctUid
+      },
+      body: {
+        token_payload: {
+          region,
+          user_id
         }
       }
-      const contentTypeSchema = await contentMapperService.getSingleGlobalField(req);
-      return contentTypeSchema ?? null;
-    } else {
-      const req: any = {
-        params: {
-          projectId,
-          contentTypeUid: ctUid
-        },
-        body: {
-          token_payload: {
-            region,
-            user_id
-          }
-        }
-      }
-      const contentTypeSchema = await contentMapperService.getExistingContentTypes(req);
-      return contentTypeSchema?.selectedContentType ?? null;
     }
+    const contentTypeSchema = await contentMapperService.getExistingContentTypes(req);
+    return contentTypeSchema?.selectedContentType;
   } catch (err) {
     console.error("Error while getting the existing contentType from contenstack", err)
     return {};
@@ -1040,7 +1119,7 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
           group?.push(fieldGp);
         }
       }
-      field.schema = removeDuplicateFields([...field?.schema ?? [], ...group]);
+      field.schema = [...field?.schema ?? [], ...group];
     }
   }
   ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
@@ -1061,12 +1140,12 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   if (Object?.keys?.(keyMapper)?.length &&
     keyMapper?.[contentType?.contentstackUid] !== "" &&
     keyMapper?.[contentType?.contentstackUid] !== undefined) {
-    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id , type: contentType?.type});
+    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id });
   }
 
   // Safe: ensures we never pass undefined to the builder
   const ctData: any[] = buildSchemaTree(contentType?.fieldMapping || []);
-  
+
   // Use the deep converter that properly handles groups & modular blocks
   for (const item of ctData) {
     if (item?.isDeleted === true) continue;
@@ -1096,6 +1175,6 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
       await saveContent(ct, contentSave);
     }
   } else {
-    console.info(contentType?.contentstackUid, 'missing');
+    console.error(contentType?.contentstackUid, 'missing');
   }
 };

@@ -19,6 +19,34 @@ interface TestStack {
 import utilitiesHandler from '@contentstack/cli-utilities';
 
 /**
+ * Maps short region codes to CLI-compatible AWS region format
+ * UI uses: NA, EU, AU
+ * CLI needs: AWS-NA, AWS-EU, AWS-AU
+ */
+const REGION_TO_CLI_FORMAT: Record<string, string> = {
+  'NA': 'AWS_NA',
+  'EU': 'AWS_EU',
+  'AU': 'AWS_AU',
+  // These are already in correct format
+  'AWS_NA': 'AWS_NA',
+  'AWS_EU': 'AWS_EU',
+  'AWS_AU': 'AWS_AU',
+  'AZURE_NA': 'AZURE_NA',
+  'AZURE_EU': 'AZURE_EU',
+  'GCP_NA': 'GCP_NA',
+  'GCP_EU': 'GCP_EU',
+};
+
+/**
+ * Converts a region code to CLI-compatible format
+ * @param region - Region code from UI (e.g., 'NA', 'EU', 'AU')
+ * @returns CLI-compatible region (e.g., 'AWS_NA', 'AWS_EU', 'AWS_AU')
+ */
+const convertRegionForCli = (region: string): string => {
+  return REGION_TO_CLI_FORMAT[region] || region;
+};
+
+/**
  * Determines log level based on message content without removing ANSI codes
  */
 const determineLogLevel = (text: string): string => {
@@ -146,16 +174,17 @@ export const runCli = async (
   transformePath: string
 ) => {
   try {
-    // Format region string for CLI compatibility
-    const regionPresent =
-      CS_REGIONS.find((item) => item === rg) ?? 'NA'.replace(/_/g, '-');
-    const regionCli = regionPresent.replace(/_/g, '-');
+    // Convert region to CLI-compatible format (NA -> AWS_NA, EU -> AWS_EU, AU -> AWS_AU)
+    const cliRegion = convertRegionForCli(rg);
+    // Format region string for CLI (replace underscores with hyphens)
+    const regionCli = cliRegion.replace(/_/g, '-');
 
-    // Fetch user authentication data
+    // Fetch user authentication data using ORIGINAL region (rg), not converted region
+    // User was authenticated with NA/EU/AU, not AWS_NA/AWS_EU/AWS_AU
     await AuthenticationModel.read();
     const userData = AuthenticationModel.chain
       .get('users')
-      .find({ region: regionPresent, user_id })
+      .find({ region: rg, user_id })
       .value();
 
     // Configure CLI with region settings
@@ -203,9 +232,6 @@ export const runCli = async (
       );
       await createDirectoryAndFile(loggerPath, transformePath);
 
-      // Debug which log path is being used
-      console.info(`Log path for CLI commands: ${transformePath}`);
-
       // Make sure to set the global.currentLogFile to the project log file
       // This is the key part - setting the log file path to the migration service log file
       await setLogFilePath(transformePath);
@@ -229,9 +255,6 @@ export const runCli = async (
         transformePath
       ); // Pass the log file path here
 
-      // After the import command completes
-      console.info('Import command completed successfully');
-
       // Write the completion message ONCE in the format the UI expects
       if (isTest) {
         const directLogEntry = {
@@ -250,8 +273,6 @@ export const runCli = async (
         if (loggerPath && loggerPath !== transformePath) {
           fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
         }
-
-        console.info('Added test completion message to logs');
       } else {
         const directLogEntry = {
           level: 'info',
@@ -269,20 +290,7 @@ export const runCli = async (
         if (loggerPath && loggerPath !== transformePath) {
           fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
         }
-
-        console.info('Added migration completion message to logs');
       }
-
-      // Keep the project status update code:
-      console.info(
-        `Updating project status: projectId=${projectId}, isTest=${isTest}`
-      );
-      // ... rest of the code ...
-
-      // Add debug logs to track project index and test flag
-      console.info(
-        `Updating project status: projectId=${projectId}, isTest=${isTest}`
-      );
 
       // Make sure we have the latest data
       await ProjectModelLowdb.read();
@@ -291,27 +299,18 @@ export const runCli = async (
         .findIndex({ id: projectId })
         .value();
 
-      console.info(`Found project index: ${projectIndex}`);
-
       // Debug: Log the full project data to verify it exists
       try {
         const project = ProjectModelLowdb.chain
           .get('projects')
           .find({ id: projectId })
           .value();
-        console.info(`Project found: ${project ? 'Yes' : 'No'}`);
-        if (project) {
-          console.info(
-            `Current migration status: started=${project.isMigrationStarted}, completed=${project.isMigrationCompleted}`
-          );
-        }
       } catch (err) {
         console.error('Error reading project data:', err);
       }
 
       // Handle test migration updates
       if (projectIndex > -1 && isTest) {
-        console.info('Updating test migration status');
         const project = ProjectModelLowdb.data.projects[projectIndex];
 
         // Initialize test_stacks if needed
@@ -332,17 +331,15 @@ export const runCli = async (
       // Update project status for non-test migrations
       if (projectIndex > -1 && !isTest) {
         // Direct modification might be more reliable
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted = true;
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted = false;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted =
+          true;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
+          false;
         ProjectModelLowdb.data.projects[projectIndex].current_step = 5;
         ProjectModelLowdb.data.projects[projectIndex].status = 5;
         await ProjectModelLowdb.write();
-        console.info(
-          `Project ${projectId} status updated: migration completed`
-        );
       }
     } else {
-      console.info('User not found.');
     }
   } catch (error) {
     console.error('🚀 ~ runCli ~ error:', error);

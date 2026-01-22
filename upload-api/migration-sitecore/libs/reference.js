@@ -60,7 +60,7 @@ function ExtractRef() {
                   contentTypeKeys?.[uid] ? uids?.push(contentTypeKeys?.[uid]) : null
                 }
               }
-              field.refrenceTo = uids;
+              field.referenceTo = uids;
               delete field?.sourceKey;
             }
           }
@@ -88,7 +88,7 @@ function ExtractRef() {
               isDeleted: false,
               backupFieldType: 'reference',
               backupFieldUid: newUid,
-              refrenceTo: uids
+              referenceTo: uids
             };
             contentType.fieldMapping.push(schemaObject);
           }
@@ -123,7 +123,7 @@ function ExtractRef() {
                   isDeleted: false,
                   backupFieldType: 'global_field',
                   backupFieldUid: uidCorrector({ uid: newKey }),
-                  refrenceTo: key
+                  referenceTo: key
                 };
                 contentType.fieldMapping.push(schemaObject);
               });

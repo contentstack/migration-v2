@@ -38,7 +38,7 @@ interface FieldMapper {
     isDeleted: boolean;
     backupFieldType: string;
     backupFieldUid: string
-    refrenceTo: { uid: string; title: string };
+    referenceTo: { uid: string; title: string };
     advanced: Advanced;
   }[];
 }

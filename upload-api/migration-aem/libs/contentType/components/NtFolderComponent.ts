@@ -33,7 +33,7 @@ export class NtFolderComponent extends ContentstackComponent {
         ...new ReferenceField({
           uid: parentKey,
           displayName: parentKey,
-          refrenceTo: []
+          referenceTo: []
         }).toContentstack(),
         type: component?.convertedSchema?.properties?.[":type"]?.value
       };

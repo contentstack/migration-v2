@@ -3,9 +3,6 @@ const fs = require('fs');
 const path = require('path');
 
 const extractLocales = (dir) => {
-  console.info('🔍 [DEBUG] extractLocales - Starting locale extraction from:', dir);
-  console.time('🔍 [DEBUG] extractLocales - Total extraction time');
-
   // ✅ Create a new Set for each function call instead of using global
   const uniqueLanguages = new Set();
   let fileCount = 0;
@@ -38,11 +35,10 @@ const extractLocales = (dir) => {
             const language = jsonData?.item?.$?.language;
 
             if (language) {
-              uniqueLanguages?.add?.(language);
+              // 🔧 CRITICAL: Always normalize to lowercase for consistent mapping across all CMS types
+              const normalizedLanguage = (language || '').toLowerCase();
+              uniqueLanguages?.add?.(normalizedLanguage);
               processedFiles++;
-              console.info(
-                `🔍 [DEBUG] extractLocales - Found locale: "${language}" in ${fullPath}`
-              );
             }
           } catch (error) {
             console.error(`🔍 [DEBUG] extractLocales - Error reading ${fullPath}:`, error?.message);
@@ -50,9 +46,6 @@ const extractLocales = (dir) => {
 
           // ✅ Progress logging every 100 files
           if (fileCount % 100 === 0) {
-            console.info(
-              `🔍 [DEBUG] extractLocales - Progress: ${fileCount} files scanned, ${uniqueLanguages.size} unique locales found`
-            );
           }
         }
       }
@@ -65,12 +58,6 @@ const extractLocales = (dir) => {
   };
 
   extractRecursive(dir);
-
-  console.timeEnd('🔍 [DEBUG] extractLocales - Total extraction time');
-  console.info(
-    `🔍 [DEBUG] extractLocales - Final results: ${fileCount} total files scanned, ${processedFiles} files with locale data, ${uniqueLanguages.size} unique locales found`
-  );
-  console.info('🔍 [DEBUG] extractLocales - Unique locales:', Array.from(uniqueLanguages));
 
   return uniqueLanguages;
 };

@@ -246,7 +246,7 @@ export class LinkField extends Field {
 }
 
 export class ReferenceField extends Field {
-  refrenceTo: string[];
+  referenceTo: string[];
   isDeleted: boolean;
   backupFieldUid?: string;
 
@@ -255,12 +255,12 @@ export class ReferenceField extends Field {
     displayName: string;
     required?: boolean;
     description?: string;
-    refrenceTo: string[];
+    referenceTo: string[];
     isDeleted?: boolean;
     backupFieldUid?: string;
   }) {
     super(config);
-    this.refrenceTo = config.refrenceTo;
+    this.referenceTo = config.referenceTo;
     this.isDeleted = config.isDeleted ?? false;
     this.backupFieldUid = config.backupFieldUid ?? config.uid;
   }
@@ -276,7 +276,7 @@ export class ReferenceField extends Field {
       isDeleted: this.isDeleted,
       backupFieldType: 'reference',
       backupFieldUid: this.uid,
-      refrenceTo: this.refrenceTo
+      referenceTo: this.referenceTo
     };
   }
 }

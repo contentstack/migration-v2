@@ -201,35 +201,84 @@ export const entriesFieldCreator = async ({
     }
 
     case 'dropdown': {
-      const isOptionPresent = field?.advanced?.options?.find(
-        (ops: any) => ops?.key === content || ops?.value === content
-      );
-      if (isOptionPresent) {
-        if (field?.advanced?.Multiple) {
-          if (!isOptionPresent?.key) {
-            return isOptionPresent;
-          }
-          return isOptionPresent;
-        }
-        return isOptionPresent?.value ?? null;
-      } else {
-        if (field?.advanced?.default_value) {
-          const isOptionDefaultValue = field?.advanced?.options?.find(
-            (ops: any) =>
-              ops?.key === field?.advanced?.default_value ||
-              ops?.value === field?.advanced?.default_value
+      // Handle dropdown, radio, and checkbox fields following CSV scenarios
+      const choices =
+        field?.advanced?.enum?.choices || field?.advanced?.options || [];
+      const isMultiple =
+        field?.advanced?.multiple || field?.advanced?.Multiple || false;
+
+      // Handle multiple values (arrays) - for checkboxes
+      if (Array.isArray(content)) {
+        const matchedValues = [];
+        for (const item of content) {
+          const match = choices.find(
+            (choice: any) =>
+              choice?.key === item ||
+              choice?.value === item ||
+              String(choice?.key) === String(item) ||
+              String(choice?.value) === String(item)
           );
-          if (field?.advanced?.Multiple) {
-            if (!isOptionDefaultValue?.key) {
-              return isOptionDefaultValue;
-            }
-            return isOptionDefaultValue;
+          if (match) {
+            // For checkboxes (multiple=true), return the value
+            // For single fields, return just the value
+            matchedValues.push(match.value);
           }
-          return isOptionDefaultValue?.value ?? null;
-        } else {
-          return field?.advanced?.default_value;
         }
+        return matchedValues.length > 0
+          ? isMultiple
+            ? matchedValues
+            : matchedValues[0]
+          : null;
       }
+
+      // Handle single values - for dropdown and radio
+      const match = choices.find(
+        (choice: any) =>
+          choice?.key === content ||
+          choice?.value === content ||
+          String(choice?.key) === String(content) ||
+          String(choice?.value) === String(content)
+      );
+
+      if (match) {
+        // Handle Multiple flag from incoming branch
+        if (isMultiple) {
+          // For multiple fields, check if we should return the whole object or just value
+          if (!match.key) {
+            return match;
+          }
+          return match;
+        }
+        // Always return the value, not the whole choice object
+        return match.value ?? null;
+      }
+
+      // Fallback to default value
+      const defaultValue =
+        field?.advanced?.default_value ||
+        field?.advanced?.field_metadata?.default_value;
+      if (defaultValue) {
+        const defaultMatch = choices.find(
+          (choice: any) =>
+            choice?.key === defaultValue ||
+            choice?.value === defaultValue ||
+            String(choice?.key) === String(defaultValue) ||
+            String(choice?.value) === String(defaultValue)
+        );
+        if (defaultMatch) {
+          if (isMultiple) {
+            if (!defaultMatch.key) {
+              return defaultMatch;
+            }
+            return defaultMatch;
+          }
+          return defaultMatch.value ?? null;
+        }
+        // If no match found, return the default value as-is (from incoming branch)
+        return defaultValue;
+      }
+
+      return null;
     }
 
     case 'number': {
@@ -276,26 +325,34 @@ export const entriesFieldCreator = async ({
 
     case 'reference': {
       const refs: any = [];
-      if (field?.refrenceTo?.length) {
-        field?.refrenceTo?.forEach((entry: any) => {
+      // Support both correct spelling and old typo for backward compatibility
+      const referenceToArray = field?.referenceTo || field?.refrenceTo;
+      if (referenceToArray?.length && content) {
+        referenceToArray?.forEach((entry: any) => {
           const templatePresent = entriesData?.find(
             (tel: any) => uidCorrector({ uid: tel?.template }) === entry
           );
           content?.split('|')?.forEach((id: string) => {
-            const entryid =
-              templatePresent?.locale?.[locale]?.[idCorrector({ id })];
-            if (entryid) {
-              refs?.push({
-                uid: idCorrector({ id }),
-                _content_type_uid: entry,
-              });
-            } else {
-              // console.info("no entry for following id", id)
+            if (id && id.trim()) {
+              const trimmedId = id.trim();
+              const correctedId = idCorrector({ id: trimmedId });
+
+              // Check if entry exists in entriesData
+              const entryExists =
+                templatePresent?.locale?.[locale]?.[correctedId];
+
+              // For Drupal, we create references even if the entry doesn't exist yet
+              // as entries might be created in a different order
+              // For other CMSs, only create reference if entry exists
+              if (entryExists || !templatePresent) {
+                refs?.push({
+                  uid: correctedId,
+                  _content_type_uid: entry,
+                });
+              }
             }
           });
         });
-      } else {
-        console.info('test ====>');
       }
       return refs;
     }
@@ -348,6 +405,38 @@ export const entriesFieldCreator = async ({
         return await obj;
       }
       break;
+    }
+
+    case 'isodate': {
+      // Handle Unix timestamp conversion to ISO date string
+      if (
+        typeof content === 'number' ||
+        (typeof content === 'string' && !isNaN(Number(content)))
+      ) {
+        const timestamp =
+          typeof content === 'string' ? parseInt(content) : content;
+        return dayjs.unix(timestamp).toISOString();
+      }
+      // If it's already a date string, try to parse and convert
+      if (typeof content === 'string') {
+        const parsed = dayjs(content);
+        if (parsed.isValid()) {
+          return parsed.toISOString();
+        }
+      }
+      return content;
+    }
+
+    case 'taxonomy': {
+      // Handle taxonomy field - return as-is if it's already in the expected format
+      if (Array.isArray(content)) {
+        return content;
+      }
+      // If it's a single taxonomy object, wrap in array
+      if (content && typeof content === 'object' && content.taxonomy_uid) {
+        return [content];
+      }
+      return content;
     }
 
     case 'boolean': {

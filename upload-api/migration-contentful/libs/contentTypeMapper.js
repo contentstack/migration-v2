@@ -354,7 +354,7 @@ const contentTypeMapper = (data, entries) => {
               }
             }
             const refFieldData = createFieldObject(item, 'reference', 'reference', referenceFields)
-            refFieldData.refrenceTo = referenceFields;
+            refFieldData.referenceTo = referenceFields;
             acc.push(refFieldData);
             break;
           }

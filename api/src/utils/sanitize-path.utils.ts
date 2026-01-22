@@ -12,65 +12,61 @@ const sanitizeFilename = (filename: string): string => {
 };
 
 /**
- * Validates and sanitizes a stack ID to prevent path traversal attacks.
- * Only allows alphanumeric characters, underscores, dots, and hyphens.
- * Returns null if the input is invalid or potentially malicious.
+ * Validates if a path segment (like projectId or stackId) is safe.
+ * Returns true if the segment doesn't contain path traversal characters.
  *
- * This function uses an allowlist approach to break the taint chain.
- *
- * @param stackId - The stack ID to validate and sanitize.
- * @returns A safe stack ID string or null if invalid.
+ * @param segment - The path segment to validate.
+ * @returns True if safe, false if it contains traversal characters.
  */
-export const sanitizeStackId = (
-  stackId: string | undefined | null
-): string | null => {
-  // Return null for falsy inputs
-  if (!stackId || typeof stackId !== 'string') {
-    return null;
+export const isValidPathSegment = (
+  segment: string | undefined | null
+): boolean => {
+  if (!segment || typeof segment !== 'string') {
+    return false;
   }
+  // Check if basename equals the original (no directory components)
+  const sanitized = path.basename(segment);
+  return sanitized === segment && sanitized.length > 0;
+};
 
-  // Strict validation pattern - only allow safe characters for identifiers
-  const safePattern = /^[a-zA-Z0-9_.-]+$/;
-
-  // Check for any path traversal attempts first
-  if (
-    stackId.includes('/') ||
-    stackId.includes('\\') ||
-    stackId.includes('..') ||
-    stackId.includes('\0')
-  ) {
-    return null;
+/**
+ * Validates a path segment and throws an error if invalid.
+ *
+ * @param segment - The path segment to validate.
+ * @param name - Name of the segment for error messages (e.g., 'projectId').
+ * @throws Error if the segment is invalid.
+ * @returns The validated segment.
+ */
+export const validatePathSegment = (
+  segment: string | undefined | null,
+  name: string = 'path segment'
+): string => {
+  if (!isValidPathSegment(segment)) {
+    throw new Error(`Invalid ${name}: path traversal attempt detected`);
   }
+  return segment as string;
+};
 
-  // Validate the input matches our safe pattern
-  if (!safePattern.test(stackId)) {
-    return null;
-  }
+/**
+ * Validates that a resolved path is within the expected base directory.
+ *
+ * @param resolvedPath - The fully resolved absolute path.
+ * @param baseDir - The base directory that the path must be within.
+ * @returns True if path is safely within baseDir, false otherwise.
+ */
+export const isPathWithinBase = (
+  resolvedPath: string,
+  baseDir: string
+): boolean => {
+  const safeBaseDir = path.resolve(baseDir);
+  const relativePath = path.relative(safeBaseDir, resolvedPath);
 
-  // Maximum length check to prevent buffer overflow attacks
-  if (stackId.length > 256) {
-    return null;
-  }
-
-  // Build a new string character by character from allowed characters only
-  // This completely breaks the taint chain by creating a new value
-  const allowedChars =
-    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-';
-  let safeValue = '';
-
-  for (let i = 0; i < stackId.length; i++) {
-    const char = stackId.charAt(i);
-    if (allowedChars.includes(char)) {
-      safeValue += char;
-    }
-  }
-
-  // Ensure we have a valid result
-  if (safeValue.length === 0 || safeValue !== stackId) {
-    return null;
-  }
-
-  return safeValue;
+  // Path is safe if relative path doesn't escape base
+  return (
+    relativePath === '' ||
+    relativePath === '.' ||
+    (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
+  );
 };
 
 /**
