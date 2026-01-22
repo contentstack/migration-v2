@@ -147,7 +147,7 @@ const Login: FC<IProps> = () => {
     };
 
     const response = await userSession(userAuth?.user);
-    if (response?.data?.error_code === 294 && response?.data?.error_message === TFA_MESSAGE) {
+    if ((response?.status === 294 || response?.data?.error_code === 294) && response?.data?.error_message === TFA_MESSAGE) {
       setIsLoading(false);
       setLoginStates((prev) => ({ ...prev, tfa: true }));
     }
