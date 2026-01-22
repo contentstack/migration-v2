@@ -448,7 +448,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   }, [tableData, otherContentType]);
 
   useEffect(() => {
-    if (isUpdated && !isCsCTypeUpdated) {
+    if (isUpdated) {
       setIsAllCheck(false);
       setTableData(updatedRows);
       setExistingField(updatedExstingField);
@@ -639,11 +639,55 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   }, [contentTypeSchema]);
   useEffect(() => {
-    if (isCsCTypeUpdated) {
-      // Clear existing field mappings and selected options when content type changes
-      setExistingField({});
-      setSelectedOptions([]);
-      setsCsCTypeUpdated(false);
+    if (existingField && isCsCTypeUpdated) {
+      const matchedKeys = new Set<string>();
+
+      contentTypeSchema?.forEach((item) => {
+        for (const [key, value] of Object.entries(existingField)) {
+          if (value?.value?.uid === item?.uid) {
+            matchedKeys.add(key);
+
+            setExistingField((prevOptions: ExistingFieldType) => ({
+              ...prevOptions,
+              [key]: { label: item?.display_name, value: item },
+            }));
+          }
+          if (item?.data_type === "group" && Array.isArray(item?.schema)) {
+            item?.schema?.forEach((schemaItem) => {
+              if (value?.value?.uid === schemaItem?.uid) {
+
+                matchedKeys.add(key);
+                setExistingField((prevOptions: ExistingFieldType) => ({
+                  ...prevOptions,
+                  [key]: { label: `${item?.display_name} > ${schemaItem?.display_name}`, value: schemaItem },
+                }));
+              }
+            });
+          }
+        }
+      });
+
+      if (newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle] !== otherContentType?.label) {
+        setSelectedOptions([]);
+      }
+      // Remove unmatched keys from existingField
+      // setExistingField((prevOptions: ExistingFieldType) => {
+      //   const updatedOptions: ExistingFieldType = { ...prevOptions };
+      //   Object.keys(prevOptions).forEach((key) => {
+      //     if (matchedKeys?.has(key)) {
+
+      //       const index = selectedOptions?.indexOf(updatedOptions?.[key]?.label ?? '');
+
+      //       if (index > -1) {
+      //         selectedOptions?.splice(index, 1);
+      //       }
+      //       delete updatedOptions[key];
+      //     }
+      //   });
+      //   console.info("updatedOptions", updatedOptions);
+      //   return updatedOptions;
+      // });
+
     }
 
   }, [otherContentType]);
@@ -1774,7 +1818,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             placeholder="Select Field"
             version={'v2'}
             maxWidth="290px"
-            isClearable={!!existingField[data?.backupFieldUid]?.label && selectedOptions?.includes?.(existingField[data?.backupFieldUid]?.label ?? '')}
+            isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
             options={adjustedOptions}
             isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
             menuPlacement="auto"
