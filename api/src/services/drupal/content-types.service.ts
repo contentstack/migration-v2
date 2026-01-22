@@ -219,7 +219,7 @@ function convertUploadApiSchemaToApiSchema(
             validationErrorMessage: uploadField.advanced?.error_message || '',
           },
           // For reference fields, preserve reference_to from upload-api
-          refrenceTo:
+          referenceTo:
             uploadField.advanced?.reference_to ||
             uploadField.advanced?.embedObjects ||
             [],

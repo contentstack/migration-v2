@@ -194,7 +194,7 @@ const ContentTypeSchema = ({
         contentstackFieldUid: uid,
         contentstackFieldType: 'reference',
         backupFieldType: 'reference',
-        refrenceTo: reference_to,
+        referenceTo: reference_to,
         backupFieldUid: uid
       };
     }

@@ -325,8 +325,10 @@ export const entriesFieldCreator = async ({
 
     case 'reference': {
       const refs: any = [];
-      if (field?.refrenceTo?.length && content) {
-        field?.refrenceTo?.forEach((entry: any) => {
+      // Support both correct spelling and old typo for backward compatibility
+      const referenceToArray = field?.referenceTo || field?.refrenceTo;
+      if (referenceToArray?.length && content) {
+        referenceToArray?.forEach((entry: any) => {
           const templatePresent = entriesData?.find(
             (tel: any) => uidCorrector({ uid: tel?.template }) === entry
           );

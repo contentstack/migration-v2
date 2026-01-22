@@ -48,7 +48,7 @@ export const createFragmentComponent = async (
     return new ReferenceField({
       uid: key,
       displayName: key,
-      refrenceTo: [key]
+      referenceTo: [key]
     }).toContentstack();
   }
   return null;

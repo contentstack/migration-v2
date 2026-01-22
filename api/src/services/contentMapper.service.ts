@@ -761,13 +761,14 @@ const updateContentType = async (req: Request) => {
               data.field_mapper[fieldIndex].initialReferenceTo =
                 preservedInitialReferenceTo;
             }
-            // Also preserve old typo version for backward compatibility
+            // Migrate old typo to correct property name
+            // If old data had initialRefrenceTo but not initialReferenceTo, migrate it
             if (
               preservedInitialRefrenceTo &&
-              !field?.initialRefrenceTo &&
-              !field?.initialReferenceTo
+              !field?.initialReferenceTo &&
+              !preservedInitialReferenceTo
             ) {
-              data.field_mapper[fieldIndex].initialRefrenceTo =
+              data.field_mapper[fieldIndex].initialReferenceTo =
                 preservedInitialRefrenceTo;
             }
           });

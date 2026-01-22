@@ -800,7 +800,8 @@ export const convertToSchemaFormate = ({ field, advanced = true, marketPlacePath
       return {
         "data_type": "global_field",
         "display_name": field?.title,
-        "reference_to": field?.refrenceTo,
+        // Support both correct spelling and old typo for backward compatibility
+        "reference_to": field?.referenceTo || field?.refrenceTo,
         "uid": cleanedUid,
         "mandatory": field?.advanced?.mandatory ?? false,
         "multiple": field?.advanced?.multiple ?? false,

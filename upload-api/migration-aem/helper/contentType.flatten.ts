@@ -12,7 +12,7 @@ interface Field {
   schema?: SchemaField[];
   advanced?: any;
   isDeleted?: boolean;
-  refrenceTo?: string[];
+  referenceTo?: string[];
   type?: string;
   [key: string]: any;
 }
