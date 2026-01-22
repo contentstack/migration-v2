@@ -1,7 +1,7 @@
 const mysql = require('mysql2');
 const fs = require('fs');
 const path = require('path');
-const { unserialize } = require('php-unserialize');
+const { unserialize } = require('php-serialize');
 
 /**
  * Execute SQL query with promise support
