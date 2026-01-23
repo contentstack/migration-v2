@@ -74,7 +74,7 @@
     "eslint": "^8.56.0",
     "eslint-config-airbnb": "^19.0.0",
     "eslint-config-prettier": "^8.3.0",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "prettier": "^2.4.1",
     "tsx": "^4.7.1",
     "typescript": "^5.4.3"
