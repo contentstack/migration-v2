@@ -12,6 +12,7 @@ import {
 import { client } from '../services/aws/client';
 import { fileOperationLimiter, readFileData, updateConfigFile} from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
+//import config from '../config/index';
 import createMapper from '../services/createMapper';
 import { sanitizeId, sanitizeFilename, isPathWithinBase } from '../utils/sanitize-path.utils';
 
@@ -93,6 +94,7 @@ router.get(
   fileOperationLimiter,
   async function (req: Request, res: Response) {
     try {
+      const config = await updateConfigFile();
       // Sanitize user inputs to prevent path traversal attacks
       const projectId: string = sanitizeId(req?.headers?.projectid ?? '');
       const app_token: string | string[] = req?.headers?.app_token ?? '';
@@ -420,12 +422,13 @@ router.get(
 
 router.get('/config', async function (req: Request, res: Response) {
   // Strip mysql password before sending config to the client
-  // const { password, ...safeMysql } = config?.mysql || {};
-  // const safeConfig = {
-  //   ...config,
-  //   mysql: safeMysql
-  // };
   const config = await updateConfigFile();
+  const { password, ...safeMysql } = config?.mysql || {};
+  const safeConfig = {
+    ...config,
+    mysql: safeMysql
+  };
+  res.json(safeConfig);
   res.json(config);
 });
 
