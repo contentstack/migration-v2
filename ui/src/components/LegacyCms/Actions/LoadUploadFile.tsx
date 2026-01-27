@@ -39,7 +39,7 @@ const FileComponent = ({ fileDetails }: Props) => {
   const dispatch = useDispatch();
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const authData = useSelector((state: RootState) => state?.authentication);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(newMigrationData?.iteration > 1 ? true : false);
   const [localPath, setLocalPath] = useState(fileDetails?.localPath || '');
 
   // Get the current path from Redux state
@@ -76,12 +76,12 @@ const FileComponent = ({ fileDetails }: Props) => {
     const fileFormatData = {
       "file_path": localPath,
     }
-    const { status } = await updateFileFormat(orgId || '', projectId || '', fileFormatData);
-    if (status === HTTP_CODES?.OK) {
-     console.info('File path updated successfully');
-    } else {
-      console.info('Failed to update file path');
-    }
+    //const { status } = await updateFileFormat(orgId || '', projectId || '', fileFormatData);
+    // if (status === HTTP_CODES?.OK) {
+    //  console.info('File path updated successfully');
+    // } else {
+    //   console.info('Failed to update file path');
+    // }
   };
 
   return (
@@ -106,7 +106,7 @@ const FileComponent = ({ fileDetails }: Props) => {
               <Paragraph tagName="p" variant="p1" text={`Local Path: ${currentPath}`} />
             )}
           </div>
-          {!isEditing && (
+          {isEditing && (
             <div className="edit-icon">
               <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
             </div>
@@ -184,7 +184,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const { data, status } = await fileValidation(projectId, newMigrationData?.legacy_cms?.affix);
+      const { data, status } = await fileValidation(projectId, newMigrationData?.legacy_cms?.affix, newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '' );
 
       setProgressPercentage(70);
       setProcessing('Processing...70%');

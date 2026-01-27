@@ -187,6 +187,7 @@ export interface IContentMapper {
   isDropDownChanged?: boolean;
   otherCmsTitle?: string;
   contentTypeList: ContentTypeList[];
+  iterartion?: number;
 }
 
 export interface ISetting {
@@ -207,7 +208,7 @@ export interface INewMigration {
   project_current_step: number;
   settings:ISetting;
   stepValue?: string;
-  iteration?: number;
+  iteration: number;
 }
 
 export interface TestStacks {

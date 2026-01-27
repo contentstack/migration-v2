@@ -40,13 +40,14 @@ export const uploadFilePath = () => {
   return `${UPLOAD_FILE_RELATIVE_URL}upload`;
 };
 
-export const fileValidation = async (projectId: string, affix = 'cs') => {
+export const fileValidation = async (projectId: string, affix = 'cs', localPath : string) => {
   try {
     const options = {
       headers: {
         app_token: getDataFromLocalStorage('app_token'),
         projectId: projectId,
-        affix: affix
+        affix: affix,
+        file_path: localPath
       }
     };
     return await getCall(`${UPLOAD_FILE_RELATIVE_URL}validator`, options);

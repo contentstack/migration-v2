@@ -1,10 +1,11 @@
 import { HTTP_TEXTS, HTTP_CODES } from '../constants';
-import { parseXmlToJson, saveJson, saveZip } from '../helper';
+import { parseXmlToJson, readFileData, saveJson, saveZip, updateConfigFile } from '../helper';
 import JSZip from 'jszip';
 import validator from '../validators';
-import config from '../config/index';
+//import config from '../config/index';
 import logger from '../utils/logger.js';
 import * as Cheerio from 'cheerio';
+import path from 'path';
 
 const handleFileProcessing = async (
   fileExt: string,
@@ -13,6 +14,7 @@ const handleFileProcessing = async (
   name: string
 ) => {
   console.log("🚀 ~ handleFileProcessing ~ fileExt:", fileExt)
+  const config : any = await updateConfigFile();
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);

@@ -1,5 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3';
-import config from '../../config';
+import config from '../../config/index.json';
 
 interface AWSCredentials {
   accessKeyId: string;

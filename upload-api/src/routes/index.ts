@@ -10,9 +10,9 @@ import {
   UploadPartCommand
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
-import { fileOperationLimiter } from '../helper';
+import { fileOperationLimiter, readFileData, updateConfigFile} from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
-import config from '../config/index';
+//import config from '../config/index';
 import createMapper from '../services/createMapper';
 
 const router: Router = express.Router();
@@ -94,10 +94,14 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
     const projectId: string | string[] = req?.headers?.projectid ?? "";
     const app_token: string | string[] = req?.headers?.app_token ?? "";
     const affix: string | string[] = req?.headers?.affix ?? "csm";
+    const rawFilePath = Array.isArray(req?.headers?.file_path) ? req?.headers?.file_path?.[0] : req?.headers?.file_path;
+    const filePath: string | undefined = rawFilePath && typeof rawFilePath === 'string' && rawFilePath.trim() !== '' ? rawFilePath.trim() : undefined;
+    
+    const config: any = await updateConfigFile(filePath);
     const cmsType = config?.cmsType?.toLowerCase();
 
     if (config?.isLocalPath) {
-      const fileName = path.basename(config?.localPath || "");
+      const fileName = filePath ? path.basename(filePath) : path.basename(config?.localPath || "");
       const isFile = !!path.extname(fileName);
 
       if (!fileName) {
@@ -108,7 +112,11 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
         if (isFile) {
           const name = fileName?.split?.('.')?.[0];
           const fileExt = fileName?.split('.')?.pop() ?? '';
-          const bodyStream = createReadStream(config?.localPath?.replace(/\/$/, ""));
+          const localPath = config?.localPath?.replace(/\/$/, "") ?? "";
+          if (!localPath) {
+            return res.status(400).json({ error: 'Local path is not defined.' });
+          }
+          const bodyStream = createReadStream(localPath);
 
           bodyStream.on('error', (error: any) => {
             console.error(error);
@@ -136,7 +144,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
                 throw new Error('No data collected from the stream.');
               }
 
-              const data = await handleFileProcessing(fileExt, xmlData, cmsType, name);
+              const data = await handleFileProcessing(fileExt, xmlData, cmsType || '', name);
               res.status(data?.status || 200).json(data);
               if (data?.status === 200) {
                 const filePath = path.join(__dirname, '..', '..', 'extracted_files', `${name}.json`);
@@ -262,6 +270,7 @@ router.get('/validator', express.json(), fileOperationLimiter, async function (r
 });
 
 router.get('/config', async function (req: Request, res: Response) {
+  const config = await updateConfigFile();
   res.json(config);
 });
 
