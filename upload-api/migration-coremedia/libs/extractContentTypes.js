@@ -5,12 +5,12 @@
  * and generates schema definitions for Contentful migration.
  */
 
-import fs from "fs";
-import path from "path";
-import when from "when";
-import unzipper from "unzipper";
-import readdirRecursive from "fs-readdir-recursive";
-import chalk from "chalk";
+const fs = require("fs");
+const path = require("path");
+const when = require("when");
+const unzipper = require("unzipper");
+const readdirRecursive = require("fs-readdir-recursive");
+const chalk = require("chalk");
 // import { MIGRATION_DATA_CONFIG } from "../../migration-sitecore/constants";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const createSchema = require("./createSchema");

@@ -1,6 +1,7 @@
 import { createAemMapper } from '../controllers/aem';
 import createSitecoreMapper from '../controllers/sitecore';
 import createWordpressMapper from '../controllers/wordpress';
+import createCoremediaMapper from '../controllers/coremedia';
 import { Config } from '../models/types';
 import createContentfulMapper from './contentful';
 
@@ -29,7 +30,9 @@ const createMapper = async (
       return createAemMapper(filePath, projectId, app_token, affix);
     }
 
-
+    case 'coremedia': {
+      return createCoremediaMapper(filePath, projectId, app_token, affix);
+    }
     default:
       return false;
   }
