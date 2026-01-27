@@ -428,6 +428,7 @@ router.get('/config', async function (req: Request, res: Response) {
     ...config,
     mysql: safeMysql
   };
+  const config = await updateConfigFile();
   res.json(safeConfig);
   res.json(config);
 });
