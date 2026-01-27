@@ -51,7 +51,7 @@ const FileComponent = ({ fileDetails, fileFormatId }: Props) => {
   const dispatch = useDispatch();
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const authData = useSelector((state: RootState) => state?.authentication);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(newMigrationData?.iteration > 1 ? true : false);
   const [localPath, setLocalPath] = useState(fileDetails?.localPath || '');
 
   // Get the current path from Redux state
@@ -88,12 +88,12 @@ const FileComponent = ({ fileDetails, fileFormatId }: Props) => {
     const fileFormatData = {
       "file_path": localPath,
     }
-    const { status } = await updateFileFormat(orgId || '', projectId || '', fileFormatData);
-    if (status === HTTP_CODES?.OK) {
-     console.info('File path updated successfully');
-    } else {
-      console.info('Failed to update file path');
-    }
+    //const { status } = await updateFileFormat(orgId || '', projectId || '', fileFormatData);
+    // if (status === HTTP_CODES?.OK) {
+    //  console.info('File path updated successfully');
+    // } else {
+    //   console.info('Failed to update file path');
+    // }
   };
 
   return (
@@ -126,7 +126,7 @@ const FileComponent = ({ fileDetails, fileFormatId }: Props) => {
               <Paragraph tagName="p" variant="p1" text={`Local Path: ${currentPath}`} />
             )}
           </div>
-          {!isEditing && (
+          {isEditing && (
             <div className="edit-icon">
               <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
             </div>
