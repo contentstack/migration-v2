@@ -11,6 +11,7 @@ import AuthenticationModel from "../models/authentication.js";
 import { safePromise, getLogMessage } from "../utils/index.js";
 import logger from "../utils/logger.js";
 import { getAppOrganization } from "../utils/auth.utils.js";
+import { requestWithSsoTokenRefresh } from "../utils/sso-request.utils.js";
 
 /**
  * Retrieves the user profile based on the provided request.
@@ -42,18 +43,16 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
         throw new BadRequestError("SSO authentication not completed");
       }
 
-      const [err, res] = await safePromise(
-        https({
-          method: "GET",
-          url: `${config.CS_API[
-            appTokenPayload?.region as keyof typeof config.CS_API
-          ]!}/user?include_orgs_roles=true`,
-          headers: {
-            authorization: `Bearer ${userRecord?.access_token}`,
-            "Content-Type": "application/json",
-          },
-        })
-      );
+      const [err, res] = await requestWithSsoTokenRefresh(appTokenPayload, {
+        method: "GET",
+        url: `${config.CS_API[
+          appTokenPayload?.region as keyof typeof config.CS_API
+        ]!}/user?include_orgs_roles=true`,
+        headers: {
+          authorization: `Bearer ${userRecord?.access_token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (err) {
         logger.error(

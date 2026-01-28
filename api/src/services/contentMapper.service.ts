@@ -18,6 +18,7 @@ import https from "../utils/https.utils.js";
 import getAuthtoken, { getAccessToken } from "../utils/auth.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
 import fetchAllPaginatedData from "../utils/pagination.utils.js";
+import { requestWithSsoTokenRefresh } from "../utils/sso-request.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import FieldMapperModel from "../models/FieldMapper.js";
 import { v4 as uuidv4 } from "uuid";
@@ -398,7 +399,8 @@ const getExistingContentTypes = async (req: Request) => {
       headers,
       100,
       'getExistingContentTypes',
-      'content_types'
+      'content_types',
+      token_payload
     );
 
     const processedContentTypes = contentTypes.map((singleCT: any) => ({
@@ -411,13 +413,19 @@ const getExistingContentTypes = async (req: Request) => {
     let selectedContentType = null;
 
     if (contentTypeUID) {
-      const [err, res] = await safePromise(
-        https({
+      const [err, res] = token_payload?.is_sso
+        ? await requestWithSsoTokenRefresh(token_payload, {
           method: 'GET',
           url: `${baseUrl}/${contentTypeUID}`,
           headers,
         })
-      );
+        : await safePromise(
+          https({
+            method: 'GET',
+            url: `${baseUrl}/${contentTypeUID}`,
+            headers,
+          })
+        );
 
 
       selectedContentType = {

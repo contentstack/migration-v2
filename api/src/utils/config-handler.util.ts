@@ -8,7 +8,11 @@ import { configHandler } from '@contentstack/cli-utilities';
 export const setOAuthConfig = (userData: any) => {
   configHandler.set('oauthAccessToken', userData?.access_token);
   configHandler.set('oauthRefreshToken', userData?.refresh_token);
-  configHandler.set('oauthDateTime', userData?.created_at);
+  // Prefer updated_at so CLI doesn't immediately refresh a fresh token.
+  configHandler.set(
+    'oauthDateTime',
+    userData?.updated_at || userData?.created_at || new Date()
+  );
   configHandler.set('email', userData?.email);
   configHandler.set('userUid', userData?.user_id);
   configHandler.set('oauthOrgUid', userData?.organization_uid);

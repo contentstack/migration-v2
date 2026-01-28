@@ -38,6 +38,7 @@ import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
+import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 
 /**
  * Creates a test stack.
@@ -81,8 +82,8 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     const testStackCount = projectData?.test_stacks?.length + 1;
     const newName = testStackName + '-' + testStackCount;
 
-    const [err, res] = await safePromise(
-      https({
+    const [err, res] = token_payload?.is_sso
+      ? await requestWithSsoTokenRefresh(token_payload, {
         method: 'POST',
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
@@ -96,7 +97,22 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
           },
         },
       })
-    );
+      : await safePromise(
+        https({
+          method: 'POST',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+          data: {
+            stack: {
+              name: newName,
+              description,
+              master_locale,
+            },
+          },
+        })
+      );
 
     if (err) {
       logger.error(
@@ -182,15 +198,23 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
       throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
     }
 
-    const [err, res] = await safePromise(
-      https({
+    const [err, res] = token_payload?.is_sso
+      ? await requestWithSsoTokenRefresh(token_payload, {
         method: 'DELETE',
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
         headers: headers,
       })
-    );
+      : await safePromise(
+        https({
+          method: 'DELETE',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+        })
+      );
 
     if (err) {
       logger.error(

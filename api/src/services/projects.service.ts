@@ -20,6 +20,7 @@ import { config } from "../config/index.js";
 import { getLogMessage, isEmpty, safePromise } from "../utils/index.js";
 import getAuthtoken, { getAccessToken } from "../utils/auth.utils.js";
 import https from "../utils/https.utils.js";
+import { requestWithSsoTokenRefresh } from "../utils/sso-request.utils.js";
 import getProjectUtil from "../utils/get-project.utils.js";
 import logger from "../utils/logger.js";
 import AuthenticationModel from "../models/authentication.js";
@@ -803,15 +804,26 @@ const updateDestinationStack = async (req: Request) => {
   //   );
   // }
   try {
-    const [err, res] = await safePromise(
-      https({
-        method: 'GET',
-        url: `${config.CS_API[
-          token_payload?.region as keyof typeof config.CS_API
-        ]!}/stacks`,
-        headers: headers,
-      })
-    );
+    const [err, res] = project?.isSSO
+      ? await requestWithSsoTokenRefresh(
+        { ...token_payload, is_sso: true },
+        {
+          method: 'GET',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+        }
+      )
+      : await safePromise(
+        https({
+          method: 'GET',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+        })
+      );
 
     if (err) {
       return {
