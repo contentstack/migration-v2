@@ -16,7 +16,7 @@ interface TestStack {
   stackUid: string;
   isMigrated: boolean;
 }
-import utilitiesHandler from '@contentstack/cli-utilities';
+import { setBasicAuthConfig, setOAuthConfig } from '../utils/config-handler.util.js';
 
 /**
  * Determines log level based on message content without removing ANSI codes
@@ -150,27 +150,29 @@ export const runCli = async (
     const regionPresent =
       CS_REGIONS.find((item) => item === rg) ?? 'NA'.replace(/_/g, '-');
     const regionCli = regionPresent.replace(/_/g, '-');
-
     // Fetch user authentication data
     await AuthenticationModel.read();
     const userData = AuthenticationModel.chain
       .get('users')
       .find({ region: regionPresent, user_id })
       .value();
-
-    // Configure CLI with region settings
     await runCommand(
       'npx',
       ['@contentstack/cli', 'config:set:region', `${regionCli}`],
       transformePath
     ); // Pass the log file path here
 
-    // Set up authentication configuration for CLI
-    utilitiesHandler.configHandler.set('authtoken', userData.authtoken);
-    utilitiesHandler.configHandler.set('email', userData.email);
-    utilitiesHandler.configHandler.set('authorisationType', 'BASIC');
+    if(userData?.access_token){
+      setOAuthConfig(userData);
 
-    if (userData?.authtoken && stack_uid) {
+    }else if(userData?.authtoken){
+      setBasicAuthConfig(userData);
+    }else {
+      throw new Error("No authentication token found");
+    }
+
+
+    if (userData?.authtoken && stack_uid || userData?.access_token && stack_uid) {
       // Set up paths for backup and source data
       const {
         BACKUP_DATA,

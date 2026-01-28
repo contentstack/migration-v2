@@ -16,6 +16,9 @@
 # Mono auto generated files
 mono_crash.*
 
+# App JSON file
+app.json
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -360,10 +363,8 @@ upload-api/extracted_files*
 *copy*
 .qodo
 .vscode
-app.json
 # Snyk Security Extension - AI Rules (auto-generated)
 .cursor/rules/snyk_rules.mdc
 *extracted_files*
 *MigrationData*
 *.zip
-app.json

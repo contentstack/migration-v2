@@ -76,9 +76,10 @@ interface Project {
   isMigrationStarted: boolean;
   isMigrationCompleted:boolean;
   migration_execution: boolean;
+  isSSO: boolean;
 }
 
-interface ProjectDocument {
+interface  ProjectDocument {
   projects: Project[];
 }
 

@@ -1,9 +1,10 @@
 import path from 'path';
 import fs from 'fs';
-import getAuthtoken from '../utils/auth.utils.js';
 import { MIGRATION_DATA_CONFIG, KEYTOREMOVE } from '../constants/index.js';
 import { getAppManifestAndAppConfig } from '../utils/market-app.utils.js';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
+import AuthenticationModel from "../models/authentication.js";
+
 
 const {
   EXTENSIONS_MAPPER_DIR_NAME,
@@ -51,21 +52,27 @@ const writeManifestFile = async ({ destinationStackId, appManifest }: any) => {
   }
 };
 
-const createAppManifest = async ({
-  destinationStackId,
-  region,
-  userId,
-  orgId,
-}: any) => {
-  const authtoken = await getAuthtoken(region, userId);
-  const marketPlacePath = path.join(
-    MIGRATION_DATA_CONFIG.DATA,
-    destinationStackId,
-    EXTENSIONS_MAPPER_DIR_NAME
-  );
-  const AppMapper: any = await fs.promises
-    .readFile(marketPlacePath, 'utf-8')
-    .catch(async () => {});
+
+
+const createAppManifest = async ({ destinationStackId, region, userId, orgId }: any) => {
+  let authtoken = "";
+  await AuthenticationModel.read();
+  const userIndex = AuthenticationModel.chain
+    .get('users')
+    .findIndex({ region, user_id: userId })
+    .value();
+  
+  const userData = AuthenticationModel?.data?.users[userIndex];
+  if(userData?.access_token) {
+
+    authtoken = `Bearer ${userData?.access_token}`;
+  } else if(userData?.authtoken) {
+    authtoken = userData?.authtoken;
+  }else{
+    throw new Error("No authentication token found");
+  }
+  const marketPlacePath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, EXTENSIONS_MAPPER_DIR_NAME);
+  const AppMapper: any = await fs.promises.readFile(marketPlacePath, "utf-8").catch(async () => { });
   if (AppMapper !== undefined) {
     const appManifest: any = [];
     const groupUids: any = groupByAppUid(JSON.parse(AppMapper));
