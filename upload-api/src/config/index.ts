@@ -2,7 +2,7 @@ export default {
   plan: {
     dropdown: { optionLimit: 100 }
   },
-  cmsType: process.env.CMS_TYPE || 'aem',
+  cmsType: process.env.CMS_TYPE || 'cmsType',
   isLocalPath: true,
   awsData: {
     awsRegion: 'us-east-2',
@@ -12,5 +12,5 @@ export default {
     bucketName: '',
     bucketKey: ''
   },
-  localPath: process.env.CONTAINER_PATH || '/Users/shobhit.upadhyay/Downloads/templates',
+localPath: process.env.CONTAINER_PATH || 'localPath',
 };
