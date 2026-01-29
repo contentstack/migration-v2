@@ -12,7 +12,8 @@ const {
   ExtractConfiguration,
   reference,
   ExtractFiles,
-  extractLocales
+  extractLocales,
+  extractEntries
 } = require('migration-sitecore');
 
 const { CONTENT_TYPES_DIR_NAME, GLOBAL_FIELDS_DIR_NAME, GLOBAL_FIELDS_FILE_NAME } =
@@ -141,6 +142,7 @@ const createSitecoreMapper = async (
     await createLocaleSource?.({ app_token, localeData, projectId });
     await ExtractConfiguration(newPath);
     await contentTypes(newPath, affix, config);
+    await extractEntries(newPath);
     const infoMap = await reference();
     if (infoMap?.contentTypeUids?.length) {
       const fieldMapping: any = { contentTypes: [], extractPath: filePath };

@@ -57,6 +57,8 @@ export interface ContentTypesMapper {
    */
   fieldMapping: [];
 
+  entryMapping: [];
+
   /**
    * The type of the content type.
    */
