@@ -163,6 +163,37 @@ const putTestData = async (req: Request) => {
       ) {
         contentType[index].fieldMapping = fieldIds;
       }
+      }); 
+    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
+    await EntryMapperModel.read();
+    contentTypes.forEach((type: any, index: number) => {
+      const entryIds: string[] = [];
+      const entries = Array.isArray(type?.entryMapping) ?
+        type.entryMapping
+            .filter(Boolean)
+            .map((entry: any) => {
+              const id =
+                entry?.id ?
+                  entry.id.replace(/[{}]/g, '').toLowerCase()
+                  : uuidv4();
+              entry.id = id;
+              entryIds.push(id);
+              return {
+                ...entry,
+                id,
+                projectId,
+                contentTypeId: type?.id,
+                isDeleted: false,
+              };
+            })
+        : [];
+
+      EntryMapperModel.update((data: any) => {
+        data.entry_mapper = [
+          ...(Array.isArray(data?.entry_mapper) ? data.entry_mapper : []),
+          ...entries,
+        ];
+      });
     });
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
