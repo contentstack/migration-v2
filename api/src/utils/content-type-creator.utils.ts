@@ -238,11 +238,11 @@ function getLastSegmentNew(str: string, separator: string): string {
 }
 
 export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', oldParentUid = ''): any[] {
-
   if (!Array.isArray(fields)) {
     console.warn('buildSchemaTree called with invalid fields:', fields);
     return [];
   }
+
   // Build a lookup map for O(1) access
   const fieldMap = new Map<string, any>();
   fields?.forEach(f => {
@@ -267,7 +267,7 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
       return remainder && !remainder?.includes('.');
     }
 
-    // Fallback: check if field is a direct child of oldPrentUid (if provided and different)
+    // Fallback: check if field is a direct child of oldParentUid (if provided and different from parentUid)
     if (oldParentUid && oldParentUid !== parentUid && fieldUid?.startsWith(oldParentUid + '.')) {
       const remainder = fieldUid?.substring(oldParentUid.length + 1);
       // Verify it's exactly one level deeper (no more dots in remainder)
@@ -305,7 +305,7 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
         return remainder && !remainder?.includes('.');
       }
       
-      // Check if field starts with oldFieldtUid and is exactly one level deeper
+      // Check if field starts with oldFieldUid and is exactly one level deeper
       if (oldFieldUid && fUid?.startsWith(oldFieldUid + '.')) {
         const remainder = fUid?.substring(oldFieldUid.length + 1);
         return remainder && !remainder?.includes('.');
@@ -332,6 +332,7 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
             ...child,
             uid: childUid,
             display_name: childDisplay,
+            // Recursively build schema for fields inside this child block
             schema: buildSchemaTree(fields, child.contentstackFieldUid, 'modular_blocks_child', child?.backupFieldUid)
           };
         });
@@ -1028,22 +1029,86 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
       "singleton": false,
     }
   }
+
   for await (const field of ctData?.schema ?? []) {
+    // Handle regular groups
     if (field?.data_type === 'group') {
-      const currentGroup = mergeCts?.schema?.find((grp: any) => grp?.uid === field?.uid &&
-        grp?.data_type === 'group');
-      const group = [];
-      for await (const fieldGp of currentGroup?.schema ?? []) {
-        const fieldNst = field?.schema?.find((fld: any) => fld?.uid === fieldGp?.uid &&
-          fld?.data_type === fieldGp?.data_type);
-        if (fieldNst === undefined) {
-          group?.push(fieldGp);
+      const currentGroup = mergeCts?.schema?.find((grp: any) => 
+        grp?.uid === field?.uid && grp?.data_type === 'group'
+      );
+      
+      if (currentGroup) {
+        const group = [];
+        for await (const fieldGp of currentGroup?.schema ?? []) {
+          const fieldNst = field?.schema?.find((fld: any) => 
+            fld?.uid === fieldGp?.uid && fld?.data_type === fieldGp?.data_type
+          );
+          if (fieldNst === undefined) {
+            group?.push(fieldGp);
+          }
         }
+        field.schema = removeDuplicateFields([...field?.schema ?? [], ...group]);
       }
-      field.schema = removeDuplicateFields([...field?.schema ?? [], ...group]);
+    }
+
+    // Handle modular blocks
+    if (field?.data_type === 'blocks') {
+      const currentModularBlock = mergeCts?.schema?.find((mb: any) => 
+        mb?.uid === field?.uid && mb?.data_type === 'blocks'
+      );
+      
+      if (currentModularBlock && currentModularBlock?.blocks) {
+        // Iterate through each child block in the source
+        for (const sourceBlock of field?.blocks ?? []) {
+          // Find matching child block in target by UID
+          const targetBlock = currentModularBlock?.blocks?.find((tb: any) => 
+            tb?.uid === sourceBlock?.uid
+          );
+          
+          if (targetBlock && targetBlock?.schema) {
+            // Merge the schemas of matching child blocks
+            const additionalFields = [];
+            
+            for (const targetField of targetBlock?.schema ?? []) {
+              // Check if this field already exists in source block
+              const existsInSource = sourceBlock?.schema?.find((sf: any) => 
+                sf?.uid === targetField?.uid && sf?.data_type === targetField?.data_type
+              );
+              
+              if (!existsInSource) {
+                additionalFields.push(targetField);
+              }
+            }
+            
+            // Merge source and target fields, removing duplicates
+            sourceBlock.schema = removeDuplicateFields([
+              ...sourceBlock?.schema ?? [], 
+              ...additionalFields
+            ]);
+          }
+        }
+        
+        // Add any child blocks from target that don't exist in source
+        const additionalBlocks = [];
+        for (const targetBlock of currentModularBlock?.blocks ?? []) {
+          const existsInSource = field?.blocks?.find((sb: any) => 
+            sb?.uid === targetBlock?.uid
+          );
+          
+          if (!existsInSource) {
+            additionalBlocks.push(targetBlock);
+          }
+        }
+        
+        field.blocks = removeDuplicateFields([
+          ...field?.blocks ?? [], 
+          ...additionalBlocks
+        ]);
+      }
     }
   }
   ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
+  
   return ctData;
 }
 
