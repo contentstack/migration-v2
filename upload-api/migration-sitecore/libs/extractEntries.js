@@ -64,7 +64,7 @@ const extractEntries = async (newPath) => {
           const jsonData = JSON.parse(data);
 
           const { language, template, tid } = jsonData?.item?.$ ?? {};
-          const id = idCorrector(jsonData?.item?.$?.id );
+          const id = idCorrector({ id: jsonData?.item?.$?.id });
           const entries = {};
           entries[id] = {
             meta: jsonData?.item?.$,

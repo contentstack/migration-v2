@@ -23,7 +23,7 @@ import getProjectUtil from "../utils/get-project.utils.js";
 import fetchAllPaginatedData from "../utils/pagination.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import getFieldMapperDb from "../models/FieldMapper.js";
-import getEntryMapperDb, { EntryMapper } from "../models/EntryMapper.js";
+import getEntryMapperDb from "../models/EntryMapper.js";
 import { v4 as uuidv4 } from "uuid";
 import getContentTypesMapperDb, { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 import getUidMapperDb from "../models/uidMapper.js";
@@ -145,15 +145,38 @@ const putTestData = async (req: Request) => {
           ...(Array.isArray(data?.field_mapper) ? data.field_mapper : []),
           ...fields,
         ];
+      });  
       });
-      if (
-        Array?.isArray?.(contentType) &&
-        Number?.isInteger?.(index) &&
-        index >= 0 &&
-        index < contentType?.length
-      ) {
-        contentType[index].fieldMapping = fieldIds;
-      }
+    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
+    await EntryMapperModel.read();
+    contentTypes.forEach((type: any, index: number) => {
+      const entryIds: string[] = [];
+      const entries = Array.isArray(type?.entryMapping) ?
+        type.entryMapping
+            .filter(Boolean)
+            .map((entry: any) => {
+              const id =
+                entry?.id ?
+                  entry.id.replace(/[{}]/g, '').toLowerCase()
+                  : uuidv4();
+              entry.id = id;
+              entryIds.push(id);
+              return {
+                ...entry,
+                id,
+                projectId,
+                contentTypeId: type?.id,
+                isDeleted: false,
+              };
+            })
+        : [];
+
+      EntryMapperModel.update((data: any) => {
+        data.entry_mapper = [
+          ...(Array.isArray(data?.entry_mapper) ? data.entry_mapper : []),
+          ...entries,
+        ];
+      });
     });
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
