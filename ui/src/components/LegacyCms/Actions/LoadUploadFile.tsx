@@ -51,7 +51,7 @@ const FileComponent = ({ fileDetails, fileFormatId }: Props) => {
   const dispatch = useDispatch();
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const authData = useSelector((state: RootState) => state?.authentication);
-  const [isEditing, setIsEditing] = useState(newMigrationData?.iteration > 1 ? true : false);
+  const [isEditing, setIsEditing] = useState((newMigrationData?.iteration > 1 && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated) ? true : false);
   const [localPath, setLocalPath] = useState(fileDetails?.localPath || '');
 
   // Get the current path from Redux state
