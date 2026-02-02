@@ -2960,7 +2960,16 @@ if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
                     singular: '',
                     plural: `${totalCounts === 0 ? 'Count' : ''}`
                   }}
-                />
+                /> ) : (
+                  <EntryMapper 
+                  selectedContentTypeId={selectedContentType || null}
+                  tableHeight={tableHeight}
+                  />
+                )}
+              </div>
+
+              <div className="mapper-footer-wrapper">
+                <div className="mapper-footer-separator" />
                 <div className="mapper-footer">
                       <div>Total Fields: <strong>{totalCounts}</strong></div>
                       <Button

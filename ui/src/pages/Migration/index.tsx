@@ -836,7 +836,6 @@ const Migration = () => {
   };
 
   const handleRestartMigration = async () => {
-    console.info('restart migration');
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       legacy_cms: {

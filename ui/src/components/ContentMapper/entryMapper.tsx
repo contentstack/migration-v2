@@ -19,20 +19,23 @@ import {
 
 // Redux
 import { RootState } from '../../store';
-import { updateMigrationData } from '../../store/slice/migrationDataSlice';
+import { updateMigrationData, updateNewMigrationData } from '../../store/slice/migrationDataSlice';
 
 // Utilities
-import { CS_ENTRIES} from '../../utilities/constants';
+import { CS_ENTRIES, CONTENT_MAPPING_STATUS, STATUS_ICON_Mapping } from '../../utilities/constants';
+import { isEmptyString, validateArray } from '../../utilities/functions';
+import useBlockNavigation from '../../hooks/userNavigation';
 
 // Interface
-import { DEFAULT_CONTENT_MAPPING_DATA } from '../../context/app/app.interface';
+import { DEFAULT_CONTENT_MAPPING_DATA, INewMigration } from '../../context/app/app.interface';
 import {
   ContentType,
+  FieldMapType,
+  FieldTypes,
   TableTypes,
 
 
-  EntryMapperType,
-  UidMap
+  EntryMapperType
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
 
