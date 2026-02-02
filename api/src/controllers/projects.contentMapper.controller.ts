@@ -149,6 +149,18 @@ const updateContentMapper = async (req: Request, res: Response): Promise<void> =
   res.status(project.status).json(project);
  }
 
+ /**
+ * Retrieves the field mapping for a given request and sends the response as JSON.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @returns A Promise that resolves to void.
+ */
+const getEntryMapping = async (req: Request, res: Response): Promise<void> => {
+  const resp = await contentMapperService.getEntryMapping(req);
+  res.status(resp?.status).json(resp);
+};
+
 export const contentMapperController = {
   getContentTypes,
   getFieldMapping,
@@ -161,5 +173,6 @@ export const contentMapperController = {
   removeContentMapper,
   updateContentMapper,
   getExistingGlobalFields,
-  getSingleGlobalField
+  getSingleGlobalField,
+  getEntryMapping,
 };

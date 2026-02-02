@@ -26,7 +26,10 @@ export interface Advanced {
  * Represents an entry mapper object.
  */
 interface EntryMapper {
-  entry_mapper: {
+  entry_mapper: { 
+    id: string;
+    projectId: string;
+    contentTypeId: string;
     contentTypeUid: string;
     entryName: string;
     otherCmsEntryUid: string;

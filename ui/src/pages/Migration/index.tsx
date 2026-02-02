@@ -425,7 +425,8 @@ const Migration = () => {
       testStacks: projectData?.test_stacks,
       isprojectMapped: false,
       project_current_step: projectData?.current_step,
-      isContentMapperGenerated: projectData?.content_mapper?.length > 0
+      isContentMapperGenerated: projectData?.content_mapper?.length > 0,
+      iteration: projectData?.iteration,
     };
 
     dispatch(updateNewMigrationData(projectMapper));
@@ -804,7 +805,6 @@ const Migration = () => {
   };
 
   const handleRestartMigration = async () => {
-    console.info('restart migration');
     const newMigrationDataObj: INewMigration = {
       ...newMigrationData,
       legacy_cms: {

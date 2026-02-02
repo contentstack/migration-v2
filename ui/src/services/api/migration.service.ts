@@ -364,3 +364,25 @@ export const restartMigration = async (orgId: string, projectId: string) => {
     return error;
   }
 }
+
+export const getEntryMapping = async (
+  contentTypeId: string,
+  skip: number,
+  limit: number,
+  searchText: string,
+  projectId: string
+) => {
+  try {
+    const encodedSearchText = encodeURIComponent(searchText);
+    return await getCall(
+      `${API_VERSION}/mapper/entryMapping/${projectId}/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?`,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};

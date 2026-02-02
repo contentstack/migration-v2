@@ -133,7 +133,17 @@ const putTestData = async (req: Request) => {
           ...fields,
         ];
       });  
-      });
+      
+      if (
+        Array?.isArray?.(contentType) &&
+        Number?.isInteger?.(index) &&
+        index >= 0 &&
+        index < contentType?.length
+      ) 
+      {
+        contentType[index].fieldMapping = fieldIds;
+      }
+    });
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
     contentTypes.forEach((type: any, index: number) => {
@@ -157,16 +167,27 @@ const putTestData = async (req: Request) => {
               };
             })
         : [];
-
+      //console.info('🚀 ~ putTestData ~ entries:', entries);
       EntryMapperModel.update((data: any) => {
         data.entry_mapper = [
           ...(Array.isArray(data?.entry_mapper) ? data.entry_mapper : []),
           ...entries,
         ];
       });
+
+      if (
+        Array?.isArray?.(contentType) &&
+        Number?.isInteger?.(index) &&
+        index >= 0 &&
+        index < contentType?.length
+      ) 
+      {
+        contentType[index].entryMapping = entryIds;
+      }
     });
 
     await ContentTypesMapperModelLowdb.update((data: any) => {
+      
       data.ContentTypesMappers = [
         ...(data?.ContentTypesMappers ?? []),
         ...contentType,
@@ -1372,6 +1393,99 @@ const updateContentMapper = async (req: Request) => {
   }
 };
 
+const getEntryMapping = async (req: Request) => {
+
+  const srcFunc = "getEntryMapping";
+  const contentTypeId = req?.params?.contentTypeId;
+  const projectId = req?.params?.projectId;
+  const skip: any = req?.params?.skip;
+  const limit: any = req?.params?.limit;
+  const search: string = req?.params?.searchText?.toLowerCase();
+
+  let result: any[] = [];
+  let filteredResult = [];
+  let totalCount = 0;
+
+  try {
+    // Get project iteration
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+
+    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
+    await ContentTypesMapperModelLowdb.read();
+
+    const contentType = ContentTypesMapperModelLowdb.chain
+      .get("ContentTypesMappers")
+      .find({ id: contentTypeId, projectId: projectId })
+      .value();
+
+    if (isEmpty(contentType)) {
+      logger.error(
+        getLogMessage(
+          srcFunc,
+          `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        )
+      );
+      throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
+    }
+    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
+    await EntryMapperModel.read();
+    const entryData = contentType?.entryMapping?.map?.((entry: any) => {
+      const entryMapper = EntryMapperModel.chain
+        .get("entry_mapper")
+        .find({ id: entry, projectId: projectId, contentTypeId: contentTypeId })
+        .value();
+
+      return entryMapper;
+    });
+
+    const entryMapping: any = entryData?.map((entry: any) => {
+      if (entry?.advanced?.initial) {
+        return { ...entry, advanced: entry?.advanced };
+      }
+      return entry;
+    });
+
+    if (!isEmpty(entryMapping)) {
+      if (search) {
+        filteredResult = entryMapping?.filter?.((item: any) =>
+          item?.otherCmsField?.toLowerCase().includes(search)
+        );
+        totalCount = filteredResult.length;
+        result = filteredResult.slice(skip, Number(skip) + Number(limit));
+      } else {
+        totalCount = entryMapping.length;
+        result = entryMapping.slice(skip, Number(skip) + Number(limit));
+      }
+    }
+
+    return {
+      status: HTTP_CODES?.OK,
+      count: totalCount,
+      entryMapping: result
+    };
+
+  } catch (error: any) {
+    // Log error message
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while getting field mapping of projects",
+        error
+      )
+    );
+
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+
+  }
+};
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -1385,5 +1499,6 @@ export const contentMapperService = {
   getSingleContentTypes,
   updateContentMapper,
   getExistingGlobalFields,
-  getSingleGlobalField
+  getSingleGlobalField,
+  getEntryMapping,
 };

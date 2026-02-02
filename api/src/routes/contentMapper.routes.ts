@@ -99,4 +99,13 @@ router.patch("/:orgId/:projectId/mapper_keys", asyncRouter(contentMapperControll
 //   asyncRouter(contentMapperController.getSingleGlobalField)
 // );
 
+/**
+ * Get FieldMapping List
+ * @route GET /entryMapping/:contentTypeId/:skip/:limit/:searchText?
+ */
+router.get(
+  "/entryMapping/:projectId/:contentTypeId/:skip/:limit/:searchText?",
+  asyncRouter(contentMapperController.getEntryMapping)
+);
+
 export default router;

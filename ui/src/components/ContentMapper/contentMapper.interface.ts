@@ -212,3 +212,13 @@ export interface ModifiedField {
   _canSelect?: boolean;
   contentstackFieldType?: string;
 }
+
+export interface EntryMapperType {
+  id: string;
+  projectId: string;
+  contentTypeId: string;
+  contentTypeUid: string;
+  entryName: string;
+  otherCmsEntryUid: string;
+  isUpdate: boolean;
+}

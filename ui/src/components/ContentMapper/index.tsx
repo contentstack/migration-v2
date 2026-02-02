@@ -26,7 +26,8 @@ import {
   resetToInitialMapping,
   getExistingContentTypes,
   getExistingGlobalFields,
-  updateContentMapper
+  updateContentMapper,
+  getEntryMapping,
 } from '../../services/api/migration.service';
 
 // Redux
@@ -70,6 +71,7 @@ import SaveChangesModal from '../Common/SaveChangesModal';
 // Styles and Assets
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
+import EntryMapper from './entryMapper';
 
 const rowHistoryObj: FieldHistoryObj = {}
 
@@ -303,6 +305,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const [activeFilter, setActiveFilter] = useState<string>('');
   const [isAllCheck, setIsAllCheck] = useState<boolean>(false);
   const [isResetFetch, setIsResetFetch] = useState<boolean>(false);
+  const [iterationCount, setIterationCount] = useState<number>(newMigrationData?.iteration);
 
 
   /** ALL HOOKS Here */
@@ -704,12 +707,13 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       setIsLoading(false);
       setContentTypes(data?.contentTypes);
       setCount(data?.contentTypes?.length);
-      setFilteredContentTypes(data?.contentTypes);
+      setFilteredContentTypes(iterationCount > 1 ? data?.contentTypes?.filter((item: any)=> item?.entryMapping?.length > 0) : data?.contentTypes);
       setSelectedContentType(data?.contentTypes?.[0]);
       setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
       setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
       setContentTypeUid(data?.contentTypes?.[0]?.id);
       fetchFields(data?.contentTypes?.[0]?.id, searchText || '');
+      fetchEntries(data?.contentTypes?.[0]?.id);
       setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid);
       setIsContentType(data?.contentTypes?.[0]?.type === "content_type");
     } catch (error) {
@@ -765,6 +769,18 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       generateSourceGroupSchema(validTableData);
     } catch (error) {
       console.error('fetchData -> error', error);
+    }
+  };
+
+  //Method to get entryMapping
+  const fetchEntries = async (contentTypeId: string) => {
+    try {
+      const { data } = await getEntryMapping(contentTypeId || '', 0, 1000, searchText || '', projectId);
+      
+      return data?.entryMapping || [];
+    } catch (error) {
+      console.error('fetchEntries -> error', error);
+      return [];
     }
   };
 
@@ -853,6 +869,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     setOtherCmsTitle(filteredContentTypes?.[i]?.otherCmsTitle);
     setContentTypeUid(filteredContentTypes?.[i]?.id ?? '');
     fetchFields(filteredContentTypes?.[i]?.id ?? '', searchText || '');
+    fetchEntries(filteredContentTypes?.[i]?.id ?? '');
     setOtherCmsUid(filteredContentTypes?.[i]?.otherCmsUid);
     setSelectedContentType(filteredContentTypes?.[i]);
     setIsContentType(filteredContentTypes?.[i]?.type === "content_type");
@@ -2629,6 +2646,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             {/* Content Type Fields */}
             <div className="content-types-fields-wrapper">
               <div className="table-wrapper" ref={tableWrapperRef}>
+                {iterationCount <= 1  ? (
                 <InfiniteScrollTable
                   loading={loading}
                   canSearch={true}
@@ -2692,7 +2710,16 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     singular: '',
                     plural: `${totalCounts === 0 ? 'Count' : ''}`
                   }}
-                />
+                /> ) : (
+                  <EntryMapper 
+                  selectedContentTypeId={selectedContentType || null}
+                  tableHeight={tableHeight}
+                  />
+                )}
+              </div>
+
+              <div className="mapper-footer-wrapper">
+                <div className="mapper-footer-separator" />
                 <div className="mapper-footer">
                   <div>Total Fields: <strong>{totalCounts}</strong></div>
                   <Button
