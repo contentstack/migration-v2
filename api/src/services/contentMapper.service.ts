@@ -188,13 +188,23 @@ const putTestData = async (req: Request) => {
               };
             })
         : [];
-
+      //console.info('🚀 ~ putTestData ~ entries:', entries);
       EntryMapperModel.update((data: any) => {
         data.entry_mapper = [
           ...(Array.isArray(data?.entry_mapper) ? data.entry_mapper : []),
           ...entries,
         ];
       });
+
+      if (
+        Array?.isArray?.(contentType) &&
+        Number?.isInteger?.(index) &&
+        index >= 0 &&
+        index < contentType?.length
+      ) 
+      {
+        contentType[index].entryMapping = entryIds;
+      }
     });
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
@@ -2029,6 +2039,7 @@ export const contentMapperService = {
   getExistingGlobalFields,
   getSingleGlobalField,
   getEntryMapping,
-  updateEntryStatus,
-  getExistingTaxonomies
+  updateEntryStatus
+  getExistingTaxonomies,,
+  getEntryMapping,
 };
