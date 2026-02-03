@@ -197,25 +197,11 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
    const accessorCall = (data: EntryMapperType) => {
     // Clean field name (remove parent hierarchy)
     const cleanFieldName = data?.entryName
-    console.info("data in accessorCall", data);
       
     
     // const tooltipContent = data?.otherCmsField?.includes(' > ') 
     //   ? `Field: ${cleanFieldName} \nFull path: ${data.otherCmsField}`
-    //   : `Field: ${cleanFieldName}`;
 
-    // Simple checks for visual indicators
-    // const isModularBlock = data?.contentstackFieldType === 'modular_blocks';
-    // const isModularBlockChild = data?.contentstackFieldType === 'modular_blocks_child';
-    // const isGroup = data?.contentstackFieldType === 'group';
-    
-    
-    // Calculate nesting level for proper indentation
-    // const nestingLevel = getNestingLevel(data?.uid || '');
-    
-    // Count children only if this is a modular block parent
-    // const childrenCount = isModularBlockChild ? 
-    //   tableData?.filter(item => item?.uid?.startsWith(data?.uid + '.'))?.length || 0 : 0;
     return (
       <Tooltip content={''} position="top">
         <div>
@@ -226,15 +212,47 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
             </div>
             
           </div>
-          <InstructionText>
-            <div>
-              UID: <span className="uid-text">{data?.otherCmsEntryUid}</span>
-            </div>
-          </InstructionText>
         </div>
       </Tooltip>
     );
   };
+
+    const accessorContentstackCall = (data: EntryMapperType) => {
+    // Clean field name (remove parent hierarchy)
+    const cleanFieldName = data?.contenstackEntryUid
+
+    
+    return (
+      <Tooltip content={''} position="top">
+        <div>
+          <div className='d-flex align-items-center'>
+            
+            <div className={'cms-field'}>
+              {cleanFieldName ? cleanFieldName : '-'}
+            </div>
+            
+          </div>
+        </div>
+      </Tooltip>
+    );
+  };
+
+  const accessorForCMSUid = (data: EntryMapperType) => { 
+    const cleanFieldName = data?.otherCmsEntryUid
+    return (
+      <div>
+         <div className='d-flex align-items-center'>
+            
+      <div className={'cms-field'}>
+        {cleanFieldName}
+      </div>
+            
+    </div>
+
+      </div>
+   
+    )
+   }
 
    const columns = [
     {
@@ -251,11 +269,21 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
       disableSortBy: true,
       Header: (
         <span className="nowrap-header">
+          {`${newMigrationData?.legacy_cms?.selectedCms?.title} UIDs:`}
+        </span>
+      ),
+      accessor: accessorForCMSUid,
+      id: '1'
+    },
+    {
+      disableSortBy: true,
+      Header: (
+        <span className="nowrap-header">
           {'Contentstack:'}
         </span>
       ),
-    //   accessor: accessorCall,
-      id: '1'
+     accessor: accessorContentstackCall,
+      id: '2'
     }
   ];
 

@@ -23,6 +23,7 @@ import getFieldMapperDb from "../models/FieldMapper.js";
 import getEntryMapperDb from "../models/EntryMapper.js";
 import { v4 as uuidv4 } from "uuid";
 import getContentTypesMapperDb, { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
+import getUidMapperDb from "../models/uidMapper.js";
 
 // Developer service to create dummy contentmapping data
 /**
@@ -31,6 +32,18 @@ import getContentTypesMapperDb, { ContentTypesMapper } from "../models/contentTy
  * @param req - The request object containing the project ID and content types.
  * @returns The updated project data.
  */
+
+const idCorrector = ({ id }: {id : string}) => {
+  const newId = id?.replace(/[-{}]/g, (match) =>
+    match === '-' ? '' : ''
+  );
+  if (newId) {
+    return newId?.toLowerCase();
+  } else {
+    return id;
+  }
+};
+
 const putTestData = async (req: Request) => {
   const projectId = req.params.projectId;
   const contentTypes = req.body.contentTypes;
@@ -146,6 +159,10 @@ const putTestData = async (req: Request) => {
     });
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
+
+    const uidMapperModel = getUidMapperDb(projectId, iteration - 1);
+    await uidMapperModel.read();
+    
     contentTypes.forEach((type: any, index: number) => {
       const entryIds: string[] = [];
       const entries = Array.isArray(type?.entryMapping) ?
@@ -158,12 +175,16 @@ const putTestData = async (req: Request) => {
                   : uuidv4();
               entry.id = id;
               entryIds.push(id);
+              
+              const uidMapperValue = entry?.otherCmsEntryUid ? uidMapperModel.data?.entry?.[idCorrector({id : entry.otherCmsEntryUid})] : ' ';
+              
               return {
                 ...entry,
                 id,
                 projectId,
                 contentTypeId: type?.id,
                 isDeleted: false,
+                contenstackEntryUid: uidMapperValue,
               };
             })
         : [];
@@ -1486,6 +1507,8 @@ const getEntryMapping = async (req: Request) => {
 
   }
 };
+
+
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -1501,4 +1524,5 @@ export const contentMapperService = {
   getExistingGlobalFields,
   getSingleGlobalField,
   getEntryMapping,
+  getUidMapperData,
 };

@@ -6,8 +6,8 @@ const helper = require('../utils/helper');
 const restrictedUid = require('../utils');
 const { MIGRATION_DATA_CONFIG } = require('../constants/index');
 
-const idCorrector = ({ id }) => {
-  const newId = id?.replace(/[-{}]/g, (match) =>
+const idCorrector = (id) => {
+  const newId = id && id?.replace(/[-{}]/g, (match) =>
     match === '-' ? '' : ''
   );
   if (newId) {
@@ -64,7 +64,7 @@ const extractEntries = async (newPath) => {
           const jsonData = JSON.parse(data);
 
           const { language, template, tid } = jsonData?.item?.$ ?? {};
-          const id = idCorrector({ id: jsonData?.item?.$?.id });
+          const id = idCorrector(jsonData?.item?.$?.id );
           const entries = {};
           entries[id] = {
             meta: jsonData?.item?.$,
@@ -123,11 +123,11 @@ const extractEntries = async (newPath) => {
                 for  (const locale of locales) {
                     Object.entries(entry?.locale?.[locale] || {}).map(([uid, item])=>{
                         contentTypeTitle = entry?.template;
-                    
+                        const otherCmsEntryUid = idCorrector(item?.meta?.id || '');
                         entriesArray.push({
                         contentTypeUid: key,
                         entryName: item?.meta?.name,
-                        otherCmsEntryUid: item?.meta?.id,
+                        otherCmsEntryUid: otherCmsEntryUid,
                         otherCmsCTName: item?.template,
                         isUpdate: false,
                         });

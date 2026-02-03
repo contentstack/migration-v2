@@ -221,4 +221,6 @@ export interface EntryMapperType {
   entryName: string;
   otherCmsEntryUid: string;
   isUpdate: boolean;
+  contenstackEntryUid?: string;
+
 }

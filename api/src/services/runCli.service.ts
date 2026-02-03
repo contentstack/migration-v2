@@ -6,6 +6,7 @@ import { copyDirectory, createDirectoryAndFile } from '../utils/index.js';
 import { CS_REGIONS, MIGRATION_DATA_CONFIG } from '../constants/index.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import AuthenticationModel from '../models/authentication.js';
+import getUidMapperDb from '../models/uidMapper.js';
 // import watchLogs from '../utils/watch.utils.js';
 import { setLogFilePath } from '../server.js';
 
@@ -50,6 +51,30 @@ const stripAnsiCodes = (text: string): string => {
   // This regex removes all ANSI escape sequences (color codes)
   return text.replace(/\u001b\[\d+m/g, '');
 };
+
+const writeUidMapping = async (backupPath: string, projectId: string, iteration: number) => {
+  try {
+    const assetMapperPath = path.join(backupPath, 'mapper', 'assets', 'uid-mapping.json');
+    const assetData = fs.readFileSync(assetMapperPath, 'utf-8');
+    const assetJson = JSON.parse(assetData);
+  
+    const entryMapperPath = path.join(backupPath, 'mapper', 'entries', 'uid-mapping.json');
+    const entryData = fs.readFileSync(entryMapperPath, 'utf-8');
+    const entryJson = JSON.parse(entryData);
+      
+    const combinedMapping = {
+      assets: assetJson,
+      entry: entryJson,
+    };
+    const UidMapperModelLowdb = getUidMapperDb(projectId, iteration);
+    await UidMapperModelLowdb.read();
+    UidMapperModelLowdb.data = combinedMapping;
+    await UidMapperModelLowdb.write();
+    console.info('UID mapping data written successfully to Lowdb');
+  } catch (error) {
+    console.error('Error writing UID mapping file:', error);
+  }
+}
 
 /**
  * Executes CLI commands and provides real-time output
@@ -231,7 +256,7 @@ export const runCli = async (
 
       // After the import command completes
       console.info('Import command completed successfully');
-
+   
       // Write the completion message ONCE in the format the UI expects
       if (isTest) {
         const directLogEntry = {
@@ -300,6 +325,7 @@ export const runCli = async (
           .find({ id: projectId })
           .value();
         console.info(`Project found: ${project ? 'Yes' : 'No'}`);
+        await writeUidMapping(backupPath, projectId, project?.iteration);
         if (project) {
           console.info(
             `Current migration status: started=${project.isMigrationStarted}, completed=${project.isMigrationCompleted}`
