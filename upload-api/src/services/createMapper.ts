@@ -31,7 +31,7 @@ const createMapper = async (
     }
 
     case 'coremedia': {
-      return createCoremediaMapper(filePath, projectId, app_token, affix);
+      return createCoremediaMapper(filePath, projectId, app_token, affix, config);
     }
     default:
       return false;

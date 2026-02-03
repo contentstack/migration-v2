@@ -45,33 +45,16 @@ async function schemaMapper(properties) {
   // Return empty array if no properties provided
   if (!properties) return [];
 
-  // Process all properties in parallel, filtering out skipped keys
-  const mapped = await Promise.all(
-    Object.entries(properties)
-      // Filter out properties that should be skipped
-      .filter(([key]) => !skipKeys.includes(key))
-      .map(async ([key, prop]) => {
-        // Special handling for htmlTitle - map it to a global SEO field
-        if (key === "htmlTitle") {
-          return {
-            data_type: "global_field",
-            display_name: "Seo",
-            reference_to: "seo",
-            field_metadata: {
-              description: "",
-            },
-            uid: "seo",
-            mandatory: false,
-            multiple: false,
-            non_localizable: false,
-            unique: false,
-          };
-        }
-        // Add htmlTitle to skip list after processing to avoid duplicate handling
-        skipKeys.push("htmlTitle");
-        
-        // Get the property type in lowercase for case-insensitive matching
-        const type = prop?.type?.toLowerCase?.();
+  const fieldMapping = [];
+
+  // Process all properties
+  for (const [key, prop] of Object.entries(properties)) {
+    // Skip certain properties
+    if (skipKeys.includes(key)) continue;
+
+    const type = prop?.type?.toLowerCase?.();
+    const uid = uidCorrector(key);
+    const contentstackFieldType = mapFieldType(type);
 
         // Map each CoreMedia type to corresponding Contentstack field type
         switch (type) {
@@ -210,72 +193,56 @@ async function schemaMapper(properties) {
       })
   );
 
-  // Filter out null values from the mapped array
-  const filtered = mapped?.filter(Boolean);
-  
-  // Ensure URL field exists in schema (required for Contentstack)
-  // Add it if not already present
-  if (
-    !filtered?.find((item) => item?.data_type === "text" && item?.uid === "url")
-  ) {
-    filtered.push({
-      display_name: "Url",
-      uid: "url",
-      data_type: "text",
-      mandatory: true,
-      unique: false,
-      field_metadata: { _default: true },
-      format: "",
-      error_messages: { format: "" },
-      multiple: false,
-      non_localizable: false,
+  // Ensure URL field exists
+  const hasUrl = fieldMapping.find((item) => item.contentstackFieldUid === 'url');
+  if (!hasUrl) {
+    fieldMapping.push({
+      uid: 'url',
+      otherCmsField: 'url',
+      otherCmsType: 'String',
+      contentstackField: 'Url',
+      contentstackFieldUid: 'url',
+      contentstackFieldType: 'url',
+      backupFieldType: 'url',
+      backupFieldUid: 'url',
+      advanced: { default_value: null }
     });
   }
-  return filtered.filter(Boolean);
+
+  return fieldMapping;
 }
 
 /**
- * Creates a Contentstack content type schema from CoreMedia data
+ * Creates a content type object from CoreMedia data (matching Sitecore format)
  * 
  * @param {Object} data - CoreMedia content type data object
- * @returns {Object|null} Contentstack content type schema object or null if already processed
+ * @returns {Object|null} Content type object or null if already processed
  */
 async function createSchema(data) {
-  // Map CoreMedia properties to Contentstack schema fields
-  const schema = await schemaMapper(data.properties);
+  console.log("data ==================", data);
+  // Map CoreMedia properties to fieldMapping format
+  const fieldMapping = await schemaMapper(data.properties);
 
   // Extract content type name by removing "CM" prefix from type
   const type = data?.type?.replace(/^CM/, "");
-  const len = data?.path?.length;
-  const title = data?.path?.split("/").pop();
+  const uid = uidCorrector(type);
   let contentObject;
   
-  // Extract ID parts for potential reference building
-  const parts = data?.id.split("/").filter(Boolean);
-  const lastTwo = parts.slice(-2).join("_");
-
-  console.log("data ==================", data);
- 
   // Only create schema if this content type hasn't been processed before
   if (!templetes.includes(data?.type)) {
   
-    // Build Contentstack content type schema object
+    // Build content type object (matching Sitecore format for API compatibility)
     contentObject = {
-      title: type,
-      uid: type?.toLowerCase(),
-      schema: schema,
-      options: {
-        is_page: true,
-        title: "title",
-        sub_title: [],
-        url_pattern: "/:year/:month/:title",
-        _version: 1,
-        url_prefix: `/${data?.uid}/`,
-        description: "",
-        singleton: false,
-      },
-      description: "",
-      type: data?.type,
+      id: uid,
+      status: 1,
+      otherCmsTitle: type,
+      otherCmsUid: data?.type || type,
+      isUpdated: false,
+      updateAt: '',
+      contentstackTitle: type,
+      contentstackUid: uid,
+      fieldMapping: fieldMapping,
+      type: 'content_type'
     };
 
     // Convert to JSON with pretty formatting
@@ -287,10 +254,12 @@ async function createSchema(data) {
         process.cwd(),
         config.data,
         contenttypeFolder,
-        `${type?.toLowerCase()}.json`
+        `${uid}.json`
       ),
       contentJSON
     );
+
+    console.log(`✅ Created content type: ${type} with ${fieldMapping.length} fields`);
   }
   
   // Track this content type as processed to avoid duplicates

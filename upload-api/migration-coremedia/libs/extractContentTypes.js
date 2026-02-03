@@ -106,18 +106,15 @@ async function processZip(zipPath) {
 
   // Process each file in the extracted archive
   for (const file of allFiles) {
-    //if (path.extname(file).toLowerCase() === ".xml") {
     // Process the file and extract schema if applicable
     await processEachFile(path.join(extractPath, fileNameWithoutExt, file));
     
     // Write updated schema array to master file after each file is processed
-    // This ensures incremental updates in case of interruption
-    await fs.writeFileSync(
+    fs.writeFileSync(
       schemaPath,
       JSON.stringify(Schema_Array, null, 2),
       "utf-8"
     );
-    //}
   }
   return extractPath;
 }
@@ -128,10 +125,17 @@ async function processZip(zipPath) {
 ExtractContentTypes.prototype = {
   /**
    * Entry point: Starts the content type extraction process
-   * Processes the ZIP file specified in global config
+   * Processes the ZIP file specified in process.env.localPath
    */
   start: async function () {
-    const csFilePath = await processZip(process?.env?.localPath);
+    const zipPath = process?.env?.localPath;
+    console.log(chalk.blue(`🚀 Starting content type extraction from ZIP: ${zipPath}`));
+    
+    // Clear the schema array for fresh extraction
+    Schema_Array.length = 0;
+    
+    const csFilePath = await processZip(zipPath);
+    console.log(chalk.green(`✅ Content type extraction complete. Processed ${Schema_Array.length} content types.`));
   },
 };
 
