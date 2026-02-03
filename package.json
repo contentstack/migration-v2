@@ -37,7 +37,9 @@
     "serialize-javascript": ">=6.0.2",
     "@babel/runtime": ">=7.26.10",
     "tmp": "^0.2.5",
-    "lodash": "^4.17.23"
+    "lodash": "^4.17.23",
+    "lodash-es": "^4.17.23",
+    "undici": "^7.18.2"
   },
   "husky": {
     "hooks": {
