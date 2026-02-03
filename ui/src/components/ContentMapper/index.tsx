@@ -1460,24 +1460,75 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         modularBlockId = field?.uid;
         data?.push({ ...field, child: [] });
       }
-      // Handle modular blocks child
-      else if (field?.contentstackFieldType === 'modular_blocks_child' && field?.uid?.startsWith(modularBlockId + '.')) {
-        modularBlockChildId = field?.uid;
-        const parentBlock = data[data?.length - 1];
-        if (parentBlock && Object.hasOwn(parentBlock, 'child')) {
-          parentBlock?.child?.push({ ...field, child: [] });
-        }
-      }
-      // Handle fields within modular block child
-      else if (field?.uid?.startsWith(modularBlockChildId + '.')) {
-        const parentBlock = data[data?.length - 1];
-        if (parentBlock?.child) {
-          const childBlock = parentBlock.child[parentBlock.child.length - 1];
-          if (childBlock && Object.hasOwn(childBlock, 'child')) {
-            childBlock?.child?.push(field);
-          }
-        }
-      }
+// Handle modular blocks child
+else if (field?.contentstackFieldType === 'modular_blocks_child' && field?.uid?.startsWith(modularBlockId + '.')) {
+  modularBlockChildId = field?.uid;
+  const parentBlock = data[data?.length - 1];
+  
+  // Validate parent block is actually a modular_blocks
+  if (!parentBlock) {
+    console.warn(
+      `No parent block found for modular_blocks_child: ${field?.uid}. ` +
+      `Expected parent modular block ID: ${modularBlockId}`
+    );
+  } else if (parentBlock?.contentstackFieldType !== 'modular_blocks') {
+    console.error(
+      `Invalid parent block type for modular_blocks_child: ${field?.uid}. ` +
+      `Expected: 'modular_blocks', Got: '${parentBlock?.contentstackFieldType}'. ` +
+      `This indicates schema fields are not in the expected order.`
+    );
+  } else if (!Object.hasOwn(parentBlock, 'child')) {
+    console.warn(
+      `Parent modular block exists but missing 'child' property: ${parentBlock?.uid}`
+    );
+  } else {
+    parentBlock?.child?.push({ ...field, child: [] });
+  }
+}
+// Handle fields within modular block child
+else if (field?.uid?.startsWith(modularBlockChildId + '.')) {
+  const parentBlock = data[data?.length - 1];
+  
+  // Validate parent block exists and is a modular_blocks
+  if (!parentBlock) {
+    console.warn(
+      `No parent block found for field: ${field?.uid}. ` +
+      `Expected parent modular block child ID: ${modularBlockChildId}`
+    );
+  } else if (parentBlock?.contentstackFieldType !== 'modular_blocks') {
+    console.error(
+      `Invalid parent block type for nested field: ${field?.uid}. ` +
+      `Expected parent to be 'modular_blocks', Got: '${parentBlock?.contentstackFieldType}'. ` +
+      `Schema fields may not be in the expected order.`
+    );
+  } else if (!parentBlock?.child || parentBlock.child.length === 0) {
+    console.warn(
+      `Parent modular block has no children for field: ${field?.uid}. ` +
+      `Parent block UID: ${parentBlock?.uid}`
+    );
+  } else {
+    const childBlock = parentBlock.child[parentBlock.child.length - 1];
+    
+    // Validate child block
+    if (!childBlock) {
+      console.warn(
+        `No child block found for field: ${field?.uid}. ` +
+        `Parent block: ${parentBlock?.uid}`
+      );
+    } else if (childBlock?.contentstackFieldType !== 'modular_blocks_child') {
+      console.error(
+        `Invalid child block type for field: ${field?.uid}. ` +
+        `Expected: 'modular_blocks_child', Got: '${childBlock?.contentstackFieldType}'`
+      );
+    } else if (!Object.hasOwn(childBlock, 'child')) {
+      console.warn(
+        `Child block exists but missing 'child' property: ${childBlock?.uid}`
+      );
+    } else {
+      childBlock?.child?.push(field);
+    }
+  }
+}
       // Handle groups
       else if (field?.contentstackFieldType === 'group') {
         groupId = field?.uid;
@@ -1581,88 +1632,130 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
       }
   
-      // Process child blocks within modular blocks
-      if (value?.blocks && Array.isArray(value.blocks)) {
-        for (const block of value.blocks) {
-          const blockTitle = block?.uid || block?.display_name;
-          const blockDisplayName = `${updatedDisplayName} > ${blockTitle}`;
-          const blockUid = `${uid}.${block?.uid}`;
+// Process child blocks within modular blocks
+if (value?.blocks && Array.isArray(value.blocks)) {
+  for (const block of value.blocks) {
+    const blockTitle = block?.uid || block?.display_name;
+    const blockDisplayName = `${updatedDisplayName} > ${blockTitle}`;
+    const blockUid = `${uid}.${block?.uid}`;
+
+    if (data?.backupFieldType === 'modular_blocks_child') {
+      const blockOption: ContentTypesSchema = {
+        ...block,
+        data_type: block?.data_type || undefined,
+        display_name: blockTitle,
+        uid: block.uid,
+      };
+      
+      OptionsForRow.push(getMatchingOption(
+        blockOption,
+        true,
+        blockDisplayName,
+        blockUid
+      ));
+    }
   
-          if (data?.backupFieldType === 'modular_blocks_child') {
-            const blockOption: ContentTypesSchema = {
-              ...block,
-              data_type: 'blocks' as const,
-              display_name: blockTitle,
-              uid: block.uid
-            };
-            
-            OptionsForRow.push(getMatchingOption(
-              blockOption,
-              true,
-              blockDisplayName,
-              blockUid
-            ));
-          }
+// Process fields within modular block child
+const isFieldInsideChildBlock = data?.uid?.split('.')?.length > 2;
+
+if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
+  const dataParentChildBlockUid = data?.uid?.split('.')?.slice(0, 2)?.join('.');
   
-          // Process fields within current block if the parent child block is mapped to it
-          const isFieldInsideChildBlock = data?.uid?.split('.')?.length > 2;
-          
-          if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
-            const dataParentChildBlockUid = data?.uid?.split('.')?.slice(0, 2)?.join('.');
-            
-            const modularBlockArray = nestedList?.filter(item => 
-              item?.contentstackFieldType === 'modular_blocks' &&
-              item?.child?.some((childBlock: FieldMapType) => 
-                childBlock?.uid === dataParentChildBlockUid
-              )
-            );
-            
-            if (modularBlockArray?.length > 0) {
-              const parentChildBlock = modularBlockArray[0]?.child?.find(
-                (childBlock: FieldMapType) => childBlock?.uid === dataParentChildBlockUid
-              );
-              
-              if (parentChildBlock?.backupFieldUid) {
-                const existingChildBlockMapping = existingField[parentChildBlock.backupFieldUid];
-                
-                if (existingChildBlockMapping) {
-                  const mappedChildBlockTitle = existingChildBlockMapping?.label?.split(' > ')?.pop()?.trim();
-                  
-                  // Only process fields if current block matches the mapped block
-                  if (mappedChildBlockTitle === blockTitle) {
-                    for (const blockField of block.schema) {
-                      const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
-                      
-                      if (checkConditions(fieldTypeToMatch, blockField, data)) {
-                        const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
-                        const fieldUid = `${blockUid}.${blockField?.uid}`;
-                        OptionsForRow.push(getMatchingOption(
-                          blockField,
-                          true,
-                          fieldDisplayName,
-                          fieldUid
-                        ));
-                      }
+  const modularBlockArray = nestedList?.filter(item => 
+    item?.contentstackFieldType === 'modular_blocks' &&
+    item?.child?.some((childBlock: FieldMapType) => 
+      childBlock?.uid === dataParentChildBlockUid
+    )
+  );
   
-                      // Recursively process nested groups within block fields
-                      if (blockField?.data_type === 'group' && blockField?.schema) {
-                        processSchema(
-                          blockField,
-                          data,
-                          array,
-                          groupArray,
-                          OptionsForRow,
-                          fieldsOfContentstack,
-                          blockDisplayName,
-                          blockUid
-                        );
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+  // Early exit if no modular block array found
+  if (!modularBlockArray || modularBlockArray.length === 0) {
+    console.warn(
+      `No modular block found for data UID: ${data?.uid}. ` +
+      `Expected parent child block UID: ${dataParentChildBlockUid}`
+    );
+    continue; // Skip to next iteration
+  }
+  
+  const parentChildBlock = modularBlockArray[0]?.child?.find(
+    (childBlock: FieldMapType) => childBlock?.uid === dataParentChildBlockUid
+  );
+  
+  // Explicit check for missing parent child block
+  if (!parentChildBlock) {
+    console.warn(
+      `Parent child block not found for UID: ${dataParentChildBlockUid}. ` +
+      `Available child blocks: ${modularBlockArray[0]?.child?.map((c: FieldMapType) => c?.uid).join(', ') || 'none'}`
+    );
+    continue; // Skip to next iteration
+  }
+  
+  // Check for missing backupFieldUid
+  if (!parentChildBlock.backupFieldUid) {
+    console.warn(
+      `Parent child block found but missing backupFieldUid. ` +
+      `Block UID: ${parentChildBlock.uid}, Title: ${parentChildBlock?.uid || 'N/A'}`
+    );
+    continue; // Skip to next iteration
+  }
+  
+  const existingChildBlockMapping = existingField[parentChildBlock.backupFieldUid];
+  
+  // Check for missing child block mapping
+  if (!existingChildBlockMapping) {
+    console.debug(
+      `No existing mapping found for backupFieldUid: ${parentChildBlock.backupFieldUid}`
+    );
+    continue; // Skip to next iteration
+  }
+  
+  const mappedChildBlockTitle = existingChildBlockMapping?.label?.split(' > ')?.pop()?.trim();
+  
+  // Check for missing mapped title
+  if (!mappedChildBlockTitle) {
+    console.warn(
+      `Could not extract mapped child block title from label: ${existingChildBlockMapping?.label}`
+    );
+    continue; // Skip to next iteration
+  }
+  
+  // Only process fields if current block matches the mapped block
+  if (mappedChildBlockTitle === blockTitle) {
+    for (const blockField of block.schema) {
+      const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
+      
+      if (checkConditions(fieldTypeToMatch, blockField, data)) {
+        const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
+        const fieldUid = `${blockUid}.${blockField?.uid}`;
+        OptionsForRow.push(getMatchingOption(
+          blockField,
+          true,
+          fieldDisplayName,
+          fieldUid
+        ));
+      }
+      
+      // Recursively process nested groups within block fields
+      if (blockField?.data_type === 'group' && blockField?.schema) {
+        processSchema(
+          blockField,
+          data,
+          array,
+          groupArray,
+          OptionsForRow,
+          fieldsOfContentstack,
+          blockDisplayName,
+          blockUid
+        );
+      }
+    }
+  } else {
+    console.debug(
+      `Block title mismatch. Expected: ${blockTitle}, Got: ${mappedChildBlockTitle}. ` +
+      `Skipping field processing for UID: ${data?.uid}`
+    );
+  }
+}
         }
       }
       return OptionsForRow;

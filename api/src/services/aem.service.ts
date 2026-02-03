@@ -591,7 +591,9 @@ function processFieldsRecursive(
         const modularBlocksArray: any[] = [];
         const aemSourcePath = field?.backupFieldUid || field?.otherCmsField?.replace?.(/ > /g, '.') || '';
         const aemSourceField = getLastKey(aemSourcePath);
-        const sourceData = aemSourceField ? (items?.[aemSourceField] || items) : items;
+        const sourceData = aemSourceField && aemSourceField in items 
+          ? items[aemSourceField] 
+          : items;
 
         if (Array.isArray(field?.schema)) {
           // Process each child block schema
@@ -1324,10 +1326,10 @@ const createEntry = async ({
       data.publish_details = [];
 
       if (contentType?.contentstackUid && data && mappedLocale) {
-        const resolvedCtUid: string =
-          (keyMapper as Record<string, string>)?.[contentType.contentstackUid] !== '' &&
-          (keyMapper as Record<string, string>)?.[contentType.contentstackUid] !== undefined
-            ? (keyMapper as Record<string, string>)[contentType.contentstackUid]
+        const mappedValue = (keyMapper as Record<string, string> | undefined)?.[contentType.contentstackUid];
+        const resolvedCtUid: string = 
+          mappedValue && mappedValue !== '' 
+            ? mappedValue 
             : contentType.contentstackUid;
 
         const message = getLogMessage(

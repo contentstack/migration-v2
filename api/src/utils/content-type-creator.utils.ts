@@ -1058,55 +1058,56 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
       );
       
       if (currentModularBlock && currentModularBlock?.blocks) {
+        // Build lookup maps for O(1) access
+        const targetBlocksMap: Map<string, any> = new Map(
+          currentModularBlock?.blocks?.map((block: any) => [block?.uid, block]) ?? []
+        );
+
+        const sourceBlocksMap: Map<string, any> = new Map(
+          field?.blocks?.map((block: any) => [block?.uid, block]) ?? []
+        );
+
         // Iterate through each child block in the source
         for (const sourceBlock of field?.blocks ?? []) {
-          // Find matching child block in target by UID
-          const targetBlock = currentModularBlock?.blocks?.find((tb: any) => 
-            tb?.uid === sourceBlock?.uid
-          );
+          const targetBlock = targetBlocksMap.get(sourceBlock?.uid);
           
-          if (targetBlock && targetBlock?.schema) {
-            // Merge the schemas of matching child blocks
+          if (targetBlock && targetBlock?.schema && Array.isArray(targetBlock?.schema)) {
+            const sourceFieldKeys = new Set(
+              sourceBlock?.schema?.map((sf: any) => `${sf?.uid}_${sf?.data_type}`) ?? []
+            );
+            
             const additionalFields = [];
             
             for (const targetField of targetBlock?.schema ?? []) {
-              // Check if this field already exists in source block
-              const existsInSource = sourceBlock?.schema?.find((sf: any) => 
-                sf?.uid === targetField?.uid && sf?.data_type === targetField?.data_type
-              );
+              const fieldKey = `${targetField?.uid}_${targetField?.data_type}`;
               
-              if (!existsInSource) {
+              if (!sourceFieldKeys.has(fieldKey)) {
                 additionalFields.push(targetField);
               }
             }
             
-            // Merge source and target fields, removing duplicates
             sourceBlock.schema = removeDuplicateFields([
-              ...sourceBlock?.schema ?? [], 
+              ...(sourceBlock?.schema ?? []), 
               ...additionalFields
             ]);
           }
         }
         
-        // Add any child blocks from target that don't exist in source
         const additionalBlocks = [];
         for (const targetBlock of currentModularBlock?.blocks ?? []) {
-          const existsInSource = field?.blocks?.find((sb: any) => 
-            sb?.uid === targetBlock?.uid
-          );
-          
-          if (!existsInSource) {
+          if (!sourceBlocksMap.has(targetBlock?.uid)) {
             additionalBlocks.push(targetBlock);
           }
         }
         
         field.blocks = removeDuplicateFields([
-          ...field?.blocks ?? [], 
+          ...(field?.blocks ?? []), 
           ...additionalBlocks
         ]);
       }
     }
   }
+  
   ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
   
   return ctData;
