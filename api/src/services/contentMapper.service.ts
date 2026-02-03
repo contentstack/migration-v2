@@ -165,6 +165,10 @@ const putTestData = async (req: Request) => {
       }); 
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
+
+    const uidMapperModel = getUidMapperDb(projectId, iteration - 1);
+    await uidMapperModel.read();
+    
     contentTypes.forEach((type: any, index: number) => {
       const entryIds: string[] = [];
       const entries = Array.isArray(type?.entryMapping) ?
@@ -177,12 +181,16 @@ const putTestData = async (req: Request) => {
                   : uuidv4();
               entry.id = id;
               entryIds.push(id);
+              
+              const uidMapperValue = entry?.otherCmsEntryUid ? uidMapperModel.data?.entry?.[idCorrector({id : entry.otherCmsEntryUid})] : ' ';
+              
               return {
                 ...entry,
                 id,
                 projectId,
                 contentTypeId: type?.id,
                 isDeleted: false,
+                contenstackEntryUid: uidMapperValue,
               };
             })
         : [];
