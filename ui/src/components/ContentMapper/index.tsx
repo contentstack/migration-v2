@@ -1703,7 +1703,7 @@ if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
   
   // Check for missing child block mapping
   if (!existingChildBlockMapping) {
-    console.debug(
+    console.error(
       `No existing mapping found for backupFieldUid: ${parentChildBlock.backupFieldUid}`
     );
     continue; // Skip to next iteration
@@ -1750,7 +1750,7 @@ if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
       }
     }
   } else {
-    console.debug(
+    console.error(
       `Block title mismatch. Expected: ${blockTitle}, Got: ${mappedChildBlockTitle}. ` +
       `Skipping field processing for UID: ${data?.uid}`
     );
