@@ -3,4 +3,6 @@ declare module 'migration-coremedia' {
     constructor();
     start(): Promise<void>;
   }
+  
+  export function extractLocales(dir: string): Set<string>;
 }
