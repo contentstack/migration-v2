@@ -79,8 +79,5 @@
     "tsx": "^4.7.1",
     "typescript": "^5.4.3"
   },
-  "keywords": [],
-  "overrides": {
-    "lodash": "^4.17.23"
-  }
+  "keywords": []
 }
