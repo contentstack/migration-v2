@@ -89,6 +89,7 @@ const putTestData = async (req: Request) => {
           item.advanced.initial = structuredClone(item?.advanced);
         }
         if (item?.refrenceTo) {
+        if (item?.refrenceTo) {
           item.initialRefrenceTo = item?.refrenceTo;
         }
       })
@@ -201,8 +202,7 @@ const putTestData = async (req: Request) => {
         Number?.isInteger?.(index) &&
         index >= 0 &&
         index < contentType?.length
-      ) 
-      {
+      ) {
         contentType[index].entryMapping = entryIds;
       }
     });
@@ -2024,6 +2024,130 @@ const getEntryMapper = async (req: Request) => {
   }
 };
 
+const updateEntryStatus = async (req: Request) => { 
+  const { projectId } = req.params;
+  const { otherCmsEntryUids } = req.body;
+  const validatedUids: string[] = Array.isArray(otherCmsEntryUids) ? otherCmsEntryUids : [];
+  const srcFunc = "updateEntryMapping";
+  if (isEmpty(validatedUids)) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Invalid otherCmsEntryUids"
+      )
+    );
+    return {
+      status: HTTP_CODES?.BAD_REQUEST,
+      data: {
+        message: "Invalid otherCmsEntryUids",
+      },
+    };  
+  }
+  try {
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
+    await EntryMapperModel.read();
+    const foundEntry: EntryMapper[] = [];
+    await EntryMapperModel.update((data: any) => {
+      data?.entry_mapper?.forEach((entry: any) => {
+        if (validatedUids.includes(entry?.otherCmsEntryUid)) {
+          entry.isUpdate = true;
+          foundEntry.push(entry);
+        }
+      });
+    });
+
+    if (foundEntry) {
+      return {
+        status: HTTP_CODES?.OK,
+        data: foundEntry
+      };
+    }
+
+    return {
+      status: HTTP_CODES?.NOT_FOUND,
+      data: {
+        message: "Entry not found",
+      },
+    };
+
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while updating entry mapping",
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+
+
+}
+
+
+const updateEntryMapping = async (req: Request) => {
+  const { projectId, otherCmsEntryUid } = req.params;
+
+  const srcFunc = "updateEntryMapping";
+  try {
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
+    await EntryMapperModel.read();
+    let foundEntry: any = null;
+    await EntryMapperModel.update((data: any) => {
+      data?.entry_mapper?.forEach((entry: any) => {
+        if (otherCmsEntryUid === entry?.otherCmsEntryUid) {
+          entry.isUpdate = true;
+          foundEntry = entry;
+        }
+      });
+    });
+
+    if (foundEntry) {
+      return {
+        status: HTTP_CODES?.OK,
+        data: foundEntry
+      };
+    }
+
+    return {
+      status: HTTP_CODES?.NOT_FOUND,
+      data: {
+        message: "Entry not found",
+      },
+    };
+
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while updating entry mapping",
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+
+
+}
+
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -2040,6 +2164,6 @@ export const contentMapperService = {
   getSingleGlobalField,
   getEntryMapping,
   updateEntryStatus
-  getExistingTaxonomies,,
-  getEntryMapping,
+  getExistingTaxonomies,
+  updateEntryMapping
 };
