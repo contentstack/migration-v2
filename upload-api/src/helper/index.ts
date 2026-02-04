@@ -4,7 +4,6 @@ import path from 'path';
 import xml2js from 'xml2js';
 import { HTTP_TEXTS, HTTP_CODES, MACOSX_FOLDER } from '../constants';
 import logger from '../utils/logger';
-import mysql from 'mysql2/promise';
 
 const getFileName = (params: { Key: string }) => {
   const obj: { fileName?: string; fileExt?: string } = {};
@@ -209,57 +208,5 @@ function deleteFolderSync(folderPath: string): void {
     fs.rmdirSync(folderPath);
   }
 }
-
-/**
- * Establishes a MySQL database connection
- * @param config - Database configuration object
- * @returns Promise that resolves to the connection object or null if connection fails
- */
-const createDbConnection = async (config: any): Promise<mysql.Connection | null> => {
-  try {
-    // Create the connection with config values (mysql2/promise returns a Promise)
-    const connection = await mysql.createConnection({
-      host: config?.host,
-      user: config?.user,
-      password: config?.password,
-      database: config?.database,
-      port: Number(config?.port)
-    });
-
-    logger.info('Database connection established successfully', {
-      host: config?.host,
-      database: config?.database
-    });
-
-    return connection;
-  } catch (error: any) {
-    logger.error('Failed to create database connection:', {
-      error: error.message,
-      stack: error.stack
-    });
-    return null;
-  }
-};
-
-/**
- * Gets a MySQL database connection
- * @param config - Database configuration object
- * @returns Promise that resolves to the connection object
- */
-const getDbConnection = async (config: any): Promise<mysql.Connection> => {
-  try {
-    const connection = await createDbConnection(config);
-    if (!connection) {
-      throw new Error('Could not establish database connection');
-    }
-    return connection;
-  } catch (error: any) {
-    logger.error('Database connection error:', {
-      message: error.message,
-      stack: error.stack
-    });
-    throw error; // Re-throw so caller can handle it
-  }
-};
 
 export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson };

@@ -24,7 +24,5 @@ export default {
     base_url: process.env.DRUPAL_ASSETS_BASE_URL || 'https://www.rice.edu/', // Dynamic: Can be any domain, with/without trailing slash
     public_path: process.env.DRUPAL_ASSETS_PUBLIC_PATH || 'sites/g/files/bxs2566/files' // Dynamic: Can be any path, with/without slashes
   },
-  localPath:
-    process.env.CONTAINER_PATH ||
-    '/Users/saurav.upadhyay/Expert Service/Contentstack Migration/migration-v2/contentful.json'
+  localPath: process.env.CONTAINER_PATH || ''
 };

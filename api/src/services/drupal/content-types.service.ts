@@ -83,7 +83,19 @@ export const generateContentTypeSchemas = async (
     );
 
     if (fieldsWithTypeChanges.length > 0) {
-      fieldsWithTypeChanges.forEach((field: any) => {});
+      for (const field of fieldsWithTypeChanges) {
+        const fieldChangeMessage = getLogMessage(
+          srcFunc,
+          `Field type changed: ${field.backupFieldType} -> ${field.contentstackFieldType}`,
+          { field },
+        );
+        await customLogger(
+          projectId,
+          destination_stack_id,
+          'info',
+          fieldChangeMessage,
+        );
+      }
     }
 
     // Build complete schema array (NO individual files)
