@@ -168,31 +168,31 @@ const putTestData = async (req: Request) => {
 
     const uidMapperModel = getUidMapperDb(projectId, iteration - 1);
     await uidMapperModel.read();
-    
+
     contentTypes.forEach((type: any, index: number) => {
       const entryIds: string[] = [];
       const entries = Array.isArray(type?.entryMapping) ?
         type.entryMapping
-            .filter(Boolean)
-            .map((entry: any) => {
-              const id =
-                entry?.id ?
-                  entry.id.replace(/[{}]/g, '').toLowerCase()
-                  : uuidv4();
-              entry.id = id;
-              entryIds.push(id);
-              
-              const uidMapperValue = entry?.otherCmsEntryUid ? uidMapperModel.data?.entry?.[idCorrector({id : entry.otherCmsEntryUid})] : ' ';
-              
-              return {
-                ...entry,
-                id,
-                projectId,
-                contentTypeId: type?.id,
-                isDeleted: false,
-                contenstackEntryUid: uidMapperValue,
-              };
-            })
+          .filter(Boolean)
+          .map((entry: any) => {
+            const id =
+              entry?.id ?
+                entry.id.replace(/[{}]/g, '').toLowerCase()
+                : uuidv4();
+            entry.id = id;
+            entryIds.push(id);
+
+            const uidMapperValue = entry?.otherCmsEntryUid ? uidMapperModel.data?.entry?.[idCorrector({ id: entry.otherCmsEntryUid })] : ' ';
+
+            return {
+              ...entry,
+              id,
+              projectId,
+              contentTypeId: type?.id,
+              isDeleted: false,
+              contenstackEntryUid: uidMapperValue,
+            };
+          })
         : [];
       //console.info('🚀 ~ putTestData ~ entries:', entries);
       EntryMapperModel.update((data: any) => {
@@ -207,8 +207,7 @@ const putTestData = async (req: Request) => {
         Number?.isInteger?.(index) &&
         index >= 0 &&
         index < contentType?.length
-      ) 
-      {
+      ) {
         contentType[index].entryMapping = entryIds;
       }
     });
@@ -904,9 +903,11 @@ const updateContentType = async (req: Request) => {
           FieldMapperModel.update((data: any) => {
             const existingField = data?.field_mapper?.[fieldIndex];
             const preservedInitial = existingField?.advanced?.initial;
+            
 
 
             data.field_mapper[fieldIndex] = field;
+            
 
 
             if (preservedInitial && field?.advanced) {
