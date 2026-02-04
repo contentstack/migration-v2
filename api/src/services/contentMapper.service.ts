@@ -190,7 +190,7 @@ const putTestData = async (req: Request) => {
               projectId,
               contentTypeId: type?.id,
               isDeleted: false,
-              contenstackEntryUid: uidMapperValue,
+              contentstackEntryUid: uidMapperValue,
             };
           })
         : [];
