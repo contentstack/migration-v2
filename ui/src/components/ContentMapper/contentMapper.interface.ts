@@ -112,6 +112,7 @@ export interface FieldMetadata {
   allow_json_rte?: boolean;
 }
 export interface ContentTypesSchema {
+  blocks?: ContentTypesSchema[];
   display_type: string;
   data_type?:
     | 'text'
@@ -124,7 +125,9 @@ export interface ContentTypesSchema {
     | 'boolean'
     | 'link'
     | 'Marketplace app'
-    | 'Extension';
+    | 'Extension'
+    | 'blocks'   
+    | 'modular_blocks_child';  
   display_name: string;
   enum?: any;
   error_messages?: ErrorMessages;
