@@ -318,22 +318,25 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
       if (fieldType === 'modular_blocks') {
         // Get modular block children
         const mbChildren = fields.filter(f => {
-          const fUid = f.contentstackFieldUid || '';
-          return f.contentstackFieldType === 'modular_blocks_child' &&
+          if (!f) return false;
+          const fUid = f?.contentstackFieldUid || '';
+          if (!fUid || !fieldUid) return false;
+          return f?.contentstackFieldType === 'modular_blocks_child' &&
             fUid.startsWith(fieldUid + '.') &&
             !fUid.substring(fieldUid.length + 1).includes('.');
         });
 
         result.schema = mbChildren.map(child => {
-          const childUid = getLastSegmentNew(child.contentstackFieldUid, '.');
-          const childDisplay = child.display_name || getLastSegmentNew(child.contentstackField || '', '>').trim();
+          const childFieldUid = child?.contentstackFieldUid || '';
+          const childUid = getLastSegmentNew(childFieldUid, '.');
+          const childDisplay = child?.display_name || getLastSegmentNew(child?.contentstackField || '', '>').trim();
 
           return {
             ...child,
             uid: childUid,
             display_name: childDisplay,
             // Recursively build schema for fields inside this child block
-            schema: buildSchemaTree(fields, child.contentstackFieldUid, 'modular_blocks_child', child?.backupFieldUid)
+            schema: buildSchemaTree(fields, childFieldUid, 'modular_blocks_child', child?.backupFieldUid)
           };
         });
       } else if (fieldType === 'group' ||
