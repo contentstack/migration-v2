@@ -48,35 +48,21 @@ function applyLocaleTransformations(originalLocales) {
 const extractLocale = async (systemConfig) => {
   let connection;
   try {
-    console.log('🌐 extractLocale: Starting locale extraction...');
-    console.log('🌐 extractLocale: MySQL config:', {
-      host: systemConfig?.mysql?.host,
-      user: systemConfig?.mysql?.user,
-      database: systemConfig?.mysql?.database,
-      port: systemConfig?.mysql?.port || 3306
-    });
-
     // Get database connection - pass your MySQL config
     connection = await dbConnection(systemConfig);
-    console.log('🌐 extractLocale: Database connection created');
 
     // Simple query to get all unique language codes from content
     const localeQuery =
       "SELECT DISTINCT langcode FROM node_field_data WHERE langcode IS NOT NULL AND langcode != '' ORDER BY langcode";
 
-    console.log('🌐 extractLocale: Executing query...');
     const [localeRows] = await connection.promise().query(localeQuery);
-    console.log('🌐 extractLocale: Query returned', localeRows?.length || 0, 'rows');
 
     const originalLocales = localeRows
       .map((row) => row.langcode)
       .filter((locale) => locale && locale.trim());
 
-    console.log('🌐 extractLocale: Original locales:', originalLocales);
-
     // Apply locale transformation rules for UI consistency
     const transformedLocales = applyLocaleTransformations(originalLocales);
-    console.log('🌐 extractLocale: Transformed locales:', transformedLocales);
 
     return transformedLocales;
   } catch (error) {
@@ -87,8 +73,8 @@ const extractLocale = async (systemConfig) => {
     if (connection) {
       try {
         connection.end();
-        console.log('🌐 extractLocale: Connection closed');
       } catch (e) {
+        console.error('❌ extractLocale: Error closing connection:', e?.message || e);
         // Ignore close errors
       }
     }

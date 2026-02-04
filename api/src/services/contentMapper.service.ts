@@ -174,7 +174,7 @@ const putTestData = async (req: Request) => {
       if (req?.body?.taxonomies && Array.isArray(req.body.taxonomies)) {
         ProjectModelLowdb.data.projects[index].taxonomies = req.body.taxonomies;
         logger.info(
-          `✓ Stored ${req.body.taxonomies.length} taxonomies for project ${projectId}`,
+          `✓ Stored ${req.body.taxonomies.length} taxonomies for project ${projectId}`
         );
       }
 
@@ -195,7 +195,7 @@ const putTestData = async (req: Request) => {
   } catch (error: any) {
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -225,8 +225,8 @@ const getContentTypes = async (req: Request) => {
       logger.error(
         getLogMessage(
           sourceFn,
-          `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`,
-        ),
+          `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+        )
       );
       throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
     }
@@ -236,12 +236,12 @@ const getContentTypes = async (req: Request) => {
 
     const content_mapper: any = [];
     logger.info(
-      `📦 [getContentTypes] Looking for content mappers with projectId: ${projectId}`,
+      `📦 [getContentTypes] Looking for content mappers with projectId: ${projectId}`
     );
     logger.info(
       `📦 [getContentTypes] contentMapperId array: ${JSON.stringify(
-        contentMapperId,
-      )}`,
+        contentMapperId
+      )}`
     );
 
     contentMapperId.map((data: any) => {
@@ -255,17 +255,17 @@ const getContentTypes = async (req: Request) => {
     });
 
     logger.info(
-      `📦 [getContentTypes] Found ${content_mapper.length} content types`,
+      `📦 [getContentTypes] Found ${content_mapper.length} content types`
     );
 
     if (!isEmpty(content_mapper)) {
       if (search) {
         const filteredResult = content_mapper
           .filter((item: any) =>
-            item?.otherCmsTitle?.toLowerCase().includes(search),
+            item?.otherCmsTitle?.toLowerCase().includes(search)
           )
           ?.sort((a: any, b: any) =>
-            a.otherCmsTitle.localeCompare(b.otherCmsTitle),
+            a.otherCmsTitle.localeCompare(b.otherCmsTitle)
           );
         totalCount = filteredResult.length;
         result = filteredResult.slice(skip, Number(skip) + Number(limit));
@@ -273,7 +273,7 @@ const getContentTypes = async (req: Request) => {
         totalCount = content_mapper.length;
         result = content_mapper
           ?.sort((a: any, b: any) =>
-            a.otherCmsTitle.localeCompare(b.otherCmsTitle),
+            a.otherCmsTitle.localeCompare(b.otherCmsTitle)
           )
           ?.slice(skip, Number(skip) + Number(limit));
       }
@@ -290,13 +290,13 @@ const getContentTypes = async (req: Request) => {
       getLogMessage(
         sourceFn,
         'Error occurred while while getting contentTypes of projects',
-        error,
-      ),
+        error
+      )
     );
 
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -331,8 +331,8 @@ const getFieldMapping = async (req: Request) => {
       logger.error(
         getLogMessage(
           srcFunc,
-          `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`,
-        ),
+          `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        )
       );
       throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
     }
@@ -360,7 +360,7 @@ const getFieldMapping = async (req: Request) => {
     if (!isEmpty(fieldMapping)) {
       if (search) {
         filteredResult = fieldMapping?.filter?.((item: any) =>
-          item?.otherCmsField?.toLowerCase().includes(search),
+          item?.otherCmsField?.toLowerCase().includes(search)
         );
         totalCount = filteredResult.length;
         result = filteredResult.slice(skip, Number(skip) + Number(limit));
@@ -381,13 +381,13 @@ const getFieldMapping = async (req: Request) => {
       getLogMessage(
         srcFunc,
         'Error occurred while getting field mapping of projects',
-        error,
-      ),
+        error
+      )
     );
 
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -405,7 +405,7 @@ const getExistingContentTypes = async (req: Request) => {
 
   const authtoken = await getAuthtoken(
     token_payload?.region,
-    token_payload?.user_id,
+    token_payload?.user_id
   );
 
   await ProjectModelLowdb.read();
@@ -431,7 +431,7 @@ const getExistingContentTypes = async (req: Request) => {
       headers,
       100,
       'getExistingContentTypes',
-      'content_types',
+      'content_types'
     );
 
     const processedContentTypes = contentTypes.map((singleCT: any) => ({
@@ -449,7 +449,7 @@ const getExistingContentTypes = async (req: Request) => {
           method: 'GET',
           url: `${baseUrl}/${contentTypeUID}`,
           headers,
-        }),
+        })
       );
 
       selectedContentType = {
@@ -498,7 +498,7 @@ const getExistingGlobalFields = async (req: Request) => {
   try {
     const authtoken = await getAuthtoken(
       tokenPayload.region,
-      tokenPayload.user_id,
+      tokenPayload.user_id
     );
 
     await ProjectModelLowdb.read();
@@ -538,7 +538,7 @@ const getExistingGlobalFields = async (req: Request) => {
       headers,
       100,
       'getExistingGlobalFields',
-      'global_fields',
+      'global_fields'
     );
 
     const processedGlobalFields = globalFields.map((global: any) => ({
@@ -556,7 +556,7 @@ const getExistingGlobalFields = async (req: Request) => {
           method: 'GET',
           url: `${baseUrl}/${globalFieldUID}`,
           headers,
-        }),
+        })
       );
 
       // if (err) {
@@ -607,7 +607,7 @@ const updateContentType = async (req: Request) => {
       owner: token_payload?.user_id,
     },
     srcFun,
-    true,
+    true
   )) as number;
   const project = ProjectModelLowdb.data.projects[projectIndex];
 
@@ -620,8 +620,8 @@ const updateContentType = async (req: Request) => {
       getLogMessage(
         srcFun,
         HTTP_TEXTS.CANNOT_UPDATE_CONTENT_MAPPING,
-        token_payload,
-      ),
+        token_payload
+      )
     );
     return {
       status: 400,
@@ -634,8 +634,8 @@ const updateContentType = async (req: Request) => {
     logger.error(
       getLogMessage(
         srcFun,
-        `${HTTP_TEXTS.INVALID_CONTENT_TYPE} Id: ${contentTypeId}`,
-      ),
+        `${HTTP_TEXTS.INVALID_CONTENT_TYPE} Id: ${contentTypeId}`
+      )
     );
     return {
       status: 400,
@@ -663,9 +663,9 @@ const updateContentType = async (req: Request) => {
               srcFun,
               `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
                 '$',
-                'contentstackFieldType or contentstackFieldUid',
-              )}`,
-            ),
+                'contentstackFieldType or contentstackFieldUid'
+              )}`
+            )
           );
           await ContentTypesMapperModelLowdb.update((data: any) => {
             data.ContentTypesMappers[updateIndex].status =
@@ -682,7 +682,7 @@ const updateContentType = async (req: Request) => {
             status: 400,
             message: `${VALIDATION_ERRORS.STRING_REQUIRED.replace(
               '$',
-              'contentstackFieldType or contentstackFieldUid',
+              'contentstackFieldType or contentstackFieldUid'
             )}`,
           };
         }
@@ -714,8 +714,8 @@ const updateContentType = async (req: Request) => {
       logger.error(
         getLogMessage(
           srcFun,
-          `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`,
-        ),
+          `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+        )
       );
       return {
         status: 404,
@@ -728,7 +728,7 @@ const updateContentType = async (req: Request) => {
       fieldMapping.forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
           (f: any) =>
-            f?.id === field?.id && f?.contentTypeId === field?.contentTypeId,
+            f?.id === field?.id && f?.contentTypeId === field?.contentTypeId
         );
         if (fieldIndex > -1 && field?.contentstackFieldType !== '') {
           FieldMapperModel.update((data: any) => {
@@ -764,8 +764,8 @@ const updateContentType = async (req: Request) => {
       getLogMessage(
         srcFun,
         `Error while updating ContentType Id: ${contentTypeId}`,
-        error,
-      ),
+        error
+      )
     );
     return {
       status: error?.status || 500,
@@ -798,7 +798,7 @@ const resetToInitialMapping = async (req: Request) => {
       owner: token_payload?.user_id,
     },
     srcFunc,
-    true,
+    true
   )) as number;
 
   const project = ProjectModelLowdb.data.projects[projectIndex];
@@ -815,8 +815,8 @@ const resetToInitialMapping = async (req: Request) => {
       getLogMessage(
         srcFunc,
         HTTP_TEXTS.CANNOT_RESET_CONTENT_MAPPING,
-        token_payload,
-      ),
+        token_payload
+      )
     );
     throw new BadRequestError(HTTP_TEXTS.CANNOT_RESET_CONTENT_MAPPING);
   }
@@ -840,8 +840,8 @@ const resetToInitialMapping = async (req: Request) => {
     logger.error(
       getLogMessage(
         srcFunc,
-        `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`,
-      ),
+        `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
+      )
     );
     throw new BadRequestError(HTTP_TEXTS.INVALID_CONTENT_TYPE);
   }
@@ -854,7 +854,7 @@ const resetToInitialMapping = async (req: Request) => {
           (f: any) =>
             f?.id === field?.id &&
             f?.projectId === projectId &&
-            f?.contentTypeId === contentTypeId,
+            f?.contentTypeId === contentTypeId
         );
         if (fieldIndex > -1) {
           FieldMapperModel.update((data: any) => {
@@ -903,12 +903,12 @@ const resetToInitialMapping = async (req: Request) => {
         srcFunc,
         `Error occurred while resetting the field mapping for the ContentType ID: ${contentTypeId}`,
         {},
-        error,
-      ),
+        error
+      )
     );
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.status || error.statusCode || HTTP_CODES.SERVER_ERROR,
+      error?.status || error.statusCode || HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -934,8 +934,8 @@ const resetAllContentTypesMapping = async (projectId: string) => {
     logger.error(
       getLogMessage(
         srcFunc,
-        `${HTTP_TEXTS.CONTENTMAPPER_NOT_FOUND} projectId: ${projectId}`,
-      ),
+        `${HTTP_TEXTS.CONTENTMAPPER_NOT_FOUND} projectId: ${projectId}`
+      )
     );
     throw new BadRequestError(HTTP_TEXTS.CONTENTMAPPER_NOT_FOUND);
   }
@@ -943,8 +943,8 @@ const resetAllContentTypesMapping = async (projectId: string) => {
     logger.error(
       getLogMessage(
         srcFunc,
-        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`,
-      ),
+        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+      )
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
@@ -1006,12 +1006,12 @@ const resetAllContentTypesMapping = async (projectId: string) => {
         srcFunc,
         `Error occurred while reseting all the content types mapping for the Project [Id: ${projectId}]`,
         {},
-        error,
-      ),
+        error
+      )
     );
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -1034,8 +1034,8 @@ const removeMapping = async (projectId: string) => {
     logger.error(
       getLogMessage(
         srcFunc,
-        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`,
-      ),
+        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+      )
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
@@ -1099,12 +1099,12 @@ const removeMapping = async (projectId: string) => {
         srcFunc,
         `Error occurred while removing the content mapping for the Project [Id: ${projectId}]`,
         {},
-        error,
-      ),
+        error
+      )
     );
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -1120,7 +1120,7 @@ const getSingleContentTypes = async (req: Request) => {
 
   const authtoken = await getAuthtoken(
     token_payload?.region,
-    token_payload?.user_id,
+    token_payload?.user_id
   );
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain
@@ -1139,7 +1139,7 @@ const getSingleContentTypes = async (req: Request) => {
         api_key: stackId,
         authtoken: authtoken,
       },
-    }),
+    })
   );
 
   if (err)
@@ -1167,7 +1167,7 @@ const getSingleGlobalField = async (req: Request) => {
 
   const authtoken = await getAuthtoken(
     token_payload?.region,
-    token_payload?.user_id,
+    token_payload?.user_id
   );
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain
@@ -1186,7 +1186,7 @@ const getSingleGlobalField = async (req: Request) => {
         api_key: stackId,
         authtoken: authtoken,
       },
-    }),
+    })
   );
 
   if (err)
@@ -1221,8 +1221,8 @@ const removeContentMapper = async (req: Request) => {
     logger.error(
       getLogMessage(
         srcFunc,
-        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`,
-      ),
+        `${HTTP_TEXTS.PROJECT_NOT_FOUND} projectId: ${projectId}`
+      )
     );
     throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
   }
@@ -1235,7 +1235,7 @@ const removeContentMapper = async (req: Request) => {
           .find({ id: cId, projectId: projectId })
           .value();
       return contentTypeData;
-    },
+    }
   );
 
   try {
@@ -1289,12 +1289,12 @@ const removeContentMapper = async (req: Request) => {
         srcFunc,
         `Error occurred while removing the content mapping for the Project [Id: ${projectId}]`,
         {},
-        error,
-      ),
+        error
+      )
     );
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -1322,7 +1322,7 @@ const updateContentMapper = async (req: Request) => {
       owner: token_payload?.user_id,
     },
     srcFunc,
-    true,
+    true
   )) as number;
 
   try {
@@ -1335,8 +1335,8 @@ const updateContentMapper = async (req: Request) => {
       getLogMessage(
         srcFunc,
         `Content mapping for project [Id : ${projectId}] has been successfully updated.`,
-        token_payload,
-      ),
+        token_payload
+      )
     );
     return {
       status: HTTP_CODES.OK,
@@ -1350,12 +1350,12 @@ const updateContentMapper = async (req: Request) => {
         srcFunc,
         `Error occurred while updating content mapping for project [Id : ${projectId}].`,
         token_payload,
-        error,
-      ),
+        error
+      )
     );
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
 };
@@ -1395,12 +1395,12 @@ const getExistingTaxonomies = async (req: Request) => {
         source: 'source_cms',
       }));
       logger.info(
-        `✓ Found ${sourceTaxonomies.length} source taxonomies in project database`,
+        `✓ Found ${sourceTaxonomies.length} source taxonomies in project database`
       );
     } else {
       // Fallback: Try reading from migration-data files
       logger.warn(
-        'No taxonomies found in project database, checking fallback paths...',
+        'No taxonomies found in project database, checking fallback paths...'
       );
 
       // Path 1: Check api/migration-data (processed taxonomies)
@@ -1413,7 +1413,7 @@ const getExistingTaxonomies = async (req: Request) => {
           MIGRATION_DATA_CONFIG.DATA,
           sanitizedStackId,
           MIGRATION_DATA_CONFIG.TAXONOMIES_DIR_NAME,
-          MIGRATION_DATA_CONFIG.TAXONOMIES_FILE_NAME,
+          MIGRATION_DATA_CONFIG.TAXONOMIES_FILE_NAME
         );
 
         // Resolve to absolute path and validate it's within allowed directory
@@ -1425,7 +1425,7 @@ const getExistingTaxonomies = async (req: Request) => {
         const relativePath = path.relative(baseDirectory, resolvedPath);
         if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
           logger.error(
-            `Path traversal attempt detected: ${resolvedPath} is outside ${baseDirectory}`,
+            `Path traversal attempt detected: ${resolvedPath} is outside ${baseDirectory}`
           );
           throw new BadRequestError('Invalid file path');
         }
@@ -1442,7 +1442,7 @@ const getExistingTaxonomies = async (req: Request) => {
               path.isAbsolute(realRelativePath)
             ) {
               logger.error(
-                `Symlink escape attempt detected: ${realPath} is outside ${baseDirectory}`,
+                `Symlink escape attempt detected: ${realPath} is outside ${baseDirectory}`
               );
               throw new BadRequestError('Invalid file path');
             }
@@ -1456,18 +1456,18 @@ const getExistingTaxonomies = async (req: Request) => {
                 name: data.name || uid,
                 description: data.description || '',
                 source: 'source_cms',
-              }),
+              })
             );
             sourceTaxonomies.push(...apiTaxonomies);
           }
         } catch (fileError: any) {
           logger.error(
-            `Error reading migration-data taxonomies: ${fileError.message}`,
+            `Error reading migration-data taxonomies: ${fileError.message}`
           );
         }
       } else {
         logger.warn(
-          'stackId is null or undefined, skipping api/migration-data path. Will try upload-api fallback.',
+          'stackId is null or undefined, skipping api/migration-data path. Will try upload-api fallback.'
         );
       }
 
@@ -1481,7 +1481,7 @@ const getExistingTaxonomies = async (req: Request) => {
             'upload-api',
             'drupalMigrationData',
             'taxonomySchema',
-            'taxonomySchema.json',
+            'taxonomySchema.json'
           );
           const uploadApiResolved = path.resolve(uploadApiPath);
 
@@ -1496,7 +1496,7 @@ const getExistingTaxonomies = async (req: Request) => {
             if (stats && stats.isFile() && !stats.isSymbolicLink()) {
               const taxonomyData = await fs.promises.readFile(
                 uploadApiResolved,
-                'utf8',
+                'utf8'
               );
               const taxonomiesArray = JSON.parse(taxonomyData);
 
@@ -1514,13 +1514,13 @@ const getExistingTaxonomies = async (req: Request) => {
 
               sourceTaxonomies.push(...uploadApiTaxonomies);
               logger.info(
-                `✓ Found ${uploadApiTaxonomies.length} taxonomies from upload-api drupalMigrationData`,
+                `✓ Found ${uploadApiTaxonomies.length} taxonomies from upload-api drupalMigrationData`
               );
             }
           }
         } catch (uploadApiError: any) {
           logger.warn(
-            `Could not read taxonomies from upload-api: ${uploadApiError.message}`,
+            `Could not read taxonomies from upload-api: ${uploadApiError.message}`
           );
         }
       }
@@ -1533,7 +1533,7 @@ const getExistingTaxonomies = async (req: Request) => {
       try {
         const authtoken = await getAuthtoken(
           token_payload.region,
-          token_payload.user_id,
+          token_payload.user_id
         );
 
         const baseUrl = `${config.CS_API[
@@ -1551,7 +1551,7 @@ const getExistingTaxonomies = async (req: Request) => {
           headers,
           100,
           'getExistingTaxonomies',
-          'taxonomies',
+          'taxonomies'
         );
 
         destinationTaxonomies = taxonomies.map((taxonomy: any) => ({
@@ -1562,7 +1562,7 @@ const getExistingTaxonomies = async (req: Request) => {
         }));
       } catch (apiError: any) {
         logger.error(
-          `Error fetching destination taxonomies: ${apiError.message}`,
+          `Error fetching destination taxonomies: ${apiError.message}`
         );
       }
     }

@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
@@ -101,8 +103,6 @@ const executeQuery = (
   });
 };
 
-const publicPathCache = new Map<string, string>();
-
 // AUTO-DETECT PUBLIC PATH FROM DATABASE
 const detectPublicPath = async (
   connection: mysql.Connection,
@@ -130,7 +130,9 @@ const detectPublicPath = async (
           return detectedPath.endsWith('/') ? detectedPath : `${detectedPath}/`;
         }
       }
-    } catch (configErr) {}
+    } catch (configErr) {
+      console.error(`Error detecting public path: ${configErr}`);
+    }
 
     // Final fallback: Try to detect from an actual file by testing URLs
     const sampleFileQuery = `
@@ -520,10 +522,7 @@ const saveAsset = async (
         );
       } else {
         // After 3 retries failed, try fallback paths (if not already tried)
-        const commonPaths = [
-          '/sites/default/files/',
-          '/sites/all/files/',
-          ];
+        const commonPaths = ['/sites/default/files/', '/sites/all/files/'];
 
         // Only try fallback if current path is the user-provided path
         const isUserProvidedPath =

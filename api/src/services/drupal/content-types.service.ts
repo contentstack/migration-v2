@@ -19,7 +19,7 @@ const { DATA, CONTENT_TYPES_DIR_NAME, CONTENT_TYPES_SCHEMA_FILE } =
  */
 export const generateContentTypeSchemas = async (
   destination_stack_id: string,
-  projectId: string,
+  projectId: string
 ): Promise<void> => {
   const srcFunc = 'generateContentTypeSchemas';
 
@@ -27,7 +27,7 @@ export const generateContentTypeSchemas = async (
     const message = getLogMessage(
       srcFunc,
       `Generating content type schemas from upload-api drupal schema...`,
-      {},
+      {}
     );
     await customLogger(projectId, destination_stack_id, 'info', message);
 
@@ -37,14 +37,14 @@ export const generateContentTypeSchemas = async (
       '..',
       'upload-api',
       'drupalMigrationData',
-      'drupalSchema',
+      'drupalSchema'
     );
 
     // Path to API content types directory
     const apiContentTypesPath = path.join(
       DATA,
       destination_stack_id,
-      CONTENT_TYPES_DIR_NAME,
+      CONTENT_TYPES_DIR_NAME
     );
 
     // Ensure API content types directory exists
@@ -52,7 +52,7 @@ export const generateContentTypeSchemas = async (
 
     if (!fs.existsSync(uploadApiSchemaPath)) {
       throw new Error(
-        `Upload-API schema not found at: ${uploadApiSchemaPath}. Please run upload-api migration first.`,
+        `Upload-API schema not found at: ${uploadApiSchemaPath}. Please run upload-api migration first.`
       );
     }
 
@@ -63,7 +63,7 @@ export const generateContentTypeSchemas = async (
 
     if (schemaFiles.length === 0) {
       throw new Error(
-        `No schema files found in upload-api directory: ${uploadApiSchemaPath}`,
+        `No schema files found in upload-api directory: ${uploadApiSchemaPath}`
       );
     }
 
@@ -72,14 +72,14 @@ export const generateContentTypeSchemas = async (
     await ContentTypesMapperModelLowdb.read();
 
     const savedFieldMappings = FieldMapperModel.data.field_mapper.filter(
-      (field: any) => field && field.projectId === projectId,
+      (field: any) => field && field.projectId === projectId
     );
 
     // Log fields with UI changes
     const fieldsWithTypeChanges = savedFieldMappings.filter(
       (field: any) =>
         field.contentstackFieldType &&
-        field.backupFieldType !== field.contentstackFieldType,
+        field.backupFieldType !== field.contentstackFieldType
     );
 
     if (fieldsWithTypeChanges.length > 0) {
@@ -87,13 +87,13 @@ export const generateContentTypeSchemas = async (
         const fieldChangeMessage = getLogMessage(
           srcFunc,
           `Field type changed: ${field.backupFieldType} -> ${field.contentstackFieldType}`,
-          { field },
+          { field }
         );
         await customLogger(
           projectId,
           destination_stack_id,
           'info',
-          fieldChangeMessage,
+          fieldChangeMessage
         );
       }
     }
@@ -105,17 +105,17 @@ export const generateContentTypeSchemas = async (
       try {
         const uploadApiSchemaFilePath = path.join(
           uploadApiSchemaPath,
-          schemaFile,
+          schemaFile
         );
         const uploadApiSchema = JSON.parse(
-          fs.readFileSync(uploadApiSchemaFilePath, 'utf8'),
+          fs.readFileSync(uploadApiSchemaFilePath, 'utf8')
         );
 
         // Convert upload-api schema to API format WITH saved field mappings from UI
         const apiSchema = convertUploadApiSchemaToApiSchema(
           uploadApiSchema,
           savedFieldMappings,
-          projectId,
+          projectId
         );
 
         // Add to combined schema array (NO individual files)
@@ -126,26 +126,26 @@ export const generateContentTypeSchemas = async (
           `Converted content type ${uploadApiSchema.uid} with ${
             uploadApiSchema.schema?.length || 0
           } fields`,
-          {},
+          {}
         );
         await customLogger(
           projectId,
           destination_stack_id,
           'info',
-          fieldMessage,
+          fieldMessage
         );
       } catch (error: any) {
         const errorMessage = getLogMessage(
           srcFunc,
           `Failed to convert schema file ${schemaFile}: ${error.message}`,
           {},
-          error,
+          error
         );
         await customLogger(
           projectId,
           destination_stack_id,
           'error',
-          errorMessage,
+          errorMessage
         );
       }
     }
@@ -153,18 +153,18 @@ export const generateContentTypeSchemas = async (
     // Write ONLY the combined schema.json file
     const combinedSchemaPath = path.join(
       apiContentTypesPath,
-      CONTENT_TYPES_SCHEMA_FILE,
+      CONTENT_TYPES_SCHEMA_FILE
     );
     await fs.promises.writeFile(
       combinedSchemaPath,
       JSON.stringify(allApiSchemas, null, 2),
-      'utf8',
+      'utf8'
     );
 
     const successMessage = getLogMessage(
       srcFunc,
       `Successfully generated ${schemaFiles.length} content type schemas from upload-api`,
-      {},
+      {}
     );
     await customLogger(projectId, destination_stack_id, 'info', successMessage);
   } catch (error: any) {
@@ -172,7 +172,7 @@ export const generateContentTypeSchemas = async (
       srcFunc,
       `Failed to generate content type schemas: ${error.message}`,
       {},
-      error,
+      error
     );
     await customLogger(projectId, destination_stack_id, 'error', errorMessage);
     throw error;
@@ -187,7 +187,7 @@ export const generateContentTypeSchemas = async (
 function convertUploadApiSchemaToApiSchema(
   uploadApiSchema: any,
   savedFieldMappings: any[] = [],
-  projectId?: string,
+  projectId?: string
 ): any {
   const apiSchema = {
     title: uploadApiSchema.title,
@@ -208,7 +208,7 @@ function convertUploadApiSchemaToApiSchema(
           mapping.contentstackFieldUid === uploadField.contentstackFieldUid ||
           mapping.contentstackFieldUid === uploadField.uid ||
           mapping.uid === uploadField.contentstackFieldUid ||
-          mapping.uid === uploadField.uid,
+          mapping.uid === uploadField.uid
       );
 
       // Use UI-selected field type if available, otherwise use upload-api type

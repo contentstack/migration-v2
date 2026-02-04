@@ -8,10 +8,13 @@ const fs = require('fs');
 const mysql = require('mysql2');
 
 const readFile = function (filePath, parse) {
-  parse = typeof parse == 'undefined' ? true : parse;
+  parse = typeof parse === 'undefined' ? true : parse;
   filePath = path.resolve(filePath);
   let data;
-  if (fs.existsSync(filePath)) data = parse ? JSON.parse(fs.readFileSync(filePath, 'utf-8')) : data;
+  if (fs.existsSync(filePath)) {
+    const fileContents = fs.readFileSync(filePath, 'utf-8');
+    data = parse ? JSON.parse(fileContents) : fileContents;
+  }
   return data;
 };
 

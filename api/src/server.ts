@@ -40,28 +40,20 @@ export async function setLogFilePath(newPath: string) {
   try {
     // Ensure the new log file path is absolute and valid
     const absolutePath = getSafePath(path.resolve(newPath));
-    console.info(`Attempting to set new log file path: ${absolutePath}`);
     // Check if the new log file exists
     // Stop watching the old log file
     if (config.LOG_FILE_PATH) {
-      console.info(
-        `Stopping watcher for previous log file: ${config.LOG_FILE_PATH}`
-      );
       watcher.unwatch(config.LOG_FILE_PATH);
     }
     // Update the config to use the new log file path
     config.LOG_FILE_PATH = absolutePath;
 
     // Start watching the new log file
-    console.info(`Starting watcher for new log file: ${absolutePath}`);
     watcher.add(absolutePath);
   } catch (error: any) {
     console.error(`Failed to set new log file path: ${error.message}`);
     // Optional: fallback to default or previous log file if the new path is invalid
     if (config.LOG_FILE_PATH) {
-      console.info(
-        `Reverting to previous log file path: ${config.LOG_FILE_PATH}`
-      );
       watcher.add(config.LOG_FILE_PATH); // Re-watch previous log file
     }
   }

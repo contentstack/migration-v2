@@ -12,7 +12,6 @@ const handleFileProcessing = async (
   cmsType: string,
   name: string
 ) => {
-  console.log("🚀 ~ handleFileProcessing ~ fileExt:", fileExt)
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);
@@ -70,7 +69,6 @@ const handleFileProcessing = async (
       }
     }
   } else if (fileExt === 'folder') {
-    console.log("🚀 ~ handleFileProcessing ~ fileExt:", fileExt)
     if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt })) {
       logger.info('Validation success:', {
         status: HTTP_CODES?.OK,
@@ -80,7 +78,7 @@ const handleFileProcessing = async (
         status: HTTP_CODES?.OK,
         message: HTTP_TEXTS?.VALIDATION_SUCCESSFULL,
         file_details: config
-      }
+      };
     } else {
       logger.warn('Validation error:', {
         status: HTTP_CODES?.UNAUTHORIZED,

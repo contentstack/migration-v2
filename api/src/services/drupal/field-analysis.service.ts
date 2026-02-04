@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import mysql from 'mysql2';
 import { getDbConnection } from '../../helper/index.js';
 import customLogger from '../../utils/custom-logger.utils.js';

@@ -239,32 +239,29 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         if (selectedStackData) {
           setSelectedStack(selectedStackData);
           setNewStackCreated(false);
+          // Combine both updates (selectedStack, stackArray, and csLocale) into a single dispatch
+          // This eliminates the race condition from using setTimeout
           const newMigrationDataObj: INewMigration = {
-            // ...newMigrationDataRef?.current,
             ...newMigrationData,
             destination_stack: {
               ...newMigrationData?.destination_stack,
               selectedStack: selectedStackData,
-              stackArray: stackArray
-            }
-          };
-          // Dispatch the updated migration data to Redux
-          dispatch(updateNewMigrationData(newMigrationDataObj));
-        }
-        // Delay the csLocale dispatch to allow Migration/index.tsx to dispatch first
-        // This ensures sourceLocale is preserved from the ref which gets updated via useEffect
-        setTimeout(() => {
-          
-          const newMigrationDataObj: INewMigration = {
-            ...newMigrationDataRef?.current,
-            destination_stack: {
-              ...newMigrationDataRef?.current?.destination_stack,
+              stackArray: stackArray,
               csLocale: csLocales?.data?.locales
             }
           };
-          
           dispatch(updateNewMigrationData(newMigrationDataObj));
-        }, 500);
+        } else {
+          // No selected stack, but still update csLocale
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            destination_stack: {
+              ...newMigrationData?.destination_stack,
+              csLocale: csLocales?.data?.locales
+            }
+          };
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+        }
       }
     } catch (error) {
       return error;

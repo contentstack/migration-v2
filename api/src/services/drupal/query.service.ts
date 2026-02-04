@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import fs from 'fs';
 import path from 'path';
 import mysql from 'mysql2';
@@ -26,14 +28,14 @@ interface DrupalFieldData {
  * Returns true if the field only references 'profile' or has no valid targets
  */
 function shouldSkipReferenceField(
-  targetBundles: string[] | undefined,
+  targetBundles: string[] | undefined
 ): boolean {
   if (!targetBundles || targetBundles.length === 0) {
     return false; // No specific targets, will use fallback - don't skip
   }
   // Filter out profile
   const validTargets = targetBundles.filter(
-    (bundle) => bundle && bundle.toLowerCase() !== 'profile',
+    (bundle) => bundle && bundle.toLowerCase() !== 'profile'
   );
   // Skip if empty after filtering (meaning it only had profile)
   return validTargets.length === 0;
@@ -57,14 +59,10 @@ interface QueryConfig {
  */
 async function getTaxonomyFieldsForContentType(
   connection: mysql.Connection,
-  contentType: string,
+  contentType: string
 ): Promise<
   Array<{ tableName: string; columnName: string; fieldName: string }>
 > {
-  console.info(
-    `\n🏷️🏷️🏷️ [query.service] getTaxonomyFieldsForContentType called for: ${contentType}`,
-  );
-
   const taxonomyFields: Array<{
     tableName: string;
     columnName: string;
@@ -84,10 +82,6 @@ async function getTaxonomyFieldsForContentType(
         AND c.COLUMN_NAME LIKE '%_target_id'
     `)) as any[];
 
-    console.info(
-      `🏷️ [query.service] Found ${fieldTables.length} potential field tables for ${contentType}`,
-    );
-
     // For each field table, check if target_ids reference taxonomy terms for this content type
     for (const fieldTable of fieldTables) {
       const tableName = fieldTable.TABLE_NAME;
@@ -102,9 +96,6 @@ async function getTaxonomyFieldsForContentType(
         fieldName.includes('media') ||
         fieldName.includes('hero_image')
       ) {
-        console.info(
-          `🏷️ [query.service] Skipping '${fieldName}' - appears to be an image/file field`,
-        );
         continue;
       }
 
@@ -123,7 +114,7 @@ async function getTaxonomyFieldsForContentType(
             AND ft.${targetIdColumn} IS NOT NULL
           LIMIT 1
         `,
-          [contentType],
+          [contentType]
         )) as any[];
 
         if (vocabs && vocabs.length > 0) {
@@ -132,9 +123,6 @@ async function getTaxonomyFieldsForContentType(
             columnName: targetIdColumn,
             fieldName,
           });
-          console.info(
-            `🏷️ [query.service] Found taxonomy field '${fieldName}' for content type '${contentType}' -> vocabulary: ${vocabs[0].vocabulary_uid}`,
-          );
         }
       } catch (tableError) {
         // Skip tables that don't exist or have incompatible structure
@@ -152,12 +140,11 @@ async function getTaxonomyFieldsForContentType(
         INNER JOIN taxonomy_term_field_data ttfd ON ti.tid = ttfd.tid
         WHERE nfd.type = ?
       `,
-        [contentType],
+        [contentType]
       )) as any[];
 
       if (indexVocabs && indexVocabs.length > 0) {
         // Check if we already have a taxonomy field - if not, add from taxonomy_index
-        const existingVocabs = new Set<string>();
         // We need to check existing taxonomy fields for this content type
         // If taxonomy_index has vocabs that aren't covered by explicit fields, add it
         const hasExplicitTaxonomyField = taxonomyFields.length > 0;
@@ -169,29 +156,17 @@ async function getTaxonomyFieldsForContentType(
             columnName: 'tid',
             fieldName: 'taxonomy_index',
           });
-          console.info(
-            `🏷️ [query.service] Found taxonomy via taxonomy_index for '${contentType}' -> vocabularies: ${indexVocabs
-              .map((v: any) => v.vocabulary_uid)
-              .join(', ')}`,
-          );
         }
       }
     } catch (indexError) {
       // taxonomy_index might not exist in some Drupal installations
-      console.info(
-        `🏷️ [query.service] taxonomy_index not available for ${contentType}`,
-      );
     }
 
-    console.info(
-      `🏷️ [query.service] Returning ${taxonomyFields.length} taxonomy fields for ${contentType}:`,
-      taxonomyFields.map((f) => f.fieldName),
-    );
     return taxonomyFields;
   } catch (error: any) {
     console.error(
       `⚠️ Could not query taxonomy fields for ${contentType}:`,
-      error.message,
+      error.message
     );
     return taxonomyFields;
   }
@@ -203,7 +178,7 @@ async function getTaxonomyFieldsForContentType(
  */
 const getQuery = (
   connection: mysql.Connection,
-  data: DrupalFieldData,
+  data: DrupalFieldData
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
@@ -254,7 +229,7 @@ const getQuery = (
           if (error) {
             console.error(
               `Error querying columns for link field ${data.field_name}:`,
-              error,
+              error
             );
             resolve('');
             return;
@@ -267,13 +242,13 @@ const getQuery = (
               (field: string) =>
                 (field === `${data.field_name}_uri` ||
                   field === `${data.field_name}_title`) &&
-                field.startsWith(data.field_name),
+                field.startsWith(data.field_name)
             );
 
           if (linkColumns.length > 0) {
             // Return both columns as MAX aggregations for link fields
             const maxColumns = linkColumns.map(
-              (col: string) => `MAX(${tableName}.${col}) as ${col}`,
+              (col: string) => `MAX(${tableName}.${col}) as ${col}`
             );
             resolve(maxColumns.join(','));
           } else {
@@ -281,7 +256,7 @@ const getQuery = (
             const uriColumn = `${data.field_name}_uri`;
             resolve(`MAX(${tableName}.${uriColumn}) as ${uriColumn}`);
           }
-        },
+        }
       );
     } catch (error) {
       console.error('Error in getQuery', error);
@@ -297,7 +272,7 @@ const generateQueriesForFields = async (
   connection: mysql.Connection,
   fieldData: DrupalFieldData[],
   projectId: string,
-  destination_stack_id: string,
+  destination_stack_id: string
 ): Promise<QueryConfig> => {
   try {
     const select: { [contentType: string]: string } = {};
@@ -314,7 +289,7 @@ const generateQueriesForFields = async (
     // Process each content type
     for (const contentType of contentTypes) {
       const fieldsForType = fieldData.filter(
-        (field) => field.content_types === contentType,
+        (field) => field.content_types === contentType
       );
       const fieldCount = fieldsForType.length;
       const maxJoinLimit = 50; // Conservative limit to avoid MySQL's 61-table limit
@@ -326,7 +301,7 @@ const generateQueriesForFields = async (
           projectId,
           destination_stack_id,
           'warn',
-          warningMessage,
+          warningMessage
         );
 
         // Generate simple base query without field JOINs to avoid MySQL limit
@@ -362,7 +337,7 @@ const generateQueriesForFields = async (
           projectId,
           destination_stack_id,
           'info',
-          optimizedMessage,
+          optimizedMessage
         );
 
         continue; // Skip to next content type
@@ -381,7 +356,7 @@ const generateQueriesForFields = async (
       // but have actual usage in entry data (similar to upload-api's approach)
       const taxonomyFields = await getTaxonomyFieldsForContentType(
         connection,
-        contentType,
+        contentType
       );
 
       // Add taxonomy fields that aren't already in the query
@@ -391,9 +366,6 @@ const generateQueriesForFields = async (
           // Add the column directly to queries as a resolved promise
           const taxColumnQuery = `${taxField.tableName}.${taxField.columnName}`;
           queries.push(Promise.resolve(taxColumnQuery));
-          console.info(
-            `🏷️ [query.service] Added taxonomy field '${taxField.fieldName}' to query for '${contentType}'`,
-          );
         }
       }
 
@@ -456,7 +428,7 @@ const generateQueriesForFields = async (
           projectId,
           destination_stack_id,
           'info',
-          fieldMessage,
+          fieldMessage
         );
       } catch (error) {
         const errorMessage = `Error processing queries for content type: ${contentType}`;
@@ -464,12 +436,12 @@ const generateQueriesForFields = async (
           projectId,
           destination_stack_id,
           'error',
-          errorMessage,
+          errorMessage
         );
         console.error(
           'Error processing queries for content type:',
           contentType,
-          error,
+          error
         );
       }
     }
@@ -498,7 +470,7 @@ const generateQueriesForFields = async (
  */
 export const createQueryConfig = async (
   destination_stack_id: string,
-  customQueries?: any,
+  customQueries?: any
 ): Promise<void> => {
   const queryDir = path.join(DATA, destination_stack_id, 'query');
   const queryPath = path.join(queryDir, 'index.json');
@@ -509,7 +481,7 @@ export const createQueryConfig = async (
   } catch (error) {
     // If no dynamic queries exist, this is an error since we removed hardcoded fallbacks
     throw new Error(
-      `❌ No query configuration found at ${queryPath}. Dynamic queries must be generated first using createQuery() service.`,
+      `❌ No query configuration found at ${queryPath}. Dynamic queries must be generated first using createQuery() service.`
     );
   }
 };
@@ -517,32 +489,21 @@ export const createQueryConfig = async (
 export const createQuery = async (
   dbConfig: any,
   destination_stack_id: string,
-  projectId: string,
+  projectId: string
 ): Promise<void> => {
-  console.info(`\n🔧🔧🔧 [query.service] createQuery CALLED 🔧🔧🔧`);
-  console.info(
-    `🔧 [query.service] destination_stack_id: ${destination_stack_id}`,
-  );
-  console.info(`🔧 [query.service] projectId: ${projectId}`);
-
   let connection: mysql.Connection | null = null;
 
   try {
     const queryDir = path.join(DATA, destination_stack_id, 'query');
     const queryPath = path.join(queryDir, 'index.json');
 
-    console.info(`🔧 [query.service] Query path: ${queryPath}`);
-
     // Create query directory
     await fs.promises.mkdir(queryDir, { recursive: true });
-
-    const message = `Generating dynamic queries from Drupal database...`;
-    await customLogger(projectId, destination_stack_id, 'info', message);
 
     connection = await getDbConnection(
       dbConfig,
       projectId,
-      destination_stack_id,
+      destination_stack_id
     );
 
     // SQL query to extract field configuration from Drupal
@@ -576,9 +537,6 @@ export const createQuery = async (
           const isEntityReference =
             convDetails.field_type === 'entity_reference';
           if (isEntityReference && shouldSkipReferenceField(targetBundles)) {
-            console.info(
-              `🚫 [query.service] Skipping field '${convDetails.field_name}' - only references 'profile'`,
-            );
             skippedProfileFields++;
             continue;
           }
@@ -613,14 +571,14 @@ export const createQuery = async (
       connection,
       fieldData,
       projectId,
-      destination_stack_id,
+      destination_stack_id
     );
 
     // Write query configuration to file
     await fs.promises.writeFile(
       queryPath,
       JSON.stringify(queryConfig, null, 4),
-      'utf8',
+      'utf8'
     );
 
     const successMessage = `Successfully generated and saved dynamic queries to: ${queryPath}`;
@@ -631,7 +589,7 @@ export const createQuery = async (
 
     console.error('❌ Error generating dynamic queries:', error);
     throw new Error(
-      `Failed to connect to database or generate queries: ${error.message}`,
+      `Failed to connect to database or generate queries: ${error.message}`
     );
   } finally {
     // Always close the connection when done

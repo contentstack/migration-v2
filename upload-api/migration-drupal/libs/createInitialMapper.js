@@ -4,7 +4,6 @@
 /**
  * External module dependencies.
  */
-const fs = require('fs'); // for existsSync
 const fsp = require('fs/promises'); // for async file operations
 const path = require('path');
 const contentTypeMapper = require('./contentTypeMapper');
@@ -49,8 +48,8 @@ const uidCorrector = (uid, prefix) => {
     .replace(/[ -]/g, '_') // Replace spaces and hyphens with underscores
     .replace(/[^a-zA-Z0-9_]+/g, '_') // Replace non-alphanumeric characters (except underscore)
     .replace(/\$/g, '') // Remove dollar signs
+    .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase (must be BEFORE toLowerCase)
     .toLowerCase() // Convert to lowercase
-    .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase
     .replace(/_+/g, '_') // Replace multiple underscores with single
     .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
 
@@ -90,10 +89,6 @@ const getActualTaxonomyUsage = async (connection, contentType) => {
         AND t.TABLE_NAME NOT LIKE '%revision%'
         AND c.COLUMN_NAME LIKE '%_target_id'
     `);
-
-    console.info(
-      `🔍 Found ${fieldTables.length} potential taxonomy reference tables for ${contentType}`
-    );
 
     // Step 2: For each field table, check if target_ids reference taxonomy terms
     for (const fieldTable of fieldTables) {
@@ -249,11 +244,6 @@ const createInitialMapper = async (systemConfig, prefix) => {
 
       // 🏷️ Get ACTUALLY used taxonomy vocabularies for this content type from entry data
       const actualTaxonomyUsage = await getActualTaxonomyUsage(connection, contentType);
-      if (actualTaxonomyUsage.size > 0) {
-        console.info(
-          `✓ Found ${actualTaxonomyUsage.size} taxonomy vocabularies actually used in ${contentType}: ${[...actualTaxonomyUsage].join(', ')}`
-        );
-      }
 
       const contentTypeFields = require('lodash').filter(details_data, {
         content_types: contentType

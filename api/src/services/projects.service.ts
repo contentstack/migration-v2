@@ -4,7 +4,6 @@ import { Request } from 'express';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import ContentTypesMapperModelLowdb from '../models/contentTypesMapper-lowdb.js';
 import FieldMapperModel from '../models/FieldMapper.js';
-import { drupalService } from './drupal.service.js';
 
 import {
   BadRequestError,

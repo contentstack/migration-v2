@@ -79,14 +79,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       setIsLoading(true);
 
       const { data } = await getConfig(); // api call to get cms type from upload service
-      // Store config details to display in UI
-      const configDetails = {
-        mySQLDetails: data?.mysql,
-        assetsConfig: data?.assetsConfig,
-        isSQL: data?.isSQL,
-        cmsType: data?.cmsType
-      };
-
+      
       const cms = data?.cmsType?.toLowerCase();
 
       if (isEmptyString(cmsType?.cms_id)) {

@@ -20,6 +20,7 @@ interface TaxonomyTerm {
   name: string;
   parent_uid: string | null;
   description?: string;
+  drupal_term_id: number; // Original Drupal term ID for lookup during entry transformation
 }
 
 interface TaxonomyStructure {
@@ -51,7 +52,7 @@ const executeQuery = async (
 
 /**
  * Get vocabulary names from Drupal database
- * Note: In Drupal 8+, vocabulary names are in the config table
+ * Note: In Drupal 8+, vocabulary names are in the config table as PHP-serialized data
  */
 const getVocabularyNames = async (
   connection: mysql.Connection,
@@ -61,11 +62,12 @@ const getVocabularyNames = async (
   const srcFunc = 'getVocabularyNames';
 
   try {
-    // Try to get vocabulary names from config table (Drupal 8+)
+    // Get vocabulary config with raw PHP-serialized data
+    // Drupal stores config.data as PHP-serialized, not JSON
     const configQuery = `
       SELECT 
         SUBSTRING_INDEX(SUBSTRING_INDEX(name, '.', 3), '.', -1) as vid,
-        JSON_UNQUOTE(JSON_EXTRACT(data, '$.name')) as name
+        CONVERT(data USING utf8) as data
       FROM config 
       WHERE name LIKE 'taxonomy.vocabulary.%'
       AND data IS NOT NULL
@@ -75,9 +77,24 @@ const getVocabularyNames = async (
 
     const vocabNames: Record<string, string> = {};
 
+    // Dynamically import php-serialize for unserialization
+    const { unserialize } = await import('php-serialize');
+
     for (const vocab of vocabularies) {
-      if (vocab.vid && vocab.name) {
-        vocabNames[vocab.vid] = vocab.name;
+      if (vocab.vid && vocab.data) {
+        try {
+          // Unserialize PHP data to extract the name
+          const configData = unserialize(vocab.data);
+          if (configData && typeof configData === 'object' && configData.name) {
+            vocabNames[vocab.vid] = configData.name;
+          } else {
+            // Fallback to vid if name not found in serialized data
+            vocabNames[vocab.vid] = vocab.vid;
+          }
+        } catch (parseError) {
+          // If unserialization fails, use vid as name
+          vocabNames[vocab.vid] = vocab.vid;
+        }
       }
     }
 
@@ -242,6 +259,7 @@ const processTaxonomyData = async (
           name: term.term_name,
           parent_uid: parentUid,
           description: term.term_description || '',
+          drupal_term_id: term.term_tid, // Include original Drupal term ID for entry transformation lookup
         });
       }
 

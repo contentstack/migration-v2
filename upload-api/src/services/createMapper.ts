@@ -10,47 +10,58 @@ import { deleteFolderSync } from '../helper';
 import logger from '../utils/logger';
 
 /**
- * Pattern to match all migration data folders
- * All CMS types follow the naming convention: *MigrationData
- * e.g., drupalMigrationData, contentfulMigrationData, cmsMigrationData, etc.
+ * Suffix pattern to match migration data folders
  */
 const MIGRATION_DATA_SUFFIX = 'MigrationData';
 
 /**
+ * Get the upload-api root directory
+ * This ensures we only delete folders within the upload-api directory,
+ * regardless of where the process is started from
+ */
+const getUploadApiRoot = (): string => {
+  // This file is at: upload-api/src/services/createMapper.ts
+  // So upload-api root is 2 levels up from __dirname
+  return path.resolve(__dirname, '..', '..');
+};
+
+/**
  * Clears ALL CMS migration data folders before starting a new migration
- * Dynamically finds and deletes any folder ending with 'MigrationData'
+ * Deletes any folder ending with 'MigrationData' within the upload-api directory
  * This ensures switching between CMS types doesn't leave stale data
  */
 const clearAllMigrationData = (): void => {
-  const cwd = process.cwd();
-  
+  const uploadApiRoot = getUploadApiRoot();
+
   logger.info(`🧹 Scanning for migration data folders (*${MIGRATION_DATA_SUFFIX})...`);
-  
+
   try {
-    // Read all items in the current working directory
-    const items = fs.readdirSync(cwd);
-    
+    // Read all items in the upload-api directory (not CWD)
+    const items = fs.readdirSync(uploadApiRoot);
+
     // Find all folders ending with 'MigrationData'
     const migrationFolders = items.filter((item) => {
-      const itemPath = path.join(cwd, item);
+      const itemPath = path.join(uploadApiRoot, item);
       return (
         item.endsWith(MIGRATION_DATA_SUFFIX) &&
         fs.existsSync(itemPath) &&
         fs.statSync(itemPath).isDirectory()
       );
     });
-    
+
     if (migrationFolders.length === 0) {
       logger.info(`📁 No migration data folders found to clear`);
       return;
     }
-    
-    logger.info(`🔍 Found ${migrationFolders.length} migration data folder(s): ${migrationFolders.join(', ')}`);
-    
+
+    logger.info(
+      `🔍 Found ${migrationFolders.length} migration data folder(s): ${migrationFolders.join(', ')}`
+    );
+
     // Delete each migration data folder
     for (const folder of migrationFolders) {
-      const folderPath = path.join(cwd, folder);
-      
+      const folderPath = path.join(uploadApiRoot, folder);
+
       try {
         logger.info(`🗑️ Deleting: ${folder}`);
         deleteFolderSync(folderPath);
@@ -59,7 +70,7 @@ const clearAllMigrationData = (): void => {
         logger.warn(`⚠️ Could not delete ${folder}: ${error.message}`);
       }
     }
-    
+
     logger.info(`✅ Migration data cleanup complete`);
   } catch (error: any) {
     logger.warn(`⚠️ Error scanning for migration folders: ${error.message}`);

@@ -1,6 +1,7 @@
+/* eslint-disable */
+
 import fs from 'fs';
 import path from 'path';
-import axios from 'axios';
 import { MIGRATION_DATA_CONFIG } from '../../constants/index.js';
 import { Locale } from '../../models/types.js';
 import { getAllLocales, getLogMessage } from '../../utils/index.js';
@@ -280,7 +281,7 @@ export const createLocale = async (
     // 5. Map source locales to destination locales using user selection
     // Find the destination master locale based on source master locale
     const masterLocaleKey = `${sourceMasterLocale}-master_locale`;
-    let destinationMasterLocale =
+    const destinationMasterLocale =
       localeMapping[masterLocaleKey] ||
       Object.values(masterLocaleFromProject)?.[0] || // ✅ FIX: Use VALUES not KEYS!
       project?.stackDetails?.master_locale ||

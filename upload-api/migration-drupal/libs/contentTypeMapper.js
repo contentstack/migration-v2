@@ -109,8 +109,8 @@ const uidCorrector = (uid, prefix) => {
     .replace(/[ -]/g, '_') // Replace spaces and hyphens with underscores
     .replace(/[^a-zA-Z0-9_]+/g, '_') // Replace non-alphanumeric characters (except underscore)
     .replace(/\$/g, '') // Remove dollar signs
+    .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase (must be BEFORE toLowerCase)
     .toLowerCase() // Convert to lowercase
-    .replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`) // Handle camelCase
     .replace(/_+/g, '_') // Replace multiple underscores with single
     .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
 
@@ -406,71 +406,6 @@ const createDateRangeFieldObject = (item) => {
 };
 
 /**
- * Creates a taxonomy field object with specialized structure for Contentstack
- *
- * @param {Object} item - The Drupal field item containing field details
- * @param {Array} taxonomySchema - Array of taxonomy vocabularies from taxonomySchema.json
- * @param {Array} targetVocabularies - Optional array of specific vocabularies this field references
- * @returns {Object} A taxonomy field object with the required structure
- */
-const createTaxonomyFieldObject = (item, taxonomySchema, targetVocabularies = []) => {
-  // Determine which taxonomies to include
-  let taxonomiesToInclude = [];
-
-  if (targetVocabularies && targetVocabularies.length > 0) {
-    // If specific vocabularies are provided, use only those
-    taxonomiesToInclude = taxonomySchema.filter(
-      (taxonomy) =>
-        targetVocabularies.includes(taxonomy.uid) || targetVocabularies.includes(taxonomy.name)
-    );
-  } else {
-    // If no specific vocabularies, include all available taxonomies
-    taxonomiesToInclude = taxonomySchema;
-  }
-
-  // Build taxonomies array with default properties
-  const taxonomiesArray = taxonomiesToInclude.map((taxonomy) => ({
-    taxonomy_uid: taxonomy.uid,
-    mandatory: false,
-    multiple: true,
-    non_localizable: false
-  }));
-
-  // Get advanced field properties from the original field
-  const advancedFields = extractAdvancedFields(item);
-
-  // Add _target_id suffix for taxonomy fields (following old migration pattern)
-  const fieldNameWithSuffix = `${item?.field_name}_target_id`;
-
-  return {
-    uid: item?.field_name,
-    otherCmsField: item?.field_label,
-    otherCmsType: item?.type,
-    contentstackField: item?.field_label,
-    contentstackFieldUid: uidCorrector(fieldNameWithSuffix, item?.prefix),
-    contentstackFieldType: 'taxonomy',
-    backupFieldType: 'reference',
-    backupFieldUid: uidCorrector(fieldNameWithSuffix, item?.prefix),
-    advanced: {
-      data_type: 'taxonomy',
-      display_name: item?.field_label || item?.field_name,
-      uid: uidCorrector(fieldNameWithSuffix, item?.prefix),
-      taxonomies: taxonomiesArray,
-      field_metadata: {
-        description: advancedFields?.field_metadata?.description || '',
-        default_value: advancedFields?.field_metadata?.default_value || ''
-      },
-      format: '',
-      error_messages: { format: '' },
-      mandatory: advancedFields?.mandatory || false,
-      multiple: advancedFields?.multiple !== undefined ? advancedFields?.multiple : true,
-      non_localizable: advancedFields?.non_localizable || false,
-      unique: advancedFields?.unique || false
-    }
-  };
-};
-
-/**
  * Maps a collection of Drupal content type items to a schema array with specific field types and properties.
  *
  * @param {Array} data - An array of Drupal field items, each containing metadata like type, field_name, field_label, etc.
@@ -593,18 +528,6 @@ const contentTypeMapper = async (
         break;
       }
       case 'entity_reference': {
-        // Debug logging for entity_reference fields
-        console.info(
-          `📌 [contentTypeMapper] Processing entity_reference field: ${item.field_name}`
-        );
-        console.info(`📌 [contentTypeMapper] Handler: ${item.handler}`);
-        console.info(`📌 [contentTypeMapper] Reference targets:`, item.reference);
-        console.info(
-          `📌 [contentTypeMapper] Available contentTypes:`,
-          contentTypes?.length,
-          'content types'
-        );
-
         // Check if this is a media field by handler
         if (item.handler === 'default:media') {
           // Media entity references should be treated as file fields
@@ -647,10 +570,6 @@ const contentTypeMapper = async (
           if (item.reference && Object.keys(item.reference).length > 0) {
             // Use specific content types from field configuration
             referenceFields = Object.keys(item.reference);
-            console.info(
-              `📌 [contentTypeMapper] ${item.field_name}: Found ${referenceFields.length} target bundles from Drupal:`,
-              referenceFields
-            );
           }
 
           // If no specific targets configured, use top 10 content types as fallback
@@ -658,42 +577,24 @@ const contentTypeMapper = async (
             const availableContentTypes =
               contentTypes?.filter((ct) => ct !== item.content_types) || [];
             referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
-            console.info(
-              `📌 [contentTypeMapper] ${item.field_name}: No target_bundles, using top 10 fallback:`,
-              referenceFields
-            );
           }
 
           // CRITICAL: Check if field should be skipped (only has profile or empty after filtering)
           if (shouldSkipReferenceField(referenceFields)) {
-            console.info(
-              `🚫 [contentTypeMapper] ${item.field_name}: SKIPPED - only references 'profile' content type`
-            );
             // Don't add this field to the schema
             break;
           }
 
           // Filter out profile from the reference fields
           const filteredReferenceFields = filterOutProfile(referenceFields);
-          console.info(
-            `✅ [contentTypeMapper] ${item.field_name}: Keeping field with ${filteredReferenceFields.length} reference(s):`,
-            filteredReferenceFields
-          );
 
           acc.push(createFieldObject(item, 'reference', 'reference', filteredReferenceFields));
         } else {
-          // Handle other entity references (user, paragraph, etc.) - SKIP if only profile
-          console.info(`📌 [contentTypeMapper] ${item.field_name}: Handler is "${item.handler}"`);
-
           let referenceFields = [];
 
           // Use specific targets from Drupal field configuration
           if (item.reference && Object.keys(item.reference).length > 0) {
             referenceFields = Object.keys(item.reference);
-            console.info(
-              `📌 [contentTypeMapper] ${item.field_name}: Found ${referenceFields.length} target bundles from Drupal:`,
-              referenceFields
-            );
           }
 
           // If no specific targets configured, use top 10 content types as fallback
@@ -701,27 +602,16 @@ const contentTypeMapper = async (
             const availableContentTypes =
               contentTypes?.filter((ct) => ct !== item.content_types) || [];
             referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
-            console.info(
-              `📌 [contentTypeMapper] ${item.field_name}: No target_bundles for ${item.handler}, using top 10 fallback:`,
-              referenceFields
-            );
           }
 
           // CRITICAL: Check if field should be skipped (only has profile or empty after filtering)
           if (shouldSkipReferenceField(referenceFields)) {
-            console.info(
-              `🚫 [contentTypeMapper] ${item.field_name}: SKIPPED - only references 'profile' content type`
-            );
             // Don't add this field to the schema
             break;
           }
 
           // Filter out profile from the reference fields
           const filteredReferenceFields = filterOutProfile(referenceFields);
-          console.info(
-            `✅ [contentTypeMapper] ${item.field_name}: Keeping field with ${filteredReferenceFields.length} reference(s):`,
-            filteredReferenceFields
-          );
 
           acc.push(createFieldObject(item, 'reference', 'reference', filteredReferenceFields));
         }
