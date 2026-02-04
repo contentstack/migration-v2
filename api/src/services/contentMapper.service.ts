@@ -85,6 +85,7 @@ const putTestData = async (req: Request) => {
           item.advanced.initial = structuredClone(item?.advanced);
         }
         if (item?.refrenceTo) {
+        if (item?.refrenceTo) {
           item.initialRefrenceTo = item?.refrenceTo;
         }
       });
@@ -145,15 +146,14 @@ const putTestData = async (req: Request) => {
           ...(Array.isArray(data?.field_mapper) ? data.field_mapper : []),
           ...fields,
         ];
-      });  
-      
+      });
+
       if (
         Array?.isArray?.(contentType) &&
         Number?.isInteger?.(index) &&
         index >= 0 &&
         index < contentType?.length
-      ) 
-      {
+      ) {
         contentType[index].fieldMapping = fieldIds;
       }
     });
@@ -162,31 +162,31 @@ const putTestData = async (req: Request) => {
 
     const uidMapperModel = getUidMapperDb(projectId, iteration - 1);
     await uidMapperModel.read();
-    
+
     contentTypes.forEach((type: any, index: number) => {
       const entryIds: string[] = [];
       const entries = Array.isArray(type?.entryMapping) ?
         type.entryMapping
-            .filter(Boolean)
-            .map((entry: any) => {
-              const id =
-                entry?.id ?
-                  entry.id.replace(/[{}]/g, '').toLowerCase()
-                  : uuidv4();
-              entry.id = id;
-              entryIds.push(id);
-              
-              const uidMapperValue = entry?.otherCmsEntryUid ? uidMapperModel.data?.entry?.[idCorrector({id : entry.otherCmsEntryUid})] : ' ';
-              
-              return {
-                ...entry,
-                id,
-                projectId,
-                contentTypeId: type?.id,
-                isDeleted: false,
-                contenstackEntryUid: uidMapperValue,
-              };
-            })
+          .filter(Boolean)
+          .map((entry: any) => {
+            const id =
+              entry?.id ?
+                entry.id.replace(/[{}]/g, '').toLowerCase()
+                : uuidv4();
+            entry.id = id;
+            entryIds.push(id);
+
+            const uidMapperValue = entry?.otherCmsEntryUid ? uidMapperModel.data?.entry?.[idCorrector({ id: entry.otherCmsEntryUid })] : ' ';
+
+            return {
+              ...entry,
+              id,
+              projectId,
+              contentTypeId: type?.id,
+              isDeleted: false,
+              contenstackEntryUid: uidMapperValue,
+            };
+          })
         : [];
       //console.info('🚀 ~ putTestData ~ entries:', entries);
       EntryMapperModel.update((data: any) => {
@@ -201,8 +201,7 @@ const putTestData = async (req: Request) => {
         Number?.isInteger?.(index) &&
         index >= 0 &&
         index < contentType?.length
-      ) 
-      {
+      ) {
         contentType[index].entryMapping = entryIds;
       }
     });
@@ -1011,10 +1010,10 @@ const resetToInitialMapping = async (req: Request) => {
                 initial: field?.advanced?.initial,
               },
               ...(field?.referenceTo && {
-                referenceTo: field?.initialRefrenceTo,
+                referenceTo: field?.initialRefrenceTo
               }),
               isDeleted: false,
-            };
+            }
           });
         }
       });
@@ -1755,6 +1754,59 @@ const getEntryMapping = async (req: Request) => {
   }
 };
 
+const updateEntryMapping = async (req: Request) => {
+  const { projectId, otherCmsEntryUid } = req.params;
+
+  const srcFunc = "updateEntryMapping";
+  try {
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
+    await EntryMapperModel.read();
+    let foundEntry: any = null;
+    await EntryMapperModel.update((data: any) => {
+      data?.entry_mapper?.forEach((entry: any) => {
+        if (otherCmsEntryUid === entry?.otherCmsEntryUid) {
+          entry.isUpdate = true;
+          foundEntry = entry;
+        }
+      });
+    });
+
+    if (foundEntry) {
+      return {
+        status: HTTP_CODES?.OK,
+        data: foundEntry
+      };
+    }
+
+    return {
+      status: HTTP_CODES?.NOT_FOUND,
+      data: {
+        message: "Entry not found",
+      },
+    };
+
+  } catch (error: any) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Error occurred while updating entry mapping",
+        error
+      )
+    );
+    throw new ExceptionFunction(
+      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+    );
+  }
+
+
+}
 
 export const contentMapperService = {
   putTestData,
@@ -1774,5 +1826,5 @@ export const contentMapperService = {
   updateEntryStatus
   getExistingTaxonomies,,
   getEntryMapping,
-  getUidMapperData,
+  updateEntryMapping
 };
