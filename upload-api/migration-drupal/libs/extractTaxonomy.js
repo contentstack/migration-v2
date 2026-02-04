@@ -69,24 +69,27 @@ const extractTaxonomy = async (dbConfig) => {
     // Transform vocabularies to required format
     const taxonomySchema = [];
 
-    for (const vocab of vocabularies) {
-      try {
-        if (vocab.vid && vocab.data) {
-          // Unserialize the PHP data to get vocabulary details
-          const vocabularyData = unserialize(vocab.data);
+    if (vocabularies && Array.isArray(vocabularies)) {
+      for (const vocab of vocabularies) {
+        if (!vocab) continue;
+        try {
+          if (vocab?.vid && vocab?.data) {
+            // Unserialize the PHP data to get vocabulary details
+            const vocabularyData = unserialize(vocab.data);
 
-          if (vocabularyData && vocabularyData.name) {
-            const uid = generateSlug(vocab.vid); // Use vid as base for uid
-            const name = vocabularyData.name;
+            if (vocabularyData && vocabularyData?.name) {
+              const uid = generateSlug(vocab.vid); // Use vid as base for uid
+              const name = vocabularyData.name;
 
-            taxonomySchema.push({
-              uid: uid,
-              name: name
-            });
+              taxonomySchema.push({
+                uid: uid,
+                name: name
+              });
+            }
           }
+        } catch (parseError) {
+          console.error(`⚠️ Failed to parse vocabulary data for ${vocab?.vid}:`, parseError?.message || parseError);
         }
-      } catch (parseError) {
-        console.error(`⚠️ Failed to parse vocabulary data for ${vocab.vid}:`, parseError.message);
       }
     }
 

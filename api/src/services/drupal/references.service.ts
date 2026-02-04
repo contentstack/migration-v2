@@ -106,13 +106,16 @@ const putPosts = async (
     const referenceData = await readReferencesFile(referencesPath);
 
     // Process each entry and create reference mapping
-    entries.forEach((entry) => {
-      const referenceKey = `content_type_entries_title_${entry.nid}`;
-      referenceData[referenceKey] = {
-        uid: referenceKey,
-        _content_type_uid: contentType,
-      };
-    });
+    if (entries && Array.isArray(entries)) {
+      entries.forEach((entry) => {
+        if (!entry?.nid) return;
+        const referenceKey = `content_type_entries_title_${entry.nid}`;
+        referenceData[referenceKey] = {
+          uid: referenceKey,
+          _content_type_uid: contentType,
+        };
+      });
+    }
 
     // Write updated references back to file
     await fs.promises.writeFile(referencesPath, JSON.stringify(referenceData, null, 4), 'utf8');

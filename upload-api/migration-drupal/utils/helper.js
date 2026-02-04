@@ -37,19 +37,25 @@ const makeDirectory = function () {
 };
 
 function deleteFolderSync(folderPath) {
-  if (fs.existsSync(folderPath)) {
-    fs.readdirSync(folderPath).forEach((file) => {
-      const currentPath = path.join(folderPath, file);
-      if (fs.lstatSync(currentPath).isDirectory()) {
-        // Recurse
-        deleteFolderSync(currentPath);
-      } else {
-        // Delete file
-        fs.unlinkSync(currentPath);
-      }
-    });
+  if (folderPath && fs.existsSync(folderPath)) {
+    const files = fs.readdirSync(folderPath);
+    if (files && Array.isArray(files)) {
+      files.forEach((file) => {
+        if (!file) return;
+        const currentPath = path.join(folderPath, file);
+        if (fs.existsSync(currentPath) && fs.lstatSync(currentPath).isDirectory()) {
+          // Recurse
+          deleteFolderSync(currentPath);
+        } else if (fs.existsSync(currentPath)) {
+          // Delete file
+          fs.unlinkSync(currentPath);
+        }
+      });
+    }
     // Delete now-empty folder
-    fs.rmdirSync(folderPath);
+    if (fs.existsSync(folderPath)) {
+      fs.rmdirSync(folderPath);
+    }
   }
 }
 

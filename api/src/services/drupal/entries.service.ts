@@ -149,12 +149,15 @@ const loadTaxonomyReferences = async (
     // Create lookup map: drupal_term_id -> {taxonomy_uid, term_uid}
     const lookup: Record<number, TaxonomyFieldOutput> = {};
 
-    taxonomyReferences.forEach((ref) => {
-      lookup[ref.drupal_term_id] = {
-        taxonomy_uid: ref.taxonomy_uid,
-        term_uid: ref.term_uid,
-      };
-    });
+    if (taxonomyReferences && Array.isArray(taxonomyReferences)) {
+      taxonomyReferences.forEach((ref) => {
+        if (!ref?.drupal_term_id) return;
+        lookup[ref.drupal_term_id] = {
+          taxonomy_uid: ref?.taxonomy_uid || '',
+          term_uid: ref?.term_uid || '',
+        };
+      });
+    }
 
     return lookup;
   } catch (error) {
@@ -1178,13 +1181,16 @@ const processEntries = async (
     const entriesByLocale: { [locale: string]: any[] } = {};
 
     // Group entries by their langcode
-    entries.forEach((entry) => {
-      const entryLocale = entry.langcode || masterLocale; // fallback to masterLocale if no langcode
-      if (!entriesByLocale[entryLocale]) {
-        entriesByLocale[entryLocale] = [];
-      }
-      entriesByLocale[entryLocale].push(entry);
-    });
+    if (entries && Array.isArray(entries)) {
+      entries.forEach((entry) => {
+        if (!entry) return;
+        const entryLocale = entry?.langcode || masterLocale; // fallback to masterLocale if no langcode
+        if (!entriesByLocale[entryLocale]) {
+          entriesByLocale[entryLocale] = [];
+        }
+        entriesByLocale[entryLocale].push(entry);
+      });
+    }
 
     // Map source locales to destination locales using user-selected mapping from UI
     // This replaces the old hardcoded transformation rules with dynamic user mapping

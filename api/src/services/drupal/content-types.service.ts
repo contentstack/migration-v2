@@ -71,15 +71,16 @@ export const generateContentTypeSchemas = async (
     await FieldMapperModel.read();
     await ContentTypesMapperModelLowdb.read();
 
-    const savedFieldMappings = FieldMapperModel.data.field_mapper.filter(
-      (field: any) => field && field.projectId === projectId
+    const fieldMapperData = FieldMapperModel.data?.field_mapper || [];
+    const savedFieldMappings = fieldMapperData.filter(
+      (field: any) => field && field?.projectId === projectId
     );
 
     // Log fields with UI changes
     const fieldsWithTypeChanges = savedFieldMappings.filter(
       (field: any) =>
-        field.contentstackFieldType &&
-        field.backupFieldType !== field.contentstackFieldType
+        field?.contentstackFieldType &&
+        field?.backupFieldType !== field?.contentstackFieldType
     );
 
     if (fieldsWithTypeChanges.length > 0) {

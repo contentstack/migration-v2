@@ -463,33 +463,38 @@ export class OptimizedQueryBuilder {
   private async executeSequentialQueries(contentType: string, fieldsForType: DrupalFieldData[]): Promise<QueryRow[]> {
     const { baseQuery, fieldQueries } = await this.generateSequentialQueries(contentType, fieldsForType);
     
-    // Execute base query
-    const [baseResults] = await this.connection.promise().query(baseQuery) as [QueryRow[], unknown];
+    // Execute base query with contentType parameter
+    const [baseResults] = await this.connection.promise().query(baseQuery, [contentType]) as [QueryRow[], unknown];
     
     // Create result map
     const resultMap = new Map<number, QueryRow>();
-    baseResults.forEach((row: QueryRow) => {
-      if (row.nid) {
-        resultMap.set(row.nid, { ...row });
-      }
-    });
-
-    // Execute field queries and merge results
-    for (const fieldQuery of fieldQueries) {
-      const [fieldResults] = await this.connection.promise().query(fieldQuery) as [QueryRow[], unknown];
-      
-      fieldResults.forEach((fieldRow: QueryRow) => {
-        const nid = fieldRow.entity_id;
-        if (nid && resultMap.has(nid)) {
-          const existingRow = resultMap.get(nid);
-          if (existingRow) {
-            // Merge field data (exclude entity_id)
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { entity_id: _entityId, ...fieldData } = fieldRow;
-            Object.assign(existingRow, fieldData);
-          }
+    if (baseResults && Array.isArray(baseResults)) {
+      baseResults.forEach((row: QueryRow) => {
+        if (row?.nid) {
+          resultMap.set(row.nid, { ...row });
         }
       });
+    }
+
+    // Execute field queries and merge results
+    // Each field query has one ? placeholder for contentType
+    for (const fieldQuery of fieldQueries) {
+      const [fieldResults] = await this.connection.promise().query(fieldQuery, [contentType]) as [QueryRow[], unknown];
+      
+      if (fieldResults && Array.isArray(fieldResults)) {
+        fieldResults.forEach((fieldRow: QueryRow) => {
+          const nid = fieldRow?.entity_id;
+          if (nid && resultMap.has(nid)) {
+            const existingRow = resultMap.get(nid);
+            if (existingRow) {
+              // Merge field data (exclude entity_id)
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { entity_id: _entityId, ...fieldData } = fieldRow;
+              Object.assign(existingRow, fieldData);
+            }
+          }
+        });
+      }
     }
 
     return Array.from(resultMap.values());
@@ -498,33 +503,38 @@ export class OptimizedQueryBuilder {
   private async executeBatchedQueries(contentType: string, fieldsForType: DrupalFieldData[], batchSize: number): Promise<QueryRow[]> {
     const { baseQuery, batchQueries } = await this.generateBatchedQueries(contentType, fieldsForType, batchSize);
     
-    // Execute base query
-    const [baseResults] = await this.connection.promise().query(baseQuery) as [QueryRow[], unknown];
+    // Execute base query with contentType parameter
+    const [baseResults] = await this.connection.promise().query(baseQuery, [contentType]) as [QueryRow[], unknown];
     
     // Create result map
     const resultMap = new Map<number, QueryRow>();
-    baseResults.forEach((row: QueryRow) => {
-      if (row.nid) {
-        resultMap.set(row.nid, { ...row });
-      }
-    });
-
-    // Execute batch queries and merge results
-    for (const batchQuery of batchQueries) {
-      const [batchResults] = await this.connection.promise().query(batchQuery) as [QueryRow[], unknown];
-      
-      batchResults.forEach((batchRow: QueryRow) => {
-        const nid = batchRow.nid;
-        if (nid && resultMap.has(nid)) {
-          const existingRow = resultMap.get(nid);
-          if (existingRow) {
-            // Merge batch data (exclude nid)
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { nid: _nid, ...batchData } = batchRow;
-            Object.assign(existingRow, batchData);
-          }
+    if (baseResults && Array.isArray(baseResults)) {
+      baseResults.forEach((row: QueryRow) => {
+        if (row?.nid) {
+          resultMap.set(row.nid, { ...row });
         }
       });
+    }
+
+    // Execute batch queries and merge results
+    // Each batch query has one ? placeholder for contentType
+    for (const batchQuery of batchQueries) {
+      const [batchResults] = await this.connection.promise().query(batchQuery, [contentType]) as [QueryRow[], unknown];
+      
+      if (batchResults && Array.isArray(batchResults)) {
+        batchResults.forEach((batchRow: QueryRow) => {
+          const nid = batchRow?.nid;
+          if (nid && resultMap.has(nid)) {
+            const existingRow = resultMap.get(nid);
+            if (existingRow) {
+              // Merge batch data (exclude nid)
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { nid: _nid, ...batchData } = batchRow;
+              Object.assign(existingRow, batchData);
+            }
+          }
+        });
+      }
     }
 
     return Array.from(resultMap.values());
@@ -533,32 +543,41 @@ export class OptimizedQueryBuilder {
   private async executeUnionQueries(contentType: string, fieldsForType: DrupalFieldData[]): Promise<QueryRow[]> {
     const { baseQuery, unionQuery } = await this.generateUnionQueries(contentType, fieldsForType);
     
-    // Execute base query
-    const [baseResults] = await this.connection.promise().query(baseQuery) as [QueryRow[], unknown];
+    // Execute base query with contentType parameter
+    const [baseResults] = await this.connection.promise().query(baseQuery, [contentType]) as [QueryRow[], unknown];
     
     // Create result map
     const resultMap = new Map<number, QueryRow>();
-    baseResults.forEach((row: QueryRow) => {
-      if (row.nid) {
-        resultMap.set(row.nid, { ...row });
-      }
-    });
+    if (baseResults && Array.isArray(baseResults)) {
+      baseResults.forEach((row: QueryRow) => {
+        if (row?.nid) {
+          resultMap.set(row.nid, { ...row });
+        }
+      });
+    }
 
     // Execute union query if it exists
     if (unionQuery) {
-      const [unionResults] = await this.connection.promise().query(unionQuery) as [QueryRow[], unknown];
+      // Count the number of ? placeholders in the union query
+      // Each field in the union has one ? for contentType
+      const placeholderCount = (unionQuery.match(/\?/g) || []).length;
+      const unionParams = Array(placeholderCount).fill(contentType);
+      
+      const [unionResults] = await this.connection.promise().query(unionQuery, unionParams) as [QueryRow[], unknown];
       
       // Group union results by nid
-      unionResults.forEach((unionRow: QueryRow) => {
-        const nid = unionRow.nid;
-        const fieldName = unionRow.field_name;
-        if (nid && fieldName && resultMap.has(nid)) {
-          const existingRow = resultMap.get(nid);
-          if (existingRow) {
-            existingRow[fieldName] = unionRow.field_value;
+      if (unionResults && Array.isArray(unionResults)) {
+        unionResults.forEach((unionRow: QueryRow) => {
+          const nid = unionRow?.nid;
+          const fieldName = unionRow?.field_name;
+          if (nid && fieldName && resultMap.has(nid)) {
+            const existingRow = resultMap.get(nid);
+            if (existingRow) {
+              existingRow[fieldName] = unionRow.field_value;
+            }
           }
-        }
-      });
+        });
+      }
     }
 
     return Array.from(resultMap.values());

@@ -122,7 +122,13 @@ export class FieldFetcherService {
       }
 
       // Build field query with all relevant columns
-      const fieldColumns = columns.map((col: any) => col.COLUMN_NAME);
+      const fieldColumns = columns
+        .filter((col: any) => col?.COLUMN_NAME)
+        .map((col: any) => col.COLUMN_NAME);
+      if (fieldColumns.length === 0) {
+        console.warn(`No valid columns found for field ${field.field_name}`);
+        return;
+      }
       const selectColumns = fieldColumns.join(', ');
       
       const fieldQuery = `
@@ -136,17 +142,20 @@ export class FieldFetcherService {
       const [fieldResults] = await this.connection.promise().query(fieldQuery, nodeIds) as any[];
 
       // Merge field results into main data structure
-      fieldResults.forEach((row: any) => {
-        const nid = row.entity_id;
-        if (fieldData[nid]) {
-          // Add all field columns to the node data
-          fieldColumns.forEach((columnName: string) => {
-            if (row[columnName] !== null && row[columnName] !== undefined) {
-              fieldData[nid][columnName] = row[columnName];
-            }
-          });
-        }
-      });
+      if (fieldResults && Array.isArray(fieldResults)) {
+        fieldResults.forEach((row: any) => {
+          if (!row) return;
+          const nid = row.entity_id;
+          if (nid && fieldData[nid]) {
+            // Add all field columns to the node data
+            fieldColumns.forEach((columnName: string) => {
+              if (row[columnName] !== null && row[columnName] !== undefined) {
+                fieldData[nid][columnName] = row[columnName];
+              }
+            });
+          }
+        });
+      }
 
     } catch (error: any) {
       console.warn(`Error fetching data for field ${field.field_name}:`, error.message);

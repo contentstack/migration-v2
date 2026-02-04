@@ -200,19 +200,24 @@ const detectPublicPath = async (
       const uriResults = await executeQuery(connection, uriPatternQuery);
       const pathPatterns = new Set();
 
-      uriResults.forEach((row) => {
-        const uri = row.uri;
-        // Extract potential path patterns from URIs
-        const matches = uri.match(/public:\/\/(?:sites\/([^\/]+)\/)?files\//);
-        if (matches) {
-          pathPatterns.add(`/sites/${matches[1]}/files/`);
-        }
-      });
+      if (uriResults && Array.isArray(uriResults)) {
+        uriResults.forEach((row) => {
+          const uri = row?.uri;
+          if (!uri) return;
+          // Extract potential path patterns from URIs
+          const matches = uri.match(/public:\/\/(?:sites\/([^\/]+)\/)?files\//);
+          if (matches) {
+            pathPatterns.add(`/sites/${matches[1]}/files/`);
+          }
+        });
+      }
 
       // Test extracted patterns
       for (const pattern of pathPatterns) {
         const patternStr = pattern as string;
-        for (const sampleFile of sampleResults.slice(0, 2)) {
+        const sampleSlice = sampleResults?.slice(0, 2) || [];
+        for (const sampleFile of sampleSlice) {
+          if (!sampleFile?.uri) continue;
           // Test with fewer files
           const testUrl = `${baseUrl}${patternStr}${sampleFile.uri.replace(
             'public://',
@@ -688,9 +693,11 @@ const retryFailedAssets = async (
     )})`;
     const results = await executeQuery(connection, assetsFIDQuery);
 
-    if (results.length > 0) {
+    if (results && Array.isArray(results) && results.length > 0) {
       const limit = pLimit(1); // Reduce to 1 for large datasets to prevent EMFILE errors
-      const tasks = results.map((asset: DrupalAsset) =>
+      const tasks = results
+        .filter((asset: DrupalAsset) => asset != null)
+        .map((asset: DrupalAsset) =>
         limit(() =>
           saveAsset(
             asset,

@@ -57,7 +57,8 @@ const extractLocale = async (systemConfig) => {
 
     const [localeRows] = await connection.promise().query(localeQuery);
 
-    const originalLocales = localeRows
+    const originalLocales = (localeRows && Array.isArray(localeRows) ? localeRows : [])
+      .filter((row) => row?.langcode)
       .map((row) => row.langcode)
       .filter((locale) => locale && locale.trim());
 

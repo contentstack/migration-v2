@@ -347,10 +347,13 @@ const generateQueriesForFields = async (
       const queries: Promise<string>[] = [];
 
       // Collect all field queries (only for content types with manageable field count)
-      fieldsForType.forEach((fieldData) => {
-        tableJoins.push(`node__${fieldData.field_name}`);
-        queries.push(getQuery(connection, fieldData));
-      });
+      if (fieldsForType && Array.isArray(fieldsForType)) {
+        fieldsForType.forEach((fieldData) => {
+          if (!fieldData?.field_name) return;
+          tableJoins.push(`node__${fieldData.field_name}`);
+          queries.push(getQuery(connection, fieldData));
+        });
+      }
 
       // 🏷️ TAXONOMY FIX: Check for taxonomy fields that might not be in field config
       // but have actual usage in entry data (similar to upload-api's approach)

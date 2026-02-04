@@ -232,9 +232,10 @@ const createInitialMapper = async (systemConfig, prefix) => {
       return { contentTypes: [] };
     }
 
-    const allContentTypes = Object.keys(require('lodash').keyBy(details_data, 'content_types'));
+    const keyedData = require('lodash').keyBy(details_data, 'content_types') || {};
+    const allContentTypes = Object.keys(keyedData);
     // Aggressive filter: remove profile (case-insensitive) and any null/undefined
-    const contentTypes = allContentTypes.filter(
+    const contentTypes = (allContentTypes && Array.isArray(allContentTypes) ? allContentTypes : []).filter(
       (contentType) => contentType && contentType.toLowerCase() !== 'profile'
     );
 

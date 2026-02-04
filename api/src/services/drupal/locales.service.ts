@@ -281,8 +281,16 @@ export const createLocale = async (
     const localesFromProject = project?.locales || {};
 
     // 4. Fetch locale names from Contentstack API
-    const [localesApiResponse] = await getAllLocales();
-    const contentstackLocales = localesApiResponse || {}; // ✅ FIX: getAllLocales already returns the locales object
+    const [localesError, localesData] = await getAllLocales();
+    if (localesError) {
+      const errorMessage = getLogMessage(
+        srcFunc,
+        `Error fetching Contentstack locales: ${localesError}`,
+        {}
+      );
+      await customLogger(projectId, destination_stack_id, 'warn', errorMessage);
+    }
+    const contentstackLocales = localesData || {};
 
     // 5. Map source locales to destination locales using user selection
     // Find the destination master locale based on source master locale
@@ -300,7 +308,11 @@ export const createLocale = async (
     );
 
     // Map each transformed source locale to destination locale
+    if (!transformedLocales || !Array.isArray(transformedLocales)) {
+      throw new Error('Failed to transform locales');
+    }
     transformedLocales.forEach((localeInfo) => {
+      if (!localeInfo) return;
       const { code: sourceCode, isMaster } = localeInfo;
 
       // Find destination locale from mapping

@@ -303,10 +303,10 @@ const createDropdownOrRadioFieldObject = (
   // Extract actual choices from field settings (allowed_values)
   let actualChoices = [];
 
-  if (item.settings && item.settings.allowed_values) {
+  if (item?.settings?.allowed_values && typeof item.settings.allowed_values === 'object') {
     // Convert allowed_values object to choices array
     // Drupal format: { stored_key: display_label } -> Contentstack format: [{ value: display_label, key: stored_key }]
-    actualChoices = Object.entries(item.settings.allowed_values).map(([key, value]) => {
+    actualChoices = Object.entries(item.settings.allowed_values || {}).map(([key, value]) => {
       let processedKey = key;
 
       // For numeric fields, ensure the key (stored value) is properly typed
@@ -513,9 +513,9 @@ const contentTypeMapper = async (
           // Add vocabularies to collection (avoid duplicates)
           // Only add if specific target vocabularies are configured
           // (actualTaxonomyUsage will add any vocabularies with actual data)
-          if (targetVocabularies && targetVocabularies.length > 0) {
+          if (targetVocabularies && Array.isArray(targetVocabularies) && targetVocabularies.length > 0) {
             targetVocabularies.forEach((vocab) => {
-              if (!collectedTaxonomies.includes(vocab)) {
+              if (vocab && !collectedTaxonomies.includes(vocab)) {
                 collectedTaxonomies.push(vocab);
               }
             });
@@ -529,27 +529,27 @@ const contentTypeMapper = async (
       }
       case 'entity_reference': {
         // Check if this is a media field by handler
-        if (item.handler === 'default:media') {
+        if (item?.handler === 'default:media') {
           // Media entity references should be treated as file fields
           acc.push(createFieldObject(item, 'file', 'file'));
-        } else if (item.handler === 'default:taxonomy_term') {
+        } else if (item?.handler === 'default:taxonomy_term') {
           // 🏷️ Collect taxonomy field for consolidation instead of creating individual fields
 
           // Try to determine specific vocabularies this field references
           let targetVocabularies = [];
 
           // Check if field has handler settings that specify target vocabularies
-          if (item.reference) {
+          if (item?.reference && typeof item.reference === 'object') {
             targetVocabularies = Object.keys(item.reference);
           }
 
-          if (taxonomySchema && taxonomySchema.length > 0) {
+          if (taxonomySchema && Array.isArray(taxonomySchema) && taxonomySchema.length > 0) {
             // Add vocabularies to collection (avoid duplicates)
             // Only add if specific target vocabularies are configured
             // (actualTaxonomyUsage will add any vocabularies with actual data)
-            if (targetVocabularies && targetVocabularies.length > 0) {
+            if (targetVocabularies && Array.isArray(targetVocabularies) && targetVocabularies.length > 0) {
               targetVocabularies.forEach((vocab) => {
-                if (!collectedTaxonomies.includes(vocab)) {
+                if (vocab && !collectedTaxonomies.includes(vocab)) {
                   collectedTaxonomies.push(vocab);
                 }
               });
@@ -563,19 +563,19 @@ const contentTypeMapper = async (
             const referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
             acc.push(createFieldObject(item, 'reference', 'reference', referenceFields));
           }
-        } else if (item.handler === 'default:node') {
+        } else if (item?.handler === 'default:node') {
           // Handle node reference fields - SKIP if only references profile
           let referenceFields = [];
 
-          if (item.reference && Object.keys(item.reference).length > 0) {
+          if (item?.reference && typeof item.reference === 'object' && Object.keys(item.reference).length > 0) {
             // Use specific content types from field configuration
             referenceFields = Object.keys(item.reference);
           }
 
           // If no specific targets configured, use top 10 content types as fallback
-          if (referenceFields.length === 0 && contentTypes && contentTypes.length > 0) {
+          if (referenceFields.length === 0 && contentTypes && Array.isArray(contentTypes) && contentTypes.length > 0) {
             const availableContentTypes =
-              contentTypes?.filter((ct) => ct !== item.content_types) || [];
+              contentTypes?.filter((ct) => ct && ct !== item?.content_types) || [];
             referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
           }
 
@@ -593,14 +593,14 @@ const contentTypeMapper = async (
           let referenceFields = [];
 
           // Use specific targets from Drupal field configuration
-          if (item.reference && Object.keys(item.reference).length > 0) {
+          if (item?.reference && typeof item.reference === 'object' && Object.keys(item.reference).length > 0) {
             referenceFields = Object.keys(item.reference);
           }
 
           // If no specific targets configured, use top 10 content types as fallback
-          if (referenceFields.length === 0 && contentTypes && contentTypes.length > 0) {
+          if (referenceFields.length === 0 && contentTypes && Array.isArray(contentTypes) && contentTypes.length > 0) {
             const availableContentTypes =
-              contentTypes?.filter((ct) => ct !== item.content_types) || [];
+              contentTypes?.filter((ct) => ct && ct !== item?.content_types) || [];
             referenceFields = filterOutProfile(availableContentTypes.slice(0, 10));
           }
 
@@ -677,8 +677,8 @@ const contentTypeMapper = async (
   }, []);
 
   // Add default title and url fields if not present
-  const hasTitle = schemaArray.some((field) => field.uid === 'title');
-  const hasUrl = schemaArray.some((field) => field.uid === 'url');
+  const hasTitle = schemaArray && Array.isArray(schemaArray) && schemaArray.some((field) => field?.uid === 'title');
+  const hasUrl = schemaArray && Array.isArray(schemaArray) && schemaArray.some((field) => field?.uid === 'url');
 
   if (!hasTitle) {
     schemaArray.unshift({
@@ -715,13 +715,13 @@ const contentTypeMapper = async (
   // Merge actualTaxonomyUsage with collectedTaxonomies
   if (actualTaxonomyUsage && actualTaxonomyUsage.size > 0) {
     for (const vocab of actualTaxonomyUsage) {
-      if (!collectedTaxonomies.includes(vocab)) {
+      if (vocab && !collectedTaxonomies.includes(vocab)) {
         collectedTaxonomies.push(vocab);
       }
     }
   }
 
-  if (collectedTaxonomies.length > 0) {
+  if (collectedTaxonomies && Array.isArray(collectedTaxonomies) && collectedTaxonomies.length > 0) {
     // Create consolidated taxonomy field with collected taxonomies (from both config AND actual usage)
     const consolidatedTaxonomyField = {
       uid: 'taxonomies',
@@ -733,7 +733,7 @@ const contentTypeMapper = async (
       backupFieldType: 'taxonomy',
       backupFieldUid: 'taxonomies',
       advanced: {
-        taxonomies: collectedTaxonomies.map((taxonomyUid) => ({
+        taxonomies: collectedTaxonomies.filter((t) => t != null).map((taxonomyUid) => ({
           taxonomy_uid: taxonomyUid,
           mandatory: false,
           multiple: true,
