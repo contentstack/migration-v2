@@ -1452,7 +1452,7 @@ const getEntryMapping = async (req: Request) => {
     }
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
-    const entryData = contentType?.entryMapping?.map?.((entry: any) => {
+    const entryMapping = contentType?.entryMapping?.map?.((entry: any) => {
       const entryMapper = EntryMapperModel.chain
         .get("entry_mapper")
         .find({ id: entry, projectId: projectId, contentTypeId: contentTypeId })
@@ -1461,17 +1461,11 @@ const getEntryMapping = async (req: Request) => {
       return entryMapper;
     });
 
-    const entryMapping: any = entryData?.map((entry: any) => {
-      if (entry?.advanced?.initial) {
-        return { ...entry, advanced: entry?.advanced };
-      }
-      return entry;
-    });
 
     if (!isEmpty(entryMapping)) {
       if (search) {
         filteredResult = entryMapping?.filter?.((item: any) =>
-          item?.otherCmsField?.toLowerCase().includes(search)
+          item?.entryName?.toLowerCase().includes(search)
         );
         totalCount = filteredResult.length;
         result = filteredResult.slice(skip, Number(skip) + Number(limit));
@@ -1480,7 +1474,6 @@ const getEntryMapping = async (req: Request) => {
         result = entryMapping.slice(skip, Number(skip) + Number(limit));
       }
     }
-
     return {
       status: HTTP_CODES?.OK,
       count: totalCount,

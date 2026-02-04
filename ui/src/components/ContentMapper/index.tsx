@@ -2645,9 +2645,10 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
             {/* Content Type Fields */}
             <div className="content-types-fields-wrapper">
-              <div className="table-wrapper" ref={tableWrapperRef}>
+              <div className=" content-mapper-container table-wrapper" ref={tableWrapperRef}>
                 {iterationCount <= 1  ? (
-                <InfiniteScrollTable
+                  <div>
+                    <InfiniteScrollTable
                   loading={loading}
                   canSearch={true}
                   totalCounts={Math.max(0, tableData?.length)}
@@ -2710,7 +2711,22 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     singular: '',
                     plural: `${totalCounts === 0 ? 'Count' : ''}`
                   }}
-                /> ) : (
+                />
+                <div className="mapper-footer">
+                      <div>Total Fields: <strong>{totalCounts}</strong></div>
+                      <Button
+                        className="saveButton"
+                        onClick={handleSaveContentType}
+                        version="v2"
+                        disabled={newMigrationData?.project_current_step > 4}
+                        isLoading={isLoadingSaveButton}
+                      >
+                        Save
+                      </Button>
+                </div>
+                  </div>
+                 
+              ) : (
                   <EntryMapper 
                   selectedContentTypeId={selectedContentType || null}
                   tableHeight={tableHeight}
@@ -2718,9 +2734,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                 )}
               </div>
 
-              <div className="mapper-footer-wrapper">
-                <div className="mapper-footer-separator" />
-                <div className="mapper-footer">
+              {/* <div className="mapper-footer-wrapper"> */}
+                {/* <div className="mapper-footer-separator" /> */}
+                {/* <div className="mapper-footer">
                   <div>Total Fields: <strong>{totalCounts}</strong></div>
                   <Button
                     className="saveButton"
@@ -2731,8 +2747,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   >
                     Save
                   </Button>
-                </div>
-              </div>
+                </div> */}
+              {/* </div> */}
             </div>
           </div> :
           <EmptyState

@@ -386,3 +386,21 @@ export const getEntryMapping = async (
     }
   }
 };
+export const updateEntryMapper = async (
+  projectId: string,
+  data: ObjectType
+) => {
+  try {
+    return await putCall(
+      `${API_VERSION}/mapper/updateEntryStatus/${projectId}`,
+      data,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
