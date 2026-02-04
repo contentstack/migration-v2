@@ -2,7 +2,7 @@ import path from 'path';
 import multer from 'multer';
 import { Readable } from 'stream';
 import express, { Router, Request, Response } from 'express';
-import { createReadStream, createWriteStream, statSync } from 'fs';
+import { createReadStream, statSync } from 'fs';
 import {
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
@@ -99,9 +99,6 @@ router.get(
       const app_token: string | string[] = req?.headers?.app_token ?? '';
       const affix: string = sanitizeId(req?.headers?.affix ?? 'csm');
       const cmsType = config?.cmsType?.toLowerCase();
-
-      if (!config?.isLocalPath) {
-      }
 
       if (config?.isLocalPath) {
         const localPath = config?.localPath || '';
@@ -340,13 +337,8 @@ router.get(
 
           const bodyStream: Readable = s3File?.Body as Readable;
 
-          // Create a writable stream to save the downloaded zip file
-          const zipFileStream = createWriteStream(`${fileName}`);
-
-          // // Pipe the S3 object's body to the writable stream
-          bodyStream.pipe(zipFileStream);
-
-          // Create a writable stream to save the downloaded zip file
+          // Collect the S3 file data into a buffer for processing
+          // NOTE: Removed unsafe file write that used unsanitized filename
           let zipBuffer: Buffer | null = null;
 
           // Collect the data from the stream into a buffer

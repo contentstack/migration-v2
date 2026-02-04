@@ -227,45 +227,51 @@ export const createLocale = async (
       throw new Error('Failed to create database connection');
     }
 
-    // Helper function to execute queries (same pattern as entries.service.ts)
-    const executeQuery = (query: string): Promise<any[]> => {
-      return new Promise((resolve, reject) => {
-        connection.query(query, (error, results) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(results as any[]);
-          }
+    // Variables to store query results (declared outside try/finally for access after)
+    let sourceMasterLocale = 'en';
+    let sourceLocaleCodes: string[] = [];
+
+    try {
+      // Helper function to execute queries (same pattern as entries.service.ts)
+      const executeQuery = (query: string): Promise<any[]> => {
+        return new Promise((resolve, reject) => {
+          connection.query(query, (error, results) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(results as any[]);
+            }
+          });
         });
-      });
-    };
+      };
 
-    // 1. Get master locale from Drupal system.site config
-    const masterLocaleQuery = `
-      SELECT SUBSTRING_INDEX( 
-        SUBSTRING_INDEX(CONVERT(data USING utf8), 'default_langcode";s:2:"', -1), 
-        '"', 1 
-      ) as master_locale 
-      FROM config 
-      WHERE name = 'system.site'
-    `;
+      // 1. Get master locale from Drupal system.site config
+      const masterLocaleQuery = `
+        SELECT SUBSTRING_INDEX( 
+          SUBSTRING_INDEX(CONVERT(data USING utf8), 'default_langcode";s:2:"', -1), 
+          '"', 1 
+        ) as master_locale 
+        FROM config 
+        WHERE name = 'system.site'
+      `;
 
-    const masterRows: any = await executeQuery(masterLocaleQuery);
-    const sourceMasterLocale = masterRows[0]?.master_locale || 'en';
+      const masterRows: any = await executeQuery(masterLocaleQuery);
+      sourceMasterLocale = masterRows[0]?.master_locale || 'en';
 
-    // 2. Get all locales from node_field_data
-    const allLocalesQuery = `
-      SELECT DISTINCT langcode 
-      FROM node_field_data 
-      WHERE langcode IS NOT NULL AND langcode != '' 
-      ORDER BY langcode
-    `;
+      // 2. Get all locales from node_field_data
+      const allLocalesQuery = `
+        SELECT DISTINCT langcode 
+        FROM node_field_data 
+        WHERE langcode IS NOT NULL AND langcode != '' 
+        ORDER BY langcode
+      `;
 
-    const allLocaleRows: any = await executeQuery(allLocalesQuery);
-    const sourceLocaleCodes = allLocaleRows.map((row: any) => row.langcode);
-
-    // Close database connection
-    connection.end();
+      const allLocaleRows: any = await executeQuery(allLocalesQuery);
+      sourceLocaleCodes = allLocaleRows.map((row: any) => row.langcode);
+    } finally {
+      // Always close database connection, even if queries fail
+      connection.end();
+    }
 
     // 3. Get user-selected locale mapping from UI (project.localeMapping or project.locales/master_locale)
     // localeMapping format: { "en-master_locale": "fr-fr", "es": "es-es", ... }

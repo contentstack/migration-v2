@@ -178,13 +178,17 @@ const createInitialMapper = async (systemConfig, prefix) => {
 
     // Get database connection
     const connection = dbConnection(systemConfig);
+    
+    // Variables to store results (declared outside try/finally for access after)
+    let initialMapper = [];
 
-    // SQL query to get field configurations
-    const query =
-      "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'";
+    try {
+      // SQL query to get field configurations
+      const query =
+        "SELECT *, CONVERT(data USING utf8) as data FROM config WHERE name LIKE '%field.field.node%'";
 
-    // Execute query
-    const [rows] = await connection.promise().query(query);
+      // Execute query
+      const [rows] = await connection.promise().query(query);
 
     const details_data = [];
 
@@ -228,7 +232,6 @@ const createInitialMapper = async (systemConfig, prefix) => {
       return { contentTypes: [] };
     }
 
-    const initialMapper = [];
     const allContentTypes = Object.keys(require('lodash').keyBy(details_data, 'content_types'));
     // Aggressive filter: remove profile (case-insensitive) and any null/undefined
     const contentTypes = allContentTypes.filter(
@@ -299,9 +302,13 @@ const createInitialMapper = async (systemConfig, prefix) => {
       await fsp.writeFile(filePath, JSON.stringify(main, null, 4));
     }
 
-    // Close database connection
-    connection.end();
-    return { contentTypes: initialMapper };
+      return { contentTypes: initialMapper };
+    } finally {
+      // Always close database connection, even if queries fail
+      if (connection) {
+        connection.end();
+      }
+    }
   } catch (error) {
     console.error('Error in content type extraction:', error);
     throw error;

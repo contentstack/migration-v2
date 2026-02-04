@@ -48,6 +48,24 @@ export class OptimizedQueryBuilder {
   }
 
   /**
+   * Escape an identifier (table/column name) to prevent SQL injection
+   * Uses backticks and escapes any backticks in the identifier
+   */
+  private escapeIdentifier(identifier: string): string {
+    // Remove any existing backticks and escape internal ones
+    const escaped = identifier.replace(/`/g, '``');
+    return `\`${escaped}\``;
+  }
+
+  /**
+   * Validate that an identifier contains only safe characters
+   * (letters, numbers, underscores)
+   */
+  private isValidIdentifier(identifier: string): boolean {
+    return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier);
+  }
+
+  /**
    * Strategy 1: Sequential Field Queries (No JOINs)
    * Fetch base node data first, then field data separately
    */
@@ -57,7 +75,12 @@ export class OptimizedQueryBuilder {
   ): Promise<OptimizedQueryResult> {
     const srcFunc = 'generateSequentialQueries';
 
-    // 1. Base query for node data (no JOINs)
+    // Validate contentType to prevent SQL injection
+    if (!this.isValidIdentifier(contentType)) {
+      throw new Error(`Invalid content type identifier: ${contentType}`);
+    }
+
+    // 1. Base query for node data (no JOINs) - using parameterized query
     const baseQuery = `
       SELECT 
         node.nid, 
@@ -68,47 +91,69 @@ export class OptimizedQueryBuilder {
         users.name as author_name
       FROM node_field_data node
       LEFT JOIN users ON users.uid = node.uid
-      WHERE node.type = '${contentType}'
+      WHERE node.type = ?
       ORDER BY node.nid
     `;
 
-    // 2. Count query (simple, no JOINs)
+    // 2. Count query (simple, no JOINs) - using parameterized query
     const countQuery = `
       SELECT COUNT(DISTINCT node.nid) as countentry 
       FROM node_field_data node 
-      WHERE node.type = '${contentType}'
+      WHERE node.type = ?
     `;
 
     // 3. Individual field queries (one per field table)
     const fieldQueries: string[] = [];
     
     for (const field of fieldsForType) {
+      // Validate field name
+      if (!this.isValidIdentifier(field.field_name)) {
+        console.warn(`Skipping invalid field name: ${field.field_name}`);
+        continue;
+      }
+
       // Check if field table exists and get column structure
       const fieldTableName = `node__${field.field_name}`;
+      const escapedTableName = this.escapeIdentifier(fieldTableName);
       
       try {
-        // Get field columns dynamically
+        // Get field columns dynamically - using parameterized query
         const columnQuery = `
           SELECT COLUMN_NAME 
           FROM INFORMATION_SCHEMA.COLUMNS 
           WHERE TABLE_SCHEMA = DATABASE() 
-          AND TABLE_NAME = '${fieldTableName}'
-          AND COLUMN_NAME LIKE '${field.field_name}_%'
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME LIKE ?
         `;
         
-        const [columns] = await this.connection.promise().query(columnQuery) as [ColumnInfo[], unknown];
+        const [columns] = await this.connection.promise().query(
+          columnQuery, 
+          [fieldTableName, `${field.field_name}_%`]
+        ) as [ColumnInfo[], unknown];
         
         if (columns.length > 0) {
-          // Build field-specific query
-          const fieldColumns = columns.map((col: ColumnInfo) => col.COLUMN_NAME).join(', ');
+          // Validate and escape column names
+          const validColumns = columns
+            .map((col: ColumnInfo) => col.COLUMN_NAME)
+            .filter((name: string) => this.isValidIdentifier(name));
           
+          if (validColumns.length === 0) {
+            console.warn(`No valid columns found for ${fieldTableName}`);
+            continue;
+          }
+
+          const escapedColumns = validColumns
+            .map((name: string) => this.escapeIdentifier(name))
+            .join(', ');
+          
+          // Build field-specific query with escaped identifiers and parameterized value
           const fieldQuery = `
             SELECT 
               entity_id,
-              ${fieldColumns}
-            FROM ${fieldTableName}
+              ${escapedColumns}
+            FROM ${escapedTableName}
             WHERE entity_id IN (
-              SELECT nid FROM node_field_data WHERE type = '${contentType}'
+              SELECT nid FROM node_field_data WHERE type = ?
             )
           `;
           
@@ -144,7 +189,12 @@ export class OptimizedQueryBuilder {
   ): Promise<{ baseQuery: string; batchQueries: string[]; countQuery: string }> {
     const srcFunc = 'generateBatchedQueries';
 
-    // Base query (always the same)
+    // Validate contentType to prevent SQL injection
+    if (!this.isValidIdentifier(contentType)) {
+      throw new Error(`Invalid content type identifier: ${contentType}`);
+    }
+
+    // Base query (always the same) - using parameterized query
     const baseQuery = `
       SELECT 
         node.nid, 
@@ -153,15 +203,15 @@ export class OptimizedQueryBuilder {
         node.created, 
         node.type
       FROM node_field_data node
-      WHERE node.type = '${contentType}'
+      WHERE node.type = ?
       ORDER BY node.nid
     `;
 
-    // Count query
+    // Count query - using parameterized query
     const countQuery = `
       SELECT COUNT(DISTINCT node.nid) as countentry 
       FROM node_field_data node 
-      WHERE node.type = '${contentType}'
+      WHERE node.type = ?
     `;
 
     // Create batches of fields
@@ -175,35 +225,56 @@ export class OptimizedQueryBuilder {
 
       // Validate each field in the batch
       for (const field of batch) {
+        // Validate field name
+        if (!this.isValidIdentifier(field.field_name)) {
+          console.warn(`Skipping invalid field name: ${field.field_name}`);
+          continue;
+        }
+
         try {
           const fieldTableName = `node__${field.field_name}`;
+          const escapedTableName = this.escapeIdentifier(fieldTableName);
           
-          // Check if table exists
+          // Check if table exists - using parameterized query
           const tableExistsQuery = `
             SELECT 1 FROM INFORMATION_SCHEMA.TABLES 
             WHERE TABLE_SCHEMA = DATABASE() 
-            AND TABLE_NAME = '${fieldTableName}'
+            AND TABLE_NAME = ?
           `;
           
-          const [tableExists] = await this.connection.promise().query(tableExistsQuery) as [TableExistsResult[], unknown];
+          const [tableExists] = await this.connection.promise().query(
+            tableExistsQuery,
+            [fieldTableName]
+          ) as [TableExistsResult[], unknown];
           
           if (tableExists.length > 0) {
-            // Get field columns
+            // Get field columns - using parameterized query
             const columnQuery = `
               SELECT COLUMN_NAME 
               FROM INFORMATION_SCHEMA.COLUMNS 
               WHERE TABLE_SCHEMA = DATABASE() 
-              AND TABLE_NAME = '${fieldTableName}'
-              AND COLUMN_NAME LIKE '${field.field_name}_%'
+              AND TABLE_NAME = ?
+              AND COLUMN_NAME LIKE ?
               LIMIT 1
             `;
             
-            const [columns] = await this.connection.promise().query(columnQuery) as [ColumnInfo[], unknown];
+            const [columns] = await this.connection.promise().query(
+              columnQuery,
+              [fieldTableName, `${field.field_name}_%`]
+            ) as [ColumnInfo[], unknown];
             
             if (columns.length > 0) {
               const columnName = columns[0].COLUMN_NAME;
-              validFields.push(`MAX(${fieldTableName}.${columnName}) as ${columnName}`);
-              joinClauses.push(`LEFT JOIN ${fieldTableName} ON ${fieldTableName}.entity_id = node.nid`);
+              
+              // Validate column name
+              if (!this.isValidIdentifier(columnName)) {
+                console.warn(`Skipping invalid column name: ${columnName}`);
+                continue;
+              }
+              
+              const escapedColumnName = this.escapeIdentifier(columnName);
+              validFields.push(`MAX(${escapedTableName}.${escapedColumnName}) as ${escapedColumnName}`);
+              joinClauses.push(`LEFT JOIN ${escapedTableName} ON ${escapedTableName}.entity_id = node.nid`);
             }
           }
         } catch (error) {
@@ -212,13 +283,14 @@ export class OptimizedQueryBuilder {
       }
 
       if (validFields.length > 0) {
+        // Build batch query with escaped identifiers and parameterized value placeholder
         const batchQuery = `
           SELECT 
             node.nid,
             ${validFields.join(',\n            ')}
           FROM node_field_data node
           ${joinClauses.join('\n          ')}
-          WHERE node.type = '${contentType}'
+          WHERE node.type = ?
           GROUP BY node.nid
           ORDER BY node.nid
         `;
@@ -251,7 +323,12 @@ export class OptimizedQueryBuilder {
   ): Promise<{ baseQuery: string; unionQuery: string; countQuery: string }> {
     const srcFunc = 'generateUnionQueries';
 
-    // Base query
+    // Validate contentType to prevent SQL injection
+    if (!this.isValidIdentifier(contentType)) {
+      throw new Error(`Invalid content type identifier: ${contentType}`);
+    }
+
+    // Base query - using parameterized query
     const baseQuery = `
       SELECT 
         node.nid, 
@@ -260,47 +337,67 @@ export class OptimizedQueryBuilder {
         node.created, 
         node.type
       FROM node_field_data node
-      WHERE node.type = '${contentType}'
+      WHERE node.type = ?
       ORDER BY node.nid
     `;
 
-    // Count query
+    // Count query - using parameterized query
     const countQuery = `
       SELECT COUNT(DISTINCT node.nid) as countentry 
       FROM node_field_data node 
-      WHERE node.type = '${contentType}'
+      WHERE node.type = ?
     `;
 
     // Union query for all field data
     const unionParts: string[] = [];
     
     for (const field of fieldsForType) {
+      // Validate field name
+      if (!this.isValidIdentifier(field.field_name)) {
+        console.warn(`Skipping invalid field name in union: ${field.field_name}`);
+        continue;
+      }
+
       const fieldTableName = `node__${field.field_name}`;
+      const escapedTableName = this.escapeIdentifier(fieldTableName);
+      const escapedFieldName = this.escapeIdentifier(field.field_name);
       
       try {
-        // Get field columns
+        // Get field columns - using parameterized query
         const columnQuery = `
           SELECT COLUMN_NAME 
           FROM INFORMATION_SCHEMA.COLUMNS 
           WHERE TABLE_SCHEMA = DATABASE() 
-          AND TABLE_NAME = '${fieldTableName}'
-          AND COLUMN_NAME LIKE '${field.field_name}_%'
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME LIKE ?
           LIMIT 1
         `;
         
-        const [columns] = await this.connection.promise().query(columnQuery) as [ColumnInfo[], unknown];
+        const [columns] = await this.connection.promise().query(
+          columnQuery,
+          [fieldTableName, `${field.field_name}_%`]
+        ) as [ColumnInfo[], unknown];
         
         if (columns.length > 0) {
           const columnName = columns[0].COLUMN_NAME;
           
+          // Validate column name
+          if (!this.isValidIdentifier(columnName)) {
+            console.warn(`Skipping invalid column name in union: ${columnName}`);
+            continue;
+          }
+          
+          const escapedColumnName = this.escapeIdentifier(columnName);
+          
+          // Use escaped identifiers and parameterized query placeholder
           unionParts.push(`
             SELECT 
               entity_id as nid,
-              '${field.field_name}' as field_name,
-              ${columnName} as field_value
-            FROM ${fieldTableName}
+              ${escapedFieldName} as field_name,
+              ${escapedColumnName} as field_value
+            FROM ${escapedTableName}
             WHERE entity_id IN (
-              SELECT nid FROM node_field_data WHERE type = '${contentType}'
+              SELECT nid FROM node_field_data WHERE type = ?
             )
           `);
         }

@@ -54,12 +54,16 @@ function deleteFolderSync(folderPath) {
 }
 
 function dbConnection(config) {
+  // Parse port with explicit NaN handling
+  const rawPort = Number(config['mysql']['port']);
+  const port = Number.isFinite(rawPort) ? rawPort : 3306;
+
   var connection = mysql.createConnection({
     host: config['mysql']['host'],
     user: config['mysql']['user'],
     password: config['mysql']['password'],
     database: config['mysql']['database'],
-    port: config['mysql']['port'] || 3306
+    port: port
   });
   return connection;
 }

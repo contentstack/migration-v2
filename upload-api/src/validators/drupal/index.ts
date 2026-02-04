@@ -301,13 +301,17 @@ async function drupalValidator({
       };
     }
 
+    // Parse port with explicit NaN handling
+    const rawPort = Number(data.port);
+    const port = Number.isFinite(rawPort) ? rawPort : 3306;
+
     // Create MySQL connection configuration
     const connectionConfig: mysql.ConnectionOptions = {
       host: data.host,
       user: data.user,
       password: data.password,
       database: data.database,
-      port: Number(data.port) || 3306,
+      port,
       connectTimeout: 10000 // 10 seconds timeout
     };
 
@@ -317,7 +321,7 @@ async function drupalValidator({
     logger.info('Drupal validator: Database connection established successfully', {
       host: data.host,
       database: data.database,
-      port: Number(data.port) || 3306
+      port
     });
 
     // Test connection and validate required Drupal tables exist
