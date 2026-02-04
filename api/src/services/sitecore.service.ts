@@ -12,6 +12,8 @@ import { orgService } from './org.service.js';
 import { getLogMessage } from '../utils/index.js';
 import customLogger from '../utils/custom-logger.utils.js';
 import { getSafePath } from '../utils/sanitize-path.utils.js';
+import getEntryMapperDb from '../models/EntryMapper.js';
+import ProjectModelLowdb from '../models/project-lowdb.js';
 
 const baseDirName = MIGRATION_DATA_CONFIG.DATA;
 const {
@@ -282,6 +284,14 @@ const createEntry = async ({
       destinationStackId,
       projectId,
     });
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+    const entryMapperModel = getEntryMapperDb(projectId, iteration);
+    await entryMapperModel.read();
     const folderName: any = getSafePath(
       path.join(packagePath, 'items', 'master', 'sitecore', 'content')
     );
@@ -296,7 +306,11 @@ const createEntry = async ({
           );
           const jsonData = JSON.parse(data);
           const { language, template } = jsonData?.item?.$ ?? {};
-          const id = idCorrector({ id: jsonData?.item?.$?.id });
+          let id = idCorrector({ id: jsonData?.item?.$?.id });
+          const entryMapper = entryMapperModel.chain.get("entry_mapper").find({ otherCmsEntryUid: id }).value();
+          if (entryMapper?.isUpdate) {
+            id = entryMapper?.contentstackEntryUid;
+          }
           const entries: any = {};
           entries[id] = {
             meta: jsonData?.item?.$,
