@@ -56,6 +56,18 @@ export interface FileDetails {
     bucketName?: string;
     buketKey?: string;
   };
+  mySQLDetails?: {
+    host?: string;
+    user?: string;
+    password?: string;
+    database?: string;
+    port?: number;
+  };
+  assetsConfig?: {
+    base_url?: string;
+    public_path?: string;
+  };
+  isSQL?: boolean;
   filePath?: string | undefined;
 }
 export interface IFile {

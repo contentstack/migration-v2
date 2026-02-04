@@ -373,7 +373,7 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
+export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
   // Clean up field UID by removing ALL leading underscores
   const rawUid = field?.uid;
   const cleanedUid = sanitizeUid(rawUid);
@@ -751,6 +751,38 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
         mandatory: field?.advanced?.mandatory ?? false,
         multiple: field?.advanced?.multiple ?? false,
         non_localizable: field.advanced?.nonLocalizable ?? false,
+        unique: field?.advanced?.unique ?? false
+      };
+    }
+
+    case 'taxonomy': {
+      // Build taxonomies array from field.taxonomies or field.advanced.taxonomies
+      const taxonomiesData = field?.taxonomies || field?.advanced?.taxonomies || [];
+      const taxonomiesArray = Array.isArray(taxonomiesData) 
+        ? taxonomiesData.map((tax: any) => ({
+            taxonomy_uid: typeof tax === 'string' ? tax : (tax?.taxonomy_uid || tax),
+            mandatory: field?.advanced?.mandatory ?? false,
+            multiple: field?.advanced?.multiple !== false, // Default true for taxonomies
+            non_localizable: field?.advanced?.nonLocalizable ?? false
+          }))
+        : [];
+
+      return {
+        data_type: "taxonomy",
+        display_name: field?.title,
+        uid: cleanedUid,
+        taxonomies: taxonomiesArray,
+        field_metadata: {
+          description: field?.advanced?.description ?? '',
+          default_value: field?.advanced?.default_value ?? ''
+        },
+        format: field?.advanced?.validationRegex ?? '',
+        error_messages: {
+          format: field?.advanced?.validationErrorMessage ?? ''
+        },
+        mandatory: field?.advanced?.mandatory ?? false,
+        multiple: field?.advanced?.multiple !== false, // Default true for taxonomies
+        non_localizable: field?.advanced?.nonLocalizable ?? false,
         unique: field?.advanced?.unique ?? false
       };
     }

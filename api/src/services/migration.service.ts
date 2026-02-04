@@ -1,4 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+/* eslint-disable */
 
 import { Request } from 'express';
 import path from 'path';
@@ -24,6 +25,7 @@ import {
 import { fieldAttacher } from '../utils/field-attacher.utils.js';
 import { siteCoreService } from './sitecore.service.js';
 import { wordpressService } from './wordpress.service.js';
+import { drupalService } from './drupal.service.js';
 import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 import { utilsCli } from './runCli.service.js';
 import customLogger from '../utils/custom-logger.utils.js';
@@ -57,7 +59,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   try {
     const authtoken = await getAuthtoken(
       token_payload?.region,
-      token_payload?.user_id
+      token_payload?.user_id,
     );
 
     await ProjectModelLowdb.read();
@@ -88,7 +90,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
             master_locale,
           },
         },
-      })
+      }),
     );
 
     if (err) {
@@ -97,8 +99,8 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
           srcFun,
           HTTP_TEXTS.CS_ERROR,
           token_payload,
-          err.response.data
-        )
+          err.response.data,
+        ),
       );
 
       return {
@@ -112,6 +114,73 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       .findIndex({ id: projectId })
       .value();
     if (index > -1) {
+      // ✅ Generate queries for new test stack (Drupal only)
+      const project = ProjectModelLowdb.data.projects[index];
+      if (project?.legacy_cms?.cms === CMS.DRUPAL) {
+        try {
+          const startMessage = getLogMessage(
+            srcFun,
+            `Generating dynamic queries for new test stack (${res?.data?.stack?.api_key})...`,
+            token_payload,
+          );
+          await customLogger(
+            projectId,
+            res?.data?.stack?.api_key,
+            'info',
+            startMessage,
+          );
+
+          // Get database configuration from project
+          const legacyCms = project?.legacy_cms as unknown as Record<
+            string,
+            unknown
+          >;
+          const mySQLDetails = legacyCms?.mySQLDetails as
+            | Record<string, unknown>
+            | undefined;
+          const dbConfig = {
+            host: mySQLDetails?.host as string | undefined,
+            user: mySQLDetails?.user as string | undefined,
+            password: (mySQLDetails?.password as string) || '',
+            database: mySQLDetails?.database as string | undefined,
+            port: (mySQLDetails?.port as number) || 3306,
+          };
+
+          // Generate dynamic queries for the new test stack
+          await drupalService.createQuery(
+            dbConfig,
+            res?.data?.stack?.api_key,
+            projectId,
+          );
+
+          const successMessage = getLogMessage(
+            srcFun,
+            `Successfully generated queries for test stack (${res?.data?.stack?.api_key})`,
+            token_payload,
+          );
+          await customLogger(
+            projectId,
+            res?.data?.stack?.api_key,
+            'info',
+            successMessage,
+          );
+        } catch (error: any) {
+          const errorMessage = getLogMessage(
+            srcFun,
+            `Failed to generate queries for test stack: ${error.message}. Test migration may fail.`,
+            token_payload,
+            error,
+          );
+          await customLogger(
+            projectId,
+            res?.data?.stack?.api_key,
+            'error',
+            errorMessage,
+          );
+          // Don't throw error - let test stack creation succeed even if query generation fails
+        }
+      }
+
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_step = STEPPER_STEPS['TESTING'];
         data.projects[index].current_test_stack_id = res?.data?.stack?.api_key;
@@ -137,13 +206,13 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
         srcFun,
         'Error while creating a stack',
         token_payload,
-        error
-      )
+        error,
+      ),
     );
 
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
     );
   }
 };
@@ -161,7 +230,7 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
   try {
     const authtoken = await getAuthtoken(
       token_payload?.region,
-      token_payload?.user_id
+      token_payload?.user_id,
     );
 
     const [err, res] = await safePromise(
@@ -174,7 +243,7 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
           api_key: stack_key,
           authtoken,
         },
-      })
+      }),
     );
 
     if (err) {
@@ -183,8 +252,8 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
           srcFun,
           HTTP_TEXTS.CS_ERROR,
           token_payload,
-          err.response.data
-        )
+          err.response.data,
+        ),
       );
 
       return {
@@ -217,13 +286,13 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
         srcFun,
         'Error while creating a stack',
         token_payload,
-        error
-      )
+        error,
+      ),
     );
 
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
+      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR,
     );
   }
 };
@@ -250,23 +319,23 @@ const startTestMigration = async (req: Request): Promise<any> => {
       process.cwd(),
       'logs',
       projectId,
-      `${project?.current_test_stack_id}.log`
+      `${project?.current_test_stack_id}.log`,
     );
     const message = getLogMessage(
       'startTestMigration',
       'Starting Test Migration...',
-      {}
+      {},
     );
     await customLogger(
       projectId,
       project?.current_test_stack_id,
       'info',
-      message
+      message,
     );
     await setLogFilePath(loggerPath);
     const copyLogsToTestStack = async (
       stackUid: string,
-      projectLogPath: string
+      projectLogPath: string,
     ) => {
       try {
         // Sanitize stackUid using dedicated sanitization function to prevent path traversal
@@ -288,14 +357,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
           sanitizedStackUid,
           'logs',
           'import',
-          'error.log'
+          'error.log',
         );
         const successLogPath = path.join(
           resolvedBaseDir,
           sanitizedStackUid,
           'logs',
           'import',
-          'success.log'
+          'success.log',
         );
 
         // Final validation to ensure paths are within the expected base directory
@@ -304,7 +373,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
           !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
         ) {
           console.error(
-            'Invalid path detected, potential path traversal attempt'
+            'Invalid path detected, potential path traversal attempt',
           );
           return;
         }
@@ -320,7 +389,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const errorLogs = await fsPromises.readFile(
               canonicalErrorPath,
-              'utf8'
+              'utf8',
             );
             combinedLogs += errorLogs + '\n';
           }
@@ -331,7 +400,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
         // Read and combine success logs - use realpath to canonicalize and validate path
         try {
           const canonicalSuccessPath = await fsPromises.realpath(
-            successLogPath
+            successLogPath,
           );
           // Verify canonical path is still within base directory
           if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
@@ -339,7 +408,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const successLogs = await fsPromises.readFile(
               canonicalSuccessPath,
-              'utf8'
+              'utf8',
             );
             combinedLogs += successLogs;
           }
@@ -406,13 +475,13 @@ const startTestMigration = async (req: Request): Promise<any> => {
             req,
             project?.current_test_stack_id,
             projectId,
-            project
+            project,
           );
           await siteCoreService?.createEnvironment(
-            project?.current_test_stack_id
+            project?.current_test_stack_id,
           );
           await siteCoreService?.createVersionFile(
-            project?.current_test_stack_id
+            project?.current_test_stack_id,
           );
         }
         break;
@@ -423,30 +492,30 @@ const startTestMigration = async (req: Request): Promise<any> => {
             req,
             project?.current_test_stack_id,
             projectId,
-            project
+            project,
           );
           await wordpressService?.getAllAssets(
             file_path,
             packagePath,
             project?.current_test_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.createAssetFolderFile(
             file_path,
             project?.current_test_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.getAllreference(
             file_path,
             packagePath,
             project?.current_test_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.extractChunks(
             file_path,
             packagePath,
             project?.current_test_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.getAllAuthors(
             file_path,
@@ -456,7 +525,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           //await wordpressService?.extractContentTypes(projectId, project?.current_test_stack_id, contentTypes)
           await wordpressService?.getAllTerms(
@@ -467,7 +536,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.getAllTags(
             file_path,
@@ -477,7 +546,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.getAllCategories(
             file_path,
@@ -487,7 +556,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.extractPosts(
             packagePath,
@@ -496,7 +565,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.extractPages(
             packagePath,
@@ -505,15 +574,15 @@ const startTestMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.extractGlobalFields(
             project?.current_test_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.createVersionFile(
             project?.current_test_stack_id,
-            projectId
+            projectId,
           );
         }
         break;
@@ -524,28 +593,28 @@ const startTestMigration = async (req: Request): Promise<any> => {
           cleanLocalPath,
           project?.current_test_stack_id,
           projectId,
-          project
+          project,
         );
         await contentfulService?.createRefrence(
           cleanLocalPath,
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createWebhooks(
           cleanLocalPath,
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createEnvironment(
           cleanLocalPath,
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createAssets(
           cleanLocalPath,
           project?.current_test_stack_id,
           projectId,
-          true
+          true,
         );
         await contentfulService?.createEntry(
           cleanLocalPath,
@@ -554,11 +623,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
           contentTypes,
           project?.mapperKeys,
           project?.stackDetails?.master_locale,
-          project
+          project,
         );
         await contentfulService?.createVersionFile(
           project?.current_test_stack_id,
-          projectId
+          projectId,
         );
         break;
       }
@@ -582,9 +651,99 @@ const startTestMigration = async (req: Request): Promise<any> => {
           req,
           project?.current_test_stack_id,
           projectId,
-          project
+          project,
         );
         await aemService?.createVersionFile(project?.current_test_stack_id);
+        break;
+      }
+
+      case CMS.DRUPAL: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+        };
+
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        // Priority: project config > request body > environment variables > empty (auto-detection)
+        const drupalAssetsConfig = {
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
+            '',
+          public_path:
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
+            '',
+        };
+
+        // Run Drupal migration services in proper order (following test-drupal-services sequence)
+        // Step 1: Generate dynamic queries from database analysis (MUST RUN FIRST)
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+        );
+
+        // Step 2: Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
+        await drupalService?.generateContentTypeSchemas(
+          project?.current_test_stack_id,
+          projectId,
+        );
+
+        // Step 3: Create assets from Drupal database
+        await drupalService?.createAssets(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true,
+          drupalAssetsConfig,
+        );
+
+        // Step 4: Create references
+        await drupalService?.createRefrence(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true,
+        );
+
+        // Step 5: Create taxonomy
+        await drupalService?.createTaxonomy(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+        );
+
+        // Step 6: Create entries
+        await drupalService?.createEntry(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          true,
+          project?.stackDetails?.master_locale,
+          project?.content_mapper || [],
+          project,
+        );
+
+        // Step 7: Create locale
+        await drupalService?.createLocale(
+          dbConfig,
+          project?.current_test_stack_id,
+          projectId,
+          project,
+        );
+
+        // Step 8: Create version file
+        await drupalService?.createVersionFile(
+          project?.current_test_stack_id,
+          projectId,
+        );
         break;
       }
 
@@ -602,7 +761,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
       project?.current_test_stack_id,
       projectId,
       true,
-      loggerPath
+      loggerPath,
     );
   }
 };
@@ -640,24 +799,24 @@ const startMigration = async (req: Request): Promise<any> => {
       process.cwd(),
       'logs',
       projectId,
-      `${project?.destination_stack_id}.log`
+      `${project?.destination_stack_id}.log`,
     );
     const message = getLogMessage(
       'start Migration',
       'Starting Migration...',
-      {}
+      {},
     );
     await customLogger(
       projectId,
       project?.destination_stack_id,
       'info',
-      message
+      message,
     );
     await setLogFilePath(loggerPath);
 
     const copyLogsToStack = async (
       stackUid: string,
-      projectLogPath: string
+      projectLogPath: string,
     ) => {
       try {
         // Sanitize stackUid using dedicated sanitization function to prevent path traversal
@@ -679,14 +838,14 @@ const startMigration = async (req: Request): Promise<any> => {
           sanitizedStackUid,
           'logs',
           'import',
-          'error.log'
+          'error.log',
         );
         const successLogPath = path.join(
           resolvedBaseDir,
           sanitizedStackUid,
           'logs',
           'import',
-          'success.log'
+          'success.log',
         );
 
         // Final validation to ensure paths are within the expected base directory
@@ -695,7 +854,7 @@ const startMigration = async (req: Request): Promise<any> => {
           !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
         ) {
           console.error(
-            'Invalid path detected, potential path traversal attempt'
+            'Invalid path detected, potential path traversal attempt',
           );
           return;
         }
@@ -711,7 +870,7 @@ const startMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const errorLogs = await fsPromises.readFile(
               canonicalErrorPath,
-              'utf8'
+              'utf8',
             );
             combinedLogs += errorLogs + '\n';
           }
@@ -722,7 +881,7 @@ const startMigration = async (req: Request): Promise<any> => {
         // Read and combine success logs - use realpath to canonicalize and validate path
         try {
           const canonicalSuccessPath = await fsPromises.realpath(
-            successLogPath
+            successLogPath,
           );
           // Verify canonical path is still within base directory
           if (canonicalSuccessPath.startsWith(resolvedBaseDir + path.sep)) {
@@ -730,7 +889,7 @@ const startMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const successLogs = await fsPromises.readFile(
               canonicalSuccessPath,
-              'utf8'
+              'utf8',
             );
             combinedLogs += successLogs;
           }
@@ -797,10 +956,10 @@ const startMigration = async (req: Request): Promise<any> => {
             req,
             project?.destination_stack_id,
             projectId,
-            project
+            project,
           );
           await siteCoreService?.createVersionFile(
-            project?.destination_stack_id
+            project?.destination_stack_id,
           );
         }
         break;
@@ -811,30 +970,30 @@ const startMigration = async (req: Request): Promise<any> => {
             req,
             project?.current_test_stack_id,
             projectId,
-            project
+            project,
           );
           await wordpressService?.getAllAssets(
             file_path,
             packagePath,
             project?.destination_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.createAssetFolderFile(
             file_path,
             project?.destination_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.getAllreference(
             file_path,
             packagePath,
             project?.destination_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.extractChunks(
             file_path,
             packagePath,
             project?.destination_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.getAllAuthors(
             file_path,
@@ -844,7 +1003,7 @@ const startMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
           await wordpressService?.getAllTerms(
@@ -855,7 +1014,7 @@ const startMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.getAllTags(
             file_path,
@@ -865,7 +1024,7 @@ const startMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.getAllCategories(
             file_path,
@@ -875,7 +1034,7 @@ const startMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.extractPosts(
             packagePath,
@@ -884,7 +1043,7 @@ const startMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.extractPages(
             packagePath,
@@ -893,15 +1052,15 @@ const startMigration = async (req: Request): Promise<any> => {
             contentTypes,
             project?.mapperKeys,
             project?.stackDetails?.master_locale,
-            project
+            project,
           );
           await wordpressService?.extractGlobalFields(
             project?.destination_stack_id,
-            projectId
+            projectId,
           );
           await wordpressService?.createVersionFile(
             project?.destination_stack_id,
-            projectId
+            projectId,
           );
         }
         break;
@@ -912,27 +1071,27 @@ const startMigration = async (req: Request): Promise<any> => {
           cleanLocalPath,
           project?.destination_stack_id,
           projectId,
-          project
+          project,
         );
         await contentfulService?.createRefrence(
           cleanLocalPath,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createWebhooks(
           cleanLocalPath,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createEnvironment(
           cleanLocalPath,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createAssets(
           cleanLocalPath,
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         await contentfulService?.createEntry(
           cleanLocalPath,
@@ -941,11 +1100,11 @@ const startMigration = async (req: Request): Promise<any> => {
           contentTypes,
           project?.mapperKeys,
           project?.stackDetails?.master_locale,
-          project
+          project,
         );
         await contentfulService?.createVersionFile(
           project?.destination_stack_id,
-          projectId
+          projectId,
         );
         break;
       }
@@ -968,9 +1127,98 @@ const startMigration = async (req: Request): Promise<any> => {
           req,
           project?.destination_stack_id,
           projectId,
-          project
+          project,
         );
         await aemService?.createVersionFile(project?.destination_stack_id);
+        break;
+      }
+
+      case CMS.DRUPAL: {
+        // Get database configuration from project
+        const dbConfig = {
+          host: project?.legacy_cms?.mySQLDetails?.host,
+          user: project?.legacy_cms?.mySQLDetails?.user,
+          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          database: project?.legacy_cms?.mySQLDetails?.database,
+          port: project?.legacy_cms?.mySQLDetails?.port || 3306,
+        };
+
+        // Get Drupal assets URL configuration from project, request body, or environment variables
+        const drupalAssetsConfig = {
+          base_url:
+            project?.legacy_cms?.assetsConfig?.base_url ||
+            req.body?.assetsConfig?.base_url ||
+            process.env.DRUPAL_ASSETS_BASE_URL ||
+            '',
+          public_path:
+            project?.legacy_cms?.assetsConfig?.public_path ||
+            req.body?.assetsConfig?.public_path ||
+            process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
+            '',
+        };
+
+        // Run Drupal migration services in proper order
+        // Step 1: Generate dynamic queries from database analysis
+        await drupalService?.createQuery(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+        );
+
+        // Step 2: Generate content type schemas from upload-api
+        await drupalService?.generateContentTypeSchemas(
+          project?.destination_stack_id,
+          projectId,
+        );
+
+        // Step 3: Create assets from Drupal database
+        await drupalService?.createAssets(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false, // Not a test migration
+          drupalAssetsConfig,
+        );
+
+        // Step 4: Create references
+        await drupalService?.createRefrence(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false, // Not a test migration
+        );
+
+        // Step 5: Create taxonomy
+        await drupalService?.createTaxonomy(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+        );
+
+        // Step 6: Create entries
+        await drupalService?.createEntry(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          false, // Not a test migration
+          project?.stackDetails?.master_locale,
+          project?.content_mapper || [],
+          project,
+        );
+
+        // Step 7: Create locale
+        await drupalService?.createLocale(
+          dbConfig,
+          project?.destination_stack_id,
+          projectId,
+          project,
+        );
+
+        // Step 8: Create version file
+        await drupalService?.createVersionFile(
+          project?.destination_stack_id,
+          projectId,
+        );
         break;
       }
 
@@ -983,7 +1231,7 @@ const startMigration = async (req: Request): Promise<any> => {
       project?.destination_stack_id,
       projectId,
       false,
-      loggerPath
+      loggerPath,
     );
   }
 };
@@ -1012,7 +1260,7 @@ const getAuditData = async (req: Request): Promise<any> => {
     const stackFolders = fs.readdirSync(logsDir);
 
     const stackFolder = stackFolders?.find((folder) =>
-      folder?.startsWith?.(stackId)
+      folder?.startsWith?.(stackId),
     );
     if (!stackFolder) {
       throw new BadRequestError('Migration data not found for this stack');
@@ -1022,7 +1270,7 @@ const getAuditData = async (req: Request): Promise<any> => {
       stackFolder,
       GET_AUDIT_DATA?.LOGS_DIR,
       GET_AUDIT_DATA?.AUDIT_DIR,
-      GET_AUDIT_DATA?.AUDIT_REPORT
+      GET_AUDIT_DATA?.AUDIT_REPORT,
     );
     if (!fs.existsSync(auditLogPath)) {
       throw new BadRequestError('Audit log path not found');
@@ -1057,7 +1305,7 @@ const getAuditData = async (req: Request): Promise<any> => {
 
         const fileContent = await fsPromises?.readFile(
           safeEntriesSelectFieldPath,
-          'utf8'
+          'utf8',
         );
         try {
           if (typeof fileContent === 'string') {
@@ -1067,7 +1315,7 @@ const getAuditData = async (req: Request): Promise<any> => {
         } catch (error) {
           logger.error(
             `Error parsing JSON from file ${entriesSelectFieldPath}:`,
-            error
+            error,
           );
           throw new BadRequestError('Invalid JSON format in audit file');
         }
@@ -1103,7 +1351,7 @@ const getAuditData = async (req: Request): Promise<any> => {
           !safeFilePath.startsWith(auditLogPath)
         ) {
           throw new BadRequestError(
-            'Path traversal detected or access to this file is not allowed.'
+            'Path traversal detected or access to this file is not allowed.',
           );
         }
         const fileContent = await fsPromises?.readFile(safeFilePath, 'utf8');
@@ -1120,7 +1368,7 @@ const getAuditData = async (req: Request): Promise<any> => {
 
     if (!fileData) {
       throw new BadRequestError(
-        `No audit data found for module: ${moduleName}`
+        `No audit data found for module: ${moduleName}`,
       );
     }
     let transformedData = transformAndFlattenData(fileData);
@@ -1144,7 +1392,7 @@ const getAuditData = async (req: Request): Promise<any> => {
             (value) =>
               value &&
               typeof value === 'string' &&
-              value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
+              value?.toLowerCase?.()?.includes(searchText?.toLowerCase()),
           );
         });
       }
@@ -1169,7 +1417,7 @@ const getAuditData = async (req: Request): Promise<any> => {
           (value) =>
             value &&
             typeof value === 'string' &&
-            value?.toLowerCase?.()?.includes(searchText?.toLowerCase())
+            value?.toLowerCase?.()?.includes(searchText?.toLowerCase()),
         );
       });
     }
@@ -1185,12 +1433,12 @@ const getAuditData = async (req: Request): Promise<any> => {
       getLogMessage(
         srcFunc,
         `Error getting audit log data for module: ${moduleName}`,
-        error
-      )
+        error,
+      ),
     );
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS?.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES?.SERVER_ERROR
+      error?.statusCode || error?.status || HTTP_CODES?.SERVER_ERROR,
     );
   }
 };
@@ -1199,7 +1447,7 @@ const getAuditData = async (req: Request): Promise<any> => {
  * with sequential tuid values
  */
 const transformAndFlattenData = (
-  data: any
+  data: any,
 ): Array<{ [key: string]: any; id: number }> => {
   try {
     const flattenedItems: Array<{ [key: string]: any }> = [];
@@ -1299,13 +1547,13 @@ const getLogs = async (req: Request): Promise<any> => {
         };
       }
       const filterOptions = Array?.from(
-        new Set(logEntries?.map((log) => log?.level))
+        new Set(logEntries?.map((log) => log?.level)),
       );
       logEntries?.findIndex?.((log) =>
-        log?.message?.includes('Starting audit process')
+        log?.message?.includes('Starting audit process'),
       );
       logEntries?.findIndex?.((log) =>
-        log?.message?.includes('Audit process completed')
+        log?.message?.includes('Audit process completed'),
       );
       logEntries = logEntries?.slice?.(1, logEntries?.length - 2);
       if (filter !== 'all') {
@@ -1320,7 +1568,7 @@ const getLogs = async (req: Request): Promise<any> => {
       }
       if (searchText && searchText !== 'null') {
         logEntries = logEntries?.filter?.((log) =>
-          matchesSearchText(log, searchText)
+          matchesSearchText(log, searchText),
         );
       }
       const paginatedLogs = logEntries?.slice?.(startIndex, stopIndex) ?? [];
@@ -1338,7 +1586,7 @@ const getLogs = async (req: Request): Promise<any> => {
     logger.error(getLogMessage(srcFunc, HTTP_TEXTS?.LOGS_NOT_FOUND, error));
     throw new ExceptionFunction(
       error?.message || HTTP_TEXTS?.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES?.SERVER_ERROR
+      error?.statusCode || error?.status || HTTP_CODES?.SERVER_ERROR,
     );
   }
 };
@@ -1354,6 +1602,15 @@ export const createSourceLocales = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const locales = req?.body?.locale;
 
+  console.info('🌐 createSourceLocales: Received request');
+  console.info('🌐 createSourceLocales: projectId:', projectId);
+  console.info('🌐 createSourceLocales: locales:', locales);
+  console.info('🌐 createSourceLocales: locales type:', typeof locales);
+  console.info(
+    '🌐 createSourceLocales: locales length:',
+    Array.isArray(locales) ? locales.length : 'not an array',
+  );
+
   try {
     // Find the project with the specified projectId
     await ProjectModelLowdb?.read?.();
@@ -1365,7 +1622,12 @@ export const createSourceLocales = async (req: Request) => {
       ProjectModelLowdb?.update?.((data: any) => {
         data.projects[index].source_locales = locales;
       });
+      console.info(
+        '🌐 createSourceLocales: Successfully stored locales for project:',
+        projectId,
+      );
     } else {
+      console.info('🌐 createSourceLocales: Project not found:', projectId);
       logger.error(`Project with ID: ${projectId} not found`, {
         status: HTTP_CODES?.NOT_FOUND,
         message: HTTP_TEXTS?.INVALID_ID,
@@ -1375,7 +1637,7 @@ export const createSourceLocales = async (req: Request) => {
     console.error(
       '🚀 ~ createSourceLocales ~ err:',
       err?.response?.data ?? err,
-      err
+      err,
     );
     logger.warn('Bad Request', {
       status: HTTP_CODES?.BAD_REQUEST,
@@ -1383,7 +1645,7 @@ export const createSourceLocales = async (req: Request) => {
     });
     throw new ExceptionFunction(
       err?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      err?.statusCode || err?.status || HTTP_CODES.SERVER_ERROR
+      err?.statusCode || err?.status || HTTP_CODES.SERVER_ERROR,
     );
   }
 };
@@ -1422,7 +1684,7 @@ export const updateLocaleMapper = async (req: Request) => {
     console.error(
       '🚀 ~ updateLocaleMapper ~ err:',
       err?.response?.data ?? err,
-      err
+      err,
     );
     logger.warn('Bad Request', {
       status: HTTP_CODES?.BAD_REQUEST,
@@ -1430,7 +1692,7 @@ export const updateLocaleMapper = async (req: Request) => {
     });
     throw new ExceptionFunction(
       err?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      err?.statusCode || err?.status || HTTP_CODES.SERVER_ERROR
+      err?.statusCode || err?.status || HTTP_CODES.SERVER_ERROR,
     );
   }
 };

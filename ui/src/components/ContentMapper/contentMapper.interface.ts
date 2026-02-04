@@ -67,8 +67,14 @@ export interface FieldMapType {
   contentstackUid: string;
   _invalid?: boolean;
   backupFieldUid: string;
+  /**
+   * NOTE: The codebase historically used the misspelling `refrenceTo`.
+   * Some older payloads / UI code (source repo) use the correct `referenceTo`.
+   * Keep both for backward compatibility.
+   */
   refrenceTo: string[];
   initialRefrenceTo: string[];
+  referenceTo?: string[];
 }
 
 export interface Advanced {
@@ -79,6 +85,8 @@ export interface Advanced {
   nonLocalizable?: boolean;
   embedObject?: boolean;
   embedObjects?: any;
+  reference_to?: string[];
+  taxonomies?: Array<{ taxonomy_uid?: string } | string>;
   minChars?: string;
   maxChars?: number;
   minRange?: number;

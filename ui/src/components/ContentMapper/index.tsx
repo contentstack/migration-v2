@@ -223,6 +223,11 @@ const Fields: MappingFields = {
     label: 'Block',
     options: {'Block':'modular_blocks_child'},
     type:''
+  },
+  'taxonomy':{
+    label: 'Taxonomy',
+    options: {'Taxonomy':'taxonomy'},
+    type:'taxonomy'
   }
 }
 type contentMapperProps = {
@@ -335,7 +340,11 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((field) => {
-      if(field?.backupFieldType === 'reference' &&  field?.refrenceTo?.length === 0) {
+      // Check both refrenceTo (legacy typo) and referenceTo (correct spelling)
+      const referenceToArray = field?.referenceTo || field?.refrenceTo || [];
+      if(field?.backupFieldType === 'reference' && referenceToArray?.length === 0) {
+        field._canSelect = false;
+      } else if(field?.backupFieldType === 'taxonomy' && referenceToArray?.length === 0) {
         field._canSelect = false;
       }
       else if (field?.backupFieldType !== 'text' && field?.backupFieldType !== 'url') {
@@ -684,7 +693,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       //       delete updatedOptions[key];
       //     }
       //   });
-      //   console.info("updatedOptions", updatedOptions);
       //   return updatedOptions;
       // });
 
@@ -1230,7 +1238,30 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     setFieldValue(value);
     const updatedRows: FieldMapType[] = selectedEntries?.map?.((row) => {
       if (row?.uid === rowIndex && row?.contentstackFieldUid === rowContentstackFieldUid) {
-        return { ...row, contentstackFieldType: value?.value };
+        const previousFieldType = row?.contentstackFieldType;
+        const newFieldType = value?.value;
+        
+        // Define RTE field types that support embed objects
+        const rteTypes = ['html', 'json'];
+        const wasRteType = rteTypes.includes(previousFieldType);
+        const isNowRteType = rteTypes.includes(newFieldType);
+        
+        // Preserve embed object settings when converting between RTE types (html ↔ json)
+        // Reset only when:
+        // 1. Converting from non-RTE to RTE type (start fresh)
+        // 2. Converting from RTE to non-RTE type (embed objects not applicable)
+        const shouldPreserveEmbedSettings = wasRteType && isNowRteType;
+        
+        return { 
+          ...row, 
+          contentstackFieldType: newFieldType,
+          advanced: {
+            ...row?.advanced,
+            // Preserve embed objects when converting between RTE types, reset otherwise
+            embedObjects: shouldPreserveEmbedSettings ? (row?.advanced?.embedObjects || []) : [],
+            embedObject: shouldPreserveEmbedSettings ? (row?.advanced?.embedObject || false) : false
+          }
+        };
       }
       return row;
     });

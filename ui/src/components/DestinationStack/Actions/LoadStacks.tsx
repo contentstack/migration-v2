@@ -251,16 +251,20 @@ const LoadStacks = (props: LoadFileFormatProps) => {
           // Dispatch the updated migration data to Redux
           dispatch(updateNewMigrationData(newMigrationDataObj));
         }
-        const newMigrationDataObj: INewMigration = {
-           ...newMigrationDataRef?.current,
-          //...newMigrationData,
-          destination_stack: {
-            ...newMigrationDataRef?.current?.destination_stack,
-            csLocale: csLocales?.data?.locales
-          }
-        };  
-        // Dispatch the updated migration data to Redux
-        dispatch(updateNewMigrationData(newMigrationDataObj));
+        // Delay the csLocale dispatch to allow Migration/index.tsx to dispatch first
+        // This ensures sourceLocale is preserved from the ref which gets updated via useEffect
+        setTimeout(() => {
+          
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationDataRef?.current,
+            destination_stack: {
+              ...newMigrationDataRef?.current?.destination_stack,
+              csLocale: csLocales?.data?.locales
+            }
+          };
+          
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+        }, 500);
       }
     } catch (error) {
       return error;
