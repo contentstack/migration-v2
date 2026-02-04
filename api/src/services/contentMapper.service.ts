@@ -20,7 +20,7 @@ import getProjectUtil from "../utils/get-project.utils.js";
 import fetchAllPaginatedData from "../utils/pagination.utils.js";
 import ProjectModelLowdb from "../models/project-lowdb.js";
 import getFieldMapperDb from "../models/FieldMapper.js";
-import getEntryMapperDb from "../models/EntryMapper.js";
+import getEntryMapperDb, { EntryMapper } from "../models/EntryMapper.js";
 import { v4 as uuidv4 } from "uuid";
 import getContentTypesMapperDb, { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 import getUidMapperDb from "../models/uidMapper.js";
@@ -182,7 +182,7 @@ const putTestData = async (req: Request) => {
               projectId,
               contentTypeId: type?.id,
               isDeleted: false,
-              contenstackEntryUid: uidMapperValue,
+              contentstackEntryUid: uidMapperValue,
             };
           })
         : [];
@@ -1505,10 +1505,25 @@ const getEntryMapping = async (req: Request) => {
   }
 };
 
-const updateEntryMapping = async (req: Request) => {
-  const { projectId, otherCmsEntryUid } = req.params;
-
+const updateEntryStatus = async (req: Request) => { 
+  const { projectId } = req.params;
+  const { otherCmsEntryUids } = req.body;
+  const validatedUids: string[] = Array.isArray(otherCmsEntryUids) ? otherCmsEntryUids : [];
   const srcFunc = "updateEntryMapping";
+  if (isEmpty(validatedUids)) {
+    logger.error(
+      getLogMessage(
+        srcFunc,
+        "Invalid otherCmsEntryUids"
+      )
+    );
+    return {
+      status: HTTP_CODES?.BAD_REQUEST,
+      data: {
+        message: "Invalid otherCmsEntryUids",
+      },
+    };  
+  }
   try {
     await ProjectModelLowdb.read();
     const projectData = ProjectModelLowdb.chain
@@ -1518,12 +1533,12 @@ const updateEntryMapping = async (req: Request) => {
     const iteration = projectData?.iteration || 1;
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
-    let foundEntry: any = null;
+    const foundEntry: EntryMapper[] = [];
     await EntryMapperModel.update((data: any) => {
       data?.entry_mapper?.forEach((entry: any) => {
-        if (otherCmsEntryUid === entry?.otherCmsEntryUid) {
+        if (validatedUids.includes(entry?.otherCmsEntryUid)) {
           entry.isUpdate = true;
-          foundEntry = entry;
+          foundEntry.push(entry);
         }
       });
     });
@@ -1574,5 +1589,5 @@ export const contentMapperService = {
   getExistingGlobalFields,
   getSingleGlobalField,
   getEntryMapping,
-  updateEntryMapping
+  updateEntryStatus
 };

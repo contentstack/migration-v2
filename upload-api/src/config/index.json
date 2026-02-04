@@ -4,7 +4,7 @@
       "optionLimit": 100
     }
   },
-  "cmsType": "sitecore",
+  "cmsType": "cmstype",
   "isLocalPath": true,
   "awsData": {
     "awsRegion": "us-east-2",

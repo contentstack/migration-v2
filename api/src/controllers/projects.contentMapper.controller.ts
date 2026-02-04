@@ -165,8 +165,8 @@ const getEntryMapping = async (req: Request, res: Response): Promise<void> => {
  * Update Entry Mapping
  * @route PUT /entryMapping/:projectId/:contentTypeId
  */
-const updateEntryMapping = async (req: Request, res: Response): Promise<void> => {
-  const resp = await contentMapperService.updateEntryMapping(req);
+const updateEntryStatus = async (req: Request, res: Response): Promise<void> => {
+  const resp = await contentMapperService.updateEntryStatus(req);
   res.status(resp?.status).json(resp);
 };
 
@@ -184,5 +184,5 @@ export const contentMapperController = {
   getExistingGlobalFields,
   getSingleGlobalField,
   getEntryMapping,
-  updateEntryMapping,
+  updateEntryStatus,
 };

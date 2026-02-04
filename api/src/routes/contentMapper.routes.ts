@@ -110,11 +110,11 @@ router.get(
 
 /**
  * Update Entry Mapping
- * @route PUT /entryMapping/:projectId/:otherCmsEntryUid
+ * @route PUT /updateEntryStatus/:projectId
  */
 router.put(
-  "/updateEntryStatus/:projectId/:otherCmsEntryUid",
-  asyncRouter(contentMapperController.updateEntryMapping)
+  "/updateEntryStatus/:projectId",
+  asyncRouter(contentMapperController.updateEntryStatus)
 );
 
 export default router;
