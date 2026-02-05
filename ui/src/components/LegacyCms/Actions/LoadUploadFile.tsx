@@ -267,8 +267,34 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
       if (status === 200) {
         setIsValidated(true);
-        setValidationMessage('File validated successfully.');
+        setValidationMessage(
+          data?.file_details?.isSQL 
+          ? 'Connection established successfully.' 
+          : 'File validated successfully.');
 
+           // 🔧 FIX: Fetch updated project data to get source_locales and dispatch to Redux
+        // This ensures the Language Mapper has access to source locales immediately after validation
+        try {
+          if (selectedOrganisation?.value && projectId) {
+            const migrationDataResponse = await getMigrationData(selectedOrganisation?.value, projectId);
+            const projectData = migrationDataResponse?.data;
+            
+            if (projectData?.source_locales && Array.isArray(projectData.source_locales)) {
+              // Dispatch source_locales to Redux so LanguageMapper can access them
+              const updatedMigrationData: INewMigration = {
+                ...newMigrationDataRef?.current,
+                destination_stack: {
+                  ...newMigrationDataRef?.current?.destination_stack,
+                  sourceLocale: projectData.source_locales
+                }
+              };
+              dispatch(updateNewMigrationData(updatedMigrationData));
+            }
+          }
+        } catch (fetchError) {
+          console.warn('⚠️ [LoadUploadFile] Could not fetch source_locales:', fetchError);
+          // Don't block the flow if this fails
+        }
         setIsDisabled(true);
 
         if (
@@ -279,7 +305,11 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         }
       } else if (status === 500) {
         setIsValidated(false);
-        setValidationMessage('File not found');
+        setValidationMessage(
+          data?.file_details?.isSQL 
+          ? 'Connection failed' 
+          : 'File not found'
+        );
         setIsValidationAttempted(true);
         setProgressPercentage(100);
       } else if (status === 429) {
