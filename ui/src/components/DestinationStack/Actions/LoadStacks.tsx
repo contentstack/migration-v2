@@ -239,28 +239,29 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         if (selectedStackData) {
           setSelectedStack(selectedStackData);
           setNewStackCreated(false);
+          // Combine both updates (selectedStack, stackArray, and csLocale) into a single dispatch
+          // This eliminates the race condition from using setTimeout
           const newMigrationDataObj: INewMigration = {
-            // ...newMigrationDataRef?.current,
             ...newMigrationData,
             destination_stack: {
               ...newMigrationData?.destination_stack,
               selectedStack: selectedStackData,
-              stackArray: stackArray
+              stackArray: stackArray,
+              csLocale: csLocales?.data?.locales
             }
           };
-          // Dispatch the updated migration data to Redux
+          dispatch(updateNewMigrationData(newMigrationDataObj));
+        } else {
+          // No selected stack, but still update csLocale
+          const newMigrationDataObj: INewMigration = {
+            ...newMigrationData,
+            destination_stack: {
+              ...newMigrationData?.destination_stack,
+              csLocale: csLocales?.data?.locales
+            }
+          };
           dispatch(updateNewMigrationData(newMigrationDataObj));
         }
-        const newMigrationDataObj: INewMigration = {
-           ...newMigrationDataRef?.current,
-          //...newMigrationData,
-          destination_stack: {
-            ...newMigrationDataRef?.current?.destination_stack,
-            csLocale: csLocales?.data?.locales
-          }
-        };  
-        // Dispatch the updated migration data to Redux
-        dispatch(updateNewMigrationData(newMigrationDataObj));
       }
     } catch (error) {
       return error;

@@ -14,12 +14,11 @@ import { DEFAULT_CMS_TYPE, ICMSType, INewMigration } from '../../../context/app/
 
 // Components
 import Card from '../../../components/Common/Card/card';
-import { CircularLoader, EmptyState } from '@contentstack/venus-components';
+import { CircularLoader } from '@contentstack/venus-components';
 
 // Style
 import '../legacyCms.scss';
 
-import { SEARCH_ICON } from '../../../common/assets';
 //import { IFilterStatusType } from '../../../components/Common/Modal/FilterModal/filterModal.interface';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
@@ -80,7 +79,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       setIsLoading(true);
 
       const { data } = await getConfig(); // api call to get cms type from upload service
-
+      
       const cms = data?.cmsType?.toLowerCase();
 
       if (isEmptyString(cmsType?.cms_id)) {
@@ -137,29 +136,50 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         }
       }
 
-      let newSelectedCard: ICMSType | undefined;
 
+      // Determine which CMS to set as selected
+      let finalSelectedCard: ICMSType | undefined;
       if (filteredCmsData?.length === 1) {
-        newSelectedCard = filteredCmsData[0];
+        finalSelectedCard = filteredCmsData[0];
       } else {
-        newSelectedCard = DEFAULT_CMS_TYPE;
+        finalSelectedCard = DEFAULT_CMS_TYPE;
       }
+      
+      const newMigrationDataObj = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData?.legacy_cms,
+          selectedCms: finalSelectedCard, // Include selectedCms in this dispatch
+          selectedFileFormat: filteredCmsData[0]?.allowed_file_formats?.[0],
+          affix: newMigrationData?.legacy_cms?.affix || 'cs', // Preserve or set default affix
+          uploadedFile: {
+            ...newMigrationData?.legacy_cms?.uploadedFile,
+            file_details: {
+              ...newMigrationData?.legacy_cms?.uploadedFile?.file_details,
+              mySQLDetails: data?.mysql, // Store mysql as mySQLDetails
+              assetsConfig: data?.assetsConfig, // Store assetsConfig
+              isSQL: data?.isSQL,
+              cmsType: data?.cmsType,
+              localPath: data?.localPath,
+              awsData: data?.awsData
+            }
+          }
+        }
+      };
+      
+      dispatch(updateNewMigrationData(newMigrationDataObj)); // Dispatch to save config to Redux
+      
       setIsLoading(false);
 
-      if (!isEmptyString(newSelectedCard?.title)) {
-        setSelectedCard(newSelectedCard);
+      if (!isEmptyString(finalSelectedCard?.title)) {
+        setSelectedCard(finalSelectedCard);
         //setErrorMessage('');
         setIsError(false);
 
-        const newMigrationDataObj: INewMigration = {
-          ...newMigrationData,
-          legacy_cms: {
-            ...newMigrationData?.legacy_cms,
-            selectedCms: newSelectedCard
-          }
-        };
-        //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: newSelectedCard?.cms_id });
-        dispatch(updateNewMigrationData(newMigrationDataObj));
+        // The dispatch already happened above with all the data including selectedCms
+        // No need to dispatch again here
+        
+        //await updateLegacyCMSData(selectedOrganisation.value, projectId, { legacy_cms: finalSelectedCard?.cms_id });
         props?.handleStepChange(props?.currentStep);
       }
     } catch (error) {

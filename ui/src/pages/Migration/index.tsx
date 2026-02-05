@@ -146,7 +146,6 @@ const Migration = () => {
         value !== undefined && 
         label !== 'undefined'
     );
-    //console.info("legacyCMSRef?.current ", legacyCMSRef?.current,legacyCMSRef?.current?.getInternalActiveStepIndex())
     if(legacyCMSRef?.current && newMigrationData?.project_current_step === 1 && legacyCMSRef?.current?.getInternalActiveStepIndex() > -1){
       setIsSaved(true);    
     }
@@ -300,7 +299,6 @@ const Migration = () => {
     setProjectData(migrationData?.data);
   }
   const projectData = migrationData?.data;
-
     const legacyCmsData: ILegacyCMSComponent = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
 
     const selectedCmsData: ICMSType = validateArray(legacyCmsData?.all_cms)
