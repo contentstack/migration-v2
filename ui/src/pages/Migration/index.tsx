@@ -122,8 +122,8 @@ const Migration = () => {
 
   useWarnOnRefresh(isSaved);
   /**
-   * Dispatches the isprojectMapped key to redux
-   */
+ * Dispatches the isprojectMapped key to redux
+ */
   // useEffect(()=> {
   //   dispatch(updateNewMigrationData({
   //     ...newMigrationDataRef?.current,
@@ -135,7 +135,7 @@ const Migration = () => {
 
   useBlockNavigation(isModalOpen);
 
-  useEffect(() => {
+  useEffect (()=>{
     const hasNonEmptyMapping =
     newMigrationData?.destination_stack?.localeMapping &&
     Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
@@ -230,60 +230,57 @@ const Migration = () => {
   };
 
   const getFileExtension = (filePath: string): string => {
-    const normalizedPath = filePath?.replace(/\\/g, '/')?.replace(/\/$/, '');
+    const normalizedPath = filePath?.replace(/\\/g, "/")?.replace(/\/$/, "");
 
     // Use regex to extract the file extension
     const match = normalizedPath?.match(/\.([a-zA-Z0-9]+)$/);
-
+    
     // Check if it has a file extension (dot followed by 1-5 alphanumeric characters at the end)
     const isDirectory = !/\.[a-zA-Z0-9]{1,5}$/.test(normalizedPath);
-
-    const ext = match ? match?.[1]?.toLowerCase() : isDirectory ? 'directory' : '';
+    
+    const ext = match ? match?.[1]?.toLowerCase() : isDirectory ? "directory" : "";
 
     // const fileName = filePath?.split('/')?.pop();
     //const ext = fileName?.split('.')?.pop();
     const validExtensionRegex = /\.(pdf|zip|xml|json|directory|sql)$/i;
     return ext && validExtensionRegex?.test(`.${ext}`) ? `${ext}` : '';
   };
-
+ 
   // funcrion to form file format object from config response
   const fetchFileFormat = (data: FileDetails) => {
     const filePath = data?.localPath?.toLowerCase();
-    const fileFormat = getFileExtension(filePath ?? '');
+    const fileFormat =  getFileExtension(filePath ?? '');
     const selectedFileFormatObj = {
-      description: '',
+      description: "",
       fileformat_id: fileFormat,
       group_name: fileFormat,
       isactive: true,
-      title:
-        fileFormat === 'zip'
-          ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1)
-          : fileFormat?.toUpperCase()
-    };
+      title: fileFormat === 'zip' ? fileFormat?.charAt(0)?.toUpperCase() + fileFormat?.slice(1) : fileFormat?.toUpperCase()
+    }
     return selectedFileFormatObj;
-  };
+  }
 
-  // funcrion to form upload object from config response
+// funcrion to form upload object from config response
   const getFileInfo = (data: FileDetails) => {
     const newMigrationDataObj = {
-      ...newMigrationData?.legacy_cms?.uploadedFile,
-      name: data?.localPath,
-      url: data?.localPath,
-      isValidated: false,
-      file_details: {
-        isLocalPath: data?.isLocalPath,
-        cmsType: data?.cmsType,
-        localPath: data?.localPath,
-        awsData: {
-          awsRegion: data?.awsData?.awsRegion,
-          bucketName: data?.awsData?.bucketName,
-          buketKey: data?.awsData?.buketKey
-        }
-      },
-      cmsType: data?.cmsType
+        ...newMigrationData?.legacy_cms?.uploadedFile,
+          name: data?.localPath,
+          url: data?.localPath,
+          isValidated: false,
+          file_details: {
+            isLocalPath: data?.isLocalPath,
+            cmsType: data?.cmsType,
+            localPath: data?.localPath,
+            awsData: {
+              awsRegion: data?.awsData?.awsRegion,
+              bucketName: data?.awsData?.bucketName,
+              buketKey: data?.awsData?.buketKey
+            }
+          },
+          cmsType: data?.cmsType  
     };
     return newMigrationDataObj;
-  };
+  }
 
   /**
    * Fetch the project data
@@ -305,9 +302,9 @@ const Migration = () => {
     const legacyCmsData: ILegacyCMSComponent = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
 
     const selectedCmsData: ICMSType = validateArray(legacyCmsData?.all_cms)
-      ? (legacyCmsData?.all_cms?.find(
+      ? legacyCmsData?.all_cms?.find(
           (cms: ICMSType) => cms?.cms_id === projectData?.legacy_cms?.cms
-        ) ?? DEFAULT_CMS_TYPE)
+        ) ?? DEFAULT_CMS_TYPE
       : DEFAULT_CMS_TYPE;
 
     const selectedFileFormatData: ICardType | undefined = validateArray(
@@ -359,26 +356,22 @@ const Migration = () => {
         ...newMigrationData?.legacy_cms,
         selectedCms: selectedCmsData,
         selectedFileFormat: selectedFileFormatData,
-        affix: projectData?.legacy_cms?.affix,
-        uploadedFile: projectData?.legacy_cms?.is_fileValid
-          ? {
-              ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
-              file_details: {
-                localPath: projectData?.legacy_cms?.file_path,
-                awsData: {
-                  awsRegion: projectData?.legacy_cms?.awsDetails?.awsRegion,
-                  bucketName: projectData?.legacy_cms?.awsDetails?.bucketName,
-                  buketKey: projectData?.legacy_cms?.awsDetails?.buketKey
-                },
-                isLocalPath: projectData?.legacy_cms?.is_localPath
-              },
-              isValidated: projectData?.legacy_cms?.is_fileValid,
-              reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
-              buttonClicked: newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked
-                ? true
-                : false
-            }
-          : uploadObj,
+        affix:  projectData?.legacy_cms?.affix ,
+        uploadedFile: projectData?.legacy_cms?.is_fileValid ? {
+          ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
+          file_details: {
+            localPath: projectData?.legacy_cms?.file_path,
+            awsData: {
+              awsRegion: projectData?.legacy_cms?.awsDetails?.awsRegion,
+              bucketName: projectData?.legacy_cms?.awsDetails?.bucketName,
+              buketKey: projectData?.legacy_cms?.awsDetails?.buketKey
+            },
+            isLocalPath: projectData?.legacy_cms?.is_localPath
+          },
+          isValidated: projectData?.legacy_cms?.is_fileValid,
+          reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
+          buttonClicked: newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked ? true : false,
+        } : uploadObj,
         isFileFormatCheckboxChecked: true,
         isRestictedKeywordCheckboxChecked: true,
         projectStatus: projectData?.status,
@@ -529,7 +522,7 @@ const Migration = () => {
 
       const fileFormatData = {
         file_format:
-          newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toString() ||
+          newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toString() || 
           newMigrationData?.legacy_cms?.selectedCms?.allowed_file_formats[0]?.fileformat_id?.toString(),
         file_path: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath,
         is_fileValid: newMigrationData?.legacy_cms?.uploadedFile?.isValidated,
@@ -547,9 +540,8 @@ const Migration = () => {
         setIsLoading(false);
         if (isMountedRef.current) {
           Notification({
-            notificationContent: {
-              text: error?.response?.data?.message || 'Failed to update file format'
-            },
+            notificationContent: { 
+              text: error?.response?.data?.message || 'Failed to update file format' },
             type: 'error'
           });
         }
@@ -628,13 +620,12 @@ const Migration = () => {
       newMigrationData?.destination_stack?.localeMapping &&
       Object.entries(newMigrationData?.destination_stack?.localeMapping || {})?.every(
         ([label, value]: [string, string]) => {
-          const isValid =
-            Boolean(label?.trim()) &&
+          const isValid = Boolean(label?.trim()) &&
             value !== '' &&
             value !== null &&
-            value !== undefined &&
+            value !== undefined && 
             label !== 'undefined';
-
+          
           return isValid;
         }
       );
@@ -725,6 +716,7 @@ const Migration = () => {
         }
       });
     } else {
+
       const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
       setIsLoading(false);
       event.preventDefault();
@@ -744,9 +736,9 @@ const Migration = () => {
 
     const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
     //if (res?.status === 200) {
-    handleStepChange(4);
-    const url = `/projects/${projectId}/migration/steps/5`;
-    navigate(url, { replace: true });
+      handleStepChange(4);
+      const url = `/projects/${projectId}/migration/steps/5`;
+      navigate(url, { replace: true });
     //}
   };
 
@@ -757,38 +749,38 @@ const Migration = () => {
     setIsLoading(true);
 
     if (newMigrationData?.stepValue !== 'Restart Migration') {
-      try {
-        const migrationRes = await startMigration(
-          newMigrationData?.destination_stack?.selectedOrg?.value,
-          projectId
-        );
+    try {
+      const migrationRes = await startMigration(
+        newMigrationData?.destination_stack?.selectedOrg?.value,
+        projectId
+      );
 
-        if (migrationRes?.status === 200) {
-          setIsLoading(false);
-          setDisableMigration(true);
-          const newMigrationDataObj: INewMigration = {
-            ...newMigrationData,
-            migration_execution: {
-              ...newMigrationData?.migration_execution,
-              migrationStarted: true
-            }
-          };
-          dispatch(updateNewMigrationData(newMigrationDataObj));
+      if (migrationRes?.status === 200) {
+        setIsLoading(false);
+        setDisableMigration(true);
+        const newMigrationDataObj: INewMigration = {
+          ...newMigrationData,
+          migration_execution: {
+            ...newMigrationData?.migration_execution,
+            migrationStarted: true
+          }
+        };
+        dispatch(updateNewMigrationData(newMigrationDataObj));
 
-          Notification({
-            notificationContent: { text: 'Migration Execution process started' },
-            notificationProps: {
-              position: 'bottom-center',
-              hideProgressBar: true
-            },
-            type: 'message'
-          });
-        }
-      } catch (error) {
-        // return error;
-        console.error(error);
+        Notification({
+          notificationContent: { text: 'Migration Execution process started' },
+          notificationProps: {
+            position: 'bottom-center',
+            hideProgressBar: true
+          },
+          type: 'message'
+        });
       }
-    } else {
+    } catch (error) {
+      // return error;
+      console.error(error);
+    }}
+    else{
       setIsLoading(false);
       handleRestartMigration();
     }

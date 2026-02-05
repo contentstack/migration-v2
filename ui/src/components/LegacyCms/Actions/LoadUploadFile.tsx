@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FileDetails, ICMSType, INewMigration } from '../../../context/app/app.interface';
 import { fileValidation } from '../../../services/api/upload.service';
-import { getMigrationData } from '../../../services/api/migration.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { Button, Icon, Paragraph, TextInput } from '@contentstack/venus-components';
@@ -13,6 +12,7 @@ import { ICardType } from '../../../components/Common/Card/card.interface';
 import ProgressBar from '../../../components/Common/ProgressBar';
 import { HTTP_CODES, VALIDATION_DOCUMENTATION_URL } from '../../../utilities/constants';
 import { updateFileFormat } from '../../../services/api/project.service';
+import { getMigrationData } from '../../../services/api/migration.service';
 interface LoadUploadFileProps {
   stepComponentProps?: () => {};
   currentStep: number;
@@ -167,9 +167,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       isEmptyString(newMigrationDataRef?.current?.legacy_cms?.affix)
   );
   const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
-  const [cmsType, setCmsType]= useState('');
-  // Use newMigrationData directly from Redux, not the ref, so it updates when Redux changes
-  const [fileDetails, setFileDetails] = useState(newMigrationData?.legacy_cms?.uploadedFile?.file_details);
+  const [cmsType, setCmsType] = useState('');
+  const [fileDetails, setFileDetails] = useState(newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details);
   const [fileExtension, setFileExtension] = useState<string>('');
   const [progressPercentage, setProgressPercentage] = useState<number>(0);
   const [showProgress, setShowProgress] = useState<boolean>(false);
@@ -197,9 +196,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const { data, status } = await fileValidation(projectId, newMigrationData?.legacy_cms?.affix, newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || '' );
-
-      const { data, status } = await fileValidation(projectId, newMigrationData?.legacy_cms?.affix);
-      
       setProgressPercentage(70);
       setProcessing('Processing...70%');
 
@@ -242,10 +238,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           }
         }
       };
-
       // For Drupal SQL files, ensure selectedFileFormat is set in the same update
       if (status === 200 && data?.file_details?.isSQL && data?.file_details?.cmsType === 'drupal') {
-        
+
         // Add selectedFileFormat to the existing newMigrationDataObj
         newMigrationDataObj.legacy_cms.selectedFileFormat = {
           fileformat_id: 'sql',
@@ -262,11 +257,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         setIsValidated(true);
         setValidationMessage(
           data?.file_details?.isSQL 
-            ? 'Connection established successfully.' 
-            : 'File validated successfully.'
-        );
+          ? 'Connection established successfully.' 
+          : 'File validated successfully.');
 
-        // 🔧 FIX: Fetch updated project data to get source_locales and dispatch to Redux
+           // 🔧 FIX: Fetch updated project data to get source_locales and dispatch to Redux
         // This ensures the Language Mapper has access to source locales immediately after validation
         try {
           if (selectedOrganisation?.value && projectId) {
@@ -289,7 +283,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           console.warn('⚠️ [LoadUploadFile] Could not fetch source_locales:', fetchError);
           // Don't block the flow if this fails
         }
-
         setIsDisabled(true);
 
         if (
@@ -303,8 +296,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         setIsValidated(false);
         setValidationMessage(
           data?.file_details?.isSQL 
-            ? 'Connection failed' 
-            : 'File not found'
+          ? 'Connection failed' 
+          : 'File not found'
         );
         setIsValidationAttempted(true);
         setProgressPercentage(100);
@@ -436,24 +429,24 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               ...newMigrationData?.legacy_cms,
               uploadedFile: {
                 ...newMigrationData?.legacy_cms?.uploadedFile,
-                isValidated: false
+                isValidated: false,
               }
-            }
-          })
-        );
+          }
+        }))
+
       }
-      //}
-      // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) &&
-      //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
-      //   {
-      //     setIsValidated(false);
-      //     setValidationMessage('file format is not appropriate');
-      //     setIsValidationAttempted(true);
-      //     setShowMessage(true);
-      //     setIsLoading(false);
-      //     setIsDisabled(true);
-      //   }
-      setIsConfigLoading(false);
+    //}
+  // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
+  //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
+  //   {     
+  //     setIsValidated(false);
+  //     setValidationMessage('file format is not appropriate');
+  //     setIsValidationAttempted(true);
+  //     setShowMessage(true);
+  //     setIsLoading(false);
+  //     setIsDisabled(true);
+  //   }
+     setIsConfigLoading(false);
     } catch (error) {
       return error;
     }
@@ -607,7 +600,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                   variant="p2"
                   text={validationMessgae}
                 />
-                {!isValidated && validationMessgae === 'Validation failed.' && !fileDetails?.isSQL && (
+                {!isValidated && validationMessgae === 'File validation failed.' && (
                   <p className={`${validationClassName} p2 doc-link`}>
                     Please check the requirements{' '}
                     <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">
@@ -639,8 +632,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={!(reValidate || (!isDisabled))}
-          > 
+            disabled={!(reValidate || !isDisabled)}>
             {(() => {
               // Logic: If using local path, always "File Validate"
               // If not using local path AND using SQL, then "Check Connection"

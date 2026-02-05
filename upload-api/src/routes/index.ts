@@ -98,7 +98,11 @@ router.get(
       const projectId: string = sanitizeId(req?.headers?.projectid ?? '');
       const app_token: string | string[] = req?.headers?.app_token ?? '';
       const affix: string = sanitizeId(req?.headers?.affix ?? 'csm');
-      const cmsType = config?.cmsType?.toLowerCase();
+      const rawFilePath = Array.isArray(req?.headers?.file_path) ? req?.headers?.file_path?.[0] : req?.headers?.file_path;
+     const filePath: string | undefined = rawFilePath && typeof rawFilePath === 'string' && rawFilePath.trim() !== '' ? rawFilePath.trim() : undefined;
+
+     const config: any = await updateConfigFile(filePath);
+     const cmsType = config?.cmsType?.toLowerCase();
 
       if (config?.isLocalPath) {
         const localPath = config?.localPath || '';

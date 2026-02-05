@@ -13,6 +13,7 @@ const handleFileProcessing = async (
   cmsType: string,
   name: string
 ) => {
+  const config : any = await updateConfigFile();
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);
