@@ -50,6 +50,15 @@ router.get(
 );
 
 /**
+ * Get Existing Taxonomies from source and destination
+ * @route GET /:projectId/taxonomies
+ */
+router.get(
+  "/:projectId/taxonomies",
+  asyncRouter(contentMapperController.getExistingTaxonomies)
+);
+
+/**
  * Update FieldMapping or contentType
  * @route PUT /contentTypes/:orgId/:projectId/:contentTypeId
  */

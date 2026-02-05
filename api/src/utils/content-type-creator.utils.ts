@@ -238,11 +238,11 @@ function getLastSegmentNew(str: string, separator: string): string {
 }
 
 export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', oldParentUid = ''): any[] {
-
   if (!Array.isArray(fields)) {
     console.warn('buildSchemaTree called with invalid fields:', fields);
     return [];
   }
+
   // Build a lookup map for O(1) access
   const fieldMap = new Map<string, any>();
   fields?.forEach(f => {
@@ -267,7 +267,7 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
       return remainder && !remainder?.includes('.');
     }
 
-    // Fallback: check if field is a direct child of oldPrentUid (if provided and different)
+    // Fallback: check if field is a direct child of oldParentUid (if provided and different from parentUid)
     if (oldParentUid && oldParentUid !== parentUid && fieldUid?.startsWith(oldParentUid + '.')) {
       const remainder = fieldUid?.substring(oldParentUid.length + 1);
       // Verify it's exactly one level deeper (no more dots in remainder)
@@ -293,24 +293,24 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
     const fieldUid = field?.contentstackFieldUid;
     const fieldType = field?.contentstackFieldType;
     const oldFieldUid = field?.backupFieldUid;
-    
+
     // Check if this field has direct children (exactly one level deeper)
     const hasChildren = fields.some(f => {
       const fUid = f?.contentstackFieldUid || '';
       if (!fUid) return false;
-      
+
       // Check if field starts with current fieldUid and is exactly one level deeper
       if (fieldUid && fUid?.startsWith(fieldUid + '.')) {
         const remainder = fUid?.substring(fieldUid.length + 1);
         return remainder && !remainder?.includes('.');
       }
-      
-      // Check if field starts with oldFieldtUid and is exactly one level deeper
+
+      // Check if field starts with oldFieldUid and is exactly one level deeper
       if (oldFieldUid && fUid?.startsWith(oldFieldUid + '.')) {
         const remainder = fUid?.substring(oldFieldUid.length + 1);
         return remainder && !remainder?.includes('.');
       }
-      
+
       return false;
     });
 
@@ -318,21 +318,25 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
       if (fieldType === 'modular_blocks') {
         // Get modular block children
         const mbChildren = fields.filter(f => {
-          const fUid = f.contentstackFieldUid || '';
-          return f.contentstackFieldType === 'modular_blocks_child' &&
+          if (!f) return false;
+          const fUid = f?.contentstackFieldUid || '';
+          if (!fUid || !fieldUid) return false;
+          return f?.contentstackFieldType === 'modular_blocks_child' &&
             fUid.startsWith(fieldUid + '.') &&
             !fUid.substring(fieldUid.length + 1).includes('.');
         });
 
         result.schema = mbChildren.map(child => {
-          const childUid = getLastSegmentNew(child.contentstackFieldUid, '.');
-          const childDisplay = child.display_name || getLastSegmentNew(child.contentstackField || '', '>').trim();
+          const childFieldUid = child?.contentstackFieldUid || '';
+          const childUid = getLastSegmentNew(childFieldUid, '.');
+          const childDisplay = child?.display_name || getLastSegmentNew(child?.contentstackField || '', '>').trim();
 
           return {
             ...child,
             uid: childUid,
             display_name: childDisplay,
-            schema: buildSchemaTree(fields, child.contentstackFieldUid, 'modular_blocks_child', child?.backupFieldUid)
+            // Recursively build schema for fields inside this child block
+            schema: buildSchemaTree(fields, childFieldUid, 'modular_blocks_child', child?.backupFieldUid)
           };
         });
       } else if (fieldType === 'group' ||
@@ -373,7 +377,7 @@ const saveAppMapper = async ({ marketPlacePath, data, fileName }: any) => {
   }
 }
 
-const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
+export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyMapper }: any) => {
   // Clean up field UID by removing ALL leading underscores
   const rawUid = field?.uid;
   const cleanedUid = sanitizeUid(rawUid);
@@ -755,6 +759,38 @@ const convertToSchemaFormate = ({ field, advanced = false, marketPlacePath, keyM
       };
     }
 
+    case 'taxonomy': {
+      // Build taxonomies array from field.taxonomies or field.advanced.taxonomies
+      const taxonomiesData = field?.taxonomies || field?.advanced?.taxonomies || [];
+      const taxonomiesArray = Array.isArray(taxonomiesData) 
+        ? taxonomiesData.map((tax: any) => ({
+            taxonomy_uid: typeof tax === 'string' ? tax : (tax?.taxonomy_uid || tax),
+            mandatory: field?.advanced?.mandatory ?? false,
+            multiple: field?.advanced?.multiple !== false, // Default true for taxonomies
+            non_localizable: field?.advanced?.nonLocalizable ?? false
+          }))
+        : [];
+
+      return {
+        data_type: "taxonomy",
+        display_name: field?.title,
+        uid: cleanedUid,
+        taxonomies: taxonomiesArray,
+        field_metadata: {
+          description: field?.advanced?.description ?? '',
+          default_value: field?.advanced?.default_value ?? ''
+        },
+        format: field?.advanced?.validationRegex ?? '',
+        error_messages: {
+          format: field?.advanced?.validationErrorMessage ?? ''
+        },
+        mandatory: field?.advanced?.mandatory ?? false,
+        multiple: field?.advanced?.multiple !== false, // Default true for taxonomies
+        non_localizable: field?.advanced?.nonLocalizable ?? false,
+        unique: field?.advanced?.unique ?? false
+      };
+    }
+
     case 'html': {
       const htmlField: any = {
         "data_type": "text",
@@ -969,7 +1005,7 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
     const ctUid = keyMapper?.[contentTypeUid];
 
     if(type === 'global_field') {
-      
+
       const req: any = {
         params: {
           projectId,
@@ -1028,22 +1064,86 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
       "singleton": false,
     }
   }
+
   for await (const field of ctData?.schema ?? []) {
+    // Handle regular groups
     if (field?.data_type === 'group') {
-      const currentGroup = mergeCts?.schema?.find((grp: any) => grp?.uid === field?.uid &&
-        grp?.data_type === 'group');
-      const group = [];
-      for await (const fieldGp of currentGroup?.schema ?? []) {
-        const fieldNst = field?.schema?.find((fld: any) => fld?.uid === fieldGp?.uid &&
-          fld?.data_type === fieldGp?.data_type);
-        if (fieldNst === undefined) {
-          group?.push(fieldGp);
+      const currentGroup = mergeCts?.schema?.find((grp: any) => 
+        grp?.uid === field?.uid && grp?.data_type === 'group'
+      );
+      
+      if (currentGroup) {
+        const group = [];
+        for await (const fieldGp of currentGroup?.schema ?? []) {
+          const fieldNst = field?.schema?.find((fld: any) => 
+            fld?.uid === fieldGp?.uid && fld?.data_type === fieldGp?.data_type
+          );
+          if (fieldNst === undefined) {
+            group?.push(fieldGp);
+          }
         }
+        field.schema = removeDuplicateFields([...field?.schema ?? [], ...group]);
       }
-      field.schema = removeDuplicateFields([...field?.schema ?? [], ...group]);
+    }
+
+    // Handle modular blocks
+    if (field?.data_type === 'blocks') {
+      const currentModularBlock = mergeCts?.schema?.find((mb: any) => 
+        mb?.uid === field?.uid && mb?.data_type === 'blocks'
+      );
+      
+      if (currentModularBlock && currentModularBlock?.blocks) {
+        // Iterate through each child block in the source
+        for (const sourceBlock of field?.blocks ?? []) {
+          // Find matching child block in target by UID
+          const targetBlock = currentModularBlock?.blocks?.find((tb: any) => 
+            tb?.uid === sourceBlock?.uid
+          );
+          
+          if (targetBlock && targetBlock?.schema) {
+            // Merge the schemas of matching child blocks
+            const additionalFields = [];
+            
+            for (const targetField of targetBlock?.schema ?? []) {
+              // Check if this field already exists in source block
+              const existsInSource = sourceBlock?.schema?.find((sf: any) => 
+                sf?.uid === targetField?.uid && sf?.data_type === targetField?.data_type
+              );
+              
+              if (!existsInSource) {
+                additionalFields.push(targetField);
+              }
+            }
+            
+            // Merge source and target fields, removing duplicates
+            sourceBlock.schema = removeDuplicateFields([
+              ...sourceBlock?.schema ?? [], 
+              ...additionalFields
+            ]);
+          }
+        }
+        
+        // Add any child blocks from target that don't exist in source
+        const additionalBlocks = [];
+        for (const targetBlock of currentModularBlock?.blocks ?? []) {
+          const existsInSource = field?.blocks?.find((sb: any) => 
+            sb?.uid === targetBlock?.uid
+          );
+          
+          if (!existsInSource) {
+            additionalBlocks.push(targetBlock);
+          }
+        }
+        
+        field.blocks = removeDuplicateFields([
+          ...field?.blocks ?? [], 
+          ...additionalBlocks
+        ]);
+      }
     }
   }
   ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
+  
   return ctData;
 }
 
@@ -1066,7 +1166,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
 
   // Safe: ensures we never pass undefined to the builder
   const ctData: any[] = buildSchemaTree(contentType?.fieldMapping || []);
-  
+
   // Use the deep converter that properly handles groups & modular blocks
   for (const item of ctData) {
     if (item?.isDeleted === true) continue;
@@ -1098,4 +1198,4 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   } else {
     console.info(contentType?.contentstackUid, 'missing');
   }
-};
+}

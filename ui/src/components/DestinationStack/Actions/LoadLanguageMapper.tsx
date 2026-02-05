@@ -521,6 +521,9 @@ const Mapper = ({
 const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  // Use a specific selector for sourceLocale to help with reactivity
+  const reduxSourceLocale = useSelector((state: RootState) => state?.migration?.newMigrationData?.destination_stack?.sourceLocale);
+  
   const [options, setoptions] = useState<{ label: string; value: string }[]>([]);
   const [cmsLocaleOptions, setcmsLocaleOptions] = useState<{ label: string; value: string }[]>([]);
   const [sourceLocales, setsourceLocales] = useState<{ label: string; value: string }[]>([]);
@@ -541,20 +544,34 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
     prevStackRef.current = stack;
   }, [stack]);
 
+  // Separate useEffect to update sourceLocales when Redux state changes
+  useEffect(() => {
+    
+    if (reduxSourceLocale && Array.isArray(reduxSourceLocale) && reduxSourceLocale.length > 0) {
+      const mappedLocales = reduxSourceLocale.map((item: string) => ({
+        label: item,
+        value: item
+      }));
+      setsourceLocales(mappedLocales);
+    }
+  }, [reduxSourceLocale]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setisLoading(true);
+        
         const allLocales: { label: string; value: string }[] = Object?.entries(
           newMigrationData?.destination_stack?.csLocale ?? {}
         ).map(([key]) => ({
           label: key,
           value: key
         }));
-        const sourceLocale = newMigrationData?.destination_stack?.sourceLocale?.map((item) => ({
+        const sourceLocale = newMigrationData?.destination_stack?.sourceLocale?.map((item: string) => ({
           label: item,
           value: item
         }));
+        
         setsourceLocales(sourceLocale);
         setoptions(allLocales);
         const keys = Object?.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
@@ -622,7 +639,7 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
     };
 
     fetchData();
-  }, [newMigrationData?.destination_stack?.selectedStack, currentStack]);
+  }, [newMigrationData?.destination_stack?.selectedStack, currentStack, newMigrationData?.destination_stack?.sourceLocale]);
 
   //   const fetchLocales = async () => {
   //     return await getStackLocales(newMigrationData?.destination_stack?.selectedOrg?.value);

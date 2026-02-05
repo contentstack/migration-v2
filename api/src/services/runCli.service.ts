@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import path from 'path';
 import fs from 'fs';
 import { spawn } from 'child_process';
@@ -229,7 +231,6 @@ export const runCli = async (
       await createDirectoryAndFile(loggerPath, transformePath);
 
       // Debug which log path is being used
-      console.info(`Log path for CLI commands: ${transformePath}`);
 
       // Make sure to set the global.currentLogFile to the project log file
       // This is the key part - setting the log file path to the migration service log file
@@ -275,8 +276,6 @@ export const runCli = async (
         if (loggerPath && loggerPath !== transformePath) {
           fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
         }
-
-        console.info('Added test completion message to logs');
       } else {
         const directLogEntry = {
           level: 'info',
@@ -294,20 +293,12 @@ export const runCli = async (
         if (loggerPath && loggerPath !== transformePath) {
           fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
         }
-
-        console.info('Added migration completion message to logs');
       }
 
       // Keep the project status update code:
-      console.info(
-        `Updating project status: projectId=${projectId}, isTest=${isTest}`
-      );
       // ... rest of the code ...
 
       // Add debug logs to track project index and test flag
-      console.info(
-        `Updating project status: projectId=${projectId}, isTest=${isTest}`
-      );
 
       // Make sure we have the latest data
       await ProjectModelLowdb.read();
@@ -337,7 +328,6 @@ export const runCli = async (
 
       // Handle test migration updates
       if (projectIndex > -1 && isTest) {
-        console.info('Updating test migration status');
         const project = ProjectModelLowdb.data.projects[projectIndex];
 
         // Initialize test_stacks if needed
@@ -358,14 +348,13 @@ export const runCli = async (
       // Update project status for non-test migrations
       if (projectIndex > -1 && !isTest) {
         // Direct modification might be more reliable
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted = true;
-        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted = false;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationCompleted =
+          true;
+        ProjectModelLowdb.data.projects[projectIndex].isMigrationStarted =
+          false;
         ProjectModelLowdb.data.projects[projectIndex].current_step = 5;
         ProjectModelLowdb.data.projects[projectIndex].status = 5;
         await ProjectModelLowdb.write();
-        console.info(
-          `Project ${projectId} status updated: migration completed`
-        );
       }
     } else {
       console.info('User not found.');

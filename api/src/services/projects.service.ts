@@ -1147,8 +1147,10 @@ const deleteProject = async (req: Request) => {
     const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await FieldMapperModel.read();
     if (!isEmpty(content_mapper_id) && Array.isArray(content_mapper_id)) {
-      content_mapper_id.map(async (item: any) => {
-        if (!item) return;
+      // Use for...of loop to properly await async operations
+      for (const item of content_mapper_id) {
+        if (!item) continue;
+        
         const contentMapperData = ContentTypesMapperModelLowdb.chain
           .get('ContentTypesMappers')
           .find({ id: item, projectId: projectId })
@@ -1158,28 +1160,34 @@ const deleteProject = async (req: Request) => {
 
         //delete all fieldMapping which is related content Mapper and Project
         if (!isEmpty(fieldMappingIds) && Array.isArray(fieldMappingIds)) {
-          fieldMappingIds.forEach((field: any) => {
-            if (!field) return;
+          for (const field of fieldMappingIds) {
+            if (!field) continue;
             const fieldIndex = FieldMapperModel.chain
               .get('field_mapper')
               .findIndex({ id: field, projectId: projectId })
               .value();
-            if (fieldIndex > -1) {
-              FieldMapperModel.update((data: any) => {
-                delete data.field_mapper[fieldIndex];
+            if (typeof fieldIndex === 'number' && fieldIndex > -1) {
+              await FieldMapperModel.update((data: any) => {
+                if (data?.field_mapper?.[fieldIndex]) {
+                  delete data.field_mapper[fieldIndex];
+                }
               });
             }
-          });
+          }
         }
         //delete all content Mapper which is related to Project
         const contentMapperID = ContentTypesMapperModelLowdb.chain
           .get('ContentTypesMappers')
           .findIndex({ id: item, projectId: projectId })
           .value();
-        await ContentTypesMapperModelLowdb.update((Cdata: any) => {
-          delete Cdata.ContentTypesMappers[contentMapperID];
-        });
-      });
+        if (typeof contentMapperID === 'number' && contentMapperID > -1) {
+          await ContentTypesMapperModelLowdb.update((Cdata: any) => {
+            if (Cdata?.ContentTypesMappers?.[contentMapperID]) {
+              delete Cdata.ContentTypesMappers[contentMapperID];
+            }
+          });
+        }
+      }
     }
     //delete Project
     await ProjectModelLowdb.update((Pdata: any) => {

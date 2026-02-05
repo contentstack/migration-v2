@@ -94,9 +94,6 @@
     },
     {
       "cms_id": "drupal",
-      "_metadata": {
-        "uid": "csb96887a2cfee9e8c"
-      },
       "title": "Drupal",
       "description": "",
       "group_name": "lightning",
@@ -108,59 +105,8 @@
       "isactive": true,
       "allowed_file_formats": [
         {
-          "fileformat_id": "zip",
-          "_metadata": {
-            "uid": "cs5d9c8914dc21ea80"
-          },
-          "title": "Zip",
-          "description": "",
-          "group_name": "zip",
-          "isactive": true
-        }
-      ]
-    },
-    {
-      "cms_id": "drupal v7",
-      "title": "Drupal v7",
-      "description": "",
-      "group_name": "lightning",
-      "doc_url": {
-        "title": "https://www.drupal.org/",
-        "href": "https://www.drupal.org/"
-      },
-      "parent": "Drupal",
-      "isactive": true,
-      "allowed_file_formats": [
-        {
           "fileformat_id": "sql",
-          "title": "Sql",
-          "description": "",
-          "group_name": "sql",
-          "isactive": true,
-          "_metadata": {
-            "uid": "csceba83e388748bf1"
-          }
-        }
-      ],
-      "_metadata": {
-        "uid": "cs88cc83ef30625782"
-      }
-    },
-    {
-      "cms_id": "drupal v8+",
-      "title": "Drupal v8+",
-      "description": "",
-      "group_name": "lightning",
-      "doc_url": {
-        "title": "https://www.drupal.org/",
-        "href": "https://www.drupal.org/"
-      },
-      "parent": "Drupal",
-      "isactive": true,
-      "allowed_file_formats": [
-        {
-          "fileformat_id": "sql",
-          "title": "Sql",
+          "title": "ApiTokens",
           "description": "",
           "group_name": "sql",
           "isactive": true,
