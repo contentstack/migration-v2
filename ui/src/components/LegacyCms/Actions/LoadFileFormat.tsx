@@ -23,7 +23,15 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
 
   const newMigrationDataRef = useRef(newMigrationData);
 
+  // Helper function to get display title (converts "ApiTokens" to "SQL" for display text)
+  const getDisplayTitle = (title: string | undefined) => {
+    if (title === 'ApiTokens') return 'SQL';
+    return title;
+  };
+
+  // fileIcon stores the original title for icon rendering, fileDisplayTitle stores the display text
   const [fileIcon, setFileIcon]  = useState(newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat?.title);
+  const [fileDisplayTitle, setFileDisplayTitle] = useState(getDisplayTitle(newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat?.title));
 
   /****  ALL USEEffects  HERE  ****/
   // Update ref whenever newMigrationData changes
@@ -58,9 +66,11 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
         }));
         
         setFileIcon(fileFormatObj?.title);
+        setFileDisplayTitle(getDisplayTitle(fileFormatObj?.title));
       }
     } else if (!isEmptyString(currentFormat)) {
       setFileIcon(currentFormat);
+      setFileDisplayTitle(getDisplayTitle(currentFormat));
     }
   }, [newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath, newMigrationData?.legacy_cms?.selectedFileFormat, dispatch, newMigrationData]);
 
@@ -70,7 +80,7 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
         <label htmlFor="file-format">
           <TextInput
             label="File Format"
-            value={fileIcon || 'File extension not found'}
+            value={fileDisplayTitle || 'File extension not found'}
             version="v2"
             isReadOnly={true}
             width="large"

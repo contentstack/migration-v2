@@ -341,6 +341,18 @@ export const updateLocaleMapper = async(projectId: string, data: any) => {
   }
 }
 
+export const getExistingTaxonomies = async (projectId: string) => {
+  try {
+    return await getCall(`${API_VERSION}/mapper/${projectId}/taxonomies`, options());
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
+
 export const getMigrationLogs = async (orgId: string, projectId: string, stackId: string, skip:number , limit:number  , startIndex:number, stopIndex:number,searchText:string, filter: string ) => {
   try {
       return await getCall(

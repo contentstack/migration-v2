@@ -65,6 +65,21 @@ const getExistingGlobalFields = async (
 };
 
 /**
+ * Retrieves existing taxonomies from source and destination.
+ *
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @returns {Promise<void>} - A promise that resolves when the operation is complete.
+ */
+const getExistingTaxonomies = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const resp = await contentMapperService.getExistingTaxonomies(req);
+  res.status(resp?.status || 200).json(resp);
+};
+
+/**
  * Updates the content type fields.
  *
  * @param {Request} req - The request object.
@@ -158,6 +173,7 @@ export const contentMapperController = {
   resetContentType,
   // removeMapping,
   getSingleContentTypes,
+  getExistingTaxonomies,
   removeContentMapper,
   updateContentMapper,
   getExistingGlobalFields,
