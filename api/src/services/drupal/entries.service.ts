@@ -1017,6 +1017,7 @@ const processEntries = async (
   project: any = null,
 ): Promise<{ [key: string]: any } | null> => {
   const srcFunc = 'processEntries';
+  console.log(`\n\n========== [processEntries] CALLED for contentType="${contentType}", projectId="${projectId}", destination_stack_id="${destination_stack_id}" ==========\n`);
 
   try {
     // Following original pattern: queryPageConfig['page']['' + pagename + '']
@@ -1292,6 +1293,20 @@ const processEntries = async (
 
         // Apply field type switching based on user's UI selections (from content type schema)
         const enhancedEntry: any = {};
+
+        // Load FieldMapper database for direct lookup of user's field type selections
+        // This serves as the source of truth for field types changed in UI
+        await FieldMapperModel.read();
+        const allFieldMappings = FieldMapperModel.data?.field_mapper || [];
+        
+        // Get content type mapper to find contentTypeId for this content type
+        await ContentTypesMapperModel.read();
+        const contentTypesMappers = ContentTypesMapperModel.data?.ContentTypesMappers || [];
+        const ctMapper = contentTypesMappers.find(
+          (ct: any) => ct?.projectId === projectId && 
+            (ct?.contentstackUid === contentType || ct?.otherCmsUid === contentType)
+        );
+        const currentContentTypeId = ctMapper?.id;
 
         // Process each field with type switching support
         // (FieldMapper & ContentTypesMapper data already loaded above the loop)
