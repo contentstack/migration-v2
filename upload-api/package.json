@@ -35,7 +35,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.982.0",
+    "@aws-sdk/client-s3": "^3.985.0",
     "@contentstack/cli-utilities": "^1.17.1",
     "@typescript-eslint/parser": "^8.0.0",
     "axios": "^1.12.0",
