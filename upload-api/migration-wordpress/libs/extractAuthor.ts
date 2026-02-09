@@ -54,15 +54,16 @@ const extractAuthor = async(item:any, type: string) => {
       }
     }]
   };
-  if(typeof item === 'object'){
-    const fields = await handleAuthorSchema(item);
+  if(Array.isArray(item)){
+    const fields = await handleAuthorSchema(item?.[0]);
     author?.fieldMapping?.push(...fields.map(field => ({ 
       ...field, 
       isDeleted: false, 
       advanced: { ...field?.advanced, mandatory: field?.advanced?.mandatory ?? false } 
     })));
-  }else if(Array.isArray(item)){
-    const fields = await handleAuthorSchema(item?.[0]);
+  }
+  else{
+    const fields = await handleAuthorSchema(item);
     author?.fieldMapping?.push(...fields.map(field => ({ 
       ...field, 
       isDeleted: false, 

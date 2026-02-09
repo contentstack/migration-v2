@@ -334,7 +334,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             // If this block has similar structures
             if (similarBlocks?.length > 0) {
               // Create a unique key based on the structure/name to track processed groups
-              const groupKey = field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name)
+              const groupKey = field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name);
               // Skip if we've already processed this group of similar blocks
               if (processedSimilarBlocks?.has?.(groupKey) || existingBlock) {
                   continue;
@@ -539,7 +539,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             "contentstackUid": type?.toLowerCase(),
             "type": "content_type",
             "fieldMapping": CT
-        }
+        };
 
     try {
         await helper.writeFileAsync(

@@ -198,7 +198,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 backupFieldType: 'json',
                 backupFieldUid: rteUid,
                 advanced: {}
-            }
+            };
         }
         break;
         case 'core/image':
@@ -217,7 +217,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 backupFieldType: 'file',
                 backupFieldUid: fileUid,
                 advanced: {}
-            }
+            };
         }
         break;
             
@@ -234,7 +234,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 backupFieldType: 'single_line_text',
                 backupFieldUid: textUid,
                 advanced: {}
-            }
+            };
         }
         break;
         case 'core/social-link':
@@ -251,7 +251,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 backupFieldType: 'link',
                 backupFieldUid: LinkUid,
                 advanced: {}
-            }
+            };
         }
         break;
         case 'core/list':

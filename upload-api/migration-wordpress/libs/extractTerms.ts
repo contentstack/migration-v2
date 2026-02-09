@@ -56,15 +56,16 @@ const extractTerms = async(allTerms: any, type: string) => {
             }
           }]
         };
-        if(typeof allTerms === 'object'){
-          const fields = await handleAuthorSchema(allTerms);
+        if(Array.isArray(allTerms)){
+          const fields = await handleAuthorSchema(allTerms?.[0]);
           terms?.fieldMapping?.push(...fields.map(field => ({ 
             ...field, 
             isDeleted: false, 
             advanced: { ...field?.advanced, mandatory: field?.advanced?.mandatory ?? false } 
           })));
-        }else if(Array.isArray(allTerms)){
-          const fields = await handleAuthorSchema(allTerms?.[0]);
+        }
+        else{
+          const fields = await handleAuthorSchema(allTerms);
           terms?.fieldMapping?.push(...fields.map(field => ({ 
             ...field, 
             isDeleted: false, 
