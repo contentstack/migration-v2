@@ -158,7 +158,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
               ...newMigrationData?.legacy_cms?.uploadedFile?.file_details,
               mySQLDetails: data?.mysql, // Store mysql as mySQLDetails
               assetsConfig: data?.assetsConfig, // Store assetsConfig
-              isSQL: data?.isSQL,
               cmsType: data?.cmsType,
               localPath: data?.localPath,
               awsData: data?.awsData

@@ -121,6 +121,11 @@ const FileComponent = ({ fileDetails }: Props) => {
             <p className="pb-2">User: {fileDetails?.mySQLDetails?.user}</p>
           </div>
         )
+      ) : fileDetails?.isLocalPath ? (
+        // ✅ Case 2: Local file path
+        <div className="file-container">
+          <Paragraph tagName="p" variant="p1" text={`Local Path: ${fileDetails?.localPath}`} />
+        </div>
       ) : (
         // ✅ Case 3: AWS details
         <div>
@@ -221,7 +226,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                 bucketName: data?.file_details?.awsData?.bucketName,
                 buketKey: data?.file_details?.awsData?.buketKey
               },
-              isSQL: data?.file_details?.isSQL,
               mySQLDetails: {
                 host: data?.file_details?.mySQLDetails?.host,
                 user: data?.file_details?.mySQLDetails?.user,
@@ -293,7 +297,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
         if (
           !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
-          (data?.file_details?.isSQL || 
+          (isSQLConnection(data?.file_details?.localPath) || 
            !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id))
         ) {
           props.handleStepChange(props?.currentStep, true);
@@ -317,7 +321,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         // For SQL connections, show the specific backend error message
         // For other formats, show generic validation failed message
         setValidationMessage(
-          data?.file_details?.isSQL && data?.message 
+          isSQLConnection(data?.file_details?.localPath) && data?.message 
             ? data.message 
             : 'Validation failed.'
         );
@@ -379,7 +383,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     }
     
       // For SQL connections, skip file extension validation
-      const isSQL = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isSQL;
+      const isSQL = isSQLConnection(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath);
       
       let extension = '';
       let isFormatValid = false;
@@ -538,9 +542,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     ) {
       setIsValidated(true);
       setShowMessage(true);
-      // ✅ FIX: Use Redux state instead of local state for isSQL check
+      // ✅ FIX: Use Redux state instead of local state for SQL check
       setValidationMessage(
-        newMigrationData?.legacy_cms?.uploadedFile?.file_details?.isSQL 
+        isSQLConnection(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath) 
           ? 'Connection established successfully.' 
           : 'File validated successfully.'
       );
@@ -590,7 +594,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       <div className="col-12">
         <div className="col-12">
           <div className={containerClassName}>
-            {!isConfigLoading && (!isEmptyString(fileDetails?.localPath) || fileDetails?.isSQL) ? (
+            {!isConfigLoading && !isEmptyString(fileDetails?.localPath) ? (
               // <div className='file-icon-group'>
               <FileComponent fileDetails={fileDetails || {}} />
             ) : (
@@ -640,12 +644,11 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             version="v2"
             disabled={!(reValidate || !isDisabled)}>
             {(() => {
-              // Logic: If using local path, always "File Validate"
-              // If not using local path AND using SQL, then "Check Connection"
+              // Logic: If localPath is 'sql', show "Check Connection"
               // Otherwise "File Validate"
-              const buttonText = fileDetails?.isLocalPath 
-                ? 'File Validate' 
-                : (fileDetails?.isSQL ? 'Check Connection' : 'File Validate');
+              const buttonText = isSQLConnection(fileDetails?.localPath) 
+                ? 'Check Connection' 
+                : 'File Validate';
               
               return buttonText;
             })()}

@@ -67,7 +67,6 @@ export interface FileDetails {
     base_url?: string;
     public_path?: string;
   };
-  isSQL?: boolean;
   filePath?: string | undefined;
 }
 export interface IFile {
