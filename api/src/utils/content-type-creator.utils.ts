@@ -880,36 +880,6 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
       break;
     }
 
-    case 'taxonomy': {
-      const taxonomies = field?.advanced?.terms?.map((term: any) => {
-        return {
-          "taxonomy_uid": term,
-            "mandatory": false,
-          "multiple": true,
-          "non_localizable": false
-        }
-      });
-      return {
-        "data_type": "taxonomy",
-        "display_name": "Categories",
-        "uid": "taxonomies",
-        "taxonomies": taxonomies,
-        "field_metadata": {
-            "description": "",
-            "default_value": ""
-        },
-        "format": "",
-        "error_messages": {
-            "format": ""
-        },
-        "mandatory": false,
-        "multiple": true,
-        "non_localizable": false,
-        "unique": false
-      }
-      break;
-    }
-
     default: {
       if (field?.contentstackFieldType) {
         return {
