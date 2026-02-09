@@ -1287,14 +1287,21 @@ const processEntries = async (
                fm?.contentstackFieldUid === cleanedFieldName)
           );
 
-          if (dbFieldMapping && dbFieldMapping.contentstackFieldType) {
-            // Use field type directly from database (user's latest UI selection)
-            fieldMapping = {
-              uid: fieldName,
-              contentstackFieldType: dbFieldMapping.contentstackFieldType,
-              backupFieldType: dbFieldMapping.backupFieldType || dbFieldMapping.contentstackFieldType,
-              advanced: dbFieldMapping.advanced || {},
-            };
+          if (dbFieldMapping) {
+            // Skip fields that were unselected by the user in the UI (isDeleted: true)
+            if (dbFieldMapping.isDeleted === true) {
+              continue; // Do not include this field in the migrated entry
+            }
+
+            if (dbFieldMapping.contentstackFieldType) {
+              // Use field type directly from database (user's latest UI selection)
+              fieldMapping = {
+                uid: fieldName,
+                contentstackFieldType: dbFieldMapping.contentstackFieldType,
+                backupFieldType: dbFieldMapping.backupFieldType || dbFieldMapping.contentstackFieldType,
+                advanced: dbFieldMapping.advanced || {},
+              };
+            }
           }
 
           // PRIORITY 2: If not in FieldMapper DB, try schema.json
@@ -1366,11 +1373,18 @@ const processEntries = async (
             currentContentTypeMapping &&
             currentContentTypeMapping.fieldMapping
           ) {
-            fieldMapping = currentContentTypeMapping.fieldMapping.find(
+            const fallbackMapping = currentContentTypeMapping.fieldMapping.find(
               (fm: any) =>
                 fm.uid === fieldName ||
                 fm.otherCmsField === fieldName
             );
+
+            // Skip fields that were unselected by the user in the UI (isDeleted: true)
+            if (fallbackMapping?.isDeleted === true) {
+              continue; // Do not include this field in the migrated entry
+            }
+
+            fieldMapping = fallbackMapping;
           }
 
           if (fieldMapping) {
