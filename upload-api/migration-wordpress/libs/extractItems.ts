@@ -254,7 +254,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             backupFieldType: 'taxonomy',
             backupFieldUid: 'taxonomies',
             advanced: {
-                terms : []
+                taxonomies : []
             },
     };
 
@@ -273,13 +273,15 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
           }
           const category = await extractTaxonomy(data?.category, categories, 'categories');
           if (!categoryArray?.advanced) {
-            categoryArray.advanced = { terms: [] };
+            categoryArray.advanced = { taxonomies: [] };
           }
-          categoryArray.advanced.terms = Array?.from(
-            new Set([
-              ...(categoryArray?.advanced?.terms || []),
-              ...(category || [])
-            ])
+          categoryArray.advanced.taxonomies = Array?.from(
+            new Map(
+              [
+                ...(categoryArray?.advanced?.taxonomies || []),
+                ...(category || [])
+              ].map(item => [item.taxonomy_uid, item])
+            ).values()
           );
         }
         //const taxonomy = await extractTerms(data?.category, terms, categories,'taxonomy');
@@ -291,7 +293,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
   
         // Example usage
         const result = findSameStructureBlocks(blocksJson);
-        fs?.writeFileSync('result.json', JSON?.stringify(result, null, 4));
+        // fs?.writeFileSync('result.json', JSON?.stringify(result, null, 4));
         
   
         // Track processed similar blocks to avoid duplicates

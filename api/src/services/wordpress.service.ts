@@ -163,7 +163,7 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
     for (const field of fields) {
       if (field?.contentstackFieldType === 'modular_blocks') {
         const modularBlocksArray: any[] = [];
-        const modularBlocksFieldUid = field?.contentstackFieldUid || getLastUid(field?.uid);
+        const modularBlocksFieldUid = field?.contentstackFieldUid || getLastUid(field?.conteststackUid);
         
         // Find all modular_blocks_child fields that belong to this modular_blocks field
         const modularBlockChildren = fields.filter((f: any) => {
@@ -199,18 +199,18 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                   try {
                     // Find the field that matches this inner block
                     // Look for fields that belong to this modular_blocks_child
-                    const childFieldUid = matchingModularBlockChild?.contentstackFieldUid || getLastUid(matchingModularBlockChild?.uid);
+                    const childFieldUid = matchingModularBlockChild?.contentstackFieldUid || getLastUid(matchingModularBlockChild?.contentstackUid);
                     const childField = fields.find((f: any) => {
                       const fUid = f?.contentstackFieldUid || '';
                       const fOtherCmsField = f?.otherCmsType?.toLowerCase();
                       const childBlockName = (child?.attrs?.metadata?.name?.toLowerCase() || getFieldName(child?.blockName?.toLowerCase()));
                       // Check if this field belongs to the modular_blocks_child and matches the block name
                       return fUid.startsWith(childFieldUid + '.') &&
-                        (fOtherCmsField === childBlockName) && !childrenObject[getLastUid(f?.uid)];
+                        (fOtherCmsField === childBlockName) && !childrenObject[getLastUid(f?.contentstackFieldUid)]?.length;
                     });
                     
                     if (childField) {
-                      const childKey = getLastUid(childField?.uid);
+                      const childKey = getLastUid(childField?.contentstackFieldUid);
                       
                       if (childField?.contentstackFieldType === 'group') {
                       
@@ -245,12 +245,12 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                 });
                 
                 // Add the block to the modular blocks array with the child field's UID as the key
-                Object.keys(childrenObject).length > 0 && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.uid)] : childrenObject });
-              } else if(getLastUid(matchingModularBlockChild?.uid) && matchingChildField){
+                Object.keys(childrenObject).length > 0 && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : childrenObject });
+              } else if(getLastUid(matchingModularBlockChild?.contentstackFieldUid) && matchingChildField){
                 // Handle blocks with no inner blocks - format the block itself
                 const formattedBlock = formatChildByType(block, matchingChildField, assetData);
                 
-                formattedBlock && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.uid)] : { [getLastUid(matchingChildField?.uid)]: formattedBlock }});
+                formattedBlock && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : { [getLastUid(matchingChildField?.contentstackFieldUid)]: formattedBlock }});
               }
             //}
           } catch (blockError) {
@@ -260,7 +260,7 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
         
         // Set the modular blocks array in the schema
         if (modularBlocksArray.length > 0) {
-          schema[field?.uid] = modularBlocksArray;
+          schema[field?.contentstackFieldUid] = modularBlocksArray;
         }
       }
     }
@@ -280,7 +280,7 @@ function processNestedGroup(child: any, childField: any, allFields: any[]): Reco
   }
   
   // Find nested fields for this group by checking contentstackFieldUid
-  const groupFieldUid = childField?.contentstackFieldUid || getLastUid(childField?.uid);
+  const groupFieldUid = childField?.contentstackFieldUid || getLastUid(childField?.contentstackFieldUid);
   const nestedFields = allFields?.filter((field: any) => {
     const fieldUid = field?.contentstackFieldUid || '';
     if (!fieldUid || !groupFieldUid) return false;
@@ -302,14 +302,14 @@ function processNestedGroup(child: any, childField: any, allFields: any[]): Reco
     try {
      
       const nestedChildField = nestedFields?.find((field: any) => 
-        field?.otherCmsType?.toLowerCase() === (nestedChild?.attrs?.metadata?.name?.toLowerCase() ?? getFieldName(nestedChild?.blockName?.toLowerCase()))?.toLowerCase() && !nestedChildrenObject[getLastUid(field?.uid)]?.length
+        field?.otherCmsType?.toLowerCase() === (nestedChild?.attrs?.metadata?.name?.toLowerCase() ?? getFieldName(nestedChild?.blockName?.toLowerCase()))?.toLowerCase() && !nestedChildrenObject[getLastUid(field?.contentstackFieldUid)]?.length
       );
       
       if (!nestedChildField) {
         return;
       }
       
-      const nestedChildKey = getLastUid(nestedChildField?.uid);
+      const nestedChildKey = getLastUid(nestedChildField?.contentstackFieldUid);
       
       if (nestedChildField?.contentstackFieldType === 'group') {
         // Recursively process nested groups
@@ -495,7 +495,8 @@ const extractTermsReference = (terms: any) => {
 async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any) {
   const srcFunc = 'saveEntry';
   const locale = getLocale(master_locale, project);
-  const authorsCtName = MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
+  const mapperKeys = project?.mapperKeys || {};
+  const authorsCtName = mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] ? mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] : MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
   const authorsSave = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG?.ENTRIES_DIR_NAME,authorsCtName, master_locale);
   const authorsFilePath = path.join(authorsSave,`${master_locale}.json` );
   const authorsData = JSON.parse(await fs.promises.readFile(authorsFilePath, "utf8")) || {};
@@ -644,7 +645,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
   }
   const authorContentTypes = contentTypes?.filter((contentType: any) => contentType?.contentstackUid === 'author');
   if(authorContentTypes?.length > 0){
-    const postsFolderName = authorContentTypes?.[0]?.contentstackUid;
+    const postsFolderName = mapperKeys[authorContentTypes?.[0]?.contentstackUid] ? mapperKeys[authorContentTypes?.[0]?.contentstackUid] : authorContentTypes?.[0]?.contentstackUid;
   
     // Create master locale folder and file
     postFolderPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
@@ -665,7 +666,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
 
   const termsContentTypes = contentTypes?.filter((contentType: any) => contentType?.contentstackUid === 'terms');
   if(termsContentTypes?.length > 0){
-    const termsFolderName = termsContentTypes?.[0]?.contentstackUid;
+    const termsFolderName = mapperKeys[termsContentTypes?.[0]?.contentstackUid] ? mapperKeys[termsContentTypes?.[0]?.contentstackUid] : termsContentTypes?.[0]?.contentstackUid;
 
     const termsFolderPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
       MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME, termsFolderName, locale);
@@ -694,7 +695,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
   
   for(const contentType of postContentTypes){
     //await startingDirPosts(contentType?.contentstackUid, master_locale, project?.locales); 
-    const postsFolderName = contentType?.contentstackUid;
+    const postsFolderName = mapperKeys[contentType?.contentstackUid] ? mapperKeys[contentType?.contentstackUid] : contentType?.contentstackUid;
 
     // Create master locale folder and file
     postFolderPath = path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
