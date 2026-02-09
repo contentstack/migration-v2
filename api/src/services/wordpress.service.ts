@@ -129,7 +129,7 @@ const RteJsonConverter = (html: string) => {
 }
 
 const getLocale = (master_locale: string, project: any) => {
-  for (const [key, value] of Object.entries(project?.master_locale || {})) {
+  for (const key of Object.keys(project?.master_locale || {})) {
     if (key === master_locale) {
       return key;
     }
