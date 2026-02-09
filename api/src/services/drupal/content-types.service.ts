@@ -230,6 +230,11 @@ function convertUploadApiSchemaToApiSchema(
            mapping.uid === uploadField.uid)
       );
 
+      // Skip fields that were unselected by the user in the UI (isDeleted: true)
+      if (savedMapping?.isDeleted === true) {
+        continue; // Do not include this field in the generated schema
+      }
+
       // Use UI-selected field type if available, otherwise use upload-api type
       const fieldType =
         savedMapping?.contentstackFieldType ||

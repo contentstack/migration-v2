@@ -2275,7 +2275,7 @@ if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
         contentstackFieldUid: row?.backupFieldUid,
         advanced: row?.advanced?.initial,
         ...(row?.refrenceTo && { refrenceTo: row?.initialRefrenceTo }),
-       
+        isDeleted: false, // Reset selection: re-tick all fields on reset
       };
     });
     setTableData(updatedRows);
@@ -2565,7 +2565,7 @@ if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
     setIsDropDownChanged(false);
 
     const updatedRows: FieldMapType[] = tableData.map((row) => {
-      return { ...row, contentstackFieldType: row?.backupFieldType };
+      return { ...row, contentstackFieldType: row?.backupFieldType, isDeleted: false };
     });
     setTableData(updatedRows);
     setSelectedEntries(updatedRows);
