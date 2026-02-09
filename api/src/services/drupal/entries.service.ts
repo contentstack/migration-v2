@@ -25,6 +25,8 @@ import {
 } from './field-analysis.service.js';
 import FieldFetcherService from './field-fetcher.service.js';
 import { mapDrupalLocales } from './locales.service.js';
+import FieldMapperModel from '../../models/FieldMapper.js';
+import ContentTypesMapperModel from '../../models/contentTypesMapper-lowdb.js';
 // Dynamic import for phpUnserialize will be used in the function
 
 // Local utility functions (extracted from entries-field-creator.utils.ts patterns)

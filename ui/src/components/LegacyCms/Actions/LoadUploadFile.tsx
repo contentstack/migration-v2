@@ -281,13 +281,16 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             
             if (projectData?.source_locales && Array.isArray(projectData.source_locales)) {
               // Dispatch source_locales to Redux so LanguageMapper can access them
+              // Use newMigrationDataObj (the just-dispatched data) instead of stale ref
               const updatedMigrationData: INewMigration = {
-                ...newMigrationDataRef?.current,
+                ...newMigrationDataObj,
                 destination_stack: {
-                  ...newMigrationDataRef?.current?.destination_stack,
+                  ...newMigrationDataObj?.destination_stack,
                   sourceLocale: projectData.source_locales
                 }
               };
+              // Update ref again before second dispatch
+              newMigrationDataRef.current = updatedMigrationData;
               dispatch(updateNewMigrationData(updatedMigrationData));
             }
           }
