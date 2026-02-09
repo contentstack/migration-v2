@@ -76,6 +76,12 @@ export const generateContentTypeSchemas = async (
       (field: any) => field && field?.projectId === projectId
     );
 
+    // Get content type mappers to lookup contentTypeId by content type UID
+    const contentTypesMappers = ContentTypesMapperModelLowdb.data?.ContentTypesMappers || [];
+    const projectContentTypesMappers = contentTypesMappers.filter(
+      (ct: any) => ct && ct?.projectId === projectId
+    );
+
     // Log fields with UI changes
     const fieldsWithTypeChanges = savedFieldMappings.filter(
       (field: any) =>
@@ -112,11 +118,18 @@ export const generateContentTypeSchemas = async (
           fs.readFileSync(uploadApiSchemaFilePath, 'utf8')
         );
 
+        // Find the content type mapper ID for this content type
+        const contentTypeMapper = projectContentTypesMappers.find(
+          (ct: any) => ct?.contentstackUid === uploadApiSchema.uid || ct?.otherCmsUid === uploadApiSchema.uid
+        );
+        const contentTypeId = contentTypeMapper?.id;
+
         // Convert upload-api schema to API format WITH saved field mappings from UI
         const apiSchema = convertUploadApiSchemaToApiSchema(
           uploadApiSchema,
           savedFieldMappings,
-          projectId
+          projectId,
+          contentTypeId
         );
 
         // Add to combined schema array (NO individual files)
@@ -188,7 +201,8 @@ export const generateContentTypeSchemas = async (
 function convertUploadApiSchemaToApiSchema(
   uploadApiSchema: any,
   savedFieldMappings: any[] = [],
-  projectId?: string
+  projectId?: string,
+  contentTypeId?: string
 ): any {
   const apiSchema = {
     title: uploadApiSchema.title,
@@ -204,12 +218,16 @@ function convertUploadApiSchemaToApiSchema(
   for (const uploadField of uploadApiSchema.schema) {
     try {
       // Find saved field mapping from database FIRST to get user's field type selection
+      // IMPORTANT: Filter by contentTypeId to ensure we match the correct field for this content type
       const savedMapping = savedFieldMappings.find(
         (mapping: any) =>
-          mapping.contentstackFieldUid === uploadField.contentstackFieldUid ||
-          mapping.contentstackFieldUid === uploadField.uid ||
-          mapping.uid === uploadField.contentstackFieldUid ||
-          mapping.uid === uploadField.uid
+          // Must match the content type ID if provided
+          (!contentTypeId || mapping.contentTypeId === contentTypeId) &&
+          // Then match by field UID
+          (mapping.contentstackFieldUid === uploadField.contentstackFieldUid ||
+           mapping.contentstackFieldUid === uploadField.uid ||
+           mapping.uid === uploadField.contentstackFieldUid ||
+           mapping.uid === uploadField.uid)
       );
 
       // Use UI-selected field type if available, otherwise use upload-api type

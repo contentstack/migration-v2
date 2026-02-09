@@ -25,6 +25,8 @@ import {
 } from './field-analysis.service.js';
 import FieldFetcherService from './field-fetcher.service.js';
 import { mapDrupalLocales } from './locales.service.js';
+import FieldMapperModel from '../../models/FieldMapper.js';
+import ContentTypesMapperModel from '../../models/contentTypesMapper-lowdb.js';
 // Dynamic import for phpUnserialize will be used in the function
 
 // Local utility functions (extracted from entries-field-creator.utils.ts patterns)
@@ -246,94 +248,105 @@ const fetchFieldConfigs = async (
 };
 
 /**
- * Determines the source field type based on the value structure
+ * Converts HTML string to JSON RTE format
+ * Matches WordPress/AEM pattern: JSDOM parse + htmlToJson, no extra wrapping/validation
  */
-const determineSourceFieldType = (value: any): string => {
-  if (typeof value === 'object' && value !== null && value.type === 'doc') {
-    return 'json_rte';
+const convertHtmlToJson = (htmlString: unknown): any => {
+  if (typeof htmlString === 'string' && htmlString.trim()) {
+    try {
+      // Same pattern as WordPress: direct JSDOM parse + htmlToJson
+      const dom = new JSDOM(htmlString.replace(/&amp;/g, '&'));
+      const htmlDoc = dom.window.document.querySelector('body');
+      return htmlToJson(htmlDoc);
+    } catch (error) {
+      console.error('Failed to convert HTML to JSON RTE:', error);
+    }
   }
-  if (typeof value === 'string' && /<\/?[a-z][\s\S]*>/i.test(value)) {
-    return 'html_rte';
-  }
-  if (typeof value === 'string') {
-    // Simple heuristic: if it has line breaks, consider it multi-line
-    return value.includes('\n') || value.includes('\r')
-      ? 'multi_line'
-      : 'single_line';
-  }
-  // Handle numeric values (common for reference IDs, taxonomy term IDs)
-  if (
-    typeof value === 'number' ||
-    (typeof value === 'string' && !isNaN(Number(value)))
-  ) {
-    return 'number';
-  }
-  // Handle arrays (could be multi-value fields like taxonomy)
-  if (Array.isArray(value)) {
-    return 'array';
-  }
-  return 'unknown';
+  // Return original value if conversion fails
+  return htmlString;
 };
 
 /**
- * Checks if conversion is allowed based on the exact rules:
- * 1. Single-line text → Single-line/Multi-line/HTML RTE/JSON RTE
- * 2. Multi-line text → Multi-line/HTML RTE/JSON RTE (NOT Single-line)
- * 3. HTML RTE → HTML RTE/JSON RTE (NOT Single-line or Multi-line)
- * 4. JSON RTE → JSON RTE/HTML RTE (NOT Single-line or Multi-line)
+ * Converts JSON RTE to HTML string
+ * Matches WordPress/Contentful pattern
  */
-const isConversionAllowed = (
-  sourceType: string,
-  targetType: string
-): boolean => {
-  const conversionRules: { [key: string]: string[] } = {
-    // ✅ Single line can convert to single_line, multi_line, json_rte, html_rte
-    single_line: [
-      'single_line_text',
-      'single_line',
-      'text',
-      'multi_line_text',
-      'multi_line',
-      'html',
-      'html_rte',
-      'json',
-      'json_rte',
-    ],
-    // ✅ Multi-line can convert to multi_line, json_rte, html_rte (no downgrade to single_line)
-    multi_line: [
-      'multi_line_text',
-      'multi_line',
-      'text',
-      'html',
-      'html_rte',
-      'json',
-      'json_rte',
-    ],
-    // ✅ HTML RTE can only convert to HTML RTE or JSON RTE (no downgrade to text)
-    html_rte: ['html', 'json', 'html_rte', 'json_rte'],
-    // ✅ JSON RTE can only convert to JSON RTE or HTML RTE (no downgrade to text)
-    json_rte: ['json', 'html', 'json_rte', 'html_rte'],
-    // ✅ Numbers can convert to taxonomy (term IDs), reference, file, number fields
-    number: [
-      'taxonomy',
-      'reference',
-      'file',
-      'number',
-      'single_line_text',
-      'text',
-    ],
-    // ✅ Arrays can convert to taxonomy (multiple term IDs), reference (multiple refs)
-    array: ['taxonomy', 'reference', 'file'],
-    // ✅ Unknown types - allow conversion to non-text types (fallback)
-    unknown: ['taxonomy', 'reference', 'file', 'number', 'link'],
-  };
+const convertJsonToHtml = (json: any): string => {
+  try {
+    return jsonToHtml(json, {
+      customElementTypes: {
+        'social-embed': (attrs, child, jsonBlock) => {
+          return `<social-embed${attrs}>${child}</social-embed>`;
+        },
+      },
+      customTextWrapper: {
+        color: (child, value) => {
+          return `<color data-color="${value}">${child}</color>`;
+        },
+      },
+    }) || '';
+  } catch (error) {
+    console.error('Failed to convert JSON RTE to HTML:', error);
+    return '';
+  }
+};
 
-  return conversionRules[sourceType]?.includes(targetType) || false;
+/**
+ * Converts plain text to JSON RTE format
+ * Key insight from WordPress/AEM: text must be converted to proper HTML FIRST,
+ * then passed through JSDOM + htmlToJson.
+ *
+ * Plain text newlines are invisible in HTML, so we must:
+ * - Split on double newlines → separate <p> paragraphs
+ * - Convert remaining single newlines → <br> tags within paragraphs
+ * This ensures multi-line Drupal text fields produce proper JSON RTE structure.
+ */
+const convertTextToJson = (text: string): any => {
+  if (!text || typeof text !== 'string') {
+    return text;
+  }
+  try {
+    let htmlContent: string;
+
+    // If the text already contains HTML tags, pass it through directly
+    // (same as WordPress: no distinction between HTML and non-HTML)
+    if (/<\/?[a-z][\s\S]*>/i.test(text)) {
+      htmlContent = text;
+    } else {
+      // Plain text → convert to proper HTML structure before JSON RTE conversion
+      // Split by double newlines to create separate paragraphs
+      const paragraphs = text.split(/\r?\n\s*\r?\n/);
+      htmlContent = paragraphs
+        .map((p) => {
+          const trimmed = p.trim();
+          if (!trimmed) return '';
+          // Within each paragraph, convert single newlines to <br> tags
+          const withBreaks = trimmed.replace(/\r?\n/g, '<br>');
+          return `<p>${withBreaks}</p>`;
+        })
+        .filter(Boolean)
+        .join('');
+
+      // Fallback: if nothing produced, wrap entire text in a single <p>
+      if (!htmlContent) {
+        htmlContent = `<p>${text}</p>`;
+      }
+    }
+
+    // Use the same JSDOM + htmlToJson pattern as WordPress/AEM
+    const dom = new JSDOM(htmlContent);
+    const htmlDoc = dom.window.document.querySelector('body');
+    return htmlToJson(htmlDoc);
+  } catch (error) {
+    console.error('Failed to convert text to JSON RTE:', error);
+  }
+  return text;
 };
 
 /**
  * Processes field values based on content type mapping and field type switching
- * Follows proper conversion rules for field type compatibility
+ * Simplified approach matching WordPress/Contentful pattern:
+ * - Switch directly on target field type
+ * - Convert value to match target format
  */
 const processFieldByType = (
   value: any,
@@ -345,109 +358,52 @@ const processFieldByType = (
     return value;
   }
 
-  // Determine source field type
-  const sourceType = determineSourceFieldType(value);
-  const targetType = fieldMapping.contentstackFieldType;
-
-  // Check if conversion is allowed
-  if (!isConversionAllowed(sourceType, targetType)) {
-    console.error(
-      `Conversion not allowed: ${sourceType} → ${targetType}. Keeping original value.`
-    );
+  // If value is null/undefined, return as-is
+  if (value === null || value === undefined) {
     return value;
   }
 
+  const targetType = fieldMapping.contentstackFieldType;
+
+  // Simple switch based on target type (like WordPress/Contentful)
   switch (targetType) {
     case 'single_line_text': {
-      // Convert to single line text
+      // Convert to single line text - strip HTML/JSON and flatten
       if (typeof value === 'object' && value !== null && value.type === 'doc') {
-        // JSON RTE to plain text (extract text content)
-        try {
-          const htmlContent = jsonToHtml(value) || '';
-          // Strip HTML tags and convert to single line
-          const textContent = htmlContent
-            .replace(/<[^>]*>/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-          return textContent;
-        } catch (error) {
-          console.error(
-            'Failed to convert JSON RTE to single line text:',
-            error
-          );
-          return String(value);
-        }
+        // JSON RTE to plain text
+        const htmlContent = convertJsonToHtml(value);
+        return htmlContent.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
       } else if (typeof value === 'string') {
-        if (/<\/?[a-z][\s\S]*>/i.test(value)) {
-          // HTML to plain text
-          const textContent = value
-            .replace(/<[^>]*>/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-          return textContent;
-        }
-        // Multi-line to single line
-        return value.replace(/\s+/g, ' ').trim();
+        // Strip HTML tags if present and flatten to single line
+        return value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
       }
-      return String(value);
+      return String(value ?? '');
     }
 
     case 'text':
     case 'multi_line_text': {
       // Convert to multi-line text
       if (typeof value === 'object' && value !== null && value.type === 'doc') {
-        // JSON RTE to HTML (preserving structure)
-        try {
-          return (
-            jsonToHtml(value, {
-              customElementTypes: {
-                'social-embed': (attrs, child, jsonBlock) => {
-                  return `<social-embed${attrs}>${child}</social-embed>`;
-                },
-              },
-              customTextWrapper: {
-                color: (child, value) => {
-                  return `<color data-color="${value}">${child}</color>`;
-                },
-              },
-            }) || ''
-          );
-        } catch (error) {
-          console.error('Failed to convert JSON RTE to HTML:', error);
-          return String(value);
-        }
+        // JSON RTE to HTML text
+        return convertJsonToHtml(value);
       }
-      // HTML and plain text can stay as-is for multi-line
-      return typeof value === 'string' ? value : String(value || '');
+      // Keep as-is for strings (HTML or plain text)
+      return typeof value === 'string' ? value : String(value ?? '');
     }
 
     case 'json': {
-      // Convert to JSON RTE
-      if (typeof value === 'string' && /<\/?[a-z][\s\S]*>/i.test(value)) {
-        // HTML to JSON RTE
-        try {
-          const dom = new JSDOM(value);
-          const htmlDoc = dom.window.document.querySelector('body');
-          if (htmlDoc) {
-            htmlDoc.innerHTML = value;
-            return htmlToJson(htmlDoc);
-          }
-        } catch (error) {
-          console.error('Failed to convert HTML to JSON RTE:', error);
-        }
+      // Convert to JSON RTE - matching WordPress/AEM pattern:
+      // WordPress: typeof fieldValue !== 'object' ? convertHtmlToJson(fieldValue) : fieldValue
+      // AEM: always passes string through JSDOM + htmlToJson
+      if (typeof value === 'object' && value !== null && value.type === 'doc') {
+        // Already JSON RTE, return as-is
+        return value;
       } else if (typeof value === 'string') {
-        // Plain text to JSON RTE
-        try {
-          const dom = new JSDOM(`<p>${value}</p>`);
-          const htmlDoc = dom.window.document.querySelector('body');
-          if (htmlDoc) {
-            return htmlToJson(htmlDoc);
-          }
-        } catch (error) {
-          console.error('Failed to convert text to JSON RTE:', error);
-        }
+        // For ANY string (HTML or plain text), convert to JSON RTE
+        // convertTextToJson handles both cases: it detects HTML tags and passes
+        // them through directly, or converts plain text to HTML first
+        return convertTextToJson(value);
       }
-      // If already JSON RTE or conversion failed, return as-is
       return value;
     }
 
@@ -455,36 +411,17 @@ const processFieldByType = (
       // Convert to HTML RTE
       if (typeof value === 'object' && value !== null && value.type === 'doc') {
         // JSON RTE to HTML
-        try {
-          return (
-            jsonToHtml(value, {
-              customElementTypes: {
-                'social-embed': (attrs, child, jsonBlock) => {
-                  return `<social-embed${attrs}>${child}</social-embed>`;
-                },
-              },
-              customTextWrapper: {
-                color: (child, value) => {
-                  return `<color data-color="${value}">${child}</color>`;
-                },
-              },
-            }) || '<p></p>'
-          );
-        } catch (error) {
-          console.error('Failed to convert JSON RTE to HTML:', error);
-          return value;
-        }
+        return convertJsonToHtml(value);
       } else if (typeof value === 'string') {
-        // Check if it's already HTML
+        // Check if already HTML
         if (/<\/?[a-z][\s\S]*>/i.test(value)) {
-          // Already HTML, return as-is
-          return value;
+          return value; // Already HTML
         } else {
-          // Plain text to HTML - wrap in paragraph tags
+          // Plain text to HTML
           return `<p>${value}</p>`;
         }
       }
-      return typeof value === 'string' ? value : String(value || '');
+      return typeof value === 'string' ? value : String(value ?? '');
     }
 
     case 'markdown': {
@@ -978,15 +915,9 @@ const processFieldData = async (
         continue;
       }
 
-      // Check if content contains HTML
-      if (/<\/?[a-z][\s\S]*>/i.test(value)) {
-        const dom = new JSDOM(value);
-        const htmlDoc = dom.window.document.querySelector('body');
-        const jsonValue = htmlToJson(htmlDoc);
-        ctValue[baseFieldName] = jsonValue;
-      } else {
-        ctValue[baseFieldName] = value;
-      }
+      // Keep value as-is - field type conversion will be handled by processFieldByType later
+      // This matches the WordPress pattern where raw data is preserved until mapContentTypeToEntry
+      ctValue[baseFieldName] = value;
 
       // Mark both the original and base field as processed to avoid duplicates
       processedFields.add(fieldName);
@@ -1007,15 +938,9 @@ const processFieldData = async (
       processedFields.add(fieldName);
       processedFields.add(baseFieldName);
     } else {
-      // Check if content contains HTML
-      if (typeof value === 'string' && /<\/?[a-z][\s\S]*>/i.test(value)) {
-        const dom = new JSDOM(value);
-        const htmlDoc = dom.window.document.querySelector('body');
-        const jsonValue = htmlToJson(htmlDoc);
-        ctValue[fieldName] = jsonValue;
-      } else {
-        ctValue[fieldName] = value;
-      }
+      // Keep value as-is - field type conversion will be handled by processFieldByType later
+      // This matches the WordPress pattern where raw data is preserved until mapContentTypeToEntry
+      ctValue[fieldName] = value;
     }
   }
 
@@ -1088,6 +1013,7 @@ const processEntries = async (
   project: any = null
 ): Promise<{ [key: string]: any } | null> => {
   const srcFunc = 'processEntries';
+  console.log(`\n\n========== [processEntries] CALLED for contentType="${contentType}", projectId="${projectId}", destination_stack_id="${destination_stack_id}" ==========\n`);
 
   try {
     // Following original pattern: queryPageConfig['page']['' + pagename + '']
@@ -1327,69 +1253,114 @@ const processEntries = async (
         // Apply field type switching based on user's UI selections (from content type schema)
         const enhancedEntry: any = {};
 
+        // Load FieldMapper database for direct lookup of user's field type selections
+        // This serves as the source of truth for field types changed in UI
+        await FieldMapperModel.read();
+        const allFieldMappings = FieldMapperModel.data?.field_mapper || [];
+        
+        // Get content type mapper to find contentTypeId for this content type
+        await ContentTypesMapperModel.read();
+        const contentTypesMappers = ContentTypesMapperModel.data?.ContentTypesMappers || [];
+        const ctMapper = contentTypesMappers.find(
+          (ct: any) => ct?.projectId === projectId && 
+            (ct?.contentstackUid === contentType || ct?.otherCmsUid === contentType)
+        );
+        const currentContentTypeId = ctMapper?.id;
+
         // Process each field with type switching support
         for (const [fieldName, fieldValue] of Object.entries(processedEntry)) {
           let fieldMapping = null;
 
-          // PRIORITY 1: Read from generated content type schema (has UI-selected field types)
-          // This is checked FIRST because it contains the final field types after user's UI changes
-          // Load the content type schema to get user's field type selections
-          try {
-            const contentTypeSchemaPath = path.join(
-              MIGRATION_DATA_CONFIG.DATA,
-              destination_stack_id,
-              'content_types',
-              `${contentType}.json`
-            );
-            const contentTypeSchema = JSON.parse(
-              await fs.promises.readFile(contentTypeSchemaPath, 'utf8')
-            );
+          // PRIORITY 1: Read DIRECTLY from FieldMapper database (most accurate source of user's UI selections)
+          // This ensures we always use the latest field type even if schema hasn't been regenerated
+          const cleanedFieldName = fieldName
+            .replace(/_target_id$/, '')
+            .replace(/_value$/, '');
+          
+          const dbFieldMapping = allFieldMappings.find(
+            (fm: any) =>
+              fm?.projectId === projectId &&
+              (!currentContentTypeId || fm?.contentTypeId === currentContentTypeId) &&
+              (fm?.uid === fieldName ||
+               fm?.uid === cleanedFieldName ||
+               fm?.contentstackFieldUid === fieldName ||
+               fm?.contentstackFieldUid === cleanedFieldName)
+          );
 
-            // Find field in schema
-            const schemaField = contentTypeSchema.schema?.find(
-              (field: any) =>
-                field.uid === fieldName ||
-                field.uid === fieldName.replace(/_target_id$/, '') ||
-                field.uid === fieldName.replace(/_value$/, '') ||
-                fieldName.includes(field.uid)
-            );
-
-            if (schemaField) {
-              // Determine the proper field type based on schema configuration
-              let targetFieldType = schemaField.data_type;
-
-              // Handle HTML RTE fields (text with allow_rich_text: true)
-              if (
-                schemaField.data_type === 'text' &&
-                schemaField.field_metadata?.allow_rich_text === true
-              ) {
-                targetFieldType = 'html'; // ✅ HTML RTE field
-              }
-              // Handle JSON RTE fields
-              else if (schemaField.data_type === 'json') {
-                targetFieldType = 'json'; // ✅ JSON RTE field
-              }
-              // Handle text fields with multiline metadata
-              else if (
-                schemaField.data_type === 'text' &&
-                schemaField.field_metadata?.multiline
-              ) {
-                targetFieldType = 'multi_line_text'; // ✅ Multi-line text field
-              }
-
-              // Create a mapping from schema field
-              fieldMapping = {
-                uid: fieldName,
-                contentstackFieldType: targetFieldType,
-                backupFieldType: schemaField.data_type,
-                advanced: schemaField,
-              };
-            }
-          } catch (error: any) {
-            // Schema not found, will try fallback below
+          if (dbFieldMapping && dbFieldMapping.contentstackFieldType) {
+            // Use field type directly from database (user's latest UI selection)
+            fieldMapping = {
+              uid: fieldName,
+              contentstackFieldType: dbFieldMapping.contentstackFieldType,
+              backupFieldType: dbFieldMapping.backupFieldType || dbFieldMapping.contentstackFieldType,
+              advanced: dbFieldMapping.advanced || {},
+            };
           }
 
-          // FALLBACK: If schema not found, try UI content type mapping
+          // PRIORITY 2: If not in FieldMapper DB, try schema.json
+          if (!fieldMapping) {
+            try {
+              const combinedSchemaPath = path.join(
+                MIGRATION_DATA_CONFIG.DATA,
+                destination_stack_id,
+                'content_types',
+                MIGRATION_DATA_CONFIG.CONTENT_TYPES_SCHEMA_FILE // schema.json
+              );
+              const allSchemas = JSON.parse(
+                await fs.promises.readFile(combinedSchemaPath, 'utf8')
+              );
+
+              // Find the specific content type schema in the combined file
+              const contentTypeSchema = Array.isArray(allSchemas)
+                ? allSchemas.find((ct: any) => ct.uid === contentType)
+                : null;
+
+              // Find field in schema - use exact matching only to avoid false matches
+              // (e.g. "field_subtitle".includes("title") would wrongly match the "title" field)
+              const schemaField = contentTypeSchema?.schema?.find(
+                (field: any) =>
+                  field.uid === fieldName ||
+                  field.uid === fieldName.replace(/_target_id$/, '') ||
+                  field.uid === fieldName.replace(/_value$/, '')
+              );
+
+              if (schemaField) {
+                // Determine the proper field type based on schema configuration
+                let targetFieldType = schemaField.data_type;
+
+                // Handle HTML RTE fields (text with allow_rich_text: true)
+                if (
+                  schemaField.data_type === 'text' &&
+                  schemaField.field_metadata?.allow_rich_text === true
+                ) {
+                  targetFieldType = 'html'; // ✅ HTML RTE field
+                }
+                // Handle JSON RTE fields
+                else if (schemaField.data_type === 'json') {
+                  targetFieldType = 'json'; // ✅ JSON RTE field
+                }
+                // Handle text fields with multiline metadata
+                else if (
+                  schemaField.data_type === 'text' &&
+                  schemaField.field_metadata?.multiline
+                ) {
+                  targetFieldType = 'multi_line_text'; // ✅ Multi-line text field
+                }
+
+                // Create a mapping from schema field
+                fieldMapping = {
+                  uid: fieldName,
+                  contentstackFieldType: targetFieldType,
+                  backupFieldType: schemaField.data_type,
+                  advanced: schemaField,
+                };
+              }
+            } catch (error: any) {
+              // Schema not found, will try fallback below
+            }
+          }
+
+          // FALLBACK: If neither DB nor schema found, try UI content type mapping
           if (
             !fieldMapping &&
             currentContentTypeMapping &&
@@ -1398,9 +1369,7 @@ const processEntries = async (
             fieldMapping = currentContentTypeMapping.fieldMapping.find(
               (fm: any) =>
                 fm.uid === fieldName ||
-                fm.otherCmsField === fieldName ||
-                fieldName.startsWith(fm.uid) ||
-                fieldName.includes(fm.uid)
+                fm.otherCmsField === fieldName
             );
           }
 
