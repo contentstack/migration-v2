@@ -242,15 +242,18 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       if (status === 200 && data?.file_details?.isSQL && data?.file_details?.cmsType === 'drupal') {
 
         // Add selectedFileFormat to the existing newMigrationDataObj
+        // NOTE: Keep title as 'ApiTokens' (Venus icon name) - LoadFileFormat converts it to 'SQL' for display
         newMigrationDataObj.legacy_cms.selectedFileFormat = {
           fileformat_id: 'sql',
-          title: 'SQL',
+          title: 'ApiTokens',
           description: '',
           group_name: 'sql',
           isactive: true
         };
       }
 
+      // Update the ref immediately before dispatching to avoid stale data in subsequent operations
+      newMigrationDataRef.current = newMigrationDataObj;
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
       if (status === 200) {
@@ -269,13 +272,16 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             
             if (projectData?.source_locales && Array.isArray(projectData.source_locales)) {
               // Dispatch source_locales to Redux so LanguageMapper can access them
+              // Use newMigrationDataObj (the just-dispatched data) instead of stale ref
               const updatedMigrationData: INewMigration = {
-                ...newMigrationDataRef?.current,
+                ...newMigrationDataObj,
                 destination_stack: {
-                  ...newMigrationDataRef?.current?.destination_stack,
+                  ...newMigrationDataObj?.destination_stack,
                   sourceLocale: projectData.source_locales
                 }
               };
+              // Update ref again before second dispatch
+              newMigrationDataRef.current = updatedMigrationData;
               dispatch(updateNewMigrationData(updatedMigrationData));
             }
           }
