@@ -23,6 +23,10 @@ export const generateContentTypeSchemas = async (
 ): Promise<void> => {
   const srcFunc = 'generateContentTypeSchemas';
 
+  if (!destination_stack_id || !projectId) {
+    throw new Error('destination_stack_id and projectId are required');
+  }
+
   try {
     const message = getLogMessage(
       srcFunc,
@@ -76,6 +80,12 @@ export const generateContentTypeSchemas = async (
       (field: any) => field && field?.projectId === projectId
     );
 
+    // Get content type mappers to lookup contentTypeId by content type UID
+    const contentTypesMappers = ContentTypesMapperModelLowdb.data?.ContentTypesMappers || [];
+    const projectContentTypesMappers = contentTypesMappers.filter(
+      (ct: any) => ct && ct?.projectId === projectId
+    );
+
     // Log fields with UI changes
     const fieldsWithTypeChanges = savedFieldMappings.filter(
       (field: any) =>
@@ -87,7 +97,7 @@ export const generateContentTypeSchemas = async (
       for (const field of fieldsWithTypeChanges) {
         const fieldChangeMessage = getLogMessage(
           srcFunc,
-          `Field type changed: ${field.backupFieldType} -> ${field.contentstackFieldType}`,
+          `Field type changed: ${field?.backupFieldType} -> ${field?.contentstackFieldType}`,
           { field }
         );
         await customLogger(
@@ -112,11 +122,29 @@ export const generateContentTypeSchemas = async (
           fs.readFileSync(uploadApiSchemaFilePath, 'utf8')
         );
 
+        // Skip if parsed schema is null/empty or missing required fields
+        if (!uploadApiSchema || !uploadApiSchema.uid) {
+          const skipMessage = getLogMessage(
+            srcFunc,
+            `Skipping invalid schema file ${schemaFile}: missing uid`,
+            {}
+          );
+          await customLogger(projectId, destination_stack_id, 'warn', skipMessage);
+          continue;
+        }
+
+        // Find the content type mapper ID for this content type
+        const contentTypeMapper = projectContentTypesMappers.find(
+          (ct: any) => ct?.contentstackUid === uploadApiSchema.uid || ct?.otherCmsUid === uploadApiSchema.uid
+        );
+        const contentTypeId = contentTypeMapper?.id;
+
         // Convert upload-api schema to API format WITH saved field mappings from UI
         const apiSchema = convertUploadApiSchemaToApiSchema(
           uploadApiSchema,
           savedFieldMappings,
-          projectId
+          projectId,
+          contentTypeId
         );
 
         // Add to combined schema array (NO individual files)
@@ -138,7 +166,7 @@ export const generateContentTypeSchemas = async (
       } catch (error: any) {
         const errorMessage = getLogMessage(
           srcFunc,
-          `Failed to convert schema file ${schemaFile}: ${error.message}`,
+          `Failed to convert schema file ${schemaFile}: ${error?.message}`,
           {},
           error
         );
@@ -171,7 +199,7 @@ export const generateContentTypeSchemas = async (
   } catch (error: any) {
     const errorMessage = getLogMessage(
       srcFunc,
-      `Failed to generate content type schemas: ${error.message}`,
+      `Failed to generate content type schemas: ${error?.message}`,
       {},
       error
     );
@@ -188,41 +216,59 @@ export const generateContentTypeSchemas = async (
 function convertUploadApiSchemaToApiSchema(
   uploadApiSchema: any,
   savedFieldMappings: any[] = [],
-  projectId?: string
+  projectId?: string,
+  contentTypeId?: string
 ): any {
   const apiSchema = {
-    title: uploadApiSchema.title,
-    uid: uploadApiSchema.uid,
+    title: uploadApiSchema?.title,
+    uid: uploadApiSchema?.uid,
     schema: [] as any[],
   };
 
-  if (!uploadApiSchema.schema || !Array.isArray(uploadApiSchema.schema)) {
+  if (!uploadApiSchema?.schema || !Array.isArray(uploadApiSchema?.schema)) {
     return apiSchema;
   }
 
   // Convert each field from upload-api format to API format
   for (const uploadField of uploadApiSchema.schema) {
+    // Skip null/undefined fields
+    if (!uploadField) continue;
+
     try {
       // Find saved field mapping from database FIRST to get user's field type selection
+      // IMPORTANT: Filter by contentTypeId to ensure we match the correct field for this content type
       const savedMapping = savedFieldMappings.find(
         (mapping: any) =>
-          mapping.contentstackFieldUid === uploadField.contentstackFieldUid ||
-          mapping.contentstackFieldUid === uploadField.uid ||
-          mapping.uid === uploadField.contentstackFieldUid ||
-          mapping.uid === uploadField.uid
+          // Must match the content type ID if provided
+          (!contentTypeId || mapping?.contentTypeId === contentTypeId) &&
+          // Then match by field UID
+          (mapping?.contentstackFieldUid === uploadField?.contentstackFieldUid ||
+           mapping?.contentstackFieldUid === uploadField?.uid ||
+           mapping?.uid === uploadField?.contentstackFieldUid ||
+           mapping?.uid === uploadField?.uid)
       );
+
+      // Skip fields that were unselected by the user in the UI (isDeleted: true)
+      if (savedMapping?.isDeleted === true) {
+        continue; // Do not include this field in the generated schema
+      }
 
       // Use UI-selected field type if available, otherwise use upload-api type
       const fieldType =
         savedMapping?.contentstackFieldType ||
-        uploadField.contentstackFieldType;
+        uploadField?.contentstackFieldType ||
+        'text'; // Default to 'text' if field type is missing
+
+      // Determine the field UID — skip field if no UID can be resolved
+      const fieldUid = uploadField?.contentstackFieldUid || uploadField?.uid;
+      if (!fieldUid) continue;
 
       // Map upload-api field to API format using convertToSchemaFormate
       // PRIORITY: Use savedMapping (UI selections from database) FIRST, then fall back to uploadField (upload-api)
       const apiField = convertToSchemaFormate({
         field: {
-          title: uploadField.contentstackField || uploadField.otherCmsField,
-          uid: uploadField.contentstackFieldUid,
+          title: uploadField?.contentstackField || uploadField?.otherCmsField || fieldUid,
+          uid: fieldUid,
           contentstackFieldType: fieldType, // Use UI selection if available
           advanced: {
             // Spread upload-api defaults first
@@ -302,7 +348,7 @@ function convertUploadApiSchemaToApiSchema(
             const newReferences = [...uiReferences, ...advancedReferences];
             const mergedReferences = [
               ...new Set([...oldReferences, ...newReferences]),
-            ].filter((ref) => ref && ref.toLowerCase() !== 'profile'); // Filter out profile
+            ]            .filter((ref) => ref && ref?.toLowerCase() !== 'profile'); // Filter out profile
 
             apiField.reference_to = mergedReferences;
           } else {
@@ -311,7 +357,7 @@ function convertUploadApiSchemaToApiSchema(
               uploadField.advanced?.embedObjects ||
               uploadField.advanced?.reference_to ||
               []
-            ).filter((ref: string) => ref && ref.toLowerCase() !== 'profile'); // Filter out profile
+            ).filter((ref: string) => ref && ref?.toLowerCase() !== 'profile'); // Filter out profile
 
             if (fallbackReferences && fallbackReferences.length > 0) {
               apiField.reference_to = fallbackReferences;
@@ -336,7 +382,7 @@ function convertUploadApiSchemaToApiSchema(
             // MERGE: Combine old upload-api taxonomies with new UI selections (no duplicates)
             const oldTaxonomyUIDs = (
               uploadField.advanced?.taxonomies || []
-            ).map((t: any) => t.taxonomy_uid || t);
+            ).map((t: any) => t?.taxonomy_uid || t);
             // Combine all taxonomy sources
             const newTaxonomyUIDs = [...uiTaxonomies, ...advancedTaxonomies];
             const mergedTaxonomyUIDs = [
@@ -376,13 +422,13 @@ function convertUploadApiSchemaToApiSchema(
       // Fallback: create basic field structure
       apiSchema.schema.push({
         display_name:
-          uploadField.contentstackField ||
-          uploadField.otherCmsField ||
-          uploadField.uid,
-        uid: uploadField.contentstackFieldUid || uploadField.uid,
-        data_type: mapFieldTypeToDataType(uploadField.contentstackFieldType),
-        mandatory: uploadField.advanced?.mandatory || false,
-        unique: uploadField.advanced?.unique || false,
+          uploadField?.contentstackField ||
+          uploadField?.otherCmsField ||
+          uploadField?.uid,
+        uid: uploadField?.contentstackFieldUid || uploadField?.uid,
+        data_type: mapFieldTypeToDataType(uploadField?.contentstackFieldType),
+        mandatory: uploadField?.advanced?.mandatory || false,
+        unique: uploadField?.advanced?.unique || false,
         field_metadata: { _default: true },
         format: '',
         error_messages: { format: '' },
@@ -399,7 +445,9 @@ function convertUploadApiSchemaToApiSchema(
  * Maps upload-api field types to API data types
  * This ensures proper field type preservation from upload-api to API
  */
-function mapFieldTypeToDataType(fieldType: string): string {
+function mapFieldTypeToDataType(fieldType: string | null | undefined): string {
+  if (!fieldType) return 'text';
+
   const fieldTypeMap: { [key: string]: string } = {
     single_line_text: 'text',
     multi_line_text: 'text',

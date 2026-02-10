@@ -1,13 +1,27 @@
 {
+  "plan": {
+    "dropdown": { "optionLimit": 100 }
+  },
   "cmsType": "",
-  "isLocalPath": false,
+  "isLocalPath": true,
   "awsData": {
     "awsRegion": "",
     "awsAccessKeyId": "",
     "awsSecretAccessKey": "",
     "awsSessionToken": "",
     "bucketName": "",
-    "buketKey": ""
+    "bucketKey": ""
+  },
+  "mysql": {
+    "host": "",
+    "user": "",
+    "password": "",
+    "database": "",
+    "port": ""
+  },
+  "assetsConfig": {
+    "base_url": "",
+    "public_path": ""
   },
   "localPath": ""
 }

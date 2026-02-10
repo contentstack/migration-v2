@@ -54,12 +54,11 @@ export interface FileDetails {
   awsData?: {
     awsRegion?: string;
     bucketName?: string;
-    buketKey?: string;
+    bucketKey?: string;
   };
   mySQLDetails?: {
     host?: string;
     user?: string;
-    password?: string;
     database?: string;
     port?: number;
   };
@@ -67,7 +66,6 @@ export interface FileDetails {
     base_url?: string;
     public_path?: string;
   };
-  isSQL?: boolean;
   filePath?: string | undefined;
 }
 export interface IFile {
@@ -325,7 +323,7 @@ export const DEFAULT_FILE: IFile = {
     awsData: {
       awsRegion: '',
       bucketName: '',
-      buketKey: ''
+      bucketKey: ''
     }
   },
   isValidated: false,

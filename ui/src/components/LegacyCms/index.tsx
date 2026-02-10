@@ -23,7 +23,7 @@ import { updateMigrationData, updateNewMigrationData } from '../../store/slice/m
 interface AwsDetails {
   awsRegion: string;
   bucketName: string;
-  buketKey: string;
+  bucketKey: string;
 }
 interface LegacyCmsData {
   affix?: string;
