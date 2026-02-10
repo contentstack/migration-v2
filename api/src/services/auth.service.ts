@@ -57,8 +57,8 @@ const login = async (req: Request): Promise<LoginServiceType> => {
       );
 
       return {
-        data: err?.response?.data,
-        status: err?.response?.status,
+        data: err?.response?.data || { message: err?.message || HTTP_TEXTS.INTERNAL_ERROR },
+        status: err?.response?.status || err?.status || HTTP_CODES.SERVER_ERROR,
       };
     }
     if (res?.data?.user?.organizations === undefined) {
@@ -171,8 +171,8 @@ const requestSms = async (req: Request): Promise<LoginServiceType> => {
       );
 
       return {
-        data: err?.response?.data,
-        status: err?.response?.status,
+        data: err?.response?.data || { message: err?.message || HTTP_TEXTS.INTERNAL_ERROR },
+        status: err?.response?.status || err?.status || HTTP_CODES.SERVER_ERROR,
       };
     }
 
