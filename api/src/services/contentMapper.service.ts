@@ -1,5 +1,4 @@
-/* eslint-disable */
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request } from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -530,7 +529,7 @@ const getExistingContentTypes = async (req: Request) => {
     let selectedContentType = null;
 
     if (contentTypeUID) {
-      const [err, res] = await safePromise(
+      const [res] = await safePromise(
         https({
           method: 'GET',
           url: `${baseUrl}/${contentTypeUID}`,
@@ -637,7 +636,7 @@ const getExistingGlobalFields = async (req: Request) => {
     let selectedGlobalField = null;
 
     if (globalFieldUID) {
-      const [err, res] = await safePromise(
+      const [res] = await safePromise(
         https({
           method: 'GET',
           url: `${baseUrl}/${globalFieldUID}`,

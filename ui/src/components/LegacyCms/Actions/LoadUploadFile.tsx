@@ -551,7 +551,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                   variant="p2"
                   text={validationMessgae}
                 />
-                {!isValidated && validationMessgae === 'Validation failed.' && fileFormat !== 'sql' && (
+                {!isValidated && validationMessgae === 'Validation failed.' && fileFormat?.toLowerCase() !== 'sql' && (
                   <p className={`${validationClassName} p2 doc-link`}>
                     Please check the requirements{' '}
                     <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">
@@ -585,7 +585,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             version="v2"
             disabled={!(reValidate || (!isDisabled))}
           > 
-            {fileFormat === 'sql' ? 'Check Connection' : 'File Validate'}
+            {fileFormat?.toLowerCase() === 'sql' ? 'Check Connection' : 'File Validate'}
           </Button>
         </div>
       </div>

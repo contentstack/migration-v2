@@ -2138,17 +2138,6 @@ if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
     }
 
     if (orgId && contentTypeUid && selectedContentType) {
-      // DEBUG: Log all embedObjects in selectedEntries BEFORE save
-      const embedFieldsSummary = selectedEntries
-        ?.filter((entry: any) => entry?.advanced?.embedObjects?.length > 0 || entry?.advanced?.embedObject)
-        ?.map((entry: any) => ({
-          uid: entry?.uid,
-          contentstackFieldUid: entry?.contentstackFieldUid,
-          'advanced.embedObjects': entry?.advanced?.embedObjects,
-          'advanced.embedObject': entry?.advanced?.embedObject,
-          'advanced.mandatory': entry?.advanced?.mandatory,
-        }));
-      
       const dataCs = {
         contentTypeData: {
           id: contentTypeUid,
