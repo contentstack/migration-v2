@@ -156,7 +156,6 @@ const AdvancePropertise = (props: SchemaProps) => {
 
     // Only fetch taxonomies if this is a Taxonomy field
     if (props?.fieldtype === 'Taxonomy') {
-      console.info('🏷️ Taxonomy field detected, fetching taxonomies...');
       fetchTaxonomies();
 
       // Initialize referencedTaxonomies from existing data if available
@@ -255,7 +254,6 @@ const AdvancePropertise = (props: SchemaProps) => {
    */
   const fetchContentTypes = async (searchText: string) => {
     try {
-      console.info('📦 [AdvancePropertise] Fetching content types for projectId:', props?.projectId);
       const response = await getContentTypes(props?.projectId ?? '', 0, 5000, searchText || ''); //org id will always present
       const data = response?.data;
 
@@ -380,6 +378,8 @@ const AdvancePropertise = (props: SchemaProps) => {
       setEmbedObjectsLabels([]);
     }
     
+    const embedObjectsToSend = field === 'embedObject' && !value ? [] : embedObjectsLabels;
+
     setToggleStates((prevStates) => ({
       ...prevStates,
       [field]: value
@@ -399,7 +399,7 @@ const AdvancePropertise = (props: SchemaProps) => {
         unique: false,
         nonLocalizable: currentToggleStates?.nonLocalizable,
         embedObject: currentToggleStates?.embedObject,
-        embedObjects: field === 'embedObject' && !value ? [] : embedObjectsLabels,
+        embedObjects: embedObjectsToSend,
         default_value: currentToggleStates?.default_value,
         minChars: currentToggleStates?.minChars,
         maxChars: currentToggleStates?.maxChars,
@@ -544,8 +544,8 @@ const AdvancePropertise = (props: SchemaProps) => {
 
   useEffect(() => {
     if (ctValue && Array.isArray(ctValue)) {
-      const labels = ctValue?.map((item) => item?.label);
-      setEmbedObjectsLabels(labels);
+      const uids = ctValue?.map((item) => item?.value);
+      setEmbedObjectsLabels(uids);
     }
   }, [ctValue]);
 
@@ -810,7 +810,13 @@ const AdvancePropertise = (props: SchemaProps) => {
                   
                   setReferencedTaxonomies(selectedOptions);
                   const taxonomyArray = selectedOptions?.map((item: optionsType) => item?.value);
-                  
+
+                  // Keep toggleStates in sync so handleToggleChange (mandatory, etc.)
+                  // doesn't overwrite the user's taxonomy selections with stale data
+                  setToggleStates((prevStates) => ({
+                    ...prevStates,
+                    referenedItems: taxonomyArray
+                  }));
 
                   props?.updateFieldSettings(
                     props?.rowId,

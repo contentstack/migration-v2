@@ -59,7 +59,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
       ...newMigrationData,
       legacy_cms: {
         ...newMigrationData.legacy_cms,
-        selectedCms: { ...data }
+        selectedCms: { ...data },
+        // Update selectedFileFormat from the clicked CMS's allowed_file_formats (data-driven via legacyCms.json)
+        selectedFileFormat: data?.allowed_file_formats?.[0] ?? newMigrationData?.legacy_cms?.selectedFileFormat
       }
     };
     dispatch(updateNewMigrationData(newMigrationDataObj));
@@ -102,17 +104,6 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         setIsLoading(false);
 
         const currentFormat = newMigrationData?.legacy_cms?.selectedFileFormat?.title;
-        // filteredCmsData?.forEach((data: ICMSType) => {
-        //   // Check if filter returned any results and if the file format is not the same as the current format
-        //   if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() !== currentFormat?.toLowerCase()) && filteredCmsData?.length > 0) {
-        //     console.info('inside if', data);
-        //     setIsError(true);
-        //     setErrorMessage('Current file format is not supported for this CMS. Please add the correct CMS')
-        //   } else if (data?.allowed_file_formats?.some((format: ICardType) => format?.fileformat_id?.toLowerCase() === currentFormat?.toLowerCase()) && filteredCmsData?.length > 0) {
-        //     setIsError(false);
-        //   }
-        // });
-
         
         // Check if filter returned any results
         if (filteredCmsData?.length > 0) {
