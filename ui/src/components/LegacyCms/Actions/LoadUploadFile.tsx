@@ -265,12 +265,17 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat;
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
+      // Derive SQL check from selectedFileFormat (data-driven via legacyCms.json)
+      const currentFormatId = newMigrationDataObj?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase();
+      const isSQL = currentFormatId === 'sql';
+
       if (status === 200) {
         setIsValidated(true);
         setValidationMessage(
-          data?.file_details?.isSQL 
-          ? 'Connection established successfully.' 
-          : 'File validated successfully.');
+          isSQL 
+            ? 'Connection established successfully.' 
+            : 'File validated successfully.'
+        );
 
            // 🔧 FIX: Fetch updated project data to get source_locales and dispatch to Redux
         // This ensures the Language Mapper has access to source locales immediately after validation
@@ -309,9 +314,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       } else if (status === 500) {
         setIsValidated(false);
         setValidationMessage(
-          data?.file_details?.isSQL 
-          ? 'Connection failed' 
-          : 'File not found'
+          isSQL 
+            ? 'Connection failed' 
+            : 'File not found'
         );
         setIsValidationAttempted(true);
         setProgressPercentage(100);
