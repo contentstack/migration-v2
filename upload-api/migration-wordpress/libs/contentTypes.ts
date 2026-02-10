@@ -7,7 +7,6 @@ import path from 'path';
 import config from '../config/index.json';
 import extractItems from './extractItems';
 import extractAuthor from './extractAuthor';
-import extractTaxonomy from './extractTaxonomy';
 import { CT, DataConfig } from '../interface/interface';
 import extractTerms from './extractTerms';
 

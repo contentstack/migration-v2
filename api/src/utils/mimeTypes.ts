@@ -1,9 +1,9 @@
 /**
- * Mapping of common MIME types to file extensions.
- * Use `getExtension()` to resolve an extension for a given MIME type.
+ * Mapping of file extensions to MIME types.
+ * Use `getMimeTypeFromExtension()` to resolve a MIME type for a given extension.
  */
 
-export const MIME_TYPE_EXT_MAP: Record<string, string> = {
+export const EXT_TO_MIME_MAP: Record<string, string> = {
   'jpg': 'image/jpeg',
   'jpeg': 'image/jpeg',
   'png': 'image/png',
@@ -34,11 +34,10 @@ export const MIME_TYPE_EXT_MAP: Record<string, string> = {
 };
 
 /**
- * Return the file extension for a given MIME type, or `undefined` if unknown.
+ * Return the MIME type for a given file extension, or `undefined` if unknown.
  */
-export function getExtension(mimeType: string): string  {
-  //if (!mimeType) return undefined;
-  return MIME_TYPE_EXT_MAP[mimeType.toLowerCase()];
+export function getMimeTypeFromExtension(ext: string): string | undefined {
+  return EXT_TO_MIME_MAP[ext.toLowerCase()];
 }
 
-export default MIME_TYPE_EXT_MAP;
+export default EXT_TO_MIME_MAP;

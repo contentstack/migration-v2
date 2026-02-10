@@ -13,8 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 import { orgService } from "./org.service.js";
 import * as cheerio from 'cheerio';
 import { setupWordPressBlocks, stripHtmlTags } from "../utils/wordpressParseUtil.js";
-import { getExtension } from "../utils/mimeTypes.js";
-import { logger } from "express-winston/index.js";
+import { getMimeTypeFromExtension } from "../utils/mimeTypes.js";
 
 const { JSDOM } = jsdom;
 
@@ -31,10 +30,6 @@ let assetsSave = path.join(
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
 );
 
-const contentTypeFolderPath = path.join(
-  MIGRATION_DATA_CONFIG.DATA,
-  MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME
-);
 const entrySave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME
@@ -44,10 +39,7 @@ let postFolderPath = path.join(
   MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
   MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
 );
-const chunksDir = path.join(
-  MIGRATION_DATA_CONFIG.DATA,
-  MIGRATION_DATA_CONFIG.CHUNKS_DIR_NAME
-);
+
 let authorsFolderPath = path.join(
   entrySave,
   MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME
@@ -56,21 +48,13 @@ let authorsFilePath = path.join(
   authorsFolderPath,
   MIGRATION_DATA_CONFIG.AUTHORS_FILE_NAME
 );
-const termsFolderPath = path.join(
-  entrySave,
-  MIGRATION_DATA_CONFIG.TERMS_DIR_NAME
-);
+
 
 const TaxonomiesSave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.TAXONOMIES_DIR_NAME
 );
-const TaxonomiesFilePath = path.join(
-  TaxonomiesSave,
-  MIGRATION_DATA_CONFIG.TAXONOMIES_FILE_NAME
-);
 
-const pagesFolderPath = path.join(entrySave, MIGRATION_DATA_CONFIG.PAGES_DIR_NAME);
 
 let assetMasterFolderPath = path.join(
   MIGRATION_DATA_CONFIG.DATA,
@@ -99,7 +83,6 @@ let failedJSONFilePath = path.join(
 );
 const failedJSON: Record<string, any> = {};
 let assetData: Record<string, any> | any = {};
-const blog_base_url = "";
 
 // import { parse, serialize } from '@wordpress/blocks';
 // import { registerCoreBlocks } from '@wordpress/block-library';
@@ -372,9 +355,6 @@ function formatChildByType(child: any, field: any, assetData: any) {
   let formatted ;
   
   try {
-    // Get the block type
-    const blockType = child?.blockName || child?.name || 'unknown';
-   
     
     // Process attributes based on field type configuration
     //if (child?.attributes && typeof child.attributes === 'object') {
@@ -421,17 +401,16 @@ function formatChildByType(child: any, field: any, assetData: any) {
               formatted= {
                 "title": child?.attrs?.service,
                 "href": child?.attrs?.url
-              }
+              };
               break;
 
             case 'file': {
               // Extract filename from img tag in innerHTML
               let fileName = '';
               let imgUrl = child?.attrs?.src;
-              let imgAlt = child?.attrs?.alt;
               
               // Check innerHTML for img tag
-              const innerHtml = child?.innerHTML || child?.innerHTML;
+              const innerHtml = child?.innerHTML;
               if (innerHtml && typeof innerHtml === 'string') {
                 try {
                   const $ = cheerio.load(innerHtml);
@@ -445,7 +424,7 @@ function formatChildByType(child: any, field: any, assetData: any) {
                       const fileNameWithExt = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
                       fileName = fileNameWithExt.includes('.') ? fileNameWithExt.substring(0, fileNameWithExt.lastIndexOf('.')) : fileNameWithExt;
                     }
-                    imgAlt = imgTag.attr('alt') || imgAlt;
+                    
                   }
                 } catch (htmlError) {
                   console.warn('Error parsing innerHTML for img tag:', htmlError);
@@ -493,7 +472,6 @@ const extractTermsReference = (terms: any) => {
   return termReference;
 }
 async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any) {
-  const srcFunc = 'saveEntry';
   const locale = getLocale(master_locale, project);
   const mapperKeys = project?.mapperKeys || {};
   const authorsCtName = mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] ? mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] : MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
@@ -506,7 +484,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
   const $ = cheerio.load(xmlData, { xmlMode: true });
   const items = $('item');
   const entryData: Record<string, any> = {};
-  let blocksJson = [];
+
   try {
     if(entry ){
       // Process each entry with its corresponding XML item
@@ -537,7 +515,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
             terms.push({
               "uid": `terms_${uid}`,
               "_content_type_uid": 'terms'
-            })
+            });
 
           }
         }
@@ -546,7 +524,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
         const authorData = [{
           "uid":author,
           "_content_type_uid": authorsCtName
-      }]
+        }];
         const xmlItem = items?.length > 0 ? items?.filter((i, el) => {
           return $(el).find("title").text() === item["title"]
         }) : [];
@@ -580,7 +558,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           }
           entryData[uid]['tags'] = tags?.map((tag: any) => tag?.text);
           entryData[uid]['author'] = authorData;
-          entryData[uid]['locale'] = locale
+          entryData[uid]['locale'] = locale;
           
             
           
@@ -596,17 +574,14 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
     } else {
       console.warn(`⚠️ Failed to parse blocks for:`, err);
     }
-    blocksJson = [];
   }
   return entryData;
 }
 async function createEntry(file_path: string, packagePath: string, destinationStackId: string, projectId: string, contentTypes: any, mapperKeys: any, master_locale: string, project: any){
-  const srcFunc = 'createEntry';
   const locale = getLocale(master_locale, project) || master_locale;
   const Jsondata = await fs.promises.readFile(packagePath, "utf8");
   const xmlData = await fs.promises.readFile(file_path, "utf8");
   const $ = cheerio.load(xmlData, { xmlMode: true });
-  const items = $('item');
   const entriesJsonData = JSON.parse(Jsondata);
   const entries = entriesJsonData?.rss?.channel?.["item"];
   const categories = entriesJsonData?.rss?.channel?.["wp:category"];
@@ -623,20 +598,6 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
 
   const itemsArray = Array?.isArray(entries) ? entries : (entries ? [entries] : []);
   
-  const groupedByType = itemsArray?.reduce((acc: any, item: any) => {
-    const postType = item?.["wp:post_type"];
-  
-    // Skip if it's an attachment
-    if (["attachment", 'wp_global_styles', 'wp_navigation']?.includes(postType)) {
-      return acc;
-    }
-  
-    const type = postType || "unknown";
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(item);
-  
-    return acc;
-  }, {});
 
   if(! existsSync(path.join(MIGRATION_DATA_CONFIG.DATA,destinationStackId,
     MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME))){
@@ -732,10 +693,8 @@ async function createTaxonomy(file_path: string, packagePath: string, destinatio
   const taxonomiesPath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, MIGRATION_DATA_CONFIG.TAXONOMIES_DIR_NAME);
   await fs.promises.mkdir(taxonomiesPath, { recursive: true });
 
-  const srcFunc = 'createTaxonomy';
   const Jsondata = await fs.promises.readFile(packagePath, "utf8");
   const xmlData = await fs.promises.readFile(file_path, "utf8");
-  const $ = cheerio.load(xmlData, { xmlMode: true });
   const categoriesJsonData = JSON.parse(Jsondata)?.rss?.channel?.["wp:category"] || JSON.parse(Jsondata)?.channel?.["wp:category"] || [];
   if(categoriesJsonData?.length > 0){
     const allTaxonomies : any = {}
@@ -906,8 +865,6 @@ const createTerms = async (allTerms: any, destinationStackId: string, projectId:
   const srcFunc = 'createTerms';
   const localeKeys = getKeys(locales)
   try {
-    const baseDir = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId);
-    const termsSave = path.join(baseDir, MIGRATION_DATA_CONFIG.TERMS_DIR_NAME);
     const termsData:{ [key: string]: any } = {}
 
     for (const data of allTerms) {
@@ -1128,12 +1085,12 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     const response = await axios.get(url, { responseType: "arraybuffer" });
     // Ensure files directory exists
     fs.mkdirSync(
-      path.resolve(assetsSave, "files"),
+      path.resolve(assetsSave, "files", customId),
       { recursive: true }
     );
-    fs.writeFileSync(path.join(assetPath, filename), response.data);
+    fs.writeFileSync(path.resolve(assetsSave, "files", customId, filename), response.data);
 
-    const stats = fs.lstatSync(assetPath);
+    const stats = fs.lstatSync(path.resolve(assetsSave, "files", customId, filename));
     const acc: any = {};
     const key = customId;
 
@@ -1141,7 +1098,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
       uid: key,
       urlPath: `/assets/${customId}`,
       status: true,
-      content_type: getExtension(fileExtension?.split('.')?.[1]),
+      content_type: getMimeTypeFromExtension(fileExtension?.split('.')?.[1]),
       file_size: `${stats.size}`,
       tag: [],
       filename: filename,
@@ -1355,7 +1312,6 @@ async function saveAssetFromUrl(
   const nameWithoutExt = originalName.includes('.') ? originalName.substring(0, originalName.lastIndexOf('.')) : originalName;
 
   // Generate a unique ID based on URL hash to avoid duplicates
-  const urlHash = Buffer.from(encodedUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
   const customId = `${nameWithoutExt?.replace(/-/g, '_')?.toLowerCase()}`;
   // Use customId as filename to ensure uniqueness, preserve extension
   const filename = `${customId}${fileExtension}`;
@@ -1392,7 +1348,7 @@ async function saveAssetFromUrl(
       uid: key,
       urlPath: `/assets/${customId}`,
       status: true,
-      content_type: getExtension(fileExtension?.split('.')?.[1]),
+      content_type: getMimeTypeFromExtension(fileExtension?.split('.')?.[1]),
       file_size: `${stats.size}`,
       tag: [],
       filename: filename,
@@ -1833,21 +1789,6 @@ async function getAllAuthors(affix: string, packagePath: string,destinationStack
 }
 /************  end of authors module functions *********/
 
-const convertHtmlToJson = (htmlString: unknown): any => {
-  if (typeof htmlString === 'string') {
-    const dom = new JSDOM(htmlString.replace(/&amp;/g, "&"));
-    const htmlDoc = dom.window.document.querySelector("body");
-    return htmlToJson(htmlDoc);
-  }
-
-  return htmlString;
-};
-
-const convertJsonToHtml =  (json: any) => {
-  const htmlValue =  jsonToHtml(json);
-  return htmlValue;
-
-}
 
 
 /************  Start of Global fields module functions *********/

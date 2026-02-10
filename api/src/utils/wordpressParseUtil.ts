@@ -69,7 +69,7 @@ export const setupWordPressBlocks = async (rawContent: any) => {
   }
 
   // Now import parse and run it
-  const { parse } = await import('@wordpress/block-serialization-default-parser')
+  const { parse } = await import('@wordpress/block-serialization-default-parser');
 
   // parse may throw if content is malformed; handle defensively
   const parsed = (() => {

@@ -4,8 +4,6 @@ import JSZip from 'jszip';
 import validator from '../validators';
 import config from '../config/index';
 import logger from '../utils/logger.js';
-import * as Cheerio from 'cheerio';
-import GenerateSchema from "generate-schema";
 
 const handleFileProcessing = async (
   fileExt: string,
