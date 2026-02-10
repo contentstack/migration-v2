@@ -13,7 +13,7 @@ export function createObject(projectData: any) {
           awsData: {
             awsRegion: projectData?.legacy_cms?.awsDetails?.awsRegion,
             bucketName: projectData?.legacy_cms?.awsDetails?.bucketName,
-            buketKey: projectData?.legacy_cms?.awsDetails?.buketKey
+            bucketKey: projectData?.legacy_cms?.awsDetails?.bucketKey
           },
           isLocalPath: projectData?.legacy_cms?.is_localPath
         },

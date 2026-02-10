@@ -15,7 +15,6 @@ export interface Config {
     bucketKey: string;
   };
   localPath: string;
-  isSQL?: boolean;
   mysql?: {
     host: string;
     user: string;

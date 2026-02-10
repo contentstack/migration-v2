@@ -103,6 +103,46 @@ router.get(
       if (config?.isLocalPath) {
         const localPath = config?.localPath || '';
 
+        // Check if localPath indicates a SQL/MySQL connection (case-insensitive)
+        const isSQLConnection = localPath.toLowerCase() === 'sql';
+
+        if (isSQLConnection) {
+          const fileExt = 'sql';
+          const name = 'sql';
+
+          // For SQL, we don't need to read from a file, just validate the database connection
+          const result = await handleFileProcessing(fileExt, null, cmsType, name);
+          if (!result) {
+            console.error('File processing returned no result');
+            return res.status(500).json({
+              status: 500,
+              message: 'File processing failed to return a result',
+              file_details: config
+            });
+          }
+
+          // Only create mapper if validation was successful (status 200)
+          if (result.status === 200) {
+            const filePath = '';
+            createMapper(filePath, projectId, app_token, affix, config);
+          }
+
+          // Send back response with MySQL details (excluding password) and assets config
+          const { password, ...safeMySQLDetails } = config.mysql || {};
+          const response = {
+            ...result,
+            file_details: {
+              ...result.file_details,
+              isLocalPath: config.isLocalPath,
+              localPath: config.localPath,
+              mySQLDetails: safeMySQLDetails,
+              assetsConfig: config.assetsConfig
+            }
+          };
+
+          return res.status(result.status).json(response);
+        }
+
         // Check if the path is a directory or file
         let isDirectory = false;
         try {
@@ -285,40 +325,6 @@ router.get(
           });
         }
       } else {
-        if (config?.isSQL) {
-          const fileExt = 'sql';
-          const name = 'sql';
-
-          // For SQL files, we don't need to read from S3, just validate the database connection
-          const result = await handleFileProcessing(fileExt, null, cmsType, name);
-          if (!result) {
-            console.error('File processing returned no result');
-            return res.status(500).json({
-              status: 500,
-              message: 'File processing failed to return a result',
-              file_details: config
-            });
-          }
-
-          // Only create mapper if validation was successful (status 200)
-          if (result.status === 200) {
-            const filePath = '';
-            createMapper(filePath, projectId, app_token, affix, config);
-          }
-
-          // Ensure we're sending back the complete file_details
-          const response = {
-            ...result,
-            file_details: {
-              ...result.file_details,
-              isSQL: config.isSQL,
-              mySQLDetails: config.mysql, // Changed from mysql to mySQLDetails
-              assetsConfig: config.assetsConfig
-            }
-          };
-
-          return res.status(result.status).json(response);
-        } else {
           const params = {
             Bucket: config?.awsData?.bucketName,
             Key: config?.awsData?.bucketKey
@@ -394,7 +400,6 @@ router.get(
               res.status(500).json({ error: 'Stream processing failed' });
             }
           });
-        }
       }
     } catch (err: any) {
       console.error('🚀 ~ router.get ~ err:', err);
@@ -411,7 +416,13 @@ router.get(
 );
 
 router.get('/config', async function (req: Request, res: Response) {
-  res.json(config);
+  // Strip mysql password before sending config to the client
+  const { password, ...safeMysql } = config?.mysql || {};
+  const safeConfig = {
+    ...config,
+    mysql: safeMysql
+  };
+  res.json(safeConfig);
 });
 
 // Exported the router
