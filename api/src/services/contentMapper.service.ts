@@ -817,7 +817,7 @@ const getExistingGlobalFields = async (req: Request) => {
     let selectedGlobalField = null;
 
     if (globalFieldUID) {
-      const [err, res] = await safePromise(
+      const [res] = await safePromise(
         https({
           method: 'GET',
           url: `${baseUrl}/${globalFieldUID}`,
