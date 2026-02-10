@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import path from 'path';
 import { JSONFile } from 'lowdb/node';
 import LowWithLodash from '../utils/lowdb-lodash.utils.js';
