@@ -31,10 +31,11 @@ async function extractCategories (categoriesData: any, type: string){
         "type": "content_type",
         "fieldMapping": [] as Field[]
       };
-      if(typeof categoriesData === 'object'){
-        category.fieldMapping = await handleCategorySchema(categoriesData);
-      }else if(Array.isArray(categoriesData)){
+      if(Array.isArray(categoriesData)){
         category.fieldMapping = await handleCategorySchema(categoriesData?.[0]);
+      }
+      else if (categoriesData && typeof categoriesData === 'object') {
+        category.fieldMapping = await handleCategorySchema(categoriesData);
       }
       const filePath = path.join(contentTypeFolderPath, `${type}.json`);
       await helper.writeFileAsync(filePath, category, 4);

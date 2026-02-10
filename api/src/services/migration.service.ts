@@ -41,7 +41,6 @@ import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
-import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
 
 /**
  * Creates a test stack.
@@ -889,8 +888,8 @@ const startMigration = async (req: Request): Promise<any> => {
             project?.destination_stack_id,
             projectId
           );
-          await wordpressService?.createTaxonomy(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          await wordpressService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await wordpressService?.createTaxonomy(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await wordpressService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
        
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
           await wordpressService?.createVersionFile(

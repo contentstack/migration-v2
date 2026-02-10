@@ -48,7 +48,7 @@ export const setupWordPressBlocks = async (rawContent: any) => {
   
     // Now import WordPress packages after setting up globals
     const wpBlocks: any = await import('@wordpress/blocks');
-    const { parse, serialize } = await import('@wordpress/blocks');
+    const { parse } = await import('@wordpress/blocks');
     const { registerCoreBlocks } = await import('@wordpress/block-library');
     wpBlocks.__unstableSetDebugLevel?.('none');
     registerCoreBlocks();

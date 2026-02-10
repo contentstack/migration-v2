@@ -1,4 +1,4 @@
-import { Categories, Field } from "../interface/interface";
+import { Categories } from "../interface/interface";
 
 const handleTaxonomySchema = async(categories: any, allCategories : Categories[]) => {
 

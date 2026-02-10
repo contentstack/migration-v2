@@ -34,7 +34,7 @@ const getFieldUid = (key: string, affix: string) => {
   };
   
 
-async function processInnerBlocks(key: WordPressBlock, parentUid: string | null = null, parentFieldName: string | null = null): Promise<any[]> {
+async function processInnerBlocks(key: WordPressBlock, parentUid: string | null = null, parentFieldName: string | null = null, affix: string | null = null): Promise<any[]> {
     if (!key?.innerBlocks || !Array.isArray(key.innerBlocks) || key.innerBlocks.length === 0) {
       return [];
     }
@@ -43,7 +43,7 @@ async function processInnerBlocks(key: WordPressBlock, parentUid: string | null 
     const results: any = [];
     for (const block of key.innerBlocks) {
 
-        const processed = await schemaMapper(block, parentUid, parentFieldName, ''); 
+        const processed = await schemaMapper(block, parentUid, parentFieldName, affix || ' '); 
         const flattenedProcessed = Array.isArray(processed) ? processed : [processed];
         
         
@@ -93,7 +93,7 @@ async function handleAttributesSchema(schema : any, parentUid: string | null = n
                     backupFieldType: 'single_line_text',
                     backupFieldUid: fieldUid,
                     advanced: {}
-                })
+                });
                 break;
             case 'boolean':
                 attributeSchema.push({
@@ -267,7 +267,8 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             const innerBlocks = await processInnerBlocks(
                 key, 
                 groupUid ,
-                fieldName
+                fieldName,
+                affix
             );
             innerBlocks?.length > 0 && groupSchema.push({
                 uid: groupUid,
@@ -346,7 +347,8 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             const innerBlocks = await processInnerBlocks(
                 key, 
                 groupUid ,
-                fieldName
+                fieldName,
+                affix
             );
             innerBlocks?.length > 0 && groupSchema.push({
                 uid: groupUid,
