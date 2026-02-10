@@ -30,10 +30,6 @@ let assetsSave = path.join(
   MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
 );
 
-const contentTypeFolderPath = path.join(
-  MIGRATION_DATA_CONFIG.DATA,
-  MIGRATION_DATA_CONFIG.CONTENT_TYPES_DIR_NAME
-);
 const entrySave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME
@@ -1085,7 +1081,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     const response = await axios.get(url, { responseType: "arraybuffer" });
     // Ensure files directory exists
     fs.mkdirSync(
-      path.resolve(assetsSave, "files"),
+      path.resolve(assetsSave, "files", customId),
       { recursive: true }
     );
     fs.writeFileSync(path.resolve(assetsSave, "files", customId, filename), response.data);
