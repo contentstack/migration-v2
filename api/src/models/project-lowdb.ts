@@ -21,7 +21,7 @@ interface LegacyCMS {
   awsDetails: {
     awsRegion: string;
     bucketName: string;
-    buketKey: string;
+    bucketKey: string;
   };
   file_path: string;
   is_fileValid: boolean;

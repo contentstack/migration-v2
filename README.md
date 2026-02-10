@@ -139,7 +139,7 @@ The following configuration is used in this project:
 - `awsSecretAccessKey`: The AWS secret access key.
 - `awsSessionToken`: The AWS session token.
 - `bucketName`: The name of the AWS S3 bucket. Default is `migartion-test`.
-- `buketKey`: The key for the AWS S3 bucket. Default is `project/package 45.zip`.
+- `bucketKey`: The key for the AWS S3 bucket. Default is `project/package 45.zip`.
 
 #### Local Path
 
