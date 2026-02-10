@@ -421,8 +421,8 @@ const processFieldByType = (
         if (/<\/?[a-z][\s\S]*>/i.test(value)) {
           return value; // Already HTML
         } else {
-          // Plain text to HTML
-          return `<p>${value}</p>`;
+          // Plain text to HTML — escape special chars to prevent markup corruption
+          return `<p>${escapeHtml(value)}</p>`;
         }
       }
       return typeof value === 'string' ? value : String(value ?? '');

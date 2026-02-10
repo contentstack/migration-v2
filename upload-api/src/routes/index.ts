@@ -131,14 +131,15 @@ router.get(
             createMapper(filePath, projectId, app_token, affix, config);
           }
 
-          // Send back response with MySQL details and assets config
+          // Send back response with MySQL details (excluding password) and assets config
+          const { password, ...safeMySQLDetails } = config.mysql || {};
           const response = {
             ...result,
             file_details: {
               ...result.file_details,
               isLocalPath: config.isLocalPath,
               localPath: config.localPath,
-              mySQLDetails: config.mysql,
+              mySQLDetails: safeMySQLDetails,
               assetsConfig: config.assetsConfig
             }
           };
@@ -419,8 +420,13 @@ router.get(
 );
 
 router.get('/config', async function (req: Request, res: Response) {
-  const config = await updateConfigFile();
-  res.json(config);
+  // Strip mysql password before sending config to the client
+  const { password, ...safeMysql } = config?.mysql || {};
+  const safeConfig = {
+    ...config,
+    mysql: safeMysql
+  };
+  res.json(safeConfig);
 });
 
 // Exported the router
