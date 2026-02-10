@@ -1,5 +1,4 @@
-/* eslint-disable */
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request } from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -443,7 +442,7 @@ const getExistingContentTypes = async (req: Request) => {
     let selectedContentType = null;
 
     if (contentTypeUID) {
-      const [err, res] = await safePromise(
+      const [res] = await safePromise(
         https({
           method: 'GET',
           url: `${baseUrl}/${contentTypeUID}`,
@@ -550,7 +549,7 @@ const getExistingGlobalFields = async (req: Request) => {
     let selectedGlobalField = null;
 
     if (globalFieldUID) {
-      const [err, res] = await safePromise(
+      const [res] = await safePromise(
         https({
           method: 'GET',
           url: `${baseUrl}/${globalFieldUID}`,
@@ -723,27 +722,6 @@ const updateContentType = async (req: Request) => {
     }
 
     if (Array?.isArray?.(fieldMapping) && !isEmpty(fieldMapping)) {
-      // DEBUG: Log embedObjects in incoming fieldMapping BEFORE saving
-      const embedFieldsIncoming = fieldMapping
-        .filter(
-          (f: any) =>
-            f?.advanced?.embedObjects?.length > 0 || f?.advanced?.embedObject,
-        )
-        .map((f: any) => ({
-          id: f?.id,
-          uid: f?.uid,
-          'advanced.embedObjects': f?.advanced?.embedObjects,
-          'advanced.embedObject': f?.advanced?.embedObject,
-        }));
-      logger.info(
-        getLogMessage(
-          srcFun,
-          `DEBUG: Incoming fields with embedObjects: ${JSON.stringify(
-            embedFieldsIncoming,
-          )}`,
-        ),
-      );
-
       await FieldMapperModel.read();
       fieldMapping.forEach((field: any) => {
         const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
