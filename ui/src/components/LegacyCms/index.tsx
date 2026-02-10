@@ -131,9 +131,9 @@ const LegacyCMSComponent = forwardRef(({ legacyCMSData, isCompleted, handleOnAll
       const selectedFileFormatData: ICardType | undefined = validateArray(
         selectedCmsData?.allowed_file_formats
       )
-        ? selectedCmsData.allowed_file_formats?.find(
+        ? (selectedCmsData.allowed_file_formats?.find(
             (cms: ICardType) => cms?.fileformat_id === legacyCMSData?.file_format
-          )
+          ) ?? selectedCmsData.allowed_file_formats?.[0])  // Fall back to CMS's first allowed format
         : newMigrationData?.legacy_cms?.selectedFileFormat;
     
       //Make Step 1 Complete

@@ -20,6 +20,7 @@ interface LoadUploadFileProps {
 }
 interface Props {
   fileDetails: FileDetails;
+  fileFormatId?: string; // from selectedFileFormat.fileformat_id (driven by legacyCms.json)
 }
 interface UploadState {
   cmsType: string;
@@ -36,84 +37,22 @@ interface UploadState {
   fileDetails?: FileDetails;
 }
 
-const FileComponent = ({ fileDetails }: Props) => {
-  const dispatch = useDispatch();
-  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
-  const authData = useSelector((state: RootState) => state?.authentication);
-  const [isEditing, setIsEditing] = useState((newMigrationData?.iteration > 1 && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated) ? true : false);
-  const [localPath, setLocalPath] = useState(fileDetails?.localPath || '');
 
-  // Get the current path from Redux state
-  const currentPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || fileDetails?.localPath || '';
-  const projectId = useParams().projectId;
-  const orgId = authData?.selectedOrganisation?.uid;
-
-  const handleEditFile = async () => {
-    setIsEditing(true);
-    setLocalPath(currentPath);
-  };
-
-  const handleBlur = async () => {
-    setIsEditing(false);
-    
-    // Update Redux state with new path
-    const updatedMigrationData = {
-      ...newMigrationData,
-      legacy_cms: {
-        ...newMigrationData?.legacy_cms,
-        uploadedFile: {
-          ...newMigrationData?.legacy_cms?.uploadedFile,
-          name: localPath,
-          url: localPath,
-          file_details: {
-            ...newMigrationData?.legacy_cms?.uploadedFile?.file_details,
-            localPath: localPath
-          }
-        }
-      }
-    };  
-    
-    dispatch(updateNewMigrationData(updatedMigrationData));
-    const fileFormatData = {
-      "file_path": localPath,
-    }
-    //const { status } = await updateFileFormat(orgId || '', projectId || '', fileFormatData);
-    // if (status === HTTP_CODES?.OK) {
-    //  console.info('File path updated successfully');
-    // } else {
-    //   console.info('Failed to update file path');
-    // }
-  };
+/**
+ * Data-driven FileComponent:
+ * Rendering is driven by `fileFormatId` (from legacyCms.json → selectedFileFormat.fileformat_id).
+ * - 'sql' → MySQL connection details
+ * - any other format with isLocalPath → local file/directory path
+ * - !isLocalPath → AWS S3 details
+ * No CMS-specific branches — adding a new CMS to legacyCms.json works automatically.
+ */
+const FileComponent = ({ fileDetails, fileFormatId }: Props) => {
+  const isSQL = fileFormatId?.toLowerCase() === 'sql';
 
   return (
     <div>
-      {fileDetails?.isLocalPath ? (
-        // ✅ Case 1: Local file path
-        <div className="file-container">
-          <div className="file-path-text">
-            {isEditing ? (
-              <TextInput
-                value={localPath}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocalPath(e.target.value)}
-                onBlur={handleBlur}
-                width="full"
-                version="v2"
-                placeholder="Enter local path"
-                aria-label="local path"
-                autoFocus
-              />
-            ) : (
-              <Paragraph tagName="p" variant="p1" text={`Local Path: ${currentPath}`} />
-            )}
-          </div>
-          {isEditing && (
-            <div className="edit-icon">
-              <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
-            </div>
-          )}
-        </div>
-      ) : fileDetails?.isSQL ? (
-        // ✅ Case 2: MySQL details
+      {isSQL ? (
+        // ✅ SQL format (from legacyCms.json allowed_file_formats): show MySQL details
         fileDetails?.mySQLDetails && (
           <div>
             <p className="pb-2">Host: {fileDetails?.mySQLDetails?.host}</p>
@@ -122,12 +61,12 @@ const FileComponent = ({ fileDetails }: Props) => {
           </div>
         )
       ) : fileDetails?.isLocalPath ? (
-        // ✅ Case 2: Local file path
+        // ✅ Local path (file or directory — format driven by legacyCms.json)
         <div className="file-container">
           <Paragraph tagName="p" variant="p1" text={`Local Path: ${fileDetails?.localPath}`} />
         </div>
       ) : (
-        // ✅ Case 3: AWS details
+        // ✅ AWS S3 details (isLocalPath is false)
         <div>
           <p className="pb-2">AWS Region: {fileDetails?.awsData?.awsRegion}</p>
           <p className="pb-2">Bucket Name: {fileDetails?.awsData?.bucketName}</p>
@@ -241,30 +180,30 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
           }
         }
       };
-      // For Drupal SQL files, ensure selectedFileFormat is set in the same update
-      if (status === 200 && data?.file_details?.isSQL && data?.file_details?.cmsType === 'drupal') {
 
-        // Add selectedFileFormat to the existing newMigrationDataObj
-        // NOTE: Keep title as 'ApiTokens' (Venus icon name) - LoadFileFormat converts it to 'SQL' for display
-        newMigrationDataObj.legacy_cms.selectedFileFormat = {
-          fileformat_id: 'sql',
-          title: 'ApiTokens',
-          description: '',
-          group_name: 'sql',
-          isactive: true
-        };
+      // Ensure selectedFileFormat is preserved in the migration data update.
+      // selectedFileFormat is already set by LoadSelectCms from legacyCms.json's allowed_file_formats.
+      // If not yet set (edge case), fall back to the current Redux state.
+      if (status === 200 && !newMigrationDataObj.legacy_cms.selectedFileFormat) {
+        newMigrationDataObj.legacy_cms.selectedFileFormat =
+          newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat;
       }
 
       // Update the ref immediately before dispatching to avoid stale data in subsequent operations
       newMigrationDataRef.current = newMigrationDataObj;
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
+      // Derive SQL check from selectedFileFormat (data-driven via legacyCms.json)
+      const currentFormatId = newMigrationDataObj?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase();
+      const isSQL = currentFormatId === 'sql';
+
       if (status === 200) {
         setIsValidated(true);
         setValidationMessage(
-          data?.file_details?.isSQL 
-          ? 'Connection established successfully.' 
-          : 'File validated successfully.');
+          isSQL 
+            ? 'Connection established successfully.' 
+            : 'File validated successfully.'
+        );
 
            // 🔧 FIX: Fetch updated project data to get source_locales and dispatch to Redux
         // This ensures the Language Mapper has access to source locales immediately after validation
@@ -296,17 +235,16 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
         if (
           !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
-          (isSQLConnection(data?.file_details?.localPath) || 
-           !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id))
+          !isEmptyString(newMigrationDataObj?.legacy_cms?.selectedFileFormat?.fileformat_id)
         ) {
           props.handleStepChange(props?.currentStep, true);
         }
       } else if (status === 500) {
         setIsValidated(false);
         setValidationMessage(
-          data?.file_details?.isSQL 
-          ? 'Connection failed' 
-          : 'File not found'
+          isSQL 
+            ? 'Connection failed' 
+            : 'File not found'
         );
         setIsValidationAttempted(true);
         setProgressPercentage(100);
@@ -320,7 +258,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         // For SQL connections, show the specific backend error message
         // For other formats, show generic validation failed message
         setValidationMessage(
-          isSQLConnection(data?.file_details?.localPath) && data?.message 
+          isSQL && data?.message 
             ? data.message 
             : 'Validation failed.'
         );
@@ -381,8 +319,8 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       
     }
     
-      // For SQL connections, skip file extension validation
-      const isSQL = isSQLConnection(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath);
+      // Derive SQL check from selectedFileFormat (data-driven via legacyCms.json)
+      const isSQL = newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase() === 'sql';
       
       let extension = '';
       let isFormatValid = false;
@@ -471,8 +409,12 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
   }, [newMigrationData?.legacy_cms?.uploadedFile?.file_details]);
 
   useEffect(() => {
-    getConfigDetails();
-  }, []);
+      getConfigDetails();   
+  }, [
+    // Re-run when selectedFileFormat or file_details change (e.g., after LoadSelectCms or fetchProjectData dispatches)
+    newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id,
+    newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath
+  ]);
 
   useEffect(() => {
     const savedState = getStateFromLocalStorage(projectId);
@@ -541,9 +483,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     ) {
       setIsValidated(true);
       setShowMessage(true);
-      // ✅ FIX: Use Redux state instead of local state for SQL check
+      // Use selectedFileFormat.fileformat_id (data-driven via legacyCms.json) for SQL check
       setValidationMessage(
-        isSQLConnection(newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath) 
+        newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase() === 'sql'
           ? 'Connection established successfully.' 
           : 'File validated successfully.'
       );
@@ -593,9 +535,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       <div className="col-12">
         <div className="col-12">
           <div className={containerClassName}>
-            {!isConfigLoading && !isEmptyString(fileDetails?.localPath) ? (
+            {!isConfigLoading && (!isEmptyString(fileDetails?.localPath) || !isEmptyString(fileFormat)) ? (
               // <div className='file-icon-group'>
-              <FileComponent fileDetails={fileDetails || {}} />
+              <FileComponent fileDetails={fileDetails || {}} fileFormatId={fileFormat} />
             ) : (
               <div className="errorMessage fs-6">
                 No file added. Please add the file to validate.
@@ -609,7 +551,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
                   variant="p2"
                   text={validationMessgae}
                 />
-                {!isValidated && validationMessgae === 'File validation failed.' && (
+                {!isValidated && validationMessgae === 'Validation failed.' && fileFormat !== 'sql' && (
                   <p className={`${validationClassName} p2 doc-link`}>
                     Please check the requirements{' '}
                     <a href={documentationUrl} target="_blank" rel="noreferrer" className="link">
@@ -641,16 +583,9 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
             isLoading={isLoading}
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={!(reValidate || !isDisabled)}>
-            {(() => {
-              // Logic: If localPath is 'sql', show "Check Connection"
-              // Otherwise "File Validate"
-              const buttonText = isSQLConnection(fileDetails?.localPath) 
-                ? 'Check Connection' 
-                : 'File Validate';
-              
-              return buttonText;
-            })()}
+            disabled={!(reValidate || (!isDisabled))}
+          > 
+            {fileFormat === 'sql' ? 'Check Connection' : 'File Validate'}
           </Button>
         </div>
       </div>

@@ -682,23 +682,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       if (newMigrationData?.content_mapping?.content_type_mapping?.[otherCmsTitle] !== otherContentType?.label) {
         setSelectedOptions([]);
       }
-      // Remove unmatched keys from existingField
-      // setExistingField((prevOptions: ExistingFieldType) => {
-      //   const updatedOptions: ExistingFieldType = { ...prevOptions };
-      //   Object.keys(prevOptions).forEach((key) => {
-      //     if (matchedKeys?.has(key)) {
-
-      //       const index = selectedOptions?.indexOf(updatedOptions?.[key]?.label ?? '');
-
-      //       if (index > -1) {
-      //         selectedOptions?.splice(index, 1);
-      //       }
-      //       delete updatedOptions[key];
-      //     }
-      //   });
-      //   return updatedOptions;
-      // });
-
     }
 
   }, [otherContentType]);
@@ -892,10 +875,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     setIsDropDownChanged(checkBoxChanged);
     const newTableData = tableData?.map?.((row: any) => {
       if (row?.uid === rowId && row?.contentstackFieldUid === rowContentstackFieldUid) {
+        const mergedAdvanced = { ...row?.advanced, ...updatedSettings };
+       
         const updatedRow = {
           ...row,
           refrenceTo: updatedSettings?.referenedItems || row?.refrenceTo,
-          advanced: { ...row?.advanced, ...updatedSettings }
+          advanced: mergedAdvanced
         };
         return updatedRow;
       }
@@ -2153,6 +2138,17 @@ if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
     }
 
     if (orgId && contentTypeUid && selectedContentType) {
+      // DEBUG: Log all embedObjects in selectedEntries BEFORE save
+      const embedFieldsSummary = selectedEntries
+        ?.filter((entry: any) => entry?.advanced?.embedObjects?.length > 0 || entry?.advanced?.embedObject)
+        ?.map((entry: any) => ({
+          uid: entry?.uid,
+          contentstackFieldUid: entry?.contentstackFieldUid,
+          'advanced.embedObjects': entry?.advanced?.embedObjects,
+          'advanced.embedObject': entry?.advanced?.embedObject,
+          'advanced.mandatory': entry?.advanced?.mandatory,
+        }));
+      
       const dataCs = {
         contentTypeData: {
           id: contentTypeUid,
