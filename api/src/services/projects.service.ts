@@ -136,7 +136,7 @@ const createProject = async (req: Request) => {
       awsDetails: {
         awsRegion: '',
         bucketName: '',
-        buketKey: '',
+        bucketKey: '',
       },
     },
     content_mapper: [],
@@ -631,8 +631,8 @@ const updateFileFormat = async (req: Request) => {
           awsDetails.awsRegion || '';
         data.projects[projectIndex].legacy_cms.awsDetails.bucketName =
           awsDetails.bucketName || '';
-        data.projects[projectIndex].legacy_cms.awsDetails.buketKey =
-          awsDetails.buketKey || '';
+        data.projects[projectIndex].legacy_cms.awsDetails.bucketKey =
+          awsDetails.bucketKey || '';
       }
     });
 

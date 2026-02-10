@@ -274,7 +274,7 @@ const Migration = () => {
             awsData: {
               awsRegion: data?.awsData?.awsRegion,
               bucketName: data?.awsData?.bucketName,
-              buketKey: data?.awsData?.buketKey
+              bucketKey: data?.awsData?.bucketKey
             }
           },
           cmsType: data?.cmsType  
@@ -364,7 +364,7 @@ const Migration = () => {
             awsData: {
               awsRegion: projectData?.legacy_cms?.awsDetails?.awsRegion,
               bucketName: projectData?.legacy_cms?.awsDetails?.bucketName,
-              buketKey: projectData?.legacy_cms?.awsDetails?.buketKey
+              bucketKey: projectData?.legacy_cms?.awsDetails?.bucketKey
             },
             isLocalPath: projectData?.legacy_cms?.is_localPath
           },
@@ -529,7 +529,7 @@ const Migration = () => {
         awsDetails: {
           awsRegion: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
           bucketName: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
-          buketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.buketKey
+          bucketKey: newMigrationData?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketKey
         }
       };
       try {
