@@ -47,6 +47,8 @@ import { updateEntryCli, utilsUpdateCli } from './updateEntryCli.service.js';
 
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
+=======
+>>>>>>> 89e94a82 (refactor: removed unused variables)
 
 /**
  * Creates a test stack.

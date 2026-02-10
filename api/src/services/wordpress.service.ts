@@ -505,7 +505,11 @@ const extractTermsReference = (terms: any) => {
   const termReference = termArray?.filter((term: any) => term?.attributes?.domain !== 'category');
   return termReference;
 }
+<<<<<<< HEAD
 async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any, duplicateBlockMappings?: Record<string, string>) {
+=======
+async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any) {
+>>>>>>> 89e94a82 (refactor: removed unused variables)
   const locale = getLocale(master_locale, project);
   const mapperKeys = project?.mapperKeys || {};
   const authorsCtName = mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] ? mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] : MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
@@ -594,7 +598,10 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           entryData[uid]['tags'] = tags?.map((tag: any) => tag?.text);
           entryData[uid]['author'] = authorData;
           entryData[uid]['locale'] = locale;
+<<<<<<< HEAD
           entryData[uid]['publish_details'] = [];
+=======
+>>>>>>> 89e94a82 (refactor: removed unused variables)
           
             
           
@@ -725,9 +732,13 @@ async function createTaxonomy(file_path: string, packagePath: string, destinatio
 
   const Jsondata = await fs.promises.readFile(packagePath, "utf8");
   const xmlData = await fs.promises.readFile(file_path, "utf8");
+<<<<<<< HEAD
   const categoriesData = JSON.parse(Jsondata)?.rss?.channel?.["wp:category"] || JSON.parse(Jsondata)?.channel?.["wp:category"];
   const categoriesJsonData = Array?.isArray(categoriesData) ? categoriesData : (categoriesData ? [categoriesData] : []);
 
+=======
+  const categoriesJsonData = JSON.parse(Jsondata)?.rss?.channel?.["wp:category"] || JSON.parse(Jsondata)?.channel?.["wp:category"] || [];
+>>>>>>> 89e94a82 (refactor: removed unused variables)
   if(categoriesJsonData?.length > 0){
     const allTaxonomies : any = {}
     for(const category of categoriesJsonData){
@@ -1116,7 +1127,7 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
     const response = await axios.get(url, { responseType: "arraybuffer" });
     // Ensure files directory exists
     fs.mkdirSync(
-      path.resolve(assetsSave, "files"),
+      path.resolve(assetsSave, "files", customId),
       { recursive: true }
     );
     fs.writeFileSync(path.resolve(assetsSave, "files", customId, filename), response.data);
