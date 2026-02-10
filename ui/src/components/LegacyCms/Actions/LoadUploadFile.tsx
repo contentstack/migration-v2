@@ -131,7 +131,7 @@ const FileComponent = ({ fileDetails }: Props) => {
         <div>
           <p className="pb-2">AWS Region: {fileDetails?.awsData?.awsRegion}</p>
           <p className="pb-2">Bucket Name: {fileDetails?.awsData?.bucketName}</p>
-          <p className="pb-2">Bucket Key: {fileDetails?.awsData?.buketKey}</p>
+          <p className="pb-2">Bucket Key: {fileDetails?.awsData?.bucketKey}</p>
         </div>
       )}
     </div>
@@ -224,7 +224,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               awsData: {
                 awsRegion: data?.file_details?.awsData?.awsRegion,
                 bucketName: data?.file_details?.awsData?.bucketName,
-                buketKey: data?.file_details?.awsData?.buketKey
+                bucketKey: data?.file_details?.awsData?.bucketKey
               },
               mySQLDetails: {
                 host: data?.file_details?.mySQLDetails?.host,
