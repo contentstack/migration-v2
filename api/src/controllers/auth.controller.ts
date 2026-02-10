@@ -8,8 +8,15 @@ import { authService } from "../services/auth.service.js";
  * @param res - The response object.
  */
 const login = async (req: Request, res: Response) => {
-  const resp = await authService.login(req);
-  res.status(resp?.status).json(resp?.data);
+  try {
+    const resp = await authService.login(req);
+    res.status(resp?.status || 500).json(resp?.data);
+  } catch (error: any) {
+    const statusCode = error?.statusCode || error?.status || 500;
+    res.status(statusCode).json({
+      message: error?.message || 'Login failed',
+    });
+  }
 };
 
 /**
@@ -19,8 +26,15 @@ const login = async (req: Request, res: Response) => {
  * @param res - The response object.
  */
 const RequestSms = async (req: Request, res: Response) => {
-  const resp = await authService.requestSms(req);
-  res.status(resp.status).json(resp.data);
+  try {
+    const resp = await authService.requestSms(req);
+    res.status(resp?.status || 500).json(resp?.data);
+  } catch (error: any) {
+    const statusCode = error?.statusCode || error?.status || 500;
+    res.status(statusCode).json({
+      message: error?.message || 'SMS request failed',
+    });
+  }
 };
 
 export const authController = {
