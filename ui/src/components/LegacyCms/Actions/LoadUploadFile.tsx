@@ -156,7 +156,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               mySQLDetails: {
                 host: data?.file_details?.mySQLDetails?.host,
                 user: data?.file_details?.mySQLDetails?.user,
-                password: data?.file_details?.mySQLDetails?.password,
                 database: data?.file_details?.mySQLDetails?.database,
                 port: data?.file_details?.mySQLDetails?.port
               },
