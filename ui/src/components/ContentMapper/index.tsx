@@ -2258,7 +2258,9 @@ if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
         contentstackFieldType: row?.backupFieldType,
         contentstackField: row?.otherCmsField,
         contentstackFieldUid: row?.backupFieldUid,
-        advanced: row?.advanced?.initial,
+        advanced: row?.advanced?.initial
+          ? { ...row?.advanced?.initial, initial: row?.advanced?.initial }
+          : row?.advanced,
         ...(row?.refrenceTo && { refrenceTo: row?.initialRefrenceTo }),
         isDeleted: false, // Reset selection: re-tick all fields on reset
       };
