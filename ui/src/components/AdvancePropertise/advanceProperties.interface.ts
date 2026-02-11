@@ -120,6 +120,8 @@ export interface UpdatedSettings {
 
   multiple?: boolean;
 
+  embedObject?: boolean;
+
   embedObjects?: any;
 
   default_value?: string | boolean;

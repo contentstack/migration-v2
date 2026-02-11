@@ -301,18 +301,36 @@ const Migration = () => {
   const projectData = migrationData?.data;
     const legacyCmsData: ILegacyCMSComponent = await getCMSDataFromFile(CS_ENTRIES.LEGACY_CMS);
 
-    const selectedCmsData: ICMSType = validateArray(legacyCmsData?.all_cms)
+    // Config's cmsType is the source of truth (may differ from stored project CMS if config changed)
+    const configCmsType = data?.cmsType?.toLowerCase();
+
+    // Look up stored CMS from project data
+    const storedCmsData: ICMSType | undefined = validateArray(legacyCmsData?.all_cms)
       ? legacyCmsData?.all_cms?.find(
           (cms: ICMSType) => cms?.cms_id === projectData?.legacy_cms?.cms
-        ) ?? DEFAULT_CMS_TYPE
-      : DEFAULT_CMS_TYPE;
+        )
+      : undefined;
+
+    // Look up CMS by config's cmsType (same parent-matching logic as LoadSelectCms.filterCMSData)
+    const configCmsData: ICMSType | undefined = (configCmsType && validateArray(legacyCmsData?.all_cms))
+      ? legacyCmsData?.all_cms?.find(
+          (cms: ICMSType) => cms?.parent?.toLowerCase() === configCmsType
+        )
+      : undefined;
+
+    // Use stored CMS if its parent matches config's cmsType (preserves specific version like "Sitecore v9").
+    // Otherwise, config takes precedence (CMS type was changed in config).
+    const selectedCmsData: ICMSType =
+      (storedCmsData && storedCmsData?.parent?.toLowerCase() === configCmsType)
+        ? storedCmsData
+        : (configCmsData ?? storedCmsData ?? DEFAULT_CMS_TYPE);
 
     const selectedFileFormatData: ICardType | undefined = validateArray(
       selectedCmsData?.allowed_file_formats
     )
-      ? selectedCmsData.allowed_file_formats?.find(
+      ? (selectedCmsData.allowed_file_formats?.find(
           (cms: ICardType) => cms?.fileformat_id === projectData?.legacy_cms?.file_format
-        )
+        ) ?? selectedCmsData.allowed_file_formats?.[0])  // Fall back to CMS's first allowed format
       : fileFormat;
 
     const selectedOrganisationData = validateArray(organisationsList)
