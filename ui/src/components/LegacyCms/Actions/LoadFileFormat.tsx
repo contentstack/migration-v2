@@ -86,7 +86,7 @@ const LoadFileFormat = (_props: LoadFileFormatProps) => {
             width="large"
             prefix={
               <Icon
-                icon={fileIcon === 'DIRECTORY' ? 'Folder' : fileIcon ? fileIcon : 'CrashedPage'}
+                icon={fileIcon || 'CrashedPage'}
                 size="medium"
                 version="v2"
                 aria-label="File format icon"
