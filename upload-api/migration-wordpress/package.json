@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/contentstack/migration-v2.git#readme",
   "dependencies": {
-    "@contentstack/json-rte-serializer": "^2.0.0",
+    "@contentstack/json-rte-serializer": "^3.0.5",
     "@wordpress/block-library": "^9.39.0",
     "@wordpress/blocks": "^15.12.0",
     "@wordpress/data": "^10.39.0",
