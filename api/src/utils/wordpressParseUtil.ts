@@ -50,9 +50,7 @@ export const setupWordPressBlocks = async (rawContent: any) => {
   if (!(global as any).__wp_core_blocks_registered) {
     try {
       // import after globals are ready
-      const { registerCoreBlocks } = await import('@wordpress/block-library');
-      // register; some versions may throw "Store 'core/blocks' is already registered."
-      await registerCoreBlocks();
+
       (global as any).__wp_core_blocks_registered = true;
     } catch (err: any) {
       const msg = String(err?.message || err);
@@ -82,12 +80,10 @@ export const setupWordPressBlocks = async (rawContent: any) => {
   })();
 
   // Ensure attributes & innerBlocks exist for each block to prevent later errors
-  const safeBlocks = Array.isArray(parsed)
-    ? parsed.map(b => ({
-      ...b,
-      htmlAttributes: extractAttributes(b.innerHTML)
-    }))
-    : [];
+  const safeBlocks = Array.isArray(parsed) ? parsed.map(b => ({
+    ...b,
+    htmlAttributes: extractAttributes(b.innerHTML)
+    })) : [];
 
   return safeBlocks;
 };
