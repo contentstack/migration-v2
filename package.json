@@ -35,8 +35,7 @@
     "@babel/runtime": ">=7.26.10",
     "lodash": "^4.17.23",
     "lodash-es": "^4.17.23",
-    "undici": "^7.18.2",
-    "axios": ">=1.13.5"
+    "undici": "^7.18.2"
   },
   "husky": {
     "hooks": {
