@@ -389,7 +389,22 @@ const Migration = () => {
           isValidated: projectData?.legacy_cms?.is_fileValid,
           reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
           buttonClicked: newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked ? true : false,
-        } : uploadObj,
+        } : {
+          // When file is not validated, merge config data with existing Redux data
+          // to preserve any user-filled file details that shouldn't be wiped out
+          ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
+          ...uploadObj,
+          file_details: {
+            ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details,
+            ...uploadObj?.file_details,
+            // Prefer existing non-empty values over potentially empty config values
+            localPath: uploadObj?.file_details?.localPath || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.localPath,
+            awsData: {
+              ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData,
+              ...uploadObj?.file_details?.awsData
+            }
+          }
+        },
         isFileFormatCheckboxChecked: true,
         isRestictedKeywordCheckboxChecked: true,
         projectStatus: projectData?.status,
