@@ -390,18 +390,18 @@ const Migration = () => {
           reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
           buttonClicked: newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked ? true : false,
         } : {
-          // When file is not validated, merge config data with existing Redux data
-          // to preserve any user-filled file details that shouldn't be wiped out
-          ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
+          // uploadObj (from getFileInfo) already merges existing Redux uploadedFile with config.
+          // For file_details, prefer non-empty config values, fall back to existing Redux values.
           ...uploadObj,
           file_details: {
             ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details,
-            ...uploadObj?.file_details,
-            // Prefer existing non-empty values over potentially empty config values
+            isLocalPath: uploadObj?.file_details?.isLocalPath ?? newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.isLocalPath,
+            cmsType: uploadObj?.file_details?.cmsType || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.cmsType,
             localPath: uploadObj?.file_details?.localPath || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.localPath,
             awsData: {
-              ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData,
-              ...uploadObj?.file_details?.awsData
+              awsRegion: uploadObj?.file_details?.awsData?.awsRegion || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
+              bucketName: uploadObj?.file_details?.awsData?.bucketName || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
+              bucketKey: uploadObj?.file_details?.awsData?.bucketKey || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketKey,
             }
           }
         },
