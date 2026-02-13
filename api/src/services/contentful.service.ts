@@ -4,7 +4,6 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import _ from "lodash";
 import axios from "axios";
-import jsonpath from "jsonpath";
 import pLimit from 'p-limit';
 import { JSDOM } from "jsdom";
 import { jsonToHtml, jsonToMarkdown, htmlToJson } from '@contentstack/json-rte-serializer';
@@ -368,23 +367,45 @@ const cleanBrackets = (lang_value: any) => {
 };
 
 // Helper function to process arrays and resolve IDs for entries and assets
+// Replaces jsonpath.query(array, "$..id") with direct item-level processing
+// (following the same pattern as Team Fury's processField for arrays)
 const processArrayFields = (array: any, entryId: any, assetId: any) => {
-  const ids = jsonpath.query(array, "$..id");
-  ids.forEach((id: any, i: number) => {
-    if (id in entryId) {
-      array.splice(i, 1, entryId[id]);
-    } else if (id in assetId) {
-      array.splice(i, 1, assetId?.[id]);
+  // Handle primitive arrays directly (strings, numbers, booleans)
+  if (array.every((item: any) => typeof item !== 'object' || item === null)) {
+    return array;
+  }
+
+  const processedArray = array.reduce((acc: any[], item: any) => {
+    if (item?.sys?.id) {
+      // Handle Contentful system links (Entry or Asset references)
+      const { linkType, id } = item.sys;
+      if (linkType === 'Entry' && id in entryId) {
+        acc.push(entryId[id]);
+      } else if (linkType === 'Asset' && id in assetId) {
+        acc.push(assetId[id]);
+      } else {
+        // Keep unresolved references intact — the import process has a
+        // separate reference update step that resolves these later.
+        acc.push(item);
+      }
+    } else if (item !== null && typeof item === 'object') {
+      // Keep non-reference objects as-is (nested objects, RTE fragments, etc.)
+      acc.push(item);
+    } else if (item !== null && item !== undefined) {
+      // Keep primitive values (strings, numbers, booleans)
+      acc.push(item);
     }
-  });
-  // Clean up empty objects
-  const cleanedArray = JSON.stringify(array)
+    return acc;
+  }, []);
+
+  // Clean up empty objects (matches original cleanup behavior)
+  const cleanedArray = JSON.stringify(processedArray)
     .replace(/{},/g, "")
     .replace(/,{}/g, "")
     .replace(/,{},/g, "")
     .replace(/{}/g, "");
   const result = typeof cleanedArray === 'string' && JSON.parse(cleanedArray);
-  return result.length > 0 ? result : undefined;
+  return Array.isArray(result) && result.length > 0 ? result : undefined;
 };
 
 // Helper function to process Rich Text Editor (RTE) or nested object
