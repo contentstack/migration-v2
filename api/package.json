@@ -102,11 +102,12 @@
     "@types/wordpress__block-serialization-spec-parser": "^3.1.3",
     "@types/wordpress__blocks": "^12.5.18"
   },
-  "keywords": [],
   "overrides": {
-    "diff": "^5.2.2",
-    "npm": {
-      "diff": "^5.2.2"
-    }
-  }
+    "qs": ">=6.14.2",
+    "tmp": ">=0.2.4",
+    "diff": ">=5.2.2",
+    "glob": ">=10.5.0",
+    "tar": ">=7.5.7"
+  },
+  "keywords": []
 }
