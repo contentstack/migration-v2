@@ -40,7 +40,6 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@types/css-modules": "^1.0.4",
     "babel-preset-react-app": "^10.0.1",
     "eslint": "^8.51.0",
     "eslint-plugin-react": "^7.33.2",
