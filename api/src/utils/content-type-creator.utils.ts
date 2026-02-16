@@ -148,8 +148,8 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
     for (const blockItem of schema) {
       if (blockItem?.contentstackFieldType !== 'modular_blocks_child') continue;
 
-      const blockRawUid = getCleanUid(blockItem?.contentstackFieldUid || blockItem?.uid);
-      const blockUid = toSnakeCase(blockRawUid);  // Apply snake_case
+      const blockRawUid = getCleanUid(blockItem?.contentstackField);
+      const blockUid = toSnakeCase(getCleanUid(blockItem?.contentstackFieldUid || blockItem?.uid));  // Apply snake_case
       const blockSchema: any[] = [];
 
       const blockElements = blockItem?.schema || [];
