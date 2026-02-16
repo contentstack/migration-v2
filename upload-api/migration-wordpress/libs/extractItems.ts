@@ -392,28 +392,14 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                     }
                   }
                 } 
-                // else {
-                //   if (Fieldschema && !Array.isArray(Fieldschema) && Fieldschema?.contentstackFieldType !== "null") {
-                //     const exists = CT?.find(
-                //       (item: Field) =>
-                //         item?.uid === Fieldschema?.uid &&
-                //         item?.contentstackFieldType === Fieldschema?.contentstackFieldType &&
-                //         item?.contentstackField === Fieldschema?.contentstackField
-                //         //&& item?.contentstackFieldUid === Fieldschema?.contentstackFieldUid
-                //     );
-                
-                //     if (!exists) {
-                //       CT?.push?.(Fieldschema);
-                //     }
-                //   }
-                // }               
+                          
               }     
                   
             } 
             else {
               // Handle single blocks (no similar structures found)
               const singleBlockName = getFieldName(field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name));
-              //console.info('singleBlockName', singleBlockName, !existingBlock ,existingBlock, ! processedSimilarBlocks?.has?.(field?.attributes?.metadata?.name || (field?.name === 'core/missing' ? 'body' : field?.name)), processedSimilarBlocks);
+             
               if(!existingBlock && ! processedSimilarBlocks?.has?.(field?.attributes?.metadata?.name ?? getFieldName(field?.name === 'core/missing' ? 'body' : field?.name) )){
                 processedSimilarBlocks?.add?.(field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name));
                 
@@ -461,21 +447,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                   }
                 }
               } 
-              // else {
-              //   if (Fieldschema && !Array.isArray(Fieldschema) && Fieldschema?.contentstackFieldType !== "null") {
-              //     const exists = CT?.find(
-              //       (item: Field) =>
-              //         item?.uid === Fieldschema?.uid &&
-              //         item?.contentstackFieldType === Fieldschema?.contentstackFieldType &&
-              //         item?.contentstackField === Fieldschema?.contentstackField
-              //         //&& item?.contentstackFieldUid === Fieldschema?.contentstackFieldUid
-              //     );
-              
-              //     if (!exists) {
-              //       CT.push(Fieldschema);
-              //     }
-              //   }
-              // }             
+                       
               }
                  
             }

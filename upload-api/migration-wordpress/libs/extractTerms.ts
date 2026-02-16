@@ -9,11 +9,10 @@ const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirNa
 
 const handleAuthorSchema = async(author : any) => {
   const schema: any = GenerateSchema.json("schema", author);
-  //console.info("AUthorschema 123", schema);
   const properties = schema?.items?.properties ?? schema?.properties;
-  //console.info("AUthorschema", properties);
-  const AUthorschema = await handleAttributesSchema(properties, null, 'Author');
-  return AUthorschema;
+
+  const Authorschema = await handleAttributesSchema(properties, null, 'Author');
+  return Authorschema;
 }
 
 const extractTerms = async(allTerms: any, type: string) => {

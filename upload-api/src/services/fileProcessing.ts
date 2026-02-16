@@ -48,8 +48,6 @@ const handleFileProcessing = async (
       // Convert buffer to string without Cheerio processing to preserve WordPress content
       const xmlString = Buffer.from(zipBuffer).toString('utf8');
       const parsedJson = await parseXmlToJson(xmlString);
-      // const schema = GenerateSchema.json(name, parsedJson);
-      // await saveJson(JSON.stringify(schema,null, 2), `${name}_schema.json`);
 
       const isSaved = await saveJson(parsedJson, `${name}.json`);
       if (isSaved) {
