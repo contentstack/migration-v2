@@ -11,6 +11,9 @@
     "@types/react-dom": "^18.2.13",
     "@types/react-redux": "^7.1.33",
     "axios": "^1.13.5",
+    "eslint": "^9.7.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
     "final-form": "^4.20.10",
     "html-react-parser": "^4.2.9",
     "jwt-decode": "^4.0.0",
@@ -41,9 +44,6 @@
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "babel-preset-react-app": "^10.0.1",
-    "eslint": "^8.51.0",
-    "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^3.3.3"
   },
   "eslintConfig": {
