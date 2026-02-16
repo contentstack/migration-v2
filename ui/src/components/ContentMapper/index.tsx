@@ -217,7 +217,7 @@ const Fields: MappingFields = {
   'modular_blocks':{
     label: 'Modular Blocks',
     options: { 'Modular Blocks': 'modular_blocks' },
-    type: 'modular_blocks'
+    type: 'blocks'
   },
   'modular_blocks_child':{
     label: 'Block',
@@ -1623,6 +1623,10 @@ else if (field?.uid?.startsWith(modularBlockChildId + '.')) {
         return value?.data_type === 'link';
       case 'markdown':
         return value?.field_metadata?.markdown === true;
+      case 'blocks':
+        return value?.data_type === 'blocks';
+      case 'modular_blocks_child':
+        return value?.data_type === undefined && (value?.schema && value?.schema?.length > 0);
       default:
         return false;
     }
@@ -1656,7 +1660,7 @@ if (value?.blocks && Array.isArray(value.blocks)) {
     const blockTitle = block?.uid || block?.display_name;
     const blockDisplayName = `${updatedDisplayName} > ${blockTitle}`;
     const blockUid = `${uid}.${block?.uid}`;
-
+  
     if (data?.backupFieldType === 'modular_blocks_child') {
       const blockOption: ContentTypesSchema = {
         ...block,
@@ -1678,7 +1682,6 @@ const isFieldInsideChildBlock = data?.uid?.split('.')?.length > 2;
 
 if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
   const dataParentChildBlockUid = data?.uid?.split('.')?.slice(0, 2)?.join('.');
-  
   const modularBlockArray = nestedList?.filter(item => 
     item?.contentstackFieldType === 'modular_blocks' &&
     item?.child?.some((childBlock: FieldMapType) => 
@@ -1741,7 +1744,6 @@ if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
   if (mappedChildBlockTitle === blockTitle) {
     for (const blockField of block.schema) {
       const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
-      
       if (checkConditions(fieldTypeToMatch, blockField, data)) {
         const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
         const fieldUid = `${blockUid}.${blockField?.uid}`;
