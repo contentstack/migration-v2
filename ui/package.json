@@ -70,5 +70,6 @@
     "serialize-javascript": ">=6.0.2",
     "@babel/runtime": ">=7.26.10",
     "webpack-dev-server": "^4.15.2"
+    "@babel/runtime": ">=7.26.10"
   }
 }
