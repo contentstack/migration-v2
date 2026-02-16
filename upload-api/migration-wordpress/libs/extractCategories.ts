@@ -13,11 +13,9 @@ const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirNa
 
 const handleCategorySchema = async(category : any) => {
   const schema: any = GenerateSchema.json("schema", category);
-  //console.info("AUthorschema 123", schema);
   const properties = schema?.items?.properties ?? schema?.properties;
-  //console.info("AUthorschema", properties);
-  const AUthorschema = await handleAttributesSchema(properties, null, 'Category');
-  return AUthorschema;
+  const Categoryschema = await handleAttributesSchema(properties, null, 'Category');
+  return Categoryschema;
 }
 async function extractCategories (categoriesData: any, type: string){
     const category = {
