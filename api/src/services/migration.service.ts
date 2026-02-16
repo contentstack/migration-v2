@@ -491,7 +491,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
           await wordpressService?.getAllAssets(file_path, packagePath, project?.current_test_stack_id, projectId);
           await wordpressService?.createTaxonomy(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
           await wordpressService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          // await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
+          await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
            await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
         }
         break;

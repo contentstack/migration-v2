@@ -1,6 +1,6 @@
-var fs = require('fs');
-var path = require('path');
-var mkdirp = require('mkdirp');
+import fs from 'fs';
+import path from 'path';
+import mkdirp from 'mkdirp';
 import xml2js from 'xml2js';
 import chalk from 'chalk';
 
@@ -21,6 +21,7 @@ const readXMLFile = function (filePath: any) {
       return await parser.parseStringPromise(xml);
     } catch (err: any) {
       console.log(chalk.red(`Error parsing XML: ${err.message}`));
+      return null;
     }
   };        
   const writeFileAsync = async function (filePath: any, data: any, tabSpaces: any) {
