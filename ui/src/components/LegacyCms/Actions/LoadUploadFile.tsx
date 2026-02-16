@@ -141,38 +141,47 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      // Preserve existing file_details from Redux when validation fails,
+      // since the API response may not include file_details on error.
+      const existingFileDetails = newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details;
+      const responseFileDetails = data?.file_details;
+      const isSuccess = status === 200;
+
       const newMigrationDataObj: INewMigration = {
         ...newMigrationDataRef?.current,
         legacy_cms: {
           ...newMigrationDataRef?.current?.legacy_cms,
           uploadedFile: {
             ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile,
-            name: data?.file_details?.localPath || '',
-            url: data?.file_details?.localPath,
+            name: isSuccess ? (responseFileDetails?.localPath || '') : (newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.name || ''),
+            url: isSuccess ? responseFileDetails?.localPath : (newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.url || ''),
             validation: data?.message,
-            isValidated: status == 200 ? true : false,
+            isValidated: isSuccess,
             reValidate: false,
-            file_details: {
-              isLocalPath: data?.file_details?.isLocalPath,
-              cmsType: data?.file_details?.cmsType,
-              localPath: data?.file_details?.localPath,
+            file_details: isSuccess ? {
+              isLocalPath: responseFileDetails?.isLocalPath,
+              cmsType: responseFileDetails?.cmsType,
+              localPath: responseFileDetails?.localPath,
               awsData: {
-                awsRegion: data?.file_details?.awsData?.awsRegion,
-                bucketName: data?.file_details?.awsData?.bucketName,
-                bucketKey: data?.file_details?.awsData?.bucketKey
+                awsRegion: responseFileDetails?.awsData?.awsRegion,
+                bucketName: responseFileDetails?.awsData?.bucketName,
+                bucketKey: responseFileDetails?.awsData?.bucketKey
               },
               mySQLDetails: {
-                host: data?.file_details?.mySQLDetails?.host,
-                user: data?.file_details?.mySQLDetails?.user,
-                database: data?.file_details?.mySQLDetails?.database,
-                port: data?.file_details?.mySQLDetails?.port
+                host: responseFileDetails?.mySQLDetails?.host,
+                user: responseFileDetails?.mySQLDetails?.user,
+                database: responseFileDetails?.mySQLDetails?.database,
+                port: responseFileDetails?.mySQLDetails?.port
               },
               assetsConfig: {
-                base_url: data?.file_details?.assetsConfig?.base_url,
-                public_path: data?.file_details?.assetsConfig?.public_path
+                base_url: responseFileDetails?.assetsConfig?.base_url,
+                public_path: responseFileDetails?.assetsConfig?.public_path
               }
+            } : {
+              // On failure, preserve existing file_details so UI doesn't lose filled data
+              ...existingFileDetails
             },
-            cmsType: data?.cmsType
+            cmsType: isSuccess ? data?.cmsType : (newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.cmsType || '')
           }
         }
       };
