@@ -136,6 +136,9 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
         finalSelectedCard = DEFAULT_CMS_TYPE;
       }
       
+      // Merge config data with existing Redux file_details, preserving
+      // non-empty existing values when config returns empty/undefined.
+      const existingFileDetails = newMigrationData?.legacy_cms?.uploadedFile?.file_details;
       const newMigrationDataObj = {
         ...newMigrationData,
         legacy_cms: {
@@ -146,12 +149,12 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
           uploadedFile: {
             ...newMigrationData?.legacy_cms?.uploadedFile,
             file_details: {
-              ...newMigrationData?.legacy_cms?.uploadedFile?.file_details,
-              mySQLDetails: data?.mysql, // Store mysql as mySQLDetails
-              assetsConfig: data?.assetsConfig, // Store assetsConfig
-              cmsType: data?.cmsType,
-              localPath: data?.localPath,
-              awsData: data?.awsData
+              ...existingFileDetails,
+              mySQLDetails: data?.mysql || existingFileDetails?.mySQLDetails, // Preserve existing if config is empty
+              assetsConfig: data?.assetsConfig || existingFileDetails?.assetsConfig,
+              cmsType: data?.cmsType || existingFileDetails?.cmsType,
+              localPath: data?.localPath || existingFileDetails?.localPath,
+              awsData: data?.awsData || existingFileDetails?.awsData
             }
           }
         }
