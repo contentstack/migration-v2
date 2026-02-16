@@ -7,17 +7,12 @@
     "@contentstack/venus-components": "^3.0.3",
     "@reduxjs/toolkit": "^2.8.2",
     "@testing-library/jest-dom": "^6.0.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
     "@types/react": "^18.3.21",
     "@types/react-dom": "^18.2.13",
     "@types/react-redux": "^7.1.33",
     "axios": "^1.13.5",
-    "bootstrap": "^5.3.6",
-    "chokidar": "^3.6.0",
     "final-form": "^4.20.10",
     "html-react-parser": "^4.2.9",
-    "js-yaml": "^4.1.1",
     "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -28,7 +23,6 @@
     "react-scripts": "^5.0.1",
     "redux-persist": "^6.0.0",
     "sass": "^1.68.0",
-    "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
@@ -46,12 +40,11 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@types/css-modules": "^1.0.4",
     "babel-preset-react-app": "^10.0.1",
+    "prettier": "^3.3.3",
     "eslint": "^8.51.0",
     "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "prettier": "^3.3.3"
+    "eslint-plugin-react-hooks": "^4.6.0"
   },
   "eslintConfig": {
     "extends": [
@@ -75,6 +68,7 @@
     "nth-check": ">=2.0.1",
     "postcss": ">=8.4.31",
     "serialize-javascript": ">=6.0.2",
-    "@babel/runtime": ">=7.26.10"
+    "@babel/runtime": ">=7.26.10",
+    "webpack-dev-server": "^4.15.2"
   }
 }

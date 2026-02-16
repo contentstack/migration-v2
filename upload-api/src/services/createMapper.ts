@@ -103,7 +103,7 @@ const createMapper = async (
     }
 
     case 'wordpress': {
-      return createWordpressMapper(filePath, projectId, app_token, affix);
+      return createWordpressMapper(filePath, projectId, app_token, affix, config);
     }
 
     case 'aem': {

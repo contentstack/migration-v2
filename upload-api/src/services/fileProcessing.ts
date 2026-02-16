@@ -4,7 +4,6 @@ import JSZip from 'jszip';
 import validator from '../validators';
 import config from '../config/index';
 import logger from '../utils/logger.js';
-import * as Cheerio from 'cheerio';
 
 const handleFileProcessing = async (
   fileExt: string,
@@ -42,9 +41,10 @@ const handleFileProcessing = async (
     }
   } else if (fileExt === 'xml' && (cmsType === 'wordpress' || cmsType === 'drupal')) {
     if (await validator({ data: zipBuffer, type: cmsType, extension: fileExt })) {
-      const $ = Cheerio.load(zipBuffer, { xmlMode: true });
-      const fixedXml = $.xml();
-      const parsedJson = await parseXmlToJson(fixedXml);
+      // Convert buffer to string without Cheerio processing to preserve WordPress content
+      const xmlString = Buffer.from(zipBuffer).toString('utf8');
+      const parsedJson = await parseXmlToJson(xmlString);
+
       const isSaved = await saveJson(parsedJson, `${name}.json`);
       if (isSaved) {
         logger.info('Validation success:', {

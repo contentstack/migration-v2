@@ -45,4 +45,4 @@ const restrictedUid = [
   'publish_details'
 ];
 
-module.exports = restrictedUid;
+export default restrictedUid;

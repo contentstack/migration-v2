@@ -389,7 +389,22 @@ const Migration = () => {
           isValidated: projectData?.legacy_cms?.is_fileValid,
           reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
           buttonClicked: newMigrationData?.legacy_cms?.uploadedFile?.buttonClicked ? true : false,
-        } : uploadObj,
+        } : {
+          // uploadObj (from getFileInfo) already merges existing Redux uploadedFile with config.
+          // For file_details, prefer non-empty config values, fall back to existing Redux values.
+          ...uploadObj,
+          file_details: {
+            ...newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details,
+            isLocalPath: uploadObj?.file_details?.isLocalPath ?? newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.isLocalPath,
+            cmsType: uploadObj?.file_details?.cmsType || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.cmsType,
+            localPath: uploadObj?.file_details?.localPath || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.localPath,
+            awsData: {
+              awsRegion: uploadObj?.file_details?.awsData?.awsRegion || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
+              bucketName: uploadObj?.file_details?.awsData?.bucketName || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
+              bucketKey: uploadObj?.file_details?.awsData?.bucketKey || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketKey,
+            }
+          }
+        },
         isFileFormatCheckboxChecked: true,
         isRestictedKeywordCheckboxChecked: true,
         projectStatus: projectData?.status,
