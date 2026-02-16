@@ -315,24 +315,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             return searchEle;
         }
         break;
-         
-        case 'core/site-logo': {
-            const buttonUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
-            const button = await processAttributes(key, buttonUid, fieldName, affix);
-            button.push({
-                uid: buttonUid,
-                otherCmsField: getFieldName(key?.name),
-                otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
-                contentstackField: fieldName,
-                contentstackFieldUid: buttonUid,
-                contentstackFieldType: 'group',
-                backupFieldType: 'group',
-                backupFieldUid: buttonUid,
-            });
-
-            return button;
-        }
-        break;  
+           
         case 'core/button': {
             const parentName = parentFieldName ? `${parentFieldName}` :  `${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` ;
             const buttonUid = parentUid ? `${parentUid}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
