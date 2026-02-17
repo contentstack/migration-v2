@@ -6,10 +6,10 @@
     "@contentstack/json-rte-serializer": "^3.0.5",
     "@contentstack/venus-components": "^3.0.3",
     "@reduxjs/toolkit": "^2.8.2",
-    "@testing-library/jest-dom": "^6.0.0",
     "@types/react": "^18.3.21",
     "@types/react-dom": "^18.2.13",
     "@types/react-redux": "^7.1.33",
+    "@vitejs/plugin-react-swc": "^4.2.3",
     "axios": "^1.13.5",
     "final-form": "^4.20.10",
     "html-react-parser": "^4.2.9",
@@ -20,55 +20,38 @@
     "react-redux": "^9.1.2",
     "react-router": "^7.0.0",
     "react-router-dom": "^7.0.0",
-    "react-scripts": "^5.0.1",
     "redux-persist": "^6.0.0",
     "sass": "^1.68.0",
     "socket.io-client": "^4.7.5",
     "typescript": "^4.9.5",
-    "web-vitals": "^2.1.4"
+    "vite": "^7.3.1",
+    "vite-tsconfig-paths": "^6.1.1"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
+    "start": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
     "prettify": "prettier --write .",
     "lint": "eslint .",
-    "lint:fix": "eslint --fix --ext .js,.jsx,.ts,.tsx . --ignore-pattern './node_modules/' --ignore-pattern './buid/' --ignore-pattern '.eslintrc.js'",
+    "lint:fix": "eslint --fix --ext .js,.jsx,.ts,.tsx . --ignore-pattern './node_modules/' --ignore-pattern './build/' --ignore-pattern '.eslintrc.js'",
     "precommit": "npm run prettify && npm run lint:fix",
     "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "babel-preset-react-app": "^10.0.1",
-    "prettier": "^3.3.3",
     "eslint": "^8.51.0",
     "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0"
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.3.3"
   },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
+      "plugin:react/recommended",
+      "plugin:react-hooks/recommended"
     ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "overrides": {
-    "nth-check": ">=2.0.1",
-    "postcss": ">=8.4.31",
-    "serialize-javascript": ">=6.0.2",
-    "@babel/runtime": ">=7.26.10",
-    "webpack-dev-server": "^4.15.2"
+    "settings": {
+      "react": {
+        "version": "detect"
+      }
+    }
   }
 }

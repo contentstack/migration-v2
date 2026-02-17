@@ -13,6 +13,8 @@ RUN npm ci \
 
 COPY . .
 
+RUN npm run build
+
 # Ensure permissions for nodeapp user
 RUN chown -R nodeapp:nodeapp /usr/src/app
 
@@ -20,4 +22,4 @@ USER nodeapp
 
 EXPOSE 3000
 
-CMD [ "npm", "run", "start" ]
+CMD [ "npx", "vite", "preview", "--port", "3000", "--host" ]
