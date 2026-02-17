@@ -4,7 +4,7 @@ const handleTaxonomySchema = async(categories: any, allCategories : Categories[]
 
     const taxonomyArray: any[] = [];
     for(const category of categories){
-        const categoryData = allCategories && allCategories?.find((item: any) => item?.["wp:category_nicename"] === category?.attributes?.["nicename"]);
+        const categoryData = allCategories?.find((item: any) => item?.["wp:category_nicename"] === category?.attributes?.["nicename"]);
 
         if(categoryData  && !categoryData?.['wp:category_parent']){
             taxonomyArray?.push(
@@ -17,7 +17,7 @@ const handleTaxonomySchema = async(categories: any, allCategories : Categories[]
                
             )
         } else if(categoryData?.['wp:category_parent']) {
-            const parentCategory = allCategories && allCategories?.find((category: any) => category?.["wp:category_nicename"] === categoryData?.['wp:category_parent']);
+            const parentCategory = allCategories?.find((category: any) => category?.["wp:category_nicename"] === categoryData?.['wp:category_parent']);
             taxonomyArray?.push({
                 "taxonomy_uid": `${parentCategory?.["wp:category_nicename"]}_${parentCategory?.["wp:term_id"]}`,
                 "mandatory": false,
