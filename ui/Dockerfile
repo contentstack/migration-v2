@@ -13,8 +13,6 @@ RUN npm ci \
 
 COPY . .
 
-RUN npm run build
-
 # Ensure permissions for nodeapp user
 RUN chown -R nodeapp:nodeapp /usr/src/app
 
@@ -22,4 +20,5 @@ USER nodeapp
 
 EXPOSE 3000
 
-CMD [ "npx", "vite", "preview", "--port", "3000", "--host" ]
+# Build at container startup so VITE_* env vars from docker-compose
+CMD [ "sh", "-c", "npm run build && npx vite preview --port 3000 --host" ]
