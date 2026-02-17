@@ -382,7 +382,7 @@ const TestMigration = () => {
         <div className="content-header">Execution Logs</div>
         <div>
           <TestMigrationLogViewer
-            serverPath={process.env.REACT_APP_BASE_API_URL ?? ''}
+            serverPath={import.meta.env.VITE_BASE_API_URL ?? ''}
             sendDataToParent={handleMigrationState}
             projectId={projectId}
           />

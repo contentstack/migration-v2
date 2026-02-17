@@ -516,7 +516,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
    * @returns A debounced version of the function
    */
   const debounce = (fn: (...args: any[]) => any, delay: number | undefined) => {
-    let timeoutId: string | number | NodeJS.Timeout | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     return (...args: any[]) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => fn(...args), delay);

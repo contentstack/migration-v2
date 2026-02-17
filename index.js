@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const apiEnvContent = `APP_TOKEN_KEY=MIGRATION_V2\nPORT=5001\n`;
-const uiEnvContent = `REACT_APP_WEBSITE_BASE_URL="http://localhost:3000/"\nREACT_APP_BASE_API_URL="http://localhost:5001/"\nREACT_APP_API_VERSION=v2\nREACT_APP_HOST="http://localhost:3000"\nREACT_APP_UPLOAD_SERVER="http://localhost:4002/"\nREACT_APP_OFFLINE_CMS=true\n`;
+const uiEnvContent = `VITE_WEBSITE_BASE_URL="http://localhost:3000/"\nVITE_BASE_API_URL="http://localhost:5001/"\nVITE_API_VERSION=v2\nVITE_HOST="http://localhost:3000"\nVITE_UPLOAD_SERVER="http://localhost:4002/"\nVITE_OFFLINE_CMS=true\n`;
 const uploadAPIEnvContent = `PORT=4002\nNODE_BACKEND_API=http://localhost:5001\n`;
 
 const envFilePaths = {
