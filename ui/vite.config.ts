@@ -1,5 +1,4 @@
-import { createLogger } from 'vite';
-import { defineConfig } from 'vitest/config';
+import { createLogger, defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
@@ -21,11 +20,6 @@ export default defineConfig({
   },
   build: {
     outDir: 'build'
-  },
-  test: {
-    globals: true,
-    environment: 'node',
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
   },
   css: {
     preprocessorOptions: {

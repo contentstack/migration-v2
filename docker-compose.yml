@@ -67,8 +67,8 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - VITE_BASE_API_URL=${VITE_BASE_API_URL:-http://localhost:5001/}
-      - VITE_UPLOAD_SERVER=${VITE_UPLOAD_SERVER:-http://localhost:4002/}
+      - VITE_BASE_API_URL=${VITE_BASE_API_URL:-http://localhost:5001}
+      - VITE_UPLOAD_SERVER=${VITE_UPLOAD_SERVER:-http://localhost:4002}
     networks:
       - migration-network
     security_opt:
