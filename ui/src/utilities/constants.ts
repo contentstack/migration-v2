@@ -1,11 +1,11 @@
 import { ObjectType } from './constants.interface';
-export const BASE_API_URL = process.env.REACT_APP_BASE_API_URL;
+export const BASE_API_URL = import.meta.env.VITE_BASE_API_URL;
 export const assetsRelativeUrl = 'v3/assets';
-export const WEBSITE_BASE_URL = process.env.REACT_APP_WEBSITE_BASE_URL;
+export const WEBSITE_BASE_URL = import.meta.env.VITE_WEBSITE_BASE_URL;
 export const TOKEN_KEY = 'access_token';
 export const TOKEN = localStorage.getItem(TOKEN_KEY);
 
-export const API_VERSION = process.env.REACT_APP_API_VERSION ?? 'v2';
+export const API_VERSION = import.meta.env.VITE_API_VERSION ?? 'v2';
 
 export const AUTH_ROUTES = `${API_VERSION}/auth`;
 
@@ -73,7 +73,7 @@ export const CS_ENTRIES = {
   UNMAPPED_LOCALE_KEY: 'undefined'
 };
 
-export const UPLOAD_FILE_RELATIVE_URL = process.env.REACT_APP_UPLOAD_SERVER;
+export const UPLOAD_FILE_RELATIVE_URL = import.meta.env.VITE_UPLOAD_SERVER;
 
 export const UPLOAD_FILE_URL = `${UPLOAD_FILE_RELATIVE_URL}upload`;
 
@@ -97,8 +97,8 @@ export const NEW_PROJECT_STATUS: ObjectType = {
   '6': 'Failed'
 };
 
-export const isOfflineCMSDataRequired = process.env.REACT_APP_OFFLINE_CMS
-  ? process.env.REACT_APP_OFFLINE_CMS
+export const isOfflineCMSDataRequired = import.meta.env.VITE_OFFLINE_CMS
+  ? import.meta.env.VITE_OFFLINE_CMS
   : true;
 
 export const CONTENT_MAPPING_STATUS: ObjectType = {

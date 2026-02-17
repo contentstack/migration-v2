@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "for d in migration-*; do npm --prefix $d run build; done && tsc",
+    "build": "for d in migration-*; do [ -f \"$d/package.json\" ] && npm --prefix $d run build; done && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npm run build &&tsc && node build/index.js",
     "startNew": "tsc && node build/index.js",
