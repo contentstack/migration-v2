@@ -160,29 +160,24 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
         }
       }
 
-      if (blockSchema.length > 0) {
-        blocks.push({
-          title: blockRawUid,  // Keep original for title
-          uid: blockUid,       // Snake case for uid
-          schema: removeDuplicateFields(blockSchema)
-        });
-      }
+      blocks.push({
+        title: blockRawUid,  // Keep original for title
+        uid: blockUid,       // Snake case for uid
+        schema: removeDuplicateFields(blockSchema)
+      });
     }
 
-    if (blocks.length > 0) {
-      return {
-        data_type: "blocks",
-        display_name: item?.display_name || rawUid,  // Keep original for display
-        field_metadata: {},
-        uid: itemUid,  // Snake case uid
-        multiple: true,
-        mandatory: false,
-        unique: false,
-        non_localizable: false,
-        blocks: removeDuplicateFields(blocks)
-      };
-    }
-    return null;
+    return {
+      data_type: "blocks",
+      display_name: item?.display_name || rawUid,  // Keep original for display
+      field_metadata: {},
+      uid: itemUid,  // Snake case uid
+      multiple: true,
+      mandatory: false,
+      unique: false,
+      non_localizable: false,
+      blocks: removeDuplicateFields(blocks)
+    };
   }
 
   if (fieldType === 'group') {
@@ -316,14 +311,25 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
 
     if (hasChildren) {
       if (fieldType === 'modular_blocks') {
-        // Get modular block children
+        // Get modular block children (check both current and backup UIDs)
         const mbChildren = fields.filter(f => {
           if (!f) return false;
           const fUid = f?.contentstackFieldUid || '';
           if (!fUid || !fieldUid) return false;
-          return f?.contentstackFieldType === 'modular_blocks_child' &&
-            fUid.startsWith(fieldUid + '.') &&
-            !fUid.substring(fieldUid.length + 1).includes('.');
+          if (f?.contentstackFieldType !== 'modular_blocks_child') return false;
+
+          if (fUid.startsWith(fieldUid + '.') &&
+            !fUid.substring(fieldUid.length + 1).includes('.')) {
+            return true;
+          }
+
+          if (oldFieldUid && oldFieldUid !== fieldUid &&
+            fUid.startsWith(oldFieldUid + '.') &&
+            !fUid.substring(oldFieldUid.length + 1).includes('.')) {
+            return true;
+          }
+
+          return false;
         });
 
         result.schema = mbChildren.map(child => {
