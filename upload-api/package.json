@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "build": "for d in migration-*; do [ -f \"$d/package.json\" ] && npm --prefix $d run build; done && tsc",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "coverage:ui": "npx serve coverage -l 3939",
     "start": "npm run build &&tsc && node build/index.js",
     "startNew": "tsc && node build/index.js",
     "validation": "tsc && node build/main.js",
