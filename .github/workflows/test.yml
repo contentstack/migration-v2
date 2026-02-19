@@ -59,7 +59,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: upload-api/package-lock.json
-      - run: npm ci --legacy-peer-deps
+      - run: npm install --legacy-peer-deps
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v4
         if: always()
