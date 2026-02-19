@@ -1,0 +1,50 @@
+export const createMockProject = (overrides: Record<string, any> = {}) => ({
+  id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  region: 'NA',
+  org_id: 'org-123',
+  owner: 'user-123',
+  created_by: 'user-123',
+  updated_by: 'user-123',
+  former_owner_ids: [],
+  name: 'Test Project',
+  description: 'A test project',
+  status: 0,
+  current_step: 1,
+  destination_stack_id: '',
+  test_stacks: [],
+  current_test_stack_id: '',
+  legacy_cms: {
+    cms: '',
+    affix: '',
+    affix_confirmation: false,
+    file_format: '',
+    file_format_confirmation: false,
+    file: { id: '', name: '', size: 0, type: '', path: '' },
+    awsDetails: { awsRegion: '', bucketName: '', bucketKey: '' },
+    file_path: '',
+    is_fileValid: false,
+    is_localPath: false,
+  },
+  content_mapper: [],
+  execution_log: [],
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  isDeleted: false,
+  isNewStack: false,
+  newStackId: '',
+  stackDetails: [],
+  mapperKeys: {},
+  extract_path: '',
+  isMigrationStarted: false,
+  isMigrationCompleted: false,
+  migration_execution: false,
+  ...overrides,
+});
+
+export const createMockProjectList = (count: number = 3) =>
+  Array.from({ length: count }, (_, i) =>
+    createMockProject({
+      id: `proj-${i + 1}`,
+      name: `Project ${i + 1}`,
+    })
+  );

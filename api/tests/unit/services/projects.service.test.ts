@@ -1,0 +1,701 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createMockProject } from '../../fixtures/project.fixture.js';
+
+const {
+  mockProjectRead,
+  mockProjectUpdate,
+  mockProjectWrite,
+  mockFindValue,
+  mockFilterValue,
+  mockGetProjectUtil,
+  mockHttps,
+  mockGetAuthToken,
+  mockFindIndexValue,
+} = vi.hoisted(() => ({
+  mockProjectRead: vi.fn(),
+  mockProjectUpdate: vi.fn(),
+  mockProjectWrite: vi.fn(),
+  mockFindValue: vi.fn(),
+  mockFilterValue: vi.fn(),
+  mockGetProjectUtil: vi.fn(),
+  mockHttps: vi.fn(),
+  mockGetAuthToken: vi.fn(),
+  mockFindIndexValue: vi.fn(),
+}));
+
+vi.mock('../../../src/models/project-lowdb.js', () => ({
+  default: {
+    read: mockProjectRead,
+    update: mockProjectUpdate,
+    write: mockProjectWrite,
+    chain: {
+      get: vi.fn().mockReturnValue({
+        filter: vi.fn().mockReturnValue({ value: mockFilterValue }),
+        find: vi.fn().mockReturnValue({ value: mockFindValue }),
+        findIndex: vi.fn().mockReturnValue({ value: mockFindIndexValue }),
+      }),
+    },
+    data: { projects: [] },
+  },
+}));
+
+vi.mock('../../../src/utils/get-project.utils.js', () => ({ default: mockGetProjectUtil }));
+vi.mock('../../../src/utils/https.utils.js', () => ({ default: mockHttps }));
+vi.mock('../../../src/utils/auth.utils.js', () => ({ default: mockGetAuthToken }));
+vi.mock('../../../src/utils/logger.js', () => ({
+  default: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+}));
+vi.mock('../../../src/utils/custom-logger.utils.js', () => ({
+  default: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../../../src/config/index.js', () => ({
+  config: {
+    CS_API: { NA: 'https://api.contentstack.io/v3' },
+  },
+}));
+vi.mock('../../../src/models/contentTypesMapper-lowdb.js', () => ({
+  default: {
+    read: vi.fn().mockResolvedValue(undefined),
+    update: vi.fn(),
+    write: vi.fn(),
+    chain: {
+      get: vi.fn().mockReturnValue({
+        filter: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue([]) }),
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
+      }),
+    },
+    data: { ContentTypesMappers: [] },
+  },
+}));
+vi.mock('../../../src/models/FieldMapper.js', () => ({
+  default: {
+    read: vi.fn().mockResolvedValue(undefined),
+    update: vi.fn(),
+    write: vi.fn(),
+    chain: {
+      get: vi.fn().mockReturnValue({
+        filter: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue([]) }),
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(-1) }),
+      }),
+    },
+    data: { field_mapper: [] },
+  },
+}));
+vi.mock('../../../src/services/contentMapper.service.js', () => ({
+  contentMapperService: {
+    removeMapping: vi.fn().mockResolvedValue(undefined),
+    resetAllContentTypesMapping: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+import { projectService } from '../../../src/services/projects.service.js';
+
+const makeReq = (params: any = {}, body: any = {}) =>
+  ({ params, body } as any);
+
+const tokenPayload = { region: 'NA', user_id: 'user-123' };
+
+describe('projects.service', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockProjectRead.mockResolvedValue(undefined);
+    mockGetAuthToken.mockResolvedValue('cs-auth-token');
+  });
+
+  describe('getAllProjects', () => {
+    it('should return filtered projects', async () => {
+      const projects = [createMockProject(), createMockProject({ id: 'proj-2' })];
+      mockFilterValue.mockReturnValue(projects);
+      const result = await projectService.getAllProjects(
+        makeReq({ orgId: 'org-123' }, { token_payload: tokenPayload })
+      );
+      expect(result).toEqual(projects);
+    });
+
+    it('should throw NotFoundError when projects is null', async () => {
+      mockFilterValue.mockReturnValue(null);
+      await expect(
+        projectService.getAllProjects(makeReq({ orgId: 'org-123' }, { token_payload: tokenPayload }))
+      ).rejects.toThrow();
+    });
+
+    it('should return empty array when no projects match', async () => {
+      mockFilterValue.mockReturnValue([]);
+      const result = await projectService.getAllProjects(
+        makeReq({ orgId: 'org-123' }, { token_payload: tokenPayload })
+      );
+      expect(result).toEqual([]);
+    });
+
+    it('should throw BadRequestError when orgId is missing', async () => {
+      await expect(
+        projectService.getAllProjects(makeReq({}, { token_payload: tokenPayload }))
+      ).rejects.toThrow('Organization ID is required');
+    });
+
+    it('should throw BadRequestError when token_payload is missing', async () => {
+      await expect(
+        projectService.getAllProjects(makeReq({ orgId: 'org-123' }, {}))
+      ).rejects.toThrow('Token payload is required');
+    });
+  });
+
+  describe('getProject', () => {
+    it('should return project by ID', async () => {
+      const project = createMockProject();
+      mockGetProjectUtil.mockResolvedValue(project);
+      const result = await projectService.getProject(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result).toEqual(project);
+    });
+
+    it('should throw BadRequestError when params missing', async () => {
+      await expect(
+        projectService.getProject(makeReq({}, { token_payload: tokenPayload }))
+      ).rejects.toThrow('Organization ID and Project ID are required');
+    });
+  });
+
+  describe('createProject', () => {
+    it('should create project and return success', async () => {
+      mockProjectUpdate.mockImplementation((fn: any) => {
+        const data = { projects: [] };
+        fn(data);
+        return data;
+      });
+      const result = await projectService.createProject(
+        makeReq({ orgId: 'org-123' }, { token_payload: tokenPayload, name: 'New', description: 'Desc' })
+      );
+      expect(result.status).toBe('success');
+      expect(result.project.name).toBe('New');
+    });
+
+    it('should throw BadRequestError when name is missing', async () => {
+      await expect(
+        projectService.createProject(makeReq({ orgId: 'org-123' }, { token_payload: tokenPayload }))
+      ).rejects.toThrow('Project name is required');
+    });
+  });
+
+  describe('updateProject', () => {
+    it('should update project and return success', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject();
+      mockProjectUpdate.mockImplementation(async (fn: any) => {
+        const data = { projects: [project] };
+        fn(data);
+      });
+      const result = await projectService.updateProject(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, name: 'Updated', description: 'Updated desc' }
+        )
+      );
+      expect(result.status).toBe('success');
+    });
+  });
+
+  describe('updateLegacyCMS', () => {
+    it('should update legacy CMS successfully', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 0, legacy_cms: {} });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateLegacyCMS(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, legacy_cms: 'wordpress' }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should throw BadRequestError when project status is migration completed', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 5 });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+
+      await expect(
+        projectService.updateLegacyCMS(
+          makeReq(
+            { orgId: 'org-123', projectId: project.id },
+            { token_payload: tokenPayload, legacy_cms: 'wordpress' }
+          )
+        )
+      ).rejects.toThrow();
+    });
+
+    it('should throw BadRequestError when legacy_cms is missing', async () => {
+      await expect(
+        projectService.updateLegacyCMS(
+          makeReq({ orgId: 'org-123', projectId: 'p1' }, { token_payload: tokenPayload })
+        )
+      ).rejects.toThrow('Legacy CMS data is required');
+    });
+  });
+
+  describe('updateAffix', () => {
+    it('should update affix successfully', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject();
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateAffix(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, affix: 'pre' }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should throw BadRequestError when affix is empty', async () => {
+      await expect(
+        projectService.updateAffix(
+          makeReq({ orgId: 'org-123', projectId: 'p1' }, { token_payload: tokenPayload, affix: '' })
+        )
+      ).rejects.toThrow('Affix is required');
+    });
+  });
+
+  describe('affixConfirmation', () => {
+    it('should update affix confirmation', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject();
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.affixConfirmation(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, affix_confirmation: true }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+  });
+
+  describe('updateFileFormat', () => {
+    it('should update file format successfully', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 0, legacy_cms: {} });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateFileFormat(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, file_format: 'json', file_path: '/path', is_localPath: true, is_fileValid: true }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should update file format with awsDetails', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 0, legacy_cms: {} });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateFileFormat(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          {
+            token_payload: tokenPayload,
+            file_format: 'json',
+            file_path: '/path',
+            is_localPath: false,
+            is_fileValid: true,
+            awsDetails: { awsRegion: 'us-east-1', bucketName: 'bucket', bucketKey: 'key' },
+          }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should throw when project status is migration completed', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 5 });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+
+      await expect(
+        projectService.updateFileFormat(
+          makeReq(
+            { orgId: 'org-123', projectId: project.id },
+            { token_payload: tokenPayload, file_format: 'json' }
+          )
+        )
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('fileformatConfirmation', () => {
+    it('should update fileformat confirmation', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject();
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.fileformatConfirmation(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, fileformat_confirmation: true }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should skip update when fileformat_confirmation is undefined', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const result = await projectService.fileformatConfirmation(
+        makeReq(
+          { orgId: 'org-123', projectId: 'p1' },
+          { token_payload: tokenPayload }
+        )
+      );
+      expect(result.status).toBe(200);
+      expect(mockProjectUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateDestinationStack', () => {
+    it('should update destination stack when stack is found', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 0, current_step: 2 });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockHttps.mockResolvedValue({
+        data: { stacks: [{ api_key: 'stack-key' }] },
+        status: 200,
+      });
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateDestinationStack(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, stack_api_key: 'stack-key' }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should throw when stack not found in org stacks', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 0, current_step: 2 });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockHttps.mockResolvedValue({
+        data: { stacks: [{ api_key: 'other-stack' }] },
+        status: 200,
+      });
+
+      await expect(
+        projectService.updateDestinationStack(
+          makeReq(
+            { orgId: 'org-123', projectId: project.id },
+            { token_payload: tokenPayload, stack_api_key: 'stack-key' }
+          )
+        )
+      ).rejects.toThrow();
+    });
+
+    it('should throw when project status blocks update', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 5, current_step: 2 });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+
+      await expect(
+        projectService.updateDestinationStack(
+          makeReq(
+            { orgId: 'org-123', projectId: project.id },
+            { token_payload: tokenPayload, stack_api_key: 'stack-key' }
+          )
+        )
+      ).rejects.toThrow();
+    });
+
+    it('should return error when CS API fails', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 0, current_step: 2 });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockHttps.mockRejectedValue({ response: { data: 'error', status: 500 } });
+
+      const result = await projectService.updateDestinationStack(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, stack_api_key: 'stack-key' }
+        )
+      );
+      expect(result.status).toBe(500);
+    });
+  });
+
+  describe('updateCurrentStep', () => {
+    it('should advance from LEGACY_CMS to DESTINATION_STACK', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({
+        status: 0,
+        current_step: 1,
+        legacy_cms: { cms: 'wordpress', file_format: 'json' },
+      });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateCurrentStep(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should advance from DESTINATION_STACK to CONTENT_MAPPING', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({
+        status: 0,
+        current_step: 2,
+        legacy_cms: { cms: 'wordpress', file_format: 'json' },
+        destination_stack_id: 'stack-1',
+      });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateCurrentStep(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should advance from CONTENT_MAPPING to TESTING', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({
+        status: 3,
+        current_step: 3,
+        legacy_cms: { cms: 'wordpress', file_format: 'json' },
+        destination_stack_id: 'stack-1',
+        content_mapper: ['ct-1'],
+      });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateCurrentStep(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should advance from TESTING to MIGRATION', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({
+        status: 4,
+        current_step: 4,
+        legacy_cms: { cms: 'wordpress', file_format: 'json' },
+        destination_stack_id: 'stack-1',
+        content_mapper: ['ct-1'],
+        current_test_stack_id: 'test-stack-1',
+        migration_execution: true,
+      });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateCurrentStep(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should complete MIGRATION step', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({
+        status: 4,
+        current_step: 5,
+        legacy_cms: { cms: 'wordpress', file_format: 'json' },
+        destination_stack_id: 'stack-1',
+        content_mapper: ['ct-1'],
+        current_test_stack_id: 'test-stack-1',
+        isMigrationCompleted: true,
+      });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateCurrentStep(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('should throw when LEGACY_CMS step is incomplete', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject({ status: 0, current_step: 1, legacy_cms: {} });
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+
+      await expect(
+        projectService.updateCurrentStep(
+          makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+        )
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('deleteProject', () => {
+    it('should soft delete project when status is not completed', async () => {
+      const project = createMockProject({ status: 0 });
+      mockGetProjectUtil.mockResolvedValue(0);
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.deleteProject(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should hard delete project with content mappers when status is 5', async () => {
+      const project = createMockProject({ status: 5, content_mapper: ['ct-1'] });
+      mockGetProjectUtil.mockResolvedValue(0);
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+
+      const ctMock = await import('../../../src/models/contentTypesMapper-lowdb.js');
+      (ctMock.default as any).chain.get.mockReturnValue({
+        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue({ id: 'ct-1', fieldMapping: [] }) }),
+        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      });
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.deleteProject(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result.status).toBe(200);
+    });
+  });
+
+  describe('revertProject', () => {
+    it('should set isDeleted to false', async () => {
+      const project = createMockProject({ isDeleted: true });
+      mockGetProjectUtil.mockResolvedValue(0);
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [project] };
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.revertProject(
+        makeReq({ orgId: 'org-123', projectId: project.id }, { token_payload: tokenPayload })
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should throw NotFoundError when project not found', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [undefined] };
+
+      await expect(
+        projectService.revertProject(
+          makeReq({ orgId: 'org-123', projectId: 'p1' }, { token_payload: tokenPayload })
+        )
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('updateStackDetails', () => {
+    it('should update stack details successfully', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject();
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateStackDetails(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, stack_details: { uid: 's1', label: 'Stack' } }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+  });
+
+  describe('updateContentMapper', () => {
+    it('should update content mapper keys', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject();
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateContentMapper(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload, content_mapper: { key: 'value' } }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+  });
+
+  describe('updateMigrationExecution', () => {
+    it('should set migration_execution to true', async () => {
+      mockGetProjectUtil.mockResolvedValue(0);
+      const project = createMockProject();
+      mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
+
+      const result = await projectService.updateMigrationExecution(
+        makeReq(
+          { orgId: 'org-123', projectId: project.id },
+          { token_payload: tokenPayload }
+        )
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('should throw BadRequestError when params missing', async () => {
+      await expect(
+        projectService.updateMigrationExecution(makeReq({}, { token_payload: tokenPayload }))
+      ).rejects.toThrow('Organization ID and Project ID are required');
+    });
+  });
+
+  describe('getMigratedStacks', () => {
+    it('should return destination stacks of completed projects', async () => {
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = {
+        projects: [
+          { status: 5, current_step: 5, destination_stack_id: 'stack-1' },
+          { status: 0, current_step: 1, destination_stack_id: '' },
+        ],
+      };
+
+      const result = await projectService.getMigratedStacks(
+        makeReq({}, { token_payload: tokenPayload })
+      );
+      expect(result.status).toBe(200);
+      expect(result.destinationStacks).toEqual(['stack-1']);
+    });
+
+    it('should return empty array when no completed projects', async () => {
+      const mockModel = await import('../../../src/models/project-lowdb.js');
+      (mockModel.default as any).data = { projects: [] };
+
+      const result = await projectService.getMigratedStacks(
+        makeReq({}, { token_payload: tokenPayload })
+      );
+      expect(result.destinationStacks).toEqual([]);
+    });
+
+    it('should throw BadRequestError when token_payload missing', async () => {
+      await expect(
+        projectService.getMigratedStacks(makeReq({}, {}))
+      ).rejects.toThrow('Token payload is required');
+    });
+  });
+});
