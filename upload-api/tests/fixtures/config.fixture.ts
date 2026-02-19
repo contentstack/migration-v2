@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 export const createMockConfig = (overrides: Record<string, any> = {}) => ({
   plan: { dropdown: { optionLimit: 100 } },
   cmsType: 'wordpress',
