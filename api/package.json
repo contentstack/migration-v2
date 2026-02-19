@@ -11,7 +11,13 @@
     "windev": "SET NODE_ENV=production&& tsx watch ./src/server.ts",
     "winstart": "SET NODE_ENV=production&& node dist/server.js",
     "lint:fix": "eslint --ext .ts --ignore-pattern './node_modules/' --ignore-pattern './dist/'",
-    "precommit": "npm run prettify && npm run lint:fix"
+    "precommit": "npm run prettify && npm run lint:fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "coverage:ui": "npx serve coverage -l 3939"
   },
   "type": "module",
   "repository": {
@@ -67,17 +73,21 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/lodash": "^4.17.0",
     "@types/node": "^20.10.4",
+    "@types/supertest": "^6.0.3",
     "@types/uuid": "^9.0.8",
     "@types/wordpress__block-library": "^2.6.3",
     "@types/wordpress__block-serialization-spec-parser": "^3.1.3",
     "@types/wordpress__blocks": "^12.5.18",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^8.3.0",
     "prettier": "^2.4.1",
+    "supertest": "^7.2.2",
     "tsx": "^4.7.1",
-    "typescript": "^5.4.3"
+    "typescript": "^5.4.3",
+    "vitest": "^4.0.18"
   },
   "overrides": {
     "qs": ">=6.14.2",
