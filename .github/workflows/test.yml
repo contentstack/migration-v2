@@ -46,3 +46,23 @@ jobs:
         with:
           name: ui-coverage-report
           path: ui/coverage/
+
+  test-upload-api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: upload-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: upload-api/package-lock.json
+      - run: npm ci
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upload-api-coverage-report
+          path: upload-api/coverage/

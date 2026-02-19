@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "build": "for d in migration-*; do [ -f \"$d/package.json\" ] && npm --prefix $d run build; done && tsc",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "coverage:ui": "npx serve coverage -l 3939",
     "start": "npm run build &&tsc && node build/index.js",
     "startNew": "tsc && node build/index.js",
     "validation": "tsc && node build/main.js",
@@ -31,13 +34,15 @@
     "@types/wordpress__blocks": "^12.5.18",
     "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
     "nodemon": "^3.1.10",
     "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.985.0",
