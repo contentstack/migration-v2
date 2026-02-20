@@ -942,7 +942,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                   )}
                 </>
               )}
-              {props?.fieldtype !== 'Global Field' && props?.fieldtype !== 'Boolean' && (
+              {props?.fieldtype !== 'Global Field' && props?.fieldtype !== 'Boolean' && props?.fieldtype !== 'Taxonomy' && (
                 <div className="ToggleWrap">
                   <ToggleSwitch
                     label="Mandatory"

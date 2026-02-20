@@ -306,9 +306,9 @@ const AddStack = (props: any): JSX.Element => {
                         buttonType="primary"
                         name="submit"
                         type="submit"
-                        loading={isProcessing}
+                        isLoading={isProcessing}
                       >
-                        {addStackCMSData?.primary_cta?.title}
+                        {addStackCMSData?.primary_cta?.title || 'Create'}
                       </Button>
                     </ButtonGroup>
                   </ModalFooter>

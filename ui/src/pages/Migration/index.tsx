@@ -309,7 +309,7 @@ const Migration = () => {
       ? legacyCmsData?.all_cms?.find(
           (cms: ICMSType) => cms?.cms_id === projectData?.legacy_cms?.cms
         )
-      : undefined;
+      : DEFAULT_CMS_TYPE;
 
     // Look up CMS by config's cmsType (same parent-matching logic as LoadSelectCms.filterCMSData)
     const configCmsData: ICMSType | undefined = (configCmsType && validateArray(legacyCmsData?.all_cms))
@@ -321,9 +321,7 @@ const Migration = () => {
     // Use stored CMS if its parent matches config's cmsType (preserves specific version like "Sitecore v9").
     // Otherwise, config takes precedence (CMS type was changed in config).
     const selectedCmsData: ICMSType =
-      (storedCmsData && storedCmsData?.parent?.toLowerCase() === configCmsType)
-        ? storedCmsData
-        : (configCmsData ?? storedCmsData ?? DEFAULT_CMS_TYPE);
+      storedCmsData ?? DEFAULT_CMS_TYPE;
 
     const selectedFileFormatData: ICardType | undefined = validateArray(
       selectedCmsData?.allowed_file_formats

@@ -20,4 +20,5 @@ USER nodeapp
 
 EXPOSE 3000
 
-CMD [ "npm", "run", "start" ]
+# Build at container startup so VITE_* env vars from docker-compose
+CMD [ "sh", "-c", "npm run build && npx vite preview --port 3000 --host" ]
