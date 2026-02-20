@@ -121,7 +121,7 @@ export const VALIDATION_DOCUMENTATION_URL: { [key: string]: string } = {
   contentful:
     'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/bltb14c2df7c5e202ba/67ee3fcdb509b76f5f308ac4/contentful.pdf',
   wordpress: '',
-  drupal: '',
+  drupal: 'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/blt1baa953e3e9496ea/6996abbaab60c900082f2477/Drupal.pdf',
   aem: 'https://assets.contentstack.io/v3/assets/bltc09cefc19ddf033f/blt3df735914488e75d/AEM%20Data%20Requirements.pdf'
 };
 
