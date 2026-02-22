@@ -442,7 +442,7 @@ const getExistingContentTypes = async (req: Request) => {
     let selectedContentType = null;
 
     if (contentTypeUID) {
-      const [res] = await safePromise(
+      const [err, res] = await safePromise(
         https({
           method: 'GET',
           url: `${baseUrl}/${contentTypeUID}`,
@@ -450,11 +450,13 @@ const getExistingContentTypes = async (req: Request) => {
         }),
       );
 
-      selectedContentType = {
-        title: res?.data?.content_type?.title,
-        uid: res?.data?.content_type?.uid,
-        schema: res?.data?.content_type?.schema,
-      };
+      if (!err) {
+        selectedContentType = {
+          title: res?.data?.content_type?.title,
+          uid: res?.data?.content_type?.uid,
+          schema: res?.data?.content_type?.schema,
+        };
+      }
     }
     return {
       contentTypes: processedContentTypes,
@@ -549,7 +551,7 @@ const getExistingGlobalFields = async (req: Request) => {
     let selectedGlobalField = null;
 
     if (globalFieldUID) {
-      const [res] = await safePromise(
+      const [err, res] = await safePromise(
         https({
           method: 'GET',
           url: `${baseUrl}/${globalFieldUID}`,
@@ -557,19 +559,13 @@ const getExistingGlobalFields = async (req: Request) => {
         }),
       );
 
-      // if (err) {
-      //   throw new Error(
-      //     `Error fetching selected global field: ${
-      //       err.response?.data || err.message
-      //     }`
-      //   );
-      // }
-
-      selectedGlobalField = {
-        title: res?.data?.global_field?.title,
-        uid: res?.data?.global_field?.uid,
-        schema: res?.data?.global_field?.schema,
-      };
+      if (!err) {
+        selectedGlobalField = {
+          title: res?.data?.global_field?.title,
+          uid: res?.data?.global_field?.uid,
+          schema: res?.data?.global_field?.schema,
+        };
+      }
     }
 
     return { globalFields: processedGlobalFields, selectedGlobalField };
