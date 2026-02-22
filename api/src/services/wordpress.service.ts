@@ -559,6 +559,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           entryData[uid]['tags'] = tags?.map((tag: any) => tag?.text);
           entryData[uid]['author'] = authorData;
           entryData[uid]['locale'] = locale;
+          entryData[uid]['publish_details'] = [];
           
             
           
