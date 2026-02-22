@@ -694,6 +694,65 @@ const ContentMapper = forwardRef(
             }
             checkAndUpdateField(item, value, key);
           }
+
+          // Modular blocks mapping
+          if (schema?.data_type === 'blocks' && schema?.blocks) {
+            schema?.blocks?.forEach((block) => {
+              const blockTitle = block?.uid || block?.display_name;
+              const blockDisplayName = `${schema?.display_name} > ${blockTitle}`;
+
+              // Modular block child
+              if (row?.contentstackField === blockDisplayName) {
+                if (!isFieldDeleted) {
+                  if (!updatedSelectedOptions?.includes?.(blockDisplayName)) {
+                    updatedSelectedOptions.push(blockDisplayName);
+                  }
+                  updatedExstingField[row?.backupFieldUid] = {
+                    label: blockDisplayName,
+                    value: block
+                  };
+                }
+              }
+
+              // Fields within modular block child
+              if (block?.schema) {
+                block?.schema?.forEach((blockField) => {
+                  const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
+
+                  if (row?.contentstackField === fieldDisplayName) {
+                    if (!isFieldDeleted) {
+                      if (!updatedSelectedOptions?.includes?.(fieldDisplayName)) {
+                        updatedSelectedOptions.push(fieldDisplayName);
+                      }
+                      updatedExstingField[row?.backupFieldUid] = {
+                        label: fieldDisplayName,
+                        value: blockField
+                      };
+                    }
+                  }
+
+                  // Nested group within modular block child field
+                  if (blockField?.schema) {
+                    blockField?.schema?.forEach((nestedField) => {
+                      const nestedDisplayName = `${fieldDisplayName} > ${nestedField?.display_name}`;
+
+                      if (row?.contentstackField === nestedDisplayName) {
+                        if (!isFieldDeleted) {
+                          if (!updatedSelectedOptions?.includes?.(nestedDisplayName)) {
+                            updatedSelectedOptions.push(nestedDisplayName);
+                          }
+                          updatedExstingField[row?.backupFieldUid] = {
+                            label: nestedDisplayName,
+                            value: nestedField
+                          };
+                        }
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
         });
 
         if (
