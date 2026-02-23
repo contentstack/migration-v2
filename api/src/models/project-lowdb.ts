@@ -70,10 +70,10 @@ interface Project {
   migration_execution: boolean;
   iteration: number;
   taxonomies?: any[];
-  iteration: number;
+  isSSO: boolean;
 }
 
-interface ProjectDocument {
+interface  ProjectDocument {
   projects: Project[];
 }
 

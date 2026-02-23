@@ -8,7 +8,7 @@ import { config } from '../config/index.js';
 import { safePromise, getLogMessage } from '../utils/index.js';
 import https from '../utils/https.utils.js';
 import { LoginServiceType } from '../models/types.js';
-import getAuthtoken from '../utils/auth.utils.js';
+import getAuthtoken, { getAccessToken } from '../utils/auth.utils.js';
 import logger from '../utils/logger.js';
 import {
   HTTP_TEXTS,
@@ -45,6 +45,7 @@ import { removeEntriesFromDatabase, enrichConfigWithAssetMapping } from '../util
 import { removeExistingAssets } from '../utils/asset-update.utils.js';
 import { updateEntryCli, utilsUpdateCli } from './updateEntryCli.service.js';
 
+import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 
 /**
  * Creates a test stack.
@@ -62,11 +63,21 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   const testStackName = `${name}-Test`;
 
   try {
+    let headers: any = {
+      organization_uid: orgId,
+    }
+    if(token_payload?.is_sso) {
+      const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+      headers.authorization = `Bearer ${accessToken}`;
+    } else if (token_payload?.is_sso === false) {
     const authtoken = await getAuthtoken(
       token_payload?.region,
       token_payload?.user_id
     );
-
+    headers.authtoken = authtoken;
+  } else {
+    throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+  }
     await ProjectModelLowdb.read();
     const projectData: any = ProjectModelLowdb.chain
       .get('projects')
@@ -78,16 +89,13 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     const testStackCount = projectData?.test_stacks?.length + 1;
     const newName = testStackName + '-' + testStackCount;
 
-    const [err, res] = await safePromise(
-      https({
+    const [err, res] = token_payload?.is_sso
+      ? await requestWithSsoTokenRefresh(token_payload, {
         method: 'POST',
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          organization_uid: orgId,
-          authtoken,
-        },
+        headers: headers,
         data: {
           stack: {
             name: newName,
@@ -96,7 +104,22 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
           },
         },
       })
-    );
+      : await safePromise(
+        https({
+          method: 'POST',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+          data: {
+            stack: {
+              name: newName,
+              description,
+              master_locale,
+            },
+          },
+        })
+      );
 
     if (err) {
       logger.error(
@@ -167,23 +190,39 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
   const { token_payload, stack_key } = req.body;
 
   try {
+    let headers: any = {
+      api_key: stack_key,
+    }
+    if(token_payload?.is_sso) {
+      const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+      headers.authorization = `Bearer ${accessToken}`;
+    } else if (token_payload?.is_sso === false) {
     const authtoken = await getAuthtoken(
-      token_payload?.region,
-      token_payload?.user_id
-    );
+        token_payload?.region,
+        token_payload?.user_id
+      );
+      headers.authtoken = authtoken;
+    } else {
+      throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+    }
 
-    const [err, res] = await safePromise(
-      https({
+    const [err, res] = token_payload?.is_sso
+      ? await requestWithSsoTokenRefresh(token_payload, {
         method: 'DELETE',
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          api_key: stack_key,
-          authtoken,
-        },
+        headers: headers,
       })
-    );
+      : await safePromise(
+        https({
+          method: 'DELETE',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+        })
+      );
 
     if (err) {
       logger.error(
