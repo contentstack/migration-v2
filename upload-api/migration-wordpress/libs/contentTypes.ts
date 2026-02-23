@@ -55,8 +55,10 @@ async function extractContentTypes(affix: string, filePath: string, DataConfig: 
     const items = alldataParsed?.rss?.channel?.["item"];
     const authorData = alldataParsed?.rss?.channel?.["wp:author"];
     await extractAuthor(authorData, 'author');
-    const categoriesData = alldataParsed?.rss?.channel?.["wp:category"];
-    const termsData = alldataParsed?.rss?.channel?.["wp:term"];
+    const rawCategories = alldataParsed?.rss?.channel?.["wp:category"];
+    const categoriesData = Array.isArray(rawCategories) ? rawCategories : (rawCategories ? [rawCategories] : []);
+    const rawTerms = alldataParsed?.rss?.channel?.["wp:term"];
+    const termsData = Array.isArray(rawTerms) ? rawTerms : (rawTerms ? [rawTerms] : []);
     await extractTerms(termsData, 'terms');
     //await extractCategories(categoriesData, 'category');
     //await extractTaxonomy(categoriesData, 'categories');
