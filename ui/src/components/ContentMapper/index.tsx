@@ -1732,6 +1732,13 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       ? `${currentDisplayName} > ${value?.display_name}` 
       : value?.display_name;
     const uid = parentUid ? `${parentUid}.${value?.uid}` : value?.uid;
+
+    // Fields inside a modular block child should only get options from
+    // within the block structure, not from root-level groups or fields.
+    const isInsideModularBlock = (data?.uid?.split('.')?.length ?? 0) >= 3;
+    if (isInsideModularBlock && !parentUid && value?.data_type !== 'blocks') {
+      return OptionsForRow;
+    }
   
     // Handle Modular Blocks (Parent)
     if (value?.data_type === 'blocks') {
@@ -1829,11 +1836,11 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             
               // Only process fields if current block matches the mapped block
               if (mappedChildBlockTitle === blockTitle) {
+                const isDataInsideGroupField = (data?.uid?.split('.')?.length ?? 0) > 3;
                
                 for (const blockField of block.schema) {
                   const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
-                  
-                  if (checkConditions(fieldTypeToMatch, blockField, data) && blockField?.data_type !== 'group') {
+                  if (!isDataInsideGroupField && checkConditions(fieldTypeToMatch, blockField, data) && blockField?.data_type !== 'group') {
                     const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
                     const fieldUid = `${blockUid}.${blockField?.uid}`;
                    
@@ -1888,9 +1895,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       return OptionsForRow;
     }
     else if (value?.data_type === 'group') {
-        const dataDepth = data?.uid?.split('.')?.length ?? 0;
-        const optionDepth = uid?.split('.')?.length ?? 0;
-        const isInsideModularBlock = dataDepth >= 3;
 
         if (data?.backupFieldType === 'group' && checkConditions('Group', value, data) ) {
           OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
