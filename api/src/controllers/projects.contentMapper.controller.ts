@@ -182,8 +182,6 @@ const getEntryMapping = async (req: Request, res: Response): Promise<void> => {
  */
 const updateEntryStatus = async (req: Request, res: Response): Promise<void> => {
   const resp = await contentMapperService.updateEntryStatus(req);
-const updateEntryMapping = async (req: Request, res: Response): Promise<void> => {
-  const resp = await contentMapperService.updateEntryMapping(req);
   res.status(resp?.status).json(resp);
 }
 

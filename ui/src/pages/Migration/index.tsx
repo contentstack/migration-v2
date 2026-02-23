@@ -331,7 +331,9 @@ const Migration = () => {
     // Use stored CMS if its parent matches config's cmsType (preserves specific version like "Sitecore v9").
     // Otherwise, config takes precedence (CMS type was changed in config).
     const selectedCmsData: ICMSType =
-      storedCmsData ?? DEFAULT_CMS_TYPE;
+      (storedCmsData && storedCmsData?.parent?.toLowerCase() === configCmsType)
+        ? storedCmsData
+        : (configCmsData ?? storedCmsData ?? DEFAULT_CMS_TYPE);
 
     const selectedFileFormatData: ICardType | undefined = validateArray(
       selectedCmsData?.allowed_file_formats
