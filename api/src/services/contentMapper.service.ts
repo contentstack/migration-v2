@@ -19,9 +19,10 @@ import {
 import logger from '../utils/logger.js';
 import { config } from '../config/index.js';
 import https from '../utils/https.utils.js';
-import getAuthtoken from '../utils/auth.utils.js';
+import getAuthtoken, { getAccessToken } from '../utils/auth.utils.js';
 import getProjectUtil from '../utils/get-project.utils.js';
 import fetchAllPaginatedData from '../utils/pagination.utils.js';
+import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import FieldMapperModel from '../models/FieldMapper.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -401,26 +402,29 @@ const getExistingContentTypes = async (req: Request) => {
 
   const { token_payload } = req.body;
 
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id,
-  );
 
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain
     .get('projects')
     .find({ id: projectId })
     .value();
-  const stackId = project?.destination_stack_id;
 
   const baseUrl = `${config.CS_API[
     token_payload?.region as keyof typeof config.CS_API
   ]!}/content_types`;
-
-  const headers = {
-    api_key: stackId,
-    authtoken,
-  };
+  let headers: any = {
+    api_key: project?.destination_stack_id,
+  }
+  if(token_payload?.is_sso) {
+    const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+    headers.authorization = `Bearer ${accessToken}`;
+  } else if (token_payload?.is_sso === false) {
+    const authtoken = await getAuthtoken(
+      token_payload?.region,
+      token_payload?.user_id
+    );
+    headers.authtoken = authtoken;
+  }
 
   try {
     // Step 1: Fetch the updated list of all content types
@@ -430,6 +434,7 @@ const getExistingContentTypes = async (req: Request) => {
       100,
       'getExistingContentTypes',
       'content_types',
+      token_payload
     );
 
     const processedContentTypes = contentTypes.map((singleCT: any) => ({
@@ -442,13 +447,19 @@ const getExistingContentTypes = async (req: Request) => {
     let selectedContentType = null;
 
     if (contentTypeUID) {
-      const [err, res] = await safePromise(
-        https({
+      const [err, res] = token_payload?.is_sso
+        ? await requestWithSsoTokenRefresh(token_payload, {
           method: 'GET',
           url: `${baseUrl}/${contentTypeUID}`,
           headers,
-        }),
-      );
+        })
+        : await safePromise(
+          https({
+            method: 'GET',
+            url: `${baseUrl}/${contentTypeUID}`,
+            headers,
+          })
+        );
 
       if (!err) {
         selectedContentType = {
