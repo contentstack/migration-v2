@@ -658,10 +658,6 @@ const getExistingContentTypes = async (req: Request) => {
 
   const { token_payload } = req?.body;
 
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id,
-  );
 
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain
