@@ -17,17 +17,18 @@ import {
   CONTENT_TYPE_STATUS,
   VALIDATION_ERRORS,
   MIGRATION_DATA_CONFIG,
-} from "../constants/index.js";
-import logger from "../utils/logger.js";
-import { config } from "../config/index.js";
-import https from "../utils/https.utils.js";
-import getAuthtoken from "../utils/auth.utils.js";
-import getProjectUtil from "../utils/get-project.utils.js";
-import fetchAllPaginatedData from "../utils/pagination.utils.js";
-import ProjectModelLowdb from "../models/project-lowdb.js";
+} from '../constants/index.js';
+import logger from '../utils/logger.js';
+import { config } from '../config/index.js';
+import https from '../utils/https.utils.js';
+import getAuthtoken, { getAccessToken } from '../utils/auth.utils.js';
+import getProjectUtil from '../utils/get-project.utils.js';
+import fetchAllPaginatedData from '../utils/pagination.utils.js';
+import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
+import ProjectModelLowdb from '../models/project-lowdb.js';
+import { v4 as uuidv4 } from 'uuid';
 import getFieldMapperDb from "../models/FieldMapper.js";
 import getEntryMapperDb, { EntryMapper } from "../models/EntryMapper.js";
-import { v4 as uuidv4 } from "uuid";
 import getContentTypesMapperDb, { ContentTypesMapper } from "../models/contentTypesMapper-lowdb.js";
 import getUidMapperDb from "../models/uidMapper.js";
 import { isDuplicateEntry } from '../utils/entry-duplicate.utils.js';
@@ -88,7 +89,6 @@ const putTestData = async (req: Request) => {
         if (item?.advanced) {
           item.advanced.initial = structuredClone(item?.advanced);
         }
-        if (item?.refrenceTo) {
         if (item?.refrenceTo) {
           item.initialRefrenceTo = item?.refrenceTo;
         }
@@ -2094,75 +2094,6 @@ const updateEntryStatus = async (req: Request) => {
 }
 
 
-const updateEntryStatus = async (req: Request) => { 
-  const { projectId } = req.params;
-  const { otherCmsEntryUids } = req.body;
-  const validatedUids: string[] = Array.isArray(otherCmsEntryUids) ? otherCmsEntryUids : [];
-  const srcFunc = "updateEntryMapping";
-  if (isEmpty(validatedUids)) {
-    logger.error(
-      getLogMessage(
-        srcFunc,
-        "Invalid otherCmsEntryUids"
-      )
-    );
-    return {
-      status: HTTP_CODES?.BAD_REQUEST,
-      data: {
-        message: "Invalid otherCmsEntryUids",
-      },
-    };  
-  }
-  try {
-    await ProjectModelLowdb.read();
-    const projectData = ProjectModelLowdb.chain
-      .get("projects")
-      .find({ id: projectId })
-      .value();
-    const iteration = projectData?.iteration || 1;
-    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
-    await EntryMapperModel.read();
-    const foundEntry: EntryMapper[] = [];
-    await EntryMapperModel.update((data: any) => {
-      data?.entry_mapper?.forEach((entry: any) => {
-        if (validatedUids.includes(entry?.otherCmsEntryUid)) {
-          entry.isUpdate = true;
-          foundEntry.push(entry);
-        }
-      });
-    });
-
-    if (foundEntry) {
-      return {
-        status: HTTP_CODES?.OK,
-        data: foundEntry
-      };
-    }
-
-    return {
-      status: HTTP_CODES?.NOT_FOUND,
-      data: {
-        message: "Entry not found",
-      },
-    };
-
-  } catch (error: any) {
-    logger.error(
-      getLogMessage(
-        srcFunc,
-        "Error occurred while updating entry mapping",
-        error
-      )
-    );
-    throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
-    );
-  }
-
-
-}
-
 export const contentMapperService = {
   putTestData,
   getContentTypes,
@@ -2178,7 +2109,7 @@ export const contentMapperService = {
   getExistingGlobalFields,
   getSingleGlobalField,
   getEntryMapping,
-  updateEntryStatus
+  updateEntryStatus,
   getExistingTaxonomies,
   updateEntryMapping
 };
