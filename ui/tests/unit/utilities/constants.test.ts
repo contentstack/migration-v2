@@ -124,7 +124,7 @@ describe('utilities/constants', () => {
     expect(VALIDATION_DOCUMENTATION_URL.sitecore).toContain('sitecore.pdf');
     expect(VALIDATION_DOCUMENTATION_URL.contentful).toContain('contentful.pdf');
     expect(VALIDATION_DOCUMENTATION_URL.wordpress).toBe('');
-    expect(VALIDATION_DOCUMENTATION_URL.drupal).toBe('');
+    expect(VALIDATION_DOCUMENTATION_URL.drupal).toContain('Drupal.pdf');
     expect(VALIDATION_DOCUMENTATION_URL.aem).toContain('AEM');
   });
 
