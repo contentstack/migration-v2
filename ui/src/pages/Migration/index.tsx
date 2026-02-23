@@ -316,9 +316,9 @@ const Migration = () => {
 
     // Look up stored CMS from project data
     const storedCmsData: ICMSType | undefined = validateArray(legacyCmsData?.all_cms)
-      ? (legacyCmsData?.all_cms?.find(
+      ? (legacyCmsData?.all_cms?.find( 
           (cms: ICMSType) => cms?.cms_id === projectData?.legacy_cms?.cms
-        )
+        ))
       : undefined;
 
     // Look up CMS by config's cmsType (same parent-matching logic as LoadSelectCms.filterCMSData)
@@ -334,8 +334,6 @@ const Migration = () => {
       (storedCmsData && storedCmsData?.parent?.toLowerCase() === configCmsType)
         ? storedCmsData
         : (configCmsData ?? storedCmsData ?? DEFAULT_CMS_TYPE);
-        ) ?? DEFAULT_CMS_TYPE)
-      : DEFAULT_CMS_TYPE;
 
     const selectedFileFormatData: ICardType | undefined = validateArray(
       selectedCmsData?.allowed_file_formats

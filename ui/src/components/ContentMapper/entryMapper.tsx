@@ -33,8 +33,7 @@ import {
   FieldMapType,
   FieldTypes,
   TableTypes,
-
-
+  UidMap, 
   EntryMapperType
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';

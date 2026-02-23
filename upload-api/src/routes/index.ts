@@ -233,12 +233,10 @@ router.get(
                 return;
               }
 
-              const data = await handleFileProcessing(fileExt, xmlData, cmsType, name);
-
-              if (!res.headersSent) {
+              const data = await handleFileProcessing(fileExt, xmlData, cmsType || '', name);
+               if (!res.headersSent) {
                 res.status(data?.status || 200).json(data);
               }
-              const data = await handleFileProcessing(fileExt, xmlData, cmsType || '', name);
               res.status(data?.status || 200).json(data);
               if (data?.status === 200) {
                 // Sanitize the filename before constructing path
@@ -421,16 +419,16 @@ router.get(
   }
 );
 
-router.get('/config', async function (req: Request, res: Response) {
-  // Strip mysql password before sending config to the client
-  const { password, ...safeMysql } = config?.mysql || {};
-  const safeConfig = {
-    ...config,
-    mysql: safeMysql
-  };
-  const config = await updateConfigFile();
-  res.json(safeConfig);
-});
+// router.get('/config', async function (req: Request, res: Response) {
+//   // Strip mysql password before sending config to the client
+//   const { password, ...safeMysql } = config?.mysql || {};
+//   const safeConfig = {
+//     ...config,
+//     mysql: safeMysql
+//   };
+//   const config = await updateConfigFile();
+//   res.json(safeConfig);
+// });
 
 // Exported the router
 export default router;

@@ -14,6 +14,7 @@ import {
   NEW_PROJECT_STATUS,
   CONTENT_TYPE_STATUS,
   VALIDATION_ERRORS,
+  MIGRATION_DATA_CONFIG,
 } from "../constants/index.js";
 import logger from "../utils/logger.js";
 import { config } from "../config/index.js";
@@ -85,11 +86,10 @@ const putTestData = async (req: Request) => {
           item.advanced.initial = structuredClone(item?.advanced);
         }
         if (item?.refrenceTo) {
-        if (item?.refrenceTo) {
           item.initialRefrenceTo = item?.refrenceTo;
         }
+        })
       });
-    });
 
     const sanitizeObject = (obj: Record<string, any>) => {
       const blockedKeys = ['__proto__', 'prototype', 'constructor'];
@@ -155,54 +155,6 @@ const putTestData = async (req: Request) => {
         index < contentType?.length
       ) {
         contentType[index].fieldMapping = fieldIds;
-      }
-    });
-    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
-    await EntryMapperModel.read();
-
-    const uidMapperModel = getUidMapperDb(projectId, iteration - 1);
-    await uidMapperModel.read();
-
-    contentTypes.forEach((type: any, index: number) => {
-      const entryIds: string[] = [];
-      const entries = Array.isArray(type?.entryMapping) ?
-        type.entryMapping
-          .filter(Boolean)
-          .map((entry: any) => {
-            const id =
-              entry?.id ?
-                entry.id.replace(/[{}]/g, '').toLowerCase()
-                : uuidv4();
-            entry.id = id;
-            entryIds.push(id);
-
-            const uidMapperValue = entry?.otherCmsEntryUid ? uidMapperModel.data?.entry?.[idCorrector({ id: entry.otherCmsEntryUid })] : ' ';
-
-            return {
-              ...entry,
-              id,
-              projectId,
-              contentTypeId: type?.id,
-              isDeleted: false,
-              contentstackEntryUid: uidMapperValue,
-            };
-          })
-        : [];
-      //console.info('🚀 ~ putTestData ~ entries:', entries);
-      EntryMapperModel.update((data: any) => {
-        data.entry_mapper = [
-          ...(Array.isArray(data?.entry_mapper) ? data.entry_mapper : []),
-          ...entries,
-        ];
-      });
-
-      if (
-        Array?.isArray?.(contentType) &&
-        Number?.isInteger?.(index) &&
-        index >= 0 &&
-        index < contentType?.length
-      ) {
-        contentType[index].entryMapping = entryIds;
       }
     });
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
@@ -1660,168 +1612,230 @@ const updateEntryStatus = async (req: Request) => {
 
 }
 
-const getEntryMapping = async (req: Request) => {
-
-  const srcFunc = "getEntryMapping";
-  const contentTypeId = req?.params?.contentTypeId;
+const getExistingTaxonomies = async (req: Request) => {
   const projectId = req?.params?.projectId;
-  const skip: any = req?.params?.skip;
-  const limit: any = req?.params?.limit;
-  const search: string = req?.params?.searchText?.toLowerCase();
-
-  let result: any[] = [];
-  let filteredResult = [];
-  let totalCount = 0;
+  const { token_payload } = req.body || {};
 
   try {
-    // Get project iteration
+    // Get project details
     await ProjectModelLowdb.read();
-    const projectData = ProjectModelLowdb.chain
-      .get("projects")
+    const project = ProjectModelLowdb.chain
+      .get('projects')
       .find({ id: projectId })
       .value();
-    const iteration = projectData?.iteration || 1;
 
-    const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
-    await ContentTypesMapperModelLowdb.read();
-
-    const contentType = ContentTypesMapperModelLowdb.chain
-      .get("ContentTypesMappers")
-      .find({ id: contentTypeId, projectId: projectId })
-      .value();
-
-    if (isEmpty(contentType)) {
-      logger.error(
-        getLogMessage(
-          srcFunc,
-          `${HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND} Id: ${contentTypeId}`
-        )
-      );
-      throw new BadRequestError(HTTP_TEXTS.CONTENT_TYPE_NOT_FOUND);
-    }
-    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
-    await EntryMapperModel.read();
-    const entryData = contentType?.entryMapping?.map?.((entry: any) => {
-      const entryMapper = EntryMapperModel.chain
-        .get("entry_mapper")
-        .find({ id: entry, projectId: projectId, contentTypeId: contentTypeId })
-        .value();
-
-      return entryMapper;
-    });
-
-    const entryMapping: any = entryData?.map((entry: any) => {
-      if (entry?.advanced?.initial) {
-        return { ...entry, advanced: entry?.advanced };
-      }
-      return entry;
-    });
-
-    if (!isEmpty(entryMapping)) {
-      if (search) {
-        filteredResult = entryMapping?.filter?.((item: any) =>
-          item?.otherCmsField?.toLowerCase().includes(search)
-        );
-        totalCount = filteredResult.length;
-        result = filteredResult.slice(skip, Number(skip) + Number(limit));
-      } else {
-        totalCount = entryMapping.length;
-        result = entryMapping.slice(skip, Number(skip) + Number(limit));
-      }
-    }
-
-    return {
-      status: HTTP_CODES?.OK,
-      count: totalCount,
-      entryMapping: result
-    };
-
-  } catch (error: any) {
-    // Log error message
-    logger.error(
-      getLogMessage(
-        srcFunc,
-        "Error occurred while getting field mapping of projects",
-        error
-      )
-    );
-
-    throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
-    );
-
-  }
-};
-
-const updateEntryStatus = async (req: Request) => { 
-  const { projectId } = req.params;
-  const { otherCmsEntryUids } = req.body;
-  const validatedUids: string[] = Array.isArray(otherCmsEntryUids) ? otherCmsEntryUids : [];
-  const srcFunc = "updateEntryMapping";
-  if (isEmpty(validatedUids)) {
-    logger.error(
-      getLogMessage(
-        srcFunc,
-        "Invalid otherCmsEntryUids"
-      )
-    );
-    return {
-      status: HTTP_CODES?.BAD_REQUEST,
-      data: {
-        message: "Invalid otherCmsEntryUids",
-      },
-    };  
-  }
-  try {
-    await ProjectModelLowdb.read();
-    const projectData = ProjectModelLowdb.chain
-      .get("projects")
-      .find({ id: projectId })
-      .value();
-    const iteration = projectData?.iteration || 1;
-    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
-    await EntryMapperModel.read();
-    const foundEntry: EntryMapper[] = [];
-    await EntryMapperModel.update((data: any) => {
-      data?.entry_mapper?.forEach((entry: any) => {
-        if (validatedUids.includes(entry?.otherCmsEntryUid)) {
-          entry.isUpdate = true;
-          foundEntry.push(entry);
-        }
-      });
-    });
-
-    if (foundEntry) {
+    if (!project) {
       return {
-        status: HTTP_CODES?.OK,
-        data: foundEntry
+        sourceTaxonomies: [],
+        destinationTaxonomies: [],
+        data: 'Project not found',
+        status: 404,
       };
     }
 
-    return {
-      status: HTTP_CODES?.NOT_FOUND,
-      data: {
-        message: "Entry not found",
-      },
+    const stackId = project?.destination_stack_id;
+
+    // Step 1: Get source taxonomies from project database (sent by upload-api)
+    let sourceTaxonomies: any[] = [];
+
+    if (project?.taxonomies && Array.isArray(project.taxonomies)) {
+      // Taxonomies stored in project database (sent from upload-api during validation)
+      sourceTaxonomies = project.taxonomies.map((taxonomy: any) => ({
+        uid: taxonomy.uid,
+        name: taxonomy.name || taxonomy.uid,
+        description: taxonomy.description || '',
+        source: 'source_cms',
+      }));
+      logger.info(
+        `✓ Found ${sourceTaxonomies.length} source taxonomies in project database`,
+      );
+    } else {
+      // Fallback: Try reading from migration-data files
+      logger.warn(
+        'No taxonomies found in project database, checking fallback paths...',
+      );
+
+      // Path 1: Check api/migration-data (processed taxonomies)
+      // Validate stackId exists before using it
+      if (stackId) {
+        // Sanitize stackId to prevent path traversal
+        const sanitizedStackId = path.basename(stackId);
+
+        const apiMigrationDataPath = path.join(
+          MIGRATION_DATA_CONFIG.DATA,
+          sanitizedStackId,
+          MIGRATION_DATA_CONFIG.TAXONOMIES_DIR_NAME,
+          MIGRATION_DATA_CONFIG.TAXONOMIES_FILE_NAME,
+        );
+
+        // Resolve to absolute path and validate it's within allowed directory
+        const baseDirectory = path.resolve(MIGRATION_DATA_CONFIG.DATA);
+        const resolvedPath = path.resolve(apiMigrationDataPath);
+
+        // Ensure the resolved path is within the base directory using path.relative()
+        // This is safer than startsWith() which can be bypassed on Windows (e.g., C:\data_evil vs C:\data)
+        const relativePath = path.relative(baseDirectory, resolvedPath);
+        if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+          logger.error(
+            `Path traversal attempt detected: ${resolvedPath} is outside ${baseDirectory}`,
+          );
+          throw new BadRequestError('Invalid file path');
+        }
+
+        try {
+          // Use lstat to check file exists WITHOUT following symlinks (prevents TOCTOU attacks)
+          const stats = await fs.promises.lstat(resolvedPath).catch(() => null);
+          if (stats && stats.isFile() && !stats.isSymbolicLink()) {
+            // Re-validate the real path after confirming it's not a symlink using path.relative()
+            const realPath = await fs.promises.realpath(resolvedPath);
+            const realRelativePath = path.relative(baseDirectory, realPath);
+            if (
+              realRelativePath.startsWith('..') ||
+              path.isAbsolute(realRelativePath)
+            ) {
+              logger.error(
+                `Symlink escape attempt detected: ${realPath} is outside ${baseDirectory}`,
+              );
+              throw new BadRequestError('Invalid file path');
+            }
+            const taxonomiesData = await fs.promises.readFile(realPath, 'utf8');
+            const taxonomiesObject = JSON.parse(taxonomiesData);
+
+            // Convert object to array with proper structure
+            const apiTaxonomies = Object.entries(taxonomiesObject).map(
+              ([uid, data]: [string, any]) => ({
+                uid: data.uid || uid,
+                name: data.name || uid,
+                description: data.description || '',
+                source: 'source_cms',
+              }),
+            );
+            sourceTaxonomies.push(...apiTaxonomies);
+          }
+        } catch (fileError: any) {
+          logger.error(
+            `Error reading migration-data taxonomies: ${fileError.message}`,
+          );
+        }
+      } else {
+        logger.warn(
+          'stackId is null or undefined, skipping api/migration-data path. Will try upload-api fallback.',
+        );
+      }
+
+      // Path 2: Fallback to upload-api drupalMigrationData (if api/migration-data not found)
+      if (sourceTaxonomies.length === 0) {
+        try {
+          // Try to find upload-api directory relative to api directory
+          const uploadApiPath = path.join(
+            process.cwd(),
+            '..',
+            'upload-api',
+            'drupalMigrationData',
+            'taxonomySchema',
+            'taxonomySchema.json',
+          );
+          const uploadApiResolved = path.resolve(uploadApiPath);
+
+          // Basic safety check - ensure it's within expected directory structure
+          if (
+            uploadApiResolved.includes('upload-api') &&
+            uploadApiResolved.includes('drupalMigrationData')
+          ) {
+            const stats = await fs.promises
+              .lstat(uploadApiResolved)
+              .catch(() => null);
+            if (stats && stats.isFile() && !stats.isSymbolicLink()) {
+              const taxonomyData = await fs.promises.readFile(
+                uploadApiResolved,
+                'utf8',
+              );
+              const taxonomiesArray = JSON.parse(taxonomyData);
+
+              // Convert array to proper structure
+              const uploadApiTaxonomies = (
+                Array.isArray(taxonomiesArray)
+                  ? taxonomiesArray
+                  : Object.values(taxonomiesArray)
+              ).map((taxonomy: any) => ({
+                uid: taxonomy.uid || taxonomy.vid || '',
+                name: taxonomy.name || taxonomy.uid || taxonomy.vid || '',
+                description: taxonomy.description || '',
+                source: 'source_cms',
+              }));
+
+              sourceTaxonomies.push(...uploadApiTaxonomies);
+              logger.info(
+                `✓ Found ${uploadApiTaxonomies.length} taxonomies from upload-api drupalMigrationData`,
+              );
+            }
+          }
+        } catch (uploadApiError: any) {
+          logger.warn(
+            `Could not read taxonomies from upload-api: ${uploadApiError.message}`,
+          );
+        }
+      }
+    }
+
+    // Step 2: Get destination taxonomies from Contentstack (if stack exists and token_payload is available)
+    let destinationTaxonomies: any[] = [];
+
+    if (token_payload?.region && token_payload?.user_id && stackId) {
+      try {
+        const authtoken = await getAuthtoken(
+          token_payload.region,
+          token_payload.user_id,
+        );
+
+        const baseUrl = `${config.CS_API[
+          token_payload?.region as keyof typeof config.CS_API
+        ]!}/taxonomies`;
+
+        const headers = {
+          api_key: stackId,
+          authtoken,
+        };
+
+        // Fetch taxonomies from Contentstack
+        const taxonomies = await fetchAllPaginatedData(
+          baseUrl,
+          headers,
+          100,
+          'getExistingTaxonomies',
+          'taxonomies',
+        );
+
+        destinationTaxonomies = taxonomies.map((taxonomy: any) => ({
+          uid: taxonomy.uid,
+          name: taxonomy.name,
+          description: taxonomy.description || '',
+          source: 'destination_stack',
+        }));
+      } catch (apiError: any) {
+        logger.error(
+          `Error fetching destination taxonomies: ${apiError.message}`,
+        );
+      }
+    }
+
+    const response = {
+      sourceTaxonomies,
+      destinationTaxonomies,
+      status: 200, // GET requests should return 200 OK, not 201 Created
     };
 
+    return response;
   } catch (error: any) {
-    logger.error(
-      getLogMessage(
-        srcFunc,
-        "Error occurred while updating entry mapping",
-        error
-      )
-    );
-    throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
-    );
+    logger.error(`Error in getExistingTaxonomies: ${error.message}`);
+    return {
+      sourceTaxonomies: [],
+      destinationTaxonomies: [],
+      data: error.message,
+      status: error?.statusCode || error?.status || 500, // Check statusCode first (custom errors use this)
+    };
   }
-
-
-}
+};
 
 export const contentMapperService = {
   putTestData,
@@ -1838,8 +1852,6 @@ export const contentMapperService = {
   getExistingGlobalFields,
   getSingleGlobalField,
   getEntryMapping,
-  updateEntryStatus
-  getExistingTaxonomies,,
-  getEntryMapping,
-  updateEntryStatus
+  updateEntryStatus,
+  getExistingTaxonomies
 };
