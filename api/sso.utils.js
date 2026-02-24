@@ -9,13 +9,14 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const ENCRYPT_KEY = process.env.MANIFEST_ENCRYPT_KEY;
+const ENCRYPT_SALT = process.env.MANIFEST_ENCRYPT_SALT;
 const ALGORITHM = "aes-256-gcm";
 const ENC_PREFIX = "enc:";
 
 function encrypt(plaintext) {
   if (!plaintext || plaintext.startsWith(ENC_PREFIX)) return plaintext;
   if (!ENCRYPT_KEY) throw new Error("MANIFEST_ENCRYPT_KEY env variable is required to encrypt credentials");
-  const key = crypto.scryptSync(ENCRYPT_KEY, "manifest-salt", 32);
+  const key = crypto.scryptSync(ENCRYPT_KEY, ENCRYPT_SALT, 32);
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   let encrypted = cipher.update(plaintext, "utf8", "hex");
@@ -30,7 +31,7 @@ function decrypt(encryptedValue) {
   const parts = encryptedValue.slice(ENC_PREFIX.length).split(":");
   if (parts.length !== 3) throw new Error("Invalid encrypted value format");
   const [ivHex, authTagHex, cipherHex] = parts;
-  const key = crypto.scryptSync(ENCRYPT_KEY, "manifest-salt", 32);
+  const key = crypto.scryptSync(ENCRYPT_KEY, ENCRYPT_SALT, 32);
   const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, "hex"));
   decipher.setAuthTag(Buffer.from(authTagHex, "hex"));
   let decrypted = decipher.update(cipherHex, "hex", "utf8");
