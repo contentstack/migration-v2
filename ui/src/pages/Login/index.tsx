@@ -336,6 +336,18 @@ const Login: FC<IProps> = () => {
               handleSuccessfulSSOLogin(authRes?.data);
               return;
             }
+
+            const fatalErrors = ['Organization mismatch', 'SSO authentication expired'];
+            const message = authRes?.data?.message;
+
+            if (message && fatalErrors.some((err) => message.includes(err))) {
+              failtureNotification(message);
+              setIsLoading(false);
+              if (ssoWindow && !ssoWindow.closed) {
+                ssoWindow.close();
+              }
+              return;
+            }
             
             if (pollCount < maxPolls) {
               setTimeout(poll, pollInterval);

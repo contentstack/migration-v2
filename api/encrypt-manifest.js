@@ -17,15 +17,16 @@ const path = require("path");
 const ALGORITHM = "aes-256-gcm";
 const ENC_PREFIX = "enc:";
 const ENCRYPT_KEY = process.env.MANIFEST_ENCRYPT_KEY;
+const ENCRYPT_SALT = process.env.MANIFEST_ENCRYPT_SALT;
 
-if (!ENCRYPT_KEY) {
-  console.error("Error: MANIFEST_ENCRYPT_KEY environment variable is required.");
-  console.error("Usage: MANIFEST_ENCRYPT_KEY=<your-secret-key> node encrypt-manifest.js");
+if (!ENCRYPT_KEY || !ENCRYPT_SALT) {
+  console.error("Error: MANIFEST_ENCRYPT_KEY and MANIFEST_ENCRYPT_SALT environment variables are required.");
+  console.error("Usage: MANIFEST_ENCRYPT_KEY=<key> MANIFEST_ENCRYPT_SALT=<salt> node encrypt-manifest.js");
   process.exit(1);
 }
 
 function encrypt(plaintext) {
-  const key = crypto.scryptSync(ENCRYPT_KEY, "manifest-salt", 32);
+  const key = crypto.scryptSync(ENCRYPT_KEY, ENCRYPT_SALT, 32);
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   let encrypted = cipher.update(plaintext, "utf8", "hex");

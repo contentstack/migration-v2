@@ -84,6 +84,7 @@ echo "Running the migration..."
 SCRIPT_PATH="api/sso.utils.js"
 
 export MANIFEST_ENCRYPT_KEY="mig-tool-secret-key-2026"
+export MANIFEST_ENCRYPT_SALT="mig-tool-salt-2026"
 
 if [ -f "$SCRIPT_PATH" ]; then
     csdx cm:stacks:migration --file-path "$SCRIPT_PATH"

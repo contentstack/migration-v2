@@ -1,11 +1,16 @@
+import fs from "fs";
+import path from "path";
 import AuthenticationModel from "../models/authentication.js";
 import { UnauthorizedError } from "../utils/custom-errors.utils.js";
 import { decryptAppConfig } from "./crypto.utils.js";
-// CommonJS-safe JSON loading
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-import rawAppConfig from "../../../app.json"
 
-const appConfig = decryptAppConfig(JSON.parse(JSON.stringify(rawAppConfig)));
+function loadAppConfig() {
+  const configPath = path.join(process.cwd(), "..", "app.json");
+  if (!fs.existsSync(configPath)) {
+    throw new Error("app.json file not found");
+  }
+  return decryptAppConfig(JSON.parse(fs.readFileSync(configPath, "utf8")));
+}
 
 /**
  * Retrieves the authentication token for a given user in a specific region.
@@ -44,7 +49,8 @@ export const getAccessToken = async (region: string, userId: string) => {
 };
 
 export const getAppOrganizationUID = (): string => {
-  const uid = appConfig?.organization?.uid;
+  const config = loadAppConfig();
+  const uid = config?.organization?.uid;
 
   if (!uid) {
     throw new Error("Organization UID not found in app.json");
@@ -54,7 +60,8 @@ export const getAppOrganizationUID = (): string => {
 };
 
 export const getAppOrganization = () => {
-  const org = appConfig?.organization;
+  const config = loadAppConfig();
+  const org = config?.organization;
 
   if (!org?.uid || !org?.name) {
     throw new Error("Organization details not found in app.json");
@@ -67,9 +74,10 @@ export const getAppOrganization = () => {
 };
 
 export const getAppConfig = () => {
-  if (!appConfig?.oauthData) {
+  const config = loadAppConfig();
+  if (!config?.oauthData) {
     throw new Error("SSO is not configured. Missing oauthData in app.json");
   }
 
-  return appConfig;
+  return config;
 };
