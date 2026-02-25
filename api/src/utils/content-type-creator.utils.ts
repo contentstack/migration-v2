@@ -101,8 +101,27 @@ const uidCorrector = ({ uid } : {uid : string}) => {
   return newUid;
 };
 
+/**
+ * Remap an array of reference UIDs using a mapping table.
+ *
+ * @param uids - The original reference UIDs.
+ * @param keyMapper - A map from UID to new UID. Callers should prefer using
+ *   the *corrected* UID (i.e. the result of `uidCorrector({ uid })`) as the key.
+ *   For backward compatibility, this function also supports maps keyed by the
+ *   original UID, and will try both forms when looking up each entry.
+ *
+ *   NOTE: Relying on mixed key styles (some original, some corrected) can hide
+ *   inconsistent UID formatting. When both key styles are present for the same
+ *   logical UID and map to different targets, a warning is logged so that such
+ *   issues do not go unnoticed.
+ * @returns The remapped UIDs.
+ */
+function remapReferenceUids(uids: string[], keyMapper?: Record<string, string>): string[] {
+  if (!keyMapper || !Object.keys(keyMapper).length) return uids;
+  return uids.map(uid => keyMapper[uid] ?? keyMapper[uidCorrector({ uid })] ?? uid);
+}
 
-function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): any {
+function buildFieldSchema(item: any, marketPlacePath: string, parentUid = '', keyMapper?: Record<string, string>): any {
   if (item?.isDeleted === true) return null;
 
   const getCleanUid = (uid: string): string => {
@@ -155,7 +174,7 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
       const blockElements = blockItem?.schema || [];
       for (const element of blockElements) {
         if (element?.isDeleted === false) {
-          const fieldSchema = buildFieldSchema(element, marketPlacePath, '');
+          const fieldSchema = buildFieldSchema(element, marketPlacePath, '', keyMapper);
           if (fieldSchema) blockSchema.push(fieldSchema);
         }
       }
@@ -186,7 +205,7 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
 
     for (const element of elements) {
       if (element?.isDeleted === false) {
-        const fieldSchema = buildFieldSchema(element, marketPlacePath, '');
+        const fieldSchema = buildFieldSchema(element, marketPlacePath, '', keyMapper);
         if (fieldSchema) groupSchema.push(fieldSchema);
       }
     }
@@ -210,7 +229,8 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
       title: item?.display_name || rawUid,  // Keep original for display
       uid: itemUid  // Snake case uid
     },
-    marketPlacePath
+    marketPlacePath,
+    keyMapper
   });
 }
 
@@ -470,10 +490,10 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
           "error_messages": {
             "format": field?.advanced?.validationErrorMessage ?? '',
           },
-          "reference_to": field?.advanced?.embedObjects?.length ? [
+          "reference_to": field?.advanced?.embedObjects?.length ? remapReferenceUids([
             "sys_assets",
             ...field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) ?? [],
-          ] : [
+          ], keyMapper) : [
             "sys_assets"
           ],
           "multiple": field?.advanced?.multiple ?? false,
@@ -736,7 +756,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
       return {
         "data_type": "global_field",
         "display_name": field?.title,
-        "reference_to": field?.refrenceTo ?? [],
+        "reference_to": remapReferenceUids(field?.refrenceTo ?? [], keyMapper),
         "uid": cleanedUid,
         "mandatory": field?.advanced?.mandatory ?? false,
         "multiple": field?.advanced?.multiple ?? false,
@@ -748,7 +768,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
       return {
         data_type: "reference",
         display_name: field?.title,
-        reference_to: field?.refrenceTo ?? [],
+        reference_to: remapReferenceUids(field?.refrenceTo ?? [], keyMapper),
         field_metadata: {
           ref_multiple: true,
           ref_multiple_content_types: true
@@ -816,7 +836,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
         "mandatory": field?.advanced?.mandatory ?? false,
         "unique": field?.advanced?.unique ?? false,
         "non_localizable": field.advanced?.nonLocalizable ?? false,
-        "reference_to": field?.advanced?.embedObjects?.length ? field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) : []
+        "reference_to": field?.advanced?.embedObjects?.length ? remapReferenceUids(field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })), keyMapper) : []
       }
       if ((field?.advanced?.embedObjects?.length === undefined) ||
         (field?.advanced?.embedObjects?.length === 0) ||
@@ -1177,7 +1197,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   for (const item of ctData) {
     if (item?.isDeleted === true) continue;
 
-    const fieldSchema = buildFieldSchema(item, marketPlacePath, '');
+    const fieldSchema = buildFieldSchema(item, marketPlacePath, '', keyMapper);
     if (fieldSchema) {
       ct?.schema.push(fieldSchema);
     }
