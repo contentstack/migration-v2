@@ -1450,11 +1450,20 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     )
 
     if (groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray?.[0]?.uid === rowIndex) {
-      const collectAllDescendants = (children: FieldMapType[]): FieldMapType[] => {
-        return children.flatMap((child) => [
-          child,
-          ...collectAllDescendants(child?.child ?? [])
-        ]);
+      const collectAllDescendants = (
+        children: FieldMapType[],
+        visited: Set<FieldMapType> = new Set<FieldMapType>()
+      ): FieldMapType[] => {
+        return children.flatMap((child) => {
+          if (!child || visited.has(child)) {
+            return [];
+          }
+          visited.add(child);
+          return [
+            child,
+            ...collectAllDescendants(child?.child ?? [], visited)
+          ];
+        });
       };
     
       const allDescendants = collectAllDescendants(groupArray[0].child);
@@ -1467,21 +1476,21 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       setExistingField((prev) => {
         const next = { ...prev };
         allDescendants.forEach((item) => delete next[item?.backupFieldUid]);
+        next[backupFieldUid] = { label: selectedValue?.label, value: selectedValue?.value };
         return next;
       });
     
-      setIsFieldDeleted(true); // once, outside loop
+      setIsFieldDeleted(true);
     
       setSelectedOptions((prev) => prev.filter((opt) => !labelsToRemove.has(opt)));
     }
     else {
       setIsFieldDeleted(false);
+      setExistingField((prevOptions: ExistingFieldType) => ({
+        ...prevOptions,
+        [backupFieldUid]: { label: selectedValue?.label, value: selectedValue?.value }
+      }));
     }
-
-    setExistingField((prevOptions: ExistingFieldType) => ({
-      ...prevOptions,
-      [backupFieldUid]: { label: selectedValue?.label, value: selectedValue?.value }
-    }));
 
     //add selected option to array if it is not mapped to any other field
     setSelectedOptions((prevSelected) => {
