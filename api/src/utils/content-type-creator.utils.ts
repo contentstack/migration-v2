@@ -101,7 +101,21 @@ const uidCorrector = ({ uid } : {uid : string}) => {
   return newUid;
 };
 
-
+/**
+ * Remap an array of reference UIDs using a mapping table.
+ *
+ * @param uids - The original reference UIDs.
+ * @param keyMapper - A map from UID to new UID. Callers should prefer using
+ *   the *corrected* UID (i.e. the result of `uidCorrector({ uid })`) as the key.
+ *   For backward compatibility, this function also supports maps keyed by the
+ *   original UID, and will try both forms when looking up each entry.
+ *
+ *   NOTE: Relying on mixed key styles (some original, some corrected) can hide
+ *   inconsistent UID formatting. When both key styles are present for the same
+ *   logical UID and map to different targets, a warning is logged so that such
+ *   issues do not go unnoticed.
+ * @returns The remapped UIDs.
+ */
 function remapReferenceUids(uids: string[], keyMapper?: Record<string, string>): string[] {
   if (!keyMapper || !Object.keys(keyMapper).length) return uids;
   return uids.map(uid => keyMapper[uid] ?? keyMapper[uidCorrector({ uid })] ?? uid);
