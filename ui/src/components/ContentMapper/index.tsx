@@ -1450,21 +1450,29 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     )
 
     if (groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray?.[0]?.uid === rowIndex) {
-      for (const item of groupArray?.[0]?.child ?? []) {
-        deletedExstingField[item?.backupFieldUid] = {
-          label: item?.uid,
-          value: existingField[item?.backupFieldUid]
-
-        }
-        setIsFieldDeleted(true);
-        const index = selectedOptions?.indexOf(existingField[item?.backupFieldUid]?.value?.label);
-
-        if (index > -1) {
-          selectedOptions?.splice(index, 1);
-        }
-        delete existingField[item?.backupFieldUid]
-
-      }
+      const collectAllDescendants = (children: FieldMapType[]): FieldMapType[] => {
+        return children.flatMap((child) => [
+          child,
+          ...collectAllDescendants(child?.child ?? [])
+        ]);
+      };
+    
+      const allDescendants = collectAllDescendants(groupArray[0].child);
+      const labelsToRemove = new Set<string>(
+        allDescendants
+          .map((item) => existingField[item?.backupFieldUid]?.label)
+          .filter(Boolean) as string[]
+      );
+    
+      setExistingField((prev) => {
+        const next = { ...prev };
+        allDescendants.forEach((item) => delete next[item?.backupFieldUid]);
+        return next;
+      });
+    
+      setIsFieldDeleted(true); // once, outside loop
+    
+      setSelectedOptions((prev) => prev.filter((opt) => !labelsToRemove.has(opt)));
     }
     else {
       setIsFieldDeleted(false);
@@ -2012,18 +2020,20 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     const OptionsForRow: OptionsType[] = [];
 
     // If OtherContentType label and contentModels are present, set the contentTypeSchema
+    let resolvedSchema = contentTypeSchema;
     if (otherContentType?.label && contentModels) {
       const ContentType: ContentTypeList | undefined = contentModels?.find(
         ({ title }) => title === otherContentType?.label
       );
-      setContentTypeSchema(ContentType?.schema);
+      resolvedSchema = ContentType?.schema;
+      setContentTypeSchema(resolvedSchema);
     }
 
-    if (contentTypeSchema && validateArray(contentTypeSchema)) {
+    if (resolvedSchema && validateArray(resolvedSchema)) {
       const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
       
       // Check for UID match first
-      for (const value of contentTypeSchema) {
+      for (const value of resolvedSchema) {
         if (data?.uid === value?.uid && data?.backupFieldType === value?.data_type && fieldTypeToMatch) {
           OptionsForRow.push({ label: value?.display_name, value, isDisabled: false });
           break;
@@ -2032,7 +2042,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   
       // If no exact match, process schema including modular blocks
       if (OptionsForRow?.length === 0) {
-        for (const value of contentTypeSchema) {
+        for (const value of resolvedSchema) {
           const groupArray = nestedList.filter(item =>
             item?.child?.some(e => e?.id === data?.id)
           );
@@ -2053,7 +2063,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             processSchema(value, data, array, groupArray, OptionsForRow, fieldsOfContentstack);
           }
           // Process leaf fields
-          else if (!array?.some(item => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data) && !parentBlock) {
+          else if (!array?.some(item => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data) && !parentBlock?.length) {
             OptionsForRow.push(getMatchingOption(value, true, value?.display_name || '', value?.uid ?? ''));
           }
         }
@@ -2165,7 +2175,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             isDisabled: false
           };
 
-    const adjustedOptions: OptionsType[] | OptionsType = (OptionsForRow.length === 0 && !contentTypeSchema) ? option :
+    const adjustedOptions: OptionsType[] | OptionsType = (OptionsForRow.length === 0 && !resolvedSchema) ? option :
       (OptionsForRow?.length > 0 && OptionsForRow?.every((item) => item?.isDisabled) && OptionValue?.label === Fields[data?.contentstackFieldType]?.label) ? []
         : OptionsForRow.map((option: OptionsType) => ({
           ...option,
@@ -2213,7 +2223,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               >
                 <Button
                   buttonType="light"
-                  disabled={(contentTypeSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 4}
+                  disabled={(resolvedSchema && existingField[data?.backupFieldUid]) || newMigrationData?.project_current_step > 4}
                   onClick={() => {
                     handleAdvancedSetting(initialOption?.label, data?.advanced || {}, data?.uid, data);
                   }}

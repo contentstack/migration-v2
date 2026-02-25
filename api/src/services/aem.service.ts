@@ -1355,15 +1355,20 @@ const createEntry = async ({
         for await (const [locale, entries] of entriesLocale) {
           for (const entry of entries) {
             const flatData = deepFlattenObject(entry);
+            const km = keyMapper as Record<string, string> | undefined;
             for (const [key, value] of Object.entries(flatData)) {
               if (key.endsWith('._content_type_uid') && typeof value === 'string') {
                 const uidField = key?.replace('._content_type_uid', '');
-                const refs: string[] = entryMapping?.[value];
+                const mappedCtUid = km?.[value] && km[value] !== '' ? km[value] : value;
+                if (mappedCtUid !== value) {
+                  _.set(entry, key, mappedCtUid);
+                }
+                const refs: string[] = entryMapping?.[mappedCtUid];
 
                 if (refs?.length) {
                   _.set(entry, `${uidField}.uid`, refs?.[0]);
                 } else {
-                  console.info(`No entry found for content type: ${value}`);
+                  console.info(`No entry found for content type: ${mappedCtUid}`);
                 }
               }
             }
