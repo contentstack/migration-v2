@@ -2191,7 +2191,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           isDisabled: selectedOptions?.includes?.(option?.label ?? '')
         }));
    
-    const isTypeMatch = checkConditions(Fields[data?.contentstackFieldType]?.type?.toLowerCase(), existingField[data?.backupFieldUid]?.value, data);
+    const isTypeMatch = checkConditions(Fields[data?.contentstackFieldType]?.type, existingField[data?.backupFieldUid]?.value, data);
 
     return (
       <div className="table-row">
