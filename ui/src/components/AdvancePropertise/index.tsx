@@ -805,7 +805,7 @@ const AdvancePropertise = (props: SchemaProps) => {
               <Select
                 value={referencedTaxonomies}
                 isMulti={true}
-                isDisabled={isTaxonomiesLoading}
+                //isDisabled={isTaxonomiesLoading}
                 onChange={(selectedOptions: ContentTypeOption[]) => {
                   
                   setReferencedTaxonomies(selectedOptions);
@@ -858,7 +858,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                 width="350px"
                 maxMenuHeight={200}
               />
-              {isTaxonomiesLoading ? (
+              {/* {isTaxonomiesLoading ? (
                 <InstructionText>
                   Loading taxonomies...
                 </InstructionText>
@@ -866,7 +866,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                 <InstructionText>
                   No taxonomies found. Please upload source data or create taxonomies in your destination stack.
                 </InstructionText>
-              ) : null}
+              ) : null} */}
             </Field>
           )}
 
