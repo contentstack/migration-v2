@@ -586,6 +586,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
   const entriesJsonData = JSON.parse(Jsondata);
   const entries = entriesJsonData?.rss?.channel?.["item"];
   const categories = entriesJsonData?.rss?.channel?.["wp:category"];
+  const allCategories = Array?.isArray(categories) ? categories : (categories ? [categories] : []);
 
   const authorsData = entriesJsonData?.rss?.channel?.["wp:author"];
   const authors = Array?.isArray(authorsData) ? authorsData : [authorsData];
@@ -677,7 +678,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
       //     console.log(`No ${type} found to extract`);
       //   }
       // }
-      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, categories, master_locale, destinationStackId, project, allTerms) || {};
+      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, allCategories, master_locale, destinationStackId, project, allTerms) || {};
       
       const filePath = path.join(postFolderPath,  `${locale}.json`);
       await writeFileAsync(filePath, content, 4);
@@ -696,7 +697,9 @@ async function createTaxonomy(file_path: string, packagePath: string, destinatio
 
   const Jsondata = await fs.promises.readFile(packagePath, "utf8");
   const xmlData = await fs.promises.readFile(file_path, "utf8");
-  const categoriesJsonData = JSON.parse(Jsondata)?.rss?.channel?.["wp:category"] || JSON.parse(Jsondata)?.channel?.["wp:category"] || [];
+  const categoriesData = JSON.parse(Jsondata)?.rss?.channel?.["wp:category"] || JSON.parse(Jsondata)?.channel?.["wp:category"];
+  const categoriesJsonData = Array?.isArray(categoriesData) ? categoriesData : (categoriesData ? [categoriesData] : []);
+
   if(categoriesJsonData?.length > 0){
     const allTaxonomies : any = {}
     for(const category of categoriesJsonData){

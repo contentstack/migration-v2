@@ -2220,7 +2220,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           (data?.backupFieldType !== 'extension' &&
             data?.backupFieldType !== 'app' &&
             data?.backupFieldUid !== 'title' &&
-            data?.backupFieldUid !== 'url')) && (
+            data?.backupFieldUid !== 'url' &&
+            data?.backupFieldType !== 'modular_blocks_child')) && (
             <div className='advanced-setting-button'>
               <Tooltip
                 content="Advanced properties"
