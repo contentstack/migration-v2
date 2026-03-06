@@ -43,6 +43,13 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^3.3.3"
   },
+  "overrides": {
+    "@babel/runtime": ">=7.26.10",
+    "immutable": ">=5.1.5",
+    "lodash-es": ">=4.17.23",
+    "minimatch": ">=9.0.7",
+    "rollup": ">=4.59.0"
+  },
   "eslintConfig": {
     "extends": [
       "plugin:react/recommended",
