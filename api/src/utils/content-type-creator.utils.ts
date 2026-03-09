@@ -1084,13 +1084,13 @@ const mergeArrays = async (a: any[], b: any[]) => {
 function mergeSchemaFields(sourceSchema: any[], targetSchema: any[]) {
   for (const field of sourceSchema) {
     if (field?.data_type === 'group') {
-      const targetGroup = targetSchema?.find((grp: any) =>
+      const targetGroup = targetSchema?.find((grp: Group) =>
         grp?.uid === field?.uid && grp?.data_type === 'group'
       );
 
       if (targetGroup) {
-        const additional = (targetGroup?.schema ?? []).filter((tField: any) =>
-          !field?.schema?.find((sField: any) => sField?.uid === tField?.uid && sField?.data_type === tField?.data_type)
+        const additional = (targetGroup?.schema ?? []).filter((tField: Group) =>
+          !field?.schema?.find((sField: Group) => sField?.uid === tField?.uid && sField?.data_type === tField?.data_type)
         );
         field.schema = removeDuplicateFields([...field?.schema ?? [], ...additional]);
         mergeSchemaFields(field?.schema, targetGroup?.schema ?? []);
