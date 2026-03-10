@@ -18,6 +18,17 @@ const config = {
     bucketName: '',
     bucketKey: ''
   },
+  mysql: {
+    host: 'host_name',
+    user: 'user_name',
+    password: '',
+    database: 'database_name',
+    port: 'port_number'
+  },
+  assetsConfig: {
+    base_url: 'drupal_assets_base_url',
+    public_path: 'drupal_assets_public_path'
+  },
   localPath: null
 };
 
@@ -96,23 +107,72 @@ const typeSwitcher = async (type) => {
 
 const XMLMigration = async () => {
   const typeOfcms = await cliux.inquire({
-    choices: ['sitecore', 'contentful', 'wordpress', 'aem'],
+    choices: ['sitecore', 'contentful', 'wordpress', 'aem', 'drupal'],
     type: 'list',
     name: 'value',
     message: 'Choose the option to proceed with your legacy CMS:'
   });
 
-  const data = await typeSwitcher('Locale Path');
   if (typeof typeOfcms === 'string') {
     config.cmsType = typeOfcms;
   } else {
     console.log('⚠️ Error: Expected a string for typeOfcms but got an object.');
   }
-  if (typeof data === 'string') {
-    config.localPath = data;
+
+  if (typeOfcms === 'drupal') {
+    console.log('\nDrupal uses a MySQL database connection. Please provide your database details:');
+
+    config.mysql.host = await cliux.inquire({
+      type: 'input',
+      message: 'Enter MySQL Host',
+      name: 'mysqlHost',
+      validate: (input) => isEmpty(input) ? 'Please enter the MySQL host' : true
+    });
+    config.mysql.user = await cliux.inquire({
+      type: 'input',
+      message: 'Enter MySQL User',
+      name: 'mysqlUser',
+      validate: (input) => isEmpty(input) ? 'Please enter the MySQL user' : true
+    });
+    config.mysql.password = await cliux.inquire({
+      type: 'password',
+      message: 'Enter MySQL Password (can be empty)',
+      name: 'mysqlPassword'
+    });
+    config.mysql.database = await cliux.inquire({
+      type: 'input',
+      message: 'Enter MySQL Database Name',
+      name: 'mysqlDatabase',
+      validate: (input) => isEmpty(input) ? 'Please enter the MySQL database name' : true
+    });
+    const portInput = await cliux.inquire({
+      type: 'input',
+      message: 'Enter MySQL Port [3306]',
+      name: 'mysqlPort'
+    });
+    config.mysql.port = portInput || '3306';
+
+    config.assetsConfig.base_url = await cliux.inquire({
+      type: 'input',
+      message: 'Enter Drupal Assets Base URL (e.g. https://example.com)',
+      name: 'assetsBaseUrl'
+    });
+    config.assetsConfig.public_path = await cliux.inquire({
+      type: 'input',
+      message: 'Enter Drupal Assets Public Path (e.g. sites/default/files)',
+      name: 'assetsPublicPath'
+    });
+
+    config.localPath = 'sql';
   } else {
-    console.log('⚠️ Error: Expected a string for localPath but got an object.');
+    const data = await typeSwitcher('Locale Path');
+    if (typeof data === 'string') {
+      config.localPath = data;
+    } else {
+      console.log('⚠️ Error: Expected a string for localPath but got an object.');
+    }
   }
+
   ensureDirectoryExists(configFilePath);
   fs.writeFileSync(configFilePath, `export default ${JSON.stringify(config, null, 2)};`, 'utf8');
 };
