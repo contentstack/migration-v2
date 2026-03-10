@@ -316,6 +316,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   const filterRef = useRef<HTMLDivElement | null>(null);
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
+  const clearedFieldsRef = useRef<Set<string>>(new Set());
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -357,10 +358,13 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     const mappedContentType = contentModels && contentModels?.find((item) => item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || '']);
 
     if (mappedContentType?.uid) {
-      setOtherContentType({
-        id: mappedContentType?.uid,
-        label: mappedContentType?.title,
-        value: mappedContentType?.title
+      setOtherContentType((prev) => {
+        if (prev?.id === mappedContentType?.uid) return prev;
+        return {
+          id: mappedContentType?.uid,
+          label: mappedContentType?.title,
+          value: mappedContentType?.title
+        };
       });
       setIsContentDeleted(false);
     }
@@ -477,7 +481,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   if (row?.contentstackField === fieldDisplayName) {
                     if (!isFieldDeleted) {
                       if (!updatedSelectedOptions?.includes?.(fieldDisplayName)) {
-                        updatedSelectedOptions.push(fieldDisplayName);
+                        updatedSelectedOptions?.push(fieldDisplayName);
                       }
                       updatedExstingField[row?.backupFieldUid] = {
                         label: fieldDisplayName,
@@ -494,13 +498,69 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                       if (row?.contentstackField === nestedDisplayName) {
                         if (!isFieldDeleted) {
                           if (!updatedSelectedOptions?.includes?.(nestedDisplayName)) {
-                            updatedSelectedOptions.push(nestedDisplayName);
+                            updatedSelectedOptions?.push(nestedDisplayName);
                           }
                           updatedExstingField[row?.backupFieldUid] = {
                             label: nestedDisplayName,
                             value: nestedField
                           };
                         }
+                      }
+                    });
+                  }
+
+                  // Nested modular blocks within child block field
+                  if (blockField?.data_type === 'blocks' && blockField?.blocks) {
+                    blockField?.blocks?.forEach((nestedBlock: any) => {
+                      const nestedBlockTitle = nestedBlock?.uid || nestedBlock?.display_name;
+                      const nestedBlockDisplayName = `${fieldDisplayName} > ${nestedBlockTitle}`;
+
+                      if (row?.contentstackField === nestedBlockDisplayName) {
+                        if (!isFieldDeleted) {
+                          if (!updatedSelectedOptions?.includes?.(nestedBlockDisplayName)) {
+                            updatedSelectedOptions?.push(nestedBlockDisplayName);
+                          }
+                          updatedExstingField[row?.backupFieldUid] = {
+                            label: nestedBlockDisplayName,
+                            value: nestedBlock
+                          };
+                        }
+                      }
+
+                      if (nestedBlock?.schema) {
+                        nestedBlock?.schema?.forEach((nestedBlockField: any) => {
+                          const nestedFieldDisplayName = `${nestedBlockDisplayName} > ${nestedBlockField?.display_name}`;
+
+                          if (row?.contentstackField === nestedFieldDisplayName) {
+                            if (!isFieldDeleted) {
+                              if (!updatedSelectedOptions?.includes?.(nestedFieldDisplayName)) {
+                                updatedSelectedOptions?.push(nestedFieldDisplayName);
+                              }
+                              updatedExstingField[row?.backupFieldUid] = {
+                                label: nestedFieldDisplayName,
+                                value: nestedBlockField
+                              };
+                            }
+                          }
+
+                          if (nestedBlockField?.schema) {
+                            nestedBlockField?.schema?.forEach((deepField: any) => {
+                              const deepDisplayName = `${nestedFieldDisplayName} > ${deepField?.display_name}`;
+
+                              if (row?.contentstackField === deepDisplayName) {
+                                if (!isFieldDeleted) {
+                                  if (!updatedSelectedOptions?.includes?.(deepDisplayName)) {
+                                    updatedSelectedOptions?.push(deepDisplayName);
+                                  }
+                                  updatedExstingField[row?.backupFieldUid] = {
+                                    label: deepDisplayName,
+                                    value: deepField
+                                  };
+                                }
+                              }
+                            });
+                          }
+                        });
                       }
                     });
                   }
@@ -521,7 +581,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       setTableData(updatedRows);
       setExistingField(updatedExstingField);
       setSelectedOptions(updatedSelectedOptions);
-      setSelectedEntries(updatedRows);
+      if (!isDropDownChanged) {
+        setSelectedEntries(updatedRows);
+      }
       setIsUpdated(false);
     }
     else {
@@ -1444,44 +1506,40 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   const handleFieldChange = (selectedValue: FieldTypes, rowIndex: string, contentstackFieldUid: string, backupFieldUid: string) => {
     setIsDropDownChanged(true);
+    if (selectedValue) {
+      clearedFieldsRef?.current?.delete(backupFieldUid);
+    } else {
+      clearedFieldsRef?.current?.add(backupFieldUid);
+    }
     const previousSelectedValue = existingField[backupFieldUid]?.label;
-    const groupArray = nestedList?.filter(item =>
-      item?.child?.some(e => e?.id)
-    )
 
-    if (groupArray?.[0]?.child && previousSelectedValue !== selectedValue?.label && groupArray?.[0]?.uid === rowIndex) {
-      const collectAllDescendants = (
-        children: FieldMapType[],
-        visited: Set<FieldMapType> = new Set<FieldMapType>()
-      ): FieldMapType[] => {
-        return children.flatMap((child) => {
-          if (!child || visited.has(child)) {
-            return [];
-          }
-          visited.add(child);
-          return [
-            child,
-            ...collectAllDescendants(child?.child ?? [], visited)
-          ];
-        });
-      };
-    
-      const allDescendants = collectAllDescendants(groupArray[0].child);
+    const allDescendants = tableData?.filter(item =>
+      item?.uid?.startsWith(rowIndex + '.') && item?.uid !== rowIndex
+    );
+
+    let descendantUids = new Set<string>();
+
+    if (allDescendants?.length > 0 && previousSelectedValue !== selectedValue?.label) {
+      descendantUids = new Set(allDescendants?.map((item) => item?.backupFieldUid));
       const labelsToRemove = new Set<string>(
         allDescendants
           .map((item) => existingField[item?.backupFieldUid]?.label)
           .filter(Boolean) as string[]
       );
-    
+
+      if (!selectedValue) {
+        allDescendants?.forEach(item => clearedFieldsRef?.current?.add(item?.backupFieldUid));
+      }
+
       setExistingField((prev) => {
         const next = { ...prev };
-        allDescendants.forEach((item) => delete next[item?.backupFieldUid]);
+        allDescendants?.forEach((item) => delete next[item?.backupFieldUid]);
         next[backupFieldUid] = { label: selectedValue?.label, value: selectedValue?.value };
         return next;
       });
-    
-      setIsFieldDeleted(true);
-    
+
+      setIsFieldDeleted(false);
+
       setSelectedOptions((prev) => prev.filter((opt) => !labelsToRemove.has(opt)));
     }
     else {
@@ -1506,11 +1564,11 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
 
     const updatedRows: FieldMapType[] = tableData.map((row) => {
-      if (row?.uid === rowIndex && row?.contentstackFieldUid === backupFieldUid) {
+      if (row?.uid === rowIndex && row?.backupFieldUid === backupFieldUid) {
         return {
           ...row,
-          contentstackField: selectedValue?.label,
-          contentstackFieldUid: selectedValue?.uid,
+          contentstackField: selectedValue?.label ?? row?.otherCmsField,
+          contentstackFieldUid: selectedValue?.uid ?? row?.backupFieldUid,
           contentstackFieldType: selectedValue?.value?.field_metadata?.allow_rich_text ? 'html' : row?.contentstackFieldType,
           advanced: {
             validationRegex: selectedValue?.value?.format,
@@ -1521,6 +1579,13 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             minChars: selectedValue?.value?.max,
             maxChars: selectedValue?.value?.min
           }
+        };
+      }
+      if (descendantUids.has(row?.backupFieldUid)) {
+        return {
+          ...row,
+          contentstackField: row?.otherCmsField,
+          contentstackFieldUid: row?.backupFieldUid,
         };
       }
       return row;
@@ -1760,7 +1825,10 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     // Handle Modular Blocks (Parent)
     if (value?.data_type === 'blocks') {
       if (data?.backupFieldType === 'modular_blocks') {
-        OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
+        const isNestedSourceMB = data?.uid?.includes('.');
+        if (!isNestedSourceMB || parentUid) {
+          OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
+        }
       }
   
       // Process child blocks within modular blocks
@@ -1792,7 +1860,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             const isFieldInsideChildBlock = data?.uid?.split('.')?.length > 2;
 
             if (isFieldInsideChildBlock && block?.schema && Array.isArray(block.schema)) {
-              const dataParentChildBlockUid = data?.uid?.split('.')?.slice(0, 2)?.join('.');
+              let dataParentChildBlockUid = '';
+              for (const mbItem of nestedList ?? []) {
+                if (mbItem?.contentstackFieldType !== 'modular_blocks') continue;
+                for (const child of mbItem?.child ?? []) {
+                  if (data?.uid?.startsWith(child?.uid + '.') && child?.uid?.length > dataParentChildBlockUid?.length) {
+                    dataParentChildBlockUid = child?.uid;
+                  }
+                }
+              }
               const modularBlockArray = nestedList?.filter(item => 
                 item?.contentstackFieldType === 'modular_blocks' &&
                 item?.child?.some((childBlock: FieldMapType) => 
@@ -1853,11 +1929,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             
               // Only process fields if current block matches the mapped block
               if (mappedChildBlockTitle === blockTitle) {
-                const isDataInsideGroupField = (data?.uid?.split('.')?.length ?? 0) > 3;
+                const parentDepth = dataParentChildBlockUid?.split('.')?.length ?? 0;
+                const isDataInsideGroupField = (data?.uid?.split('.')?.length ?? 0) > parentDepth + 1;
                
-                for (const blockField of block.schema) {
+                for (const blockField of block?.schema ?? []) {
                   const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
-                  if (!isDataInsideGroupField && checkConditions(fieldTypeToMatch, blockField, data) && blockField?.data_type !== 'group') {
+                  if (!isDataInsideGroupField && checkConditions(fieldTypeToMatch, blockField, data) && blockField?.data_type !== 'group' && blockField?.data_type !== 'blocks') {
                     const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
                     const fieldUid = `${blockUid}.${blockField?.uid}`;
                    
@@ -1869,10 +1946,24 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     ));
                   }
                   
+                  // Recurse into nested modular blocks within child block fields
+                  if (blockField?.data_type === 'blocks') {
+                    processSchema(
+                      blockField,
+                      data,
+                      array,
+                      groupArray,
+                      OptionsForRow,
+                      fieldsOfContentstack,
+                      blockDisplayName,
+                      blockUid
+                    );
+                  }
+
                   // Recursively process nested groups within block fields — group options are added inside processSchema's group handler
                   if (blockField?.data_type === 'group' && blockField?.schema) {
-                    const dataChildBlockUid = data?.uid?.split('.')?.slice(0, 2)?.join('.');
-                    const dataGroupUid = data?.uid?.split('.')?.slice(0, 3)?.join('.');
+                    const dataChildBlockUid = dataParentChildBlockUid;
+                    const dataGroupUid = data?.uid?.split('.')?.slice(0, parentDepth + 1)?.join('.');
 
                     const modularBlock = nestedList?.find(item =>
                       item?.contentstackFieldType === 'modular_blocks' &&
@@ -1901,10 +1992,22 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   }
                 }
               } else {
-                console.error(
-                  `Block title mismatch. Expected: ${blockTitle}, Got: ${mappedChildBlockTitle}. ` +
-                  `Skipping field processing for UID: ${data?.uid}`
-                );
+                if (block?.schema && Array.isArray(block.schema)) {
+                  for (const blockField of block?.schema ?? []) {
+                    if (blockField?.data_type === 'blocks') {
+                      processSchema(
+                        blockField,
+                        data,
+                        array,
+                        groupArray,
+                        OptionsForRow,
+                        fieldsOfContentstack,
+                        blockDisplayName,
+                        blockUid
+                      );
+                    }
+                  }
+                }
               }
             }
         }
@@ -2083,14 +2186,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
     // Handle case where there is exactly one match and it is auto-mapped
     if (OptionsForRow?.length === 1 &&
-      (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' || OptionsForRow?.[0]?.value?.data_type === 'group' || OptionsForRow?.[0]?.value?.data_type === 'reference'
+      !clearedFieldsRef?.current?.has(data?.backupFieldUid) &&
+      (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' || (OptionsForRow?.[0]?.value?.data_type === 'group' && !data?.uid?.includes('.')) || OptionsForRow?.[0]?.value?.data_type === 'reference'
       )) {
       updatedRows = updatedRows.map((row: FieldMapType) => {
         if (row?.uid === data?.uid && row?.backupFieldType === data?.backupFieldType) {
           return {
             ...row,
-            contentstackField: OptionsForRow?.[0]?.value?.display_name ?? '',
-            contentstackFieldUid: OptionsForRow?.[0]?.value?.uid ?? '',
+            contentstackField: OptionsForRow?.[0]?.label ?? '',
+            contentstackFieldUid: OptionsForRow?.[0]?.uid ?? '',
             advanced: {
               validationRegex: OptionsForRow?.[0]?.value?.format ?? '',
               mandatory: OptionsForRow?.[0]?.value?.mandatory,
@@ -2107,7 +2211,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       if (!existingField[data?.backupFieldUid] && OptionsForRow?.[0]) {
         OptionsForRow[0].isDisabled = true;
       }
-      const newLabel = OptionsForRow?.[0]?.value?.display_name;
+      const newLabel = OptionsForRow?.[0]?.label;
       const newvalue = OptionsForRow?.[0]?.value;
 
       // Check if there's already a matching entry in updatedExstingField
@@ -2125,7 +2229,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         existingField[data?.backupFieldUid] = { label: newLabel, value: newvalue }
       }
 
-      const newValue: string = OptionsForRow?.[0]?.value?.display_name;
+      const newValue: string = OptionsForRow?.[0]?.label ?? '';
       if (!updatedSelectedOptions?.includes?.(newValue)) {
         updatedSelectedOptions.push(newValue);
       }
@@ -2160,7 +2264,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
     const OptionValue: FieldTypes =
       OptionsForRow?.length === 1 && (existingField[data?.backupFieldUid] || updatedExstingField[data?.backupFieldUid]) &&
-        (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' || OptionsForRow?.[0]?.value?.data_type === 'group' || OptionsForRow?.[0]?.value?.data_type === 'reference'
+        (OptionsForRow?.[0]?.value?.uid === 'url' || OptionsForRow?.[0]?.value?.uid === 'title' || (OptionsForRow?.[0]?.value?.data_type === 'group' && !data?.uid?.includes('.')) || OptionsForRow?.[0]?.value?.data_type === 'reference'
 
         )
         ? {
