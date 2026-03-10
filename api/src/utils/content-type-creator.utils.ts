@@ -1081,6 +1081,49 @@ const mergeArrays = async (a: any[], b: any[]) => {
   return a;
 }
 
+function mergeSchemaFields(sourceSchema: any[], targetSchema: any[]) {
+  for (const field of sourceSchema) {
+    if (field?.data_type === 'group') {
+      const targetGroup = targetSchema?.find((grp: Group) =>
+        grp?.uid === field?.uid && grp?.data_type === 'group'
+      );
+
+      if (targetGroup) {
+        const additional = (targetGroup?.schema ?? []).filter((tField: Group) =>
+          !field?.schema?.find((sField: Group) => sField?.uid === tField?.uid && sField?.data_type === tField?.data_type)
+        );
+        field.schema = removeDuplicateFields([...field?.schema ?? [], ...additional]);
+        mergeSchemaFields(field?.schema, targetGroup?.schema ?? []);
+      }
+    }
+
+    if (field?.data_type === 'blocks') {
+      const targetMB = targetSchema?.find((mb: any) =>
+        mb?.uid === field?.uid && mb?.data_type === 'blocks'
+      );
+
+      if (targetMB?.blocks) {
+        for (const sourceBlock of field?.blocks ?? []) {
+          const targetBlock = targetMB?.blocks?.find((tb: any) => tb?.uid === sourceBlock?.uid);
+
+          if (targetBlock?.schema) {
+            const additional = (targetBlock?.schema ?? [])?.filter((tField: any) =>
+              !sourceBlock?.schema?.find((sField: any) => sField?.uid === tField?.uid && sField?.data_type === tField?.data_type)
+            );
+            sourceBlock.schema = removeDuplicateFields([...sourceBlock?.schema ?? [], ...additional]);
+            mergeSchemaFields(sourceBlock.schema, targetBlock.schema ?? []);
+          }
+        }
+
+        const additionalBlocks = (targetMB?.blocks ?? []).filter((tb: any) =>
+          !field?.blocks?.find((sb: any) => sb?.uid === tb?.uid)
+        );
+        field.blocks = removeDuplicateFields([...field?.blocks ?? [], ...additionalBlocks]);
+      }
+    }
+  }
+}
+
 const mergeTwoCts = async (ct: any, mergeCts: any) => {
   const ctData: any = {
     ...ct,
@@ -1091,83 +1134,8 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
     }
   }
 
-  for await (const field of ctData?.schema ?? []) {
-    // Handle regular groups
-    if (field?.data_type === 'group') {
-      const currentGroup = mergeCts?.schema?.find((grp: any) => 
-        grp?.uid === field?.uid && grp?.data_type === 'group'
-      );
-      
-      if (currentGroup) {
-        const group = [];
-        for await (const fieldGp of currentGroup?.schema ?? []) {
-          const fieldNst = field?.schema?.find((fld: any) => 
-            fld?.uid === fieldGp?.uid && fld?.data_type === fieldGp?.data_type
-          );
-          if (fieldNst === undefined) {
-            group?.push(fieldGp);
-          }
-        }
-        field.schema = removeDuplicateFields([...field?.schema ?? [], ...group]);
-      }
-    }
+  mergeSchemaFields(ctData?.schema ?? [], mergeCts?.schema ?? []);
 
-    // Handle modular blocks
-    if (field?.data_type === 'blocks') {
-      const currentModularBlock = mergeCts?.schema?.find((mb: any) => 
-        mb?.uid === field?.uid && mb?.data_type === 'blocks'
-      );
-      
-      if (currentModularBlock && currentModularBlock?.blocks) {
-        // Iterate through each child block in the source
-        for (const sourceBlock of field?.blocks ?? []) {
-          // Find matching child block in target by UID
-          const targetBlock = currentModularBlock?.blocks?.find((tb: any) => 
-            tb?.uid === sourceBlock?.uid
-          );
-          
-          if (targetBlock && targetBlock?.schema) {
-            // Merge the schemas of matching child blocks
-            const additionalFields = [];
-            
-            for (const targetField of targetBlock?.schema ?? []) {
-              // Check if this field already exists in source block
-              const existsInSource = sourceBlock?.schema?.find((sf: any) => 
-                sf?.uid === targetField?.uid && sf?.data_type === targetField?.data_type
-              );
-              
-              if (!existsInSource) {
-                additionalFields.push(targetField);
-              }
-            }
-            
-            // Merge source and target fields, removing duplicates
-            sourceBlock.schema = removeDuplicateFields([
-              ...sourceBlock?.schema ?? [], 
-              ...additionalFields
-            ]);
-          }
-        }
-        
-        // Add any child blocks from target that don't exist in source
-        const additionalBlocks = [];
-        for (const targetBlock of currentModularBlock?.blocks ?? []) {
-          const existsInSource = field?.blocks?.find((sb: any) => 
-            sb?.uid === targetBlock?.uid
-          );
-          
-          if (!existsInSource) {
-            additionalBlocks.push(targetBlock);
-          }
-        }
-        
-        field.blocks = removeDuplicateFields([
-          ...field?.blocks ?? [], 
-          ...additionalBlocks
-        ]);
-      }
-    }
-  }
   ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
   
   return ctData;
