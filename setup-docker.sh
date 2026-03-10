@@ -40,7 +40,7 @@ set_env_var() {
   
   if grep -q "^${VAR_NAME}=" "$ENV_PATH" 2>/dev/null; then
     # Update existing variable - escape special characters for sed
-    ESCAPED_VALUE=$(printf '%s\n' "$VAR_VALUE" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    ESCAPED_VALUE=$(printf '%s\n' "$VAR_VALUE" | sed 's/[[\.*^$()+?{|&]/\\&/g')
     sed -i.bak "s|^${VAR_NAME}=.*|${VAR_NAME}=${ESCAPED_VALUE}|" "$ENV_PATH"
     rm -f "$ENV_PATH.bak"
   else
