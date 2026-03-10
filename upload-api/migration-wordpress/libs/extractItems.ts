@@ -198,6 +198,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     const items = $('item');
     const authorsData = $('wp\\author');
     const CT: CT = [];
+    const duplicateBlockMappings: Record<string, string> = {};
     let isCategories : boolean = false;
     let isTermReffered : boolean = false;
 
@@ -364,8 +365,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 const duplicateBlock = findDuplicateModularBlockChild(Schema, CT);
                 
                 if (duplicateBlock) {
-                  // Duplicate found - skip adding this modular block child and its Fieldschema
                   console.log(`Skipping duplicate modular block child: "${groupedContentstackField}" (duplicate of "${duplicateBlock.contentstackField}")`);
+                  duplicateBlockMappings[contentstackFieldName?.toLowerCase()] = duplicateBlock.otherCmsField?.toLowerCase();
                   continue;
                 }
                 
@@ -420,8 +421,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 const duplicateBlock = findDuplicateModularBlockChild(Schema, CT);
                 
                 if (duplicateBlock) {
-                  // Duplicate found - skip adding this modular block child and its Fieldschema
                   console.log(`Skipping duplicate modular block child: "Modular Blocks > ${singleBlockName}" (duplicate of "${duplicateBlock.contentstackField}")`);
+                  duplicateBlockMappings[singleBlockName?.toLowerCase()] = duplicateBlock.otherCmsField?.toLowerCase();
                   continue;
                 }
                 
@@ -511,7 +512,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     }
 
     const filePath = path.join(contentTypeFolderPath, `${type?.toLowerCase()}.json`);
-        const contentType = {
+        const contentType: Record<string, any> = {
             "status": 1,
             "isUpdated": false,
             "updateAt": "",
@@ -522,6 +523,9 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             "type": "content_type",
             "fieldMapping": CT
         };
+        if (Object.keys(duplicateBlockMappings).length > 0) {
+          contentType.duplicateBlockMappings = duplicateBlockMappings;
+        }
 
     try {
         await helper.writeFileAsync(
