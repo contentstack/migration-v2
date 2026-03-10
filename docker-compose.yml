@@ -21,7 +21,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - migration-network
-    security_opt:
+    security_opt:-
       - no-new-privileges:true
 
   upload-api:
