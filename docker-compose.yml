@@ -17,9 +17,11 @@ services:
       - CONTAINER_PATH=${CONTAINER_PATH}
       - CMS_DATA_PATH=${CMS_DATA_PATH}
       - AEM_TEMPLATES_DIR=${AEM_TEMPLATES_DIR:-templates}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - migration-network
-    security_opt:
+    security_opt:-
       - no-new-privileges:true
 
   upload-api:
@@ -39,6 +41,16 @@ services:
       - CMS_DATA_PATH=${CMS_DATA_PATH}
       - NODE_BACKEND_API=${NODE_BACKEND_API:-http://migration-api:5001}
       - AEM_TEMPLATES_DIR=${AEM_TEMPLATES_DIR:-templates}
+      - CMS_LOCAL_PATH=${CMS_LOCAL_PATH:-}
+      - MYSQL_HOST=${MYSQL_HOST:-}
+      - MYSQL_USER=${MYSQL_USER:-}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - DRUPAL_ASSETS_BASE_URL=${DRUPAL_ASSETS_BASE_URL:-}
+      - DRUPAL_ASSETS_PUBLIC_PATH=${DRUPAL_ASSETS_PUBLIC_PATH:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - migration-network
     security_opt:
