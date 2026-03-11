@@ -582,11 +582,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           const blocksJson = await setupWordPressBlocks(contentEncoded);
           customLogger(project?.id, destinationStackId,'info', `Processed blocks for entry ${uid}`);
 
-          const blocksDirPath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, 'blocks');
-          if (!existsSync(blocksDirPath)) {
-            await fs.promises.mkdir(blocksDirPath, { recursive: true });
-          }
-          await writeFileAsync(path.join(blocksDirPath, `${item?.title?.toLowerCase()}.json`), JSON.stringify(blocksJson, null, 4), 4);
+          
 
           // Pass individual content to createSchema
           entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings);
