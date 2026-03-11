@@ -11,9 +11,18 @@ import config from '../config/index.json';
 import extractTaxonomy from './extractTaxonomy';
 import { DataConfig, Field, CT } from '../interface/interface';
 
-const { contentTypes: contentTypesConfig } = config.modules;
+const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
 
-const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
+function resolveBlockName(field: any): string {
+  if (field?.attributes?.metadata?.name) return field.attributes.metadata.name;
+  if (field?.name === 'core/missing') return 'body';
+  if (MEDIA_BLOCK_NAMES.includes(field?.name)) return 'media';
+  return field?.name;
+}
+
+const { contentTypes: contentTypesConfig } = config?.modules;
+
+const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
 
 function findSimilarBlocks(data: any[][], targetId: string) {
   for (const group of data) {
@@ -183,12 +192,13 @@ function getLastUid(uid : string) {
 }
 
 const extractItems = async (item: any, config: DataConfig, type: string, affix: string, categories: any, terms: any) => {
-    const localPath = config.localPath;
+    const localPath = config?.localPath;
     const xmlData = await fs.promises.readFile(localPath, "utf8");
     const $ = cheerio.load(xmlData, { xmlMode: true });
     const items = $('item');
     const authorsData = $('wp\\author');
     const CT: CT = [];
+    const duplicateBlockMappings: Record<string, string> = {};
     let isCategories : boolean = false;
     let isTermReffered : boolean = false;
 
@@ -288,7 +298,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
 
         const contentEncoded = targetItem?.find("content\\:encoded")?.text() || '';
         const blocksJson = await setupWordPressBlocks(contentEncoded);
-        //await helper?.writeFileAsync(`${data?.title || 'undefined'}.json`, JSON.stringify({blocks : blocksJson, count :blocksJson?.length}, null, 4), 4);
+      
 
   
         // Example usage
@@ -300,7 +310,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         
         for (const field of blocksJson) {
             const fieldUid = getFieldUid(`${field?.name}_${field?.clientId}`|| '', affix || '');
-            const contentstackFieldName = getFieldName(field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name));
+            const contentstackFieldName = getFieldName(resolveBlockName(field));
 
             const similarBlocks = findSimilarBlocks(result, field?.clientId);
 
@@ -310,8 +320,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             .filter((name, index, array) => name && array?.indexOf(name) === index) // Remove duplicates
             .sort(); // Sort for consistency
      
-            const filterOutBlock = allBlockNames?.filter((item)=> item !== (field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name)));
-            const fieldDisplayName = getFieldName( field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name));
+            const filterOutBlock = allBlockNames?.filter((item)=> item !== resolveBlockName(field));
+            const fieldDisplayName = getFieldName(resolveBlockName(field));
             const firstFilterBlock = filterOutBlock?.[0] ? `Modular Blocks > ${filterOutBlock?.[0]}` : null;
             
             const generatedFieldName = `Modular Blocks > ${fieldDisplayName}`;
@@ -334,7 +344,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             // If this block has similar structures
             if (similarBlocks?.length > 0) {
               // Create a unique key based on the structure/name to track processed groups
-              const groupKey = field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name);
+              const groupKey = resolveBlockName(field);
               // Skip if we've already processed this group of similar blocks
               if (processedSimilarBlocks?.has?.(groupKey) || existingBlock) {
                   continue;
@@ -354,8 +364,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 const duplicateBlock = findDuplicateModularBlockChild(Schema, CT);
                 
                 if (duplicateBlock) {
-                  // Duplicate found - skip adding this modular block child and its Fieldschema
                   console.log(`Skipping duplicate modular block child: "${groupedContentstackField}" (duplicate of "${duplicateBlock.contentstackField}")`);
+                  duplicateBlockMappings[contentstackFieldName?.toLowerCase()] = duplicateBlock.otherCmsField?.toLowerCase();
                   continue;
                 }
                 
@@ -398,10 +408,10 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             } 
             else {
               // Handle single blocks (no similar structures found)
-              const singleBlockName = getFieldName(field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name));
+              const singleBlockName = getFieldName(resolveBlockName(field));
              
-              if(!existingBlock && ! processedSimilarBlocks?.has?.(field?.attributes?.metadata?.name ?? getFieldName(field?.name === 'core/missing' ? 'body' : field?.name) )){
-                processedSimilarBlocks?.add?.(field?.attributes?.metadata?.name ?? (field?.name === 'core/missing' ? 'body' : field?.name));
+              if(!existingBlock && ! processedSimilarBlocks?.has?.(resolveBlockName(field))){
+                processedSimilarBlocks?.add?.(resolveBlockName(field));
                 
                 // Generate Fieldschema first to check for duplicates
                 const Fieldschema: Field[] | Field = await schemaMapper(field?.innerBlocks?.length > 0 ? field?.innerBlocks : field, `modular_blocks.${fieldUid}`, groupedContentstackField, affix || '');
@@ -410,8 +420,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 const duplicateBlock = findDuplicateModularBlockChild(Schema, CT);
                 
                 if (duplicateBlock) {
-                  // Duplicate found - skip adding this modular block child and its Fieldschema
                   console.log(`Skipping duplicate modular block child: "Modular Blocks > ${singleBlockName}" (duplicate of "${duplicateBlock.contentstackField}")`);
+                  duplicateBlockMappings[singleBlockName?.toLowerCase()] = duplicateBlock.otherCmsField?.toLowerCase();
                   continue;
                 }
                 
@@ -501,7 +511,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     }
 
     const filePath = path.join(contentTypeFolderPath, `${type?.toLowerCase()}.json`);
-        const contentType = {
+        const contentType: Record<string, any> = {
             "status": 1,
             "isUpdated": false,
             "updateAt": "",
@@ -512,6 +522,9 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             "type": "content_type",
             "fieldMapping": CT
         };
+        if (Object?.keys(duplicateBlockMappings)?.length > 0) {
+          contentType.duplicateBlockMappings = duplicateBlockMappings;
+        }
 
     try {
         await helper.writeFileAsync(

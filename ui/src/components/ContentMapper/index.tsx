@@ -1611,21 +1611,38 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     let groupId = '';
     let modularBlockId = '';
     let modularBlockChildId = '';
-    let nestedGroupId = '';
     const data: FieldMapType[] = [];
+
+    const findDeepestParentGroup = (children: FieldMapType[], fieldUid: string): FieldMapType | null => {
+      for (let i = children?.length - 1; i >= 0; i--) {
+        const child = children[i];
+        if (child?.contentstackFieldType === 'group' && fieldUid?.startsWith(child?.uid + '.')) {
+          const deeperMatch = findDeepestParentGroup(child?.child || [], fieldUid);
+          return deeperMatch || child;
+        }
+      }
+      return null;
+    };
+
+    const addFieldToParent = (parent: FieldMapType, field: FieldMapType) => {
+      const fieldToAdd = field?.contentstackFieldType === 'group' ? { ...field, child: [] } : field;
+      if (Object.hasOwn(parent, 'child')) {
+        parent?.child?.push(fieldToAdd);
+      } else {
+        parent.child = [fieldToAdd];
+      }
+    };
     
     schema?.forEach((field: FieldMapType) => {
       // Handle modular blocks parent
       if (field?.contentstackFieldType === 'modular_blocks') {
         modularBlockId = field?.uid;
         modularBlockChildId = '';
-        nestedGroupId = '';
         data?.push({ ...field, child: [] });
       }
       // Handle modular blocks child
       else if (field?.contentstackFieldType === 'modular_blocks_child' && field?.uid?.startsWith(modularBlockId + '.')) {
         modularBlockChildId = field?.uid;
-        nestedGroupId = '';
         const parentBlock = data[data?.length - 1];
         
         if (!parentBlock) {
@@ -1684,29 +1701,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             console.warn(
               `Child block exists but missing 'child' property: ${childBlock?.uid}`
             );
-          } else if (nestedGroupId && field?.uid?.startsWith(nestedGroupId + '.')) {
-            const nestedGroup = childBlock?.child?.find(
-              (c: FieldMapType) => c?.uid === nestedGroupId && c?.contentstackFieldType === 'group'
-            );
-            if (nestedGroup) {
-              if (Object.hasOwn(nestedGroup, 'child')) {
-                nestedGroup?.child?.push(field);
-              } else {
-                nestedGroup.child = [field];
-              }
-            } else {
-              console.warn(
-                `No nested group found for field: ${field?.uid}. ` +
-                `Expected group UID: ${nestedGroupId}`
-              );
-            }
           } else {
-            if (field?.contentstackFieldType === 'group') {
-              nestedGroupId = field?.uid;
-              childBlock?.child?.push({ ...field, child: [] });
+            const parentGroup = findDeepestParentGroup(childBlock?.child || [], field?.uid);
+            if (parentGroup) {
+              addFieldToParent(parentGroup, field);
             } else {
-              nestedGroupId = '';
-              childBlock?.child?.push(field);
+              addFieldToParent(childBlock, field);
             }
           }
         }
@@ -1715,16 +1715,16 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       else if (field?.contentstackFieldType === 'group') {
         groupId = field?.uid;
         modularBlockChildId = '';
-        nestedGroupId = '';
         data?.push({ ...field, child: [] });
       }
       // Handle fields within top-level groups
       else if (field?.uid?.startsWith(groupId + '.')) {
         const obj = data[data?.length - 1];
-        if (Object.hasOwn(obj, 'child')) {
-          obj?.child?.push(field);
+        const parentGroup = findDeepestParentGroup(obj?.child || [], field?.uid);
+        if (parentGroup) {
+          addFieldToParent(parentGroup, field);
         } else {
-          obj.child = [field];
+          addFieldToParent(obj, field);
         }
       }
       // Handle standalone fields
@@ -2017,21 +2017,31 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     else if (value?.data_type === 'group') {
 
         if (data?.backupFieldType === 'group' && checkConditions('Group', value, data) ) {
-          OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName, uid ?? ''));
+          const newOption = getMatchingOption(value, true, updatedDisplayName, uid ?? '');
+          const isDuplicate = OptionsForRow?.some(
+            (opt: any) => opt?.label === newOption?.label && opt?.uid === newOption?.uid
+          );
+          if (!isDuplicate) {
+            OptionsForRow.push(newOption);
+          }
         }
       
           const existingLabel = existingField[groupArray?.[0]?.backupFieldUid]?.label ?? '';
          
-          const lastLabelSegment = existingLabel.includes('>')
+          const lastLabelSegment = existingLabel?.includes('>')
             ? existingLabel?.split('>')?.pop()?.trim()
             : existingLabel;
-      
+          
           if (value?.display_name === lastLabelSegment) {
-            // Process nested schemas within the current group
-            for (const item of array) {
-             
+            const groupUid = groupArray?.[0]?.uid ?? '';
+            const groupDepth = groupUid?.split('.')?.length ?? 0;
+
+            for (const item of groupArray?.[0]?.child || []) {
               const fieldTypeToMatch = Fields[item?.backupFieldType as keyof Mapping]?.type;
-              if (item?.id === data?.id) {
+              const itemDepth = item?.uid?.split('.')?.length ?? 0;
+              const isRootLevelChild = itemDepth === groupDepth + 1;
+
+              if (item?.id === data?.id && isRootLevelChild) {
                 for (const key of existingField[groupArray?.[0]?.backupFieldUid]?.value?.schema || []) {
                   if (checkConditions(fieldTypeToMatch, key, item)) {
                     OptionsForRow.push(getMatchingOption(
@@ -2041,18 +2051,28 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                       `${uid}.${key?.uid}`
                     ));
                   }
-
-                  // Recursively process nested groups
-                  if (key?.data_type === 'group') {
-                    processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
-                  }
                 }
+              }
+            }
+
+            for (const key of existingField[groupArray?.[0]?.backupFieldUid]?.value?.schema || []) {
+              if (key?.data_type === 'group') {
+           
+                const nestedGroupUid = data?.uid?.split('.')?.slice(0, groupDepth + 1)?.join('.');
+       
+                const nestedGroupField = groupArray?.[0]?.child?.find(
+                  (c: FieldMapType) => c?.uid === nestedGroupUid && c?.contentstackFieldType === 'group'
+                );
+                const nestedGroupChildren = nestedGroupField?.child || [];
+                const nestedGroupArr = nestedGroupField ? [nestedGroupField] : [];
+                
+                processSchema(key, data, nestedGroupChildren, nestedGroupArr, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
               }
             }
 
           }
           else {
-            for (const key of value.schema || []) {
+            for (const key of value?.schema || []) {
               if (key?.data_type === 'group') {
                 processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
               }
@@ -2064,15 +2084,18 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
          
           if (!array.some((item: FieldMapType) => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data)) {
+        
             OptionsForRow.push(getMatchingOption(value, true, updatedDisplayName || '', uid ?? ''));
           }
 
           // Process nested schemas if value is not a group
           for (const item of array) {
             if (item?.id === data?.id) {
+            
               for (const key of value?.schema || []) {
                
                 if (checkConditions(fieldTypeToMatch, key, item)) {
+                  
                   OptionsForRow.push(getMatchingOption(
                     key,
                     true,
@@ -2161,21 +2184,30 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           const array = groupArray?.[0]?.child || [];
          
   
-          const parentBlockUid = data?.uid?.split('.')?.slice(0, -1)?.join('.');
-          const parentBlock = nestedList.filter(item =>
-            item?.child?.some(e => e?.uid === parentBlockUid)
-          );
+          const uidSegments = data?.uid?.split('.') || [];
+          let parentBlock: FieldMapType[] = [];
+          for (let i = uidSegments?.length - 1; i >= 1; i--) {
+            const ancestorUid = uidSegments?.slice(0, i)?.join('.');
+            parentBlock = nestedList?.filter(item =>
+              item?.child?.some(e => e?.uid === ancestorUid)
+            );
+            if (parentBlock?.length) break;
+          }
+       
          
           // Process modular blocks
           if (value?.data_type === 'blocks') {
+    
             processSchema(value, data, parentBlock[0]?.child || [], groupArray, OptionsForRow, fieldsOfContentstack);
           }
           // Process groups
-          else if (value?.data_type === 'group') {        
+          else if (value?.data_type === 'group') {  
+            
             processSchema(value, data, array, groupArray, OptionsForRow, fieldsOfContentstack);
           }
           // Process leaf fields
           else if (!array?.some(item => item?.id === data?.id) && checkConditions(fieldTypeToMatch, value, data) && !parentBlock?.length) {
+          
             OptionsForRow.push(getMatchingOption(value, true, value?.display_name || '', value?.uid ?? ''));
           }
         }
@@ -2324,7 +2356,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           (data?.backupFieldType !== 'extension' &&
             data?.backupFieldType !== 'app' &&
             data?.backupFieldUid !== 'title' &&
-            data?.backupFieldUid !== 'url')) && (
+            data?.backupFieldUid !== 'url' &&
+            data?.backupFieldType !== 'modular_blocks_child')) && (
             <div className='advanced-setting-button'>
               <Tooltip
                 content="Advanced properties"
