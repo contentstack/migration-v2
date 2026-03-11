@@ -213,7 +213,6 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 advanced: {}
             };
         }
-        break;
         case 'core/image':
         case 'core/audio':
         case 'core/video':
@@ -232,8 +231,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 advanced: {}
             };
         }
-        break;
-            
+
         case 'core/heading':
         case 'core/accordion-heading':
         case 'core/list-item': {
@@ -250,7 +248,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 advanced: {}
             };
         }
-        break;
+
         case 'core/social-link':
         case 'core/navigation-link': {
            
@@ -267,7 +265,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 advanced: {}
             };
         }
-        break;
+        
         case 'core/list':
         case 'core/quote':
         case 'core/cover':
@@ -314,7 +312,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             }
             
         }
-        break;
+        
         case 'core/search': {
             const searchEleUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
             const searchEle = await processAttributes(key, searchEleUid,fieldName, affix);
@@ -330,15 +328,25 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             });
             return searchEle;
         }
-        break;
+        
            
         case 'core/button': {
-            const parentName = parentFieldName ? `${parentFieldName}` :  `${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` ;
-            const buttonUid = parentUid ? `${parentUid}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
-            const button = await processAttributes(key, buttonUid, parentName, affix);
-            return button;
+            const fieldName = parentFieldName ? `${parentFieldName} > ${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` :  `${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` ;
+            const buttonUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            return { 
+                uid: buttonUid,
+                otherCmsField: getFieldName(key?.name),
+                otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+                contentstackField: fieldName,
+                contentstackFieldUid: buttonUid,
+                contentstackFieldType: 'link',
+                backupFieldType: 'link',
+                backupFieldUid: buttonUid,
+                advanced: {}
+            };
+            
         }
-        break;
+        
         case 'core/buttons': { 
             const groupSchema: Field[] = [];
             const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
@@ -349,7 +357,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 fieldName,
                 affix
             );
-            innerBlocks?.length > 0 && groupSchema.push({
+            innerBlocks?.length > 1 && groupSchema.push({
                 uid: groupUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
@@ -360,8 +368,9 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 backupFieldUid: groupUid,
                 advanced: {}
             });
+  
         
-            if(innerBlocks?.length > 0 ){
+            if(innerBlocks?.length > 1 ){
                 innerBlocks.forEach(schemaObj => {
                     if (schemaObj) {
                         if (Array.isArray(schemaObj)) {
@@ -377,7 +386,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             }
            
         }
-        break;
+        
 
     }
     return [];
