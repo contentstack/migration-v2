@@ -367,3 +367,6 @@ app.json
 *MigrationData*
 *.zip
 app.json
+
+# Test coverage (global)
+coverage/
