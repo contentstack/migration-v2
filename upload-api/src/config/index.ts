@@ -13,15 +13,15 @@ export default {
     bucketKey: ''
   },
   mysql: {
-    host: 'host_name',
-    user: 'user_name',
-    password: '',
-    database: 'database_name',
-    port: 'port_number'
+    host: process.env.MYSQL_HOST || 'host_name',
+    user: process.env.MYSQL_USER || 'user_name',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'database_name',
+    port: process.env.MYSQL_PORT || 'port_number'
   },
   assetsConfig: {
-    base_url: process.env.DRUPAL_ASSETS_BASE_URL || 'drupal_assets_base_url', // Dynamic: Can be any domain, with/without trailing slash
-    public_path: process.env.DRUPAL_ASSETS_PUBLIC_PATH || 'drupal_assets_public_path' // Dynamic: Can be any path, with/without slashes
+    base_url: process.env.DRUPAL_ASSETS_BASE_URL || 'drupal_assets_base_url',
+    public_path: process.env.DRUPAL_ASSETS_PUBLIC_PATH || 'drupal_assets_public_path'
   },
-  localPath: process.env.CONTAINER_PATH || 'localPath'
+  localPath: process.env.CMS_LOCAL_PATH || process.env.CONTAINER_PATH || 'localPath'
 };
