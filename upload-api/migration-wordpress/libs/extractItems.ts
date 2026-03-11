@@ -298,8 +298,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
 
         const contentEncoded = targetItem?.find("content\\:encoded")?.text() || '';
         const blocksJson = await setupWordPressBlocks(contentEncoded);
-        const folderName = path.basename(localPath, path.extname(localPath));
-        await helper?.writeFileAsync(`${folderName}/${data?.title || 'undefined'}.json`, JSON.stringify({blocks : blocksJson, count :blocksJson?.length}, null, 4), 4);
+      
 
   
         // Example usage

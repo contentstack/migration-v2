@@ -357,20 +357,24 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 fieldName,
                 affix
             );
-            innerBlocks?.length > 1 && groupSchema.push({
-                uid: groupUid,
-                otherCmsField: getFieldName(key?.name),
-                otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
-                contentstackField: fieldName,
-                contentstackFieldUid: groupUid,
-                contentstackFieldType: 'group',
-                backupFieldType: 'group',
-                backupFieldUid: groupUid,
-                advanced: {}
-            });
-  
-        
-            if(innerBlocks?.length > 1 ){
+            if (innerBlocks?.length === 1) {
+                const single = innerBlocks[0];
+                return Array.isArray(single) ? single : [single];
+            }
+
+            if (innerBlocks?.length > 1) {
+                groupSchema.push({
+                    uid: groupUid,
+                    otherCmsField: getFieldName(key?.name),
+                    otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+                    contentstackField: fieldName,
+                    contentstackFieldUid: groupUid,
+                    contentstackFieldType: 'group',
+                    backupFieldType: 'group',
+                    backupFieldUid: groupUid,
+                    advanced: {}
+                });
+
                 innerBlocks.forEach(schemaObj => {
                     if (schemaObj) {
                         if (Array.isArray(schemaObj)) {
@@ -381,8 +385,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                     }
                 }); 
             
-                return groupSchema;   
-
+                return groupSchema;
             }
            
         }
