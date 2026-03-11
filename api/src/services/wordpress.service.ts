@@ -251,7 +251,7 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                 });
                 
                 // Add the block to the modular blocks array with the child field's UID as the key
-                if (Object.keys(childrenObject).length > 0) {
+                if (Object?.keys(childrenObject)?.length > 0) {
                   modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : childrenObject });
                 } else if (getLastUid(matchingModularBlockChild?.contentstackFieldUid) && matchingChildField) {
                   // Fallback: inner blocks didn't match child fields (e.g., duplicate-mapped block with different inner block types)
@@ -708,14 +708,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
     const entry = entries?.filter((entry: any) => {
       return entry?.['wp:post_type']?.toLowerCase() === contentTypeUid;
     });
-    
-      // for (const [type, items] of Object.entries(groupedByType)) {
-      //   if (Array.isArray(items) && items.length > 0) {
-      //     await extractItems(items,file_path);
-      //   } else {
-      //     console.log(`No ${type} found to extract`);
-      //   }
-      // }
+
       const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, allCategories, master_locale, destinationStackId, project, allTerms, contentType?.duplicateBlockMappings) || {};
       
       const filePath = path.join(postFolderPath,  `${locale}.json`);

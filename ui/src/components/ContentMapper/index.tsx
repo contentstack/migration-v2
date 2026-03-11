@@ -2072,7 +2072,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
           }
           else {
-            for (const key of value.schema || []) {
+            for (const key of value?.schema || []) {
               if (key?.data_type === 'group') {
                 processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
               }
@@ -2186,12 +2186,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   
           const uidSegments = data?.uid?.split('.') || [];
           let parentBlock: FieldMapType[] = [];
-          for (let i = uidSegments.length - 1; i >= 1; i--) {
-            const ancestorUid = uidSegments.slice(0, i).join('.');
-            parentBlock = nestedList.filter(item =>
+          for (let i = uidSegments?.length - 1; i >= 1; i--) {
+            const ancestorUid = uidSegments?.slice(0, i)?.join('.');
+            parentBlock = nestedList?.filter(item =>
               item?.child?.some(e => e?.uid === ancestorUid)
             );
-            if (parentBlock.length) break;
+            if (parentBlock?.length) break;
           }
        
          

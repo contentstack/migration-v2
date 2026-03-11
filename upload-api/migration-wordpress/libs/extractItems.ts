@@ -20,9 +20,9 @@ function resolveBlockName(field: any): string {
   return field?.name;
 }
 
-const { contentTypes: contentTypesConfig } = config.modules;
+const { contentTypes: contentTypesConfig } = config?.modules;
 
-const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
+const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
 
 function findSimilarBlocks(data: any[][], targetId: string) {
   for (const group of data) {
@@ -192,7 +192,7 @@ function getLastUid(uid : string) {
 }
 
 const extractItems = async (item: any, config: DataConfig, type: string, affix: string, categories: any, terms: any) => {
-    const localPath = config.localPath;
+    const localPath = config?.localPath;
     const xmlData = await fs.promises.readFile(localPath, "utf8");
     const $ = cheerio.load(xmlData, { xmlMode: true });
     const items = $('item');
@@ -522,7 +522,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             "type": "content_type",
             "fieldMapping": CT
         };
-        if (Object.keys(duplicateBlockMappings).length > 0) {
+        if (Object?.keys(duplicateBlockMappings)?.length > 0) {
           contentType.duplicateBlockMappings = duplicateBlockMappings;
         }
 
