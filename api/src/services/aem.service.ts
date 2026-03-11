@@ -690,10 +690,11 @@ function processFieldsRecursive(
 
       case 'group': {
         const uid = getLastKey(field?.contentstackFieldUid);
+        const aemGroupSourcePath = field?.backupFieldUid || field?.otherCmsField?.replace?.(/ > /g, '.') || '';
+        const aemGroupSourceKey = getLastKey(aemGroupSourcePath) || field?.uid;
       
         const isMultiple =
-          (field?.multiple === true) ||
-          (field?.advanced && field.advanced.multiple === true) ||
+          (field?.advanced?.multiple !== undefined ? field.advanced.multiple === true : field?.multiple === true) ||
           (field?.maxInstance && field.maxInstance > 1);
       
         const isCarouselItems =
@@ -710,7 +711,7 @@ function processFieldsRecursive(
         if (isCarouselItems) {
           groupValue = items;
         } else {
-          groupValue = items?.[field?.uid]?.items ?? items?.[field?.uid];
+          groupValue = items?.[aemGroupSourceKey]?.items ?? items?.[aemGroupSourceKey];
         }
       
         if (isMultiple) {
@@ -897,7 +898,7 @@ function processFieldsRecursive(
           const order2 = Array.isArray(items?.[':itemsOrder']) ? items[':itemsOrder'] : null;
           const map2 = items?.[':items'] || items;
           if (order2 && map2) {
-            const baseUid = field?.uid;
+            const baseUid = aemGroupSourceKey;
             const keysForThisGroup = order2.filter(
               (k) => k === baseUid || new RegExp(`^${baseUid}_`).test(k)
             );
@@ -925,15 +926,12 @@ function processFieldsRecursive(
           }
         } else {
           if (Array.isArray(groupValue)) {
-            const groupData: unknown[] = [];
-            if (Array.isArray(field?.schema)) {
-              for (const element of groupValue) {
-                groupData.push(
-                  processFieldsRecursive(field.schema, element, title, pathToUidMap, assetDetailsMap)
-                );
-              }
+            const firstElement = groupValue[0];
+            if (Array.isArray(field?.schema) && firstElement) {
+              obj[uid] = processFieldsRecursive(field.schema, firstElement, title, pathToUidMap, assetDetailsMap);
+            } else {
+              obj[uid] = {};
             }
-            obj[uid] = groupData;
           } else {
             if (Array.isArray(field?.schema)) {
               const value = processFieldsRecursive(field.schema, groupValue, title, pathToUidMap, assetDetailsMap);

@@ -174,6 +174,7 @@ export interface OptionsType {
   label?: string;
   value?: ContentTypesSchema;
   isDisabled?: boolean;
+  uid?: string;
 }
 
 export interface ExstingContentTypeMatch {
