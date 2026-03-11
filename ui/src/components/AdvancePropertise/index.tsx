@@ -858,15 +858,7 @@ const AdvancePropertise = (props: SchemaProps) => {
                 width="350px"
                 maxMenuHeight={200}
               />
-              {/* {isTaxonomiesLoading ? (
-                <InstructionText>
-                  Loading taxonomies...
-                </InstructionText>
-              ) : sourceTaxonomies?.length === 0 && destinationTaxonomies?.length === 0 ? (
-                <InstructionText>
-                  No taxonomies found. Please upload source data or create taxonomies in your destination stack.
-                </InstructionText>
-              ) : null} */}
+           
             </Field>
           )}
 
