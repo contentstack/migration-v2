@@ -6,7 +6,7 @@ import { createRefrence } from './drupal/references.service.js';
 import { createTaxonomy } from './drupal/taxonomy.service.js';
 import { createVersionFile } from './drupal/version.service.js';
 import { createQuery, createQueryConfig } from './drupal/query.service.js';
-import { generateContentTypeSchemas } from './drupal/content-types.service.js';
+import type { DbConfig, AssetsConfig } from './drupal/interface.js';
 
 /**
  * Drupal migration service with SQL-based data extraction.
@@ -27,13 +27,13 @@ import { generateContentTypeSchemas } from './drupal/content-types.service.js';
 export const drupalService = {
   createQuery, // Generate dynamic queries from database analysis (MUST RUN FIRST)
   createQueryConfig, // Helper: Create query configuration file for dynamic SQL
-  generateContentTypeSchemas, // Convert upload-api schema to API content types (MUST RUN AFTER upload-api)
+  
   createAssets: (
-    dbConfig: any,
+    dbConfig: DbConfig,
     destination_stack_id: string,
     projectId: string,
     isTest = false,
-    assetsConfig?: any
+    assetsConfig?: AssetsConfig
   ) => {
     return createAssets(
       dbConfig,
@@ -47,13 +47,13 @@ export const drupalService = {
   createRefrence, // Create reference mappings for relationships (run before entries)
   createTaxonomy, // Extract and process Drupal taxonomies (vocabularies and terms)
   createEntry: (
-    dbConfig: any,
+    dbConfig: DbConfig,
     destination_stack_id: string,
     projectId: string,
     isTest = false,
     masterLocale = 'en-us',
-    contentTypeMapping: any[] = [],
-    project: any = null
+    project: Record<string, unknown> | null = null,
+    contentTypes: Record<string, unknown>[] = []
   ) => {
     return createEntry(
       dbConfig,
@@ -61,8 +61,8 @@ export const drupalService = {
       projectId,
       isTest,
       masterLocale,
-      contentTypeMapping,
-      project
+      project,
+      contentTypes
     );
   },
   createLocale, // Create locale configurations

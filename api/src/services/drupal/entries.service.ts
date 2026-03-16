@@ -25,8 +25,6 @@ import {
 } from './field-analysis.service.js';
 import FieldFetcherService from './field-fetcher.service.js';
 import { mapDrupalLocales } from './locales.service.js';
-import FieldMapperModel from '../../models/FieldMapper.js';
-import ContentTypesMapperModel from '../../models/contentTypesMapper-lowdb.js';
 // Dynamic import for phpUnserialize will be used in the function
 
 // Local utility functions (extracted from entries-field-creator.utils.ts patterns)
@@ -215,13 +213,13 @@ const fetchFieldConfigs = async (
     for (const row of results) {
       try {
         const { unserialize } = await import('php-serialize');
-        const configData = unserialize(row.data);
+        const configData = unserialize(row?.data);
         if (configData && typeof configData === 'object') {
           fieldConfigs.push(configData as DrupalFieldConfig);
         }
       } catch (parseError) {
         console.error(
-          `Failed to parse field config for ${row.name}:`,
+          `Failed to parse field config for ${row?.name}:`,
           parseError,
         );
       }
@@ -238,7 +236,7 @@ const fetchFieldConfigs = async (
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
-      `Failed to fetch field configurations: ${error.message}`,
+      `Failed to fetch field configurations: ${error?.message}`,
       {},
       error,
     );
@@ -332,7 +330,7 @@ const convertTextToJson = (text: string): any => {
 
     // Use the same JSDOM + htmlToJson pattern as WordPress/AEM
     const dom = new JSDOM(htmlContent);
-    const htmlDoc = dom.window.document.querySelector('body');
+    const htmlDoc = dom?.window?.document?.querySelector('body');
     return htmlToJson(htmlDoc);
   } catch (error) {
     console.error('Failed to convert text to JSON RTE:', error);
@@ -352,7 +350,7 @@ const processFieldByType = (
   assetId: any,
   referenceId: any,
 ): any => {
-  if (!fieldMapping || !fieldMapping.contentstackFieldType) {
+    if (!fieldMapping || !fieldMapping?.contentstackFieldType) {
     return value;
   }
 
@@ -361,7 +359,7 @@ const processFieldByType = (
     return value;
   }
 
-  const targetType = fieldMapping.contentstackFieldType;
+  const targetType = fieldMapping?.contentstackFieldType;
 
   // Simple switch based on target type (like WordPress/Contentful)
   switch (targetType) {
@@ -447,9 +445,9 @@ const processFieldByType = (
         // Multiple files
         if (Array.isArray(value)) {
           const validAssets = value
-            .map((assetRef) => {
+            ?.map((assetRef) => {
               const assetKey = `assets_${assetRef}`;
-              const assetReference = assetId[assetKey];
+              const assetReference = assetId?.[assetKey];
 
               if (assetReference && typeof assetReference === 'object') {
                 return assetReference;
@@ -460,14 +458,14 @@ const processFieldByType = (
               );
               return null;
             })
-            .filter((asset) => asset !== null); // Remove null entries
+            ?.filter((asset) => asset !== null); // Remove null entries
 
-          return validAssets.length > 0 ? validAssets : undefined; // Return undefined if no valid assets
+          return validAssets?.length > 0 ? validAssets : undefined; // Return undefined if no valid assets
         }
       } else {
         // Single file
         const assetKey = `assets_${value}`;
-        const assetReference = assetId[assetKey];
+        const assetReference = assetId?.[assetKey];
 
         if (assetReference && typeof assetReference === 'object') {
           return assetReference;
@@ -484,14 +482,14 @@ const processFieldByType = (
       if (fieldMapping.advanced?.multiple) {
         // Multiple references
         if (Array.isArray(value)) {
-          return value.map(
+          return value?.map(
             (refId) =>
-              referenceId[`content_type_entries_title_${refId}`] || refId,
+              referenceId?.[`content_type_entries_title_${refId}`] || refId,
           );
         }
       } else {
         // Single reference
-        return [referenceId[`content_type_entries_title_${value}`] || value];
+        return [referenceId?.[`content_type_entries_title_${value}`] || value];
       }
       return value;
     }
@@ -554,7 +552,7 @@ const processFieldByType = (
       if (typeof value === 'string' && /<\/?[a-z][\s\S]*>/i.test(value)) {
         try {
           const dom = new JSDOM(value);
-          const htmlDoc = dom.window.document.querySelector('body');
+          const htmlDoc = dom?.window?.document?.querySelector('body');
           return htmlToJson(htmlDoc);
         } catch (error) {
           return value;
@@ -595,23 +593,23 @@ const consolidateTaxonomyFields = (
           if (
             taxonomyItem &&
             typeof taxonomyItem === 'object' &&
-            taxonomyItem.taxonomy_uid &&
-            taxonomyItem.term_uid
+            taxonomyItem?.taxonomy_uid &&
+            taxonomyItem?.term_uid
           ) {
             // Check for unique term_uid (avoid duplicates)
-            if (!seenTermUids.has(taxonomyItem.term_uid)) {
-              consolidatedTaxonomies.push({
-                taxonomy_uid: taxonomyItem.taxonomy_uid,
-                term_uid: taxonomyItem.term_uid,
+            if (!seenTermUids?.has(taxonomyItem?.term_uid)) {
+              consolidatedTaxonomies?.push({
+                taxonomy_uid: taxonomyItem?.taxonomy_uid,
+                term_uid: taxonomyItem?.term_uid,
               });
-              seenTermUids.add(taxonomyItem.term_uid);
+              seenTermUids?.add(taxonomyItem?.term_uid);
             }
           }
         }
       }
 
       // Mark this field for removal
-      fieldsToRemove.push(fieldKey);
+      fieldsToRemove?.push(fieldKey);
     }
   }
 
@@ -620,11 +618,11 @@ const consolidateTaxonomyFields = (
 
   // Remove original taxonomy fields
   for (const fieldKey of fieldsToRemove) {
-    delete consolidatedEntry[fieldKey];
+    delete consolidatedEntry?.[fieldKey];
   }
 
   // Add consolidated taxonomy field if we have any taxonomies
-  if (consolidatedTaxonomies.length > 0) {
+  if (consolidatedTaxonomies?.length > 0) {
     consolidatedEntry.taxonomies = consolidatedTaxonomies;
   }
 
@@ -636,7 +634,7 @@ const consolidateTaxonomyFields = (
  */
 const processFieldData = async (
   entryData: DrupalEntry,
-  fieldConfigs: DrupalFieldConfig[],
+  fieldConfigs: any,
   assetId: any,
   referenceId: any,
   taxonomyId: any,
@@ -657,34 +655,34 @@ const processFieldData = async (
   for (const [dataKey, value] of Object.entries(entryData)) {
     // Extract field name from dataKey (remove _target_id suffix)
     const fieldName = dataKey
-      .replace(/_target_id$/, '')
-      .replace(/_value$/, '')
-      .replace(/_status$/, '')
-      .replace(/_uri$/, '');
+      ?.replace(/_target_id$/, '')
+      ?.replace(/_value$/, '')
+      ?.replace(/_status$/, '')
+      ?.replace(/_uri$/, '');
 
     // Handle asset fields using field analysis
     if (
-      dataKey.endsWith('_target_id') &&
+      dataKey?.endsWith('_target_id') &&
       isAssetField(fieldName, contentType, assetFieldMapping)
     ) {
       const assetKey = `assets_${value}`;
-      if (assetKey in assetId) {
+      if (assetId && assetKey in assetId) {
         // Transform to proper Contentstack asset reference format
-        const assetReference = assetId[assetKey];
+        const assetReference = assetId?.[assetKey];
         if (assetReference && typeof assetReference === 'object') {
           processedData[dataKey] = assetReference;
         }
         // If asset reference is not properly structured, skip the field
       }
       // If asset not found in assets index, mark field as skipped
-      skippedFields.add(dataKey);
+      skippedFields?.add(dataKey);
       continue; // Skip further processing for this field
     }
 
     // Handle entity references (taxonomy and node references) using field analysis
     // NOTE: value can be a number (single reference) or string (GROUP_CONCAT comma-separated IDs)
     if (
-      dataKey.endsWith('_target_id') &&
+      dataKey?.endsWith('_target_id') &&
       (typeof value === 'number' || typeof value === 'string')
     ) {
       // Check if this is a taxonomy field using our field analysis
@@ -693,9 +691,9 @@ const processFieldData = async (
         const targetIds =
           typeof value === 'string'
             ? value
-                .split(',')
-                .map((id) => parseInt(id.trim()))
-                .filter((id) => !isNaN(id))
+                ?.split(',')
+                ?.map((id) => parseInt(id?.trim()))
+                ?.filter((id) => !isNaN(id))
             : [value];
 
         const transformedTaxonomies: Array<{
@@ -705,12 +703,12 @@ const processFieldData = async (
 
         for (const tid of targetIds) {
           // Look up taxonomy reference using drupal_term_id
-          const taxonomyRef = taxonomyReferenceLookup[tid];
+          const taxonomyRef = taxonomyReferenceLookup?.[tid];
 
           if (taxonomyRef) {
             transformedTaxonomies.push({
-              taxonomy_uid: taxonomyRef.taxonomy_uid,
-              term_uid: taxonomyRef.term_uid,
+              taxonomy_uid: taxonomyRef?.taxonomy_uid,
+              term_uid: taxonomyRef?.term_uid,
             });
           } else {
             console.warn(
@@ -719,7 +717,7 @@ const processFieldData = async (
           }
         }
 
-        if (transformedTaxonomies.length > 0) {
+        if (transformedTaxonomies?.length > 0) {
           processedData[dataKey] = transformedTaxonomies;
         } else {
           // Fallback to original value if no lookups succeeded
@@ -727,8 +725,8 @@ const processFieldData = async (
         }
 
         // Mark field as processed so it doesn't get overwritten by ctValue loop
-        processedFields.add(dataKey);
-        skippedFields.add(dataKey); // Also skip in ctValue loop
+        processedFields?.add(dataKey);
+        skippedFields?.add(dataKey); // Also skip in ctValue loop
 
         continue; // Skip further processing for this field
       } else if (
@@ -748,8 +746,8 @@ const processFieldData = async (
 
         for (const nid of targetIds) {
           const referenceKey = `content_type_entries_title_${nid}`;
-          if (referenceKey in referenceId) {
-            transformedReferences.push(referenceId[referenceKey]);
+          if (referenceId && referenceKey in referenceId) {
+            transformedReferences?.push(referenceId?.[referenceKey]);
           }
         }
 
@@ -769,56 +767,56 @@ const processFieldData = async (
     }
 
     // Handle other field types by checking field configs
-    const matchingFieldConfig = fieldConfigs.find(
-      (fc) =>
-        dataKey === `${fc.field_name}_value` ||
-        dataKey === `${fc.field_name}_status` ||
-        dataKey === fc.field_name,
+    const matchingFieldConfig = fieldConfigs?.find(
+      (fc: any) =>
+        dataKey === `${fc?.field_name}_value` ||
+        dataKey === `${fc?.field_name}_status` ||
+        dataKey === fc?.field_name,
     );
 
     if (matchingFieldConfig) {
       // Handle datetime and timestamps
       if (
-        matchingFieldConfig.field_type === 'datetime' ||
-        matchingFieldConfig.field_type === 'timestamp'
+        matchingFieldConfig?.field_type === 'datetime' ||
+        matchingFieldConfig?.field_type === 'timestamp'
       ) {
-        if (dataKey === `${matchingFieldConfig.field_name}_value`) {
+        if (dataKey === `${matchingFieldConfig?.field_name}_value`) {
           if (typeof value === 'number') {
             processedData[dataKey] = new Date(value * 1000).toISOString();
           } else {
-            processedData[dataKey] = isoDate.toISOString();
+            processedData[dataKey] = isoDate?.toISOString();
           }
           // Mark field as processed to avoid duplicate processing in second loop
-          processedFields.add(dataKey);
-          processedFields.add(matchingFieldConfig.field_name);
+          processedFields?.add(dataKey);
+          processedFields?.add(matchingFieldConfig?.field_name);
           continue;
         }
       }
 
       // Handle boolean fields
-      if (matchingFieldConfig.field_type === 'boolean') {
+      if (matchingFieldConfig?.field_type === 'boolean') {
         if (
-          dataKey === `${matchingFieldConfig.field_name}_value` &&
+          dataKey === `${matchingFieldConfig?.field_name}_value` &&
           typeof value === 'number'
         ) {
           processedData[dataKey] = value === 1;
           // Mark field as processed to avoid duplicate processing in second loop
-          processedFields.add(dataKey);
-          processedFields.add(matchingFieldConfig.field_name);
+          processedFields?.add(dataKey);
+          processedFields?.add(matchingFieldConfig?.field_name);
           continue;
         }
       }
 
       // Handle comment fields
-      if (matchingFieldConfig.field_type === 'comment') {
+      if (matchingFieldConfig?.field_type === 'comment') {
         if (
-          dataKey === `${matchingFieldConfig.field_name}_status` &&
+          dataKey === `${matchingFieldConfig?.field_name}_status` &&
           typeof value === 'number'
         ) {
           processedData[dataKey] = `${value}`;
           // Mark field as processed to avoid duplicate processing in second loop
-          processedFields.add(dataKey);
-          processedFields.add(matchingFieldConfig.field_name);
+          processedFields?.add(dataKey);
+          processedFields?.add(matchingFieldConfig?.field_name);
           continue;
         }
       }
@@ -845,7 +843,7 @@ const processFieldData = async (
       continue;
     }
 
-    const value = entryData[fieldName];
+    const value = entryData?.[fieldName];
 
     if (fieldName === 'created') {
       ctValue[fieldName] = new Date(value * 1000).toISOString();
@@ -871,7 +869,7 @@ const processFieldData = async (
       const titleFieldName = `${baseFieldName}_title`;
 
       // Check if we also have title data
-      const titleValue = entryData[titleFieldName];
+      const titleValue = entryData?.[titleFieldName];
 
       if (value) {
         ctValue[baseFieldName] = {
@@ -899,7 +897,7 @@ const processFieldData = async (
       const baseFieldName = fieldName.replace('_title', '');
       const uriFieldName = `${baseFieldName}_uri`;
 
-      if (entryData[uriFieldName]) {
+      if (entryData?.[uriFieldName]) {
         // URI field will handle this, skip processing here
         continue;
       } else {
@@ -965,21 +963,21 @@ const processFieldData = async (
       if (isValueField) {
         const baseFieldName = key.replace('_value', '');
         // Only include the _value field if the base field doesn't exist
-        if (!mergedData.hasOwnProperty(baseFieldName)) {
+        if (!mergedData?.hasOwnProperty(baseFieldName)) {
           cleanedEntry[key] = val;
         }
         // If base field exists, skip the _value field (base field takes priority)
       } else if (isStatusField) {
-        const baseFieldName = key.replace('_status', '');
+        const baseFieldName = key?.replace('_status', '');
         // Only include the _status field if the base field doesn't exist
-        if (!mergedData.hasOwnProperty(baseFieldName)) {
+        if (!mergedData?.hasOwnProperty(baseFieldName)) {
           cleanedEntry[key] = val;
         }
         // If base field exists, skip the _status field (base field takes priority)
       } else if (isUriField) {
-        const baseFieldName = key.replace('_uri', '');
+        const baseFieldName = key?.replace('_uri', '');
         // Only include the _uri field if the base field doesn't exist
-        if (!mergedData.hasOwnProperty(baseFieldName)) {
+        if (!mergedData?.hasOwnProperty(baseFieldName)) {
           cleanedEntry[key] = val;
         }
         // If base field exists, skip the _uri field (base field takes priority)
@@ -998,10 +996,9 @@ const processFieldData = async (
  */
 const processEntries = async (
   connection: mysql.Connection,
-  contentType: string,
+  contentType: any,
   skip: number,
   queryPageConfig: QueryConfig,
-  fieldConfigs: DrupalFieldConfig[],
   assetId: any,
   referenceId: any,
   taxonomyId: any,
@@ -1012,7 +1009,6 @@ const processEntries = async (
   projectId: string,
   destination_stack_id: string,
   masterLocale: string,
-  contentTypeMapping: any[] = [],
   isTest: boolean = false,
   project: any = null,
 ): Promise<{ [key: string]: any } | null> => {
@@ -1020,26 +1016,27 @@ const processEntries = async (
   console.log(`\n\n========== [processEntries] CALLED for contentType="${contentType}", projectId="${projectId}", destination_stack_id="${destination_stack_id}" ==========\n`);
 
   try {
+    const keyMapper = project?.mapperKeys || {};
     // Following original pattern: queryPageConfig['page']['' + pagename + '']
-    const baseQuery = queryPageConfig['page'][contentType];
+    const baseQuery = queryPageConfig?.['page']?.[contentType?.otherCmsUid];
     if (!baseQuery) {
-      throw new Error(`No query found for content type: ${contentType}`);
+      throw new Error(`No query found for content type: ${contentType?.otherCmsUid}`);
     }
 
     // Check if this is an optimized query (content type with many fields)
-    const isOptimizedQuery = baseQuery.includes('/* OPTIMIZED_NO_JOINS:');
+    const isOptimizedQuery = baseQuery?.includes('/* OPTIMIZED_NO_JOINS:');
     let entries: any[] = [];
 
     if (isOptimizedQuery) {
       // Handle content types with many fields using optimized approach
-      const fieldCountMatch = baseQuery.match(
+      const fieldCountMatch = baseQuery?.match(
         /\/\* OPTIMIZED_NO_JOINS:(\d+) \*\//,
       );
-      const fieldCount = fieldCountMatch ? parseInt(fieldCountMatch[1]) : 0;
+      const fieldCount = fieldCountMatch ? parseInt(fieldCountMatch?.[1]) : 0;
 
       const optimizedMessage = getLogMessage(
         srcFunc,
-        `Processing ${contentType} with optimized field fetching (${fieldCount} fields)`,
+        `Processing ${contentType?.otherCmsUid} with optimized field fetching (${fieldCount} fields)`,
         {},
       );
       await customLogger(
@@ -1052,12 +1049,12 @@ const processEntries = async (
       // Execute base query without field JOINs
       const effectiveLimit = isTest ? 1 : LIMIT;
       const cleanBaseQuery = baseQuery
-        .replace(/\/\* OPTIMIZED_NO_JOINS:\d+ \*\//, '')
-        .trim();
+        ?.replace(/\/\* OPTIMIZED_NO_JOINS:\d+ \*\//, '')
+        ?.trim();
       const query = cleanBaseQuery + ` LIMIT ${skip}, ${effectiveLimit}`;
       const baseEntries = await executeQuery(connection, query);
 
-      if (baseEntries.length === 0) {
+      if (baseEntries?.length === 0) {
         return null;
       }
 
@@ -1067,24 +1064,24 @@ const processEntries = async (
         projectId,
         destination_stack_id,
       );
-      const nodeIds = baseEntries.map((entry) => entry.nid);
-      const fieldsForType = await fieldFetcher.getFieldsForContentType(
+      const nodeIds = baseEntries?.map((entry) => entry?.nid);
+      const fieldsForType = await fieldFetcher?.getFieldsForContentType(
         contentType,
       );
 
-      if (fieldsForType.length > 0) {
-        const fieldData = await fieldFetcher.fetchFieldDataForContentType(
+      if (fieldsForType?.length > 0) {
+        const fieldData = await fieldFetcher?.fetchFieldDataForContentType(
           contentType,
           nodeIds,
           fieldsForType,
         );
 
         // Merge base entries with field data
-        entries = fieldFetcher.mergeNodeAndFieldData(baseEntries, fieldData);
+        entries = fieldFetcher?.mergeNodeAndFieldData(baseEntries, fieldData);
 
         const mergeMessage = getLogMessage(
           srcFunc,
-          `Merged ${baseEntries.length} base entries with field data for ${contentType}`,
+          `Merged ${baseEntries?.length} base entries with field data for ${contentType}`,
           {},
         );
         await customLogger(
@@ -1102,7 +1099,7 @@ const processEntries = async (
       const query = baseQuery + ` LIMIT ${skip}, ${effectiveLimit}`;
       entries = await executeQuery(connection, query);
 
-      if (entries.length === 0) {
+      if (entries?.length === 0) {
         return null;
       }
     }
@@ -1111,23 +1108,23 @@ const processEntries = async (
     const entriesByLocale: { [locale: string]: any[] } = {};
 
     // Group entries by their langcode
-    if (entries && Array.isArray(entries)) {
-      entries.forEach((entry) => {
+    if (entries && Array?.isArray(entries)) {
+      entries?.forEach((entry) => {
         if (!entry) return;
         const entryLocale = entry?.langcode || masterLocale; // fallback to masterLocale if no langcode
-        if (!entriesByLocale[entryLocale]) {
+        if (!entriesByLocale?.[entryLocale]) {
           entriesByLocale[entryLocale] = [];
         }
-        entriesByLocale[entryLocale].push(entry);
+        entriesByLocale?.[entryLocale]?.push(entry);
       });
     }
 
     // Map source locales to destination locales using user-selected mapping from UI
     // This replaces the old hardcoded transformation rules with dynamic user mapping
     const transformedEntriesByLocale: { [locale: string]: any[] } = {};
-    const allLocales = Object.keys(entriesByLocale);
-    const hasEn = allLocales.includes('en');
-    const hasEnUs = allLocales.includes('en-us');
+    const allLocales = Object?.keys(entriesByLocale);
+    const hasEn = allLocales?.includes('en');
+    const hasEnUs = allLocales?.includes('en-us');
 
     // Get locale mapping configuration from project
     const localeMapping = project?.localeMapping || {};
@@ -1145,13 +1142,13 @@ const processEntries = async (
     const masterLocaleKey = `${sourceMasterLocale}-master_locale`;
     const destinationMasterLocale =
       localeMapping?.[masterLocaleKey] ||
-      Object.values(project?.master_locale || {})?.[0] || // ✅ Use values() not keys()!
+      Object?.values(project?.master_locale || {})?.[0] || // ✅ Use values() not keys()!
       project?.stackDetails?.master_locale ||
       masterLocale ||
       'en-us';
     // Apply source locale transformation rules first (und → en-us, etc.)
     // Then map the transformed source locale to destination locale using user's selection
-    Object.entries(entriesByLocale).forEach(([originalLocale, entries]) => {
+    Object?.entries(entriesByLocale)?.forEach(([originalLocale, entries]) => {
       // Step 1: Apply Drupal-specific transformation rules (same as before)
       let transformedSourceLocale = originalLocale;
 
@@ -1191,9 +1188,9 @@ const processEntries = async (
       });
 
       // Merge entries if destination locale already has entries
-      if (transformedEntriesByLocale[destinationLocale]) {
+      if (transformedEntriesByLocale?.[destinationLocale]) {
         transformedEntriesByLocale[destinationLocale] = [
-          ...transformedEntriesByLocale[destinationLocale],
+          ...transformedEntriesByLocale?.[destinationLocale],
           ...entries,
         ];
       } else {
@@ -1201,61 +1198,22 @@ const processEntries = async (
       }
     });
 
-    // Find content type mapping for field type switching
-    const currentContentTypeMapping = contentTypeMapping.find(
-      (ct) =>
-        ct.otherCmsUid === contentType || ct.contentstackUid === contentType,
-    );
+
 
     const allProcessedContent: { [key: string]: any } = {};
 
-    // Pre-load FieldMapper and ContentTypesMapper databases once before processing
-    // (avoids repeated filesystem/lowdb reads inside the per-entry loop)
-    await FieldMapperModel.read();
-    const allFieldMappings = FieldMapperModel.data?.field_mapper || [];
-
-    await ContentTypesMapperModel.read();
-    const contentTypesMappers =
-      ContentTypesMapperModel.data?.ContentTypesMappers || [];
-    const ctMapper = contentTypesMappers.find(
-      (ct: any) =>
-        ct?.projectId === projectId &&
-        (ct?.contentstackUid === contentType ||
-          ct?.otherCmsUid === contentType),
-    );
-    const currentContentTypeId = ctMapper?.id;
-
-    // Pre-load and parse combined schema.json once before processing
-    // (avoids repeated file reads inside the per-field loop)
-    let cachedAllSchemas: any[] | null = null;
-    try {
-      const combinedSchemaPath = path.join(
-        MIGRATION_DATA_CONFIG.DATA,
-        destination_stack_id,
-        'content_types',
-        MIGRATION_DATA_CONFIG.CONTENT_TYPES_SCHEMA_FILE, // schema.json
-      );
-      cachedAllSchemas = JSON.parse(
-        await fs.promises.readFile(combinedSchemaPath, 'utf8'),
-      );
-    } catch {
-      // Schema file may not exist yet; fallback handled in field loop
-      cachedAllSchemas = null;
-    }
-    const cachedContentTypeSchema = Array.isArray(cachedAllSchemas)
-      ? cachedAllSchemas.find((ct: any) => ct.uid === contentType)
-      : null;
 
     // Process entries for each transformed locale separately
     for (const [currentLocale, localeEntries] of Object.entries(
       transformedEntriesByLocale,
     )) {
+      const contentTypeUid = keyMapper?.[contentType?.otherCmsUid] ? keyMapper?.[contentType?.otherCmsUid] : contentType?.contentstackUid;
       // Create folder structure: entries/contentType/locale/
       const contentTypeFolderPath = path.join(
         MIGRATION_DATA_CONFIG.DATA,
         destination_stack_id,
         MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME,
-        contentType,
+        contentTypeUid,
       );
       const localeFolderPath = path.join(contentTypeFolderPath, currentLocale);
       await fs.promises.mkdir(localeFolderPath, { recursive: true });
@@ -1270,9 +1228,10 @@ const processEntries = async (
 
       // Process each entry in this locale
       for (const entry of localeEntries) {
+
         let processedEntry = await processFieldData(
           entry,
-          fieldConfigs,
+          contentType?.fieldMapping,
           assetId,
           referenceId,
           taxonomyId,
@@ -1280,168 +1239,56 @@ const processEntries = async (
           referenceFieldMapping,
           assetFieldMapping,
           taxonomyReferenceLookup,
-          contentType,
+          contentTypeUid,
           prefix,
         );
 
         // 🏷️ TAXONOMY CONSOLIDATION: Merge all taxonomy fields into single 'taxonomies' field
         processedEntry = consolidateTaxonomyFields(
           processedEntry,
-          contentType,
+          contentTypeUid,
           taxonomyFieldMapping,
         );
 
         // Apply field type switching based on user's UI selections (from content type schema)
         const enhancedEntry: any = {};
+        const fieldMappings = contentType?.fieldMapping;
 
-        // Load FieldMapper database for direct lookup of user's field type selections
-        // This serves as the source of truth for field types changed in UI
-        await FieldMapperModel.read();
-        const allFieldMappings = FieldMapperModel.data?.field_mapper || [];
-        
-        // Get content type mapper to find contentTypeId for this content type
-        await ContentTypesMapperModel.read();
-        const contentTypesMappers = ContentTypesMapperModel.data?.ContentTypesMappers || [];
-        const ctMapper = contentTypesMappers.find(
-          (ct: any) => ct?.projectId === projectId && 
-            (ct?.contentstackUid === contentType || ct?.otherCmsUid === contentType)
-        );
-        const currentContentTypeId = ctMapper?.id;
-
-        // Process each field with type switching support
-        // (FieldMapper & ContentTypesMapper data already loaded above the loop)
         for (const [fieldName, fieldValue] of Object.entries(processedEntry)) {
-          let fieldMapping = null;
-
-          // PRIORITY 1: Read DIRECTLY from FieldMapper database (most accurate source of user's UI selections)
-          // This ensures we always use the latest field type even if schema hasn't been regenerated
           const cleanedFieldName = fieldName
-            .replace(/_target_id$/, '')
-            .replace(/_value$/, '');
+            ?.replace(/_target_id$/, '')
+            ?.replace(/_value$/, '');
 
-          // Only trust FieldMapper rows when we can positively identify the current content type.
-          // If currentContentTypeId is not resolved, skip DB mappings and fall back to schema/UI mapping
-          // to avoid matching rows from a different content type (wrong field type or stale isDeleted).
-          let dbFieldMapping: any = null;
-          if (currentContentTypeId) {
-            dbFieldMapping = allFieldMappings.find(
-              (fm: any) =>
-                fm?.projectId === projectId &&
-                fm?.contentTypeId === currentContentTypeId &&
-                (fm?.uid === fieldName ||
-                  fm?.uid === cleanedFieldName ||
-                  fm?.contentstackFieldUid === fieldName ||
-                  fm?.contentstackFieldUid === cleanedFieldName),
-            );
+          // Find the specific mapping item that matches this field
+          const matchingMapping = fieldMappings?.find(
+            (item: any) =>
+              item?.uid === cleanedFieldName ||
+              item?.contentstackFieldUid === cleanedFieldName ||
+              item?.otherCmsField === cleanedFieldName,
+          );
+          if(matchingMapping?.isDeleted){
+            continue;
           }
 
-          if (dbFieldMapping) {
-            // Skip fields that were unselected by the user in the UI (isDeleted: true)
-            if (dbFieldMapping.isDeleted === true) {
-              continue; // Do not include this field in the migrated entry
-            }
-
-            if (dbFieldMapping.contentstackFieldType) {
-              // Use field type directly from database (user's latest UI selection)
-              fieldMapping = {
-                uid: fieldName,
-                contentstackFieldType: dbFieldMapping.contentstackFieldType,
-                backupFieldType:
-                  dbFieldMapping.backupFieldType ||
-                  dbFieldMapping.contentstackFieldType,
-                advanced: dbFieldMapping.advanced || {},
-              };
-            }
-          }
-
-          // PRIORITY 2: If not in FieldMapper DB, try schema.json (pre-loaded above the loop)
-          if (!fieldMapping) {
-            try {
-              // Find field in schema - use exact matching only to avoid false matches
-              // (e.g. "field_subtitle".includes("title") would wrongly match the "title" field)
-              const schemaField = cachedContentTypeSchema?.schema?.find(
-                (field: any) =>
-                  field.uid === fieldName ||
-                  field.uid === fieldName.replace(/_target_id$/, '') ||
-                  field.uid === fieldName.replace(/_value$/, ''),
-              );
-
-              if (schemaField) {
-                // Determine the proper field type based on schema configuration
-                let targetFieldType = schemaField.data_type;
-
-                // Handle HTML RTE fields (text with allow_rich_text: true)
-                if (
-                  schemaField.data_type === 'text' &&
-                  schemaField.field_metadata?.allow_rich_text === true
-                ) {
-                  targetFieldType = 'html'; // ✅ HTML RTE field
-                }
-                // Handle JSON RTE fields
-                else if (schemaField.data_type === 'json') {
-                  targetFieldType = 'json'; // ✅ JSON RTE field
-                }
-                // Handle text fields with multiline metadata
-                else if (
-                  schemaField.data_type === 'text' &&
-                  schemaField.field_metadata?.multiline
-                ) {
-                  targetFieldType = 'multi_line_text'; // ✅ Multi-line text field
-                }
-
-                // Create a mapping from schema field
-                fieldMapping = {
-                  uid: fieldName,
-                  contentstackFieldType: targetFieldType,
-                  backupFieldType: schemaField.data_type,
-                  advanced: schemaField,
-                };
-              }
-            } catch (error: any) {
-              // Schema not found, will try fallback below
-            }
-          }
-
-          // FALLBACK: If neither DB nor schema found, try UI content type mapping
-          if (
-            !fieldMapping &&
-            currentContentTypeMapping &&
-            currentContentTypeMapping.fieldMapping
-          ) {
-            const fallbackMapping = currentContentTypeMapping.fieldMapping.find(
-              (fm: any) =>
-                fm.uid === fieldName || fm.otherCmsField === fieldName,
-            );
-
-            // Skip fields that were unselected by the user in the UI (isDeleted: true)
-            if (fallbackMapping?.isDeleted === true) {
-              continue; // Do not include this field in the migrated entry
-            }
-
-            fieldMapping = fallbackMapping;
-          }
-
-          if (fieldMapping) {
-            // Apply field type processing based on user's selection
+          if (matchingMapping) {
             const processedValue = processFieldByType(
               fieldValue,
-              fieldMapping,
+              matchingMapping,
               assetId,
               referenceId,
             );
 
-            // Only add field if processed value is not undefined (undefined means remove field)
             if (processedValue !== undefined) {
-              enhancedEntry[fieldName] = processedValue;
+              const entryFieldKey = matchingMapping?.contentstackFieldUid || fieldName;
+              enhancedEntry[entryFieldKey] = processedValue;
 
-              // Log field type processing
               if (
-                fieldMapping.contentstackFieldType !==
-                fieldMapping.backupFieldType
+                matchingMapping?.contentstackFieldType !==
+                matchingMapping?.backupFieldType
               ) {
                 const message = getLogMessage(
                   srcFunc,
-                  `Field ${fieldName} processed as ${fieldMapping.contentstackFieldType} (switched from ${fieldMapping.backupFieldType})`,
+                  `Field ${fieldName} processed as ${matchingMapping?.contentstackFieldType} (switched from ${matchingMapping?.backupFieldType})`,
                   {},
                 );
                 await customLogger(
@@ -1452,7 +1299,6 @@ const processEntries = async (
                 );
               }
             } else {
-              // Log field removal
               const message = getLogMessage(
                 srcFunc,
                 `Field ${fieldName} removed due to missing or invalid asset reference`,
@@ -1466,7 +1312,6 @@ const processEntries = async (
               );
             }
           } else {
-            // Keep original value if no mapping found
             enhancedEntry[fieldName] = fieldValue;
           }
         }
@@ -1476,9 +1321,9 @@ const processEntries = async (
         // Add publish_details as an empty array to the end of entry creation
         processedEntry.publish_details = [];
 
-        if (typeof entry.nid === 'number') {
+        if (typeof entry?.nid === 'number') {
           const entryUid = uidCorrector({
-            id: `content_type_entries_title_${entry.nid}`,
+            id: `content_type_entries_title_${entry?.nid}`,
             prefix,
           });
           existingLocaleContent[entryUid] = processedEntry;
@@ -1488,7 +1333,7 @@ const processEntries = async (
         // Log each entry transformation
         const message = getLogMessage(
           srcFunc,
-          `Entry with uid ${entry.nid} (locale: ${currentLocale}) for content type ${contentType} has been successfully transformed.`,
+          `Entry with uid ${entry?.nid} (locale: ${currentLocale}) for content type ${contentType?.otherCmsUid} has been successfully transformed.`,
           {},
         );
         await customLogger(projectId, destination_stack_id, 'info', message);
@@ -1499,7 +1344,7 @@ const processEntries = async (
 
       const localeMessage = getLogMessage(
         srcFunc,
-        `Successfully processed ${localeEntries.length} entries for locale ${currentLocale} in content type ${contentType}`,
+        `Successfully processed ${localeEntries?.length} entries for locale ${currentLocale} in content type ${contentType?.otherCmsUid}`,
         {},
       );
       await customLogger(
@@ -1511,17 +1356,18 @@ const processEntries = async (
     }
 
     // 📁 Create mandatory index.json files for each transformed locale directory
-    for (const [currentLocale, localeEntries] of Object.entries(
+    for (const [currentLocale, localeEntries] of Object?.entries(
       transformedEntriesByLocale,
     )) {
-      if (localeEntries.length > 0) {
-        const contentTypeFolderPath = path.join(
+      if (localeEntries?.length > 0) {
+        const contentTypeUid = keyMapper?.[contentType?.otherCmsUid] ? keyMapper?.[contentType?.otherCmsUid] : contentType?.contentstackUid;
+        const contentTypeFolderPath = path?.join(
           MIGRATION_DATA_CONFIG.DATA,
           destination_stack_id,
           MIGRATION_DATA_CONFIG.ENTRIES_DIR_NAME,
-          contentType,
+          contentTypeUid,
         );
-        const localeFolderPath = path.join(
+        const localeFolderPath = path?.join(
           contentTypeFolderPath,
           currentLocale,
         );
@@ -1537,7 +1383,7 @@ const processEntries = async (
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
-      `Error processing entries for ${contentType}: ${error.message}`,
+      `Error processing entries for ${contentType?.otherCmsUid || contentType?.contentstackUid}: ${error?.message}`,
       {},
       error,
     );
@@ -1551,9 +1397,8 @@ const processEntries = async (
  */
 const processContentType = async (
   connection: mysql.Connection,
-  contentType: string,
+  contentType: any,
   queryPageConfig: QueryConfig,
-  fieldConfigs: DrupalFieldConfig[],
   assetId: any,
   referenceId: any,
   taxonomyId: any,
@@ -1564,7 +1409,6 @@ const processContentType = async (
   projectId: string,
   destination_stack_id: string,
   masterLocale: string,
-  contentTypeMapping: any[] = [],
   isTest: boolean = false,
   project: any = null,
 ): Promise<void> => {
@@ -1572,23 +1416,23 @@ const processContentType = async (
 
   try {
     // Get total count for pagination (if count query exists)
-    const countKey = `${contentType}Count`;
+    const countKey = `${contentType?.otherCmsUid}Count`;
     let totalCount = 1; // Default to process at least one batch
 
-    if (queryPageConfig.count && queryPageConfig.count[countKey]) {
-      const countQuery = queryPageConfig.count[countKey];
+    if (queryPageConfig?.count && queryPageConfig?.count[countKey]) {
+      const countQuery = queryPageConfig?.count?.[countKey];
       const countResults = await executeQuery(connection, countQuery);
-      totalCount = countResults[0]?.countentry || 0;
+      totalCount = countResults?.[0]?.countentry ?? 0;
     }
 
     if (totalCount === 0) {
       const message = getLogMessage(
         srcFunc,
-        `No entries found for content type ${contentType}.`,
+        `No entries found for content type ${contentType?.otherCmsUid}.`,
         {},
       );
       await customLogger(projectId, destination_stack_id, 'info', message);
-      return;
+      //return;
     }
 
     // 🧪 Process entries in batches (test migration: single entry, main migration: all entries)
@@ -1604,7 +1448,6 @@ const processContentType = async (
         contentType,
         i,
         queryPageConfig,
-        fieldConfigs,
         assetId,
         referenceId,
         taxonomyId,
@@ -1615,7 +1458,6 @@ const processContentType = async (
         projectId,
         destination_stack_id,
         masterLocale,
-        contentTypeMapping,
         isTest,
         project,
       );
@@ -1628,7 +1470,7 @@ const processContentType = async (
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
-      `Error processing content type ${contentType}: ${error.message}`,
+      `Error processing content type ${contentType?.otherCmsUid || contentType?.contentstackUid}: ${error?.message}`,
       {},
       error,
     );
@@ -1677,16 +1519,16 @@ export const createEntry = async (
   projectId: string,
   isTest = false,
   masterLocale = 'en-us',
-  contentTypeMapping: any[] = [],
   project: any = null,
+  contentTypes: any[] = []
 ): Promise<void> => {
   const srcFunc = 'createEntry';
   let connection: mysql.Connection | null = null;
 
   try {
-    const entriesSave = path.join(DATA, destination_stack_id, ENTRIES_DIR_NAME);
-    const assetsSave = path.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
-    const referencesSave = path.join(
+    const entriesSave = path?.join(DATA, destination_stack_id, ENTRIES_DIR_NAME);
+    const assetsSave = path?.join(DATA, destination_stack_id, ASSETS_DIR_NAME);
+    const referencesSave = path?.join(
       DATA,
       destination_stack_id,
       REFERENCES_DIR_NAME,
@@ -1739,18 +1581,22 @@ export const createEntry = async (
       referencesSave,
     );
 
-    // Process each content type from query config (like original)
-    const pageQuery = queryPageConfig.page;
-    const contentTypes = Object.keys(pageQuery);
-    // 🧪 Test migration: Process ALL content types but with limited data per content type
-    const typesToProcess = contentTypes; // Always process all content types
+    // Use passed contentTypes if provided, otherwise fall back to query config keys
+    const pageQuery = queryPageConfig?.page;
+    const typesToProcess =
+      contentTypes?.length > 0
+        ? contentTypes?.filter((ct: any) => {
+            const uid = ct?.otherCmsUid || ct?.contentstackUid || ct;
+            return ct;
+          })
+        : Object?.keys(pageQuery);
 
-    for (const contentType of typesToProcess) {
+ 
+    for (const contentType of contentTypes || []) {
       await processContentType(
         connection,
         contentType,
         queryPageConfig,
-        fieldConfigs,
         assetId,
         referenceId,
         taxonomyId,
@@ -1761,7 +1607,6 @@ export const createEntry = async (
         projectId,
         destination_stack_id,
         masterLocale,
-        contentTypeMapping,
         isTest,
         project,
       );
@@ -1769,7 +1614,7 @@ export const createEntry = async (
 
     const successMessage = getLogMessage(
       srcFunc,
-      `Successfully processed entries for ${typesToProcess.length} content types with multilingual support.`,
+      `Successfully processed entries for ${typesToProcess?.length} content types with multilingual support.`,
       {},
     );
     await customLogger(projectId, destination_stack_id, 'info', successMessage);
