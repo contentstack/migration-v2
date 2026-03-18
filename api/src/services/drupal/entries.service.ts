@@ -961,7 +961,7 @@ const processFieldData = async (
       const isUriField = key.endsWith('_uri');
 
       if (isValueField) {
-        const baseFieldName = key.replace('_value', '');
+        const baseFieldName = key?.replace('_value', '');
         // Only include the _value field if the base field doesn't exist
         if (!mergedData?.hasOwnProperty(baseFieldName)) {
           cleanedEntry[key] = val;
