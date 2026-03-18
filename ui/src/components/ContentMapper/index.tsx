@@ -244,30 +244,30 @@ const flattenSchemaToUidMap = (
   result: Record<string, { item: ContentTypesSchema; label: string }> = {}
 ): Record<string, { item: ContentTypesSchema; label: string }> => {
   for (const item of schema ?? []) {
-    const label = parentLabel ? `${parentLabel} > ${item.display_name}` : item.display_name;
+    const label = parentLabel ? `${parentLabel} > ${item?.display_name}` : item?.display_name;
     // Index by uid so we can do O(1) lookup
-    if (item.uid) {
+    if (item?.uid) {
       // Only store the first occurrence to avoid overwriting with a deeper-nested
       // duplicate uid. The label stored here is the full display path.
-      if (!result[item.uid]) {
-        result[item.uid] = { item, label };
+      if (!result[item?.uid]) {
+        result[item?.uid] = { item, label };
       }
     }
 
     // Recurse into groups
-    if (item.schema && Array.isArray(item.schema)) {
-      flattenSchemaToUidMap(item.schema, label, result);
+    if (item?.schema && Array.isArray(item?.schema)) {
+      flattenSchemaToUidMap(item?.schema, label, result);
     }
 
     // Recurse into modular block children
-    if (item.data_type === 'blocks' && item.blocks && Array.isArray(item.blocks)) {
-      for (const block of item.blocks) {
-        const blockLabel = `${label} > ${block.uid || block.display_name}`;
-        if (block.uid && !result[block.uid]) {
-          result[block.uid] = { item: block as unknown as ContentTypesSchema, label: blockLabel };
+    if (item?.data_type === 'blocks' && item?.blocks && Array.isArray(item?.blocks)) {
+      for (const block of item?.blocks) {
+        const blockLabel = `${label} > ${block?.uid || block?.display_name}`;
+        if (block?.uid && !result[block?.uid]) {
+          result[block?.uid] = { item: block as unknown as ContentTypesSchema, label: blockLabel };
         }
-        if (block.schema && Array.isArray(block.schema)) {
-          flattenSchemaToUidMap(block.schema, blockLabel, result);
+        if (block?.schema && Array.isArray(block?.schema)) {
+          flattenSchemaToUidMap(block?.schema, blockLabel, result);
         }
       }
     }
@@ -798,13 +798,13 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
           if (idx !== -1) nextSelectedOptions.splice(idx, 1);
         }
         delete nextExistingField[backupFieldUid];
-        nextTableData = nextTableData.map((row: FieldMapType) => {
-          if (row.backupFieldUid === backupFieldUid) {
+        nextTableData = nextTableData?.map((row: FieldMapType) => {
+          if (row?.backupFieldUid === backupFieldUid) {
             return {
               ...row,
-              contentstackField:     row.otherCmsField,
-              contentstackFieldUid:  row.backupFieldUid,
-              contentstackFieldType: row.backupFieldType,
+              contentstackField:     row?.otherCmsField,
+              contentstackFieldUid:  row?.backupFieldUid,
+              contentstackFieldType: row?.backupFieldType,
             };
           }
           return row;
@@ -836,11 +836,11 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       const schemaEntry = schemaUidMap[mappedItemUid];
       if (schemaEntry) {
         nextExistingField[backupFieldUid] = {
-          label: schemaEntry.label,
-          value: schemaEntry.item,
+          label: schemaEntry?.label,
+          value: schemaEntry?.item,
         };
-        if (!nextSelectedOptions.includes(schemaEntry.label)) {
-          nextSelectedOptions.push(schemaEntry.label);
+        if (!nextSelectedOptions.includes(schemaEntry?.label)) {
+          nextSelectedOptions.push(schemaEntry?.label);
         }
       }
     }
