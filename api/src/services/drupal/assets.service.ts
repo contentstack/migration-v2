@@ -429,9 +429,9 @@ const saveAsset = async (
       'files'
     );
 
-    const safeFid = String(assets.fid).replace(/[^a-zA-Z0-9_-]/g, '');
+    const safeFid = String(assets?.fid)?.replace(/[^a-zA-Z0-9_-]/g, '');
     if (!safeFid) {
-      throw new Error(`Asset has an invalid fid: ${assets.fid}`);
+      throw new Error(`Asset has an invalid fid: ${assets?.fid}`);
     }
     const assetId = `assets_${safeFid}`;
     const fileName = path.basename(assets?.filename || '');
