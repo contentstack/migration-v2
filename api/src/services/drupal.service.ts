@@ -16,18 +16,16 @@ import type { DbConfig, AssetsConfig } from './drupal/interface.js';
  *
  * IMPORTANT: Run in this order for proper dependency resolution:
  * 1. createQuery - Generate dynamic queries from database analysis (MUST RUN FIRST)
- * 2. generateContentTypeSchemas - Convert upload-api schema to API content types (MUST RUN AFTER upload-api)
- * 3. createAssets - Extract assets first (needed by entries)
- * 4. createRefrence - Create reference mappings (needed by entries)
- * 5. createTaxonomy - Extract taxonomies (needed by entries for taxonomy references)
- * 6. createEntry - Process entries (uses assets, references, and taxonomies)
- * 7. createLocale - Create locale configurations
- * 8. createVersionFile - Create version metadata file
+ * 2. createAssets - Extract assets first (needed by entries)
+ * 3. createRefrence - Create reference mappings (needed by entries)
+ * 4. createTaxonomy - Extract taxonomies (needed by entries for taxonomy references)
+ * 5. createEntry - Process entries (uses assets, references, and taxonomies)
+ * 6. createLocale - Create locale configurations
+ * 7. createVersionFile - Create version metadata file
  */
 export const drupalService = {
   createQuery, // Generate dynamic queries from database analysis (MUST RUN FIRST)
   createQueryConfig, // Helper: Create query configuration file for dynamic SQL
-  
   createAssets: (
     dbConfig: DbConfig,
     destination_stack_id: string,

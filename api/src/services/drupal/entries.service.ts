@@ -996,6 +996,7 @@ const processFieldData = async (
  */
 const processEntries = async (
   connection: mysql.Connection,
+  fieldConfigs: any,
   contentType: any,
   skip: number,
   queryPageConfig: QueryConfig,
@@ -1230,7 +1231,7 @@ const processEntries = async (
 
         let processedEntry = await processFieldData(
           entry,
-          contentType?.fieldMapping,
+          fieldConfigs,
           assetId,
           referenceId,
           taxonomyId,
@@ -1238,14 +1239,14 @@ const processEntries = async (
           referenceFieldMapping,
           assetFieldMapping,
           taxonomyReferenceLookup,
-          contentTypeUid,
+          contentType?.otherCmsUid,
           prefix,
         );
 
         // 🏷️ TAXONOMY CONSOLIDATION: Merge all taxonomy fields into single 'taxonomies' field
         processedEntry = consolidateTaxonomyFields(
           processedEntry,
-          contentTypeUid,
+          contentType?.otherCmsUid,
           taxonomyFieldMapping,
         );
 
@@ -1396,6 +1397,7 @@ const processEntries = async (
  */
 const processContentType = async (
   connection: mysql.Connection,
+  fieldConfigs: any,
   contentType: any,
   queryPageConfig: QueryConfig,
   assetId: any,
@@ -1431,7 +1433,7 @@ const processContentType = async (
         {},
       );
       await customLogger(projectId, destination_stack_id, 'info', message);
-      //return;
+      return;
     }
 
     // 🧪 Process entries in batches (test migration: single entry, main migration: all entries)
@@ -1444,6 +1446,7 @@ const processContentType = async (
     ) {
       const result = await processEntries(
         connection,
+        fieldConfigs,
         contentType,
         i,
         queryPageConfig,
@@ -1582,18 +1585,13 @@ export const createEntry = async (
 
     // Use passed contentTypes if provided, otherwise fall back to query config keys
     const pageQuery = queryPageConfig?.page;
-    const typesToProcess =
-      contentTypes?.length > 0
-        ? contentTypes?.filter((ct: any) => {
-            const uid = ct?.otherCmsUid || ct?.contentstackUid || ct;
-            return ct;
-          })
-        : Object?.keys(pageQuery);
+
 
  
     for (const contentType of contentTypes || []) {
       await processContentType(
         connection,
+        fieldConfigs,
         contentType,
         queryPageConfig,
         assetId,
@@ -1611,12 +1609,6 @@ export const createEntry = async (
       );
     }
 
-    const successMessage = getLogMessage(
-      srcFunc,
-      `Successfully processed entries for ${typesToProcess?.length} content types with multilingual support.`,
-      {},
-    );
-    await customLogger(projectId, destination_stack_id, 'info', successMessage);
 
     // Log multilingual structure summary
     const structureSummary = getLogMessage(
