@@ -26,7 +26,7 @@ const requestWithAuthRetry = (token_payload: any, requestConfig: any) => {
 const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getAllStacks";
   const orgId = req?.params?.orgId;
-  const { token_payload } = req.body;
+  const { token_payload } = req?.body;
   const search: string = req?.params?.searchText?.toLowerCase();
 
   try {
@@ -121,7 +121,7 @@ const getAllStacks = async (req: Request): Promise<LoginServiceType> => {
 const createStack = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "createStack";
   const orgId = req?.params?.orgId;
-  const { token_payload, name, description, master_locale } = req.body;
+  const { token_payload, name, description, master_locale } = req?.body;
 
   try {
     let headers: any = {
@@ -201,7 +201,7 @@ const createStack = async (req: Request): Promise<LoginServiceType> => {
  */
 const getLocales = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = "getLocales";
-  const { token_payload } = req.body;
+  const { token_payload } = req?.body;
 
   try {
     let headers: any = {
@@ -264,8 +264,8 @@ const getLocales = async (req: Request): Promise<LoginServiceType> => {
  * @throws ExceptionFunction if an error occurs while checking the status of the stack.
  */
 const getStackStatus = async (req: Request) => {
-  const { orgId } = req.params;
-  const { token_payload, stack_api_key } = req.body;
+  const { orgId } = req?.params;
+  const { token_payload, stack_api_key } = req?.body;
   const srcFunc = "getStackStatus";
 
   let headers: any = {
@@ -355,7 +355,7 @@ const getStackStatus = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs while checking the status of the stack.
  */
 const getStackLocale = async (req: Request) => {
-  const { token_payload, stack_api_key } = req.body;
+  const { token_payload, stack_api_key } = req?.body;
   const srcFunc = "getStackStatus";
 
   let headers: any = {
@@ -413,8 +413,8 @@ const getStackLocale = async (req: Request) => {
  * @throws ExceptionFunction if an error occurs while getting the org details.
  */
 const getOrgDetails = async (req: Request) => {
-  const { orgId } = req.params;
-  const { token_payload } = req.body;
+  const { orgId } = req?.params;
+  const { token_payload } = req?.body;
   const srcFunc = "getOrgDetails";
 
   let headers: any = {}

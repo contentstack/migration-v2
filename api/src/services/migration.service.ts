@@ -248,7 +248,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
 const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = 'deleteTestStack';
   const projectId = req?.params?.projectId;
-  const { token_payload, stack_key } = req.body;
+  const { token_payload, stack_key } = req?.body;
 
   try {
     let headers: any = {

@@ -37,8 +37,8 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
 
     if (userIndex < 0) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
     const { uid: org_uid, name: org_name } = getAppOrganization();
-    const userRecord = AuthenticationModel.data.users[userIndex];
-    if (appTokenPayload.is_sso === true) {
+    const userRecord = AuthenticationModel.data?.users?.[userIndex];
+    if (appTokenPayload?.is_sso === true) {
       if (!userRecord?.access_token) {
         throw new BadRequestError("SSO authentication not completed");
       }
@@ -58,12 +58,12 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
         logger.error(
           getLogMessage(
             srcFun,
-            HTTP_TEXTS.CS_ERROR,
+            HTTP_TEXTS?.CS_ERROR,
             appTokenPayload,
-            err.response.data
+            err?.response?.data
           )
         );
-        return { data: err.response.data, status: err.response.status };
+        return { data: err?.response?.data, status: err?.response?.status };
       }
 
       if (
@@ -109,15 +109,15 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
       logger.error(
         getLogMessage(
           srcFun,
-          HTTP_TEXTS.CS_ERROR,
+          HTTP_TEXTS?.CS_ERROR,
           appTokenPayload,
-          err.response.data
+          err?.response?.data
         )
       );
 
       return {
-        data: err.response.data,
-        status: err.response.status,
+        data: err?.response?.data,
+        status: err?.response?.status,
       };
     }
 
@@ -151,7 +151,7 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
   } catch (error: any) {
     logger.error(getLogMessage(srcFun, "Error while getting user profile", appTokenPayload, error));
     throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.message || HTTP_TEXTS?.INTERNAL_ERROR,
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }

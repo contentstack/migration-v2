@@ -394,15 +394,15 @@ const Login: FC<IProps> = () => {
         throw new Error("Missing app token");
       }
   
-      // 1️⃣ Store token FIRST
-      setDataInLocalStorage('app_token', authData.app_token);
+      // Store token FIRST
+      setDataInLocalStorage('app_token', authData?.app_token);
   
-      localStorage.removeItem('organization');
+      localStorage?.removeItem('organization');
       dispatch(clearOrganisationData());
   
-      // 2️⃣ Update redux auth
+      // Update redux auth
       dispatch(setAuthToken({
-        authToken: authData.app_token,
+        authToken: authData?.app_token,
         isAuthenticated: true
       }));
   
@@ -412,12 +412,12 @@ const Login: FC<IProps> = () => {
         is_sso: true
       }));
   
-      // 3️⃣ WAIT for user hydration
-      await dispatch(getUserDetails()).unwrap();
+      // WAIT for user hydration
+      await dispatch(getUserDetails())?.unwrap();
   
       setLoginStates(prev => ({ ...prev, submitted: true }));
   
-      // 4️⃣ Navigate LAST
+      // Navigate LAST
       navigate('/projects', { replace: true });
   
     } catch (error) {

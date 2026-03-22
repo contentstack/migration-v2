@@ -22,6 +22,8 @@ export const CSAUTHHOST: any = {
   AZURE_NA:"https://azure-na-app.contentstack.com/apps-api/token",
   AZURE_EU:"https://azure-eu-app.contentstack.com/apps-api/token",
   GCP_NA:"https://gcp-na-app.contentstack.com/apps-api/token",
+  AU:"https://au-app.contentstack.com/apps-api/token",
+  GCP_EU:"https://gcp-eu-app.contentstack.com/apps-api/token",
 }
 
 export const regionalApiHosts = {
@@ -29,7 +31,9 @@ export const regionalApiHosts = {
   EU: 'eu-api.contentstack.com',
   AZURE_NA: 'azure-na-api.contentstack.com',
   AZURE_EU: 'azure-eu-api.contentstack.com',
-  GCP_NA: 'gcp-na-api.contentstack.com'
+  GCP_NA: 'gcp-na-api.contentstack.com',
+  AU: 'au-api.contentstack.com',
+  GCP_EU: 'gcp-eu-api.contentstack.com',
 };
 export const CMS = {
   CONTENTFUL: 'contentful',

@@ -156,7 +156,7 @@ const logout = async (req: Request): Promise<LoginServiceType> => {
     }
     // Remove the user from the database
     AuthenticationModel.update((data: any) => {
-      data.users = data.users.filter((user: any) => user.email !== userEmail);
+      data.users = data?.users?.filter((user: any) => user?.email !== userEmail);
     });
 
     logger.info(
@@ -243,7 +243,7 @@ const getAppConfig = () => {
  * and saves/updates the user in the database.
  */
 const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
-  const { code, region } = req.query;
+  const { code, region } = req?.query;
 
   if (!code || !region) {
     logger.error("Callback failed: Missing 'code' or 'region' in query parameters.");
@@ -253,8 +253,8 @@ const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
   try {
     // Exchange the code for access token
     const appConfig = getAppConfig();
-    const { client_id, client_secret, redirect_uri } = appConfig.oauthData;
-    const { code_verifier } = appConfig.pkce;
+    const { client_id, client_secret, redirect_uri } = appConfig?.oauthData;
+    const { code_verifier } = appConfig?.pkce;
 
     const regionStr = Array.isArray(region) ? region[0] : region;
     const tokenUrl = CSAUTHHOST[regionStr as keyof typeof CSAUTHHOST];
@@ -362,7 +362,7 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
     }
 
     const appConfig = decryptAppConfig(JSON.parse(fs.readFileSync(appConfigPath, 'utf8')));
-    const { client_id, client_secret, redirect_uri } = appConfig.oauthData;
+    const { client_id, client_secret, redirect_uri } = appConfig?.oauthData;
 
     if (!client_id || !client_secret) {
       throw new Error('OAuth client_id or client_secret not found in app.json');
@@ -370,7 +370,7 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
 
     logger.info(`Refreshing token for user: ${userRecord?.email} in region: ${userRecord?.region}`);
 
-    const appUrl = CSAUTHHOST[userRecord.region] || CSAUTHHOST['NA'];
+    const appUrl = CSAUTHHOST[userRecord?.region] || CSAUTHHOST['NA'];
     const tokenEndpoint = `${appUrl}`;
 
     const formData = new URLSearchParams({
