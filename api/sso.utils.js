@@ -8,34 +8,34 @@ const { default: axios } = require("axios");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const ENCRYPT_KEY = process.env.MANIFEST_ENCRYPT_KEY;
-const ENCRYPT_SALT = process.env.MANIFEST_ENCRYPT_SALT;
+const ENCRYPT_KEY = process.env?.MANIFEST_ENCRYPT_KEY;
+const ENCRYPT_SALT = process.env?.MANIFEST_ENCRYPT_SALT;
 const ALGORITHM = "aes-256-gcm";
 const ENC_PREFIX = "enc:";
 
 function encrypt(plaintext) {
-  if (!plaintext || plaintext.startsWith(ENC_PREFIX)) return plaintext;
+  if (!plaintext || plaintext?.startsWith(ENC_PREFIX)) return plaintext;
   if (!ENCRYPT_KEY) throw new Error("MANIFEST_ENCRYPT_KEY env variable is required to encrypt credentials");
-  const key = crypto.scryptSync(ENCRYPT_KEY, ENCRYPT_SALT, 32);
+  const key = crypto?.scryptSync(ENCRYPT_KEY, ENCRYPT_SALT, 32);
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  let encrypted = cipher.update(plaintext, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  const authTag = cipher.getAuthTag().toString("hex");
-  return `${ENC_PREFIX}${iv.toString("hex")}:${authTag}:${encrypted}`;
+  let encrypted = cipher?.update(plaintext, "utf8", "hex");
+  encrypted += cipher?.final("hex");
+  const authTag = cipher?.getAuthTag()?.toString("hex");
+  return `${ENC_PREFIX}${iv?.toString("hex")}:${authTag}:${encrypted}`;
 }
 
 function decrypt(encryptedValue) {
-  if (!encryptedValue || !encryptedValue.startsWith(ENC_PREFIX)) return encryptedValue;
+  if (!encryptedValue || !encryptedValue?.startsWith(ENC_PREFIX)) return encryptedValue;
   if (!ENCRYPT_KEY) throw new Error("MANIFEST_ENCRYPT_KEY env variable is required to decrypt manifest credentials");
-  const parts = encryptedValue.slice(ENC_PREFIX.length).split(":");
+  const parts = encryptedValue?.slice(ENC_PREFIX?.length)?.split(":");
   if (parts.length !== 3) throw new Error("Invalid encrypted value format");
   const [ivHex, authTagHex, cipherHex] = parts;
-  const key = crypto.scryptSync(ENCRYPT_KEY, ENCRYPT_SALT, 32);
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, "hex"));
-  decipher.setAuthTag(Buffer.from(authTagHex, "hex"));
-  let decrypted = decipher.update(cipherHex, "hex", "utf8");
-  decrypted += decipher.final("utf8");
+  const key = crypto?.scryptSync(ENCRYPT_KEY, ENCRYPT_SALT, 32);
+  const decipher = crypto?.createDecipheriv(ALGORITHM, key, Buffer?.from(ivHex, "hex"));
+  decipher?.setAuthTag(Buffer?.from(authTagHex, "hex"));
+  let decrypted = decipher?.update(cipherHex, "hex", "utf8");
+  decrypted += decipher?.final("utf8");
   return decrypted;
 }
 
@@ -96,6 +96,24 @@ const REGION_CONFIG = {
     personalize: "https://gcp-na-personalize-api.contentstack.com",
     launch: "https://gcp-na-launch-api.contentstack.com",
   },
+  "GCP-EU": {
+    name: "GCP Europe",
+    cma: "https://gcp-eu-api.contentstack.com",
+    cda: "https://gcp-eu-cdn.contentstack.com",
+    app: "https://gcp-eu-app.contentstack.com",
+    developerHub: "https://gcp-eu-developerhub-api.contentstack.com",
+    personalize: "https://gcp-eu-personalize-api.contentstack.com",
+    launch: "https://gcp-eu-launch-api.contentstack.com",
+  },
+  "AU": {
+    name: "Australia",
+    cma: "https://au-api.contentstack.com",
+    cda: "https://au-cdn.contentstack.com",
+    app: "https://au-app.contentstack.com",
+    developerHub: "https://au-developerhub-api.contentstack.com",
+    personalize: "https://au-personalize-api.contentstack.com",
+    launch: "https://au-launch-api.contentstack.com",
+  },
 };
 
 
@@ -153,15 +171,15 @@ module.exports = async ({
 
   try {
     const user = await managementAPIClient.getUser();
-    console.log(`✓ User: ${user.email} (${user.uid})`);
+    console.log(`✓ User: ${user?.email} (${user?.uid})`);
 
-    if (!user.organizations || user.organizations.length === 0) {
+    if (!user?.organizations || user?.organizations?.length === 0) {
       console.log("No organizations found");
       return;
     }
 
     console.log(`\n=== YOUR ORGANIZATIONS ===`);
-    user.organizations.forEach((org, index) => {
+    user?.organizations?.forEach((org, index) => {
       console.log(`${index + 1}. ${org.name} (${org.uid})`);
     });
 
@@ -174,8 +192,8 @@ module.exports = async ({
       rl.question(`\nSelect organization number: `, (answer) => {
         rl.close();
         const index = parseInt(answer) - 1;
-        if (index >= 0 && index < user.organizations.length) {
-          resolve(user.organizations[index]);
+        if (index >= 0 && index < user?.organizations?.length) {
+          resolve(user?.organizations?.[index]);
         } else {
           console.log("Invalid selection");
           resolve(null);
@@ -191,7 +209,7 @@ module.exports = async ({
     const headers = managementAPIClient.axiosInstance.defaults.headers;
     const authtoken = headers.authtoken || headers.authorization;
 
-    console.log(`\n✓ Selected: ${selectedOrg.name} (${selectedOrg.uid})`);
+    console.log(`\n✓ Selected: ${selectedOrg?.name} (${selectedOrg?.uid})`);
     console.log(
       `Auth token: ${
         authtoken ? authtoken.substring(0, 20) + "..." : "Not found"
@@ -199,7 +217,7 @@ module.exports = async ({
     );
 
     const orgDetails = await managementAPIClient
-      .organization(selectedOrg.uid)
+      .organization(selectedOrg?.uid)
       .fetch();
 
     console.log(`✓ Organization details fetched: ${orgDetails.name}`);
@@ -327,17 +345,17 @@ module.exports = async ({
         endpoints: regionConfig,
       },
       user: {
-        email: user.email,
-        uid: user.uid,
+        email: user?.email,
+        uid: user?.uid,
       },
       organization: {
-        name: selectedOrg.name,
-        uid: selectedOrg.uid,
+        name: selectedOrg?.name,
+        uid: selectedOrg?.uid,
       },
       app: {
         name: existingApp?.name,
         uid: existingApp?.uid,
-        manifest: manifest.name,
+        manifest: manifest?.name,
       },
       oauthData: oauthData,
       pkce: {
@@ -349,13 +367,13 @@ module.exports = async ({
     };
 
     if (ENCRYPT_KEY) {
-      if (appData.oauthData) {
-        appData.oauthData.client_id = encrypt(appData.oauthData.client_id);
-        appData.oauthData.client_secret = encrypt(appData.oauthData.client_secret);
+      if (appData?.oauthData) {
+        appData?.oauthData?.client_id = encrypt(appData?.oauthData?.client_id);
+        appData?.oauthData?.client_secret = encrypt(appData?.oauthData?.client_secret);
       }
-      if (appData.pkce) {
-        appData.pkce.code_verifier = encrypt(appData.pkce.code_verifier);
-        appData.pkce.code_challenge = encrypt(appData.pkce.code_challenge);
+      if (appData?.pkce) {
+        appData?.pkce?.code_verifier = encrypt(appData?.pkce?.code_verifier);
+        appData?.pkce?.code_challenge = encrypt(appData?.pkce?.code_challenge);
       }
     } else {
       console.warn("WARNING: MANIFEST_ENCRYPT_KEY not set — app.json will contain plaintext credentials");

@@ -515,7 +515,7 @@ const getExistingContentTypes = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const contentTypeUID = req?.params?.contentTypeUid ?? ''; // UID of the selected content type, if any
 
-  const { token_payload } = req.body;
+  const { token_payload } = req?.body;
 
 
   await ProjectModelLowdb.read();
@@ -612,7 +612,7 @@ const getExistingGlobalFields = async (req: Request) => {
     };
   }
 
-  const { token_payload: tokenPayload } = req.body;
+  const { token_payload: tokenPayload } = req?.body;
 
   if (!tokenPayload?.region || !tokenPayload?.user_id) {
     return {
@@ -711,8 +711,8 @@ const getExistingGlobalFields = async (req: Request) => {
  */
 const updateContentType = async (req: Request) => {
   const srcFun = 'updateContentType';
-  const { orgId, projectId, contentTypeId } = req.params;
-  const { contentTypeData, token_payload } = req.body;
+  const { orgId, projectId, contentTypeId } = req?.params;
+  const { contentTypeData, token_payload } = req?.body;
   const fieldMapping = contentTypeData?.fieldMapping;
 
   // Read project data
@@ -728,13 +728,13 @@ const updateContentType = async (req: Request) => {
     srcFun,
     true,
   )) as number;
-  const project = ProjectModelLowdb.data.projects[projectIndex];
+  const project = ProjectModelLowdb.data?.projects[projectIndex];
   const iteration = project?.iteration || 1;
 
   // Check project status
   if (
     [NEW_PROJECT_STATUS[5]].includes(project.status) ||
-    project.current_step < STEPPER_STEPS.CONTENT_MAPPING
+    project?.current_step < STEPPER_STEPS?.CONTENT_MAPPING
   ) {
     logger.error(
       getLogMessage(
@@ -848,7 +848,7 @@ const updateContentType = async (req: Request) => {
       const FieldMapperModel = getFieldMapperDb(projectId, iteration);
       await FieldMapperModel.read();
       fieldMapping.forEach((field: any) => {
-        const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
+        const fieldIndex = FieldMapperModel.data?.field_mapper?.findIndex(
           (f: any) =>
             f?.id === field?.id && f?.contentTypeId === field?.contentTypeId,
         );
@@ -910,7 +910,7 @@ const updateContentType = async (req: Request) => {
 const resetToInitialMapping = async (req: Request) => {
   const srcFunc = 'resetToInitialMapping';
   const { orgId, projectId, contentTypeId } = req.params;
-  const { token_payload } = req.body;
+  const { token_payload } = req?.body;
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -925,7 +925,7 @@ const resetToInitialMapping = async (req: Request) => {
     true,
   )) as number;
 
-  const project = ProjectModelLowdb.data.projects[projectIndex];
+  const project = ProjectModelLowdb.data?.projects[projectIndex];
   const iteration = project?.iteration || 1;
 
   if (
@@ -933,8 +933,8 @@ const resetToInitialMapping = async (req: Request) => {
       NEW_PROJECT_STATUS[0],
       NEW_PROJECT_STATUS[5],
       //NEW_PROJECT_STATUS[4],
-    ].includes(project.status) ||
-    project.current_step < STEPPER_STEPS.CONTENT_MAPPING
+    ].includes(project?.status) ||
+    project?.current_step < STEPPER_STEPS?.CONTENT_MAPPING
   ) {
     logger.error(
       getLogMessage(
@@ -955,7 +955,7 @@ const resetToInitialMapping = async (req: Request) => {
 
   const FieldMapperModel = getFieldMapperDb(projectId, iteration);
   await FieldMapperModel.read();
-  const fieldMappingData = contentTypeData.fieldMapping.map((itemId: any) => {
+  const fieldMappingData = contentTypeData?.fieldMapping?.map((itemId: any) => {
     const fieldData = FieldMapperModel.chain
       .get("field_mapper")
       .find({ id: itemId, projectId: projectId, contentTypeId: contentTypeId })
@@ -977,7 +977,7 @@ const resetToInitialMapping = async (req: Request) => {
     if (!isEmpty(fieldMappingData)) {
       //await FieldMapperModel.read();
       (fieldMappingData || []).forEach((field: any) => {
-        const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
+        const fieldIndex = FieldMapperModel.data?.field_mapper?.findIndex(
           (f: any) =>
             f?.id === field?.id &&
             f?.projectId === projectId &&

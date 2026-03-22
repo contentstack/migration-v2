@@ -109,7 +109,7 @@ export const getSSOAuthStatus = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { userId } = req.params;
+    const { userId } = req?.params;
 
     if (!userId) {
       res.status(400).json({

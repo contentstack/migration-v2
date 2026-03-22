@@ -105,8 +105,8 @@ const getProject = async (req: Request) => {
  */
 const createProject = async (req: Request) => {
   const orgId = req?.params?.orgId;
-  const { name, description } = req.body;
-  const decodedToken = req.body.token_payload;
+  const { name, description } = req?.body;
+  const decodedToken = req?.body?.token_payload;
   const { user_id = "", region = "" } = decodedToken;
   let isSSO = false;
   const srcFunc = "createProject";
@@ -118,7 +118,7 @@ const createProject = async (req: Request) => {
       region: region,
     })
     .value();
-  const userRecord = AuthenticationModel.data.users[userIndex];
+  const userRecord = AuthenticationModel.data?.users?.[userIndex];
   if(userRecord?.access_token){
     isSSO = true;
   }
@@ -131,7 +131,7 @@ const createProject = async (req: Request) => {
     name,
     description,
     status: NEW_PROJECT_STATUS[0],
-    current_step: STEPPER_STEPS.LEGACY_CMS,
+    current_step: STEPPER_STEPS?.LEGACY_CMS,
     destination_stack_id: '',
     test_stacks: [],
     current_test_stack_id: '',
@@ -171,16 +171,16 @@ const createProject = async (req: Request) => {
     await ProjectModelLowdb.read();
 
     await ProjectModelLowdb.update((data: any) => {
-      if (!data.projects || !Array.isArray(data.projects)) {
+      if (!data?.projects || !Array.isArray(data?.projects)) {
         data.projects = [];
       }
-      data.projects.push(projectData);
+      data?.projects?.push?.(projectData);
     });
 
     logger.info(
       getLogMessage(
         srcFunc,
-        `Project successfully created Id : ${projectData.id}.`,
+        `Project successfully created Id : ${projectData?.id}.`,
         decodedToken
       )
     );
@@ -188,11 +188,11 @@ const createProject = async (req: Request) => {
       status: 'success',
       message: 'Project created successfully',
       project: {
-        name: projectData.name,
-        id: projectData.id,
-        status: projectData.status,
-        created_at: projectData.created_at,
-        modified_at: projectData.updated_at,
+        name: projectData?.name,
+        id: projectData?.id,
+        status: projectData?.status,
+        created_at: projectData?.created_at,
+        modified_at: projectData?.updated_at,
         // Add other properties as needed
       },
     };
@@ -200,13 +200,13 @@ const createProject = async (req: Request) => {
     logger.error(
       getLogMessage(
         srcFunc,
-        HTTP_TEXTS.PROJECT_CREATION_FAILED,
+        HTTP_TEXTS?.PROJECT_CREATION_FAILED,
         decodedToken,
         error
       )
     );
     throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
+      error?.message || HTTP_TEXTS?.INTERNAL_ERROR,
       error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
     );
   }
@@ -381,12 +381,12 @@ const updateLegacyCMS = async (req: Request) => {
     await ProjectModelLowdb.update((data: any) => {
       if (
         !data?.projects ||
-        !Array.isArray(data.projects) ||
-        !data.projects[projectIndex]
+        !Array.isArray(data?.projects) ||
+        !data?.projects[projectIndex]
       ) {
         throw new NotFoundError(HTTP_TEXTS.PROJECT_NOT_FOUND);
       }
-      if (!data.projects[projectIndex].legacy_cms) {
+      if (!data?.projects[projectIndex]?.legacy_cms) {
         data.projects[projectIndex].legacy_cms = {};
       }
       data.projects[projectIndex].legacy_cms.cms = legacy_cms;
