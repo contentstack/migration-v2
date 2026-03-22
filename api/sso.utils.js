@@ -367,13 +367,13 @@ module.exports = async ({
     };
 
     if (ENCRYPT_KEY) {
-      if (appData.oauthData) {
-        appData.oauthData.client_id = encrypt(appData.oauthData.client_id);
-        appData.oauthData.client_secret = encrypt(appData.oauthData.client_secret);
+      if (appData?.oauthData) {
+        appData?.oauthData?.client_id = encrypt(appData?.oauthData?.client_id);
+        appData?.oauthData?.client_secret = encrypt(appData?.oauthData?.client_secret);
       }
-      if (appData.pkce) {
-        appData.pkce.code_verifier = encrypt(appData.pkce.code_verifier);
-        appData.pkce.code_challenge = encrypt(appData.pkce.code_challenge);
+      if (appData?.pkce) {
+        appData?.pkce?.code_verifier = encrypt(appData?.pkce?.code_verifier);
+        appData?.pkce?.code_challenge = encrypt(appData?.pkce?.code_challenge);
       }
     } else {
       console.warn("WARNING: MANIFEST_ENCRYPT_KEY not set — app.json will contain plaintext credentials");
