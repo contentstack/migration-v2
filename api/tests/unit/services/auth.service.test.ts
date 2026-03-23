@@ -73,7 +73,11 @@ describe('auth.service', () => {
       expect(result.status).toBe(200);
       expect(result.data.app_token).toBe('jwt-token');
       expect(result.data.message).toBe('Login Successful.');
-      expect(mockGenerateToken).toHaveBeenCalledWith({ region: 'NA', user_id: 'user-123' });
+      expect(mockGenerateToken).toHaveBeenCalledWith({
+        region: 'NA',
+        user_id: 'user-123',
+        is_sso: false,
+      });
     });
 
     it('should return app_token for owner org', async () => {
