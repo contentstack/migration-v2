@@ -19,6 +19,7 @@ export interface User {
 export interface AppTokenPayload {
   region: string;
   user_id: string;
+  is_sso: boolean;
 }
 
 /**
@@ -45,4 +46,11 @@ export interface Locale {
   name: string;
   fallback_locale: string;
   uid: string;
+}
+
+export interface RefreshTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+  expires_in?: number;
+  token_type?: string;
 }

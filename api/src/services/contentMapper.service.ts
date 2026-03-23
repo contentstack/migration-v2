@@ -19,9 +19,10 @@ import {
 import logger from '../utils/logger.js';
 import { config } from '../config/index.js';
 import https from '../utils/https.utils.js';
-import getAuthtoken from '../utils/auth.utils.js';
+import getAuthtoken, { getAccessToken } from '../utils/auth.utils.js';
 import getProjectUtil from '../utils/get-project.utils.js';
 import fetchAllPaginatedData from '../utils/pagination.utils.js';
+import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import FieldMapperModel from '../models/FieldMapper.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -399,28 +400,31 @@ const getExistingContentTypes = async (req: Request) => {
   const projectId = req?.params?.projectId;
   const contentTypeUID = req?.params?.contentTypeUid ?? ''; // UID of the selected content type, if any
 
-  const { token_payload } = req.body;
+  const { token_payload } = req?.body;
 
-  const authtoken = await getAuthtoken(
-    token_payload?.region,
-    token_payload?.user_id,
-  );
 
   await ProjectModelLowdb.read();
   const project = ProjectModelLowdb.chain
     .get('projects')
     .find({ id: projectId })
     .value();
-  const stackId = project?.destination_stack_id;
 
   const baseUrl = `${config.CS_API[
     token_payload?.region as keyof typeof config.CS_API
   ]!}/content_types`;
-
-  const headers = {
-    api_key: stackId,
-    authtoken,
-  };
+  let headers: any = {
+    api_key: project?.destination_stack_id,
+  }
+  if(token_payload?.is_sso) {
+    const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+    headers.authorization = `Bearer ${accessToken}`;
+  } else if (token_payload?.is_sso === false) {
+    const authtoken = await getAuthtoken(
+      token_payload?.region,
+      token_payload?.user_id
+    );
+    headers.authtoken = authtoken;
+  }
 
   try {
     // Step 1: Fetch the updated list of all content types
@@ -430,6 +434,7 @@ const getExistingContentTypes = async (req: Request) => {
       100,
       'getExistingContentTypes',
       'content_types',
+      token_payload
     );
 
     const processedContentTypes = contentTypes.map((singleCT: any) => ({
@@ -442,13 +447,19 @@ const getExistingContentTypes = async (req: Request) => {
     let selectedContentType = null;
 
     if (contentTypeUID) {
-      const [err, res] = await safePromise(
-        https({
+      const [err, res] = token_payload?.is_sso
+        ? await requestWithSsoTokenRefresh(token_payload, {
           method: 'GET',
           url: `${baseUrl}/${contentTypeUID}`,
           headers,
-        }),
-      );
+        })
+        : await safePromise(
+          https({
+            method: 'GET',
+            url: `${baseUrl}/${contentTypeUID}`,
+            headers,
+          })
+        );
 
       if (!err) {
         selectedContentType = {
@@ -486,7 +497,7 @@ const getExistingGlobalFields = async (req: Request) => {
     };
   }
 
-  const { token_payload: tokenPayload } = req.body;
+  const { token_payload: tokenPayload } = req?.body;
 
   if (!tokenPayload?.region || !tokenPayload?.user_id) {
     return {
@@ -586,8 +597,8 @@ const getExistingGlobalFields = async (req: Request) => {
  */
 const updateContentType = async (req: Request) => {
   const srcFun = 'updateContentType';
-  const { orgId, projectId, contentTypeId } = req.params;
-  const { contentTypeData, token_payload } = req.body;
+  const { orgId, projectId, contentTypeId } = req?.params;
+  const { contentTypeData, token_payload } = req?.body;
   const fieldMapping = contentTypeData?.fieldMapping;
 
   // Read project data
@@ -603,12 +614,12 @@ const updateContentType = async (req: Request) => {
     srcFun,
     true,
   )) as number;
-  const project = ProjectModelLowdb.data.projects[projectIndex];
+  const project = ProjectModelLowdb.data?.projects[projectIndex];
 
   // Check project status
   if (
     [NEW_PROJECT_STATUS[5]].includes(project.status) ||
-    project.current_step < STEPPER_STEPS.CONTENT_MAPPING
+    project?.current_step < STEPPER_STEPS?.CONTENT_MAPPING
   ) {
     logger.error(
       getLogMessage(
@@ -720,7 +731,7 @@ const updateContentType = async (req: Request) => {
     if (Array?.isArray?.(fieldMapping) && !isEmpty(fieldMapping)) {
       await FieldMapperModel.read();
       fieldMapping.forEach((field: any) => {
-        const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
+        const fieldIndex = FieldMapperModel.data?.field_mapper?.findIndex(
           (f: any) =>
             f?.id === field?.id && f?.contentTypeId === field?.contentTypeId,
         );
@@ -780,7 +791,7 @@ const updateContentType = async (req: Request) => {
 const resetToInitialMapping = async (req: Request) => {
   const srcFunc = 'resetToInitialMapping';
   const { orgId, projectId, contentTypeId } = req.params;
-  const { token_payload } = req.body;
+  const { token_payload } = req?.body;
 
   await ProjectModelLowdb.read();
   const projectIndex = (await getProjectUtil(
@@ -795,15 +806,15 @@ const resetToInitialMapping = async (req: Request) => {
     true,
   )) as number;
 
-  const project = ProjectModelLowdb.data.projects[projectIndex];
+  const project = ProjectModelLowdb.data?.projects[projectIndex];
 
   if (
     [
       NEW_PROJECT_STATUS[0],
       NEW_PROJECT_STATUS[5],
       //NEW_PROJECT_STATUS[4],
-    ].includes(project.status) ||
-    project.current_step < STEPPER_STEPS.CONTENT_MAPPING
+    ].includes(project?.status) ||
+    project?.current_step < STEPPER_STEPS?.CONTENT_MAPPING
   ) {
     logger.error(
       getLogMessage(
@@ -822,7 +833,7 @@ const resetToInitialMapping = async (req: Request) => {
     .value();
 
   await FieldMapperModel.read();
-  const fieldMappingData = contentTypeData.fieldMapping.map((itemId: any) => {
+  const fieldMappingData = contentTypeData?.fieldMapping?.map((itemId: any) => {
     const fieldData = FieldMapperModel.chain
       .get('field_mapper')
       .find({ id: itemId, projectId: projectId, contentTypeId: contentTypeId })
@@ -844,7 +855,7 @@ const resetToInitialMapping = async (req: Request) => {
     if (!isEmpty(fieldMappingData)) {
       //await FieldMapperModel.read();
       (fieldMappingData || []).forEach((field: any) => {
-        const fieldIndex = FieldMapperModel.data.field_mapper.findIndex(
+        const fieldIndex = FieldMapperModel.data?.field_mapper?.findIndex(
           (f: any) =>
             f?.id === field?.id &&
             f?.projectId === projectId &&

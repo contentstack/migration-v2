@@ -4,6 +4,10 @@ vi.mock('../../../src/controllers/auth.controller.js', () => ({
   authController: {
     login: vi.fn((_req: any, res: any) => res.status(200).json({ ok: true })),
     RequestSms: vi.fn((_req: any, res: any) => res.status(200).json({ ok: true })),
+    saveOAuthToken: vi.fn((_req: any, res: any) => res.status(200).json({ ok: true })),
+    getAppConfigHandler: vi.fn((_req: any, res: any) => res.status(200).json({ ok: true })),
+    getSSOAuthStatus: vi.fn((_req: any, res: any) => res.status(200).json({ ok: true })),
+    logout: vi.fn((_req: any, res: any) => res.status(200).json({ ok: true })),
   },
 }));
 
