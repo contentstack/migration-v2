@@ -85,16 +85,18 @@ describe('user.service', () => {
       expect(result.status).toBe(401);
     });
 
-    it('should throw when CS API returns no user', async () => {
+    it('should return profile with empty orgs when CS API returns no user object', async () => {
       mockChainValue.mockReturnValue(0);
       mockHttps.mockResolvedValue({
         status: 200,
         data: {},
       });
 
-      await expect(
-        userService.getUserProfile(createReq() as any)
-      ).rejects.toThrow();
+      const result = await userService.getUserProfile(createReq() as any);
+
+      expect(result.status).toBe(200);
+      expect(result.data.user.email).toBeUndefined();
+      expect(result.data.user.orgs).toEqual([]);
     });
   });
 });
