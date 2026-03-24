@@ -1,5 +1,5 @@
 {
-    "uid": "enc:2328a77c3fccc2ea40ea89fa:6aa942508755fb0c12dfcf45fcd49ea7:187574417cb98ec8a40dddef7b210212a812e4f1e3adb0ce",
+    "uid": "enc:a60ee6b03d4302fcd17d2002:c1cc872f360dab3b281475c63774bf32:246e83b7b0c4ee2bda6d2703fc83",
     "name": "Migration Tool",
     "description": "",
     "target_type": "organization",
@@ -7,8 +7,8 @@
     "version": 2,
     "icon": "",
     "oauth": {
-        "client_id": "enc:3daed09564545513282e14fc:d624fbb2a4291cd3cd7a8a0a190de76b:08f0867848f185185a8bb1aae11d52df",
-        "client_secret": "enc:7e2ee2214ebb800a125beee0:a549969a5320938b45c0b2c8e41beac2:5917736a65336616dabbed509740309f336f4b580b4848f7e31b215d712cba7a",
+        "client_id": "enc:f209426a501970c548397f06:f1b577b2e6a0be867ca918b2cb25570f:721a38e64fda3e6cf31a1bfb055544d96d5f8c8b",
+        "client_secret": "enc:ddfc3caaf24e8fedb8e375cc:bf18af2e5afc805a22136edc86b9c3dd:7ff93277172f838994f366ea91e3288fe34586aa8e88389b",
         "redirect_uri": "http://localhost:5001/v2/auth/save-token",
         "user_token_config": {
             "enabled": true,
