@@ -3008,20 +3008,19 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     });
   }
 
-  const options = contentModels?.map?.((item) => {
-    return {
-      label: item?.title,
-      value: item?.title,
-      id: item?.uid,
-      isDisabled: (contentTypeMapped && Object.values(contentTypeMapped).includes(item?.uid))
-    };
-  });
+  const isDestinationMappedByAnotherSource = (destinationUid: string | undefined) =>
+    !!destinationUid &&
+    !!contentTypeMapped &&
+    Object.entries(contentTypeMapped).some(
+      ([sourceUid, mappedDestUid]) =>
+        mappedDestUid === destinationUid && sourceUid !== selectedContentType?.contentstackUid
+    );
 
-
-
-  const adjustedOption = options?.map?.((option) => ({
-    ...option,
-    isDisabled: filteredContentTypes?.some?.((ct) => ct?.contentstackUid === option?.id) || (contentTypeMapped && Object.values(contentTypeMapped)?.includes?.(option?.id))
+  const adjustedOption = contentModels?.map?.((item) => ({
+    label: item?.title,
+    value: item?.title,
+    id: item?.uid,
+    isDisabled: isDestinationMappedByAnotherSource(item?.uid)
   }));
 
   // Function to toggle filter panel
