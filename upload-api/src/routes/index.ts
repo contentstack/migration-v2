@@ -12,7 +12,6 @@ import {
 import { client } from '../services/aws/client';
 import { fileOperationLimiter, readFileData, updateConfigFile} from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
-//import config from '../config/index';
 import createMapper from '../services/createMapper';
 import { sanitizeId, sanitizeFilename, isPathWithinBase } from '../utils/sanitize-path.utils';
 

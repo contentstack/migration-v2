@@ -259,7 +259,7 @@ export const runCli = async (
       console.info('Import command completed successfully');
 
       console.info('Import command completed successfully');
-   
+
       // Write the completion message ONCE in the format the UI expects
       if (isTest) {
         const directLogEntry = {
