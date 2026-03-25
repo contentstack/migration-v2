@@ -101,6 +101,11 @@ const executeQuery = (
         resolve(results as any[]);
       }
     });
+    if (!connection || typeof (connection as any).query !== 'function') {
+      reject(new Error('Invalid MySQL connection: query method is not available.'));
+      return;
+    }
+
   });
 };
 
