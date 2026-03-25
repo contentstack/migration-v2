@@ -229,7 +229,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
      * @returns void
      */
     const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
-      console.info("singleSelectedRowIds", singleSelectedRowIds, selectedEntries, tableData);
+      console.info("singleSelectedRowIds", singleSelectedRowIds, selectedEntries);
       const selectedObj: UidMap = {};
       const previousRowIds: UidMap = { ...rowIds as UidMap };
   
@@ -256,6 +256,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
     };
     
     const handleSaveContentType = async () => {
+      console.info("handleSaveContentType", rowIds);
       setisLoadingSaveButton(true);
       const ids = Object.keys(rowIds);
           const orgId = selectedOrganisation?.uid;
@@ -283,7 +284,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
           // setSelectedEntries(data);
           setLoading(false);
           return Notification({
-            notificationContent: { text: 'Entries saved successfully' },
+            notificationContent: { text: 'Entries sd saved successfully' },
             notificationProps: {
               position: 'bottom-center',
               hideProgressBar: true
@@ -325,8 +326,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
 
     const accessorContentstackCall = (data: EntryMapperType) => {
     // Clean field name (remove parent hierarchy)
-    const cleanFieldName = data?.contenstackEntryUid
-    
+    const cleanFieldName = data?.contentstackEntryUid
     return ( 
         <div>
           <div className='d-flex align-items-center'>           
@@ -356,17 +356,18 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
     {
       disableSortBy: true,
       Header: (
-        <span className="nowrap-header">
+        <span >
           {`${newMigrationData?.legacy_cms?.selectedCms?.title}: ${otherCmsTitle}`}
         </span>
       ),
       accessor: accessorCall,
-      id: 'uuid'
+      id: 'uuid',
+      width: '250px',
     },
     {
       disableSortBy: true,
       Header: (
-        <span className="nowrap-header">
+        <span >
           {`${newMigrationData?.legacy_cms?.selectedCms?.title} UIDs:`}
         </span>
       ),
@@ -376,7 +377,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
     {
       disableSortBy: true,
       Header: (
-        <span className="nowrap-header">
+        <span >
           {'Contentstack UIDs:'}
         </span>
       ),
@@ -396,7 +397,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
         columns={columns}
         uniqueKey={'otherCmsEntryUid'}
         isRowSelect={true}
-        // fullRowSelect
+        fullRowSelect={true}
         itemStatusMap={itemStatusMap}
         //searchPlaceholder={tableSearchPlaceholder}
         fetchTableData={fetchData}
@@ -408,11 +409,12 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
         initialSelectedRowIds={rowIds}
         itemSize={80}
         getSelectedRow={handleSelectedEntries}
-        rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+        // rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
         name={{
             singular: '',
             plural: `${totalCounts === 0 ? 'Count' : ''}`
         }}
+
     />
     <div className="mapper-footer">
           <div>Total Entries: <strong>{totalCounts}</strong></div>
@@ -423,7 +425,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
             disabled={newMigrationData?.project_current_step > 4}
             //isLoading={isLoadingSaveButton}
           >
-            Save
+            Save 3
           </Button>
     </div>
 

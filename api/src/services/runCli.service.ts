@@ -59,11 +59,9 @@ const writeUidMapping = async (backupPath: string, projectId: string, iteration:
     const assetMapperPath = path.join(backupPath, 'mapper', 'assets', 'uid-mapping.json');
     const assetData = fs.readFileSync(assetMapperPath, 'utf-8');
     const assetJson = JSON.parse(assetData);
-  
     const entryMapperPath = path.join(backupPath, 'mapper', 'entries', 'uid-mapping.json');
     const entryData = fs.readFileSync(entryMapperPath, 'utf-8');
     const entryJson = JSON.parse(entryData);
-      
     const combinedMapping = {
       assets: assetJson,
       entry: entryJson,
@@ -257,7 +255,7 @@ export const runCli = async (
 
       // After the import command completes
       console.info('Import command completed successfully');
-   
+
       // Write the completion message ONCE in the format the UI expects
       if (isTest) {
         const directLogEntry = {
@@ -293,6 +291,30 @@ export const runCli = async (
         if (loggerPath && loggerPath !== transformePath) {
           fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
         }
+        await ProjectModelLowdb.read();
+        const projectIndex = ProjectModelLowdb.chain
+          .get('projects')
+          .findIndex({ id: projectId })
+          .value();
+
+        console.info(`Found project index: ${projectIndex}`);
+
+        // Debug: Log the full project data to verify it exists
+        try {
+          const project = ProjectModelLowdb.chain
+            .get('projects')
+            .find({ id: projectId })
+            .value();
+          console.info(`Project found: ${project ? 'Yes' : 'No'}`);
+          await writeUidMapping(backupPath, projectId, project?.iteration);
+          if (project) {
+            console.info(
+              `Current migration status: started=${project.isMigrationStarted}, completed=${project.isMigrationCompleted}`
+            );
+          }
+        } catch (err) {
+          console.error('Error reading project data:', err);
+        }
       }
 
       // Keep the project status update code:
@@ -310,22 +332,6 @@ export const runCli = async (
       console.info(`Found project index: ${projectIndex}`);
 
       // Debug: Log the full project data to verify it exists
-      try {
-        const project = ProjectModelLowdb.chain
-          .get('projects')
-          .find({ id: projectId })
-          .value();
-        console.info(`Project found: ${project ? 'Yes' : 'No'}`);
-        await writeUidMapping(backupPath, projectId, project?.iteration);
-        if (project) {
-          console.info(
-            `Current migration status: started=${project.isMigrationStarted}, completed=${project.isMigrationCompleted}`
-          );
-        }
-      } catch (err) {
-        console.error('Error reading project data:', err);
-      }
-
       // Handle test migration updates
       if (projectIndex > -1 && isTest) {
         const project = ProjectModelLowdb.data.projects[projectIndex];

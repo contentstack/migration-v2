@@ -16,6 +16,7 @@ const contentTypeMapper = require('./contentTypeMapper');
 const { readFile, deleteFolderSync } = require('../utils/helper');
 const config = require('../config');
 const idArray = require('../utils/restrictedKeyWords');
+const extractEntries = require('./extractEntries');
 
 /**
  * Corrects the UID by adding a prefix and sanitizing the string if it is found in a specified list.
@@ -67,6 +68,8 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
     const alldata = readFile(cleanLocalPath);
     const { entries } = alldata;
 
+    const entriesByContentType = extractEntries(cleanLocalPath);
+
     const initialMapper = [];
     const files = await fs.readdir(
       path.resolve(process.cwd(), `${config.data}/${config.contentful.contentful}`)
@@ -77,17 +80,19 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
         path.resolve(process.cwd(), `${config.data}/${config.contentful.contentful}/${file}`)
       );
       const title = file.split('.')[0];
+      const contentfulID = data?.[0]?.contentfulID;
 
       const contentTypeObject = {
         status: 1,
         isUpdated: false,
         updateAt: '',
         otherCmsTitle: title,
-        otherCmsUid: data?.[0]?.contentfulID,
+        otherCmsUid: contentfulID,
         contentstackTitle: title.charAt(0).toUpperCase() + title.slice(1),
         contentstackUid: uidCorrector(data?.[0]?.contentUid, affix),
         type: 'content_type',
-        fieldMapping: []
+        fieldMapping: [],
+        entryMapping: entriesByContentType[contentfulID] || []
       };
       const uidTitle = [
         {

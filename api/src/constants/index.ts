@@ -212,6 +212,10 @@ export const KEYTOREMOVE = [
 
 export const MIGRATION_DATA_CONFIG = {
   DATA: './cmsMigrationData',
+  EXPORT_DATA: './export-data',
+  EXPORT_LOG_DIR: 'logs',
+  EXPORT_FOLDER_NAME: 'export',
+  EXPORT_FILE_NAME: 'success-export.log',
 
   BACKUP_DATA: 'migration-data',
   BACKUP_LOG_DIR: 'logs',

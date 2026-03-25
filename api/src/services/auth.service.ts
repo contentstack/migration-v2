@@ -8,7 +8,7 @@ import { generateToken } from "../utils/jwt.utils.js";
 import {
   BadRequestError,
   InternalServerError,
-  ExceptionFunction,
+  ExceptionFunction
 } from "../utils/custom-errors.utils.js";
 import AuthenticationModel from "../models/authentication.js";
 import logger from "../utils/logger.js";

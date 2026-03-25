@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
 /* eslint-disable */
 
-import { Request } from 'express';
+import { json, Request } from 'express';
 import path from 'path';
 import ProjectModelLowdb from '../models/project-lowdb.js';
 import { config } from '../config/index.js';
@@ -41,6 +41,10 @@ import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
 import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
+import { removeEntriesFromDatabase, enrichConfigWithAssetMapping } from '../utils/entry-update.utils.js';
+import { removeExistingAssets } from '../utils/asset-update.utils.js';
+import { updateEntryCli, utilsUpdateCli } from './updateEntryCli.service.js';
+
 
 /**
  * Creates a test stack.
@@ -195,9 +199,8 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     return {
       data: {
         data: res.data,
-        url: `${
-          config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
-        }/stack/${res.data.stack.api_key}/dashboard`,
+        url: `${config.CS_URL[token_payload?.region as keyof typeof config.CS_URL]
+          }/stack/${res.data.stack.api_key}/dashboard`,
       },
       status: res.status,
     };
@@ -493,7 +496,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
           await wordpressService?.createTaxonomy(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
           await wordpressService?.createEntry(file_path, packagePath, project?.current_test_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
           await wordpressService?.createLocale(req, project?.current_test_stack_id, projectId, project);
-           await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
+          await wordpressService?.createVersionFile(project?.current_test_stack_id, projectId);
         }
         break;
       }
@@ -890,7 +893,7 @@ const startMigration = async (req: Request): Promise<any> => {
           );
           await wordpressService?.createTaxonomy(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
           await wordpressService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-       
+
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
           await wordpressService?.createVersionFile(
             project?.destination_stack_id,
@@ -1059,6 +1062,22 @@ const startMigration = async (req: Request): Promise<any> => {
       default:
         break;
     }
+
+    await ProjectModelLowdb.read();
+    const projectData = ProjectModelLowdb.chain
+      .get("projects")
+      .find({ id: projectId })
+      .value();
+    const iteration = projectData?.iteration || 1;
+
+    let configFilePath: string | null = null;
+    if (iteration > 1) {
+      configFilePath = await removeEntriesFromDatabase(projectId);
+      console.info('Config file written to:', configFilePath);
+    }
+
+    await removeExistingAssets(projectId);
+
     await utilsCli?.runCli(
       region,
       user_id,
@@ -1067,6 +1086,17 @@ const startMigration = async (req: Request): Promise<any> => {
       false,
       loggerPath
     );
+
+    if (configFilePath) {
+      enrichConfigWithAssetMapping(configFilePath, projectId, iteration);
+      await utilsUpdateCli?.updateEntryCli(
+        region,
+        user_id,
+        project?.destination_stack_id,
+        loggerPath,
+        configFilePath
+      );
+    }
   }
 };
 const getAuditData = async (req: Request): Promise<any> => {
@@ -1322,7 +1352,7 @@ const transformAndFlattenData = (
   }
 };
 const getLogs = async (req: Request): Promise<any> => {
-  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId): '';
+  const projectId = req?.params?.projectId ? path?.basename(req.params.projectId) : '';
   const stackId = req?.params?.stackId ? path?.basename(req.params.stackId) : '';
   const limit = req?.params?.limit ? parseInt(req.params.limit) : 10;
   const startIndex = req?.params?.startIndex ? parseInt(req.params.startIndex) : 0;

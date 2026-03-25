@@ -232,7 +232,7 @@ export interface EntryMapperType {
   entryName: string;
   otherCmsEntryUid: string;
   isUpdate: boolean;
-  contenstackEntryUid?: string;
+  contentstackEntryUid?: string;
   _canSelect?: boolean;
 
 }

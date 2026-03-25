@@ -12,7 +12,6 @@ import {
 import { client } from '../services/aws/client';
 import { fileOperationLimiter, readFileData, updateConfigFile} from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
-//import config from '../config/index';
 import createMapper from '../services/createMapper';
 import { sanitizeId, sanitizeFilename, isPathWithinBase } from '../utils/sanitize-path.utils';
 
@@ -419,16 +418,16 @@ router.get(
   }
 );
 
-// router.get('/config', async function (req: Request, res: Response) {
-//   // Strip mysql password before sending config to the client
-//   const { password, ...safeMysql } = config?.mysql || {};
-//   const safeConfig = {
-//     ...config,
-//     mysql: safeMysql
-//   };
-//   const config = await updateConfigFile();
-//   res.json(safeConfig);
-// });
+router.get('/config', async function (req: Request, res: Response) {
+  // Strip mysql password before sending config to the client
+  // const { password, ...safeMysql } = config?.mysql || {};
+  // const safeConfig = {
+  //   ...config,
+  //   mysql: safeMysql
+  // };
+  const config = await updateConfigFile();
+  res.json(config);
+});
 
 // Exported the router
 export default router;

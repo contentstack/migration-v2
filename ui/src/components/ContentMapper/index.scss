@@ -142,7 +142,6 @@
 }
 
 .content-mapper-container {
-
   .table-wrapper {
     flex: 1;
     .TablePanel {
@@ -155,8 +154,8 @@
       border-left: 0 none;
       min-height: 24.25rem;
       .Table__body__row {
-          .Table-select-body {
-          >.checkbox-wrapper {
+        .Table-select-body {
+          > .checkbox-wrapper {
             align-items: flex-start;
           }
         }
@@ -327,11 +326,11 @@ div .table-row {
   font-size: $size-font-large;
   font-weight: $font-weight-semi-bold;
 }
-.filterButton-color{
+.filterButton-color {
   color: $color-brand-primary-base;
   font-weight: $font-weight-bold;
 }
-.icon-padding{
+.icon-padding {
   padding: 10px 10px;
   margin-left: 6px;
 }
@@ -341,23 +340,23 @@ div .table-row {
     font-weight: 600;
     // margin-left: 16px;
   }
-  
+
   &.child-row {
     margin-left: 26px;
   }
-  
+
   &.child-row-level-2 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 36px;
     padding-left: 16px;
   }
-  
+
   &.child-row-level-3 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 62px;
     padding-left: 16px;
   }
-  
+
   &.child-row-level-4 {
     border-left: 1px solid $color-brand-secondary-lightest;
     margin-left: 98px;
@@ -436,14 +435,14 @@ div .table-row {
 .table-row {
   display: flex;
   align-items: center;
-  gap: 8px;                   
+  gap: 8px;
 }
 .table-row .select {
-  flex: 1;                    
+  flex: 1;
 }
 .advanced-setting-button,
 .table-row button {
-  flex-shrink: 0;           
+  flex-shrink: 0;
 }
 
 // Prevent header wrapping
@@ -482,7 +481,7 @@ div .table-row {
   overflow-y: auto !important;
 }
 
-// Safety for small screens 
+// Safety for small screens
 @media (max-height: 800px) {
   .mapper-footer {
     padding: 10px;
@@ -490,103 +489,29 @@ div .table-row {
 }
 
 .entry-mapper-container {
-
-  .table-wrapper {
-    flex: 1;
-    .TablePanel {
-      border-left: 0 none;
-      .TablePanel__list-count {
-        display: none;
-      }
-    }
-    .Table {
-      border-left: 0 none;
-      min-height: 24.25rem;
+  .Table {
+    
+    // Force row layout alignment
+    .Table__head,
+    .Table__body__row {
+      display: flex !important;
       width: 100%;
-      // Ensure table uses fixed layout for consistent columns
-      &.Table--fixed {
-        table-layout: fixed;
-      }
-      .Table__body__row {
-          .Table-select-body {
-          >.checkbox-wrapper {
-            align-items: center;
-          }
-        }
-      }
-      // Override CMS border styles for proper column alignment
-      // Target all possible column class names from CMS
-      .Table__head__column,
-      .Table__header__column,
-      .Table__body__column,
-      thead .Table__head__column,
-      thead .Table__header__column,
-      tbody .Table__body__column {
-        padding: 0 1.25rem !important;
-        vertical-align: top;
-        box-sizing: border-box;
-        overflow: hidden;
-        position: relative;
-        // Reset any CMS borders first - must override the CMS rule
-        border-right: none !important;
-        // Apply border only to non-last columns
-        &:not(:last-of-type) {
-          border-right: 1px solid $color-brand-secondary-lightest !important;
-        }
-        // Ensure last column has no border
-        &:last-of-type {
-          border-right: none !important;
-        }
-      }
-      // Header specific styles
-      .Table__head__column,
-      .Table__header__column,
-      thead .Table__head__column,
-      thead .Table__header__column {
-        border-bottom: 1px solid $color-brand-secondary-lightest;
-      }
-      .Table-select-body {
-        width: 68px;
-      }
-      .cms-field {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        word-break: break-word;
-        line-height: 1.4;
-      }
-      // Ensure proper alignment for all accessor content
-      .Table__body__column > div,
-      .Table__head__column > div,
-      .Table__header__column > div {
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        overflow: hidden;
-      }
-      // Ensure nested flex containers don't break layout
-      .Table__body__column .d-flex,
-      .Table__head__column .d-flex,
-      .Table__header__column .d-flex {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0; // Allow flex items to shrink
-      }
-      .InstructionText {
-        font-size: $size-font-small;
-        margin: 0;
-      }
-      .EmptyStateWrapper {
-        margin-top: $px-20;
-      }
     }
-    .import-cta {
-      margin: 0;
+
+    // Target actual column containers
+    .Table__head__column,
+    .Table__body__column {
+      flex: 1 1 0 !important;
+      min-width: 0 !important;
+      display: flex !important;
+      align-items: center;
+      border-right: 1px solid $color-brand-secondary-lightest !important;
+    }
+
+    // Remove last column border
+    .Table__head__column:last-child,
+    .Table__body__column:last-child {
+      border-right: none !important;
     }
   }
 }
