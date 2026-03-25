@@ -191,7 +191,7 @@ export class FieldFetcherService {
   /**
    * Get field configuration for a content type
    */
-  async getFieldsForContentType(contentType: string): Promise<DrupalFieldData[]> {
+  async getFieldsForContentType(contentType: any): Promise<DrupalFieldData[]> {
     const configQuery = `
       SELECT *, CONVERT(data USING utf8) as data 
       FROM config 
@@ -205,18 +205,18 @@ export class FieldFetcherService {
       for (const row of rows) {
         try {
           const { unserialize } = await import('php-serialize');
-          const configData = unserialize(row.data);
+          const configData = unserialize(row?.data);
           
-          if (configData && configData.bundle === contentType) {
+          if (configData && configData?.bundle === contentType?.otherCmsUid) {
             fields.push({
-              field_name: configData.field_name,
-              content_types: configData.bundle,
-              type: configData.field_type,
+              field_name: configData?.field_name,
+              content_types: configData?.bundle,
+              type: configData?.field_type,
               content_handler: configData?.settings?.handler
             });
           }
         } catch (parseError) {
-          console.warn(`Failed to parse field config for ${row.name}:`, parseError);
+          console.warn(`Failed to parse field config for ${row?.name}:`, parseError);
         }
       }
 
@@ -224,7 +224,7 @@ export class FieldFetcherService {
     } catch (error: any) {
       const errorMessage = getLogMessage(
         'getFieldsForContentType',
-        `Failed to get fields for content type ${contentType}: ${error.message}`,
+        `Failed to get fields for content type ${contentType?.otherCmsUid}: ${error?.message}`,
         {},
         error
       );
