@@ -2,20 +2,36 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const {
   mockHttps,
-  mockGetAuthToken,
+  mockAuthRead,
+  mockAuthUserIndex,
   mockFsPromisesMkdir,
   mockFsPromisesWriteFile,
   mockPathJoin,
 } = vi.hoisted(() => ({
   mockHttps: vi.fn(),
-  mockGetAuthToken: vi.fn(),
+  mockAuthRead: vi.fn(),
+  mockAuthUserIndex: vi.fn(() => 0),
   mockFsPromisesMkdir: vi.fn(),
   mockFsPromisesWriteFile: vi.fn(),
   mockPathJoin: vi.fn((...args: string[]) => args.join('/')),
 }));
 
 vi.mock('../../../src/utils/https.utils.js', () => ({ default: mockHttps }));
-vi.mock('../../../src/utils/auth.utils.js', () => ({ default: mockGetAuthToken }));
+vi.mock('../../../src/models/authentication.js', () => ({
+  default: {
+    read: mockAuthRead,
+    chain: {
+      get: vi.fn(() => ({
+        findIndex: vi.fn(() => ({
+          value: mockAuthUserIndex,
+        })),
+      })),
+    },
+    data: {
+      users: [{ user_id: 'user-1', region: 'NA', authtoken: 'cs-auth-token' }],
+    },
+  },
+}));
 vi.mock('../../../src/utils/logger.js', () => ({
   default: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
@@ -47,7 +63,8 @@ import { taxonomyService } from '../../../src/services/taxonomy.service.js';
 describe('taxonomy.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthToken.mockResolvedValue('cs-auth-token');
+    mockAuthRead.mockResolvedValue(undefined);
+    mockAuthUserIndex.mockReturnValue(0);
     mockFsPromisesMkdir.mockResolvedValue(undefined);
     mockFsPromisesWriteFile.mockResolvedValue(undefined);
     mockHttps
@@ -80,7 +97,6 @@ describe('taxonomy.service', () => {
         projectId: 'proj-1',
       });
 
-      expect(mockGetAuthToken).toHaveBeenCalledWith('NA', 'user-1');
       expect(mockHttps).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'GET',
@@ -103,7 +119,7 @@ describe('taxonomy.service', () => {
       const result = await taxonomyService.createTaxonomy({
         stackId: 'stack-456',
         region: 'NA',
-        userId: 'user-2',
+        userId: 'user-1',
         current_test_stack_id: 'test-stack-2',
         orgId: 'org-2',
         projectId: 'proj-2',
@@ -130,7 +146,7 @@ describe('taxonomy.service', () => {
       await taxonomyService.createTaxonomy({
         stackId: 'stack-789',
         region: 'NA',
-        userId: 'user-3',
+        userId: 'user-1',
         current_test_stack_id: 'test-stack-3',
         orgId: 'org-3',
         projectId: 'proj-3',
@@ -177,7 +193,7 @@ describe('taxonomy.service', () => {
       await taxonomyService.createTaxonomy({
         stackId: 'stack-nested',
         region: 'NA',
-        userId: 'user-4',
+        userId: 'user-1',
         current_test_stack_id: 'test-stack-4',
         orgId: 'org-4',
         projectId: 'proj-4',
@@ -186,19 +202,19 @@ describe('taxonomy.service', () => {
       expect(mockHttps.mock.calls.length).toBeGreaterThan(2);
     });
 
-    it('should throw when getAuthtoken fails', async () => {
-      mockGetAuthToken.mockRejectedValue(new Error('Network failure'));
+    it('should throw when no user token is found in authentication store', async () => {
+      mockAuthUserIndex.mockReturnValue(-1);
 
       await expect(
         taxonomyService.createTaxonomy({
           stackId: 'stack-err',
           region: 'NA',
-          userId: 'user-5',
+          userId: 'user-unknown',
           current_test_stack_id: 'test-stack-5',
           orgId: 'org-5',
           projectId: 'proj-5',
         })
-      ).rejects.toThrow('Network failure');
+      ).rejects.toThrow('No authentication token found');
     });
   });
 });

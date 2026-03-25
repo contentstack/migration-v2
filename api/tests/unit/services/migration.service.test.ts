@@ -172,7 +172,7 @@ import { migrationService } from '../../../src/services/migration.service.js';
 const createMockReq = (overrides: Record<string, unknown> = {}) =>
   ({
     params: { orgId: 'org-123', projectId: 'proj-1' },
-    body: { token_payload: { region: 'NA', user_id: 'user-123' } },
+    body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
     ...overrides,
   }) as any;
 
@@ -201,7 +201,7 @@ describe('migration.service', () => {
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           name: 'MyStack',
         },
       });
@@ -229,7 +229,7 @@ describe('migration.service', () => {
 
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
-        body: { token_payload: { region: 'NA', user_id: 'user-123' }, name: 'Test' },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false }, name: 'Test' },
       });
 
       const result = await migrationService.createTestStack(req);
@@ -244,7 +244,7 @@ describe('migration.service', () => {
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           name: 'MyStack',
         },
       });
@@ -281,7 +281,7 @@ describe('migration.service', () => {
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           name: 'Drupal',
         },
       });
@@ -300,7 +300,7 @@ describe('migration.service', () => {
       const req = createMockReq({
         params: { projectId: 'proj-1' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           stack_key: 'test-stack-1',
         },
       });
@@ -327,7 +327,7 @@ describe('migration.service', () => {
       const req = createMockReq({
         params: { projectId: 'proj-1' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           stack_key: 'test-stack-1',
         },
       });
@@ -348,7 +348,7 @@ describe('migration.service', () => {
       const req = createMockReq({
         params: { projectId: 'proj-1' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           stack_key: 'test-stack-1',
         },
       });
@@ -365,7 +365,7 @@ describe('migration.service', () => {
       const req = createMockReq({
         params: { projectId: 'proj-1' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           stack_key: 'test-stack-1',
         },
       });
@@ -392,7 +392,7 @@ describe('migration.service', () => {
 
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
-        body: { token_payload: { region: 'NA', user_id: 'user-123' } },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
       });
 
       await expect(migrationService.startTestMigration(req)).resolves.not.toThrow();
@@ -415,7 +415,7 @@ describe('migration.service', () => {
 
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
-        body: { token_payload: { region: 'NA', user_id: 'user-123' } },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
       });
 
       await expect(migrationService.startTestMigration(req)).resolves.not.toThrow();
@@ -438,7 +438,7 @@ describe('migration.service', () => {
 
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
-        body: { token_payload: { region: 'NA', user_id: 'user-123' } },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
       });
 
       await expect(migrationService.startTestMigration(req)).resolves.not.toThrow();
@@ -461,7 +461,7 @@ describe('migration.service', () => {
 
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
-        body: { token_payload: { region: 'NA', user_id: 'user-123' } },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
       });
 
       await expect(migrationService.startTestMigration(req)).resolves.not.toThrow();
@@ -495,7 +495,7 @@ describe('migration.service', () => {
 
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
-        body: { token_payload: { region: 'NA', user_id: 'user-123' } },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
       });
 
       await expect(migrationService.startTestMigration(req)).resolves.not.toThrow();
@@ -515,7 +515,7 @@ describe('migration.service', () => {
 
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
-        body: { token_payload: { region: 'NA', user_id: 'user-123' } },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
       });
 
       await expect(migrationService.startTestMigration(req)).resolves.not.toThrow();
@@ -540,7 +540,7 @@ describe('migration.service', () => {
 
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
-        body: { token_payload: { region: 'NA', user_id: 'user-123' } },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
       });
 
       await expect(migrationService.startMigration(req)).resolves.not.toThrow();
@@ -561,7 +561,7 @@ describe('migration.service', () => {
 
       const req = createMockReq({
         params: { orgId: 'org-123', projectId: 'proj-1' },
-        body: { token_payload: { region: 'NA', user_id: 'user-123' } },
+        body: { token_payload: { region: 'NA', user_id: 'user-123', is_sso: false } },
       });
 
       await migrationService.startMigration(req);
@@ -758,7 +758,7 @@ describe('migration.service', () => {
       const req = createMockReq({
         params: { projectId: 'proj-1' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           locale: [{ code: 'en-us', name: 'English' }],
         },
       });
