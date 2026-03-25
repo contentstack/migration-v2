@@ -137,72 +137,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       .findIndex({ id: projectId })
       .value();
     if (index > -1) {
-      // ✅ Generate queries for new test stack (Drupal only)
-      const project = ProjectModelLowdb.data.projects[index];
-      if (project?.legacy_cms?.cms === CMS.DRUPAL) {
-        try {
-          const startMessage = getLogMessage(
-            srcFun,
-            `Generating dynamic queries for new test stack (${res?.data?.stack?.api_key})...`,
-            token_payload
-          );
-          await customLogger(
-            projectId,
-            res?.data?.stack?.api_key,
-            'info',
-            startMessage
-          );
-
-          // Get database configuration from project
-          const legacyCms = project?.legacy_cms as unknown as Record<
-            string,
-            unknown
-          >;
-          const mySQLDetails = legacyCms?.mySQLDetails as
-            | Record<string, unknown>
-            | undefined;
-          const dbConfig = {
-            host: mySQLDetails?.host as string | undefined,
-            user: mySQLDetails?.user as string | undefined,
-            password: (mySQLDetails?.password as string) || '',
-            database: mySQLDetails?.database as string | undefined,
-            port: (mySQLDetails?.port as number) || 3306,
-          };
-
-          // Generate dynamic queries for the new test stack
-          await drupalService.createQuery(
-            dbConfig,
-            res?.data?.stack?.api_key,
-            projectId
-          );
-
-          const successMessage = getLogMessage(
-            srcFun,
-            `Successfully generated queries for test stack (${res?.data?.stack?.api_key})`,
-            token_payload
-          );
-          await customLogger(
-            projectId,
-            res?.data?.stack?.api_key,
-            'info',
-            successMessage
-          );
-        } catch (error: any) {
-          const errorMessage = getLogMessage(
-            srcFun,
-            `Failed to generate queries for test stack: ${error.message}. Test migration may fail.`,
-            token_payload,
-            error
-          );
-          await customLogger(
-            projectId,
-            res?.data?.stack?.api_key,
-            'error',
-            errorMessage
-          );
-          // Don't throw error - let test stack creation succeed even if query generation fails
-        }
-      }
+      
 
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_step = STEPPER_STEPS['TESTING'];
@@ -472,6 +407,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
       region,
       user_id,
     });
+    
     await marketPlaceAppService?.createAppManifest({
       orgId,
       destinationStackId: project?.current_test_stack_id,
@@ -638,11 +574,6 @@ const startTestMigration = async (req: Request): Promise<any> => {
           projectId
         );
 
-        // Step 2: Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
-        await drupalService?.generateContentTypeSchemas(
-          project?.current_test_stack_id,
-          projectId
-        );
 
         // Step 3: Create assets from Drupal database
         await drupalService?.createAssets(
@@ -675,8 +606,8 @@ const startTestMigration = async (req: Request): Promise<any> => {
           projectId,
           true,
           project?.stackDetails?.master_locale,
-          project?.content_mapper || [],
-          project
+          project,
+          contentTypes
         );
 
         // Step 7: Create locale
@@ -1037,12 +968,6 @@ const startMigration = async (req: Request): Promise<any> => {
           projectId
         );
 
-        // Step 2: Generate content type schemas from upload-api
-        await drupalService?.generateContentTypeSchemas(
-          project?.destination_stack_id,
-          projectId
-        );
-
         // Step 3: Create assets from Drupal database
         await drupalService?.createAssets(
           dbConfig,
@@ -1074,8 +999,8 @@ const startMigration = async (req: Request): Promise<any> => {
           projectId,
           false, // Not a test migration
           project?.stackDetails?.master_locale,
-          project?.content_mapper || [],
-          project
+          project,
+          contentTypes
         );
 
         // Step 7: Create locale
