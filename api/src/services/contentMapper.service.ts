@@ -209,27 +209,33 @@ const putTestData = async (req: Request) => {
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
 
-    const uidMapperModel = getUidMapperDb(projectId, iteration - 1);
+    const uidMapperModel = getUidMapperDb(projectId, iteration > 1 ? 1 : 0); //only first iteration has intial uid mapping
     await uidMapperModel.read();
-
     contentTypes.forEach((type: any, index: number) => {
       const entryIds: string[] = [];
+
       const entries = Array.isArray(type?.entryMapping) ?
         type.entryMapping
           .filter(Boolean)
           .map((entry: any) => {
-            const id =
-              entry?.id ?
-                entry.id.replace(/[{}]/g, '').toLowerCase()
-                : uuidv4();
-            entry.id = id;
-            entryIds.push(id);
+            // const id =
+            //   entry?.otherCmsEntryUid ?
+            //     entry.otherCmsEntryUid.replace(/[{}]/g, '').toLowerCase()
+            //     : uuidv4();
+            // entry.id = id;
+            entryIds.push(entry?.otherCmsEntryUid);
 
-            const uidMapperValue = entry?.otherCmsEntryUid ? uidMapperModel.data?.entry?.[idCorrector({ id: entry.otherCmsEntryUid })] : ' ';
+            const rawId = entry?.otherCmsEntryUid;
+            const uidMapperValue = rawId ?
+              (uidMapperModel.data?.entry?.[rawId] || uidMapperModel.data?.entry?.[idCorrector({ id: rawId })])
+              : ' ';
+
+            console.info("uidMapperValue", uidMapperValue);
 
             return {
               ...entry,
-              id,
+              // id,  entry?.otherCmsEntryUid
+              otherCmsEntryUid: entry?.otherCmsEntryUid,
               projectId,
               contentTypeId: type?.id,
               isDeleted: false,
@@ -237,10 +243,18 @@ const putTestData = async (req: Request) => {
             };
           })
         : [];
-      //console.info('🚀 ~ putTestData ~ entries:', entries);
+      console.info("entries", entries);
       EntryMapperModel.update((data: any) => {
+        console.info("data", data);
+        const existingEntries = data?.entry_mapper ?? [];
+        const nonExistingEntries = entries.filter((newEntry: any) => {
+          return !existingEntries.some((existingEntry: any) =>
+            existingEntry.otherCmsEntryUid === newEntry.otherCmsEntryUid && existingEntry.contentTypeId === newEntry.contentTypeId
+          );
+        });
+        // console.info("newEntries", newEntries);
         data.entry_mapper = [
-          ...(Array.isArray(data?.entry_mapper) ? data.entry_mapper : []),
+          ...nonExistingEntries,
           ...entries,
         ];
       });
@@ -1635,6 +1649,8 @@ const getEntryMapping = async (req: Request) => {
       return entryMapper;
     });
 
+    console.info("entryMapping", entryMapping);
+
 
     if (!isEmpty(entryMapping)) {
       if (search) {
@@ -2023,75 +2039,6 @@ const getEntryMapper = async (req: Request) => {
     };
   }
 };
-
-const updateEntryStatus = async (req: Request) => { 
-  const { projectId } = req.params;
-  const { otherCmsEntryUids } = req.body;
-  const validatedUids: string[] = Array.isArray(otherCmsEntryUids) ? otherCmsEntryUids : [];
-  const srcFunc = "updateEntryMapping";
-  if (isEmpty(validatedUids)) {
-    logger.error(
-      getLogMessage(
-        srcFunc,
-        "Invalid otherCmsEntryUids"
-      )
-    );
-    return {
-      status: HTTP_CODES?.BAD_REQUEST,
-      data: {
-        message: "Invalid otherCmsEntryUids",
-      },
-    };  
-  }
-  try {
-    await ProjectModelLowdb.read();
-    const projectData = ProjectModelLowdb.chain
-      .get("projects")
-      .find({ id: projectId })
-      .value();
-    const iteration = projectData?.iteration || 1;
-    const EntryMapperModel = getEntryMapperDb(projectId, iteration);
-    await EntryMapperModel.read();
-    const foundEntry: EntryMapper[] = [];
-    await EntryMapperModel.update((data: any) => {
-      data?.entry_mapper?.forEach((entry: any) => {
-        if (validatedUids.includes(entry?.otherCmsEntryUid)) {
-          entry.isUpdate = true;
-          foundEntry.push(entry);
-        }
-      });
-    });
-
-    if (foundEntry) {
-      return {
-        status: HTTP_CODES?.OK,
-        data: foundEntry
-      };
-    }
-
-    return {
-      status: HTTP_CODES?.NOT_FOUND,
-      data: {
-        message: "Entry not found",
-      },
-    };
-
-  } catch (error: any) {
-    logger.error(
-      getLogMessage(
-        srcFunc,
-        "Error occurred while updating entry mapping",
-        error
-      )
-    );
-    throw new ExceptionFunction(
-      error?.message || HTTP_TEXTS.INTERNAL_ERROR,
-      error?.statusCode || error?.status || HTTP_CODES.SERVER_ERROR
-    );
-  }
-
-
-}
 
 
 export const contentMapperService = {
