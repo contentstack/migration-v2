@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "env": "npm start",
-    "api": "cd ./api && npm run dev",
+    "api": "node -e \"const fs=require('fs'),cp=require('child_process');process.chdir('api');if(!fs.existsSync('node_modules'))cp.execSync('npm i',{stdio:'inherit'});cp.execSync('npm run dev',{stdio:'inherit'})\"",
     "upload": "cd ./upload-api && npm run start",
     "ui": "cd ./ui && npm start",
     "setup:file": "npm i && node fileUpdate.js",
