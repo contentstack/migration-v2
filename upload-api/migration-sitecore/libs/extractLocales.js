@@ -35,7 +35,7 @@ const SKIP_DIRS = new Set([
 // ─── phase 1: collect all data.json paths ────────────────────────────────────
 
 async function collectPaths(dir, results = []) {
-  if (dir == null || typeof dir !== "string" || dir.length === 0) {
+  if (dir == null || typeof dir !== "string" || dir?.length === 0) {
     console.error("[extractLocales] collectPaths: invalid or empty dir");
     return results;
   }
@@ -119,12 +119,12 @@ async function processWithConcurrency(paths, concurrency) {
   }
 
   const limit = Math.max(1, Number(concurrency) || CONCURRENCY);
-  const total = paths.length;
+  const total = paths?.length;
   let idx = 0;
   let scanned = 0;
 
   async function worker() {
-    while (idx < paths.length) {
+    while (idx < paths?.length) {
       const filePath = paths[idx++];
       if (filePath == null || typeof filePath !== "string") continue;
       const lang = await extractLanguage(filePath);
