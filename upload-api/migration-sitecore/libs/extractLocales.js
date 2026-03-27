@@ -156,7 +156,7 @@ async function processWithConcurrency(paths, concurrency) {
  */
 const extractLocales = async (dir) => {
   const empty = new Set();
-  if (dir == null || typeof dir !== "string" || dir.length === 0) {
+  if (dir == null || typeof dir !== "string" || dir?.length === 0) {
     console.error("[extractLocales] invalid or empty dir; returning empty locale set");
     return empty;
   }
