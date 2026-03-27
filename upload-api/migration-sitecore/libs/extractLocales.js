@@ -44,23 +44,24 @@ async function collectPaths(dir, results = []) {
   try {
     entries = await fs.promises.readdir(dir, { withFileTypes: true });
   } catch (err) {
-    console.error(`[extractLocales] cannot read dir ${dir}:`, err.message);
+    console.error(`[extractLocales] cannot read dir ${dir}:`, err?.message ?? err);
     return results;
   }
 
   const subdirs = [];
 
   for (const entry of entries) {
-    if (entry == null || typeof entry.name !== "string") continue;
+    const name = entry?.name;
+    if (typeof name !== "string") continue;
 
     // Match your original logic: skip if any skipDir is a substring of the name
-    if ([...SKIP_DIRS].some((s) => entry.name.includes(s))) continue;
+    if ([...SKIP_DIRS].some((s) => name.includes(s))) continue;
 
-    const full = path.join(dir, entry.name);
+    const full = path.join(dir, name);
 
-    if (entry.isDirectory()) {
+    if (entry?.isDirectory?.()) {
       subdirs.push(full);
-    } else if (entry.isFile() && entry.name === "data.json") {
+    } else if (entry?.isFile?.() && name === "data.json") {
       results.push(full);
     }
   }
@@ -102,7 +103,7 @@ async function extractLanguage(filePath) {
     return json?.item?.$?.language ?? null;
 
   } catch (err) {
-    console.error(`[extractLocales] error reading ${filePath}:`, err.message);
+    console.error(`[extractLocales] error reading ${filePath}:`, err?.message ?? err);
     return null;
   } finally {
     if (fd) await fd.close().catch(() => { });
@@ -117,6 +118,7 @@ async function processWithConcurrency(paths, concurrency) {
     return locales;
   }
 
+  const limit = Math.max(1, Number(concurrency) || CONCURRENCY);
   const total = paths.length;
   let idx = 0;
   let scanned = 0;
@@ -137,7 +139,7 @@ async function processWithConcurrency(paths, concurrency) {
   }
 
   await Promise.all(
-    Array.from({ length: Math.min(concurrency, paths.length) }, worker)
+    Array.from({ length: Math.min(limit, paths.length) }, worker)
   );
 
   return locales;
