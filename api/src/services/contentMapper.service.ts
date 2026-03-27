@@ -218,23 +218,21 @@ const putTestData = async (req: Request) => {
         type.entryMapping
           .filter(Boolean)
           .map((entry: any) => {
-            // const id =
-            //   entry?.otherCmsEntryUid ?
-            //     entry.otherCmsEntryUid.replace(/[{}]/g, '').toLowerCase()
-            //     : uuidv4();
-            // entry.id = id;
-            entryIds.push(entry?.otherCmsEntryUid);
+            const id =
+              entry?.id ?
+                entry.id.replace(/[{}]/g, '').toLowerCase()
+                : uuidv4();
+            entry.id = id;
+            entryIds.push(id);
 
-            const rawId = entry?.otherCmsEntryUid;
+            const rawId = id;
             const uidMapperValue = rawId ?
               (uidMapperModel.data?.entry?.[rawId] || uidMapperModel.data?.entry?.[idCorrector({ id: rawId })])
               : ' ';
 
-            console.info("uidMapperValue", uidMapperValue);
-
             return {
               ...entry,
-              // id,  entry?.otherCmsEntryUid
+              id,
               otherCmsEntryUid: entry?.otherCmsEntryUid,
               projectId,
               contentTypeId: type?.id,
@@ -243,7 +241,7 @@ const putTestData = async (req: Request) => {
             };
           })
         : [];
-      console.info("entries", entries);
+
       EntryMapperModel.update((data: any) => {
         console.info("data", data);
         const existingEntries = data?.entry_mapper ?? [];
@@ -1648,8 +1646,6 @@ const getEntryMapping = async (req: Request) => {
 
       return entryMapper;
     });
-
-    console.info("entryMapping", entryMapping);
 
 
     if (!isEmpty(entryMapping)) {
