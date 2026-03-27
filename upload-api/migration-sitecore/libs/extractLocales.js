@@ -35,6 +35,11 @@ const SKIP_DIRS = new Set([
 // ─── phase 1: collect all data.json paths ────────────────────────────────────
 
 async function collectPaths(dir, results = []) {
+  if (dir == null || typeof dir !== "string" || dir.length === 0) {
+    console.error("[extractLocales] collectPaths: invalid or empty dir");
+    return results;
+  }
+
   let entries;
   try {
     entries = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -46,6 +51,8 @@ async function collectPaths(dir, results = []) {
   const subdirs = [];
 
   for (const entry of entries) {
+    if (entry == null || typeof entry.name !== "string") continue;
+
     // Match your original logic: skip if any skipDir is a substring of the name
     if ([...SKIP_DIRS].some((s) => entry.name.includes(s))) continue;
 
@@ -65,6 +72,10 @@ async function collectPaths(dir, results = []) {
 // ─── phase 2: extract language from one file ─────────────────────────────────
 
 async function extractLanguage(filePath) {
+  if (filePath == null || typeof filePath !== "string" || filePath.length === 0) {
+    return null;
+  }
+
   let fd;
   try {
     // Fast path — read only the first 128 KiB
@@ -76,9 +87,10 @@ async function extractLanguage(filePath) {
 
     const head = buf.toString("utf8", 0, bytesRead);
     const block = META_BLOCK_RE.exec(head);
-    const m = block ? LANG_IN_META_RE.exec(block[1]) : null;
+    const metaSlice = block != null && block[1] != null ? block[1] : null;
+    const m = metaSlice != null ? LANG_IN_META_RE.exec(metaSlice) : null;
 
-    if (m) {
+    if (m != null && m[1] != null && m[1] !== "") {
       if (DEBUG) console.debug(`[fast]     ${filePath} → ${m[1]}`);
       return m[1];
     }
@@ -101,6 +113,10 @@ async function extractLanguage(filePath) {
 
 async function processWithConcurrency(paths, concurrency) {
   const locales = new Set();
+  if (!Array.isArray(paths)) {
+    return locales;
+  }
+
   const total = paths.length;
   let idx = 0;
   let scanned = 0;
@@ -108,6 +124,7 @@ async function processWithConcurrency(paths, concurrency) {
   async function worker() {
     while (idx < paths.length) {
       const filePath = paths[idx++];
+      if (filePath == null || typeof filePath !== "string") continue;
       const lang = await extractLanguage(filePath);
       if (lang) locales.add(lang);
       scanned++;
@@ -136,6 +153,12 @@ async function processWithConcurrency(paths, concurrency) {
  * @returns {Promise<Set<string>>}
  */
 const extractLocales = async (dir) => {
+  const empty = new Set();
+  if (dir == null || typeof dir !== "string" || dir.length === 0) {
+    console.error("[extractLocales] invalid or empty dir; returning empty locale set");
+    return empty;
+  }
+
   console.info("[extractLocales] starting locale extraction from:", dir);
   console.time("[extractLocales] total extraction time");
 
