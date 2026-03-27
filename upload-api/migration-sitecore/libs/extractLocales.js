@@ -4,11 +4,20 @@ const path = require("path");
 
 // ─── tunables ────────────────────────────────────────────────────────────────
 const HEAD_BYTES = 131_072; // 128 KiB – covers item.$.language in all known exports
-const CONCURRENCY = Number(process.env.SITECORE_LOCALES_CONCURRENCY) || 24;
+const CONCURRENCY = Number(process.env.LOCALE_CONCURRENCY) || 24;
 const DEBUG = process.env.DEBUG_SITECORE_LOCALES === "1";
 
-// Matches  "language": "en-US"  anywhere in the head window
-const LANG_RE = /"language"\s*:\s*"([^"]{1,64})"/;
+// Fast-path: find the "$" metadata block first, then extract language from it.
+// This avoids matching a "language" key that belongs to nested field content.
+//
+// Strategy:
+//   1. Find the first  "$":  {  block in the head window (where item.$ lives)
+//   2. Extract up to 512 chars after it (enough to cover all metadata keys)
+//   3. Match "language" only within that narrow slice
+//
+// Fallback to full JSON.parse handles any file where this doesn't match.
+const META_BLOCK_RE = /"\$"\s*:\s*\{([^}]{1,512})\}/;
+const LANG_IN_META_RE = /"language"\s*:\s*"([^"]{1,64})"/;
 
 // Hoisted once – never recreated in the hot path
 // Combines your original Sitecore system dirs + filesystem noise dirs
@@ -66,7 +75,8 @@ async function extractLanguage(filePath) {
     fd = null;
 
     const head = buf.toString("utf8", 0, bytesRead);
-    const m = LANG_RE.exec(head);
+    const block = META_BLOCK_RE.exec(head);
+    const m = block ? LANG_IN_META_RE.exec(block[1]) : null;
 
     if (m) {
       if (DEBUG) console.debug(`[fast]     ${filePath} → ${m[1]}`);
