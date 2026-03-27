@@ -95,7 +95,7 @@ import { projectService } from '../../../src/services/projects.service.js';
 const makeReq = (params: any = {}, body: any = {}) =>
   ({ params, body } as any);
 
-const tokenPayload = { region: 'NA', user_id: 'user-123' };
+const tokenPayload = { region: 'NA', user_id: 'user-123', is_sso: false };
 
 describe('projects.service', () => {
   beforeEach(() => {
@@ -173,10 +173,17 @@ describe('projects.service', () => {
       expect(result.project.name).toBe('New');
     });
 
-    it('should throw BadRequestError when name is missing', async () => {
-      await expect(
-        projectService.createProject(makeReq({ orgId: 'org-123' }, { token_payload: tokenPayload }))
-      ).rejects.toThrow('Project name is required');
+    it('should create project when name is omitted (name optional in service)', async () => {
+      mockProjectUpdate.mockImplementation((fn: any) => {
+        const data = { projects: [] };
+        fn(data);
+        return data;
+      });
+      const result = await projectService.createProject(
+        makeReq({ orgId: 'org-123' }, { token_payload: tokenPayload })
+      );
+      expect(result.status).toBe('success');
+      expect(result.project.name).toBeUndefined();
     });
   });
 

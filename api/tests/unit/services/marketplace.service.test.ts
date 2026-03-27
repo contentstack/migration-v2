@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const {
-  mockGetAuthToken,
+  mockAuthRead,
   mockGetAppManifestAndAppConfig,
   mockFsPromisesAccess,
   mockFsPromisesMkdir,
@@ -9,7 +9,7 @@ const {
   mockFsPromisesReadFile,
   mockPathJoin,
 } = vi.hoisted(() => ({
-  mockGetAuthToken: vi.fn(),
+  mockAuthRead: vi.fn(),
   mockGetAppManifestAndAppConfig: vi.fn(),
   mockFsPromisesAccess: vi.fn(),
   mockFsPromisesMkdir: vi.fn(),
@@ -18,7 +18,21 @@ const {
   mockPathJoin: vi.fn((...args: string[]) => args.join('/')),
 }));
 
-vi.mock('../../../src/utils/auth.utils.js', () => ({ default: mockGetAuthToken }));
+vi.mock('../../../src/models/authentication.js', () => ({
+  default: {
+    read: mockAuthRead,
+    chain: {
+      get: vi.fn(() => ({
+        findIndex: vi.fn(() => ({
+          value: () => 0,
+        })),
+      })),
+    },
+    data: {
+      users: [{ user_id: 'user-1', region: 'NA', authtoken: 'cs-auth-token' }],
+    },
+  },
+}));
 vi.mock('../../../src/utils/market-app.utils.js', () => ({
   getAppManifestAndAppConfig: mockGetAppManifestAndAppConfig,
 }));
@@ -50,7 +64,7 @@ import { marketPlaceAppService } from '../../../src/services/marketplace.service
 describe('marketplace.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthToken.mockResolvedValue('cs-auth-token');
+    mockAuthRead.mockResolvedValue(undefined);
     mockFsPromisesAccess.mockResolvedValue(undefined);
     mockFsPromisesReadFile.mockResolvedValue(
       JSON.stringify([
@@ -80,7 +94,6 @@ describe('marketplace.service', () => {
         orgId: 'org-1',
       });
 
-      expect(mockGetAuthToken).toHaveBeenCalledWith('NA', 'user-1');
       expect(mockFsPromisesReadFile).toHaveBeenCalled();
       expect(mockGetAppManifestAndAppConfig).toHaveBeenCalledWith(
         expect.objectContaining({
