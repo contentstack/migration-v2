@@ -13,6 +13,7 @@ const extractEntries = (cleanLocalPath) => {
   try {
     const alldata = readFile(cleanLocalPath);
     const { entries } = alldata;
+    const locales = alldata?.locales?.map((locale) => locale?.code);
 
     if (!entries || !Array.isArray(entries) || entries.length === 0) {
       console.info('No entries found in Contentful export');
@@ -24,19 +25,21 @@ const extractEntries = (cleanLocalPath) => {
     for (const entry of entries) {
       const contentTypeId = entry?.sys?.contentType?.sys?.id;
       const entryId = entry?.sys?.id;
+      for (const locale of locales) {
+        const entryName = entry?.fields?.title?.[locale];
+        if (!entryName) continue;
+        if (!entriesByContentType[contentTypeId]) {
+          entriesByContentType[contentTypeId] = [];
+        }
 
-      if (!contentTypeId || !entryId) continue;
-
-      if (!entriesByContentType[contentTypeId]) {
-        entriesByContentType[contentTypeId] = [];
+        entriesByContentType[contentTypeId].push({
+          contentTypeUid: contentTypeId,
+          entryName: entryName,
+          otherCmsEntryUid: entryId,
+          isUpdate: false,
+          language: locale,
+        });
       }
-
-      entriesByContentType[contentTypeId].push({
-        contentTypeUid: contentTypeId,
-        entryName: entryId,
-        otherCmsEntryUid: entryId,
-        isUpdate: false,
-      });
     }
 
     console.info(

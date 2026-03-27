@@ -127,6 +127,7 @@ const extractEntries = async (newPath) => {
                         entriesArray.push({
                         contentTypeUid: key,
                         entryName: item?.meta?.name,
+                        language: item?.meta?.language,
                         otherCmsEntryUid: otherCmsEntryUid,
                         otherCmsCTName: item?.template,
                         isUpdate: false,
@@ -134,9 +135,6 @@ const extractEntries = async (newPath) => {
 
                     })
                 }
-                
-              
- 
             };
             const message = `${srcFunc} Transforming entries of Content Type ${contentTypeTitle} has begun.`;
             console.info(message);

@@ -3180,13 +3180,16 @@ const ContentMapper = forwardRef(
 
             {/* Content Type Fields */}
             <div className="content-types-fields-wrapper">
-              <div className="table-wrapper" ref={tableWrapperRef}>
-                {iteration < 1 ? (
-                  <div> 
-                    <EntryMapper tableHeight={tableHeight} selectedContentTypeId={selectedContentType ?? null} />
+              <div className="content-mapper-container table-wrapper" ref={tableWrapperRef}>
+                {iteration > 1 ? (
+                  <div>
+                    <EntryMapper
+                      tableHeight={tableHeight}
+                      selectedContentTypeId={selectedContentType ?? null}
+                    />
                   </div>
                 ) : (
-                  <div >
+                  <div>
                     <InfiniteScrollTable
                       loading={loading}
                       canSearch={true}
@@ -3206,7 +3209,7 @@ const ContentMapper = forwardRef(
                       columnSelector={false}
                       initialRowSelectedData={initialRowSelectedData}
                       initialSelectedRowIds={rowIds}
-                      itemSize={40}
+                      itemSize={80}
                       withExportCta={{
                         component: (
                           <div className="d-flex align-items-center">
@@ -3266,23 +3269,21 @@ const ContentMapper = forwardRef(
                         plural: `${totalCounts === 0 ? 'Count' : ''}`
                       }}
                     />
-                     <div className="mapper-footer">
-                  <div>
-                    Total Fields: <strong>{totalCounts}</strong>
+                    <div className="mapper-footer">
+                      <div>
+                        Total Fields: <strong>{totalCounts}</strong>
+                      </div>
+                      <Button
+                        className="saveButton"
+                        onClick={handleSaveContentType}
+                        version="v2"
+                        disabled={newMigrationData?.project_current_step > 4}
+                        isLoading={isLoadingSaveButton}>
+                        Save
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    className="saveButton"
-                    onClick={handleSaveContentType}
-                    version="v2"
-                    disabled={newMigrationData?.project_current_step > 4}
-                    isLoading={isLoadingSaveButton}>
-                    Save
-                  </Button>
-                </div>
-                  </div>
-                  
                 )}
-
               </div>
             </div>
 

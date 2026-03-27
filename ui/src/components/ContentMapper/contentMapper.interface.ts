@@ -234,5 +234,5 @@ export interface EntryMapperType {
   isUpdate: boolean;
   contentstackEntryUid?: string;
   _canSelect?: boolean;
-
+  isDuplicateEntry?: boolean;
 }

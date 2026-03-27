@@ -96,10 +96,10 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
     // Make title and url field non editable
   useEffect(() => {
     tableData?.forEach((entry) => {
-      if(! entry?.contenstackEntryUid ) {
+      if(! entry?.contentstackEntryUid ) {
         entry._canSelect = false;
       }
-      else if (entry?.contenstackEntryUid) {
+      else if (entry?.contentstackEntryUid) {
         entry._canSelect = true;
       }
     });

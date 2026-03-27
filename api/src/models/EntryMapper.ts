@@ -35,6 +35,7 @@ export interface EntryMapper {
     otherCmsEntryUid: string;
     isUpdate: boolean;
     contentstackEntryUid: string;
+    isDuplicateEntry: boolean;
   }[];
 }
 

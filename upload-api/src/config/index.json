@@ -4,7 +4,7 @@
       "optionLimit": 100
     }
   },
-  "cmsType": "sitecore",
+  "cmsType": "cmsType",
   "isLocalPath": true,
   "awsData": {
     "awsRegion": "us-east-2",
@@ -14,5 +14,16 @@
     "bucketName": "",
     "bucketKey": ""
   },
-  "localPath": "/Users/yash.shinde/Documents/Migration/Expample-Data/Sitecore/Four Square/Test_Recipes_3.zip"
+  "mysql": {
+    "host": "host_name",
+    "user": "user_name",
+    "password": "",
+    "database": "database_name",
+    "port": "port_number"
+  },
+  "assetsConfig": {
+    "base_url": "drupal_assets_base_url",
+    "public_path": "drupal_assets_public_path"
+  },
+  "localPath": ""
 }
