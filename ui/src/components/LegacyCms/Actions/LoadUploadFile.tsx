@@ -206,7 +206,7 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
 
       // Update the ref immediately before dispatching to avoid stale data in subsequent operations
       newMigrationDataRef.current = newMigrationDataObj;
-      dispatch( updateNewMigrationData( newMigrationDataObj ) );
+     
 
       // Derive SQL check from selectedFileFormat (data-driven via legacyCms.json)
       const currentFormatId = newMigrationDataObj?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase();
@@ -295,6 +295,7 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
       setProcessing( 'Processing...100%' );
 
       await new Promise( ( resolve ) => setTimeout( resolve, 1000 ) );
+      dispatch( updateNewMigrationData( newMigrationDataObj ) );
 
       setTimeout( () =>
       {
