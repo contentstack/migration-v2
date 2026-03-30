@@ -11,6 +11,7 @@ import customLogger from '../../utils/custom-logger.utils.js';
 import { getDbConnection } from '../../helper/index.js';
 import { processBatches } from '../../utils/batch-processor.utils.js';
 
+
 const {
   DATA,
   ASSETS_DIR_NAME,
@@ -93,13 +94,18 @@ const executeQuery = (
   query: string
 ): Promise<any[]> => {
   return new Promise((resolve, reject) => {
-    connection.query(query, (error, results) => {
+    connection?.query?.(query, (error, results) => {
       if (error) {
         reject(error);
       } else {
         resolve(results as any[]);
       }
     });
+    if (!connection || typeof (connection as any).query !== 'function') {
+      reject(new Error('Invalid MySQL connection: query method is not available.'));
+      return;
+    }
+
   });
 };
 
@@ -123,11 +129,11 @@ const detectPublicPath = async (
 
     try {
       const configResults = await executeQuery(connection, configQuery);
-      if (configResults.length > 0) {
-        const config = JSON.parse(configResults[0].value);
-        if (config.path && config.path.public) {
-          const detectedPath = config.path.public;
-          return detectedPath.endsWith('/') ? detectedPath : `${detectedPath}/`;
+      if (configResults?.length > 0) {
+        const config = JSON.parse(configResults?.[0]?.value);
+        if (config?.path && config?.path?.public) {
+          const detectedPath = config?.path?.public;
+          return detectedPath?.endsWith('/') ? detectedPath : `${detectedPath}/`;
         }
       }
     } catch (configErr) {
@@ -143,7 +149,7 @@ const detectPublicPath = async (
     `;
 
     const sampleResults = await executeQuery(connection, sampleFileQuery);
-    if (sampleResults.length > 0) {
+    if (sampleResults?.length > 0) {
       // Try common Drupal paths with the user-provided baseUrl
       const commonPaths = [
         '/sites/default/files/',
@@ -153,10 +159,10 @@ const detectPublicPath = async (
 
       // Also try to extract path patterns from the database URIs
       for (const sampleFile of sampleResults) {
-        const sampleUri = sampleFile.uri;
+        const sampleUri = sampleFile?.uri;
 
         for (const testPath of commonPaths) {
-          const testUrl = `${baseUrl}${testPath}${sampleUri.replace(
+          const testUrl = `${baseUrl}${testPath}${sampleUri?.replace(
             'public://',
             ''
           )}`;
@@ -168,7 +174,7 @@ const detectPublicPath = async (
                 'User-Agent': 'Contentstack-Drupal-Migration/1.0',
               },
             });
-            if (response.status === 200) {
+            if (response?.status === 200) {
               const message = getLogMessage(
                 srcFunc,
                 `Auto-detected public path: ${testPath}`,
@@ -200,14 +206,14 @@ const detectPublicPath = async (
       const uriResults = await executeQuery(connection, uriPatternQuery);
       const pathPatterns = new Set();
 
-      if (uriResults && Array.isArray(uriResults)) {
-        uriResults.forEach((row) => {
+      if (uriResults && Array?.isArray(uriResults)) {
+        uriResults?.forEach((row) => {
           const uri = row?.uri;
           if (!uri) return;
           // Extract potential path patterns from URIs
-          const matches = uri.match(/public:\/\/(?:sites\/([^\/]+)\/)?files\//);
+          const matches = uri?.match(/public:\/\/(?:sites\/([^\/]+)\/)?files\//);
           if (matches) {
-            pathPatterns.add(`/sites/${matches[1]}/files/`);
+            pathPatterns?.add(`/sites/${matches?.[1]}/files/`);
           }
         });
       }
@@ -219,7 +225,7 @@ const detectPublicPath = async (
         for (const sampleFile of sampleSlice) {
           if (!sampleFile?.uri) continue;
           // Test with fewer files
-          const testUrl = `${baseUrl}${patternStr}${sampleFile.uri.replace(
+          const testUrl = `${baseUrl}${patternStr}${sampleFile?.uri?.replace(
             'public://',
             ''
           )}`;
@@ -231,7 +237,7 @@ const detectPublicPath = async (
                 'User-Agent': 'Contentstack-Drupal-Migration/1.0',
               },
             });
-            if (response.status === 200) {
+            if (response?.status === 200) {
               const message = getLogMessage(
                 srcFunc,
                 `Auto-detected public path from patterns: ${patternStr}`,
@@ -264,7 +270,7 @@ const detectPublicPath = async (
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
-      `Error detecting public path: ${error.message}. Using default.`,
+      `Error detecting public path: ${error?.message}. Using default.`,
       {},
       error
     );
@@ -286,16 +292,16 @@ const normalizeUrlConfig = (
   }
 
   // Normalize baseUrl (handle empty case)
-  let normalizedBaseUrl = baseUrl ? baseUrl.trim() : '';
+  let normalizedBaseUrl = baseUrl ? baseUrl?.trim() : '';
 
   if (normalizedBaseUrl) {
     // Remove trailing slash from baseUrl
-    normalizedBaseUrl = normalizedBaseUrl.replace(/\/+$/, '');
+    normalizedBaseUrl = normalizedBaseUrl?.replace(/\/+$/, '');
 
     // Ensure baseUrl has protocol
     if (
-      !normalizedBaseUrl.startsWith('http://') &&
-      !normalizedBaseUrl.startsWith('https://')
+      !normalizedBaseUrl?.startsWith('http://') &&
+      !normalizedBaseUrl?.startsWith('https://')
     ) {
       normalizedBaseUrl = `https://${normalizedBaseUrl}`;
     }
@@ -311,26 +317,26 @@ const normalizeUrlConfig = (
   }
 
   // Normalize publicPath (handle empty case)
-  let normalizedPublicPath = publicPath ? publicPath.trim() : '';
+  let normalizedPublicPath = publicPath ? publicPath?.trim() : '';
 
   if (normalizedPublicPath) {
     // Ensure publicPath starts with /
-    if (!normalizedPublicPath.startsWith('/')) {
+    if (!normalizedPublicPath?.startsWith('/')) {
       normalizedPublicPath = `/${normalizedPublicPath}`;
     }
 
     // Ensure publicPath ends with /
-    if (!normalizedPublicPath.endsWith('/')) {
+    if (!normalizedPublicPath?.endsWith('/')) {
       normalizedPublicPath = `${normalizedPublicPath}/`;
     }
 
     // Remove duplicate slashes
-    normalizedPublicPath = normalizedPublicPath.replace(/\/+/g, '/');
+    normalizedPublicPath = normalizedPublicPath?.replace(/\/+/g, '/');
 
     // Validate publicPath doesn't contain invalid characters
     if (
-      normalizedPublicPath.includes('..') ||
-      normalizedPublicPath.includes('//')
+      normalizedPublicPath?.includes('..') ||
+      normalizedPublicPath?.includes('//')
     ) {
       throw new Error(
         `Invalid publicPath format: "${publicPath}" → "${normalizedPublicPath}". Path contains invalid characters.`
@@ -356,13 +362,13 @@ const constructAssetUrl = (
       normalizeUrlConfig(baseUrl, publicPath);
 
     // Already a full URL - return as is
-    if (uri.startsWith('http://') || uri.startsWith('https://')) {
+    if (uri?.startsWith('http://') || uri?.startsWith('https://')) {
       return uri;
     }
 
     // Handle public:// scheme
-    if (uri.startsWith('public://')) {
-      const relativePath = uri.replace('public://', '');
+    if (uri?.startsWith('public://')) {
+      const relativePath = uri?.replace('public://', '');
 
       // Check if we have valid baseUrl and publicPath
       if (!cleanBaseUrl || !cleanPublicPath) {
@@ -376,8 +382,8 @@ const constructAssetUrl = (
     }
 
     // Handle private:// scheme
-    if (uri.startsWith('private://')) {
-      const relativePath = uri.replace('private://', '');
+    if (uri?.startsWith('private://')) {
+      const relativePath = uri?.replace('private://', '');
 
       if (!cleanBaseUrl) {
         throw new Error(
@@ -389,7 +395,7 @@ const constructAssetUrl = (
     }
 
     // Handle relative paths
-    const path = uri.startsWith('/') ? uri : `/${uri}`;
+    const path = uri?.startsWith('/') ? uri : `/${uri}`;
 
     if (!cleanBaseUrl) {
       throw new Error(
@@ -399,8 +405,8 @@ const constructAssetUrl = (
 
     return `${cleanBaseUrl}${path}`;
   } catch (error: any) {
-    console.error(`❌ URL Construction Error: ${error.message}`);
-    throw new Error(`Failed to construct asset URL: ${error.message}`);
+    console.error(`❌ URL Construction Error: ${error?.message}`);
+    throw new Error(`Failed to construct asset URL: ${error?.message}`);
   }
 };
 
@@ -428,8 +434,15 @@ const saveAsset = async (
       'files'
     );
 
-    const assetId = `assets_${assets.fid}`;
-    const fileName = assets.filename;
+    const safeFid = String(assets?.fid)?.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!safeFid) {
+      throw new Error(`Asset has an invalid fid: ${assets?.fid}`);
+    }
+    const assetId = `assets_${safeFid}`;
+    const fileName = path.basename(assets?.filename || '');
+    if (!fileName) {
+      throw new Error(`Asset ${safeFid} has an invalid or empty filename`);
+    }
     const fileUrl = constructAssetUrl(assets.uri, baseUrl, publicPath);
 
     // Check if asset already exists
@@ -456,8 +469,8 @@ const saveAsset = async (
         uid: assetId,
         urlPath: `/assets/${assetId}`,
         status: true,
-        content_type: assets.filemime || 'application/octet-stream',
-        file_size: assets.filesize.toString(),
+        content_type: assets?.filemime || 'application/octet-stream',
+        file_size: assets?.filesize?.toString(),
         tag: [],
         filename: fileName,
         url: fileUrl,
@@ -484,20 +497,20 @@ const saveAsset = async (
 
       // Track successful download
       if (urlTracker) {
-        urlTracker.success.push({
+        urlTracker?.success?.push({
           uid: assetId,
           url: fileUrl,
           filename: fileName,
         });
       }
 
-      if (failedJSON[assetId]) {
-        delete failedJSON[assetId];
+      if (failedJSON?.[assetId]) {
+        delete failedJSON?.[assetId];
       }
 
       const message = getLogMessage(
         srcFunc,
-        `✅ Asset "${fileName}" (${assets.fid}) downloaded successfully.`,
+        `✅ Asset "${fileName}" (${assets?.fid}) downloaded successfully.`,
         {}
       );
       await customLogger(projectId, destination_stack_id, 'info', message);
@@ -559,7 +572,7 @@ const saveAsset = async (
               );
 
               // Check if asset was actually saved (exists in assetData)
-              if (assetData[assetId]) {
+              if (assetData?.[assetId]) {
                 return result; // Successfully downloaded with fallback path
               }
             } catch (fallbackErr) {
@@ -571,34 +584,34 @@ const saveAsset = async (
 
         // All attempts failed - log failure
         const errorDetails = {
-          status: err.response?.status,
+          status: err?.response?.status,
           statusText: err.response?.statusText,
-          message: err.message,
+          message: err?.message,
           url: fileUrl,
         };
 
         // Use user-provided public path for the failed URL
         const failedUrl = constructAssetUrl(
-          assets.uri,
+          assets?.uri,
           baseUrl,
           userProvidedPublicPath || publicPath
         );
 
         failedJSON[assetId] = {
-          failedUid: assets.fid,
+          failedUid: assets?.fid,
           name: fileName,
           url: failedUrl,
-          file_size: assets.filesize,
+          file_size: assets?.filesize,
           reason_for_error: JSON.stringify(errorDetails),
         };
 
         // Track failed download with user-provided URL
         if (urlTracker) {
-          urlTracker.failed.push({
+          urlTracker?.failed?.push({
             uid: assetId,
             url: failedUrl,
             filename: fileName,
-            reason: `${err.response?.status || 'Network error'}: ${
+            reason: `${err?.response?.status || 'Network error'}: ${
               err.message
             }`,
           });
@@ -606,7 +619,7 @@ const saveAsset = async (
 
         const message = getLogMessage(
           srcFunc,
-          `❌ Failed to download "${fileName}" (${assets.fid}) after all attempts: ${err.message}`,
+          `❌ Failed to download "${fileName}" (${assets?.fid}) after all attempts: ${err?.message}`,
           {},
           err
         );
@@ -617,7 +630,7 @@ const saveAsset = async (
     }
   } catch (error) {
     console.error('❌ Error in saveAsset:', error);
-    return `assets_${assets.fid}`;
+    return `assets_${assets?.fid}`;
   }
 };
 
@@ -646,7 +659,7 @@ const fetchAssetsFromDB = async (
 
     const message = getLogMessage(
       srcFunc,
-      `Fetched ${results.length} total assets from database.`,
+      `Fetched ${results?.length} total assets from database.`,
       {}
     );
     await customLogger(projectId, destination_stack_id, 'info', message);
@@ -655,7 +668,7 @@ const fetchAssetsFromDB = async (
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
-      `Failed to fetch assets from database: ${error.message}`,
+      `Failed to fetch assets from database: ${error?.message}`,
       {},
       error
     );
@@ -693,11 +706,12 @@ const retryFailedAssets = async (
     )})`;
     const results = await executeQuery(connection, assetsFIDQuery);
 
-    if (results && Array.isArray(results) && results.length > 0) {
+    if (results && Array?.isArray(results) && results?.length > 0) {
       const limit = pLimit(1); // Reduce to 1 for large datasets to prevent EMFILE errors
       const tasks = results
-        .filter((asset: DrupalAsset) => asset != null)
-        .map((asset: DrupalAsset) =>
+        ?.filter((asset: DrupalAsset) => asset != null)
+        ?.filter((asset: DrupalAsset) => asset?.fid != null)
+        ?.map((asset: DrupalAsset) =>
         limit(() =>
           saveAsset(
             asset,
@@ -720,7 +734,7 @@ const retryFailedAssets = async (
 
       const message = getLogMessage(
         srcFunc,
-        `Retried ${results.length} failed assets.`,
+        `Retried ${results?.length} failed assets.`,
         {}
       );
       await customLogger(projectId, destination_stack_id, 'info', message);
@@ -728,7 +742,7 @@ const retryFailedAssets = async (
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
-      `Error retrying failed assets: ${error.message}`,
+      `Error retrying failed assets: ${error?.message}`,
       {},
       error
     );
@@ -758,7 +772,7 @@ export const createAssets = async (
 
     // Auto-detect public path if not provided or empty
     let detectedPublicPath = publicPath;
-    if (!publicPath || publicPath.trim() === '') {
+    if (!publicPath || publicPath?.trim() === '') {
       detectedPublicPath = await detectPublicPath(
         connection,
         baseUrl,
@@ -805,13 +819,13 @@ export const createAssets = async (
       destination_stack_id
     );
 
-    if (assetsData && assetsData.length > 0) {
+    if (assetsData && assetsData?.length > 0) {
       let assets = assetsData;
       if (isTest) {
-        assets = assets.slice(0, 10);
+        assets = assets?.slice(0, 10);
       }
 
-      const batchSize = assets.length > 10000 ? 100 : 1000;
+      const batchSize = assets?.length > 10000 ? 100 : 1000;
       const results = await processBatches(
         assets,
         async (asset: DrupalAsset) => {
@@ -831,7 +845,7 @@ export const createAssets = async (
               publicPath || detectedPublicPath // Use original user-provided path for tracking
             );
           } catch (error) {
-            failedAssetIds.push(asset.fid.toString());
+            failedAssetIds?.push(asset?.fid?.toString());
             return `assets_${asset.fid}`;
           }
         },
@@ -847,7 +861,7 @@ export const createAssets = async (
       );
 
       // Retry failed assets
-      if (failedAssetIds.length > 0) {
+      if (failedAssetIds?.length > 0) {
         await retryFailedAssets(
           connection,
           failedAssetIds,
@@ -867,7 +881,7 @@ export const createAssets = async (
       await writeFile(assetsSave, ASSETS_SCHEMA_FILE, assetData);
       await writeFile(assetsSave, ASSETS_FILE_NAME, fileMeta);
 
-      if (Object.keys(failedJSON).length > 0) {
+      if (Object?.keys(failedJSON)?.length > 0) {
         await writeFile(assetMasterFolderPath, ASSETS_FAILED_FILE, failedJSON);
       }
 
@@ -877,8 +891,8 @@ export const createAssets = async (
       const successMessage = getLogMessage(
         srcFunc,
         `Successfully processed ${
-          Object.keys(assetData).length
-        } assets out of ${assets.length} total assets.`,
+          Object?.keys(assetData)?.length
+        } assets out of ${assets?.length} total assets.`,
         {}
       );
       await customLogger(
@@ -908,4 +922,4 @@ export const createAssets = async (
       connection.end();
     }
   }
-};
+}

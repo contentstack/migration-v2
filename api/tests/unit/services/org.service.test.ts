@@ -36,7 +36,9 @@ import { orgService } from '../../../src/services/org.service.js';
 const createMockReq = (overrides: Record<string, unknown> = {}) =>
   ({
     params: { orgId: 'org-123' },
-    body: { token_payload: { region: 'NA', user_id: 'user-123', org_uid: 'org-123' } },
+    body: {
+      token_payload: { region: 'NA', user_id: 'user-123', org_uid: 'org-123', is_sso: false },
+    },
     ...overrides,
   }) as any;
 
@@ -143,7 +145,7 @@ describe('org.service', () => {
 
       const req = createMockReq({
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           name: 'New Stack',
           description: 'Test stack',
           master_locale: 'en-us',
@@ -165,7 +167,7 @@ describe('org.service', () => {
 
       const req = createMockReq({
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           name: 'New Stack',
           description: 'Test',
           master_locale: 'en-us',
@@ -221,7 +223,7 @@ describe('org.service', () => {
       const req = createMockReq({
         params: { orgId: 'org-123' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           stack_api_key: 'stack-1',
         },
       });
@@ -242,7 +244,7 @@ describe('org.service', () => {
       const req = createMockReq({
         params: { orgId: 'org-123' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           stack_api_key: 'stack-1',
         },
       });
@@ -261,7 +263,7 @@ describe('org.service', () => {
       const req = createMockReq({
         params: { orgId: 'org-123' },
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           stack_api_key: 'stack-1',
         },
       });
@@ -278,7 +280,7 @@ describe('org.service', () => {
 
       const req = createMockReq({
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           stack_api_key: 'stack-1',
         },
       });
@@ -298,7 +300,7 @@ describe('org.service', () => {
 
       const req = createMockReq({
         body: {
-          token_payload: { region: 'NA', user_id: 'user-123' },
+          token_payload: { region: 'NA', user_id: 'user-123', is_sso: false },
           stack_api_key: 'stack-1',
         },
       });

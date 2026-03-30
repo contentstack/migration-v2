@@ -58,11 +58,11 @@ const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const isSafeKey = (key: string): boolean => {
   return (
     typeof key === 'string' &&
-    key.length > 0 &&
-    !DANGEROUS_KEYS.has(key) &&
-    !key.includes('__proto__') &&
-    !key.includes('constructor') &&
-    !key.includes('prototype')
+    key?.length > 0 &&
+    !DANGEROUS_KEYS?.has(key) &&
+    !key?.includes('__proto__') &&
+    !key?.includes('constructor') &&
+    !key?.includes('prototype')
   );
 };
 
@@ -70,7 +70,7 @@ const isSafeKey = (key: string): boolean => {
  * Creates a null-prototype object to prevent prototype pollution
  */
 const createSafeMapping = <T>(): Record<string, T> => {
-  return Object.create(null) as Record<string, T>;
+  return Object?.create(null) as Record<string, T>;
 };
 
 /**
@@ -85,7 +85,7 @@ const safeSetMapping = <T>(
   if (!isSafeKey(contentType) || !isSafeKey(fieldName)) {
     return false;
   }
-  if (!Object.prototype.hasOwnProperty.call(mapping, contentType)) {
+  if (!Object?.prototype?.hasOwnProperty?.call(mapping, contentType)) {
     mapping[contentType] = createSafeMapping<T>();
   }
   mapping[contentType][fieldName] = value;
@@ -163,15 +163,15 @@ export const analyzeFieldTypes = async (
       try {
         // Unserialize the PHP data to get field details
         const { unserialize } = await import('php-serialize');
-        const fieldData = unserialize(fieldConfig.data);
+        const fieldData = unserialize(fieldConfig?.data);
 
-        if (fieldData && fieldData.field_name && fieldData.bundle) {
+        if (fieldData && fieldData?.field_name && fieldData?.bundle) {
           totalFieldCount++;
 
           const fieldInfo: FieldInfo = {
-            field_name: fieldData.field_name,
-            content_types: fieldData.bundle,
-            field_type: fieldData.field_type || 'unknown',
+            field_name: fieldData?.field_name,
+            content_types: fieldData?.bundle,
+            field_type: fieldData?.field_type || 'unknown',
             content_handler: fieldData?.settings?.handler,
             target_type: fieldData?.settings?.target_type,
             handler_settings: fieldData?.settings?.handler_settings,
@@ -179,12 +179,12 @@ export const analyzeFieldTypes = async (
 
           // Validate keys to prevent prototype pollution
           if (
-            !isSafeKey(fieldInfo.content_types) ||
-            !isSafeKey(fieldInfo.field_name)
+            !isSafeKey(fieldInfo?.content_types) ||
+            !isSafeKey(fieldInfo?.field_name)
           ) {
             const warnMessage = getLogMessage(
               srcFunc,
-              `Skipping field with unsafe key: ${fieldInfo.content_types}.${fieldInfo.field_name}`,
+              `Skipping field with unsafe key: ${fieldInfo?.content_types}.${fieldInfo?.field_name}`,
               {}
             );
             await customLogger(
@@ -200,55 +200,55 @@ export const analyzeFieldTypes = async (
           if (
             !Object.prototype.hasOwnProperty.call(
               taxonomyFieldMapping,
-              fieldInfo.content_types
+              fieldInfo?.content_types
             )
           ) {
-            taxonomyFieldMapping[fieldInfo.content_types] = createSafeMapping();
+            taxonomyFieldMapping[fieldInfo?.content_types] = createSafeMapping();
           }
           if (
             !Object.prototype.hasOwnProperty.call(
               referenceFieldMapping,
-              fieldInfo.content_types
+              fieldInfo?.content_types
             )
           ) {
-            referenceFieldMapping[fieldInfo.content_types] =
+            referenceFieldMapping[fieldInfo?.content_types] =
               createSafeMapping();
           }
           if (
             !Object.prototype.hasOwnProperty.call(
               assetFieldMapping,
-              fieldInfo.content_types
+              fieldInfo?.content_types
             )
           ) {
-            assetFieldMapping[fieldInfo.content_types] = createSafeMapping();
+            assetFieldMapping[fieldInfo?.content_types] = createSafeMapping();
           }
 
           // Check if this is a taxonomy reference field
           const isTaxonomyField =
             // Check handler for taxonomy references
-            (fieldInfo.content_handler &&
-              fieldInfo.content_handler.includes('taxonomy_term')) ||
+            (fieldInfo?.content_handler &&
+              fieldInfo?.content_handler?.includes('taxonomy_term')) ||
             // Check target_type for entity references to taxonomy terms
-            fieldInfo.target_type === 'taxonomy_term' ||
+            fieldInfo?.target_type === 'taxonomy_term' ||
             // Check field type for direct taxonomy reference fields
-            (fieldInfo.field_type === 'entity_reference' &&
-              fieldInfo.target_type === 'taxonomy_term') ||
-            fieldInfo.field_type === 'taxonomy_term_reference' ||
+            (fieldInfo?.field_type === 'entity_reference' &&
+              fieldInfo?.target_type === 'taxonomy_term') ||
+            fieldInfo?.field_type === 'taxonomy_term_reference' ||
             // Check handler settings for vocabulary restrictions (taxonomy specific)
-            (fieldInfo.handler_settings?.target_bundles &&
-              Object.keys(fieldInfo.handler_settings.target_bundles).some(
-                (bundle) => fieldInfo.target_type === 'taxonomy_term'
+            (fieldInfo?.handler_settings?.target_bundles &&
+              Object.keys(fieldInfo?.handler_settings?.target_bundles).some(
+                (bundle) => fieldInfo?.target_type === 'taxonomy_term'
               ));
 
           // Check if this is a node reference field (non-taxonomy entity reference)
           const isReferenceField =
             // Check for entity_reference field type
-            (fieldInfo.field_type === 'entity_reference' &&
+            (fieldInfo?.field_type === 'entity_reference' &&
               // Check handler for node references
-              fieldInfo.content_handler &&
-              fieldInfo.content_handler.includes('node')) ||
+              fieldInfo?.content_handler &&
+              fieldInfo?.content_handler.includes('node')) ||
             // Check target_type for entity references to nodes
-            (fieldInfo.target_type === 'node' &&
+            (fieldInfo?.target_type === 'node' &&
               // Make sure it's NOT a taxonomy field
               !isTaxonomyField);
 
@@ -257,31 +257,31 @@ export const analyzeFieldTypes = async (
 
             // Try to determine the vocabulary from handler settings
             let vocabulary = 'unknown';
-            if (fieldInfo.handler_settings?.target_bundles) {
+            if (fieldInfo?.handler_settings?.target_bundles) {
               const vocabularies = Object.keys(
-                fieldInfo.handler_settings.target_bundles
+                fieldInfo?.handler_settings?.target_bundles
               );
               vocabulary =
-                vocabularies.length === 1
-                  ? vocabularies[0]
-                  : vocabularies.join(',');
+                vocabularies?.length === 1
+                  ? vocabularies?.[0]
+                  : vocabularies?.join(',');
             }
 
             // Use safe setter to prevent prototype pollution
             safeSetMapping(
               taxonomyFieldMapping,
-              fieldInfo.content_types,
-              fieldInfo.field_name,
+              fieldInfo?.content_types,
+              fieldInfo?.field_name,
               {
                 vocabulary,
-                handler: fieldInfo.content_handler || 'default:taxonomy_term',
-                field_type: fieldInfo.field_type,
+                handler: fieldInfo?.content_handler || 'default:taxonomy_term',
+                field_type: fieldInfo?.field_type,
               }
             );
 
             const taxonomyMessage = getLogMessage(
               srcFunc,
-              `Found taxonomy field: ${fieldInfo.content_types}.${fieldInfo.field_name} → vocabulary: ${vocabulary}`,
+              `Found taxonomy field: ${fieldInfo?.content_types}.${fieldInfo?.field_name} → vocabulary: ${vocabulary}`,
               {}
             );
             await customLogger(
@@ -296,20 +296,20 @@ export const analyzeFieldTypes = async (
             // Use safe setter to prevent prototype pollution
             safeSetMapping(
               referenceFieldMapping,
-              fieldInfo.content_types,
-              fieldInfo.field_name,
+              fieldInfo?.content_types,
+              fieldInfo?.field_name,
               {
-                target_type: fieldInfo.target_type || 'node',
-                handler: fieldInfo.content_handler || 'default:node',
-                field_type: fieldInfo.field_type,
+                target_type: fieldInfo?.target_type || 'node',
+                handler: fieldInfo?.content_handler || 'default:node',
+                field_type: fieldInfo?.field_type,
               }
             );
 
             const referenceMessage = getLogMessage(
               srcFunc,
-              `Found reference field: ${fieldInfo.content_types}.${
-                fieldInfo.field_name
-              } → target_type: ${fieldInfo.target_type || 'node'}`,
+              `Found reference field: ${fieldInfo?.content_types}.${
+                fieldInfo?.field_name
+              } → target_type: ${fieldInfo?.target_type || 'node'}`,
               {}
             );
             await customLogger(
@@ -323,21 +323,21 @@ export const analyzeFieldTypes = async (
           // Check if this is an asset/file field
           const isAssetField =
             // Check for file field type
-            fieldInfo.field_type === 'file' ||
+            fieldInfo?.field_type === 'file' ||
             // Check for image field type
-            fieldInfo.field_type === 'image' ||
+            fieldInfo?.field_type === 'image' ||
             // Check for managed_file field type
-            fieldInfo.field_type === 'managed_file' ||
+            fieldInfo?.field_type === 'managed_file' ||
             // Check for entity_reference to file entities
-            (fieldInfo.field_type === 'entity_reference' &&
-              fieldInfo.target_type === 'file');
+            (fieldInfo?.field_type === 'entity_reference' &&
+              fieldInfo?.target_type === 'file');
 
           if (isAssetField) {
             assetFieldCount++;
 
             // Extract file-related settings
             const fileExtensions = fieldData?.settings?.file_extensions
-              ? fieldData.settings.file_extensions.split(' ')
+              ? fieldData?.settings?.file_extensions?.split(' ')
               : [];
             const uploadLocation =
               fieldData?.settings?.file_directory ||
@@ -351,10 +351,10 @@ export const analyzeFieldTypes = async (
             // Use safe setter to prevent prototype pollution
             safeSetMapping(
               assetFieldMapping,
-              fieldInfo.content_types,
-              fieldInfo.field_name,
+              fieldInfo?.content_types,
+              fieldInfo?.field_name,
               {
-                field_type: fieldInfo.field_type,
+                field_type: fieldInfo?.field_type,
                 file_extensions: fileExtensions,
                 upload_location: uploadLocation,
                 max_filesize: maxFilesize,
@@ -363,11 +363,11 @@ export const analyzeFieldTypes = async (
 
             const assetMessage = getLogMessage(
               srcFunc,
-              `Found asset field: ${fieldInfo.content_types}.${
-                fieldInfo.field_name
+              `Found asset field: ${fieldInfo?.content_types}.${
+                fieldInfo?.field_name
               } → type: ${
-                fieldInfo.field_type
-              }, extensions: [${fileExtensions.join(', ')}]`,
+                fieldInfo?.field_type
+              }, extensions: [${fileExtensions?.join(', ')}]`,
               {}
             );
             await customLogger(
@@ -382,7 +382,7 @@ export const analyzeFieldTypes = async (
         // Log parsing error but continue with other fields
         const parseMessage = getLogMessage(
           srcFunc,
-          `Could not parse field config: ${parseError.message}`,
+          `Could not parse field config: ${parseError?.message}`,
           {},
           parseError
         );
@@ -410,7 +410,7 @@ export const analyzeFieldTypes = async (
   } catch (error: any) {
     const message = getLogMessage(
       srcFunc,
-      `Error analyzing field types: ${error.message}`,
+      `Error analyzing field types: ${error?.message}`,
       {},
       error
     );
@@ -432,7 +432,7 @@ export const isTaxonomyField = (
   taxonomyMapping: TaxonomyFieldMapping
 ): boolean => {
   return !!(
-    taxonomyMapping[contentType] && taxonomyMapping[contentType][fieldName]
+    taxonomyMapping?.[contentType] && taxonomyMapping?.[contentType]?.[fieldName]
   );
 };
 
@@ -445,7 +445,7 @@ export const isReferenceField = (
   referenceMapping: ReferenceFieldMapping
 ): boolean => {
   return !!(
-    referenceMapping[contentType] && referenceMapping[contentType][fieldName]
+    referenceMapping?.[contentType] && referenceMapping?.[contentType]?.[fieldName]
   );
 };
 
@@ -457,7 +457,7 @@ export const isAssetField = (
   contentType: string,
   assetMapping: AssetFieldMapping
 ): boolean => {
-  return !!(assetMapping[contentType] && assetMapping[contentType][fieldName]);
+  return !!(assetMapping?.[contentType] && assetMapping?.[contentType]?.[fieldName]);
 };
 
 /**
@@ -468,7 +468,7 @@ export const getTaxonomyFieldInfo = (
   contentType: string,
   taxonomyMapping: TaxonomyFieldMapping
 ) => {
-  return taxonomyMapping[contentType]?.[fieldName] || null;
+  return taxonomyMapping?.[contentType]?.[fieldName] || null;
 };
 
 /**
@@ -479,7 +479,7 @@ export const getReferenceFieldInfo = (
   contentType: string,
   referenceMapping: ReferenceFieldMapping
 ) => {
-  return referenceMapping[contentType]?.[fieldName] || null;
+  return referenceMapping?.[contentType]?.[fieldName] || null;
 };
 
 /**
@@ -490,7 +490,7 @@ export const getAssetFieldInfo = (
   contentType: string,
   assetMapping: AssetFieldMapping
 ) => {
-  return assetMapping[contentType]?.[fieldName] || null;
+  return assetMapping?.[contentType]?.[fieldName] || null;
 };
 
 /**
@@ -524,12 +524,12 @@ export const transformTaxonomyValue = async (
     typeof value === 'number' ||
     (typeof value === 'string' && /^\d+$/.test(value))
   ) {
-    const tid = parseInt(value.toString());
+    const tid = parseInt(value?.toString());
 
     try {
       // Try to determine which vocabulary to look in based on field info
-      const vocabularies = fieldInfo.vocabulary
-        ? fieldInfo.vocabulary.split(',')
+      const vocabularies = fieldInfo?.vocabulary
+        ? fieldInfo?.vocabulary?.split(',')
         : ['unknown'];
 
       for (const vocabulary of vocabularies) {
@@ -542,15 +542,15 @@ export const transformTaxonomyValue = async (
             `${vocabulary}.json`
           );
 
-          if (fs.existsSync(taxonomyFilePath)) {
+          if (fs?.existsSync(taxonomyFilePath)) {
             const taxonomyContent = JSON.parse(
-              fs.readFileSync(taxonomyFilePath, 'utf8')
+              fs?.readFileSync(taxonomyFilePath, 'utf8')
             );
 
-            if (taxonomyContent.terms && Array.isArray(taxonomyContent.terms)) {
-              for (const term of taxonomyContent.terms) {
-                if (term.drupal_term_id === tid) {
-                  return term.uid;
+            if (taxonomyContent?.terms && Array.isArray(taxonomyContent?.terms)) {
+              for (const term of taxonomyContent?.terms) {
+                if (term?.drupal_term_id === tid) {
+                  return term?.uid;
                 }
               }
             }
@@ -565,23 +565,23 @@ export const transformTaxonomyValue = async (
       const fs = await import('fs');
       const path = await import('path');
 
-      if (fs.existsSync(taxonomyBasePath)) {
+      if (fs?.existsSync(taxonomyBasePath)) {
         const taxonomyFiles = fs
-          .readdirSync(taxonomyBasePath)
-          .filter(
-            (file) => file.endsWith('.json') && file !== 'taxonomies.json'
+          ?.readdirSync(taxonomyBasePath)
+          ?.filter(
+            (file) => file?.endsWith('.json') && file !== 'taxonomies.json'
           );
 
         for (const file of taxonomyFiles) {
           try {
             const taxonomyContent = JSON.parse(
-              fs.readFileSync(path.join(taxonomyBasePath, file), 'utf8')
+              fs?.readFileSync(path?.join(taxonomyBasePath, file), 'utf8')
             );
 
-            if (taxonomyContent.terms && Array.isArray(taxonomyContent.terms)) {
-              for (const term of taxonomyContent.terms) {
-                if (term.drupal_term_id === tid) {
-                  return term.uid;
+            if (taxonomyContent?.terms && Array.isArray(taxonomyContent?.terms)) {
+              for (const term of taxonomyContent?.terms) {
+                if (term?.drupal_term_id === tid) {
+                  return term?.uid;
                 }
               }
             }

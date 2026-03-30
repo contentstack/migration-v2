@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const {
   mockHttps,
-  mockGetAuthToken,
+  mockAuthRead,
   mockFsExistsSync,
   mockFsMkdirSync,
   mockFsPromisesReadFile,
@@ -12,7 +12,7 @@ const {
   mockPathDirname,
 } = vi.hoisted(() => ({
   mockHttps: vi.fn(),
-  mockGetAuthToken: vi.fn(),
+  mockAuthRead: vi.fn(),
   mockFsExistsSync: vi.fn(),
   mockFsMkdirSync: vi.fn(),
   mockFsPromisesReadFile: vi.fn(),
@@ -23,7 +23,21 @@ const {
 }));
 
 vi.mock('../../../src/utils/https.utils.js', () => ({ default: mockHttps }));
-vi.mock('../../../src/utils/auth.utils.js', () => ({ default: mockGetAuthToken }));
+vi.mock('../../../src/models/authentication.js', () => ({
+  default: {
+    read: mockAuthRead,
+    chain: {
+      get: vi.fn(() => ({
+        findIndex: vi.fn(() => ({
+          value: () => 0,
+        })),
+      })),
+    },
+    data: {
+      users: [{ user_id: 'user-123', region: 'NA', authtoken: 'cs-auth-token' }],
+    },
+  },
+}));
 vi.mock('../../../src/utils/logger.js', () => ({
   default: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
@@ -50,7 +64,7 @@ import { globalFieldServie } from '../../../src/services/globalField.service.js'
 describe('globalField.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthToken.mockResolvedValue('cs-auth-token');
+    mockAuthRead.mockResolvedValue(undefined);
     mockHttps.mockResolvedValue({
       status: 200,
       data: {
@@ -75,7 +89,6 @@ describe('globalField.service', () => {
         current_test_stack_id: 'test-stack-1',
       });
 
-      expect(mockGetAuthToken).toHaveBeenCalledWith('NA', 'user-123');
       expect(mockHttps).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'GET',
