@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@contentstack/json-rte-serializer": "^3.0.5",
-    "@contentstack/venus-components": "^3.0.3",
+    "@contentstack/venus-components": "^3.0.4",
     "@reduxjs/toolkit": "^2.8.2",
     "@types/react": "^18.3.21",
     "@types/react-dom": "^18.2.13",

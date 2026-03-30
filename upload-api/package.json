@@ -33,7 +33,7 @@
     "@types/wordpress__block-library": "^2.6.3",
     "@types/wordpress__blocks": "^12.5.18",
     "@types/xml2js": "^0.4.14",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
@@ -47,7 +47,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.985.0",
     "@contentstack/cli-utilities": "^1.17.1",
-    "@typescript-eslint/parser": "^8.0.0",
+    "@typescript-eslint/parser": "^8.56.1",
     "@wordpress/block-library": "^9.39.0",
     "@wordpress/blocks": "^15.12.0",
     "axios": "^1.13.5",
