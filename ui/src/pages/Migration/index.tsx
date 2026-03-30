@@ -281,6 +281,16 @@ const Migration = () => {
               awsRegion: data?.awsData?.awsRegion,
               bucketName: data?.awsData?.bucketName,
               bucketKey: data?.awsData?.bucketKey
+            },
+            mysql: {
+              host: data?.mysql?.host,
+              user: data?.mysql?.user,
+              database: data?.mysql?.database,
+              port: data?.mysql?.port
+            },
+            assetsConfig: {
+              base_url: data?.assetsConfig?.base_url,
+              public_path: data?.assetsConfig?.public_path
             }
           },
           cmsType: data?.cmsType  
@@ -394,7 +404,17 @@ const Migration = () => {
               bucketName: projectData?.legacy_cms?.awsDetails?.bucketName,
               bucketKey: projectData?.legacy_cms?.awsDetails?.bucketKey
             },
-            isLocalPath: projectData?.legacy_cms?.is_localPath
+            isLocalPath: projectData?.legacy_cms?.is_localPath,
+            mysql: {
+              host: projectData?.legacy_cms?.myql?.host,
+              user: projectData?.legacy_cms?.mysql?.user,
+              database: projectData?.legacy_cms?.mysql?.database,
+              port: projectData?.legacy_cms?.mysql?.port
+            },
+            assetsConfig: {
+              base_url: projectData?.legacy_cms?.assetsConfig?.base_url,
+              public_path: projectData?.legacy_cms?.assetsConfig?.public_path
+            }
           },
           isValidated: projectData?.legacy_cms?.is_fileValid,
           reValidate: newMigrationData?.legacy_cms?.uploadedFile?.reValidate,
@@ -412,7 +432,17 @@ const Migration = () => {
               awsRegion: uploadObj?.file_details?.awsData?.awsRegion || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.awsRegion,
               bucketName: uploadObj?.file_details?.awsData?.bucketName || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketName,
               bucketKey: uploadObj?.file_details?.awsData?.bucketKey || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.awsData?.bucketKey,
-            }
+            },
+            mysql: {
+              host: uploadObj?.file_details?.mysql?.host || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.mysql?.host,
+              user: uploadObj?.file_details?.mysql?.user || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.mysql?.user,
+              database: uploadObj?.file_details?.mysql?.database || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.mysql?.database,
+              port: uploadObj?.file_details?.mysql?.port || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.mysql?.port,
+            },
+            assetsConfig: {
+              base_url: uploadObj?.file_details?.assetsConfig?.base_url || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.assetsConfig?.base_url,
+              public_path: uploadObj?.file_details?.assetsConfig?.public_path || newMigrationDataRef?.current?.legacy_cms?.uploadedFile?.file_details?.assetsConfig?.public_path,
+            } 
           }
         },
         isFileFormatCheckboxChecked: true,

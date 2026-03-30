@@ -56,7 +56,7 @@ export interface FileDetails {
     bucketName?: string;
     bucketKey?: string;
   };
-  mySQLDetails?: {
+  mysql?: {
     host?: string;
     user?: string;
     database?: string;
