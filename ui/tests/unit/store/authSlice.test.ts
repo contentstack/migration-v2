@@ -174,14 +174,19 @@ describe('store/slice/authSlice', () => {
     });
 
     it('should reset state on error', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.mocked(getUser).mockRejectedValue(new Error('Network error'));
 
-      const store = createTestStore();
-      store.dispatch(setAuthToken({ authToken: 'old-token', isAuthenticated: true }));
-      await store.dispatch(getUserDetails());
+      try {
+        const store = createTestStore();
+        store.dispatch(setAuthToken({ authToken: 'old-token', isAuthenticated: true }));
+        await store.dispatch(getUserDetails());
 
-      const state = store.getState().authentication;
-      expect(state.authToken).toBe('');
+        const state = store.getState().authentication;
+        expect(state.authToken).toBe('');
+      } finally {
+        consoleSpy.mockRestore();
+      }
     });
   });
 });
