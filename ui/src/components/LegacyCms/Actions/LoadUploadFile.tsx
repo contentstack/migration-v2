@@ -57,11 +57,11 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
     <div>
       { isSQL ? (
         // ✅ SQL format (from legacyCms.json allowed_file_formats): show MySQL details
-        fileDetails?.mySQLDetails && (
+        fileDetails?.mysql && (
           <div>
-            <p className="pb-2">Host: { fileDetails?.mySQLDetails?.host }</p>
-            <p className="pb-2">Database: { fileDetails?.mySQLDetails?.database }</p>
-            <p className="pb-2">User: { fileDetails?.mySQLDetails?.user }</p>
+            <p className="pb-2">Host: { fileDetails?.mysql?.host }</p>
+            <p className="pb-2">Database: { fileDetails?.mysql?.database }</p>
+            <p className="pb-2">User: { fileDetails?.mysql?.user }</p>
           </div>
         )
       ) : fileDetails?.isLocalPath ? (
@@ -176,11 +176,11 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
                 bucketName: responseFileDetails?.awsData?.bucketName,
                 bucketKey: responseFileDetails?.awsData?.bucketKey
               },
-              mySQLDetails: {
-                host: responseFileDetails?.mySQLDetails?.host,
-                user: responseFileDetails?.mySQLDetails?.user,
-                database: responseFileDetails?.mySQLDetails?.database,
-                port: responseFileDetails?.mySQLDetails?.port
+              mysql: {
+                host: responseFileDetails?.mysql?.host,
+                user: responseFileDetails?.mysql?.user,
+                database: responseFileDetails?.mysql?.database,
+                port: responseFileDetails?.mysql?.port
               },
               assetsConfig: {
                 base_url: responseFileDetails?.assetsConfig?.base_url,
@@ -206,7 +206,7 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
 
       // Update the ref immediately before dispatching to avoid stale data in subsequent operations
       newMigrationDataRef.current = newMigrationDataObj;
-      dispatch( updateNewMigrationData( newMigrationDataObj ) );
+     
 
       // Derive SQL check from selectedFileFormat (data-driven via legacyCms.json)
       const currentFormatId = newMigrationDataObj?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase();
@@ -295,6 +295,7 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
       setProcessing( 'Processing...100%' );
 
       await new Promise( ( resolve ) => setTimeout( resolve, 1000 ) );
+      dispatch( updateNewMigrationData( newMigrationDataObj ) );
 
       setTimeout( () =>
       {
@@ -437,24 +438,11 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
     }
   };
 
-  // Update fileDetails whenever Redux state changes
-  useEffect( () =>
-  {
-    const latestFileDetails = newMigrationData?.legacy_cms?.uploadedFile?.file_details;
-
-    // Always update fileDetails from Redux, even if it's empty (to clear stale data)
-    setFileDetails( latestFileDetails );
-
-  }, [ newMigrationData?.legacy_cms?.uploadedFile?.file_details ] );
 
   useEffect( () =>
   {
     getConfigDetails();
-  }, [
-    // Re-run when selectedFileFormat or file_details change (e.g., after LoadSelectCms or fetchProjectData dispatches)
-    newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id,
-    newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath
-  ] );
+  }, [] );
 
   useEffect( () =>
   {

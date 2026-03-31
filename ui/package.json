@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@contentstack/json-rte-serializer": "^3.0.5",
-    "@contentstack/venus-components": "^3.0.3",
+    "@contentstack/venus-components": "^3.0.4",
     "@reduxjs/toolkit": "^2.8.2",
     "@types/react": "^18.3.21",
     "@types/react-dom": "^18.2.13",
@@ -43,6 +43,7 @@
     "coverage:ui": "npx serve coverage -l 3939"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
