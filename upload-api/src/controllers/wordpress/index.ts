@@ -40,9 +40,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.MAPPER_SAVED
         });
-       
       }
-
 
       const mapperConfig = {
         method: 'post',
