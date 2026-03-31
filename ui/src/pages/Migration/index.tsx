@@ -406,7 +406,7 @@ const Migration = () => {
             },
             isLocalPath: projectData?.legacy_cms?.is_localPath,
             mysql: {
-              host: projectData?.legacy_cms?.myql?.host,
+              host: projectData?.legacy_cms?.mysql?.host,
               user: projectData?.legacy_cms?.mysql?.user,
               database: projectData?.legacy_cms?.mysql?.database,
               port: projectData?.legacy_cms?.mysql?.port
