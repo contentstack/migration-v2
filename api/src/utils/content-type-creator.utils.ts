@@ -1056,7 +1056,7 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
 };
 
-const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id, type}: any) => {
+const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id, is_sso, type}: any) => {
   try {
     const ctUid = keyMapper?.[contentTypeUid];
 
@@ -1070,7 +1070,8 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
         body: {
           token_payload: {
             region,
-            user_id
+            user_id,
+            is_sso
           }
         }
       }
@@ -1085,7 +1086,8 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
         body: {
           token_payload: {
             region,
-            user_id
+            user_id,
+            is_sso
           }
         }
       }
@@ -1171,7 +1173,7 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
   return ctData;
 }
 
-export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id }: any) => {
+export const contenTypeMaker = async ({ contentType, destinationStackId, projectId, newStack, keyMapper, region, user_id, is_sso }: any) => {
   const marketPlacePath = path.join(process.cwd(), MIGRATION_DATA_CONFIG.DATA, destinationStackId);
   const srcFunc = 'contenTypeMaker';
 
@@ -1185,7 +1187,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   if (Object?.keys?.(keyMapper)?.length &&
     keyMapper?.[contentType?.contentstackUid] !== "" &&
     keyMapper?.[contentType?.contentstackUid] !== undefined) {
-    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id , type: contentType?.type});
+    currentCt = await existingCtMapper({ keyMapper, contentTypeUid: contentType?.contentstackUid, projectId, region, user_id, is_sso, type: contentType?.type});
   }
 
   // Safe: ensures we never pass undefined to the builder
