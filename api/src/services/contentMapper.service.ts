@@ -208,10 +208,10 @@ const putTestData = async (req: Request) => {
             existingEntry.otherCmsEntryUid === newEntry.otherCmsEntryUid && existingEntry.contentTypeId === newEntry.contentTypeId
           );
         });
-        // console.info("newEntries", newEntries);
+        // Append only truly new entries; avoid re-adding the same batch twice.
         data.entry_mapper = [
+          ...existingEntries,
           ...nonExistingEntries,
-          ...entries,
         ];
       });
 

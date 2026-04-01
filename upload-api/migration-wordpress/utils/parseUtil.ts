@@ -45,13 +45,25 @@ if (!global.navigator || typeof global.navigator === 'object') {
 }
 
 export const setupWordPressBlocks = async (rawContent: any) => {
-  
     // Now import WordPress packages after setting up globals
     const wpBlocks: any = await import('@wordpress/blocks');
     const { parse } = await import('@wordpress/blocks');
-    const { registerCoreBlocks } = await import('@wordpress/block-library');
     wpBlocks.__unstableSetDebugLevel?.('none');
-    registerCoreBlocks();
+
+    try {
+      const { registerCoreBlocks } = await import('@wordpress/block-library');
+      registerCoreBlocks();
+    } catch (error: any) {
+      // Some environments cannot fully initialize Gutenberg internals (e.g. getSettings).
+      // Continue with parser-only mode so mapper generation does not fail.
+      console.warn('WordPress core blocks registration failed, using parser-only mode:', error?.message || error);
+    }
+
+    try {
       const blocks = parse(rawContent);
-      return blocks;
+      return Array.isArray(blocks) ? blocks : [];
+    } catch (error: any) {
+      console.warn('WordPress block parsing failed, returning empty blocks:', error?.message || error);
+      return [];
+    }
 }

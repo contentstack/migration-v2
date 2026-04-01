@@ -88,10 +88,23 @@ const setupWordPressBlocks = (rawContent) => __awaiter(void 0, void 0, void 0, f
     // Now import WordPress packages after setting up globals
     const wpBlocks = yield Promise.resolve().then(() => __importStar(require('@wordpress/blocks')));
     const { parse } = yield Promise.resolve().then(() => __importStar(require('@wordpress/blocks')));
-    const { registerCoreBlocks } = yield Promise.resolve().then(() => __importStar(require('@wordpress/block-library')));
     (_a = wpBlocks.__unstableSetDebugLevel) === null || _a === void 0 ? void 0 : _a.call(wpBlocks, 'none');
-    registerCoreBlocks();
-    const blocks = parse(rawContent);
-    return blocks;
+    try {
+        const { registerCoreBlocks } = yield Promise.resolve().then(() => __importStar(require('@wordpress/block-library')));
+        registerCoreBlocks();
+    }
+    catch (error) {
+        // Some environments cannot fully initialize Gutenberg internals (e.g. getSettings).
+        // Continue with parser-only mode so mapper generation does not fail.
+        console.warn('WordPress core blocks registration failed, using parser-only mode:', (error === null || error === void 0 ? void 0 : error.message) || error);
+    }
+    try {
+        const blocks = parse(rawContent);
+        return Array.isArray(blocks) ? blocks : [];
+    }
+    catch (error) {
+        console.warn('WordPress block parsing failed, returning empty blocks:', (error === null || error === void 0 ? void 0 : error.message) || error);
+        return [];
+    }
 });
 exports.setupWordPressBlocks = setupWordPressBlocks;
