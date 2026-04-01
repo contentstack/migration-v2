@@ -278,7 +278,7 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
  */
 const startTestMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
-  const { region, user_id } = req?.body?.token_payload ?? {};
+  const { region, user_id, is_sso } = req?.body?.token_payload ?? {};
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
@@ -406,6 +406,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
       destinationStackId: project?.current_test_stack_id,
       region,
       user_id,
+      is_sso,
     });
     
     await marketPlaceAppService?.createAppManifest({
@@ -652,7 +653,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
  */
 const startMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
-  const { region, user_id } = req?.body?.token_payload ?? {};
+  const { region, user_id, is_sso } = req?.body?.token_payload ?? {};
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
@@ -793,6 +794,7 @@ const startMigration = async (req: Request): Promise<any> => {
       destinationStackId: project?.destination_stack_id,
       region,
       user_id,
+      is_sso,
     });
     await marketPlaceAppService?.createAppManifest({
       orgId,
