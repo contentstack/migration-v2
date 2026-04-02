@@ -286,6 +286,14 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
 const startTestMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id, is_sso } = req?.body?.token_payload ?? {};
+
+
+  if (is_sso !== true && is_sso !== false) {
+    throw new BadRequestError(
+      'Invalid token_payload.is_sso; expected a boolean value.',  
+    );
+  }
+
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
@@ -661,6 +669,13 @@ const startTestMigration = async (req: Request): Promise<any> => {
 const startMigration = async (req: Request): Promise<any> => {
   const { orgId, projectId } = req?.params ?? {};
   const { region, user_id, is_sso } = req?.body?.token_payload ?? {};
+
+  if (typeof is_sso !== 'boolean') {
+    throw new BadRequestError(
+      'Missing or invalid SSO flag in token payload: expected boolean "is_sso".',
+    );
+  }
+  
   await ProjectModelLowdb.read();
   const project: any = ProjectModelLowdb.chain
     .get('projects')
