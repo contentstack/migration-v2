@@ -396,7 +396,11 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   }, [tableData]);
 
   useEffect(() => {
-    const mappedContentType = contentModels && contentModels?.find((item) => item?.uid === newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || '']);
+    const selectedSourceUid = selectedContentType?.contentstackUid || '';
+    const mappedDestinationUid =
+      contentTypeMapped?.[selectedSourceUid] ??
+      newMigrationData?.content_mapping?.content_type_mapping?.[selectedSourceUid];
+    const mappedContentType = contentModels?.find((item) => item?.uid === mappedDestinationUid);
 
     if (mappedContentType?.uid) {
       setOtherContentType((prev) => {
@@ -409,7 +413,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       });
       setIsContentDeleted(false);
     }
-  }, [contentTypeMapped, otherCmsTitle, contentModels]);
+  }, [
+    contentTypeMapped,
+    contentModels,
+    selectedContentType?.contentstackUid,
+    newMigrationData?.content_mapping?.content_type_mapping
+  ]);
 
   useEffect(() => {
     if (isContentDeleted) {
