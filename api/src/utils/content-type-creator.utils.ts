@@ -1026,8 +1026,27 @@ const writeGlobalField = async (schema: any, globalSave: string) => {
   }
 };
 
+const resolveIsSsoFlag = (is_sso: any): boolean => {
+  if (typeof is_sso === 'boolean') {
+    return is_sso;
+  }
+
+  if (is_sso === 'true') {
+    return true;
+  }
+
+  if (is_sso === 'false') {
+    return false;
+  }
+
+  throw new Error(
+    `Invalid token_payload.is_sso in existingCtMapper; expected boolean, received: ${JSON.stringify(is_sso)}`
+  );
+};
+
 const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, user_id, is_sso, type}: any) => {
   try {
+    const normalizedIsSso = resolveIsSsoFlag(is_sso);
     const ctUid = keyMapper?.[contentTypeUid];
 
     if(type === 'global_field') {
@@ -1041,7 +1060,7 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
           token_payload: {
             region,
             user_id,
-            is_sso
+            is_sso: normalizedIsSso
           }
         }
       }
@@ -1057,7 +1076,7 @@ const existingCtMapper = async ({ keyMapper, contentTypeUid, projectId, region, 
           token_payload: {
             region,
             user_id,
-            is_sso
+            is_sso: normalizedIsSso
           }
         }
       }
