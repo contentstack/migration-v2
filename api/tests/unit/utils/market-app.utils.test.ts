@@ -5,9 +5,7 @@ const mockClient = {
 };
 
 vi.mock('@contentstack/marketplace-sdk', () => ({
-  default: {
-    client: vi.fn(() => mockClient),
-  },
+  client: vi.fn(() => mockClient),
 }));
 
 vi.mock('../../../src/constants/index.js', () => ({
@@ -17,7 +15,7 @@ vi.mock('../../../src/constants/index.js', () => ({
   },
 }));
 
-import contentstack from '@contentstack/marketplace-sdk';
+import { client as marketplaceClient } from '@contentstack/marketplace-sdk';
 import {
   getAllApps,
   getAppManifestAndAppConfig,
@@ -48,7 +46,7 @@ describe('market-app.utils', () => {
       });
 
       expect(result).toEqual(mockItems);
-      expect(contentstack.client).toHaveBeenCalledWith({
+      expect(marketplaceClient).toHaveBeenCalledWith({
         authtoken: 'token-xyz',
         host: 'developerhub-api.contentstack.com',
       });
@@ -66,7 +64,7 @@ describe('market-app.utils', () => {
         region: 'EU',
       });
 
-      expect(contentstack.client).toHaveBeenCalledWith({
+      expect(marketplaceClient).toHaveBeenCalledWith({
         authtoken: 'token',
         host: 'eu-developerhub-api.contentstack.com',
       });
