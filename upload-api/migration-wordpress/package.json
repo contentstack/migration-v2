@@ -1,5 +1,5 @@
 {
-    "name": "migration-v2-wordpress",
+    "name": "migration-wordpress",
     "version": "1.0.0",
     "description": "",
     "main": "build/index.js",
