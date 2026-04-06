@@ -93,7 +93,6 @@ router.get(
   fileOperationLimiter,
   async function (req: Request, res: Response) {
     try {
-      const config = await updateConfigFile();
       // Sanitize user inputs to prevent path traversal attacks
       const projectId: string = sanitizeId(req?.headers?.projectid ?? '');
       const app_token: string | string[] = req?.headers?.app_token ?? '';

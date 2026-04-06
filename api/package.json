@@ -60,8 +60,9 @@
     "socket.io": "^4.7.5",
     "uuid": "^9.0.1",
     "winston": "^3.11.0",
-    "cheerio": "^1.2.0",
-    "@wordpress/block-library": "^9.30.0"
+    "@emnapi/core": "1.9.1",
+    "@emnapi/runtime" : "1.9.1",
+    "@emnapi/wasi-threads": "1.2.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -98,16 +99,7 @@
     "rollup": ">=4.59.0",
     "tar": ">=7.5.8",
     "@tootallnate/once": ">=3.0.1",
-    "@types/wordpress__block-library": "^2.6.3",
-    "@types/wordpress__block-serialization-spec-parser": "^3.1.3",
-    "@types/wordpress__blocks": "^12.5.18"
-  },
-  "overrides": {
-    "qs": ">=6.14.2",
-    "tmp": ">=0.2.4",
-    "diff": ">=5.2.2",
-    "glob": ">=10.5.0",
-    "tar": ">=7.5.7"
+    "undici": ">=7.24.0"
   },
   "keywords": []
 }

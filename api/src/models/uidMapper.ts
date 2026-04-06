@@ -38,7 +38,7 @@ const defaultData: EntryMapper = { entry: {}, assets: {} };
  * @returns The database instance for the field mapper
  */
 const getUidMapperDb = (projectId: string, iteration: number) => {
-  fs.mkdirSync(path.join(process.cwd(), "database", projectId), { recursive: true });
+  fs.mkdirSync(path.join(process.cwd(), "database", projectId, iteration.toString()), { recursive: true });
   const db = new LowWithLodash(
     new JSONFile<EntryMapper>(
       path.join(process.cwd(), "database", projectId, iteration.toString(), 'uid-mapper.json')

@@ -46,12 +46,7 @@ import { removeExistingAssets } from '../utils/asset-update.utils.js';
 import { updateEntryCli, utilsUpdateCli } from './updateEntryCli.service.js';
 
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
-import { testFolderCreator } from '../utils/test-folder-creator.utils.js';
-=======
->>>>>>> 89e94a82 (refactor: removed unused variables)
-import { removeEntriesFromDatabase, enrichConfigWithAssetMapping } from '../utils/entry-update.utils.js';
-import { removeExistingAssets } from '../utils/asset-update.utils.js';
-import { updateEntryCli, utilsUpdateCli } from './updateEntryCli.service.js';
+// (merge-conflict cleanup) keep single imports only
 
 
 /**
@@ -805,15 +800,18 @@ const startMigration = async (req: Request): Promise<any> => {
       region,
       user_id,
     });
+
     await marketPlaceAppService?.createAppManifest({
       orgId,
       destinationStackId: project?.destination_stack_id,
       region,
       userId: user_id,
     });
+
     await extensionService?.createExtension({
       destinationStackId: project?.destination_stack_id,
     });
+    
     await taxonomyService?.createTaxonomy({
       orgId,
       projectId,
@@ -1060,6 +1058,7 @@ const startMigration = async (req: Request): Promise<any> => {
 
     if (configFilePath) {
       enrichConfigWithAssetMapping(configFilePath, projectId, iteration);
+      console.info('Asset mapping enriched into config');
       await utilsUpdateCli?.updateEntryCli(
         region,
         user_id,

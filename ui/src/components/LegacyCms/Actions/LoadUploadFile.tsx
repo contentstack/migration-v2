@@ -263,6 +263,10 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       if (status === 200 && !newMigrationDataObj.legacy_cms.selectedFileFormat) {
         newMigrationDataObj.legacy_cms.selectedFileFormat =
           newMigrationDataRef?.current?.legacy_cms?.selectedFileFormat;
+      }
+
+      // Update the ref immediately before dispatching to avoid stale data in subsequent operations
+      newMigrationDataRef.current = newMigrationDataObj;
       dispatch(updateNewMigrationData(newMigrationDataObj));
 
       // Derive SQL check from selectedFileFormat (data-driven via legacyCms.json)
@@ -335,90 +339,6 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
       } else {
         setIsValidated(false);
         setValidationMessage(`${data?.message}`);
-        setIsValidationAttempted(true);
-        setProgressPercentage(100);
-      }
-
-      // Update the ref immediately before dispatching to avoid stale data in subsequent operations
-      newMigrationDataRef.current = newMigrationDataObj;
-      dispatch(updateNewMigrationData(newMigrationDataObj));
-
-      // Derive SQL check from selectedFileFormat (data-driven via legacyCms.json)
-      const currentFormatId = newMigrationDataObj?.legacy_cms?.selectedFileFormat?.fileformat_id?.toLowerCase();
-      const isSQL = currentFormatId === 'sql';
-
-      if (status === 200) {
-        setIsValidated(true);
-        setValidationMessage(
-          isSQL 
-            ? 'Connection established successfully.' 
-            : 'File validated successfully.'
-        );
-
-           // 🔧 FIX: Fetch updated project data to get source_locales and dispatch to Redux
-        // This ensures the Language Mapper has access to source locales immediately after validation
-        try {
-          if (selectedOrganisation?.value && projectId) {
-            const migrationDataResponse = await getMigrationData(selectedOrganisation?.value, projectId);
-            const projectData = migrationDataResponse?.data;
-            
-            if (projectData?.source_locales && Array.isArray(projectData.source_locales)) {
-              // Dispatch source_locales to Redux so LanguageMapper can access them
-              // Use newMigrationDataObj (the just-dispatched data) instead of stale ref
-              const updatedMigrationData: INewMigration = {
-                ...newMigrationDataObj,
-                destination_stack: {
-                  ...newMigrationDataObj?.destination_stack,
-                  sourceLocale: projectData.source_locales
-                }
-              };
-              // Update ref again before second dispatch
-              newMigrationDataRef.current = updatedMigrationData;
-              dispatch(updateNewMigrationData(updatedMigrationData));
-            }
-          }
-        } catch (fetchError) {
-          console.warn('⚠️ [LoadUploadFile] Could not fetch source_locales:', fetchError);
-          // Don't block the flow if this fails
-        }
-        setIsDisabled(true);
-
-        if (
-          !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
-          !isEmptyString(newMigrationDataObj?.legacy_cms?.selectedFileFormat?.fileformat_id)
-        ) {
-          props.handleStepChange(props?.currentStep, true);
-        }
-      } else if (status === 500) {
-        setIsValidated(false);
-        setValidationMessage(
-          isSQL 
-            ? 'Connection failed' 
-            : 'File not found'
-        );
-        setIsValidationAttempted(true);
-        setProgressPercentage(100);
-      } else if (status === 429) {
-        setIsValidated(false);
-        setValidationMessage('Rate limit exceeded. Please wait and try again.');
-        setIsValidationAttempted(true);
-        setProgressPercentage(100);
-      } else if (status === 401) {
-        setIsValidated(false);
-        setValidationMessage(
-          `${data?.message} Please add correct file with ${newMigrationData?.legacy_cms?.selectedCms?.cms_id} supported format.`
-        );
-        setIsValidationAttempted(true);
-        setProgressPercentage(100);
-      } else {
-        setIsValidated(false);
-        // For SQL connections, show the specific backend error message
-        // For other formats, show generic validation failed message
-        setValidationMessage(
-          isSQL && data?.message 
-            ? data.message 
-            : 'Validation failed.'
-        );
         setIsValidationAttempted(true);
         setProgressPercentage(100);
       }

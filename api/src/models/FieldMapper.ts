@@ -52,7 +52,7 @@ const defaultData: FieldMapper = { field_mapper: [] };
  * @returns The database instance for the field mapper
  */
 const getFieldMapperDb = (projectId: string, iteration: number) => {
-  fs.mkdirSync(path.join(process.cwd(), "database", projectId), { recursive: true });
+  fs.mkdirSync(path.join(process.cwd(), "database", projectId, iteration.toString()), { recursive: true });
   const db = new LowWithLodash(
     new JSONFile<FieldMapper>(
       path.join(process.cwd(), "database", projectId, iteration.toString(), 'field-mapper.json')
