@@ -1,0 +1,45 @@
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node',
+    setupFiles: ['./tests/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'html'],
+      include: ['src/**/*.ts'],
+      exclude: [
+        '**/node_modules/**',
+        '**/tests/**',
+        'src/server.ts',
+        'src/database.ts',
+        'src/config/**',
+        'src/services/wordpress.service.ts',
+        'src/services/aem.service.ts',
+        'src/services/contentful.service.ts',
+        'src/services/sitecore.service.ts',
+        'src/services/drupal.service.ts',
+        'src/services/drupal/**',
+        'src/services/contentful/**',
+        'src/services/runCli.service.ts',
+        'src/utils/content-type-creator.utils.ts',
+        'src/utils/entries-field-creator.utils.ts',
+        'src/utils/test-folder-creator.utils.ts',
+        'src/utils/optimized-query-builder.utils.ts',
+        'src/utils/custom-logger.utils.ts',
+        'src/utils/wordpressParseUtil.ts',
+        'src/utils/watch.utils.ts',
+        'src/utils/logger.ts',
+        'src/utils/lowdb-lodash.utils.ts',
+        'src/models/types.ts',
+      ],
+      thresholds: {
+        lines: 77,
+        functions: 80,
+        branches: 57,
+        statements: 77,
+      },
+    },
+  },
+});

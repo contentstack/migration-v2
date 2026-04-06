@@ -101,8 +101,27 @@ const uidCorrector = ({ uid } : {uid : string}) => {
   return newUid;
 };
 
+/**
+ * Remap an array of reference UIDs using a mapping table.
+ *
+ * @param uids - The original reference UIDs.
+ * @param keyMapper - A map from UID to new UID. Callers should prefer using
+ *   the *corrected* UID (i.e. the result of `uidCorrector({ uid })`) as the key.
+ *   For backward compatibility, this function also supports maps keyed by the
+ *   original UID, and will try both forms when looking up each entry.
+ *
+ *   NOTE: Relying on mixed key styles (some original, some corrected) can hide
+ *   inconsistent UID formatting. When both key styles are present for the same
+ *   logical UID and map to different targets, a warning is logged so that such
+ *   issues do not go unnoticed.
+ * @returns The remapped UIDs.
+ */
+function remapReferenceUids(uids: string[], keyMapper?: Record<string, string>): string[] {
+  if (!keyMapper || !Object.keys(keyMapper).length) return uids;
+  return uids.map(uid => keyMapper[uid] ?? keyMapper[uidCorrector({ uid })] ?? uid);
+}
 
-function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): any {
+function buildFieldSchema(item: any, marketPlacePath: string, parentUid = '', keyMapper?: Record<string, string>): any {
   if (item?.isDeleted === true) return null;
 
   const getCleanUid = (uid: string): string => {
@@ -155,34 +174,29 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
       const blockElements = blockItem?.schema || [];
       for (const element of blockElements) {
         if (element?.isDeleted === false) {
-          const fieldSchema = buildFieldSchema(element, marketPlacePath, '');
+          const fieldSchema = buildFieldSchema(element, marketPlacePath, '', keyMapper);
           if (fieldSchema) blockSchema.push(fieldSchema);
         }
       }
 
-      if (blockSchema.length > 0) {
-        blocks.push({
-          title: blockRawUid,  // Keep original for title
-          uid: blockUid,       // Snake case for uid
-          schema: removeDuplicateFields(blockSchema)
-        });
-      }
+      blocks.push({
+        title: blockRawUid,  // Keep original for title
+        uid: blockUid,       // Snake case for uid
+        schema: removeDuplicateFields(blockSchema)
+      });
     }
 
-    if (blocks.length > 0) {
-      return {
-        data_type: "blocks",
-        display_name: item?.display_name || rawUid,  // Keep original for display
-        field_metadata: {},
-        uid: itemUid,  // Snake case uid
-        multiple: true,
-        mandatory: false,
-        unique: false,
-        non_localizable: false,
-        blocks: removeDuplicateFields(blocks)
-      };
-    }
-    return null;
+    return {
+      data_type: "blocks",
+      display_name: item?.display_name || rawUid,  // Keep original for display
+      field_metadata: {},
+      uid: itemUid,  // Snake case uid
+      multiple: true,
+      mandatory: false,
+      unique: false,
+      non_localizable: false,
+      blocks: removeDuplicateFields(blocks)
+    };
   }
 
   if (fieldType === 'group') {
@@ -191,7 +205,7 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
 
     for (const element of elements) {
       if (element?.isDeleted === false) {
-        const fieldSchema = buildFieldSchema(element, marketPlacePath, '');
+        const fieldSchema = buildFieldSchema(element, marketPlacePath, '', keyMapper);
         if (fieldSchema) groupSchema.push(fieldSchema);
       }
     }
@@ -215,7 +229,8 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = ''): a
       title: item?.display_name || rawUid,  // Keep original for display
       uid: itemUid  // Snake case uid
     },
-    marketPlacePath
+    marketPlacePath,
+    keyMapper
   });
 }
 
@@ -316,14 +331,25 @@ export function buildSchemaTree(fields: any[], parentUid = '', parentType = '', 
 
     if (hasChildren) {
       if (fieldType === 'modular_blocks') {
-        // Get modular block children
+        // Get modular block children (check both current and backup UIDs)
         const mbChildren = fields.filter(f => {
           if (!f) return false;
           const fUid = f?.contentstackFieldUid || '';
           if (!fUid || !fieldUid) return false;
-          return f?.contentstackFieldType === 'modular_blocks_child' &&
-            fUid.startsWith(fieldUid + '.') &&
-            !fUid.substring(fieldUid.length + 1).includes('.');
+          if (f?.contentstackFieldType !== 'modular_blocks_child') return false;
+
+          if (fUid.startsWith(fieldUid + '.') &&
+            !fUid.substring(fieldUid.length + 1).includes('.')) {
+            return true;
+          }
+
+          if (oldFieldUid && oldFieldUid !== fieldUid &&
+            fUid.startsWith(oldFieldUid + '.') &&
+            !fUid.substring(oldFieldUid.length + 1).includes('.')) {
+            return true;
+          }
+
+          return false;
         });
 
         result.schema = mbChildren.map(child => {
@@ -464,10 +490,10 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
           "error_messages": {
             "format": field?.advanced?.validationErrorMessage ?? '',
           },
-          "reference_to": field?.advanced?.embedObjects?.length ? [
+          "reference_to": field?.advanced?.embedObjects?.length ? remapReferenceUids([
             "sys_assets",
             ...field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) ?? [],
-          ] : [
+          ], keyMapper) : [
             "sys_assets"
           ],
           "multiple": field?.advanced?.multiple ?? false,
@@ -730,7 +756,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
       return {
         "data_type": "global_field",
         "display_name": field?.title,
-        "reference_to": field?.refrenceTo ?? [],
+        "reference_to": remapReferenceUids(field?.refrenceTo ?? [], keyMapper),
         "uid": cleanedUid,
         "mandatory": field?.advanced?.mandatory ?? false,
         "multiple": field?.advanced?.multiple ?? false,
@@ -742,7 +768,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
       return {
         data_type: "reference",
         display_name: field?.title,
-        reference_to: field?.refrenceTo ?? [],
+        reference_to: remapReferenceUids(field?.refrenceTo ?? [], keyMapper),
         field_metadata: {
           ref_multiple: true,
           ref_multiple_content_types: true
@@ -810,7 +836,7 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
         "mandatory": field?.advanced?.mandatory ?? false,
         "unique": field?.advanced?.unique ?? false,
         "non_localizable": field.advanced?.nonLocalizable ?? false,
-        "reference_to": field?.advanced?.embedObjects?.length ? field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })) : []
+        "reference_to": field?.advanced?.embedObjects?.length ? remapReferenceUids(field?.advanced?.embedObjects?.map?.((item: any) => uidCorrector({ uid: item })), keyMapper) : []
       }
       if ((field?.advanced?.embedObjects?.length === undefined) ||
         (field?.advanced?.embedObjects?.length === 0) ||
@@ -876,6 +902,36 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
           "non_localizable": field.advanced?.nonLocalizable ?? false,
           "data_type": "json",
         }
+      }
+      break;
+    }
+
+    case 'taxonomy': {
+      const taxonomies = field?.advanced?.terms?.map((term: any) => {
+        return {
+          "taxonomy_uid": term,
+            "mandatory": false,
+          "multiple": true,
+          "non_localizable": false
+        }
+      });
+      return {
+        "data_type": "taxonomy",
+        "display_name": "Categories",
+        "uid": "taxonomies",
+        "taxonomies": taxonomies,
+        "field_metadata": {
+            "description": "",
+            "default_value": ""
+        },
+        "format": "",
+        "error_messages": {
+            "format": ""
+        },
+        "mandatory": false,
+        "multiple": true,
+        "non_localizable": false,
+        "unique": false
       }
       break;
     }
@@ -1055,6 +1111,49 @@ const mergeArrays = async (a: any[], b: any[]) => {
   return a;
 }
 
+function mergeSchemaFields(sourceSchema: any[], targetSchema: any[]) {
+  for (const field of sourceSchema) {
+    if (field?.data_type === 'group') {
+      const targetGroup = targetSchema?.find((grp: Group) =>
+        grp?.uid === field?.uid && grp?.data_type === 'group'
+      );
+
+      if (targetGroup) {
+        const additional = (targetGroup?.schema ?? []).filter((tField: Group) =>
+          !field?.schema?.find((sField: Group) => sField?.uid === tField?.uid && sField?.data_type === tField?.data_type)
+        );
+        field.schema = removeDuplicateFields([...field?.schema ?? [], ...additional]);
+        mergeSchemaFields(field?.schema, targetGroup?.schema ?? []);
+      }
+    }
+
+    if (field?.data_type === 'blocks') {
+      const targetMB = targetSchema?.find((mb: any) =>
+        mb?.uid === field?.uid && mb?.data_type === 'blocks'
+      );
+
+      if (targetMB?.blocks) {
+        for (const sourceBlock of field?.blocks ?? []) {
+          const targetBlock = targetMB?.blocks?.find((tb: any) => tb?.uid === sourceBlock?.uid);
+
+          if (targetBlock?.schema) {
+            const additional = (targetBlock?.schema ?? [])?.filter((tField: any) =>
+              !sourceBlock?.schema?.find((sField: any) => sField?.uid === tField?.uid && sField?.data_type === tField?.data_type)
+            );
+            sourceBlock.schema = removeDuplicateFields([...sourceBlock?.schema ?? [], ...additional]);
+            mergeSchemaFields(sourceBlock.schema, targetBlock.schema ?? []);
+          }
+        }
+
+        const additionalBlocks = (targetMB?.blocks ?? []).filter((tb: any) =>
+          !field?.blocks?.find((sb: any) => sb?.uid === tb?.uid)
+        );
+        field.blocks = removeDuplicateFields([...field?.blocks ?? [], ...additionalBlocks]);
+      }
+    }
+  }
+}
+
 const mergeTwoCts = async (ct: any, mergeCts: any) => {
   const ctData: any = {
     ...ct,
@@ -1065,83 +1164,8 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
     }
   }
 
-  for await (const field of ctData?.schema ?? []) {
-    // Handle regular groups
-    if (field?.data_type === 'group') {
-      const currentGroup = mergeCts?.schema?.find((grp: any) => 
-        grp?.uid === field?.uid && grp?.data_type === 'group'
-      );
-      
-      if (currentGroup) {
-        const group = [];
-        for await (const fieldGp of currentGroup?.schema ?? []) {
-          const fieldNst = field?.schema?.find((fld: any) => 
-            fld?.uid === fieldGp?.uid && fld?.data_type === fieldGp?.data_type
-          );
-          if (fieldNst === undefined) {
-            group?.push(fieldGp);
-          }
-        }
-        field.schema = removeDuplicateFields([...field?.schema ?? [], ...group]);
-      }
-    }
+  mergeSchemaFields(ctData?.schema ?? [], mergeCts?.schema ?? []);
 
-    // Handle modular blocks
-    if (field?.data_type === 'blocks') {
-      const currentModularBlock = mergeCts?.schema?.find((mb: any) => 
-        mb?.uid === field?.uid && mb?.data_type === 'blocks'
-      );
-      
-      if (currentModularBlock && currentModularBlock?.blocks) {
-        // Iterate through each child block in the source
-        for (const sourceBlock of field?.blocks ?? []) {
-          // Find matching child block in target by UID
-          const targetBlock = currentModularBlock?.blocks?.find((tb: any) => 
-            tb?.uid === sourceBlock?.uid
-          );
-          
-          if (targetBlock && targetBlock?.schema) {
-            // Merge the schemas of matching child blocks
-            const additionalFields = [];
-            
-            for (const targetField of targetBlock?.schema ?? []) {
-              // Check if this field already exists in source block
-              const existsInSource = sourceBlock?.schema?.find((sf: any) => 
-                sf?.uid === targetField?.uid && sf?.data_type === targetField?.data_type
-              );
-              
-              if (!existsInSource) {
-                additionalFields.push(targetField);
-              }
-            }
-            
-            // Merge source and target fields, removing duplicates
-            sourceBlock.schema = removeDuplicateFields([
-              ...sourceBlock?.schema ?? [], 
-              ...additionalFields
-            ]);
-          }
-        }
-        
-        // Add any child blocks from target that don't exist in source
-        const additionalBlocks = [];
-        for (const targetBlock of currentModularBlock?.blocks ?? []) {
-          const existsInSource = field?.blocks?.find((sb: any) => 
-            sb?.uid === targetBlock?.uid
-          );
-          
-          if (!existsInSource) {
-            additionalBlocks.push(targetBlock);
-          }
-        }
-        
-        field.blocks = removeDuplicateFields([
-          ...field?.blocks ?? [], 
-          ...additionalBlocks
-        ]);
-      }
-    }
-  }
   ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
   
   return ctData;
@@ -1171,7 +1195,7 @@ export const contenTypeMaker = async ({ contentType, destinationStackId, project
   for (const item of ctData) {
     if (item?.isDeleted === true) continue;
 
-    const fieldSchema = buildFieldSchema(item, marketPlacePath, '');
+    const fieldSchema = buildFieldSchema(item, marketPlacePath, '', keyMapper);
     if (fieldSchema) {
       ct?.schema.push(fieldSchema);
     }

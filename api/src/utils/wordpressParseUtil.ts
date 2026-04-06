@@ -50,7 +50,6 @@ export const setupWordPressBlocks = async (rawContent: any) => {
   if (!(global as any).__wp_core_blocks_registered) {
     try {
       // import after globals are ready
-
       (global as any).__wp_core_blocks_registered = true;
     } catch (err: any) {
       const msg = String(err?.message || err);

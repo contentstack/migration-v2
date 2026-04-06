@@ -39,7 +39,6 @@ let postFolderPath = path.join(
   MIGRATION_DATA_CONFIG.POSTS_DIR_NAME,
   MIGRATION_DATA_CONFIG.POSTS_FOLDER_NAME
 );
-
 let authorsFolderPath = path.join(
   entrySave,
   MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME
@@ -49,12 +48,10 @@ let authorsFilePath = path.join(
   MIGRATION_DATA_CONFIG.AUTHORS_FILE_NAME
 );
 
-
 const TaxonomiesSave = path.join(
   MIGRATION_DATA_CONFIG.DATA,
   MIGRATION_DATA_CONFIG.TAXONOMIES_DIR_NAME
 );
-
 
 let assetMasterFolderPath = path.join(
   MIGRATION_DATA_CONFIG.DATA,
@@ -124,7 +121,7 @@ function getLastUid(uid : string) {
   return uid?.split?.('.')?.[uid?.split?.('.')?.length - 1];
 }
 
-async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any) {
+async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>) {
   const schema : any = {
     title: title,
     uid: uid,
@@ -162,16 +159,37 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
             const blockName = (block?.attrs?.metadata?.name?.toLowerCase() || getFieldName(block?.blockName?.toLowerCase()));
             
             // Find which modular block child this block matches
-            const matchingChildField = fields.find((childField: any) => {
+            let matchingChildField = fields.find((childField: any) => {
               const fieldName = childField?.otherCmsField?.toLowerCase() ;
               
               return (childField?.contentstackFieldType !== 'modular_blocks_child') && (blockName === fieldName) 
             });
    
-            const matchingModularBlockChild = modularBlockChildren.find((childField: any) => {
+            let matchingModularBlockChild = modularBlockChildren.find((childField: any) => {
               const fieldName = childField?.otherCmsField?.toLowerCase() ;
               return  blockName === fieldName 
             });
+
+            // Fallback: if no direct match, check duplicate block mappings
+            if (!matchingModularBlockChild && duplicateBlockMappings) {
+              const mappedName = duplicateBlockMappings[blockName];
+              
+              if (mappedName) {
+                
+                matchingModularBlockChild = modularBlockChildren.find((childField: any) => {
+                  const fieldName = childField?.otherCmsField?.toLowerCase();
+                  return mappedName === fieldName;
+                });
+                
+                //if (!matchingChildField) {
+                  matchingChildField = fields.find((childField: any) => {
+                    const fieldName = childField?.otherCmsField?.toLowerCase();
+                    return (childField?.contentstackFieldType !== 'modular_blocks_child') && (mappedName === fieldName);
+                  });
+                 
+               // }
+              }
+            }
             
             //if (matchingChildField) {
               // Process innerBlocks (children) if they exist
@@ -186,12 +204,13 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                     const childField = fields.find((f: any) => {
                       const fUid = f?.contentstackFieldUid || '';
                       const fOtherCmsField = f?.otherCmsType?.toLowerCase();
-                      const childBlockName = (child?.attrs?.metadata?.name?.toLowerCase() || getFieldName(child?.blockName?.toLowerCase()));
-                      // Check if this field belongs to the modular_blocks_child and matches the block name
+                      const childBlockName = matchingChildField ? matchingChildField?.otherCmsField?.toLowerCase() :  (child?.attrs?.metadata?.name?.toLowerCase() || getFieldName(child?.blockName?.toLowerCase()));
+                      const childKey = getLastUid(f?.contentstackFieldUid);
+                      const alreadyPopulated = childrenObject[childKey] !== undefined && childrenObject[childKey] !== null;
                       return fUid.startsWith(childFieldUid + '.') &&
-                        (fOtherCmsField === childBlockName) && !childrenObject[getLastUid(f?.contentstackFieldUid)]?.length;
+                        (fOtherCmsField === childBlockName) && (!alreadyPopulated || f?.advanced?.multiple === true);
                     });
-                    
+                   
                     if (childField) {
                       const childKey = getLastUid(childField?.contentstackFieldUid);
                       
@@ -218,6 +237,7 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                             childrenObject[childKey] = [formattedChild];
                           }
                         } else {
+                          
                           formattedChild && (childrenObject[childKey] = formattedChild);
                         }
                       }
@@ -228,7 +248,13 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                 });
                 
                 // Add the block to the modular blocks array with the child field's UID as the key
-                Object.keys(childrenObject).length > 0 && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : childrenObject });
+                if (Object?.keys(childrenObject)?.length > 0) {
+                  modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : childrenObject });
+                } else if (getLastUid(matchingModularBlockChild?.contentstackFieldUid) && matchingChildField) {
+                  // Fallback: inner blocks didn't match child fields (e.g., duplicate-mapped block with different inner block types)
+                  const formattedBlock = formatChildByType(block, matchingChildField, assetData);
+                  formattedBlock && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : { [getLastUid(matchingChildField?.contentstackFieldUid)]: formattedBlock }});
+                }
               } else if(getLastUid(matchingModularBlockChild?.contentstackFieldUid) && matchingChildField){
                 // Handle blocks with no inner blocks - format the block itself
                 const formattedBlock = formatChildByType(block, matchingChildField, assetData);
@@ -389,9 +415,17 @@ function formatChildByType(child: any, field: any, assetData: any) {
               formatted = Boolean(child?.attrs[attrKey]);
               break;
 
-            case 'json':
-              formatted = child?.blockName ? RteJsonConverter(formatted ?? child?.innerHTML) : RteJsonConverter(formatted ?? child);
+            case 'json': {
+              let htmlContent = formatted;
+              if (!htmlContent && child?.innerBlocks?.length > 0) {
+                htmlContent = collectHtmlFromInnerBlocks(child);
+              }
+              if (!htmlContent) {
+                htmlContent = child?.blockName ? child?.innerHTML : child;
+              }
+              formatted = RteJsonConverter(htmlContent);
               break;
+            }
 
             case 'html':
               formatted = child?.blockName ? formatted ?? child?.innerHTML : `<p>${child}</p>`;
@@ -471,7 +505,7 @@ const extractTermsReference = (terms: any) => {
   const termReference = termArray?.filter((term: any) => term?.attributes?.domain !== 'category');
   return termReference;
 }
-async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any) {
+async function saveEntry(fields: any, entry: any,  file_path: string, assetData : any, categories: any, master_locale: string, destinationStackId: string, project: any, allTerms: any, duplicateBlockMappings?: Record<string, string>) {
   const locale = getLocale(master_locale, project);
   const mapperKeys = project?.mapperKeys || {};
   const authorsCtName = mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] ? mapperKeys[MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME] : MIGRATION_DATA_CONFIG.AUTHORS_DIR_NAME;
@@ -549,10 +583,11 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           const contentEncoded = $(xmlItem)?.find("content\\:encoded")?.text() || '';
           const blocksJson = await setupWordPressBlocks(contentEncoded);
           customLogger(project?.id, destinationStackId,'info', `Processed blocks for entry ${uid}`);
-          //await writeFileAsync(`${uid}.json`, JSON.stringify(blocksJson, null, 4), 4);
+
+          
 
           // Pass individual content to createSchema
-          entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData);
+          entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings);
           const categoryReference = extractCategoryReference(item?.['category']);
           if (hasField("taxonomies") && categoryReference?.length > 0) {
             entryData[uid]["taxonomies"] = taxonomies;
@@ -568,6 +603,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           }
           entryData[uid]['locale'] = locale;
           entryData[uid]["publish_details"] = [];
+          entryData[uid]['publish_details'] = [];
           
             
           
@@ -594,6 +630,7 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
   const entriesJsonData = JSON.parse(Jsondata);
   const entries = entriesJsonData?.rss?.channel?.["item"];
   const categories = entriesJsonData?.rss?.channel?.["wp:category"];
+  const allCategories = Array?.isArray(categories) ? categories : (categories ? [categories] : []);
 
   const authorsData = entriesJsonData?.rss?.channel?.["wp:author"];
   const authors = Array?.isArray(authorsData) ? authorsData : [authorsData];
@@ -677,15 +714,8 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
     const entry = entries?.filter((entry: any) => {
       return entry?.['wp:post_type']?.toLowerCase() === contentTypeUid;
     });
-    
-      // for (const [type, items] of Object.entries(groupedByType)) {
-      //   if (Array.isArray(items) && items.length > 0) {
-      //     await extractItems(items,file_path);
-      //   } else {
-      //     console.log(`No ${type} found to extract`);
-      //   }
-      // }
-      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, categories, master_locale, destinationStackId, project, allTerms) || {};
+
+      const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, allCategories, master_locale, destinationStackId, project, allTerms, contentType?.duplicateBlockMappings) || {};
       
       const filePath = path.join(postFolderPath,  `${locale}.json`);
       await writeFileAsync(filePath, content, 4);
@@ -704,7 +734,9 @@ async function createTaxonomy(file_path: string, packagePath: string, destinatio
 
   const Jsondata = await fs.promises.readFile(packagePath, "utf8");
   const xmlData = await fs.promises.readFile(file_path, "utf8");
-  const categoriesJsonData = JSON.parse(Jsondata)?.rss?.channel?.["wp:category"] || JSON.parse(Jsondata)?.channel?.["wp:category"] || [];
+  const categoriesData = JSON.parse(Jsondata)?.rss?.channel?.["wp:category"] || JSON.parse(Jsondata)?.channel?.["wp:category"];
+  const categoriesJsonData = Array?.isArray(categoriesData) ? categoriesData : (categoriesData ? [categoriesData] : []);
+
   if(categoriesJsonData?.length > 0){
     const allTaxonomies : any = {}
     for(const category of categoriesJsonData){
@@ -1083,7 +1115,6 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
   if(!existsSync(assetPath)) {
     await fs.promises.mkdir(assetPath, { recursive: true });
   }
-
 
   if (fs.existsSync(assetPath)) {
     console.error(`Asset already present: ${customId}`);

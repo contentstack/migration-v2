@@ -690,10 +690,11 @@ function processFieldsRecursive(
 
       case 'group': {
         const uid = getLastKey(field?.contentstackFieldUid);
+        const aemGroupSourcePath = field?.backupFieldUid || field?.otherCmsField?.replace?.(/ > /g, '.') || '';
+        const aemGroupSourceKey = getLastKey(aemGroupSourcePath) || field?.uid;
       
         const isMultiple =
-          (field?.multiple === true) ||
-          (field?.advanced && field.advanced.multiple === true) ||
+          (field?.advanced?.multiple !== undefined ? field.advanced.multiple === true : field?.multiple === true) ||
           (field?.maxInstance && field.maxInstance > 1);
       
         const isCarouselItems =
@@ -710,7 +711,7 @@ function processFieldsRecursive(
         if (isCarouselItems) {
           groupValue = items;
         } else {
-          groupValue = items?.[field?.uid]?.items ?? items?.[field?.uid];
+          groupValue = items?.[aemGroupSourceKey]?.items ?? items?.[aemGroupSourceKey];
         }
       
         if (isMultiple) {
@@ -897,7 +898,7 @@ function processFieldsRecursive(
           const order2 = Array.isArray(items?.[':itemsOrder']) ? items[':itemsOrder'] : null;
           const map2 = items?.[':items'] || items;
           if (order2 && map2) {
-            const baseUid = field?.uid;
+            const baseUid = aemGroupSourceKey;
             const keysForThisGroup = order2.filter(
               (k) => k === baseUid || new RegExp(`^${baseUid}_`).test(k)
             );
@@ -925,15 +926,12 @@ function processFieldsRecursive(
           }
         } else {
           if (Array.isArray(groupValue)) {
-            const groupData: unknown[] = [];
-            if (Array.isArray(field?.schema)) {
-              for (const element of groupValue) {
-                groupData.push(
-                  processFieldsRecursive(field.schema, element, title, pathToUidMap, assetDetailsMap)
-                );
-              }
+            const firstElement = groupValue[0];
+            if (Array.isArray(field?.schema) && firstElement) {
+              obj[uid] = processFieldsRecursive(field.schema, firstElement, title, pathToUidMap, assetDetailsMap);
+            } else {
+              obj[uid] = {};
             }
-            obj[uid] = groupData;
           } else {
             if (Array.isArray(field?.schema)) {
               const value = processFieldsRecursive(field.schema, groupValue, title, pathToUidMap, assetDetailsMap);
@@ -1355,15 +1353,20 @@ const createEntry = async ({
         for await (const [locale, entries] of entriesLocale) {
           for (const entry of entries) {
             const flatData = deepFlattenObject(entry);
+            const km = keyMapper as Record<string, string> | undefined;
             for (const [key, value] of Object.entries(flatData)) {
               if (key.endsWith('._content_type_uid') && typeof value === 'string') {
                 const uidField = key?.replace('._content_type_uid', '');
-                const refs: string[] = entryMapping?.[value];
+                const mappedCtUid = km?.[value] && km[value] !== '' ? km[value] : value;
+                if (mappedCtUid !== value) {
+                  _.set(entry, key, mappedCtUid);
+                }
+                const refs: string[] = entryMapping?.[mappedCtUid];
 
                 if (refs?.length) {
                   _.set(entry, `${uidField}.uid`, refs?.[0]);
                 } else {
-                  console.info(`No entry found for content type: ${value}`);
+                  console.info(`No entry found for content type: ${mappedCtUid}`);
                 }
               }
             }

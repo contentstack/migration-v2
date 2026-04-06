@@ -8,7 +8,7 @@ import { config } from '../config/index.js';
 import { safePromise, getLogMessage } from '../utils/index.js';
 import https from '../utils/https.utils.js';
 import { LoginServiceType } from '../models/types.js';
-import getAuthtoken from '../utils/auth.utils.js';
+import getAuthtoken, { getAccessToken } from '../utils/auth.utils.js';
 import logger from '../utils/logger.js';
 import {
   HTTP_TEXTS,
@@ -45,6 +45,9 @@ import { removeEntriesFromDatabase, enrichConfigWithAssetMapping } from '../util
 import { removeExistingAssets } from '../utils/asset-update.utils.js';
 import { updateEntryCli, utilsUpdateCli } from './updateEntryCli.service.js';
 
+import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
+// (merge-conflict cleanup) keep single imports only
+
 
 /**
  * Creates a test stack.
@@ -62,11 +65,21 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
   const testStackName = `${name}-Test`;
 
   try {
+    let headers: any = {
+      organization_uid: orgId,
+    }
+    if(token_payload?.is_sso) {
+      const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+      headers.authorization = `Bearer ${accessToken}`;
+    } else if (token_payload?.is_sso === false) {
     const authtoken = await getAuthtoken(
       token_payload?.region,
       token_payload?.user_id
     );
-
+    headers.authtoken = authtoken;
+  } else {
+    throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+  }
     await ProjectModelLowdb.read();
     const projectData: any = ProjectModelLowdb.chain
       .get('projects')
@@ -78,16 +91,13 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     const testStackCount = projectData?.test_stacks?.length + 1;
     const newName = testStackName + '-' + testStackCount;
 
-    const [err, res] = await safePromise(
-      https({
+    const [err, res] = token_payload?.is_sso
+      ? await requestWithSsoTokenRefresh(token_payload, {
         method: 'POST',
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          organization_uid: orgId,
-          authtoken,
-        },
+        headers: headers,
         data: {
           stack: {
             name: newName,
@@ -96,7 +106,22 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
           },
         },
       })
-    );
+      : await safePromise(
+        https({
+          method: 'POST',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+          data: {
+            stack: {
+              name: newName,
+              description,
+              master_locale,
+            },
+          },
+        })
+      );
 
     if (err) {
       logger.error(
@@ -119,72 +144,7 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
       .findIndex({ id: projectId })
       .value();
     if (index > -1) {
-      // ✅ Generate queries for new test stack (Drupal only)
-      const project = ProjectModelLowdb.data.projects[index];
-      if (project?.legacy_cms?.cms === CMS.DRUPAL) {
-        try {
-          const startMessage = getLogMessage(
-            srcFun,
-            `Generating dynamic queries for new test stack (${res?.data?.stack?.api_key})...`,
-            token_payload
-          );
-          await customLogger(
-            projectId,
-            res?.data?.stack?.api_key,
-            'info',
-            startMessage
-          );
-
-          // Get database configuration from project
-          const legacyCms = project?.legacy_cms as unknown as Record<
-            string,
-            unknown
-          >;
-          const mySQLDetails = legacyCms?.mySQLDetails as
-            | Record<string, unknown>
-            | undefined;
-          const dbConfig = {
-            host: mySQLDetails?.host as string | undefined,
-            user: mySQLDetails?.user as string | undefined,
-            password: (mySQLDetails?.password as string) || '',
-            database: mySQLDetails?.database as string | undefined,
-            port: (mySQLDetails?.port as number) || 3306,
-          };
-
-          // Generate dynamic queries for the new test stack
-          await drupalService.createQuery(
-            dbConfig,
-            res?.data?.stack?.api_key,
-            projectId
-          );
-
-          const successMessage = getLogMessage(
-            srcFun,
-            `Successfully generated queries for test stack (${res?.data?.stack?.api_key})`,
-            token_payload
-          );
-          await customLogger(
-            projectId,
-            res?.data?.stack?.api_key,
-            'info',
-            successMessage
-          );
-        } catch (error: any) {
-          const errorMessage = getLogMessage(
-            srcFun,
-            `Failed to generate queries for test stack: ${error.message}. Test migration may fail.`,
-            token_payload,
-            error
-          );
-          await customLogger(
-            projectId,
-            res?.data?.stack?.api_key,
-            'error',
-            errorMessage
-          );
-          // Don't throw error - let test stack creation succeed even if query generation fails
-        }
-      }
+      
 
       ProjectModelLowdb.update((data: any) => {
         data.projects[index].current_step = STEPPER_STEPS['TESTING'];
@@ -229,26 +189,42 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
 const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
   const srcFun = 'deleteTestStack';
   const projectId = req?.params?.projectId;
-  const { token_payload, stack_key } = req.body;
+  const { token_payload, stack_key } = req?.body;
 
   try {
+    let headers: any = {
+      api_key: stack_key,
+    }
+    if(token_payload?.is_sso) {
+      const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
+      headers.authorization = `Bearer ${accessToken}`;
+    } else if (token_payload?.is_sso === false) {
     const authtoken = await getAuthtoken(
-      token_payload?.region,
-      token_payload?.user_id
-    );
+        token_payload?.region,
+        token_payload?.user_id
+      );
+      headers.authtoken = authtoken;
+    } else {
+      throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+    }
 
-    const [err, res] = await safePromise(
-      https({
+    const [err, res] = token_payload?.is_sso
+      ? await requestWithSsoTokenRefresh(token_payload, {
         method: 'DELETE',
         url: `${config.CS_API[
           token_payload?.region as keyof typeof config.CS_API
         ]!}/stacks`,
-        headers: {
-          api_key: stack_key,
-          authtoken,
-        },
+        headers: headers,
       })
-    );
+      : await safePromise(
+        https({
+          method: 'DELETE',
+          url: `${config.CS_API[
+            token_payload?.region as keyof typeof config.CS_API
+          ]!}/stacks`,
+          headers: headers,
+        })
+      );
 
     if (err) {
       logger.error(
@@ -437,6 +413,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
       region,
       user_id,
     });
+    
     await marketPlaceAppService?.createAppManifest({
       orgId,
       destinationStackId: project?.current_test_stack_id,
@@ -603,11 +580,6 @@ const startTestMigration = async (req: Request): Promise<any> => {
           projectId
         );
 
-        // Step 2: Generate content type schemas from upload-api (CRITICAL: Must run after upload-api generates schema)
-        await drupalService?.generateContentTypeSchemas(
-          project?.current_test_stack_id,
-          projectId
-        );
 
         // Step 3: Create assets from Drupal database
         await drupalService?.createAssets(
@@ -640,8 +612,8 @@ const startTestMigration = async (req: Request): Promise<any> => {
           projectId,
           true,
           project?.stackDetails?.master_locale,
-          project?.content_mapper || [],
-          project
+          project,
+          contentTypes
         );
 
         // Step 7: Create locale
@@ -828,15 +800,18 @@ const startMigration = async (req: Request): Promise<any> => {
       region,
       user_id,
     });
+
     await marketPlaceAppService?.createAppManifest({
       orgId,
       destinationStackId: project?.destination_stack_id,
       region,
       userId: user_id,
     });
+
     await extensionService?.createExtension({
       destinationStackId: project?.destination_stack_id,
     });
+    
     await taxonomyService?.createTaxonomy({
       orgId,
       projectId,
@@ -1002,12 +977,6 @@ const startMigration = async (req: Request): Promise<any> => {
           projectId
         );
 
-        // Step 2: Generate content type schemas from upload-api
-        await drupalService?.generateContentTypeSchemas(
-          project?.destination_stack_id,
-          projectId
-        );
-
         // Step 3: Create assets from Drupal database
         await drupalService?.createAssets(
           dbConfig,
@@ -1039,8 +1008,8 @@ const startMigration = async (req: Request): Promise<any> => {
           projectId,
           false, // Not a test migration
           project?.stackDetails?.master_locale,
-          project?.content_mapper || [],
-          project
+          project,
+          contentTypes
         );
 
         // Step 7: Create locale
@@ -1089,6 +1058,7 @@ const startMigration = async (req: Request): Promise<any> => {
 
     if (configFilePath) {
       enrichConfigWithAssetMapping(configFilePath, projectId, iteration);
+      console.info('Asset mapping enriched into config');
       await utilsUpdateCli?.updateEntryCli(
         region,
         user_id,

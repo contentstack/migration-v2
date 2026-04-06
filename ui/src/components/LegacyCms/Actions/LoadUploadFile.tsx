@@ -311,7 +311,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
 
         if (
           !isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.cms_id) &&
-          !isEmptyString(newMigrationDataObj?.legacy_cms?.selectedFileFormat?.fileformat_id)
+          !isEmptyString(newMigrationData?.legacy_cms?.selectedFileFormat?.fileformat_id)
         ) {
           props.handleStepChange(props?.currentStep, true);
         }
@@ -338,13 +338,7 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
         setProgressPercentage(100);
       } else {
         setIsValidated(false);
-        // For SQL connections, show the specific backend error message
-        // For other formats, show generic validation failed message
-        setValidationMessage(
-          isSQL && data?.message 
-            ? data.message 
-            : 'Validation failed.'
-        );
+        setValidationMessage(`${data?.message}`);
         setIsValidationAttempted(true);
         setProgressPercentage(100);
       }
@@ -459,24 +453,24 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
               ...newMigrationData?.legacy_cms,
               uploadedFile: {
                 ...newMigrationData?.legacy_cms?.uploadedFile,
-                isValidated: false,
+                isValidated: false
               }
-          }
-        }))
-
+            }
+          })
+        );
       }
-    //}
-  // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) && 
-  //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
-  //   {     
-  //     setIsValidated(false);
-  //     setValidationMessage('file format is not appropriate');
-  //     setIsValidationAttempted(true);
-  //     setShowMessage(true);
-  //     setIsLoading(false);
-  //     setIsDisabled(true);
-  //   }
-     setIsConfigLoading(false);
+      //}
+      // if((! isEmptyString(newMigrationData?.legacy_cms?.selectedCms?.parent?.toLowerCase()) &&
+      //   newMigrationData?.legacy_cms?.selectedCms?.parent.toLowerCase() !== data?.cmsType.toLowerCase()))
+      //   {
+      //     setIsValidated(false);
+      //     setValidationMessage('file format is not appropriate');
+      //     setIsValidationAttempted(true);
+      //     setShowMessage(true);
+      //     setIsLoading(false);
+      //     setIsDisabled(true);
+      //   }
+      setIsConfigLoading(false);
     } catch (error) {
       return error;
     }
@@ -674,5 +668,4 @@ const LoadUploadFile = (props: LoadUploadFileProps) => {
     </div>
   );
 };
-
-export default LoadUploadFile;
+export default LoadUploadFile

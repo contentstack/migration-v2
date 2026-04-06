@@ -6,12 +6,14 @@
     "@contentstack/json-rte-serializer": "^3.0.5",
     "@contentstack/venus-components": "^3.0.3",
     "@reduxjs/toolkit": "^2.8.2",
-    "@testing-library/jest-dom": "^6.0.0",
     "@types/react": "^18.3.21",
     "@types/react-dom": "^18.2.13",
     "@types/react-redux": "^7.1.33",
     "@vitejs/plugin-react-swc": "^4.2.3",
     "axios": "^1.13.5",
+    "eslint": "^9.7.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
     "final-form": "^4.20.10",
     "html-react-parser": "^4.2.9",
     "jwt-decode": "^4.0.0",
@@ -36,7 +38,12 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix --ext .js,.jsx,.ts,.tsx . --ignore-pattern './node_modules/' --ignore-pattern './build/' --ignore-pattern '.eslintrc.js'",
     "precommit": "npm run prettify && npm run lint:fix",
-    "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
+    "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:open": "vitest run --coverage && open coverage/index.html",
+    "coverage:ui": "npx serve coverage -l 3939"
   },
   "devDependencies": {
     "eslint": "^8.51.0",
@@ -46,27 +53,13 @@
   },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
+      "plugin:react/recommended",
+      "plugin:react-hooks/recommended"
     ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "overrides": {
-    "nth-check": ">=2.0.1",
-    "postcss": ">=8.4.31",
-    "serialize-javascript": ">=6.0.2",
-    "@babel/runtime": ">=7.26.10",
-    "webpack-dev-server": "^4.15.2"
+    "settings": {
+      "react": {
+        "version": "detect"
+      }
+    }
   }
 }

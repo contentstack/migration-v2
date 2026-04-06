@@ -419,14 +419,24 @@ router.get(
 
 router.get('/config', async function (req: Request, res: Response) {
   // Strip mysql password before sending config to the client
-  // const { password, ...safeMysql } = config?.mysql || {};
-  // const safeConfig = {
-  //   ...config,
-  //   mysql: safeMysql
-  // };
   const config = await updateConfigFile();
-  res.json(config);
+  const { password, ...safeMysql } = config?.mysql || {};
+  const safeConfig = {
+    ...config,
+    mysql: safeMysql
+  };
+  res.json(safeConfig);
 });
+// router.get('/config', async function (req: Request, res: Response) {
+//   // Strip mysql password before sending config to the client
+//   const { password, ...safeMysql } = config?.mysql || {};
+//   const safeConfig = {
+//     ...config,
+//     mysql: safeMysql
+//   };
+//   const config = await updateConfigFile();
+//   res.json(safeConfig);
+// });
 
 // Exported the router
 export default router;

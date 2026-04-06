@@ -6,7 +6,9 @@ import { spawn } from 'child_process';
 import { CS_REGIONS } from '../constants/index.js';
 import AuthenticationModel from '../models/authentication.js';
 import { setLogFilePath } from '../server.js';
-import utilitiesHandler from '@contentstack/cli-utilities';
+// import utilitiesHandler from '@contentstack/cli-utilities';
+import { setOAuthConfig } from '../utils/config-handler.util.js';
+import { setBasicAuthConfig } from '../utils/config-handler.util.js';
 
 const determineLogLevel = (text: string): string => {
   const lowerText = text.toLowerCase();
@@ -125,10 +127,17 @@ export const updateEntryCli = async (
       logFilePath
     );
 
-    utilitiesHandler.configHandler.set('authtoken', userData.authtoken);
-    utilitiesHandler.configHandler.set('email', userData.email);
-    utilitiesHandler.configHandler.set('authorisationType', 'BASIC');
+    // utilitiesHandler.configHandler.set('authtoken', userData.authtoken);
+    // utilitiesHandler.configHandler.set('email', userData.email);
+    // utilitiesHandler.configHandler.set('authorisationType', 'BASIC');
+    if(userData?.access_token){
+      setOAuthConfig(userData);
 
+    }else if(userData?.authtoken){
+      setBasicAuthConfig(userData);
+    }else {
+      throw new Error("No authentication token found");
+    }
     if (!userData?.authtoken || !stack_api_key) {
       console.info('User not found or stack API key missing.');
       return;
@@ -143,6 +152,8 @@ export const updateEntryCli = async (
     console.info('scriptPath', scriptPath);
 
     await setLogFilePath(logFilePath);
+
+    console.info('Running update entry migration script');
 
     await runCommand(
       'npx',

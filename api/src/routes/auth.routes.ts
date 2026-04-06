@@ -40,4 +40,37 @@ router.post(
   asyncRouter(authController.RequestSms)
 );
 
+/**
+ * Generates the OAuth token and saves it to the database.
+ * @param req - The request object. Sends the code and region.
+ * @param res - The response object. Sends the message "Token received successfully."
+ * @route POST /v2/auth/save-token
+ */
+router.get(
+  "/save-token",
+  asyncRouter(authController.saveOAuthToken)
+);
+
+/**
+ * @route GET /api/app-config
+ * @desc Get app configuration from app.json
+ * @access Public
+ */
+router.get('/app-config', authController.getAppConfigHandler);
+
+/**
+ * @route GET /v2/auth/sso-status/:userId
+ * @desc Check SSO authentication status for a user
+ * @param userId - The user ID to check authentication status for
+ * @access Public
+ */
+router.get('/sso-status/:userId', authController.getSSOAuthStatus);
+
+/**
+ * @route POST /v2/auth/logout
+ * @desc Log out a user
+ * @access Public
+ */
+router.post('/logout', authController.logout);
+
 export default router;

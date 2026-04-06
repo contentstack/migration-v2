@@ -6,15 +6,47 @@ const helper = require('../utils/helper');
 const restrictedUid = require('../utils');
 const { MIGRATION_DATA_CONFIG } = require('../constants/index');
 
-const idCorrector = (id) => {
-  const newId = id && id?.replace(/[-{}]/g, (match) =>
-    match === '-' ? '' : ''
-  );
-  if (newId) {
-    return newId?.toLowerCase();
-  } else {
-    return id;
+const idToString = (id) => {
+  if (id === null || id === undefined) return '';
+  if (typeof id === 'string') return id;
+  if (typeof id === 'number' || typeof id === 'bigint' || typeof id === 'boolean') return String(id);
+  if (Array.isArray(id)) return idToString(id[0]);
+
+  if (typeof id === 'object') {
+    const candidate = id.id ?? id.guid ?? id.value ?? id.$id ?? id._id;
+    if (typeof candidate === 'string' || typeof candidate === 'number' || typeof candidate === 'bigint') {
+      return String(candidate);
+    }
+
+    if (typeof id.toString === 'function' && id.toString !== Object.prototype.toString) {
+      const str = id.toString();
+      if (typeof str === 'string' && str && str !== '[object Object]') return str;
+    }
+
+    try {
+      return JSON.stringify(id);
+    } catch {
+      return '';
+    }
   }
+
+  return '';
+};
+
+const idCorrector = (id) => {
+  if (id === null || id === undefined) return id;
+
+  const raw = idToString(id).trim();
+  if (!raw) return id;
+
+  const isGuidLike =
+    /^\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}?$/.test(raw);
+
+  if (isGuidLike) {
+    return raw.replace(/[-{}]/g, '').toLowerCase();
+  }
+
+  return raw.toLowerCase();
 };
 
 const uidCorrector = ({ uid } ) => {

@@ -187,3 +187,49 @@
     line-height: 1 !important;
   }
 }
+// SSO Button specific styles
+.AccountForm__actions__sso_button {
+  margin-bottom: 24px;
+}
+
+// Divider styles
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.border-t {
+  border-top: 1px solid;
+}
+
+.border-gray-300 {
+  border-color: #d1d5db;
+}
+
+.px-16 {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.text-sm {
+  font-size: 14px;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.bg-white {
+  background-color: white;
+}
+
+.mb-24 {
+  margin-bottom: 24px;
+}

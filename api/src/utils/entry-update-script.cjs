@@ -1,7 +1,7 @@
 "use strict";
 
 const isAssetField = (value) =>
-    value && typeof value === 'object' && !Array.isArray(value)  &&
+    value && typeof value === 'object' && !Array.isArray(value) &&
     'urlPath' in value && 'filename' in value;
 
 /**
@@ -77,27 +77,47 @@ module.exports = async ({
                                 .contentType(contentType)
                                 .entry(entryUid);
 
+
                             const entry = await entryRef.fetch();
                             const updateData = JSON.parse(JSON.stringify(config[contentType][entryUid]));
 
-                            if (updateData.content && entry.content) {
-                                for (const field of Object.keys(updateData.content)) {
-                                    if (isAssetField(updateData.content[field])) {
-                                        updateData.content[field] = resolveAssetField(
-                                            field,
-                                            entryUid,
-                                            updateData.content[field],
-                                            entry.content[field],
-                                            oldMapping,
-                                            newMapping
-                                        );
+                            if (entry.content && updateData.content) {
+                                if (updateData.content && entry.content) {
+                                    for (const field of Object.keys(updateData.content)) {
+                                        if (isAssetField(updateData.content[field])) {
+                                            updateData.content[field] = resolveAssetField(
+                                                field,
+                                                entryUid,
+                                                updateData[field],
+                                                entry[field],
+                                                oldMapping,
+                                                newMapping
+                                            );
+                                        }
                                     }
                                 }
+                                Object.assign(entry.content, updateData.content);
+                                await entry.update();
                             }
-
-                            Object.assign(entry, updateData);
-                            console.info('updatedEntry', entry);
-                            await entry.update();
+                            else {
+                                if (updateData && entry) {
+                                    for (const field of Object.keys(updateData)) {
+                                        if (isAssetField(updateData[field])) {
+                                            console.info('field is asset field');
+                                            updateData[field] = resolveAssetField(
+                                                field,
+                                                entryUid,
+                                                updateData[field],
+                                                entry[field],
+                                                oldMapping,
+                                                newMapping
+                                            );
+                                        }
+                                    }
+                                }
+                                Object.assign(entry, updateData);
+                                await entry.update();
+                            }
                             console.info(`Updated entry: ${entryUid}`);
                         }
                     }

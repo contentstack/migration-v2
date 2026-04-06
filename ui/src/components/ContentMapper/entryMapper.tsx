@@ -67,9 +67,9 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
  
   const [otherCmsUid, setOtherCmsUid] = useState<string>(contentTypes?.[0]?.otherCmsUid);
   const [rowIds, setRowIds] = useState<Record<string, boolean>>({});
-  const [selectedEntries, setSelectedEntries] = useState<EntryMapperType[]>([]);
+  const [persistedRowIds, setPersistedRowIds] = useState<Record<string, boolean>>({});
   const [isLoadingSaveButton, setisLoadingSaveButton] = useState<boolean>(false);
-  const [initialRowSelectedData, setInitialRowSelectedData] = useState();
+  const [initialRowSelectedData, setInitialRowSelectedData] = useState<EntryMapperType[]>([]);
 
 
 
@@ -93,18 +93,6 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
     fetchContentTypes(searchText || '');
   }, []);
 
-    // Make title and url field non editable
-  useEffect(() => {
-    tableData?.forEach((entry) => {
-      if(! entry?.contentstackEntryUid ) {
-        entry._canSelect = false;
-      }
-      else if (entry?.contentstackEntryUid) {
-        entry._canSelect = true;
-      }
-    });
-  }, [tableData]);
-
   useEffect(() => {
     if (selectedContentTypeId) {
         fetchEntries(selectedContentTypeId?.id || '', searchText);
@@ -113,17 +101,27 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
       
     },[selectedContentTypeId]);
 
-  useEffect(() => {
-    const selectedId = tableData?.reduce<UidMap>((acc, item) => {
-      if (item?.isUpdate) {
-        acc[item?.otherCmsEntryUid] = true;
-
+  const buildSelectedRowIds = (entries: EntryMapperType[]) => {
+    return (entries ?? []).reduce<UidMap>((acc, item) => {
+      if (item?._canSelect && item?.isUpdate) {
+        acc[item.id] = true;
       }
       return acc;
     }, {});
+  };
 
-    setRowIds(selectedId);
-  }, [tableData]);
+  const applySelectionToEntries = (
+    entries: EntryMapperType[],
+    selected: Record<string, boolean>,
+  ) => {
+    return (entries ?? []).map((item) => {
+      if (!item?._canSelect) return item;
+      return {
+        ...item,
+        isUpdate: !!selected?.[item.id],
+      };
+    });
+  };
 
   const fetchContentTypes = async (searchText: string) => {
     //setIsLoading(true);
@@ -170,11 +168,16 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
       setItemStatusMap({ ...itemStatusMap });
       setLoading(false);
 
-      const validTableData = data?.entryMapping;
+      const validTableData: EntryMapperType[] = (data?.entryMapping ?? []).map((entry: EntryMapperType) => ({
+        ...entry,
+        _canSelect: !!entry?.contentstackEntryUid,
+      }));
 
       //setIsAllCheck(true);
+      const initialSelected = buildSelectedRowIds(validTableData ?? []);
       setTableData(validTableData ?? []);
-      setSelectedEntries(validTableData ?? []);
+      setRowIds(initialSelected);
+      setPersistedRowIds(initialSelected);
       setTotalCounts(validTableData?.length);
       setInitialRowSelectedData(validTableData?.filter((item: EntryMapperType) => !item?.isUpdate))
      
@@ -212,11 +215,13 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
       setItemStatusMap({ ...updateditemStatusMapCopy });
       setLoading(false);
 
-      const validTableData = data?.entryMapping;
+      const validTableData: EntryMapperType[] = (data?.entryMapping ?? []).map((entry: EntryMapperType) => ({
+        ...entry,
+        _canSelect: !!entry?.contentstackEntryUid,
+      }));
 
       // eslint-disable-next-line no-unsafe-optional-chaining
-      setTableData(validTableData ?? []);
-      setSelectedEntries(validTableData ?? []);
+      setTableData(applySelectionToEntries(validTableData ?? [], rowIds));
 
     } catch (error) {
       console.error('loadMoreItems -> error', error);
@@ -229,62 +234,53 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
      * @returns void
      */
     const handleSelectedEntries = (singleSelectedRowIds: string[]) => {
-      console.info("singleSelectedRowIds", singleSelectedRowIds, selectedEntries);
       const selectedObj: UidMap = {};
-      const previousRowIds: UidMap = { ...rowIds as UidMap };
-  
       singleSelectedRowIds?.forEach((uid: string) => {
-        const isId = selectedEntries?.some((item) => item?.otherCmsEntryUid === uid);
-        if (isId) {
-          selectedObj[uid] = true;
-        }
+        selectedObj[uid] = true;
       });
-      
-  
-      // Update history
-      //updateRowHistoryObj(userClickedItem?.id, isNowChecked);
 
-  
-      // Update table data
-      const updatedTableData = tableData?.map((tableItem) => ({
-        ...tableItem,
-        isUpdate: tableItem?._canSelect ? !selectedObj[tableItem?.otherCmsEntryUid] : tableItem?.isUpdate
-      }));
-  
       setRowIds(selectedObj);
-      setSelectedEntries(updatedTableData);
+      setTableData((prev) => applySelectionToEntries(prev ?? [], selectedObj));
     };
     
     const handleSaveContentType = async () => {
       console.info("handleSaveContentType", rowIds);
       setisLoadingSaveButton(true);
-      const ids = Object.keys(rowIds);
+      const allKeys = new Set([
+        ...Object.keys(rowIds ?? {}),
+        ...Object.keys(persistedRowIds ?? {}),
+      ]);
+      const changedUids = Array.from(allKeys).filter(
+        (uid) => !!rowIds?.[uid] !== !!persistedRowIds?.[uid],
+      );
           const orgId = selectedOrganisation?.uid;
           // const projectID = projectId;
       
       if (orgId && contentTypeUid) {
         const dataCs = {
-          otherCmsEntryUids: ids
+          ids: changedUids
         };
       try {
+        if (changedUids.length === 0) {
+          setisLoadingSaveButton(false);
+          return Notification({
+            notificationContent: { text: 'No changes to save' },
+            notificationProps: {
+              position: 'bottom-center',
+              hideProgressBar: true
+            },
+            type: 'info'
+          });
+        }
         const {data, status} = await updateEntryMapper(projectId, dataCs);
         console.info("status", status, typeof status, data);
       
         setisLoadingSaveButton(false);  
-        const ids: string[] = [];
         if (status === 200) {
-          data?.data?.forEach((item: any) => {
-            ids?.push(item?.otherCmsEntryUid);
-          })
-          const selectedObj: UidMap = {};
-          ids?.forEach((uid: string) => {
-            selectedObj[uid] = true;
-          });
-          setRowIds(selectedObj);
-          // setSelectedEntries(data);
+          setPersistedRowIds({ ...(rowIds ?? {}) });
           setLoading(false);
           return Notification({
-            notificationContent: { text: 'Entries sd saved successfully' },
+            notificationContent: { text: 'Entries saved successfully' },
             notificationProps: {
               position: 'bottom-center',
               hideProgressBar: true
@@ -293,6 +289,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
           });
         }
         else{
+          setisLoadingSaveButton(false);
           return Notification({
             notificationContent: { text: 'Failed to save entries' },
             notificationProps: {
@@ -301,10 +298,10 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
             },
             type: 'error'
           });
-          setisLoadingSaveButton(false);
         }
       } catch (error) {
         console.error(error);
+        setisLoadingSaveButton(false);
         return error;
       }
       
@@ -389,13 +386,14 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
   return (
     <div className='entry-mapper-container'>
       <InfiniteScrollTable
+        key={contentTypeUid || selectedContentTypeId?.id || 'entry-mapper-table'}
         loading={loading}
         canSearch={true}
         totalCounts={Math.max(0, tableData?.length)}
         // data={tableData?.length > 0 ? [...tableData] : []}
         data={[...tableData]}
         columns={columns}
-        uniqueKey={'otherCmsEntryUid'}
+        uniqueKey={'id'}
         isRowSelect={true}
         fullRowSelect={true}
         itemStatusMap={itemStatusMap}
@@ -409,7 +407,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
         initialSelectedRowIds={rowIds}
         itemSize={80}
         getSelectedRow={handleSelectedEntries}
-        // rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
+        rowSelectCheckboxProp={{ key: '_canSelect', value: true }}
         name={{
             singular: '',
             plural: `${totalCounts === 0 ? 'Count' : ''}`
@@ -425,7 +423,7 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
             disabled={newMigrationData?.project_current_step > 4}
             //isLoading={isLoadingSaveButton}
           >
-            Save 3
+            Save
           </Button>
     </div>
 
