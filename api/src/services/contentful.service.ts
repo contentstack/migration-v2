@@ -99,6 +99,13 @@ const mapLocales = ({ masterLocale, locale, locales, isNull = false }: any) => {
   }
 }
 
+function resolveEntryFieldKey(entry: Record<string, unknown>, baseKey: string): string | undefined {
+  if (baseKey in entry) return baseKey;
+  const snake = baseKey.replace(/([A-Z])/g, (m) => `_${m.toLowerCase()}`);
+  if (snake in entry) return snake;
+  return undefined;
+}
+
 const transformCloudinaryObject = (input: any) => {
   const result: any = [];
   if (!Array.isArray(input)) {
@@ -814,7 +821,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
               entryData[name][lang] ??= {};
               entryData[name][lang][id] ??= {};
               locales.push(lang);
-              const fieldData = currentCT?.fieldMapping?.find?.((item: any) => (key === item?.uid) && (!["text", "url"]?.includes?.(item?.backupFieldType)));
+              const fieldData = currentCT?.fieldMapping?.find?.((item: any) => key === item?.uid);
               const newId = fieldData?.contentstackFieldUid ?? `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, "_");
               entryData[name][lang][id][newId] = processField(
                 langValue,
@@ -860,6 +867,37 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
               );
             });
           });
+
+          // Non-localized Contentful fields only appear under one locale (e.g. en-US). Copy them to
+          // every other locale branch for this entry so each slice is complete before merge/write.
+          const entryLocaleKeys = new Set<string>();
+          for (const [, v] of Object.entries(fields)) {
+            for (const lang of Object.keys(v as object)) {
+              entryLocaleKeys.add(lang);
+            }
+          }
+          for (const [key, value] of Object.entries(fields)) {
+            const langs = Object.keys(value as object);
+            if (langs.length !== 1) continue;
+            const srcLang = langs[0];
+            const ct = contentTypes?.find((ct: any) => ct?.otherCmsUid === name);
+            const fd = ct?.fieldMapping?.find?.((item: any) => key === item?.uid);
+            const newId = fd?.contentstackFieldUid ?? `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, "_");
+            const srcEntry = entryData[name][srcLang]?.[id] as Record<string, unknown> | undefined;
+            if (!srcEntry) continue;
+            const fk = resolveEntryFieldKey(srcEntry, newId);
+            if (fk === undefined) continue;
+            for (const tgtLang of entryLocaleKeys) {
+              if (tgtLang === srcLang) continue;
+              entryData[name][tgtLang] ??= {};
+              entryData[name][tgtLang][id] ??= {};
+              const tgt = entryData[name][tgtLang][id] as Record<string, unknown>;
+              if (tgt[fk] === undefined) {
+                tgt[fk] = srcEntry[fk];
+              }
+            }
+          }
+
           return entryData;
         },
         {}
@@ -868,10 +906,27 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
         const currentCT = contentTypes?.find((ct: any) => ct?.otherCmsUid === newKey);
         const ctName = currentCT?.contentstackUid in mapperKeys ?
           mapperKeys?.[currentCT?.contentstackUid] : (currentCT?.contentstackUid ?? newKey.replace(/([A-Z])/g, "_$1").toLowerCase());
-        for await (const [localeKey, localeValues] of Object.entries(
-          values as { [key: string]: any }
-        )) {
-          const localeCode = mapLocales({ masterLocale: master_locale, locale: localeKey, locales: LocaleMapper, isNull: true });
+        const valuesByCfLocale = values as { [key: string]: { [uid: string]: Record<string, unknown> } };
+        const mergedByDestinationLocale: { [localeCode: string]: { [uid: string]: Record<string, unknown> } } = {};
+        for (const localeKey of Object.keys(valuesByCfLocale)) {
+          const localeValues = valuesByCfLocale[localeKey];
+          if (!localeValues) continue;
+          const localeCode = mapLocales({
+            masterLocale: master_locale,
+            locale: localeKey,
+            locales: LocaleMapper,
+            isNull: true,
+          });
+          if (!localeCode) continue;
+          mergedByDestinationLocale[localeCode] ??= {};
+          for (const [uid, entry] of Object.entries(localeValues)) {
+            mergedByDestinationLocale[localeCode][uid] = {
+              ...(mergedByDestinationLocale[localeCode][uid] ?? {}),
+              ...(entry ?? {}),
+            };
+          }
+        }
+        for await (const [localeCode, localeValues] of Object.entries(mergedByDestinationLocale)) {
           const chunks = makeChunks(localeValues);
           for (const [entryKey, entryValue] of Object.entries(localeValues)) {
             const message = getLogMessage(
@@ -883,18 +938,12 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           }
           const refs: { [key: string]: any } = {};
           let chunkIndex = 1;
-          if (localeCode) {
-            const filePath = path.join(
-              entriesSave,
-              ctName,
-              localeCode
-            );
-            for await (const [chunkId, chunkData] of Object.entries(chunks)) {
-              refs[chunkIndex++] = `${chunkId}-entries.json`;
-              await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
-            }
-            await writeFile(filePath, ENTRIES_MASTER_FILE, refs);
+          const filePath = path.join(entriesSave, ctName, localeCode);
+          for await (const [chunkId, chunkData] of Object.entries(chunks)) {
+            refs[chunkIndex++] = `${chunkId}-entries.json`;
+            await writeFile(filePath, `${chunkId}-entries.json`, chunkData);
           }
+          await writeFile(filePath, ENTRIES_MASTER_FILE, refs);
         }
       }
     } else {
