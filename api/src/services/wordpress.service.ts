@@ -486,7 +486,9 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
   const entryData: Record<string, any> = {};
   const fieldList = Array.isArray(fields) ? fields : [];
   const hasField = (uid: string) =>
-    fieldList.some((field: any) => field?.uid === uid);
+    fieldList.some(
+      (field: any) => field?.contentstackFieldUid === uid || field?.uid === uid
+    );
 
   try {
     if(entry ){
