@@ -70,7 +70,7 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
       return acc;
     }, {});
 
-    const updatedTypes = contentTypeData.map((ct) => ({ ...ct }));
+    const updatedTypes = contentTypeData?.map((ct) => ({ ...ct }));
 
     for (const [type, entries] of Object.entries(groupedByType)) {
       const entryMapping = normalizeArray(entries)
