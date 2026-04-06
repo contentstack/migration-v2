@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import config from '../config/index.json';
 
-const { contentTypes: contentTypesConfig } = config.modules;
-const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
+const { contentTypes: contentTypesConfig } = config?.modules;
+const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
 
 const EXCLUDED_POST_TYPES = new Set(['attachment', 'wp_global_styles', 'wp_navigation']);
 
@@ -13,7 +13,7 @@ const normalizeArray = <T>(value: T | T[] | undefined): T[] => {
 };
 
 const idCorrector = (id: string) => {
-  const normalized = id?.replace?.(/[-{}]/g, '');
+  const normalized = id?.replace(/[-{}]/g, '');
   return normalized ? normalized.toLowerCase() : id;
 };
 
@@ -32,11 +32,7 @@ const getEntryName = (item: any): string => {
 
 const getSourceEntryUid = (item: any): string => {
   const candidate =
-    item?.['wp:post_id'] ??
-    item?.guid?.text ??
-    item?.guid ??
-    item?.link ??
-    getEntryName(item);
+    item?.['wp:post_id'] ?? item?.guid?.text ?? item?.guid ?? item?.link ?? getEntryName(item);
   return idCorrector(String(candidate || ''));
 };
 
@@ -66,7 +62,7 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
     const items = normalizeArray(jsonData?.rss?.channel?.item);
     const channelLanguage = jsonData?.rss?.channel?.language;
 
-    const groupedByType = items.reduce((acc: Record<string, any[]>, item: any) => {
+    const groupedByType = items?.reduce((acc: Record<string, any[]>, item: any) => {
       const postType = item?.['wp:post_type'] || 'unknown';
       if (EXCLUDED_POST_TYPES.has(postType)) return acc;
       if (!acc[postType]) acc[postType] = [];

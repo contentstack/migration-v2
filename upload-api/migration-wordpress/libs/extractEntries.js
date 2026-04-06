@@ -3,9 +3,9 @@ const fs = require("fs");
 const path = require("path");
 const config = require("../config/index.json");
 
-const contentTypesConfig = config.modules.contentTypes;
-const contentTypeFolderPath = path.resolve(config.data, contentTypesConfig.dirName);
-const EXCLUDED_POST_TYPES = new Set(["attachment", "wp_global_styles", "wp_navigation"]);
+const { contentTypes: contentTypesConfig } = config?.modules ?? {};
+const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
+const EXCLUDED_POST_TYPES = new Set(['attachment', 'wp_global_styles', 'wp_navigation']);
 
 const normalizeArray = (value) => {
   if (!value) return [];
@@ -13,57 +13,53 @@ const normalizeArray = (value) => {
 };
 
 const idCorrector = (id) => {
-  const normalized = id && id.replace(/[-{}]/g, "");
+  const normalized = id?.replace(/[-{}]/g, '');
   return normalized ? normalized.toLowerCase() : id;
 };
 
 const getEntryName = (item) => {
-  if (typeof item?.title === "string" && item.title.trim()) return item.title.trim();
+  if (typeof item?.title === 'string' && item.title.trim()) return item.title.trim();
   if (item?.title?.text) return String(item.title.text).trim();
-  if (typeof item?.["wp:post_name"] === "string" && item["wp:post_name"].trim()) {
-    return item["wp:post_name"].trim();
+  if (typeof item?.['wp:post_name'] === 'string' && item['wp:post_name'].trim()) {
+    return item['wp:post_name'].trim();
   }
-  return "Untitled Entry";
+  return 'Untitled Entry';
 };
 
 const getSourceEntryUid = (item) => {
   const candidate =
-    item?.["wp:post_id"] ??
-    item?.guid?.text ??
-    item?.guid ??
-    item?.link ??
-    getEntryName(item);
-  return idCorrector(String(candidate || ""));
+    item?.['wp:post_id'] ?? item?.guid?.text ?? item?.guid ?? item?.link ?? getEntryName(item);
+  return idCorrector(String(candidate || ''));
 };
 
 const getEntryLanguage = (item, channelLanguage) => {
-  const postMeta = normalizeArray(item?.["wp:postmeta"]);
+  const postMeta = normalizeArray(item?.['wp:postmeta']);
   const languageMeta = postMeta.find((meta) => {
-    const key = String(meta?.["wp:meta_key"] || "").toLowerCase();
-    return key === "language" || key === "_language" || key === "locale" || key === "_locale";
+    const key = String(meta?.['wp:meta_key'] || '').toLowerCase();
+    return key === 'language' || key === '_language' || key === 'locale' || key === '_locale';
   });
 
-  const metaLanguage = languageMeta?.["wp:meta_value"];
-  if (typeof metaLanguage === "string" && metaLanguage.trim()) {
+  const metaLanguage = languageMeta?.['wp:meta_value'];
+  if (typeof metaLanguage === 'string' && metaLanguage.trim()) {
     return metaLanguage.trim();
   }
 
-  if (typeof channelLanguage === "string" && channelLanguage.trim()) {
+  if (typeof channelLanguage === 'string' && channelLanguage.trim()) {
     return channelLanguage.trim();
   }
 
-  return "en-us";
+  return 'en-us';
 };
 
 const extractEntries = async (filePath, contentTypeData = []) => {
   try {
-    const rawData = await fs.promises.readFile(filePath, "utf8");
+    const rawData = await fs.promises.readFile(filePath, 'utf8');
     const jsonData = JSON.parse(rawData);
     const items = normalizeArray(jsonData?.rss?.channel?.item);
     const channelLanguage = jsonData?.rss?.channel?.language;
 
-    const groupedByType = items.reduce((acc, item) => {
-      const postType = item?.["wp:post_type"] || "unknown";
+    const groupedByType = items?.reduce((acc, item) => {
+      const postType = item?.['wp:post_type'] || 'unknown';
       if (EXCLUDED_POST_TYPES.has(postType)) return acc;
       if (!acc[postType]) acc[postType] = [];
       acc[postType].push(item);
@@ -90,9 +86,9 @@ const extractEntries = async (filePath, contentTypeData = []) => {
 
       const contentTypeFilePath = path.join(contentTypeFolderPath, `${type.toLowerCase()}.json`);
       if (fs.existsSync(contentTypeFilePath)) {
-        const ctFile = JSON.parse(await fs.promises.readFile(contentTypeFilePath, "utf8"));
+        const ctFile = JSON.parse(await fs.promises.readFile(contentTypeFilePath, 'utf8'));
         ctFile.entryMapping = entryMapping;
-        await fs.promises.writeFile(contentTypeFilePath, JSON.stringify(ctFile, null, 4), "utf8");
+        await fs.promises.writeFile(contentTypeFilePath, JSON.stringify(ctFile, null, 4), 'utf8');
       }
 
       const index = updatedTypes.findIndex(
@@ -107,7 +103,7 @@ const extractEntries = async (filePath, contentTypeData = []) => {
 
     return updatedTypes;
   } catch (error) {
-    console.error("Error while extracting WordPress entries:", error?.message || error);
+    console.error('Error while extracting WordPress entries:', error?.message || error);
     return contentTypeData;
   }
 };
