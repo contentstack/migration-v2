@@ -26,9 +26,14 @@ const getEntryName = (item) => {
   return 'Untitled Entry';
 };
 
+/** Align with api wordpress.service entry uid: idCorrector(`posts_${wp:post_id}`). */
 const getSourceEntryUid = (item) => {
+  const postId = item?.['wp:post_id'];
+  if (postId != null && String(postId).trim() !== '') {
+    return idCorrector(`posts_${postId}`);
+  }
   const candidate =
-    item?.['wp:post_id'] ?? item?.guid?.text ?? item?.guid ?? item?.link ?? getEntryName(item);
+    item?.guid?.text ?? item?.guid ?? item?.link ?? getEntryName(item);
   return idCorrector(String(candidate || ''));
 };
 
@@ -76,7 +81,7 @@ const extractEntries = async (filePath, contentTypeData = []) => {
           return {
             contentTypeUid: type,
             entryName: getEntryName(item),
-            otherCmsEntryUid,
+            otherCmsEntryUid: `posts_${otherCmsEntryUid}`,
             otherCmsCTName: type,
             language: getEntryLanguage(item, channelLanguage),
             isUpdate: false
