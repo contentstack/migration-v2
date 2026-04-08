@@ -15,7 +15,9 @@ const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'
 
 function resolveBlockName(field: any): string {
   if (field?.attributes?.metadata?.name) return field.attributes.metadata.name;
-  if (field?.name === 'core/missing') return 'body';
+  if (field?.name === 'core/missing') {
+    return field?.attributes?.originalName || 'body';
+  }
   if (MEDIA_BLOCK_NAMES.includes(field?.name)) return 'media';
   return field?.name;
 }
@@ -71,6 +73,12 @@ function isSameStructure(obj1: any, obj2: any): boolean {
     // Special handling for Gutenberg-like blocks
     if (obj1?.name && obj2?.name && obj1?.name !== obj2?.name) {
       return false;
+    }
+
+    if (obj1?.name === 'core/missing' && obj2?.name === 'core/missing') {
+      if (obj1?.attributes?.originalName !== obj2?.attributes?.originalName) {
+        return false;
+      }
     }
 
 
