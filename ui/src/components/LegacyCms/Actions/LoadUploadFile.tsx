@@ -536,7 +536,7 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
     {
       setValidationMessage( '' );
     }
-    if ( !newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate )
+    if (!isEmptyString(newMigrationData?.legacy_cms?.affix) && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated && !newMigrationData?.legacy_cms?.uploadedFile?.reValidate )
     {
       setIsDisabled( false );
     }
@@ -630,7 +630,7 @@ const LoadUploadFile = ( props: LoadUploadFileProps ) =>
             isLoading={ isLoading }
             loadingColor="#6c5ce7"
             version="v2"
-            disabled={ !( reValidate || ( !isDisabled ) ) }
+            disabled={!(reValidate || (!isDisabled && !isEmptyString(newMigrationData?.legacy_cms?.affix)))}
           >
             { fileFormat?.toLowerCase() === 'sql' ? 'Check Connection' : 'File Validate' }
           </Button>
