@@ -6,7 +6,9 @@ const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'
 
 function resolveBlockName(key: any): string {
   if (key?.attributes?.metadata?.name) return key.attributes.metadata.name;
-  if (key?.name === 'core/missing') return 'body';
+  if (key?.name === 'core/missing') {
+    return key?.attributes?.originalName || 'body';
+  }
   if (MEDIA_BLOCK_NAMES.includes(key?.name)) return 'media';
   return key?.name;
 }
@@ -195,7 +197,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/pullquote':
         case 'core/table':
         case 'core/columns':
-        case 'core/missing':
+
         case 'core/verse':
         case 'core/code': {
             const rteUid = parentUid ?
@@ -213,6 +215,35 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 advanced: {}
             };
         }
+        case 'core/missing':
+            const rteUid = parentUid ?
+                `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}`
+                : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            if(key?.attributes?.originalName === 'jetpack/markdown'){
+                return {
+                    uid: rteUid,
+                    otherCmsField: getFieldName(resolveBlockName(key)),
+                    otherCmsType: getFieldName(resolveBlockName(key)),
+                    contentstackField: fieldName ,
+                    contentstackFieldUid: rteUid,
+                    contentstackFieldType: 'markdown',
+                    backupFieldType: 'markdown',
+                    backupFieldUid: rteUid,
+                    advanced: {}
+                };
+            }else{
+                return {
+                    uid: rteUid,
+                    otherCmsField: getFieldName(resolveBlockName(key)),
+                    otherCmsType:getFieldName( resolveBlockName(key) ?? resolveBlockName(key)),
+                    contentstackField: fieldName ,
+                    contentstackFieldUid: rteUid,
+                    contentstackFieldType: 'json',
+                    backupFieldType: 'json',
+                    backupFieldUid: rteUid,
+                    advanced: {}
+                };
+            }
         case 'core/image':
         case 'core/audio':
         case 'core/video':
@@ -297,7 +328,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             });
            
             if(innerBlocks?.length > 0 ){
-                innerBlocks.forEach(schemaObj => {
+                innerBlocks?.forEach(schemaObj => {
                     if (schemaObj) {
                         if (Array.isArray(schemaObj)) {
                             groupSchema.push(...schemaObj);
@@ -310,13 +341,15 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 return groupSchema;   
 
             }
+            break;
             
         }
         
         case 'core/search': {
             const searchEleUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
             const searchEle = await processAttributes(key, searchEleUid,fieldName, affix);
-            searchEle.push({
+            const groupSchema: Field[] = [];
+            searchEle?.length > 0 && groupSchema?.push({
                 uid: searchEleUid,
                 otherCmsField: getFieldName(key?.name),
                 otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
@@ -326,7 +359,16 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 backupFieldType: 'group',
                 backupFieldUid: searchEleUid,
             });
-            return searchEle;
+            searchEle?.length > 0 && searchEle?.forEach(schemaObj => {
+                if (schemaObj) {
+                    if (Array.isArray(schemaObj)) {
+                        groupSchema?.push?.(...schemaObj);
+                    } else {
+                        groupSchema?.push?.({...schemaObj});
+                    }
+                }
+            });
+            return groupSchema;
         }
         
            

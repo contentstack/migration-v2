@@ -230,7 +230,7 @@ const Fields: MappingFields = {
   'taxonomy':{
     label: 'Taxonomy',
     options: {'Taxonomy':'taxonomy'},
-    type:'taxonomy'
+    type:''
   }
 }
 type contentMapperProps = {

@@ -326,3 +326,6 @@ export const RESERVED_FIELD_MAPPINGS: Record<string, string> = {
   locale: 'cm_locale',
   // Add other reserved fields if needed
 };
+
+export const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
+export const WORDPRESS_MISSSING_BLOCKS = 'core/missing';
