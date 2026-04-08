@@ -234,8 +234,8 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             }else{
                 return {
                     uid: rteUid,
-                    otherCmsField: getFieldName(key?.name),
-                    otherCmsType:getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+                    otherCmsField: getFieldName(resolveBlockName(key)),
+                    otherCmsType:getFieldName( resolveBlockName(key) ?? resolveBlockName(key)),
                     contentstackField: fieldName ,
                     contentstackFieldUid: rteUid,
                     contentstackFieldType: 'json',
@@ -341,6 +341,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 return groupSchema;   
 
             }
+            break;
             
         }
         

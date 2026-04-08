@@ -14,6 +14,7 @@ import { orgService } from "./org.service.js";
 import * as cheerio from 'cheerio';
 import { setupWordPressBlocks, stripHtmlTags } from "../utils/wordpressParseUtil.js";
 import { getMimeTypeFromExtension } from "../utils/mimeTypes.js";
+import { MEDIA_BLOCK_NAMES, WORDPRESS_MISSSING_BLOCKS  } from "../constants/index.js";
 
 const { JSDOM } = jsdom;
 
@@ -124,11 +125,10 @@ function getLastUid(uid : string) {
   return uid?.split?.('.')?.[uid?.split?.('.')?.length - 1];
 }
 
-const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
 
 const resolvedBlockName = (block: any) => {
   if (block?.attrs?.metadata?.name)  return block?.attrs?.metadata?.name;
-  if (block?.blockName === 'core/missing') {
+  if (block?.blockName === WORDPRESS_MISSSING_BLOCKS) {
     return block?.attrs?.originalName || 'body';
   }
   if (MEDIA_BLOCK_NAMES?.includes?.(block?.blockName)) return 'media';
@@ -436,7 +436,6 @@ function formatChildByType(child: any, field: any, assetData: any) {
               let htmlContent = formatted;
               if (!htmlContent && child?.innerBlocks?.length > 0) {
                 htmlContent = collectHtmlFromInnerBlocks(child);
-                console.info("htmlContent --> ", htmlContent);
               }
               if (!htmlContent) {
                 htmlContent = child?.blockName ? child?.innerHTML : child;
