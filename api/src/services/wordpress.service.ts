@@ -124,6 +124,17 @@ function getLastUid(uid : string) {
   return uid?.split?.('.')?.[uid?.split?.('.')?.length - 1];
 }
 
+const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
+
+const resolvedBlockName = (block: any) => {
+  if (block?.attrs?.metadata?.name)  return block?.attrs?.metadata?.name;
+  if (block?.blockName === 'core/missing') {
+    return block?.attrs?.originalName || 'body';
+  }
+  if (MEDIA_BLOCK_NAMES?.includes?.(block?.blockName)) return 'media';
+  return block?.blockName;
+}
+
 async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>) {
   const schema : any = {
     title: title,
@@ -159,13 +170,13 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
         // Process each block in blockJson to see if it matches any modular block child
         for (const block of blockJson) {
           try {
-            const blockName = (block?.attrs?.metadata?.name?.toLowerCase() || getFieldName(block?.blockName?.toLowerCase()));
+            const blockName = getFieldName(resolvedBlockName(block));
             
             // Find which modular block child this block matches
             let matchingChildField = fields.find((childField: any) => {
-              const fieldName = childField?.otherCmsField?.toLowerCase() ;
-              
-              return (childField?.contentstackFieldType !== 'modular_blocks_child') && (blockName === fieldName) 
+              const fieldName = childField?.otherCmsField?.toLowerCase();
+              const fieldType = childField?.otherCmsType?.toLowerCase();
+              return (childField?.contentstackFieldType !== 'modular_blocks_child') && (blockName === fieldName || blockName === fieldType) 
             });
    
             let matchingModularBlockChild = modularBlockChildren.find((childField: any) => {
@@ -187,7 +198,8 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                 //if (!matchingChildField) {
                   matchingChildField = fields.find((childField: any) => {
                     const fieldName = childField?.otherCmsField?.toLowerCase();
-                    return (childField?.contentstackFieldType !== 'modular_blocks_child') && (mappedName === fieldName);
+                    const fieldType = childField?.otherCmsType?.toLowerCase();
+                    return (childField?.contentstackFieldType !== 'modular_blocks_child') && (mappedName === fieldName || mappedName === fieldType);
                   });
                  
                // }
@@ -206,12 +218,13 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                     const childFieldUid = matchingModularBlockChild?.contentstackFieldUid || getLastUid(matchingModularBlockChild?.contentstackUid);
                     const childField = fields.find((f: any) => {
                       const fUid = f?.contentstackFieldUid || '';
-                      const fOtherCmsField = f?.otherCmsType?.toLowerCase();
-                      const childBlockName = matchingChildField ? matchingChildField?.otherCmsField?.toLowerCase() :  (child?.attrs?.metadata?.name?.toLowerCase() || getFieldName(child?.blockName?.toLowerCase()));
+                      const fOtherCmsType = f?.otherCmsType?.toLowerCase();
+                      const fOtherCmsField = f?.otherCmsField?.toLowerCase();
+                      const childBlockName = matchingChildField ? matchingChildField?.otherCmsField?.toLowerCase() :  (getFieldName(resolvedBlockName(child))?.toLowerCase() || getFieldName(resolvedBlockName(child)?.toLowerCase()));
                       const childKey = getLastUid(f?.contentstackFieldUid);
                       const alreadyPopulated = childrenObject[childKey] !== undefined && childrenObject[childKey] !== null;
                       return fUid.startsWith(childFieldUid + '.') &&
-                        (fOtherCmsField === childBlockName) && (!alreadyPopulated || f?.advanced?.multiple === true);
+                        (fOtherCmsType === childBlockName || fOtherCmsField === childBlockName) && (!alreadyPopulated || f?.advanced?.multiple === true);
                     });
                    
                     if (childField) {
@@ -313,8 +326,9 @@ function processNestedGroup(child: any, childField: any, allFields: any[]): Reco
   child?.innerBlocks?.forEach((nestedChild: any, nestedIndex: number) => {
     try {
      
+      const nestedBlockName = (getFieldName(resolvedBlockName(nestedChild))?.toLowerCase() ?? getFieldName(resolvedBlockName(nestedChild)?.toLowerCase()))?.toLowerCase();
       const nestedChildField = nestedFields?.find((field: any) => 
-        field?.otherCmsType?.toLowerCase() === (nestedChild?.attrs?.metadata?.name?.toLowerCase() ?? getFieldName(nestedChild?.blockName?.toLowerCase()))?.toLowerCase() && !nestedChildrenObject[getLastUid(field?.contentstackFieldUid)]?.length
+        (field?.otherCmsType?.toLowerCase() === nestedBlockName || field?.otherCmsField?.toLowerCase() === nestedBlockName) && !nestedChildrenObject[getLastUid(field?.contentstackFieldUid)]?.length
       );
       
       if (!nestedChildField) {
@@ -387,7 +401,7 @@ function formatChildByType(child: any, field: any, assetData: any) {
     
     // Process attributes based on field type configuration
     //if (child?.attributes && typeof child.attributes === 'object') {
-     const attrKey = getFieldName(child?.attr?.metadata?.name?.toLowerCase() || child?.blockName?.toLowerCase());
+     const attrKey = getFieldName(getFieldName(resolvedBlockName(child))?.toLowerCase() || getFieldName(resolvedBlockName(child)?.toLowerCase()));
         try {
           const attrValue = child?.attrs?.innerHTML;
           
@@ -422,6 +436,7 @@ function formatChildByType(child: any, field: any, assetData: any) {
               let htmlContent = formatted;
               if (!htmlContent && child?.innerBlocks?.length > 0) {
                 htmlContent = collectHtmlFromInnerBlocks(child);
+                console.info("htmlContent --> ", htmlContent);
               }
               if (!htmlContent) {
                 htmlContent = child?.blockName ? child?.innerHTML : child;
@@ -477,6 +492,10 @@ function formatChildByType(child: any, field: any, assetData: any) {
               formatted = asset;
               break;
             }
+
+            case 'markdown':
+              formatted = stripHtmlTags(child?.innerHTML);
+              break;
             default:
               // Default formatting - preserve original structure with null check
               formatted = attrValue;
@@ -580,6 +599,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           // Extract individual content encoded for this specific item
           const contentEncoded = $(xmlItem)?.find("content\\:encoded")?.text() || '';
           const blocksJson = await setupWordPressBlocks(contentEncoded);
+
           customLogger(project?.id, destinationStackId,'info', `Processed blocks for entry ${uid}`);
 
           
