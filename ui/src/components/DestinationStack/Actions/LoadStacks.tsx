@@ -35,6 +35,15 @@ interface LoadFileFormatProps {
   handleStepChange: (stepIndex: number, closeStep?: boolean) => void;
 }
 
+interface ErrorObject {
+  error_message?: string;
+  errors?: Errors;
+}
+interface Errors {
+  org_uid?: string[];
+}
+
+
 const defaultStack = {
   description: 'Created from Migration Destination Stack Step',
   locale: '',
@@ -108,6 +117,21 @@ const LoadStacks = (props: LoadFileFormatProps) => {
     // setAllStack(newMigrationData?.destination_stack?.stackArray)
   }, [newMigrationData?.destination_stack?.selectedStack]);
 
+    /**
+   * Function to format the error message
+   */
+    const formatErrorMessage = (errorData: ErrorObject) => {
+      let message = errorData.error_message;
+  
+      if (errorData.errors) {
+        Object.entries(errorData.errors).forEach(([key, value]) => {
+          message += `\n${key}: ${(value as string[]).join(", ")}`;
+        });
+      }
+  
+      return message;
+    }
+
   //Handle new stack details
   const handleOnSave = async (data: Stack) => {
     try {
@@ -159,8 +183,12 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         setIsStackLoading(false);
         return true;
       }
-    } catch (error) {
-      return error;
+      else {
+        const errorMessage = formatErrorMessage(resp?.data?.data);
+        return errorMessage;
+      }
+    } catch (error: any) {
+      return error?.response?.data;
     }
   };
 
