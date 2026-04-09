@@ -375,6 +375,11 @@ const putTestData = async (req: Request) => {
       data.entry_mapper = allEntries;
     });
 
+    // Single update with all entries
+    await EntryMapperModel.update((data: any) => {
+      data.entry_mapper = allEntries;
+    });
+
     await ContentTypesMapperModelLowdb.update((data: any) => {
       // Simple approach: just replace with new content types
       data.ContentTypesMappers = contentType;
