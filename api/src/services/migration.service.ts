@@ -68,18 +68,18 @@ const createTestStack = async (req: Request): Promise<LoginServiceType> => {
     let headers: any = {
       organization_uid: orgId,
     }
-    if(token_payload?.is_sso) {
+    if (token_payload?.is_sso) {
       const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
       headers.authorization = `Bearer ${accessToken}`;
     } else if (token_payload?.is_sso === false) {
-    const authtoken = await getAuthtoken(
-      token_payload?.region,
-      token_payload?.user_id
-    );
-    headers.authtoken = authtoken;
-  } else {
-    throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
-  }
+      const authtoken = await getAuthtoken(
+        token_payload?.region,
+        token_payload?.user_id
+      );
+      headers.authtoken = authtoken;
+    } else {
+      throw new BadRequestError("No valid authentication token found or mismatch in is_sso flag");
+    }
     await ProjectModelLowdb.read();
     const projectData: any = ProjectModelLowdb.chain
       .get('projects')
@@ -195,11 +195,11 @@ const deleteTestStack = async (req: Request): Promise<LoginServiceType> => {
     let headers: any = {
       api_key: stack_key,
     }
-    if(token_payload?.is_sso) {
+    if (token_payload?.is_sso) {
       const accessToken = await getAccessToken(token_payload?.region, token_payload?.user_id);
       headers.authorization = `Bearer ${accessToken}`;
     } else if (token_payload?.is_sso === false) {
-    const authtoken = await getAuthtoken(
+      const authtoken = await getAuthtoken(
         token_payload?.region,
         token_payload?.user_id
       );
@@ -413,7 +413,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
       region,
       user_id,
     });
-    
+
     await marketPlaceAppService?.createAppManifest({
       orgId,
       destinationStackId: project?.current_test_stack_id,
@@ -811,7 +811,7 @@ const startMigration = async (req: Request): Promise<any> => {
     await extensionService?.createExtension({
       destinationStackId: project?.destination_stack_id,
     });
-    
+
     await taxonomyService?.createTaxonomy({
       orgId,
       projectId,
@@ -1032,6 +1032,8 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
     }
 
+    await removeExistingAssets(projectId);
+
     await ProjectModelLowdb.read();
     const projectData = ProjectModelLowdb.chain
       .get("projects")
@@ -1045,7 +1047,6 @@ const startMigration = async (req: Request): Promise<any> => {
       console.info('Config file written to:', configFilePath); //
     }
 
-    await removeExistingAssets(projectId); //
 
     await utilsCli?.runCli(
       region,

@@ -26,15 +26,19 @@ const extractEntries = (cleanLocalPath) => {
       const contentTypeId = entry?.sys?.contentType?.sys?.id;
       const entryId = entry?.sys?.id;
       for (const locale of locales) {
-        const entryName = entry?.fields?.title?.[locale];
-        if (!entryName) continue;
+        let entryTitle = entry?.fields?.title?.[locale];
+        entryTitle = !entryTitle ? entry?.fields?.name?.[locale] : entryTitle;
+        if (!entryTitle) continue;
+        console.info(`entryTitle: ${entryTitle}`);
+        console.info(`contentTypeId: ${contentTypeId}`);
+        // if (!entryTitle) continue;
         if (!entriesByContentType[contentTypeId]) {
           entriesByContentType[contentTypeId] = [];
         }
 
         entriesByContentType[contentTypeId].push({
           contentTypeUid: contentTypeId,
-          entryName: entryName,
+          entryName: entryTitle,
           otherCmsEntryUid: entryId,
           isUpdate: false,
           language: locale,

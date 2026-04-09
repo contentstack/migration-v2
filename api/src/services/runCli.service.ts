@@ -57,11 +57,50 @@ const stripAnsiCodes = (text: string): string => {
 const writeUidMapping = async (backupPath: string, projectId: string, iteration: number) => {
   try {
     const assetMapperPath = path.join(backupPath, 'mapper', 'assets', 'uid-mapping.json');
-    const assetData = fs.readFileSync(assetMapperPath, 'utf-8');
-    const assetJson = JSON.parse(assetData);
+    let assetJson = {};
+    
+    // Check if file exists and has meaningful data
+    if (fs.existsSync(assetMapperPath)) {
+      const assetData = fs.readFileSync(assetMapperPath, 'utf-8');
+      const parsedData = JSON.parse(assetData);
+      // Check if data is not empty
+      if (parsedData && Object.keys(parsedData).length > 0) {
+        assetJson = parsedData;
+      }
+    }
+    
+    // If no meaningful data found and we have previous iteration, use fallback
+    if (Object.keys(assetJson).length === 0 && iteration > 1) {
+      const prevAssetMapperPath = path.join(process.cwd(), 'database', projectId, (iteration - 1).toString(), 'uid-mapper.json');
+      if (fs.existsSync(prevAssetMapperPath)) {
+        const prevData = JSON.parse(fs.readFileSync(prevAssetMapperPath, 'utf-8'));
+        assetJson = prevData.assets || {};
+      }
+    }
+
     const entryMapperPath = path.join(backupPath, 'mapper', 'entries', 'uid-mapping.json');
-    const entryData = fs.readFileSync(entryMapperPath, 'utf-8');
-    const entryJson = JSON.parse(entryData);
+    let entryJson = {};
+    
+    // Check if file exists and has meaningful data
+    if (fs.existsSync(entryMapperPath)) {
+      const entryData = fs.readFileSync(entryMapperPath, 'utf-8');
+      const parsedData = JSON.parse(entryData);
+      // Check if data is not empty
+      if (parsedData && Object.keys(parsedData).length > 0) {
+        entryJson = parsedData;
+      }
+    }
+    
+    // If no meaningful data found and we have previous iteration, use fallback
+    if (Object.keys(entryJson).length === 0 && iteration > 1) {
+      const prevEntryMapperPath = path.join(process.cwd(), 'database', projectId, (iteration - 1).toString(), 'uid-mapper.json');
+      if (fs.existsSync(prevEntryMapperPath)) {
+        const prevData = JSON.parse(fs.readFileSync(prevEntryMapperPath, 'utf-8'));
+        console.info('Using previous iteration data for entries:', prevData);
+        entryJson = prevData.entry || {};
+      }
+    }
+
     const combinedMapping = {
       assets: assetJson,
       entry: entryJson,

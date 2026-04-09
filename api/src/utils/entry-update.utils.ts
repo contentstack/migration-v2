@@ -154,12 +154,12 @@ export const enrichConfigWithAssetMapping = (
         }
     }
 
-    const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
-    config.__assetMapping__ = {
-        old: oldAssetMapping,
-        new: newAssetMapping,
-    };
-    fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
+    // const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
+    // config.__assetMapping__ = {
+    //     old: oldAssetMapping,
+    //     new: newAssetMapping,
+    // };
+    // fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
 
     console.info(`Asset mapping enriched into config: old=${Object.keys(oldAssetMapping).length} keys, new=${Object.keys(newAssetMapping).length} keys`);
 };

@@ -178,10 +178,20 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
         console.info(`Assets index.json not found at ${indexPath}, skipping.`);
         return;
     }
+    console.info(`Assets index.json found at ${indexPath}`);
 
-    const indexData: Record<string, any> = JSON.parse(
-        fs.readFileSync(indexPath, "utf-8")
-    );
+    let indexData: Record<string, any>;
+    try {
+        const raw = fs.readFileSync(indexPath, "utf-8");
+        if (!raw.trim()) {
+            console.error(`Assets index.json is empty at ${indexPath}`);
+            return;
+        }
+        indexData = JSON.parse(raw);
+    } catch (error) {
+        console.error(`Failed to parse assets index.json at ${indexPath}:`, error instanceof Error ? error.message : String(error));
+        return;
+    }
 
     saveAssetMetadata(indexData, projectId, iteration);
 
@@ -189,16 +199,18 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
         console.info("Iteration 1: asset metadata saved, no dedup needed.");
         return;
     }
+    console.info(`Iteration ${iteration} found, loading previous asset uid map and metadata.`);
 
     const prevIteration = iteration - 1;
     const prevAssetUidMap = loadPreviousAssetUidMap(projectId, prevIteration);
+    console.info(`Previous asset uid map loaded from ${prevIteration} iteration.`);
     const prevMetadata = loadPreviousAssetMetadata(projectId, prevIteration);
 
     if (!Object.keys(prevAssetUidMap).length) {
         console.info("No previous asset uid mapping found, skipping dedup.");
         return;
     }
-
+    console.info(`Previous asset metadata loaded from ${prevIteration} iteration.`);
     const assetsToReuse = new Map<string, string>();
     const assetsToRemoveFromIndex: string[] = [];
 
@@ -232,23 +244,49 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
 
         for (const ctDir of contentTypeDirs) {
             const ctPath = path.join(entriesDir, ctDir.name);
+            
+            if (!fs.existsSync(ctPath)) {
+                console.warn(`Content type directory not found: ${ctPath}`);
+                continue;
+            }
+            
             const localeDirs = fs.readdirSync(ctPath, { withFileTypes: true })
                 .filter((d) => d.isDirectory());
 
             for (const localeDir of localeDirs) {
                 const localePath = path.join(ctPath, localeDir.name);
+                
+                if (!fs.existsSync(localePath)) {
+                    console.warn(`Locale directory not found: ${localePath}`);
+                    continue;
+                }
+                
                 const jsonFiles = fs.readdirSync(localePath)
                     .filter((f) => f.endsWith(".json") && f !== "index.json");
 
                 for (const jsonFile of jsonFiles) {
                     const filePath = path.join(localePath, jsonFile);
-                    const raw = fs.readFileSync(filePath, "utf-8");
-                    const data = JSON.parse(raw);
+                    
+                    try {
+                        const raw = fs.readFileSync(filePath, "utf-8");
+                        
+                        // Check if file is empty or contains only whitespace
+                        if (!raw.trim()) {
+                            console.warn(`Skipping empty file: ${filePath}`);
+                            continue;
+                        }
+                        
+                        const data = JSON.parse(raw);
 
-                    const modified = replaceAssetRefsInObject(data, assetsToReuse);
-                    if (modified) {
-                        fs.writeFileSync(filePath, JSON.stringify(data), "utf-8");
-                        console.info(`Replaced asset refs in ${filePath}`);
+                        const modified = replaceAssetRefsInObject(data, assetsToReuse);
+                        if (modified) {
+                            fs.writeFileSync(filePath, JSON.stringify(data), "utf-8");
+                            console.info(`Replaced asset refs in ${filePath}`);
+                        }
+                    } catch (error) {
+                        console.error(`Failed to process file ${filePath}:`, error instanceof Error ? error.message : String(error));
+                        console.warn(`Skipping problematic file: ${filePath}`);
+                        continue; // Skip this file and continue with others
                     }
                 }
             }
