@@ -46,11 +46,17 @@
     "coverage:ui": "npx serve coverage -l 3939"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^8.51.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "jsdom": "^28.1.0",
     "prettier": "^3.3.3",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.18"
   },
   "overrides": {
