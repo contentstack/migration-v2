@@ -233,10 +233,6 @@ router.get(
               }
 
               const data = await handleFileProcessing(fileExt, xmlData, cmsType || '', name);
-               if (!res.headersSent) {
-                res.status(data?.status || 200).json(data);
-              }
-              res.status(data?.status || 200).json(data);
               if (data?.status === 200) {
                 // Sanitize the filename before constructing path
                 const safeName = sanitizeFilename(name);
@@ -248,6 +244,9 @@ router.get(
                 } else {
                   console.error('Path traversal attempt detected');
                 }
+              }
+              if (!res.headersSent) {
+                return res.status(data?.status || 200).json(data);
               }
             } catch (error: any) {
               console.error('Error processing XML stream:', error);
@@ -328,81 +327,83 @@ router.get(
           });
         }
       } else {
-          const params = {
-            Bucket: config?.awsData?.bucketName,
-            Key: config?.awsData?.bucketKey
-          };
-          const getObjectCommand = new GetObjectCommand(params);
-          // Get the object from S3
-          const s3File = await client.send(getObjectCommand);
-          //file Name From key
-          const fileName = params?.Key?.split?.('/')?.pop?.() ?? '';
-          //file ext from fileName
-          const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
+        const params = {
+          Bucket: config?.awsData?.bucketName,
+          Key: config?.awsData?.bucketKey
+        };
+        const getObjectCommand = new GetObjectCommand(params);
+        // Get the object from S3
+        const s3File = await client.send(getObjectCommand);
+        //file Name From key
+        const fileName = params?.Key?.split?.('/')?.pop?.() ?? '';
+        //file ext from fileName
+        const fileExt = fileName?.split?.('.')?.pop?.() ?? 'test';
 
-          if (!s3File?.Body) {
-            throw new Error('Empty response body from S3');
+        if (!s3File?.Body) {
+          throw new Error('Empty response body from S3');
+        }
+
+        const bodyStream: Readable = s3File?.Body as Readable;
+
+        // Collect the S3 file data into a buffer for processing
+        // NOTE: Removed unsafe file write that used unsanitized filename
+        let zipBuffer: Buffer | null = null;
+
+        // Collect the data from the stream into a buffer
+        bodyStream.on('data', (chunk) => {
+          if (zipBuffer === null) {
+            zipBuffer = chunk;
+          } else {
+            zipBuffer = Buffer.concat([zipBuffer, chunk]);
           }
+        });
 
-          const bodyStream: Readable = s3File?.Body as Readable;
-
-          // Collect the S3 file data into a buffer for processing
-          // NOTE: Removed unsafe file write that used unsanitized filename
-          let zipBuffer: Buffer | null = null;
-
-          // Collect the data from the stream into a buffer
-          bodyStream.on('data', (chunk) => {
-            if (zipBuffer === null) {
-              zipBuffer = chunk;
-            } else {
-              zipBuffer = Buffer.concat([zipBuffer, chunk]);
+        //buffer fully stremd
+        bodyStream.on('end', async () => {
+          try {
+            if (!zipBuffer) {
+              throw new Error('No data collected from the stream.');
             }
-          });
 
-          //buffer fully stremd
-          bodyStream.on('end', async () => {
-            try {
-              if (!zipBuffer) {
-                throw new Error('No data collected from the stream.');
-              }
+            const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
 
-              const data = await handleFileProcessing(fileExt, zipBuffer, cmsType, fileName);
-
-              res.status(data?.status || 200).json(data);
-
-              if (data?.status === 200) {
-                // Sanitize the filename before constructing path
-                const safeFileName = sanitizeFilename(fileName);
-                const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
-                let filePath = path.join(baseDir, safeFileName);
-
-                // If the processor returned a specific file/folder, update the path
-                if (data?.file) {
-                  const safeDataFile = sanitizeFilename(data.file);
-                  filePath = path.join(baseDir, safeFileName, safeDataFile);
-                }
-
-                // Validate path is within expected directory
-                if (isPathWithinBase(filePath, baseDir)) {
-                  createMapper(filePath, projectId, app_token, affix, config);
-                } else {
-                  console.error('Path traversal attempt detected');
-                }
-              }
-            } catch (error: any) {
-              console.error('Processing error:', error);
-              if (!res.headersSent) {
-                res.status(500).json({ error: 'Failed to process file' });
-              }
-            }
-          });
-
-          bodyStream.on('error', (error) => {
-            console.error('Stream error:', error);
             if (!res.headersSent) {
-              res.status(500).json({ error: 'Stream processing failed' });
+              res.status(data?.status || 200).json(data);
             }
-          });
+
+            if (data?.status === 200) {
+              // Sanitize the filename before constructing path
+              const safeFileName = sanitizeFilename(fileName);
+              const baseDir = path.join(__dirname, '..', '..', 'extracted_files');
+              let filePath = path.join(baseDir, safeFileName);
+
+              // If the processor returned a specific file/folder, update the path
+              if (data?.file) {
+                const safeDataFile = sanitizeFilename(data.file);
+                filePath = path.join(baseDir, safeFileName, safeDataFile);
+              }
+
+              // Validate path is within expected directory
+              if (isPathWithinBase(filePath, baseDir)) {
+                createMapper(filePath, projectId, app_token, affix, config);
+              } else {
+                console.error('Path traversal attempt detected');
+              }
+            }
+          } catch (error: any) {
+            console.error('Processing error:', error);
+            if (!res.headersSent) {
+              res.status(500).json({ error: 'Failed to process file' });
+            }
+          }
+        });
+
+        bodyStream.on('error', (error) => {
+          console.error('Stream error:', error);
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Stream processing failed' });
+          }
+        });
       }
     } catch (err: any) {
       console.error('🚀 ~ router.get ~ err:', err);

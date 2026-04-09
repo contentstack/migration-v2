@@ -1041,11 +1041,11 @@ const startMigration = async (req: Request): Promise<any> => {
 
     let configFilePath: string | null = null;
     if (iteration > 1) {
-      configFilePath = await removeEntriesFromDatabase(projectId);
-      console.info('Config file written to:', configFilePath);
+      configFilePath = await removeEntriesFromDatabase(projectId); //
+      console.info('Config file written to:', configFilePath); //
     }
 
-    await removeExistingAssets(projectId);
+    await removeExistingAssets(projectId); //
 
     await utilsCli?.runCli(
       region,
@@ -1057,9 +1057,9 @@ const startMigration = async (req: Request): Promise<any> => {
     );
 
     if (configFilePath) {
-      enrichConfigWithAssetMapping(configFilePath, projectId, iteration);
+      enrichConfigWithAssetMapping(configFilePath, projectId, iteration); //
       console.info('Asset mapping enriched into config');
-      await utilsUpdateCli?.updateEntryCli(
+      await utilsUpdateCli?.updateEntryCli( //
         region,
         user_id,
         project?.destination_stack_id,

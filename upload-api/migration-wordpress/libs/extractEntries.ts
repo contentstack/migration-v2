@@ -31,8 +31,8 @@ const getEntryName = (item: any): string => {
 };
 
 /**
- * Must match api WordPress entry keys: idCorrector(`posts_${wp:post_id}`) in wordpress.service.ts.
- * Raw post id only caused otherCmsEntryUid to diverge from uid-map / entry JSON keys → entry mapper showed "-".
+ * All WordPress entry mapper UIDs use `posts_${...}` to align with api `wordpress.service.ts`
+ * entry keys and uid-mapper lookups after migration.
  */
 const getSourceEntryUid = (item: any): string => {
   const postId = item?.['wp:post_id'];
@@ -41,7 +41,8 @@ const getSourceEntryUid = (item: any): string => {
   }
   const candidate =
     item?.guid?.text ?? item?.guid ?? item?.link ?? getEntryName(item);
-  return idCorrector(String(candidate || ''));
+  const base = idCorrector(String(candidate || 'entry'));
+  return idCorrector(`posts_${base}`);
 };
 
 const getEntryLanguage = (item: any, channelLanguage?: string): string => {
@@ -88,7 +89,7 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
           return {
             contentTypeUid: type,
             entryName: getEntryName(item),
-            otherCmsEntryUid: `posts_${otherCmsEntryUid}`,
+            otherCmsEntryUid,
             otherCmsCTName: type,
             language: getEntryLanguage(item, channelLanguage),
             isUpdate: false

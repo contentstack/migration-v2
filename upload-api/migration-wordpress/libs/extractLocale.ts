@@ -14,6 +14,7 @@ const extractLocale = async(filePath: string) => {
         // Extract entry-level languages (if available)
         const items = jsonData?.rss?.channel?.item || [];
         const itemArray = Array.isArray(items) ? items : [items];
+        
         itemArray.forEach((item : any) => {
           if (item['wp:postmeta']) {
             const postMeta = Array.isArray(item['wp:postmeta'])? item['wp:postmeta']
@@ -25,10 +26,17 @@ const extractLocale = async(filePath: string) => {
             });
           }
         });
-    
+
+        // If no locales found, add default English
+        if (uniqueLanguages.size === 0) {
+          uniqueLanguages.add('en-US');
+        }
+
         return [...uniqueLanguages];
       } catch (err :any) {
-        throw new Error(`Error reading JSON file: ${err.message}`);
+        console.error('❌ Error extracting locales:', err.message);
+        // Return default locale instead of throwing
+        return ['en-US'];
       }
 }
 

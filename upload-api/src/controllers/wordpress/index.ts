@@ -2,7 +2,7 @@ import axios from "axios";
 import logger from "../../utils/logger";
 import { HTTP_CODES, HTTP_TEXTS, MIGRATION_DATA_CONFIG } from "../../constants";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-import { extractContentTypes, extractLocale } from 'migration-wordpress';
+import { extractContentTypes, extractLocale, extractEntries } from 'migration-wordpress';
 import { deleteFolderSync } from "../../helper";
 import path from "path";
 
@@ -15,9 +15,17 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
     const contentTypeData : any = await extractContentTypes(affix as string, filePath, config);
     //const contentTypeData = await contentTypeMaker(affix, filePath)
     
-    if(contentTypeData){
+    // Extract entries and add them to content types
+    console.log('🔍 Extracting entries for WordPress content types...');
+    const contentTypeDataWithEntries = await extractEntries(filePath, contentTypeData);
+    console.log('📊 Content types with entries:', contentTypeDataWithEntries?.map((ct: any) => ({
+      uid: ct?.otherCmsUid || ct?.contentstackUid,
+      entryCount: ct?.entryMapping?.length || 0
+    })));
+    
+    if(contentTypeDataWithEntries){
       const fieldMapping: any = { contentTypes: [], extractPath: filePath };
-      contentTypeData.forEach((contentType: any) => {
+      contentTypeDataWithEntries.forEach((contentType: any) => {
         const jsonfileContent = contentType;
         jsonfileContent.type = "content_type";
         fieldMapping?.contentTypes?.push(jsonfileContent);

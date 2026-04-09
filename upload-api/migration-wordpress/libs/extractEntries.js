@@ -26,7 +26,7 @@ const getEntryName = (item) => {
   return 'Untitled Entry';
 };
 
-/** Align with api wordpress.service entry uid: idCorrector(`posts_${wp:post_id}`). */
+/** All mapper UIDs use `posts_${...}` like api wordpress.service entry keys. */
 const getSourceEntryUid = (item) => {
   const postId = item?.['wp:post_id'];
   if (postId != null && String(postId).trim() !== '') {
@@ -34,7 +34,8 @@ const getSourceEntryUid = (item) => {
   }
   const candidate =
     item?.guid?.text ?? item?.guid ?? item?.link ?? getEntryName(item);
-  return idCorrector(String(candidate || ''));
+  const base = idCorrector(String(candidate || 'entry'));
+  return idCorrector(`posts_${base}`);
 };
 
 const getEntryLanguage = (item, channelLanguage) => {
@@ -81,7 +82,7 @@ const extractEntries = async (filePath, contentTypeData = []) => {
           return {
             contentTypeUid: type,
             entryName: getEntryName(item),
-            otherCmsEntryUid: `posts_${otherCmsEntryUid}`,
+            otherCmsEntryUid,
             otherCmsCTName: type,
             language: getEntryLanguage(item, channelLanguage),
             isUpdate: false

@@ -9,12 +9,14 @@ import {
   Tooltip
 } from '@contentstack/venus-components';
 import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router';
 import TableHeader from './tableHeader'
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
 import { DEFAULT_DROPDOWN, IDropDown, INewMigration } from '../../../context/app/app.interface';
 import {CS_ENTRIES} from '../../../utilities/constants';
+import { getMigrationData } from '../../../services/api/migration.service';
 
 export type ExistingFieldType = {
   [key: string]: { label: string; value: string };
@@ -520,9 +522,19 @@ const Mapper = ({
 
 const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
 
+  const { projectId } = useParams<{ projectId: string }>();
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const selectedOrganisation = useSelector(
+    (state: RootState) => state?.authentication?.selectedOrganisation
+  );
   // Use a specific selector for sourceLocale to help with reactivity
   const reduxSourceLocale = useSelector((state: RootState) => state?.migration?.newMigrationData?.destination_stack?.sourceLocale);
+  const newMigrationDataRef = useRef(newMigrationData);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    newMigrationDataRef.current = newMigrationData;
+  }, [newMigrationData]);
   
   const [options, setoptions] = useState<{ label: string; value: string }[]>([]);
   const [cmsLocaleOptions, setcmsLocaleOptions] = useState<{ label: string; value: string }[]>([]);
@@ -556,6 +568,43 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
     }
   }, [reduxSourceLocale]);
 
+  // If Redux never received source_locales (e.g. navigated before refetch), load them when stack is chosen.
+  useEffect(() => {
+    let cancelled = false;
+    const refetchSourceLocales = async () => {
+      if (!projectId || !selectedOrganisation?.value) return;
+      if (reduxSourceLocale && reduxSourceLocale.length > 0) return;
+      if (!newMigrationData?.destination_stack?.selectedStack?.value) return;
+      try {
+        const res = await getMigrationData(selectedOrganisation.value, projectId);
+        const projectData = res?.data;
+        const sl = projectData?.source_locales;
+        if (cancelled || !Array.isArray(sl) || sl.length === 0) return;
+        const current = newMigrationDataRef.current;
+        dispatch(
+          updateNewMigrationData({
+            destination_stack: {
+              ...current?.destination_stack,
+              sourceLocale: sl
+            }
+          })
+        );
+      } catch {
+        // Same as LoadUploadFile: non-fatal if project fetch fails
+      }
+    };
+    void refetchSourceLocales();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    projectId,
+    selectedOrganisation?.value,
+    newMigrationData?.destination_stack?.selectedStack?.value,
+    reduxSourceLocale,
+    dispatch
+  ]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -567,12 +616,18 @@ const LanguageMapper = ({stack, uid} :{ stack : IDropDown, uid : string}) => {
           label: key,
           value: key
         }));
-        const sourceLocale = newMigrationData?.destination_stack?.sourceLocale?.map((item: string) => ({
-          label: item,
-          value: item
-        }));
-        
-        setsourceLocales(sourceLocale);
+        const rawSource = newMigrationData?.destination_stack?.sourceLocale;
+        const mappedSource =
+          Array.isArray(rawSource) && rawSource.length > 0
+            ? rawSource.map((item: string) => ({
+                label: item,
+                value: item
+              }))
+            : null;
+
+        if (mappedSource) {
+          setsourceLocales(mappedSource);
+        }
         setoptions(allLocales);
         const keys = Object?.keys(newMigrationData?.destination_stack?.localeMapping || {})?.find( key => key === `${newMigrationData?.destination_stack?.selectedStack?.master_locale}-master_locale`);
         if((Object?.entries(newMigrationData?.destination_stack?.localeMapping)?.length === 0 || 
