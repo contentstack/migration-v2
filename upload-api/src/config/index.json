@@ -15,10 +15,10 @@
     "bucketKey": ""
   },
   "mysql": {
-    "host": "localhost",
-    "user": "root",
+    "host": "host_name",
+    "user": "user_name",
     "password": "",
-    "database": "",
+    "database": "database_name",
     "port": "3306"
   },
   "assetsConfig": {

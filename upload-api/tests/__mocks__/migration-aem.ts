@@ -7,3 +7,9 @@ export const contentTypes = vi.fn().mockReturnValue({
 export const locales = vi.fn().mockReturnValue({
   processAndSave: vi.fn().mockResolvedValue([]),
 });
+
+export default {
+  validator,
+  contentTypes,
+  locales
+};

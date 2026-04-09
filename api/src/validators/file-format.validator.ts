@@ -18,13 +18,14 @@ export default checkSchema({
       errorMessage: VALIDATION_ERRORS.LENGTH_LIMIT.replace(/\$/g, "file_format"),
       options: {
         min: 1,
-        max: 400,
+        max: 200,
       },
       bail: true,
     },
   },
   file_path: {
     in: "body",
+    optional: { options: { nullable: true } },
     isString: {
       errorMessage: VALIDATION_ERRORS.STRING_REQUIRED.replace(/\$/g, "file_path"),
       bail: true,

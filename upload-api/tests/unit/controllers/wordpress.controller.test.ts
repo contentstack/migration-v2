@@ -1,15 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockAxiosRequest, mockDeleteFolderSync, mockExtractLocale, mockExtractContentTypes } = vi.hoisted(() => ({
+const { mockAxiosRequest, mockDeleteFolderSync, mockExtractLocale, mockExtractContentTypes, mockExtractEntries } = vi.hoisted(() => ({
   mockAxiosRequest: vi.fn(),
   mockDeleteFolderSync: vi.fn(),
   mockExtractLocale: vi.fn().mockResolvedValue([]),
   mockExtractContentTypes: vi.fn().mockResolvedValue(null),
+  mockExtractEntries: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('migration-wordpress', () => ({
   extractLocale: mockExtractLocale,
   extractContentTypes: mockExtractContentTypes,
+  extractEntries: mockExtractEntries,
 }));
 
 vi.mock('axios', () => ({ default: { request: mockAxiosRequest } }));

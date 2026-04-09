@@ -57,34 +57,64 @@ vi.mock('../../../src/models/project-lowdb.js', () => {
 
 vi.mock('../../../src/models/contentTypesMapper-lowdb.js', () => {
   const mockChainGet = vi.fn();
+  const factory: any = vi.fn().mockImplementation(() => factory);
+  factory.read = mockContentTypesMapperRead;
+  factory.update = mockContentTypesMapperUpdate;
+  factory.write = vi.fn();
+  factory.chain = { get: mockChainGet };
+  factory.data = { ContentTypesMappers: [] };
   return {
-    default: {
-      read: mockContentTypesMapperRead,
-      update: mockContentTypesMapperUpdate,
-      write: vi.fn(),
-      chain: { get: mockChainGet },
-      data: { ContentTypesMappers: [] },
-    },
+    default: factory,
     ContentTypesMapper: {},
   };
 });
 
 vi.mock('../../../src/models/FieldMapper.js', () => {
   const mockChainGet = vi.fn();
+  const factory: any = vi.fn().mockImplementation(() => factory);
+  factory.read = mockFieldMapperRead;
+  factory.update = mockFieldMapperUpdate;
+  factory.write = vi.fn();
+  factory.chain = { get: mockChainGet };
+  factory.data = { field_mapper: [] };
   return {
-    default: {
-      read: mockFieldMapperRead,
-      update: mockFieldMapperUpdate,
-      write: vi.fn(),
-      chain: { get: mockChainGet },
-      data: { field_mapper: [] },
-    },
+    default: factory,
   };
 });
 
 vi.mock('fs', () => ({
   default: { promises: mockFsPromises },
   promises: mockFsPromises,
+}));
+
+vi.mock('node:fs', () => ({
+  default: { mkdirSync: vi.fn(), promises: mockFsPromises },
+  mkdirSync: vi.fn(),
+  promises: mockFsPromises,
+}));
+
+vi.mock('../../../src/models/EntryMapper.js', () => {
+  const factory: any = vi.fn().mockImplementation(() => factory);
+  factory.read = vi.fn().mockResolvedValue(undefined);
+  factory.update = vi.fn().mockImplementation(async (fn: any) => fn({ entry_mapper: [] }));
+  factory.write = vi.fn();
+  factory.chain = { get: vi.fn().mockReturnValue({ find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(null) }) }) };
+  factory.data = { entry_mapper: [] };
+  return { default: factory, EntryMapper: {} };
+});
+
+vi.mock('../../../src/models/uidMapper.js', () => {
+  const factory: any = vi.fn().mockImplementation(() => factory);
+  factory.read = vi.fn().mockResolvedValue(undefined);
+  factory.update = vi.fn();
+  factory.write = vi.fn();
+  factory.chain = { get: vi.fn() };
+  factory.data = { entryUid: {}, entry: {} };
+  return { default: factory };
+});
+
+vi.mock('../../../src/utils/entry-duplicate.utils.js', () => ({
+  isDuplicateEntry: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { contentMapperService } from '../../../src/services/contentMapper.service.js';
@@ -171,7 +201,12 @@ describe('contentMapper.service', () => {
       ProjectModelLowdb.data.projects = [project];
       mockProjectWrite.mockResolvedValue(undefined);
 
+      // Mock the three chain.get calls in putTestData:
+      // 1. find({ id: projectId }) - line 62-65
+      // 2. findIndex({ id: projectId }) - line 330-333  
+      // 3. find({ id: projectId }) - line 372-375
       (ProjectModelLowdb.chain.get as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(createChain({ find: project }))
         .mockReturnValueOnce(createChain({ findIndex: 0 }))
         .mockReturnValueOnce(createChain({ find: project }));
 
