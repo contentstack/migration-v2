@@ -118,10 +118,13 @@ const putTestData = async (req: Request) => {
 
     const FieldMapperModel = getFieldMapperDb(projectId, iteration);
     await FieldMapperModel.read();
+    
+    // Collect all fields from all content types first
+    const allFields: any[] = [];
+    
     for (let index = 0; index < contentTypes.length; index++) {
       const type: any = contentTypes[index];
       const fieldIds: string[] = [];
-      const existingFieldsInDb: any[] = FieldMapperModel.data?.field_mapper ?? [];
 
       const fields = Array.isArray(type?.fieldMapping) ?
         type.fieldMapping
@@ -129,16 +132,9 @@ const putTestData = async (req: Request) => {
           .map((field: any) => {
             const safeField = sanitizeObject(field);
 
-            const existingField = existingFieldsInDb.find((ef: any) =>
-              ef.contentstackFieldUid === safeField.contentstackFieldUid &&
-              ef.contentTypeId === type?.id
-            );
-
-            const id = existingField?.id
-              ? existingField.id
-              : (safeField?.id
-                ? safeField.id.replace(/[{}]/g, '').toLowerCase()
-                : uuidv4());
+            const id = safeField?.id
+              ? safeField.id.replace(/[{}]/g, '').toLowerCase()
+              : uuidv4();
             safeField.id = id;
 
             fieldIds.push(id);
@@ -153,19 +149,9 @@ const putTestData = async (req: Request) => {
           })
         : [];
 
-      await FieldMapperModel.update((data: any) => {
-        const existingFields = data?.field_mapper ?? [];
-        const newFields = fields.filter((newField: any) => {
-          return !existingFields.some((existingField: any) =>
-            existingField.id === newField.id &&
-            existingField.contentTypeId === newField.contentTypeId
-          );
-        });
-        data.field_mapper = [
-          ...existingFields,
-          ...newFields,
-        ];
-      });
+      // Add to collection instead of updating DB
+      allFields.push(...fields);
+      
       if (
         Array?.isArray?.(contentType) &&
         Number?.isInteger?.(index) &&
@@ -175,6 +161,11 @@ const putTestData = async (req: Request) => {
         contentType[index].fieldMapping = fieldIds;
       }
     }
+
+    // Single update with all fields
+    await FieldMapperModel.update((data: any) => {
+      data.field_mapper = allFields;
+    });
 
     const EntryMapperModel = getEntryMapperDb(projectId, iteration);
     await EntryMapperModel.read();
@@ -207,13 +198,8 @@ const putTestData = async (req: Request) => {
     const entryKey = (e: any) =>
       `${e?.contentTypeId ?? e?.contentTypeUid ?? ''}:${e?.otherCmsEntryUid ?? ''}`;
 
-    const existingEntryByKey = new Map<string, any>();
-    (EntryMapperModel.data?.entry_mapper ?? []).forEach((e: any) => {
-      if (e?.otherCmsEntryUid && (e?.contentTypeId || e?.contentTypeUid)) {
-        const key = entryKey(e);
-        existingEntryByKey.set(key, mergeEntry(existingEntryByKey.get(key), e));
-      }
-    });
+    // Collect all entries from all content types first
+    const allEntries: any[] = [];
 
     for (let index = 0; index < contentTypes.length; index++) {
       const type: any = contentTypes[index];
@@ -223,16 +209,9 @@ const putTestData = async (req: Request) => {
         type.entryMapping
           .filter(Boolean)
           .map((entry: any) => {
-            const existing = existingEntryByKey.get(`${type?.id}:${entry?.otherCmsEntryUid}`);
-            const existingId = existing?.id;
-            const id =
-              existingId ?
-                String(existingId).replace(/[{}]/g, '').toLowerCase()
-                : (
-                  entry?.id ?
-                    entry.id.replace(/[{}]/g, '').toLowerCase()
-                    : uuidv4()
-                );
+            const id = entry?.id
+              ? entry.id.replace(/[{}]/g, '').toLowerCase()
+              : uuidv4();
             entry.id = id;
             entryIds.push(id);
 
@@ -255,8 +234,6 @@ const putTestData = async (req: Request) => {
               )
               : ' ';
 
-            const contentstackUid = uidMapperValue || existing?.contentstackEntryUid;
-
             return {
               ...entry,
               id,
@@ -265,29 +242,13 @@ const putTestData = async (req: Request) => {
               contentTypeUid: entry?.contentTypeUid ?? type?.otherCmsUid ?? type?.contentTypeUid,
               contentTypeId: type?.id,
               isDeleted: false,
-              contentstackEntryUid: contentstackUid,
+              contentstackEntryUid: uidMapperValue,
             };
           })
         : [];
 
-      await EntryMapperModel.update((data: any) => {
-        const currentEntries: any[] = Array.isArray(data?.entry_mapper) ? data.entry_mapper : [];
-        const byKey = new Map<string, any>();
-
-        currentEntries.forEach((e: any) => {
-          if (e?.otherCmsEntryUid && (e?.contentTypeUid || e?.contentTypeId)) {
-            const key = entryKey(e);
-            byKey.set(key, mergeEntry(byKey.get(key), e));
-          }
-        });
-
-        entries.forEach((e: any) => {
-          const key = entryKey(e);
-          byKey.set(key, mergeEntry(byKey.get(key), e));
-        });
-
-        data.entry_mapper = Array.from(byKey.values());
-      });
+      // Add to collection instead of updating DB
+      allEntries.push(...entries);
 
       if (
         Array?.isArray?.(contentType) &&
@@ -299,31 +260,14 @@ const putTestData = async (req: Request) => {
       }
     }
 
+    // Single update with all entries
+    await EntryMapperModel.update((data: any) => {
+      data.entry_mapper = allEntries;
+    });
+
     await ContentTypesMapperModelLowdb.update((data: any) => {
-      const existingContentTypes: any[] = data?.ContentTypesMappers ?? [];
-      const existingById = new Map<string, number>();
-      existingContentTypes.forEach((ct: any, idx: number) => {
-        if (ct?.id && ct?.projectId) {
-          existingById.set(`${ct.id}:${ct.projectId}`, idx);
-        }
-      });
-
-      contentType.forEach((ct: any) => {
-        const key = `${ct.id}:${ct.projectId}`;
-        const existingIdx = existingById.get(key);
-        if (existingIdx !== undefined) {
-          existingContentTypes[existingIdx] = {
-            ...existingContentTypes[existingIdx],
-            ...ct,
-            fieldMapping: ct.fieldMapping,
-            entryMapping: ct.entryMapping,
-          };
-        } else {
-          existingContentTypes.push(ct);
-        }
-      });
-
-      data.ContentTypesMappers = existingContentTypes;
+      // Simple approach: just replace with new content types
+      data.ContentTypesMappers = contentType;
     });
 
     await ProjectModelLowdb.read();
