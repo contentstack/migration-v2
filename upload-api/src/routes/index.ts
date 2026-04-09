@@ -233,6 +233,10 @@ router.get(
               }
 
               const data = await handleFileProcessing(fileExt, xmlData, cmsType || '', name);
+
+              if (!res.headersSent) {
+                res.status(data?.status || 200).json(data);
+              }
               if (data?.status === 200) {
                 // Sanitize the filename before constructing path
                 const safeName = sanitizeFilename(name);
