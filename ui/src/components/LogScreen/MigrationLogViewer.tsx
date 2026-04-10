@@ -52,6 +52,7 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
   ]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [hasShownCompletionNotification, setHasShownCompletionNotification] = useState(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector(
@@ -124,6 +125,13 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
     }
   }, [newMigrationData?.migration_execution?.migrationCompleted, dispatch]);
 
+  // Reset notification flag when a new migration starts
+  useEffect(() => {
+    if (newMigrationData?.migration_execution?.migrationStarted && !newMigrationData?.migration_execution?.migrationCompleted) {
+      setHasShownCompletionNotification(false);
+    }
+  }, [newMigrationData?.migration_execution?.migrationStarted, newMigrationData?.migration_execution?.migrationCompleted]);
+
   /**
    * Scrolls to the top of the logs container.
    */
@@ -187,8 +195,9 @@ const MigrationLogViewer = ({ serverPath }: LogsType) => {
         //const logObject = JSON.parse(log);
         const message = log.message;
 
-        if (message === 'Migration Process Completed') {
+        if (message === 'Migration Process Completed' && !hasShownCompletionNotification) {
           setIsModalOpen(true);
+          setHasShownCompletionNotification(true);
 
           const newMigrationDataObj: INewMigration = {
             ...newMigrationData,

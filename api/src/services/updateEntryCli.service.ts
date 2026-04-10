@@ -114,6 +114,14 @@ export const updateEntryCli = async (
     const regionPresent =
       CS_REGIONS.find((item) => item === rg) ?? 'NA'.replace(/_/g, '-');
     const regionCli = regionPresent.replace(/_/g, '-');
+    
+    const directLogEntry1 = {
+      level: 'info',
+      message: `Starting entry update CLI process for stack: ${stack_api_key}`,
+      methodName: 'updateEntryCli',
+      timestamp: new Date().toISOString(),
+    };
+    fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry1) + '\n');
 
     await AuthenticationModel.read();
     const userData = AuthenticationModel.chain
@@ -138,10 +146,25 @@ export const updateEntryCli = async (
     }else {
       throw new Error("No authentication token found");
     }
-    if (!userData?.authtoken || !stack_api_key) {
-      console.info('User not found or stack API key missing.');
+    const hasAuth = Boolean(userData?.authtoken || userData?.access_token);
+    if (!hasAuth || !stack_api_key) {
+      const directLogEntry2 = {
+        level: 'info',
+        message: 'User not found, no auth token (authtoken or access_token), or stack API key missing.',
+        methodName: 'updateEntryCli',
+        timestamp: new Date().toISOString(),
+      };
+      fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry2) + '\n');
       return;
     }
+    
+    const directLogEntry3 = {
+      level: 'info',
+      message: `Authentication configured for user: ${userData.email}`,
+      methodName: 'updateEntryCli',
+      timestamp: new Date().toISOString(),
+    };
+    fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry3) + '\n');
 
     const scriptPath = path.join(
       process.cwd(),
@@ -149,11 +172,31 @@ export const updateEntryCli = async (
       'utils',
       'entry-update-script.cjs'
     );
-    console.info('scriptPath', scriptPath);
+    const directLogEntryScript = {
+      level: 'info',
+      message: `Script path: ${scriptPath}`,
+      methodName: 'updateEntryCli',
+      timestamp: new Date().toISOString(),
+    };
+    fs.appendFileSync(logFilePath, JSON.stringify(directLogEntryScript) + '\n');
 
     await setLogFilePath(logFilePath);
 
-    console.info('Running update entry migration script');
+    const directLogEntry4 = {
+      level: 'info',
+      message: 'Running update entry migration script',
+      methodName: 'updateEntryCli',
+      timestamp: new Date().toISOString(),
+    };
+    fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry4) + '\n');
+    
+    const directLogEntry5 = {
+      level: 'info',
+      message: `Updating entries using config file: ${configFilePath}`,
+      methodName: 'updateEntryCli',
+      timestamp: new Date().toISOString(),
+    };
+    fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry5) + '\n');
 
     await runCommand(
       'npx',
@@ -170,16 +213,38 @@ export const updateEntryCli = async (
       logFilePath,
     );
 
-    // console.info('Entry update migration completed successfully');
+    const directLogEntry6 = {
+      level: 'info',
+      message: 'Entry update migration completed successfully',
+      methodName: 'updateEntryCli',
+      timestamp: new Date().toISOString(),
+    };
+    fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry6) + '\n');
+    
+    const directLogEntry7 = {
+      level: 'info',
+      message: `All entries have been updated in Contentstack stack: ${stack_api_key}`,
+      methodName: 'updateEntryCli',
+      timestamp: new Date().toISOString(),
+    };
+    fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry7) + '\n');
 
     const directLogEntry = {
       level: 'info',
       message: 'Entry Update Process Completed',
+      methodName: 'updateEntryCli',
       timestamp: new Date().toISOString(),
     };
     fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry) + '\n');
   } catch (error) {
     console.error('updateEntryCli error:', error);
+    const directLogEntry8 = {
+      level: 'error',
+      message: `Failed to update entries for stack: ${stack_api_key}`,
+      methodName: 'updateEntryCli',
+      timestamp: new Date().toISOString(),
+    };
+    fs.appendFileSync(logFilePath, JSON.stringify(directLogEntry8) + '\n');
   }
 };
 

@@ -350,6 +350,15 @@ const ContentMapper = forwardRef(
       fetchContentTypes(searchText || '');
     }, []);
 
+    // Re-fetch content types when iteration changes (migration restart)
+    useEffect(() => {
+      const currentIteration = newMigrationData?.iteration || 1;
+      if (currentIteration !== iterationCount) {
+        setIterationCount(currentIteration);
+        fetchContentTypes(searchText || '');
+      }
+    }, [newMigrationData?.iteration, iterationCount, searchText]);
+
     // Make title and url field non editable
     useEffect(() => {
       tableData?.forEach((field) => {
@@ -746,11 +755,7 @@ const ContentMapper = forwardRef(
         setIsLoading(false);
         setContentTypes(data?.contentTypes);
         setCount(data?.contentTypes?.length);
-        setFilteredContentTypes(
-          iterationCount > 1
-            ? data?.contentTypes?.filter((item: any) => item?.entryMapping?.length > 0)
-            : data?.contentTypes
-        );
+        setFilteredContentTypes(data?.contentTypes);
         setSelectedContentType(data?.contentTypes?.[0]);
         setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
         setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);

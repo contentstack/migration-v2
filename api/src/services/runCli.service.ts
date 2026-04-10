@@ -334,30 +334,25 @@ export const runCli = async (
         if (loggerPath && loggerPath !== transformePath) {
           fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
         }
+      }
+
+      // Persist CLI uid-mapping for BOTH test and full imports so Step 3 can show
+      // Contentstack UIDs and allow row selection (uid-mapper.json was only written for full runs before).
+      try {
         await ProjectModelLowdb.read();
-        const projectIndex = ProjectModelLowdb.chain
+        const project = ProjectModelLowdb.chain
           .get('projects')
-          .findIndex({ id: projectId })
+          .find({ id: projectId })
           .value();
-
-        console.info(`Found project index: ${projectIndex}`);
-
-        // Debug: Log the full project data to verify it exists
-        try {
-          const project = ProjectModelLowdb.chain
-            .get('projects')
-            .find({ id: projectId })
-            .value();
-          console.info(`Project found: ${project ? 'Yes' : 'No'}`);
-          await writeUidMapping(backupPath, projectId, project?.iteration);
-          if (project) {
-            console.info(
-              `Current migration status: started=${project.isMigrationStarted}, completed=${project.isMigrationCompleted}`
-            );
-          }
-        } catch (err) {
-          console.error('Error reading project data:', err);
+        console.info(`Project found for uid mapping: ${project ? 'Yes' : 'No'}`);
+        await writeUidMapping(backupPath, projectId, project?.iteration ?? 1);
+        if (project && !isTest) {
+          console.info(
+            `Current migration status: started=${project.isMigrationStarted}, completed=${project.isMigrationCompleted}`,
+          );
         }
+      } catch (err) {
+        console.error('Error writing UID mapping after import:', err);
       }
 
       // Keep the project status update code:

@@ -4,6 +4,22 @@ const isAssetField = (value) =>
     value && typeof value === 'object' && !Array.isArray(value) &&
     'urlPath' in value && 'filename' in value;
 
+/** Export JSON metadata — not Contentstack content-type field UIDs (WordPress entries are flat). */
+const FLAT_PAYLOAD_SKIP = new Set([
+    'uid',
+    'publish_details',
+    'locale',
+    'tags',
+    'ACL',
+    '_version',
+    'created_at',
+    'updated_at',
+    'created_by',
+    'updated_by',
+    '_content_type_uid',
+    'content',
+]);
+
 /**
  * 3-way asset resolution:
  *  1. newMapping has a UID for this source asset  → asset was re-imported, always use it
@@ -46,6 +62,37 @@ const resolveAssetField = (fieldName, entryUid, updateValue, stackValue, oldMapp
     return stackValue || updateValue;
 };
 
+/**
+ * WordPress (and similar) write migration JSON with fields at the root (email, url, …).
+ * Fetched stack entries keep custom fields under entry.content — merge flat updateData there.
+ */
+const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping, newMapping) => {
+    for (const field of Object.keys(updateData)) {
+        if (FLAT_PAYLOAD_SKIP.has(field)) {
+            continue;
+        }
+        if (field === 'title') {
+            if (updateData.title !== undefined && updateData.title !== null) {
+                entry.title = updateData.title;
+            }
+            continue;
+        }
+        let nextVal = updateData[field];
+        if (isAssetField(nextVal)) {
+            nextVal = resolveAssetField(
+                field,
+                entryUid,
+                nextVal,
+                entry.content[field],
+                oldMapping,
+                newMapping
+            );
+        }
+        entry.content[field] = nextVal;
+    }
+    await entry.update();
+};
+
 module.exports = async ({
     migration,
     config,
@@ -81,25 +128,28 @@ module.exports = async ({
                             const entry = await entryRef.fetch();
                             const updateData = JSON.parse(JSON.stringify(config[contentType][entryUid]));
 
-                            if (entry.content && updateData.content) {
-                                if (updateData.content && entry.content) {
-                                    for (const field of Object.keys(updateData.content)) {
-                                        if (isAssetField(updateData.content[field])) {
-                                            updateData.content[field] = resolveAssetField(
-                                                field,
-                                                entryUid,
-                                                updateData[field],
-                                                entry[field],
-                                                oldMapping,
-                                                newMapping
-                                            );
-                                        }
+                            const hasStackContent = entry.content && typeof entry.content === 'object';
+                            const hasNestedUpdate = updateData.content && typeof updateData.content === 'object';
+
+                            if (hasStackContent && hasNestedUpdate) {
+                                for (const field of Object.keys(updateData.content)) {
+                                    if (isAssetField(updateData.content[field])) {
+                                        updateData.content[field] = resolveAssetField(
+                                            field,
+                                            entryUid,
+                                            updateData.content[field],
+                                            entry.content[field],
+                                            oldMapping,
+                                            newMapping
+                                        );
                                     }
                                 }
                                 Object.assign(entry.content, updateData.content);
                                 await entry.update();
-                            }
-                            else {
+                            } else if (hasStackContent) {
+                                console.info(`[${entryUid}] Merging flat migration payload into entry.content (e.g. WordPress export)`);
+                                await mergeFlatPayloadIntoEntry(entry, entryUid, updateData, oldMapping, newMapping);
+                            } else {
                                 if (updateData && entry) {
                                     for (const field of Object.keys(updateData)) {
                                         if (isAssetField(updateData[field])) {

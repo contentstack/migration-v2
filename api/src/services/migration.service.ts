@@ -45,6 +45,7 @@ import { removeEntriesFromDatabase, enrichConfigWithAssetMapping } from '../util
 import { removeExistingAssets } from '../utils/asset-update.utils.js';
 import { updateEntryCli, utilsUpdateCli } from './updateEntryCli.service.js';
 
+
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 // (merge-conflict cleanup) keep single imports only
 
@@ -682,19 +683,19 @@ const startMigration = async (req: Request): Promise<any> => {
     } = project;
     const loggerPath = path.join(
       process.cwd(),
-      'logs',
+      "logs",
       projectId,
       `${project?.destination_stack_id}.log`
     );
     const message = getLogMessage(
-      'start Migration',
-      'Starting Migration...',
+      "start Migration",
+      "Starting Migration...",
       {}
     );
     await customLogger(
       projectId,
       project?.destination_stack_id,
-      'info',
+      "info",
       message
     );
     await setLogFilePath(loggerPath);
@@ -709,28 +710,28 @@ const startMigration = async (req: Request): Promise<any> => {
 
         // Validate the sanitized stackUid - sanitizeStackId returns null for invalid inputs
         if (sanitizedStackUid === null) {
-          console.error('Invalid stack UID provided');
+          console.error("Invalid stack UID provided");
           return;
         }
 
         // Define base directory for validation
-        const baseDir = path.join(process.cwd(), 'migration-data');
+        const baseDir = path.join(process.cwd(), "migration-data");
         const resolvedBaseDir = path.resolve(baseDir);
 
         // Construct safe paths using only the validated sanitized stackUid
         const errorLogPath = path.join(
           resolvedBaseDir,
           sanitizedStackUid,
-          'logs',
-          'import',
-          'error.log'
+          "logs",
+          "import",
+          "error.log"
         );
         const successLogPath = path.join(
           resolvedBaseDir,
           sanitizedStackUid,
-          'logs',
-          'import',
-          'success.log'
+          "logs",
+          "import",
+          "success.log"
         );
 
         // Final validation to ensure paths are within the expected base directory
@@ -739,12 +740,12 @@ const startMigration = async (req: Request): Promise<any> => {
           !path.resolve(successLogPath).startsWith(resolvedBaseDir + path.sep)
         ) {
           console.error(
-            'Invalid path detected, potential path traversal attempt'
+            "Invalid path detected, potential path traversal attempt"
           );
           return;
         }
 
-        let combinedLogs = '';
+        let combinedLogs = "";
 
         // Read and combine error logs - use realpath to canonicalize and validate path
         try {
@@ -755,9 +756,9 @@ const startMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const errorLogs = await fsPromises.readFile(
               canonicalErrorPath,
-              'utf8'
+              "utf8"
             );
-            combinedLogs += errorLogs + '\n';
+            combinedLogs += errorLogs + "\n";
           }
         } catch {
           // File doesn't exist or access denied - skip
@@ -774,7 +775,7 @@ const startMigration = async (req: Request): Promise<any> => {
             // path containment check, and realpath canonicalization before reading
             const successLogs = await fsPromises.readFile(
               canonicalSuccessPath,
-              'utf8'
+              "utf8"
             );
             combinedLogs += successLogs;
           }
@@ -787,7 +788,7 @@ const startMigration = async (req: Request): Promise<any> => {
           await fsPromises.appendFile(projectLogPath, combinedLogs);
         }
       } catch (error) {
-        console.error('Error copying logs:', error);
+        console.error("Error copying logs:", error);
       }
     };
 
@@ -866,8 +867,26 @@ const startMigration = async (req: Request): Promise<any> => {
             project?.destination_stack_id,
             projectId
           );
-          await wordpressService?.createTaxonomy(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
-          await wordpressService?.createEntry(file_path, packagePath, project?.destination_stack_id, projectId, contentTypes, project?.mapperKeys, project?.stackDetails?.master_locale, project);
+          await wordpressService?.createTaxonomy(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
+          await wordpressService?.createEntry(
+            file_path,
+            packagePath,
+            project?.destination_stack_id,
+            projectId,
+            contentTypes,
+            project?.mapperKeys,
+            project?.stackDetails?.master_locale,
+            project
+          );
 
           //await wordpressService?.extractContentTypes(projectId, project?.destination_stack_id)
           await wordpressService?.createVersionFile(
@@ -878,7 +897,7 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
       }
       case CMS.CONTENTFUL: {
-        const cleanLocalPath = file_path?.replace?.(/\/$/, '');
+        const cleanLocalPath = file_path?.replace?.(/\/$/, "");
         await contentfulService?.createLocale(
           cleanLocalPath,
           project?.destination_stack_id,
@@ -950,7 +969,7 @@ const startMigration = async (req: Request): Promise<any> => {
         const dbConfig = {
           host: project?.legacy_cms?.mySQLDetails?.host,
           user: project?.legacy_cms?.mySQLDetails?.user,
-          password: project?.legacy_cms?.mySQLDetails?.password || '',
+          password: project?.legacy_cms?.mySQLDetails?.password || "",
           database: project?.legacy_cms?.mySQLDetails?.database,
           port: project?.legacy_cms?.mySQLDetails?.port || 3306,
         };
@@ -961,12 +980,12 @@ const startMigration = async (req: Request): Promise<any> => {
             project?.legacy_cms?.assetsConfig?.base_url ||
             req.body?.assetsConfig?.base_url ||
             process.env.DRUPAL_ASSETS_BASE_URL ||
-            '',
+            "",
           public_path:
             project?.legacy_cms?.assetsConfig?.public_path ||
             req.body?.assetsConfig?.public_path ||
             process.env.DRUPAL_ASSETS_PUBLIC_PATH ||
-            '',
+            "",
         };
 
         // Run Drupal migration services in proper order
@@ -1032,7 +1051,7 @@ const startMigration = async (req: Request): Promise<any> => {
         break;
     }
 
-    await removeExistingAssets(projectId);
+    await removeExistingAssets(projectId, loggerPath);
 
     await ProjectModelLowdb.read();
     const projectData = ProjectModelLowdb.chain
@@ -1043,10 +1062,9 @@ const startMigration = async (req: Request): Promise<any> => {
 
     let configFilePath: string | null = null;
     if (iteration > 1) {
-      configFilePath = await removeEntriesFromDatabase(projectId); //
-      console.info('Config file written to:', configFilePath); //
+      configFilePath = await removeEntriesFromDatabase(projectId, loggerPath);
+      console.info("Config file written to:", configFilePath);
     }
-
 
     await utilsCli?.runCli(
       region,
@@ -1058,9 +1076,10 @@ const startMigration = async (req: Request): Promise<any> => {
     );
 
     if (configFilePath) {
-      enrichConfigWithAssetMapping(configFilePath, projectId, iteration); //
-      console.info('Asset mapping enriched into config');
-      await utilsUpdateCli?.updateEntryCli( //
+      enrichConfigWithAssetMapping(configFilePath, projectId, iteration, loggerPath);
+      console.info("Asset mapping enriched into config");
+      await utilsUpdateCli?.updateEntryCli(
+        //
         region,
         user_id,
         project?.destination_stack_id,

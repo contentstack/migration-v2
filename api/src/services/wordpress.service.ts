@@ -550,7 +550,7 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           for(const term of termCategory){
             const uid = allTerms?.find((item: any) => term?.attributes?.nicename === item?.["wp:term_slug"])?.["wp:term_id"];
             terms.push({
-              "uid": `terms_${uid}`,
+              "uid": `posts_${uid}`,
               "_content_type_uid": 'terms'
             });
 
@@ -906,7 +906,7 @@ const createTerms = async (allTerms: any, destinationStackId: string, projectId:
     const termsData:{ [key: string]: any } = {}
 
     for (const data of allTerms) {
-      const uid = `terms_${data["wp:term_id"]}`;
+      const uid = `posts_${data["wp:term_id"]}`;
       const title = data?.["wp:term_name"];
       const url = `/${title?.toLowerCase()?.replace(/ /g, "_")}`;
       const customId = idCorrector(uid);
@@ -1679,7 +1679,7 @@ async function saveAuthors(authorDetails: any[], destinationStackId: string, pro
       const authordata: { [key: string]: any } = {};
   
       for (const data of authorDetails) {
-        const uid = `authors_${data["wp:author_id"] || data["wp:author_login"]}`;
+        const uid = `posts_${data["wp:author_id"] || data["wp:author_login"]}`;
         const title = data["wp:author_login"] || `Authors - ${data["wp:author_id"]}`;
         const url = `/${title.toLowerCase().replace(/ /g, "_")}`;
         const customId = idCorrector(uid);

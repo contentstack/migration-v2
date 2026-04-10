@@ -48,6 +48,7 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
       level: ''
     }
   ]);
+  const [hasShownTestCompletionNotification, setHasShownTestCompletionNotification] = useState(false);
 
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
@@ -66,6 +67,13 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
     );
     setmigratedSatck(migratedTestStack);
   }, [newMigrationData?.test_migration]);
+
+  // Reset test completion notification flag when a new test migration starts
+  useEffect(() => {
+    if (newMigrationData?.test_migration?.isMigrationStarted && !migratedStack?.isMigrated) {
+      setHasShownTestCompletionNotification(false);
+    }
+  }, [newMigrationData?.test_migration?.isMigrationStarted, migratedStack?.isMigrated]);
 
   // Set up WebSocket connection
   useEffect(() => {
@@ -174,8 +182,9 @@ const TestMigrationLogViewer = ({ serverPath, sendDataToParent, projectId }: Log
         //const logObject = JSON.parse(log);
         const message = log?.message;
 
-        if (message === 'Test Migration Process Completed') {
+        if (message === 'Test Migration Process Completed' && !hasShownTestCompletionNotification) {
           setisLogsLoading(false);
+          setHasShownTestCompletionNotification(true);
 
           // Save test migration state to local storage
           saveStateToLocalStorage(`testmigration_${projectId}`, {

@@ -24,6 +24,23 @@ const getEntryName = (item: any): string => {
   if (item?.title?.text) {
     return String(item.title.text).trim();
   }
+  
+  // Handle author entries
+  if (item?.['wp:author_display_name']) {
+    return String(item['wp:author_display_name']).trim();
+  }
+  if (item?.['wp:author_login']) {
+    return String(item['wp:author_login']).trim();
+  }
+  
+  // Handle terms entries
+  if (item?.['wp:term_name']) {
+    return String(item['wp:term_name']).trim();
+  }
+  if (item?.['wp:term_slug']) {
+    return String(item['wp:term_slug']).trim();
+  }
+  
   if (typeof item?.['wp:post_name'] === 'string' && item['wp:post_name'].trim()) {
     return item['wp:post_name'].trim();
   }
@@ -31,14 +48,25 @@ const getEntryName = (item: any): string => {
 };
 
 /**
- * All WordPress entry mapper UIDs use `posts_${...}` to align with api `wordpress.service.ts`
- * entry keys and uid-mapper lookups after migration.
+ * All WordPress source entry keys use `posts_${...}` (any content type) so they align with
+ * wordpress.service export JSON and CLI uid-mapping.
  */
 const getSourceEntryUid = (item: any): string => {
   const postId = item?.['wp:post_id'];
   if (postId != null && String(postId).trim() !== '') {
     return idCorrector(`posts_${postId}`);
   }
+
+  const authorId = item?.['wp:author_id'];
+  if (authorId != null && String(authorId).trim() !== '') {
+    return idCorrector(`posts_${authorId}`);
+  }
+
+  const termId = item?.['wp:term_id'];
+  if (termId != null && String(termId).trim() !== '') {
+    return idCorrector(`posts_${termId}`);
+  }
+
   const candidate =
     item?.guid?.text ?? item?.guid ?? item?.link ?? getEntryName(item);
   const base = idCorrector(String(candidate || 'entry'));
@@ -78,6 +106,41 @@ const extractEntries = async (filePath: string, contentTypeData: any[] = []) => 
       acc[postType].push(item);
       return acc;
     }, {});
+
+    // Extract author entries
+    const authorData = jsonData?.rss?.channel?.['wp:author'];
+    if (authorData) {
+      const authorEntries = normalizeArray(authorData).map((author: any) => ({
+        'wp:post_type': 'author',
+        'wp:post_id': author?.['wp:author_id'],
+        title: author?.['wp:author_display_name'] || author?.['wp:author_login'],
+        'wp:author_login': author?.['wp:author_login'],
+        'wp:author_email': author?.['wp:author_email'],
+        'wp:author_display_name': author?.['wp:author_display_name'],
+        'wp:author_first_name': author?.['wp:author_first_name'],
+        'wp:author_last_name': author?.['wp:author_last_name']
+      }));
+      if (authorEntries.length > 0) {
+        groupedByType['author'] = authorEntries;
+      }
+    }
+
+    // Extract terms entries (wp:term)
+    const termData = jsonData?.rss?.channel?.['wp:term'];
+    if (termData) {
+      const termEntries = normalizeArray(termData).map((term: any) => ({
+        'wp:post_type': 'terms',
+        'wp:post_id': term?.['wp:term_id'],
+        title: term?.['wp:term_name'] || term?.['wp:term_slug'],
+        'wp:term_id': term?.['wp:term_id'],
+        'wp:term_taxonomy': term?.['wp:term_taxonomy'],
+        'wp:term_slug': term?.['wp:term_slug'],
+        'wp:term_name': term?.['wp:term_name']
+      }));
+      if (termEntries.length > 0) {
+        groupedByType['terms'] = termEntries;
+      }
+    }
 
     const updatedTypes = contentTypeData?.map((ct) => ({ ...ct }));
 

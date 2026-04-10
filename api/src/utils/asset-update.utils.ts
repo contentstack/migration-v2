@@ -3,6 +3,21 @@ import path from "path";
 import fs from "node:fs";
 import { MIGRATION_DATA_CONFIG } from "../constants/index.js";
 
+/**
+ * Helper function to write log entries to file
+ */
+const writeLogEntry = (message: string, methodName: string, loggerPath?: string) => {
+    if (loggerPath) {
+        const directLogEntry = {
+            level: 'info',
+            message,
+            methodName,
+            timestamp: new Date().toISOString(),
+        };
+        fs.appendFileSync(loggerPath, JSON.stringify(directLogEntry) + '\n');
+    }
+};
+
 interface AssetMetadata {
     filename: string;
     file_size: string;
@@ -45,7 +60,8 @@ const replaceAssetRefsInObject = (
 const saveAssetMetadata = (
     indexData: Record<string, any>,
     projectId: string,
-    iteration: number
+    iteration: number,
+    loggerPath?: string
 ): void => {
     const metadata: Record<string, AssetMetadata> = {};
 
@@ -61,7 +77,7 @@ const saveAssetMetadata = (
     fs.mkdirSync(metadataDir, { recursive: true });
     const metadataPath = path.join(metadataDir, "asset-metadata.json");
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
-    console.info(`Asset metadata saved: ${Object.keys(metadata).length} assets → ${metadataPath}`);
+    writeLogEntry(`Asset metadata saved: ${Object.keys(metadata).length} assets → ${metadataPath}`, "saveAssetMetadata", loggerPath);
 };
 
 /**
@@ -76,6 +92,7 @@ const loadPreviousAssetMetadata = (
         prevIteration.toString(), "asset-metadata.json"
     );
     if (!fs.existsSync(metadataPath)) {
+        // Note: This function doesn't have access to loggerPath, keeping as console for internal function
         console.info(`No previous asset metadata found at ${metadataPath}`);
         return {};
     }
@@ -99,6 +116,7 @@ const loadPreviousAssetUidMap = (
         prevIteration.toString(), "uid-mapper.json"
     );
     if (!fs.existsSync(uidMapperPath)) {
+        // Note: This function doesn't have access to loggerPath, keeping as console for internal function
         console.info(`No uid-mapper found at ${uidMapperPath}`);
         return {};
     }
@@ -127,6 +145,7 @@ const hasAssetChanged = (
     const currentFileSize = currentAsset?.file_size || "";
 
     if (currentFilename !== prev.filename || currentFileSize !== prev.file_size) {
+        // Note: This function doesn't have access to loggerPath, keeping as console for internal function
         console.info(
             `Asset "${assetId}" changed: ` +
             `filename "${prev.filename}" → "${currentFilename}", ` +
@@ -153,7 +172,7 @@ const hasAssetChanged = (
  *   5. Removes deduplicated asset entries from index.json and their file folders
  *   6. Saves current asset metadata for the next iteration
  */
-export const removeExistingAssets = async (projectId: string): Promise<void> => {
+export const removeExistingAssets = async (projectId: string, loggerPath?: string): Promise<void> => {
     await ProjectModelLowdb.read();
     const projectData = ProjectModelLowdb.chain
         .get("projects")
@@ -164,7 +183,7 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
     const stackId = projectData?.destination_stack_id;
 
     if (!stackId) {
-        console.info("No stackId found, skipping asset dedup.");
+        writeLogEntry("No stackId found, skipping asset dedup.", "removeExistingAssets", loggerPath);
         return;
     }
 
@@ -175,10 +194,10 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
     const indexPath = path.join(assetsDir, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
 
     if (!fs.existsSync(indexPath)) {
-        console.info(`Assets index.json not found at ${indexPath}, skipping.`);
+        writeLogEntry(`Assets index.json not found at ${indexPath}, skipping.`, "removeExistingAssets", loggerPath);
         return;
     }
-    console.info(`Assets index.json found at ${indexPath}`);
+    writeLogEntry(`Assets index.json found at ${indexPath}`, "removeExistingAssets", loggerPath);
 
     let indexData: Record<string, any>;
     try {
@@ -193,24 +212,24 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
         return;
     }
 
-    saveAssetMetadata(indexData, projectId, iteration);
+    saveAssetMetadata(indexData, projectId, iteration, loggerPath);
 
     if (iteration <= 1) {
-        console.info("Iteration 1: asset metadata saved, no dedup needed.");
+        writeLogEntry("Iteration 1: asset metadata saved, no dedup needed.", "removeExistingAssets", loggerPath);
         return;
     }
-    console.info(`Iteration ${iteration} found, loading previous asset uid map and metadata.`);
+    writeLogEntry(`Iteration ${iteration} found, loading previous asset uid map and metadata.`, "removeExistingAssets", loggerPath);
 
     const prevIteration = iteration - 1;
     const prevAssetUidMap = loadPreviousAssetUidMap(projectId, prevIteration);
-    console.info(`Previous asset uid map loaded from ${prevIteration} iteration.`);
+    writeLogEntry(`Previous asset uid map loaded from ${prevIteration} iteration.`, "removeExistingAssets", loggerPath);
     const prevMetadata = loadPreviousAssetMetadata(projectId, prevIteration);
 
     if (!Object.keys(prevAssetUidMap).length) {
-        console.info("No previous asset uid mapping found, skipping dedup.");
+        writeLogEntry("No previous asset uid mapping found, skipping dedup.", "removeExistingAssets", loggerPath);
         return;
     }
-    console.info(`Previous asset metadata loaded from ${prevIteration} iteration.`);
+    writeLogEntry(`Previous asset metadata loaded from ${prevIteration} iteration.`, "removeExistingAssets", loggerPath);
     const assetsToReuse = new Map<string, string>();
     const assetsToRemoveFromIndex: string[] = [];
 
@@ -221,14 +240,15 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
         if (!hasAssetChanged(assetId, assetData, prevMetadata)) {
             assetsToReuse.set(assetId, contentstackUid);
             assetsToRemoveFromIndex.push(assetId);
-            console.info(`Asset "${assetId}" unchanged → reuse CS UID "${contentstackUid}"`);
+            writeLogEntry(`Asset "${assetId}" unchanged → reuse CS UID "${contentstackUid}"`, "removeExistingAssets", loggerPath);
+            writeLogEntry(`Asset "${assetId}" has been reused from previous migration`, "removeExistingAssets", loggerPath);
         } else {
-            console.info(`Asset "${assetId}" changed → will re-import`);
+            writeLogEntry(`Asset "${assetId}" changed → will re-import`, "removeExistingAssets", loggerPath);
         }
     }
 
     if (!assetsToReuse.size) {
-        console.info("No unchanged assets to deduplicate.");
+        writeLogEntry("No unchanged assets to deduplicate.", "removeExistingAssets", loggerPath);
         return;
     }
 
@@ -281,7 +301,7 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
                         const modified = replaceAssetRefsInObject(data, assetsToReuse);
                         if (modified) {
                             fs.writeFileSync(filePath, JSON.stringify(data), "utf-8");
-                            console.info(`Replaced asset refs in ${filePath}`);
+                            writeLogEntry(`Replaced asset refs in ${filePath}`, "removeExistingAssets", loggerPath);
                         }
                     } catch (error) {
                         console.error(`Failed to process file ${filePath}:`, error instanceof Error ? error.message : String(error));
@@ -296,9 +316,10 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
     // 2. Remove deduplicated assets from index.json
     for (const assetId of assetsToRemoveFromIndex) {
         delete indexData[assetId];
+        writeLogEntry(`Asset "${assetId}" has been removed from migration data (already exists in Contentstack)`, "removeExistingAssets", loggerPath);
     }
     fs.writeFileSync(indexPath, JSON.stringify(indexData, null, 4), "utf-8");
-    console.info(`Removed ${assetsToRemoveFromIndex.length} assets from index.json`);
+    writeLogEntry(`Removed ${assetsToRemoveFromIndex.length} assets from index.json`, "removeExistingAssets", loggerPath);
 
     // 3. Remove asset file folders
     const filesDir = path.join(assetsDir, "files");
@@ -307,13 +328,16 @@ export const removeExistingAssets = async (projectId: string): Promise<void> => 
             const assetFolder = path.join(filesDir, assetId);
             if (fs.existsSync(assetFolder)) {
                 fs.rmSync(assetFolder, { recursive: true, force: true });
-                console.info(`Removed asset folder: ${assetFolder}`);
+                writeLogEntry(`Removed asset folder: ${assetFolder}`, "removeExistingAssets", loggerPath);
+                writeLogEntry(`Asset "${assetId}" physical files have been removed from migration data`, "removeExistingAssets", loggerPath);
             }
         }
     }
 
-    console.info(
+    writeLogEntry(
         `Asset dedup complete: ${assetsToReuse.size} reused, ` +
-        `${Object.keys(indexData).length} remaining for import.`
+        `${Object.keys(indexData).length} remaining for import.`,
+        "removeExistingAssets",
+        loggerPath
     );
 };
