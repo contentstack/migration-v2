@@ -1581,6 +1581,75 @@ const getExistingTaxonomies = async (req: Request) => {
     };
   }
 };
+const getExistingExtensions = async ({existingStackId, token_payload}: any) => {
+  try {
+    const url = `${config.CS_API[
+      token_payload?.region as keyof typeof config.CS_API
+    ]!}/extensions`;
+
+    const headers: Record<string, string> = { api_key: existingStackId };
+    if (token_payload?.is_sso) {
+      const accessToken = await getAccessToken(
+        token_payload.region,
+        token_payload.user_id,
+      );
+      headers.authorization = `Bearer ${accessToken}`;
+    } else {
+      headers.authtoken = await getAuthtoken(
+        token_payload.region,
+        token_payload.user_id,
+      );
+    }
+
+    const requestConfig = {
+      method: 'GET' as const,
+      url,
+      headers,
+    };
+
+    const [err, res] = token_payload?.is_sso
+      ? await requestWithSsoTokenRefresh(token_payload, requestConfig)
+      : await safePromise(https(requestConfig));
+
+    if (err) {
+      const e = err as {
+        message?: string;
+        response?: { status?: number; data?: unknown };
+      };
+      const detail =
+        e.response?.data != null
+          ? typeof e.response.data === 'string'
+            ? e.response.data
+            : JSON.stringify(e.response.data)
+          : e.message;
+      const httpErr = new Error(`Error in getExistingExtensions: ${detail}`);
+      if (e.response?.status != null) {
+        Object.assign(httpErr, { statusCode: e.response.status });
+      }
+      throw httpErr;
+    }
+
+    const extensions = res?.data?.extensions;
+    console.info('extensions', extensions);
+    if (!Array.isArray(extensions)) {
+      throw new Error(
+        'Error in getExistingExtensions: extensions is not an array',
+      );
+    }
+
+    return extensions.filter((ext: { type?: string }) => ext?.type === 'field');
+
+  } catch (error: any) {
+    logger.error(`Error in getExistingExtensions: ${error.message}`, error);
+    return {
+      data: error.message,
+      status: error?.statusCode || error?.status || 500,
+    };
+
+    
+  }
+
+}
 
 export const contentMapperService = {
   putTestData,
@@ -1597,4 +1666,5 @@ export const contentMapperService = {
   getExistingGlobalFields,
   getSingleGlobalField,
   getExistingTaxonomies,
+  getExistingExtensions,
 };
