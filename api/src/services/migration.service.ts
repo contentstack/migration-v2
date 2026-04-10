@@ -432,6 +432,12 @@ const startTestMigration = async (req: Request): Promise<any> => {
     });
     await extensionService?.createExtension({
       destinationStackId: project?.current_test_stack_id,
+      existingStackId: project?.destination_stack_id,
+      token_payload: {
+        region,
+        user_id,
+        is_sso,
+      },
     });
     // await taxonomyService?.createTaxonomy({
     //   orgId,
@@ -828,6 +834,12 @@ const startMigration = async (req: Request): Promise<any> => {
 
     await extensionService?.createExtension({
       destinationStackId: project?.destination_stack_id,
+      existingStackId: project?.source_stack_id,
+      token_payload: {
+        region,
+        user_id,
+        is_sso,
+      },
     });
 
     await taxonomyService?.createTaxonomy({
