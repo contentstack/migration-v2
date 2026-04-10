@@ -16,3 +16,6 @@ error.log
 combine.log
 
 tmp
+
+# Test coverage
+coverage/

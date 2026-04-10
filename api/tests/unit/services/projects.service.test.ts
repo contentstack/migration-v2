@@ -54,7 +54,7 @@ vi.mock('../../../src/config/index.js', () => ({
   },
 }));
 vi.mock('../../../src/models/contentTypesMapper-lowdb.js', () => ({
-  default: {
+  default: vi.fn().mockReturnValue({
     read: vi.fn().mockResolvedValue(undefined),
     update: vi.fn(),
     write: vi.fn(),
@@ -66,10 +66,10 @@ vi.mock('../../../src/models/contentTypesMapper-lowdb.js', () => ({
       }),
     },
     data: { ContentTypesMappers: [] },
-  },
+  }),
 }));
 vi.mock('../../../src/models/FieldMapper.js', () => ({
-  default: {
+  default: vi.fn().mockReturnValue({
     read: vi.fn().mockResolvedValue(undefined),
     update: vi.fn(),
     write: vi.fn(),
@@ -81,7 +81,7 @@ vi.mock('../../../src/models/FieldMapper.js', () => ({
       }),
     },
     data: { field_mapper: [] },
-  },
+  }),
 }));
 vi.mock('../../../src/services/contentMapper.service.js', () => ({
   contentMapperService: {
@@ -578,9 +578,17 @@ describe('projects.service', () => {
       (mockModel.default as any).data = { projects: [project] };
 
       const ctMock = await import('../../../src/models/contentTypesMapper-lowdb.js');
-      (ctMock.default as any).chain.get.mockReturnValue({
-        find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue({ id: 'ct-1', fieldMapping: [] }) }),
-        findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+      (ctMock.default as any).mockReturnValue({
+        read: vi.fn().mockResolvedValue(undefined),
+        update: vi.fn(),
+        write: vi.fn(),
+        chain: {
+          get: vi.fn().mockReturnValue({
+            find: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue({ id: 'ct-1', fieldMapping: [] }) }),
+            findIndex: vi.fn().mockReturnValue({ value: vi.fn().mockReturnValue(0) }),
+          }),
+        },
+        data: { ContentTypesMappers: [] },
       });
       mockProjectUpdate.mockImplementation(async (fn: any) => fn({ projects: [project] }));
 

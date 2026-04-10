@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('node:fs', () => ({
+  default: { mkdirSync: vi.fn() },
+  mkdirSync: vi.fn(),
+}));
+
 vi.mock('lowdb/node', () => ({
   JSONFile: vi.fn().mockImplementation(function (this: unknown) {
     return {};
@@ -24,7 +29,8 @@ describe('FieldMapper model', () => {
   });
 
   it('should export db with field_mapper array in default data', async () => {
-    const fieldMapperDb = (await import('../../../src/models/FieldMapper.js')).default;
+    const getFieldMapperDb = (await import('../../../src/models/FieldMapper.js')).default;
+    const fieldMapperDb = getFieldMapperDb('test-project', 1);
 
     expect(fieldMapperDb).toBeDefined();
     expect(fieldMapperDb.data).toBeDefined();
@@ -34,7 +40,8 @@ describe('FieldMapper model', () => {
   });
 
   it('should have correct default structure for FieldMapper', async () => {
-    const fieldMapperDb = (await import('../../../src/models/FieldMapper.js')).default;
+    const getFieldMapperDb = (await import('../../../src/models/FieldMapper.js')).default;
+    const fieldMapperDb = getFieldMapperDb('test-project', 1);
 
     expect(fieldMapperDb.data).toMatchObject({
       field_mapper: [],

@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockValidator, mockSaveZip, mockSaveJson, mockParseXmlToJson } = vi.hoisted(() => ({
+const { mockValidator, mockSaveZip, mockSaveJson, mockParseXmlToJson, mockUpdateConfigFile } = vi.hoisted(() => ({
   mockValidator: vi.fn(),
   mockSaveZip: vi.fn(),
   mockSaveJson: vi.fn(),
   mockParseXmlToJson: vi.fn(),
+  mockUpdateConfigFile: vi.fn(),
 }));
 
 vi.mock('../../../src/validators/index', () => ({ default: mockValidator }));
@@ -12,6 +13,7 @@ vi.mock('../../../src/helper/index', () => ({
   saveZip: mockSaveZip,
   saveJson: mockSaveJson,
   parseXmlToJson: mockParseXmlToJson,
+  updateConfigFile: mockUpdateConfigFile,
   fileOperationLimiter: vi.fn(),
   deleteFolderSync: vi.fn(),
   getFileName: vi.fn(),
@@ -40,6 +42,11 @@ import handleFileProcessing from '../../../src/services/fileProcessing';
 describe('handleFileProcessing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUpdateConfigFile.mockResolvedValue({
+      cmsType: 'wordpress',
+      mysql: { host: 'localhost', user: 'root', password: 'pw', database: 'db', port: '3306' },
+      assetsConfig: { base_url: 'http://test.com', public_path: '/files' },
+    });
   });
 
   describe('zip files', () => {

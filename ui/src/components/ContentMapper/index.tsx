@@ -227,8 +227,8 @@ const Fields: MappingFields = {
   },
   taxonomy: {
     label: 'Taxonomy',
-    options: { Taxonomy: 'taxonomy' },
-    type: 'taxonomy'
+    options: {'Taxonomy':'taxonomy'},
+    type:''
   }
 };
 type contentMapperProps = {
@@ -419,271 +419,368 @@ const ContentMapper = forwardRef(
               };
             }
 
-            // 1st level group nesting
-            if (schema?.schema) {
-              schema?.schema?.forEach((childSchema) => {
-                if (
-                  row?.contentstackField ===
-                  `${schema?.display_name} > ${childSchema?.display_name}`
-                ) {
-                  if (!isFieldDeleted) {
-                    if (
-                      !updatedSelectedOptions?.includes?.(
-                        `${schema?.display_name} > ${childSchema?.display_name}`
-                      )
-                    ) {
-                      updatedSelectedOptions.push(
-                        `${schema?.display_name} > ${childSchema?.display_name}`
-                      );
-                    }
-                    updatedExstingField[row?.backupFieldUid] = {
-                      label: `${schema?.display_name} > ${childSchema?.display_name}`,
-                      value: childSchema
-                    };
+          // 1st level group nesting
+          if (schema?.schema) {
+            schema?.schema?.forEach((childSchema) => {
+              if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`) {
+                if (!isFieldDeleted) {
+                  if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name}`)) {
+                    updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name}`);
+                  }
+                  updatedExstingField[row?.backupFieldUid] = {
+                    label: `${schema?.display_name} > ${childSchema?.display_name}`,
+                    value: childSchema
                   }
                 }
+              }
 
-                // 2nd level group nesting
-                if (childSchema?.schema) {
-                  childSchema?.schema?.forEach((nestedSchema) => {
-                    if (
-                      row?.contentstackField ===
-                      `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`
-                    ) {
-                      if (!isFieldDeleted) {
-                        if (
-                          !updatedSelectedOptions?.includes?.(
-                            `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`
-                          )
-                        ) {
-                          updatedSelectedOptions.push(
-                            `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`
-                          );
-                        }
-                        updatedExstingField[row?.backupFieldUid] = {
-                          label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`,
-                          value: nestedSchema
-                        };
+              // 2nd level group nesting
+              if (childSchema?.schema) {
+                childSchema?.schema?.forEach((nestedSchema) => {
+                  if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`) {
+                    if (!isFieldDeleted) {
+                      if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`)) {
+                        updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`);
+                      }
+                      updatedExstingField[row?.backupFieldUid] = {
+                        label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`,
+                        value: nestedSchema
                       }
                     }
+                  }
 
-                    // 3rd level group nesting
-                    if (nestedSchema?.schema) {
-                      nestedSchema?.schema?.forEach((nestedChild) => {
-                        if (
-                          row?.contentstackField ===
-                          `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`
-                        ) {
-                          if (!isFieldDeleted) {
-                            if (
-                              !updatedSelectedOptions?.includes?.(
-                                `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`
-                              )
-                            ) {
-                              updatedSelectedOptions.push(
-                                `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`
-                              );
-                            }
-                            updatedExstingField[row?.backupFieldUid] = {
-                              label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`,
-                              value: nestedChild
-                            };
+                  // 3rd level group nesting
+                  if (nestedSchema?.schema) {
+                    nestedSchema?.schema?.forEach((nestedChild) => {
+                      if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`) {
+                        if (!isFieldDeleted) {
+                          if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`)) {
+                            updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`);
+                          }
+                          updatedExstingField[row?.backupFieldUid] = {
+                            label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`,
+                            value: nestedChild
                           }
                         }
-                      });
-                    }
-                  });
-                }
-              });
-            }
-          });
-        });
-        setSelectedOptions(updatedSelectedOptions);
-        setExistingField(updatedExstingField);
-      }
-    }, [tableData, otherContentType]);
-
-    useEffect(() => {
-      if (isUpdated) {
-        setIsAllCheck(false);
-        setTableData(updatedRows);
-        setExistingField(updatedExstingField);
-        setSelectedOptions(updatedSelectedOptions);
-        setSelectedEntries(updatedRows);
-        setIsUpdated(false);
-      } else {
-        setIsAllCheck(false);
-        setExistingField({});
-        setSelectedOptions([]);
-      }
-    }, [isUpdated, otherContentType]);
-
-    // To make all the fields checked
-    useEffect(() => {
-      const selectedId = tableData?.reduce<UidMap>((acc, item) => {
-        if (!item?.isDeleted && isAllCheck) {
-          acc[item?.id] = true;
-        }
-        return acc;
-      }, {});
-
-      isAllCheck && setRowIds(selectedId);
-    }, [tableData, isAllCheck]);
-
-    // To fetch existing content types or global fields as per the type
-    useEffect(() => {
-      if (isContentType) {
-        setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes ?? [])));
-      } else {
-        // if (reduxGlobalFields?.length > 0) {
-        setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields ?? [])));
-        // }
-      }
-    }, [isContentType, reduxContentTypes, reduxGlobalFields]);
-
-    // To close the filter panel on outside click
-    useEffect(() => {
-      document.addEventListener('click', handleClickOutside, true);
-
-      return () => {
-        document.removeEventListener('click', handleClickOutside, true);
-      };
-    }, []);
-
-    /**
-     * Debounces a function call by delaying its execution until after the specified delay has elapsed since the last invocation.
-     * @param fn - The function to debounce
-     * @param delay - The delay in milliseconds to wait before executing the function
-     * @returns A debounced version of the function
-     */
-    const debounce = (fn: (...args: any[]) => any, delay: number | undefined) => {
-      let timeoutId: ReturnType<typeof setTimeout> | undefined;
-      return (...args: any[]) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => fn(...args), delay);
-      };
-    };
-
-    const checkAndUpdateField = (item: any, value: any, key: string, parentLabel = '') => {
-      // Construct label with group hierarchy
-      const currentLabel = parentLabel
-        ? `${parentLabel} > ${item?.display_name}`
-        : item?.display_name;
-
-      // Check for match
-      if (value?.value?.uid === item?.uid && value?.label === currentLabel) {
-        if (!updatedSelectedOptions?.includes?.(currentLabel)) {
-          updatedSelectedOptions?.push?.(currentLabel);
-        }
-
-        setSelectedOptions(updatedSelectedOptions);
-        setExistingField((prevOptions: ExistingFieldType) => ({
-          ...prevOptions,
-          [key]: { label: currentLabel, value: item }
-        }));
-
-        return true;
-      }
-
-      // Check children recursively
-      if (item?.data_type === 'group' && Array?.isArray(item?.schema)) {
-        for (const child of item.schema) {
-          const found = checkAndUpdateField(child, value, key, currentLabel);
-          if (found) return true;
-        }
-
-        // If no match and it was part of the label, remove it
-        if (
-          !item?.schema?.some((schema: any) => schema?.uid === value?.value?.uid) &&
-          value?.data_type !== 'group' &&
-          value?.label?.includes(item?.display_name)
-        ) {
-          setIsUpdated(true);
-          updatedRows = updatedRows?.map((row: FieldMapType) => {
-            if (row?.uid === key && row?.backupFieldType === value?.value?.data_type) {
-              return {
-                ...row,
-                contentstackField: row?.otherCmsField,
-                contentstackFieldUid: row?.backupFieldUid,
-                contentstackFieldType: row?.backupFieldType
-              };
-            }
-            return row;
-          });
-
-          setTableData(updatedRows);
-          setSelectedEntries(updatedRows);
-          setExistingField((prevOptions: ExistingFieldType) => {
-            const { [key]: _, ...rest } = prevOptions;
-            return { ...rest };
-          });
-        }
-      }
-
-      return false;
-    };
-
-    // if exsting content type is changed in contentstack, reflect those changes for
-    // maaped fields
-    useEffect(() => {
-      if (existingField && !isCsCTypeUpdated) {
-        contentTypeSchema?.forEach((item) => {
-          for (const [key, value] of Object.entries(existingField)) {
-            if (value?.value?.uid === item?.uid) {
-              if (!updatedSelectedOptions?.includes?.(item?.display_name)) {
-                updatedSelectedOptions.push(item?.display_name);
-              }
-              setSelectedOptions(updatedSelectedOptions);
-              setExistingField((prevOptions: ExistingFieldType) => ({
-                ...prevOptions,
-                [key]: { label: item?.display_name, value: item }
-              }));
-            }
-            if (contentTypeSchema?.every((item) => value?.value?.uid !== item?.uid)) {
-              setExistingField((prevOptions: ExistingFieldType) => {
-                const { [key]: _, ...rest } = prevOptions; // Destructure to exclude the key to remove
-                return {
-                  ...rest
-                };
-              });
-            } else if (item?.data_type === 'group' && Array.isArray(item?.schema)) {
-              item?.schema?.forEach((schemaItem) => {
-                if (
-                  value?.value?.uid === schemaItem?.uid &&
-                  value?.label === `${item?.display_name} > ${schemaItem?.display_name}`
-                ) {
-                  if (
-                    !updatedSelectedOptions?.includes?.(
-                      `${item?.display_name} > ${schemaItem?.display_name}`
-                    )
-                  ) {
-                    updatedSelectedOptions.push(
-                      `${item?.display_name} > ${schemaItem?.display_name}`
-                    );
+                      }
+                    })
                   }
-                  setSelectedOptions(updatedSelectedOptions);
-                  setExistingField((prevOptions: ExistingFieldType) => ({
-                    ...prevOptions,
-                    [key]: {
-                      label: `${item?.display_name} > ${schemaItem?.display_name}`,
-                      value: schemaItem
+                })
+              }
+
+              // Modular blocks mapping
+              if (schema?.data_type === 'blocks' && schema?.blocks) {
+                schema?.blocks?.forEach((block) => {
+                  const blockTitle = block?.uid || block?.display_name;
+                  const blockDisplayName = `${schema?.display_name} > ${blockTitle}`;
+
+                  // Modular block child
+                  if (row?.contentstackField === blockDisplayName) {
+                    if (!isFieldDeleted) {
+                      if (!updatedSelectedOptions?.includes?.(blockDisplayName)) {
+                        updatedSelectedOptions.push(blockDisplayName);
+                      }
+                      updatedExstingField[row?.backupFieldUid] = {
+                        label: blockDisplayName,
+                        value: block
+                      };
                     }
-                  }));
-                } else if (
-                  !item?.schema?.some((schema) => schema?.uid === existingField[key]?.value?.uid) &&
-                  existingField[key]?.value?.data_type !== 'group' &&
-                  existingField[key]?.label?.includes?.(item?.display_name)
-                ) {
-                  setExistingField((prevOptions: ExistingFieldType) => {
-                    const { [key]: _, ...rest } = prevOptions; // Destructure to exclude the key to remove
-                    return {
-                      ...rest
-                    };
-                  });
-                }
-              });
+                  }
+
+                  // Fields within modular block child
+                  if (block?.schema) {
+                    block?.schema?.forEach((blockField) => {
+                      const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
+
+                      if (row?.contentstackField === fieldDisplayName) {
+                        if (!isFieldDeleted) {
+                          if (!updatedSelectedOptions?.includes?.(fieldDisplayName)) {
+                            updatedSelectedOptions?.push(fieldDisplayName);
+                          }
+                          updatedExstingField[row?.backupFieldUid] = {
+                            label: fieldDisplayName,
+                            value: blockField
+                          };
+                        }
+                      }
+
+                      // Nested group within modular block child field
+                      if (blockField?.schema) {
+                        blockField?.schema?.forEach((nestedField) => {
+                          const nestedDisplayName = `${fieldDisplayName} > ${nestedField?.display_name}`;
+
+                          if (row?.contentstackField === nestedDisplayName) {
+                            if (!isFieldDeleted) {
+                              if (!updatedSelectedOptions?.includes?.(nestedDisplayName)) {
+                                updatedSelectedOptions?.push(nestedDisplayName);
+                              }
+                              updatedExstingField[row?.backupFieldUid] = {
+                                label: nestedDisplayName,
+                                value: nestedField
+                              };
+                            }
+                          }
+                        });
+                      }
+
+                      // Nested modular blocks within child block field
+                      if (blockField?.data_type === 'blocks' && blockField?.blocks) {
+                        blockField?.blocks?.forEach((nestedBlock: any) => {
+                          const nestedBlockTitle = nestedBlock?.uid || nestedBlock?.display_name;
+                          const nestedBlockDisplayName = `${fieldDisplayName} > ${nestedBlockTitle}`;
+
+                          if (row?.contentstackField === nestedBlockDisplayName) {
+                            if (!isFieldDeleted) {
+                              if (!updatedSelectedOptions?.includes?.(nestedBlockDisplayName)) {
+                                updatedSelectedOptions?.push(nestedBlockDisplayName);
+                              }
+                              updatedExstingField[row?.backupFieldUid] = {
+                                label: nestedBlockDisplayName,
+                                value: nestedBlock
+                              };
+                            }
+                          }
+
+                          if (nestedBlock?.schema) {
+                            nestedBlock?.schema?.forEach((nestedBlockField: any) => {
+                              const nestedFieldDisplayName = `${nestedBlockDisplayName} > ${nestedBlockField?.display_name}`;
+
+                              if (row?.contentstackField === nestedFieldDisplayName) {
+                                if (!isFieldDeleted) {
+                                  if (!updatedSelectedOptions?.includes?.(nestedFieldDisplayName)) {
+                                    updatedSelectedOptions?.push(nestedFieldDisplayName);
+                                  }
+                                  updatedExstingField[row?.backupFieldUid] = {
+                                    label: nestedFieldDisplayName,
+                                    value: nestedBlockField
+                                  };
+                                }
+                              }
+
+                              if (nestedBlockField?.schema) {
+                                nestedBlockField?.schema?.forEach((deepField: any) => {
+                                  const deepDisplayName = `${nestedFieldDisplayName} > ${deepField?.display_name}`;
+
+                                  if (row?.contentstackField === deepDisplayName) {
+                                    if (!isFieldDeleted) {
+                                      if (!updatedSelectedOptions?.includes?.(deepDisplayName)) {
+                                        updatedSelectedOptions?.push(deepDisplayName);
+                                      }
+                                      updatedExstingField[row?.backupFieldUid] = {
+                                        label: deepDisplayName,
+                                        value: deepField
+                                      };
+                                    }
+                                  }
+                                });
+                              }
+                            });
+                          }
+                        });
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
+        });
+      });
+      setSelectedOptions(updatedSelectedOptions);
+      setExistingField(updatedExstingField);
+    }
+  }, [tableData, otherContentType]);
+
+  useEffect(() => {
+    if (isUpdated) {
+      setIsAllCheck(false);
+      setTableData(updatedRows);
+      setExistingField(updatedExstingField);
+      setSelectedOptions(updatedSelectedOptions);
+      if (!isDropDownChanged) {
+        setSelectedEntries(updatedRows);
+      }
+      setIsUpdated(false);
+    }
+    else {
+      setIsAllCheck(false);
+      setExistingField({});
+      setSelectedOptions([]);
+
+    }
+  }, [isUpdated, otherContentType]);
+
+  // To make all the fields checked
+  useEffect(() => {
+    const selectedId = tableData?.reduce<UidMap>((acc, item) => {
+      if (!item?.isDeleted && isAllCheck) {
+        acc[item?.id] = true;
+
+      }
+      return acc;
+    }, {});
+
+    isAllCheck && setRowIds(selectedId);
+  }, [tableData, isAllCheck]);
+
+  // To fetch existing content types or global fields as per the type
+  useEffect(() => {
+    if (isContentType) {
+      setContentModels(JSON?.parse(JSON?.stringify(reduxContentTypes ?? [])));
+    } else {
+      // if (reduxGlobalFields?.length > 0) {
+      setContentModels(JSON?.parse(JSON?.stringify(reduxGlobalFields ?? [])));
+      // }
+    }
+  }, [isContentType, reduxContentTypes, reduxGlobalFields]);
+
+  // To close the filter panel on outside click
+  useEffect(() => {
+    document.addEventListener('click', handleClickOutside, true);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside, true);
+    };
+  }, []); 
+
+  /**
+   * Debounces a function call by delaying its execution until after the specified delay has elapsed since the last invocation.
+   * @param fn - The function to debounce
+   * @param delay - The delay in milliseconds to wait before executing the function
+   * @returns A debounced version of the function
+   */
+  const debounce = (fn: (...args: any[]) => any, delay: number | undefined) => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    return (...args: any[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn(...args), delay);
+    };
+  };
+
+  const checkAndUpdateField = (
+  item: any,
+  value: any,
+  key: string,
+  parentLabel = ''
+) => {
+  // Construct label with group hierarchy
+  const currentLabel = parentLabel ? `${parentLabel} > ${item?.display_name}` : item?.display_name;
+
+  // Check for match
+  if (value?.value?.uid === item?.uid && value?.label === currentLabel) {
+    if (!updatedSelectedOptions?.includes?.(currentLabel)) {
+      updatedSelectedOptions?.push?.(currentLabel);
+    }
+
+    setSelectedOptions(updatedSelectedOptions);
+    setExistingField((prevOptions: ExistingFieldType) => ({
+      ...prevOptions,
+      [key]: { label: currentLabel, value: item },
+    }));
+
+    return true;
+  }
+
+  // Check children recursively
+  if (item?.data_type === 'group' && Array?.isArray(item?.schema)) {
+    for (const child of item.schema) {
+      const found = checkAndUpdateField(child, value, key, currentLabel);
+      if (found) return true;
+    }
+
+    // If no match and it was part of the label, remove it
+    if (
+      !item?.schema?.some((schema:any) => schema?.uid === value?.value?.uid) &&
+      value?.data_type !== 'group' &&
+      value?.label?.includes(item?.display_name)
+    ) {
+      setIsUpdated(true);
+      updatedRows = updatedRows?.map((row: FieldMapType) => {
+
+        if (row?.uid === key && row?.backupFieldType === value?.value?.data_type) {
+          return {
+            ...row,
+            contentstackField: row?.otherCmsField,
+            contentstackFieldUid: row?.backupFieldUid,
+            contentstackFieldType: row?.backupFieldType,
+            
+          };
+        }
+        return row;
+      });
+
+      setTableData(updatedRows);
+      setSelectedEntries(updatedRows)
+      setExistingField((prevOptions: ExistingFieldType) => {
+        const { [key]: _, ...rest } = prevOptions;
+        return { ...rest };
+      });
+      
+    }
+  }
+
+  return false;
+};
+
+  useEffect(() => {
+    if (!existingField || isCsCTypeUpdated) return;
+    if (!contentTypeSchema || contentTypeSchema.length === 0) return;
+
+    // Build a flat map of every field uid present in the new schema
+    const schemaUidMap = flattenSchemaToUidMap(contentTypeSchema);
+
+    // We need to know if anything actually changed to avoid unnecessary renders
+    let anyChange = false;
+
+    // Work on copies so we can apply all changes atomically
+    const nextExistingField: ExistingFieldType = { ...existingField };
+    const nextSelectedOptions: string[] = [...selectedOptions];
+    // Clone tableData for potential row resets
+    let nextTableData: FieldMapType[] = [...tableData];
+
+    for (const [backupFieldUid, mappedValue] of Object.entries(existingField)) {
+      const mappedItemUid = mappedValue?.value?.uid;
+      // Skip entries with no uid (shouldn't happen, but be safe)
+      if (!mappedItemUid) continue;
+
+      const schemaEntry = schemaUidMap[mappedItemUid];
+
+      if (schemaEntry) {
+        // Only update if the label or value reference has actually changed
+        if (
+          nextExistingField[backupFieldUid]?.label !== schemaEntry.label ||
+          nextExistingField[backupFieldUid]?.value !== schemaEntry.item
+        ) {
+          // Swap out the stale label in selectedOptions
+          const oldLabel = nextExistingField[backupFieldUid]?.label;
+          if (oldLabel && oldLabel !== schemaEntry.label) {
+            const idx = nextSelectedOptions.indexOf(oldLabel);
+            if (idx !== -1) nextSelectedOptions.splice(idx, 1);
+            if (!nextSelectedOptions.includes(schemaEntry.label)) {
+              nextSelectedOptions.push(schemaEntry.label);
             }
-            checkAndUpdateField(item, value, key);
+          }
+          nextExistingField[backupFieldUid] = {
+            label: schemaEntry.label,
+            value: schemaEntry.item,
+          };
+          anyChange = true;
+        }
+      } else {
+        const oldLabel = nextExistingField[backupFieldUid]?.label;
+        if (oldLabel) {
+          const idx = nextSelectedOptions.indexOf(oldLabel);
+          if (idx !== -1) nextSelectedOptions.splice(idx, 1);
+        }
+        delete nextExistingField[backupFieldUid];
+        nextTableData = nextTableData?.map((row: FieldMapType) => {
+          if (row?.backupFieldUid === backupFieldUid) {
+            return {
+              ...row,
+              contentstackField:     row?.otherCmsField,
+              contentstackFieldUid:  row?.backupFieldUid,
+              contentstackFieldType: row?.backupFieldType,
+            };
           }
         });
 

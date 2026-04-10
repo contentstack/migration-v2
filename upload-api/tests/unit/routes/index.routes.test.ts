@@ -45,6 +45,10 @@ vi.mock('../../../src/services/aws/client', () => ({
 vi.mock('../../../src/helper', () => ({
   fileOperationLimiter: (_req: any, _res: any, next: any) => next(),
   deleteFolderSync: vi.fn(),
+  updateConfigFile: vi.fn().mockResolvedValue(mockConfig),
+  readFileData: vi.fn().mockResolvedValue(Buffer.from('test data')),
+  saveZip: vi.fn().mockResolvedValue('/test/path'),
+  saveJson: vi.fn().mockResolvedValue('/test/path'),
 }));
 
 vi.mock('../../../src/services/fileProcessing', () => ({

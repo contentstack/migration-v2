@@ -518,6 +518,11 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
   const $ = cheerio.load(xmlData, { xmlMode: true });
   const items = $('item');
   const entryData: Record<string, any> = {};
+  const fieldList = Array.isArray(fields) ? fields : [];
+  const hasField = (uid: string) =>
+    fieldList.some(
+      (field: any) => field?.contentstackFieldUid === uid || field?.uid === uid
+    );
 
   try {
     if(entry ){
@@ -584,16 +589,20 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           // Pass individual content to createSchema
           entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings);
           const categoryReference = extractCategoryReference(item?.['category']);
-          if (categoryReference?.length > 0) {
-            entryData[uid]['taxonomies'] = taxonomies;
+          if (hasField("taxonomies") && categoryReference?.length > 0) {
+            entryData[uid]["taxonomies"] = taxonomies;
           }
           const termsReference = extractTermsReference(item?.['category']);
-          if(termsReference?.length > 0) {
-            entryData[uid]['terms'] = terms;
+          if (hasField("terms") && termsReference?.length > 0) {
+            entryData[uid]["terms"] = terms;
           }
-          entryData[uid]['tags'] = tags?.map((tag: any) => tag?.text);
-          entryData[uid]['author'] = authorData;
+          entryData[uid]["tags"] = tags?.map((tag: any) => tag?.text) || [];
+          if (hasField("author")) {
+            entryData[uid]["author"] =
+              authorData?.filter((author: any) => author?.uid) || [];
+          }
           entryData[uid]['locale'] = locale;
+          entryData[uid]["publish_details"] = [];
           entryData[uid]['publish_details'] = [];
           
             

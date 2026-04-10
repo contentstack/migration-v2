@@ -27,7 +27,7 @@
     "sass": "^1.68.0",
     "socket.io-client": "^4.7.5",
     "typescript": "^4.9.5",
-    "vite": "^7.3.1",
+    "vite": "^7.3.2",
     "vite-tsconfig-paths": "^6.1.1"
   },
   "scripts": {
@@ -46,10 +46,27 @@
     "coverage:ui": "npx serve coverage -l 3939"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@vitejs/plugin-react": "^4.3.3",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^8.51.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "prettier": "^3.3.3"
+    "jsdom": "^28.1.0",
+    "prettier": "^3.3.3",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "@babel/runtime": ">=7.26.10",
+    "immutable": ">=5.1.5",
+    "lodash-es": "^4.18.1",
+    "minimatch": ">=10.2.3",
+    "rollup": ">=4.59.0",
+    "lodash": "^4.18.1"
   },
   "eslintConfig": {
     "extends": [

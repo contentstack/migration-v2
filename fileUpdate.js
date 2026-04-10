@@ -81,6 +81,7 @@ const inquireRequireFieldValidation = (input) => {
 const XMLMigration = async () => {
   const typeOfcms = await cliux.inquire({
     choices: ['sitecore', 'contentful', 'wordpress', 'aem', 'drupal'],
+    choices: ['sitecore', 'contentful', 'wordpress', 'aem', 'drupal'],
     type: 'list',
     name: 'value',
     message: 'Choose the option to proceed with your legacy CMS:'
@@ -90,7 +91,6 @@ const XMLMigration = async () => {
     config.cmsType = typeOfcms;
   } else {
     console.log('⚠️ Error: Expected a string for typeOfcms but got an object.');
-    return;
   }
 
   if (typeOfcms === 'drupal') {

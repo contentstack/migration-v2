@@ -43,17 +43,17 @@ vi.mock('../../../src/models/project-lowdb.js', () => ({
 }));
 
 vi.mock('../../../src/models/contentTypesMapper-lowdb.js', () => ({
-  default: {
+  default: vi.fn().mockReturnValue({
     read: mockContentTypesRead,
     chain: mockContentTypesChain,
-  },
+  }),
 }));
 
 vi.mock('../../../src/models/FieldMapper.js', () => ({
-  default: {
+  default: vi.fn().mockReturnValue({
     read: mockFieldMapperRead,
     chain: mockFieldMapperChain,
-  },
+  }),
 }));
 
 vi.mock('../../../src/utils/content-type-creator.utils.js', () => ({

@@ -233,10 +233,6 @@ router.get(
               }
 
               const data = await handleFileProcessing(fileExt, xmlData, cmsType || '', name);
-               if (!res.headersSent) {
-                res.status(data?.status || 200).json(data);
-              }
-              res.status(data?.status || 200).json(data);
               if (data?.status === 200) {
                 // Sanitize the filename before constructing path
                 const safeName = sanitizeFilename(name);
@@ -248,6 +244,9 @@ router.get(
                 } else {
                   console.error('Path traversal attempt detected');
                 }
+              }
+              if (!res.headersSent) {
+                return res.status(data?.status || 200).json(data);
               }
             } catch (error: any) {
               console.error('Error processing XML stream:', error);

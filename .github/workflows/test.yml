@@ -40,6 +40,7 @@ jobs:
           cache: npm
           cache-dependency-path: ui/package-lock.json
       - run: npm ci --legacy-peer-deps
+      - run: npm install @rollup/rollup-linux-x64-gnu --no-save
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v4
         if: always()

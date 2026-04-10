@@ -4,7 +4,7 @@
       "optionLimit": 100
     }
   },
-  "cmsType": "cmsType",
+  "cmsType": "wordpress",
   "isLocalPath": true,
   "awsData": {
     "awsRegion": "us-east-2",
@@ -19,11 +19,11 @@
     "user": "user_name",
     "password": "",
     "database": "database_name",
-    "port": "port_number"
+    "port": "3306"
   },
   "assetsConfig": {
-    "base_url": "drupal_assets_base_url",
-    "public_path": "drupal_assets_public_path"
+    "base_url": "https://www.rice.edu/",
+    "public_path": "sites/g/files/bxs2566/files"
   },
-  "localPath": ""
+  "localPath": "/Users/chetan.narkhede/Desktop/migration-v2/sitetitle.xml"
 }
