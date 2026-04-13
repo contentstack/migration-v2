@@ -6,7 +6,7 @@ import customLogger from '../../utils/custom-logger.utils.js';
 import { getLogMessage } from '../../utils/index.js';
 import { MIGRATION_DATA_CONFIG } from '../../constants/index.js';
 
-const { DATA, TAXONOMIES_DIR_NAME } = MIGRATION_DATA_CONFIG;
+const { DATA, TAXONOMIES_DIR_NAME, TAXONOMIES_FILE_NAME} = MIGRATION_DATA_CONFIG;
 
 interface DrupalTaxonomyTerm {
   taxonomy_uid: string; // vid (vocabulary id)
@@ -331,18 +331,34 @@ const saveTaxonomyFiles = async (
       };
     }
 
-    const taxonomiesFilePath = path.join(taxonomiesPath, 'taxonomies.json');
+    const taxonomiesFilePath = path.join(taxonomiesPath, TAXONOMIES_FILE_NAME);
+    let mergedTaxonomiesMeta: Record<string, any> = { ...taxonomiesDataObject };
+
+    if (fs.existsSync(taxonomiesFilePath)) {
+      try {
+        const existingRaw = await fs.promises.readFile(taxonomiesFilePath, 'utf8');
+        const existing = JSON.parse(existingRaw) as Record<string, any>;
+        if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+          mergedTaxonomiesMeta = { ...existing, ...taxonomiesDataObject };
+        }
+      } catch {
+        mergedTaxonomiesMeta = { ...taxonomiesDataObject };
+      }
+    }
+
     await fs.promises.writeFile(
       taxonomiesFilePath,
-      JSON.stringify(taxonomiesDataObject, null, 2),
+      JSON.stringify(mergedTaxonomiesMeta, null, 2),
       'utf8'
     );
 
     const consolidatedMessage = getLogMessage(
       srcFunc,
       `Saved consolidated taxonomies.json with ${
+        Object.keys(mergedTaxonomiesMeta).length
+      } vocabularies (${
         Object.keys(taxonomiesDataObject).length
-      } vocabularies.`,
+      } from this run).`,
       {}
     );
     await customLogger(
@@ -393,7 +409,9 @@ export const createTaxonomy = async (
     );
 
     // Create taxonomies directory
-    await fs.promises.mkdir(taxonomiesPath, { recursive: true });
+    if(!fs.existsSync(taxonomiesPath)){
+      await fs.promises.mkdir(taxonomiesPath, { recursive: true });
+    }
 
     const message = getLogMessage(srcFunc, `Exporting taxonomies...`, {});
     await customLogger(projectId, destination_stack_id, 'info', message);

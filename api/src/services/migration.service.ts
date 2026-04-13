@@ -439,14 +439,14 @@ const startTestMigration = async (req: Request): Promise<any> => {
         is_sso,
       },
     });
-    // await taxonomyService?.createTaxonomy({
-    //   orgId,
-    //   projectId,
-    //   stackId: project?.destination_stack_id,
-    //   current_test_stack_id: project?.current_test_stack_id,
-    //   region,
-    //   userId: user_id,
-    // });
+    await taxonomyService?.createTaxonomy({
+      orgId,
+      projectId,
+      stackId: project?.destination_stack_id,
+      current_test_stack_id: project?.current_test_stack_id,
+      region,
+      userId: user_id,
+    });
     await globalFieldServie?.createGlobalField({
       region,
       user_id,
