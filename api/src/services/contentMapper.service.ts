@@ -2033,7 +2033,7 @@ const getExistingTaxonomies = async (req: Request) => {
 };
 const getExistingExtensions = async ({existingStackId, token_payload}: any) => {
   try {
-    const url = `${config.CS_API[
+    const url = `${config?.CS_API[
       token_payload?.region as keyof typeof config.CS_API
     ]!}/extensions`;
 
@@ -2092,7 +2092,7 @@ const getExistingExtensions = async ({existingStackId, token_payload}: any) => {
   } catch (error: any) {
     logger.error(`Error in getExistingExtensions: ${error.message}`, error);
     return {
-      data: error.message,
+      data: error?.message,
       status: error?.statusCode || error?.status || 500,
     };
 
