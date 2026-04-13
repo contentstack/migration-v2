@@ -1590,14 +1590,14 @@ const getExistingExtensions = async ({existingStackId, token_payload}: any) => {
     const headers: Record<string, string> = { api_key: existingStackId };
     if (token_payload?.is_sso) {
       const accessToken = await getAccessToken(
-        token_payload.region,
-        token_payload.user_id,
+        token_payload?.region,
+        token_payload?.user_id,
       );
       headers.authorization = `Bearer ${accessToken}`;
     } else {
       headers.authtoken = await getAuthtoken(
-        token_payload.region,
-        token_payload.user_id,
+        token_payload?.region,
+        token_payload?.user_id,
       );
     }
 
