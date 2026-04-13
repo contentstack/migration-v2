@@ -355,9 +355,9 @@ const saveTaxonomyFiles = async (
     const consolidatedMessage = getLogMessage(
       srcFunc,
       `Saved consolidated taxonomies.json with ${
-        Object.keys(mergedTaxonomiesMeta).length
+        Object.keys(mergedTaxonomiesMeta)?.length
       } vocabularies (${
-        Object.keys(taxonomiesDataObject).length
+        Object.keys(taxonomiesDataObject)?.length
       } from this run).`,
       {}
     );
