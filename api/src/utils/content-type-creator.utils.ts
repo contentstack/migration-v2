@@ -1151,7 +1151,12 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
     title: mergeCts?.title,
     uid: mergeCts?.uid,
     options: {
+      is_page: true,
       "singleton": false,
+      title: "title",
+      url_pattern: '/:title',
+      url_prefix: `/`,
+      sub_title: ['url']
     }
   }
 
