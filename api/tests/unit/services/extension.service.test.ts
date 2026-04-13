@@ -16,7 +16,16 @@ const {
 vi.mock('fs', () => ({
   default: { promises: mockFsPromises },
 }));
-vi.mock('path', () => ({ default: { join: mockPathJoin } }));
+vi.mock('path', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('path')>();
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      join: mockPathJoin,
+    },
+  };
+});
 vi.mock('../../../src/constants/index.js', () => ({
   MIGRATION_DATA_CONFIG: {
     DATA: './cmsMigrationData',
