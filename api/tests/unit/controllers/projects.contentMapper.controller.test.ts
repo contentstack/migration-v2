@@ -83,6 +83,14 @@ describe('projects.contentMapper.controller', () => {
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
+  it('getExistingTaxonomies should default to 200 when status is omitted', async () => {
+    mockContentMapperService.getExistingTaxonomies.mockResolvedValue({ taxonomies: [] });
+
+    await contentMapperController.getExistingTaxonomies(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
+
   it('getSingleContentTypes should return 201', async () => {
     mockContentMapperService.getSingleContentTypes.mockResolvedValue({ title: 'Blog' });
 
