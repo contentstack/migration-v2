@@ -2441,8 +2441,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               options={adjustedOptions}
               isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
               menuPlacement="auto"
-              menuPortalTarget={CONTENT_MAPPER_SELECT_MENU_PORTAL}
-              styles={contentMapperSelectMenuStyles}
             />
           </Tooltip>
         </div>
