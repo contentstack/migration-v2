@@ -68,7 +68,11 @@ import AdvanceSettings from '../AdvancePropertise';
 import SaveChangesModal from '../Common/SaveChangesModal';
 
 // Utilities
-import { shouldAddGroupOption, shouldRecurseIntoNestedDestGroup } from './groupSchema.utils';
+import {
+  shouldAddGroupOption,
+  shouldRecurseIntoNestedDestGroup,
+  findGroupFieldInChildren,
+} from './groupSchema.utils';
 
 // Styles and Assets
 import './index.scss';
@@ -1995,6 +1999,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   if (!isDataInsideGroupField && checkConditions(fieldTypeToMatch, blockField, data) && blockField?.data_type !== 'group' && blockField?.data_type !== 'blocks') {
                     const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
                     const fieldUid = `${blockUid}.${blockField?.uid}`;
+                    console.info("fieldDisplayName --->", fieldDisplayName, fieldUid)
                     OptionsForRow.push(getMatchingOption(
                       blockField,
                       true,
@@ -2019,8 +2024,18 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
                   // Recursively process nested groups within block fields — group options are added inside processSchema's group handler
                   if (blockField?.data_type === 'group' && blockField?.schema) {
+                    console.info("blockField --->", blockField, dataParentChildBlockUid, data)
+                    //console.info("blockField", blockField)
                     const dataChildBlockUid = dataParentChildBlockUid;
-                    const dataGroupUid = data?.uid?.split('.')?.slice(0, parentDepth + 1)?.join('.');
+                    // Parent source group uid for nestedList lookup:
+                    // - Group rows map the group itself (full data.uid).
+                    // - Leaf fields (e.g. paragraph under details) must use the immediate
+                    //   parent uid. slice(0, parentDepth + 1) breaks when multiple groups
+                    //   sit between the child block and the leaf (quote → details → paragraph).
+                    const dataGroupUid =
+                      data?.backupFieldType === 'group' && data?.contentstackFieldType === 'group'
+                        ? data?.uid ?? ''
+                        : data?.uid?.split('.')?.slice(0, -1)?.join('.') ?? '';
 
                     const modularBlock = nestedList?.find(item =>
                       item?.contentstackFieldType === 'modular_blocks' &&
@@ -2029,13 +2044,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     const childBlock = modularBlock?.child?.find(
                       (c: FieldMapType) => c?.uid === dataChildBlockUid
                     );
-                    const groupField = childBlock?.child?.find(
-                      (c: FieldMapType) => c?.uid === dataGroupUid && c?.contentstackFieldType === 'group'
-                    );
+                    const groupField = findGroupFieldInChildren(childBlock?.child, dataGroupUid);
 
                     const groupChildren = groupField?.child || [];
                     const groupArr = groupField ? [groupField] : [];
-
+                    console.info("grouArray --->", groupArr)
+                    //console.info("nested group field", dataChildBlockUid,dataGroupUid,groupField, childBlock)
                     processSchema(
                       blockField,
                       data,
@@ -2072,7 +2086,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       return OptionsForRow;
     }
     else if (value?.data_type === 'group') {
-
+     
         if (data?.backupFieldType === 'group' && checkConditions('Group', value, data) ) {
           if (shouldAddGroupOption(data?.uid ?? '', parentUid)) {
             const newOption = getMatchingOption(value, true, updatedDisplayName, uid ?? '');
@@ -2080,18 +2094,21 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               (opt: any) => opt?.label === newOption?.label && opt?.uid === newOption?.uid
             );
             if (!isDuplicate) {
+              console.info("newOption --->", newOption, data?.contentstackField)
               OptionsForRow.push(newOption);
             }
           }
         }
-      
+          //console.info("groupArray", groupArray)
           const existingLabel = existingField[groupArray?.[0]?.backupFieldUid]?.label ?? '';
+          console.info("value ", value, existingLabel, groupArray?.[0]?.backupFieldUid)
          
           const lastLabelSegment = existingLabel?.includes('>')
             ? existingLabel?.split('>')?.pop()?.trim()
             : existingLabel;
-          
+          //console.info("existingLabel", existingLabel, lastLabelSegment)
           if (value?.display_name === lastLabelSegment) {
+            //console.info("value?.display_name === lastLabelSegment", value?.display_name, lastLabelSegment)
             const groupUid = groupArray?.[0]?.uid ?? '';
             const groupDepth = groupUid?.split('.')?.length ?? 0;
 
@@ -2099,7 +2116,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               const fieldTypeToMatch = Fields[item?.backupFieldType as keyof Mapping]?.type;
               const itemDepth = item?.uid?.split('.')?.length ?? 0;
               const isRootLevelChild = itemDepth === groupDepth + 1;
-
+              //console.info("isRootLevelChild", isRootLevelChild)
               if (item?.id === data?.id && isRootLevelChild) {
                 for (const key of existingField[groupArray?.[0]?.backupFieldUid]?.value?.schema || []) {
                   if (checkConditions(fieldTypeToMatch, key, item)) {
@@ -2116,7 +2133,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
             for (const key of existingField[groupArray?.[0]?.backupFieldUid]?.value?.schema || []) {
               if (key?.data_type === 'group') {
-           
+                //console.info("key", key)
                 const nestedGroupUid = data?.uid?.split('.')?.slice(0, groupDepth + 1)?.join('.');
        
                 const nestedGroupField = groupArray?.[0]?.child?.find(
@@ -2131,6 +2148,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
           }
           else {
+            //console.info(" data?.uid ", data?.contentstackField)
             if (shouldRecurseIntoNestedDestGroup(data?.uid ?? '', updatedDisplayName, nestedList ?? [], existingField)) {
               for (const key of value?.schema || []) {
                 if (key?.data_type === 'group') {
@@ -2167,6 +2185,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
                 // Recursively process nested groups
                 if (key?.data_type === 'group') {
+                  //console.info("key 1", key)
                   processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
                 }
               }
