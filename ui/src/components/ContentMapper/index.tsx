@@ -1987,16 +1987,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               }
             
               // Only process fields if current block matches the mapped block
-              if (mappedChildBlockTitle === blockTitle) {
+              if (mappedChildBlockTitle === blockTitle && existingChildBlockMapping?.label === blockDisplayName) {
                 const parentDepth = dataParentChildBlockUid?.split('.')?.length ?? 0;
                 const isDataInsideGroupField = (data?.uid?.split('.')?.length ?? 0) > parentDepth + 1;
-               
                 for (const blockField of block?.schema ?? []) {
                   const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
                   if (!isDataInsideGroupField && checkConditions(fieldTypeToMatch, blockField, data) && blockField?.data_type !== 'group' && blockField?.data_type !== 'blocks') {
                     const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
                     const fieldUid = `${blockUid}.${blockField?.uid}`;
-                   
                     OptionsForRow.push(getMatchingOption(
                       blockField,
                       true,
@@ -2392,28 +2390,39 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
    
     const isTypeMatch = checkConditions(Fields[data?.contentstackFieldType]?.type, existingField[data?.backupFieldUid]?.value, data);
 
+    const selectValueIsExistingField =
+      OptionsForRow?.length !== 0 &&
+      isTypeMatch &&
+      existingField?.[data?.backupFieldUid]?.label !== undefined;
+
     return (
       <div className="table-row">
         <div className="select">
-          <Select
-            value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
+          <Tooltip
+            content={existingField[data?.backupFieldUid]?.label ?? ''}
+            position="top"
+            disabled={!selectValueIsExistingField}
+          >
+            <Select
+              value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue :
 
-            existingField[data?.backupFieldUid]}
-            onChange={(selectedOption: FieldTypes) => {
-              if (OptionsForRow?.length === 0) {
-                handleValueChange(selectedOption, data?.uid, data?.backupFieldUid)
-              } else {
-                handleFieldChange(selectedOption, data?.uid, data?.contentstackFieldUid, data?.backupFieldUid)
-              }
-            }}
-            placeholder="Select Field"
-            version={'v2'}
-            maxWidth="290px"
-            isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
-            options={adjustedOptions}
-            isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
-            menuPlacement="auto"
-          />
+                existingField[data?.backupFieldUid]}
+              onChange={(selectedOption: FieldTypes) => {
+                if (OptionsForRow?.length === 0) {
+                  handleValueChange(selectedOption, data?.uid, data?.backupFieldUid)
+                } else {
+                  handleFieldChange(selectedOption, data?.uid, data?.contentstackFieldUid, data?.backupFieldUid)
+                }
+              }}
+              placeholder="Select Field"
+              version={'v2'}
+              maxWidth="290px"
+              isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
+              options={adjustedOptions}
+              isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
+              menuPlacement="auto"
+            />
+          </Tooltip>
         </div>
         {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown' ||
           (data?.backupFieldType !== 'extension' &&
