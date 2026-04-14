@@ -2098,17 +2098,19 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               (opt: any) => opt?.label === newOption?.label && opt?.uid === newOption?.uid
             );
             if (!isDuplicate) {
+              console.info("newOption --->", newOption, data?.contentstackField)
               OptionsForRow.push(newOption);
             }
           }
         }
          
           const existingLabel = existingField[groupArray?.[0]?.backupFieldUid]?.label ?? '';
+          console.info("value ", value, existingLabel, groupArray?.[0]?.backupFieldUid)
          
           const lastLabelSegment = existingLabel?.includes('>')
             ? existingLabel?.split('>')?.pop()?.trim()
             : existingLabel;
-          
+          //console.info("existingLabel", existingLabel, lastLabelSegment)
           if (value?.display_name === lastLabelSegment) {
             
             const groupUid = groupArray?.[0]?.uid ?? '';
