@@ -117,10 +117,10 @@ const uidCorrector = ({ uid } : {uid : string}) => {
  * @returns The remapped UIDs.
  */
 function remapReferenceUids(uids: string[], keyMapper?: Record<string, string>): string[] {
-  if (!keyMapper || !Object.keys(keyMapper).length) return uids;
-  return uids.map(uid => keyMapper[uid] ?? keyMapper[uidCorrector({ uid })] ?? uid);
+  const uidsArray = Array.isArray(uids) ? uids : [uids];
+  if (!keyMapper || !Object.keys(keyMapper).length) return uidsArray;
+  return uidsArray?.map(uid => keyMapper?.[uid] ?? keyMapper?.[uidCorrector({ uid })] ?? uid);
 }
-
 function buildFieldSchema(item: any, marketPlacePath: string, parentUid = '', keyMapper?: Record<string, string>): any {
   if (item?.isDeleted === true) return null;
 
