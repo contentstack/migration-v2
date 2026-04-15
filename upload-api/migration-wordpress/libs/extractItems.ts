@@ -5,7 +5,7 @@ import * as cheerio from 'cheerio';
 
 
 import { setupWordPressBlocks } from "../utils/parseUtil";
-import { getFieldName, getFieldUid, schemaMapper } from "./schemaMapper";
+import { clientIdForUid, getFieldName, getFieldUid, schemaMapper } from "./schemaMapper";
 import helper from "../utils/helper";
 import config from '../config/index.json';
 import extractTaxonomy from './extractTaxonomy';
@@ -317,7 +317,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         // Track processed similar blocks to avoid duplicates
         
         for (const field of blocksJson) {
-            const fieldUid = getFieldUid(`${field?.name}_${field?.clientId}`|| '', affix || '');
+            const fieldUid = getFieldUid(`${field?.name}_${clientIdForUid(field?.clientId)}`|| '', affix || '');
             const contentstackFieldName = getFieldName(resolveBlockName(field));
 
             const similarBlocks = findSimilarBlocks(result, field?.clientId);
@@ -380,7 +380,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 // No duplicate found - add the modular block child
                 if(Schema?.length > 0){
                   CT?.push?.({
-                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${field?.clientId}`, affix)}`,
+                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${clientIdForUid(field?.clientId)}`, affix)}`,
                   "backupFieldUid": `modular_blocks.${fieldUid}`,
                   "contentstackFieldUid": `modular_blocks.${fieldUid}`,
                   "otherCmsField": contentstackFieldName,
@@ -436,7 +436,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 // No duplicate found - add the modular block child
                 if(Schema?.length > 0){ 
                   CT?.push?.({
-                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${field?.clientId}`, affix)}`,
+                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${clientIdForUid(field?.clientId)}`, affix)}`,
                   "backupFieldUid": `modular_blocks.${fieldUid}`,
                   "contentstackFieldUid": `modular_blocks.${fieldUid}`,
                   "otherCmsField": contentstackFieldName,
