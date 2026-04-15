@@ -2186,6 +2186,6 @@ export const contentMapperService = {
   getSingleGlobalField,
   getEntryMapping,
   updateEntryStatus,
-  getExistingTaxonomies
+  getExistingTaxonomies,
   getExistingExtensions,
 };
