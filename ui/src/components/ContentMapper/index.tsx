@@ -1,5 +1,12 @@
 // Libraries
-import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import {
+  useEffect,
+  useState,
+  useRef,
+  useImperativeHandle,
+  forwardRef,
+  type ComponentProps,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -77,6 +84,53 @@ import {
 // Styles and Assets
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
+
+/** Renders the menu in the document body so `menuPlacement="auto"` matches the control when inside scroll/overflow containers (e.g. InfiniteScrollTable). */
+const CONTENT_MAPPER_SELECT_MENU_PORTAL =
+  typeof document !== 'undefined' ? document.body : undefined;
+
+const contentMapperSelectMenuStyles = {
+  menuPortal: (base: Record<string, unknown>) => ({ ...base, zIndex: 10001 }),
+};
+
+type ContentMapperScrollAwareSelectProps = ComponentProps<typeof Select>;
+
+/**
+ * Portaled menus stay fixed in viewport coordinates until React re-renders; nested scroll
+ * (table body, main layout, etc.) does not move them. Close the menu on any scroll/resize
+ * so the list never appears detached from the control. react-select's default
+ * `closeMenuOnScroll` only closes when the scroll target is the document root.
+ */
+function ContentMapperScrollAwareSelect(props: ContentMapperScrollAwareSelectProps) {
+  const { onMenuOpen: onMenuOpenProp, onMenuClose: onMenuCloseProp, ...rest } = props;
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    document.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [menuOpen]);
+
+  return (
+    <Select
+      {...rest}
+      menuIsOpen={menuOpen}
+      onMenuOpen={() => {
+        setMenuOpen(true);
+        onMenuOpenProp?.();
+      }}
+      onMenuClose={() => {
+        setMenuOpen(false);
+        onMenuCloseProp?.();
+      }}
+    />
+  );
+}
 
 const rowHistoryObj: FieldHistoryObj = {}
 
@@ -1509,7 +1563,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     return (
       <div className="table-row">
         <div className="select">
-          <Select
+          <ContentMapperScrollAwareSelect
             id={data?.uid}
             value={initialOption || fieldValue}
             onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid, data?.contentstackFieldUid)}
@@ -1519,6 +1573,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             isClearable={false}
             options={option}
             menuPlacement="auto"
+            menuPortalTarget={CONTENT_MAPPER_SELECT_MENU_PORTAL}
+            styles={contentMapperSelectMenuStyles}
             isDisabled={
               !(data?.contentstackFieldType === 'single_line_text' ||
               data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
@@ -1999,7 +2055,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   if (!isDataInsideGroupField && checkConditions(fieldTypeToMatch, blockField, data) && blockField?.data_type !== 'group' && blockField?.data_type !== 'blocks') {
                     const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
                     const fieldUid = `${blockUid}.${blockField?.uid}`;
-                    console.info("fieldDisplayName --->", fieldDisplayName, fieldUid)
                     OptionsForRow.push(getMatchingOption(
                       blockField,
                       true,
@@ -2024,8 +2079,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
                   // Recursively process nested groups within block fields — group options are added inside processSchema's group handler
                   if (blockField?.data_type === 'group' && blockField?.schema) {
-                    console.info("blockField --->", blockField, dataParentChildBlockUid, data)
-                    //console.info("blockField", blockField)
+                    
                     const dataChildBlockUid = dataParentChildBlockUid;
                     // Parent source group uid for nestedList lookup:
                     // - Group rows map the group itself (full data.uid).
@@ -2048,8 +2102,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
                     const groupChildren = groupField?.child || [];
                     const groupArr = groupField ? [groupField] : [];
-                    console.info("grouArray --->", groupArr)
-                    //console.info("nested group field", dataChildBlockUid,dataGroupUid,groupField, childBlock)
+                    
                     processSchema(
                       blockField,
                       data,
@@ -2094,21 +2147,19 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               (opt: any) => opt?.label === newOption?.label && opt?.uid === newOption?.uid
             );
             if (!isDuplicate) {
-              console.info("newOption --->", newOption, data?.contentstackField)
               OptionsForRow.push(newOption);
             }
           }
         }
-          //console.info("groupArray", groupArray)
+
           const existingLabel = existingField[groupArray?.[0]?.backupFieldUid]?.label ?? '';
-          console.info("value ", value, existingLabel, groupArray?.[0]?.backupFieldUid)
          
           const lastLabelSegment = existingLabel?.includes('>')
             ? existingLabel?.split('>')?.pop()?.trim()
             : existingLabel;
-          //console.info("existingLabel", existingLabel, lastLabelSegment)
+          
           if (value?.display_name === lastLabelSegment) {
-            //console.info("value?.display_name === lastLabelSegment", value?.display_name, lastLabelSegment)
+            
             const groupUid = groupArray?.[0]?.uid ?? '';
             const groupDepth = groupUid?.split('.')?.length ?? 0;
 
@@ -2116,7 +2167,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               const fieldTypeToMatch = Fields[item?.backupFieldType as keyof Mapping]?.type;
               const itemDepth = item?.uid?.split('.')?.length ?? 0;
               const isRootLevelChild = itemDepth === groupDepth + 1;
-              //console.info("isRootLevelChild", isRootLevelChild)
               if (item?.id === data?.id && isRootLevelChild) {
                 for (const key of existingField[groupArray?.[0]?.backupFieldUid]?.value?.schema || []) {
                   if (checkConditions(fieldTypeToMatch, key, item)) {
@@ -2133,7 +2183,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
             for (const key of existingField[groupArray?.[0]?.backupFieldUid]?.value?.schema || []) {
               if (key?.data_type === 'group') {
-                //console.info("key", key)
+                
                 const nestedGroupUid = data?.uid?.split('.')?.slice(0, groupDepth + 1)?.join('.');
        
                 const nestedGroupField = groupArray?.[0]?.child?.find(
@@ -2148,7 +2198,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
           }
           else {
-            //console.info(" data?.uid ", data?.contentstackField)
+            
             if (shouldRecurseIntoNestedDestGroup(data?.uid ?? '', updatedDisplayName, nestedList ?? [], existingField)) {
               for (const key of value?.schema || []) {
                 if (key?.data_type === 'group') {
@@ -2185,7 +2235,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
                 // Recursively process nested groups
                 if (key?.data_type === 'group') {
-                  //console.info("key 1", key)
+                 
                   processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
                 }
               }
@@ -2422,7 +2472,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             position="top"
             disabled={!selectValueIsExistingField}
           >
-            <Select
+            <ContentMapperScrollAwareSelect
               value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue :
 
                 existingField[data?.backupFieldUid]}
@@ -2440,6 +2490,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               options={adjustedOptions}
               isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
               menuPlacement="auto"
+              menuPortalTarget={CONTENT_MAPPER_SELECT_MENU_PORTAL}
+              styles={contentMapperSelectMenuStyles}
             />
           </Tooltip>
         </div>

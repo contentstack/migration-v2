@@ -25,6 +25,15 @@ function resolveBlockName(field: any): string {
 const { contentTypes: contentTypesConfig } = config?.modules;
 
 const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
+const blocksJsonOutputDir = path.resolve(config?.data, 'wordpress_blocks');
+
+function sanitizeBlocksJsonFileName(title: string, maxLen = 80): string {
+  return String(title || 'untitled')
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .trim()
+    .replace(/\s+/g, '_')
+    .slice(0, maxLen);
+}
 
 function findSimilarBlocks(data: any[][], targetId: string) {
   for (const group of data) {
@@ -260,6 +269,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     
      // Create the content type directory if it doesn't exist
      mkdirp(contentTypeFolderPath);
+     mkdirp.sync(blocksJsonOutputDir);
 
     //const category = await extractTaxonomy(categories, 'categories');
     const categoryArray: Field = 
@@ -276,7 +286,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             },
     };
 
-    for (const data of item) {
+    for (let itemIndex = 0; itemIndex < item.length; itemIndex++) {
+      const data = item[itemIndex];
       const processedSimilarBlocks = new Set();
         const targetItem = items?.filter((i, el) => {
             return $(el)?.find("title")?.text() === data?.title;
@@ -306,7 +317,12 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
 
         const contentEncoded = targetItem?.find("content\\:encoded")?.text() || '';
         const blocksJson = await setupWordPressBlocks(contentEncoded);
-      
+        const blocksFileName = `${type}_${affix}_${itemIndex}_${sanitizeBlocksJsonFileName(data?.title)}.json`;
+        await fs.promises.writeFile(
+          path.join(blocksJsonOutputDir, blocksFileName),
+          JSON.stringify(blocksJson, null, 2),
+          'utf8'
+        );
 
   
         // Example usage

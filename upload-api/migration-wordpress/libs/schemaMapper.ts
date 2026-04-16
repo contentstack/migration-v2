@@ -47,8 +47,8 @@ const getFieldUid = (key: string, affix: string) => {
 /** First 4 chars of clientId (hyphens stripped) — short UIDs; tiny collision risk on huge pages. */
 export function clientIdForUid(clientId: string | undefined): string {
     if (!clientId) return '0';
-    const compact = clientId.replace(/-/g, '').toLowerCase();
-    return compact.slice(0, 4) || '0';
+    const compact = clientId?.replace?.(/-/g, '')?.toLowerCase();
+    return compact?.slice?.(0, 4) || '0';
 }
   
 

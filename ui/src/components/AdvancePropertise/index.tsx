@@ -49,13 +49,13 @@ function taxonomyRows(
   for (const t of oldList) {
     const id = typeof t === 'string' ? t : t.taxonomy_uid || '';
     if (!id) continue;
-    m.set(id, {
+    m?.set(id, {
       taxonomy_uid: id,
-      taxonomy_name: typeof t === 'string' ? t : t.taxonomy_name || t.name || id
+      taxonomy_name: typeof t === 'string' ? t : t?.taxonomy_name || t?.name || id
     });
   }
   for (const id of extraUids) {
-    if (id && !m.has(id)) m.set(id, { taxonomy_uid: id, taxonomy_name: id });
+    if (id && !m?.has(id)) m?.set(id, { taxonomy_uid: id, taxonomy_name: id });
   }
   return [...m.values()];
 }
@@ -179,8 +179,8 @@ const AdvancePropertise = (props: SchemaProps) => {
       fetchTaxonomies();
 
       const rows = taxonomyRows(props?.data?.advanced?.taxonomies || [], getMappedTaxonomyUids());
-      if (rows.length > 0) {
-        setReferencedTaxonomies(rows.map((r) => ({ label: r.taxonomy_name, value: r.taxonomy_uid })));
+      if (rows?.length > 0) {
+        setReferencedTaxonomies(rows?.map((r) => ({ label: r?.taxonomy_name, value: r?.taxonomy_uid })));
       }
     }
   }, [props?.projectId, props?.fieldtype]);
@@ -230,7 +230,7 @@ const AdvancePropertise = (props: SchemaProps) => {
           if (matchedTaxonomies.length > 0) {
             setReferencedTaxonomies(matchedTaxonomies);
           } else {
-            setReferencedTaxonomies(rows.map((r) => ({ label: r.taxonomy_name, value: r.taxonomy_uid })));
+            setReferencedTaxonomies(rows?.map((r) => ({ label: r?.taxonomy_name, value: r?.taxonomy_uid })));
           }
         } else if (allTaxonomyUIDs.length > 0 && allTaxonomies.length === 0) {
           setReferencedTaxonomies(rows?.map((r) => ({ label: r?.taxonomy_name, value: r?.taxonomy_uid })));
