@@ -212,9 +212,9 @@ describe('schemaMapper', () => {
       const result = await schemaMapper(block, 'page', 'Page', affix);
 
       result.forEach((field: any) => {
-        expect(field.contentstackFieldUid).toBe(`page.${getFieldUid('core/buttons_btns1', affix)}`);
-        expect(field.uid).toBe(`page.${getFieldUid('core/buttons_btns1', affix)}`);
-        expect(field.backupFieldUid).toBe(`page.${getFieldUid('core/buttons_btns1', affix)}`);
+        expect(field.contentstackFieldUid).toBe(`page.${getFieldUid('core/buttons_btns', affix)}`);
+        expect(field.uid).toBe(`page.${getFieldUid('core/buttons_btns', affix)}`);
+        expect(field.backupFieldUid).toBe(`page.${getFieldUid('core/buttons_btns', affix)}`);
         expect(field.contentstackField).toContain('Page > ');
       });
     });
