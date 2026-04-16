@@ -269,6 +269,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     
      // Create the content type directory if it doesn't exist
      mkdirp(contentTypeFolderPath);
+     mkdirp.sync(blocksJsonOutputDir);
 
     //const category = await extractTaxonomy(categories, 'categories');
     const categoryArray: Field = 
