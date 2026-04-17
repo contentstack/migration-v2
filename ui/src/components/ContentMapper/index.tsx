@@ -1510,7 +1510,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     return (
       <div className="table-row">
         <div className="select">
-          <ContentMapperScrollAwareSelect
+          <Select
             id={data?.uid}
             value={initialOption || fieldValue}
             onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid, data?.contentstackFieldUid)}
@@ -2423,7 +2423,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             position="top"
             disabled={!selectValueIsExistingField}
           >
-            <ContentMapperScrollAwareSelect
+            <Select
               value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue :
 
                 existingField[data?.backupFieldUid]}
