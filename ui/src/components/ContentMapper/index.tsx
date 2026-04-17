@@ -93,45 +93,6 @@ const contentMapperSelectMenuStyles = {
   menuPortal: (base: Record<string, unknown>) => ({ ...base, zIndex: 10001 }),
 };
 
-type ContentMapperScrollAwareSelectProps = ComponentProps<typeof Select>;
-
-/**
- * Portaled menus stay fixed in viewport coordinates until React re-renders; nested scroll
- * (table body, main layout, etc.) does not move them. Close the menu on any scroll/resize
- * so the list never appears detached from the control. react-select's default
- * `closeMenuOnScroll` only closes when the scroll target is the document root.
- */
-function ContentMapperScrollAwareSelect(props: ContentMapperScrollAwareSelectProps) {
-  const { onMenuOpen: onMenuOpenProp, onMenuClose: onMenuCloseProp, ...rest } = props;
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const close = () => setMenuOpen(false);
-    document.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
-    return () => {
-      document.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-    };
-  }, [menuOpen]);
-
-  return (
-    <Select
-      {...rest}
-      menuIsOpen={menuOpen}
-      onMenuOpen={() => {
-        setMenuOpen(true);
-        onMenuOpenProp?.();
-      }}
-      onMenuClose={() => {
-        setMenuOpen(false);
-        onMenuCloseProp?.();
-      }}
-    />
-  );
-}
-
 const rowHistoryObj: FieldHistoryObj = {}
 
 const Fields: MappingFields = {
@@ -1563,7 +1524,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     return (
       <div className="table-row">
         <div className="select">
-          <ContentMapperScrollAwareSelect
+          <Select
             id={data?.uid}
             value={initialOption || fieldValue}
             onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid, data?.contentstackFieldUid)}
@@ -2055,6 +2016,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   if (!isDataInsideGroupField && checkConditions(fieldTypeToMatch, blockField, data) && blockField?.data_type !== 'group' && blockField?.data_type !== 'blocks') {
                     const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
                     const fieldUid = `${blockUid}.${blockField?.uid}`;
+               
                     OptionsForRow.push(getMatchingOption(
                       blockField,
                       true,
@@ -2079,7 +2041,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
                   // Recursively process nested groups within block fields — group options are added inside processSchema's group handler
                   if (blockField?.data_type === 'group' && blockField?.schema) {
-                    
+            
                     const dataChildBlockUid = dataParentChildBlockUid;
                     // Parent source group uid for nestedList lookup:
                     // - Group rows map the group itself (full data.uid).
@@ -2102,6 +2064,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
                     const groupChildren = groupField?.child || [];
                     const groupArr = groupField ? [groupField] : [];
+                   
                     
                     processSchema(
                       blockField,
@@ -2151,7 +2114,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             }
           }
         }
-
+         
           const existingLabel = existingField[groupArray?.[0]?.backupFieldUid]?.label ?? '';
          
           const lastLabelSegment = existingLabel?.includes('>')
@@ -2472,7 +2435,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             position="top"
             disabled={!selectValueIsExistingField}
           >
-            <ContentMapperScrollAwareSelect
+            <Select
               value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue :
 
                 existingField[data?.backupFieldUid]}

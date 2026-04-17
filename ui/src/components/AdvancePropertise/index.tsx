@@ -219,20 +219,20 @@ const AdvancePropertise = (props: SchemaProps) => {
         const rows = taxonomyRows(props?.data?.advanced?.taxonomies || [], getMappedTaxonomyUids());
         const allTaxonomyUIDs = rows?.map((r) => r?.taxonomy_uid);
 
-        if (allTaxonomyUIDs.length > 0 && allTaxonomies.length > 0) {
+        if (allTaxonomyUIDs?.length > 0 && allTaxonomies?.length > 0) {
           const matchedTaxonomies = allTaxonomyUIDs
             .map((uid: string) => {
-              const taxonomy = allTaxonomies.find((t: Taxonomy) => t.uid === uid);
-              return taxonomy ? { label: taxonomy.name || taxonomy.uid, value: taxonomy.uid } : null;
+              const taxonomy = allTaxonomies?.find((t: Taxonomy) => t?.uid === uid);
+              return taxonomy ? { label: taxonomy.name || taxonomy?.uid, value: taxonomy?.uid } : null;
             })
             .filter(Boolean) as ContentTypeOption[];
 
-          if (matchedTaxonomies.length > 0) {
+          if (matchedTaxonomies?.length > 0) {
             setReferencedTaxonomies(matchedTaxonomies);
           } else {
             setReferencedTaxonomies(rows?.map((r) => ({ label: r?.taxonomy_name, value: r?.taxonomy_uid })));
           }
-        } else if (allTaxonomyUIDs.length > 0 && allTaxonomies.length === 0) {
+        } else if (allTaxonomyUIDs?.length > 0 && allTaxonomies?.length === 0) {
           setReferencedTaxonomies(rows?.map((r) => ({ label: r?.taxonomy_name, value: r?.taxonomy_uid })));
         } else {
           // No existing taxonomies, clear the selection

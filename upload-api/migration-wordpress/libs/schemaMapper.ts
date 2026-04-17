@@ -409,11 +409,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             );
             if (innerBlocks?.length === 1) {
                 const items = Array.isArray(innerBlocks[0]) ? innerBlocks[0] : [innerBlocks[0]];
-                items.forEach((item: Field) => {
-                    item.uid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+                items?.forEach((item: Field) => {
+                    item.uid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
                     item.contentstackField = `${parentFieldName} > ${getFieldName(resolveBlockName(key))}`;
-                    item.contentstackFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
-                    item.backupFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`
+                    item.contentstackFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
+                    item.backupFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
                 });
                 return items;
             }

@@ -269,7 +269,6 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     
      // Create the content type directory if it doesn't exist
      mkdirp(contentTypeFolderPath);
-     mkdirp.sync(blocksJsonOutputDir);
 
     //const category = await extractTaxonomy(categories, 'categories');
     const categoryArray: Field = 
@@ -286,7 +285,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             },
     };
 
-    for (let itemIndex = 0; itemIndex < item.length; itemIndex++) {
+    for (let itemIndex = 0; itemIndex < item?.length; itemIndex++) {
       const data = item[itemIndex];
       const processedSimilarBlocks = new Set();
         const targetItem = items?.filter((i, el) => {
@@ -317,12 +316,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
 
         const contentEncoded = targetItem?.find("content\\:encoded")?.text() || '';
         const blocksJson = await setupWordPressBlocks(contentEncoded);
-        const blocksFileName = `${type}_${affix}_${itemIndex}_${sanitizeBlocksJsonFileName(data?.title)}.json`;
-        await fs.promises.writeFile(
-          path.join(blocksJsonOutputDir, blocksFileName),
-          JSON.stringify(blocksJson, null, 2),
-          'utf8'
-        );
+       
 
   
         // Example usage

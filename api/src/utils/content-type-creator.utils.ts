@@ -116,7 +116,7 @@ const uidCorrector = ({ uid } : {uid : string}) => {
  *   issues do not go unnoticed.
  * @returns The remapped UIDs.
  */
-function remapReferenceUids(uids: string[], keyMapper?: Record<string, string>): string[] {
+function remapReferenceUids(uids: string | string[], keyMapper?: Record<string, string>): string[] {
   const uidsArray = Array.isArray(uids) ? uids : [uids];
   if (!keyMapper || !Object.keys(keyMapper).length) return uidsArray;
   return uidsArray?.map(uid => keyMapper?.[uid] ?? keyMapper?.[uidCorrector({ uid })] ?? uid);
