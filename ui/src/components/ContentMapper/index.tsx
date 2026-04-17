@@ -1,5 +1,12 @@
 // Libraries
-import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import {
+  useEffect,
+  useState,
+  useRef,
+  useImperativeHandle,
+  forwardRef,
+  type ComponentProps,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -68,11 +75,23 @@ import AdvanceSettings from '../AdvancePropertise';
 import SaveChangesModal from '../Common/SaveChangesModal';
 
 // Utilities
-import { shouldAddGroupOption, shouldRecurseIntoNestedDestGroup } from './groupSchema.utils';
+import {
+  shouldAddGroupOption,
+  shouldRecurseIntoNestedDestGroup,
+  findGroupFieldInChildren,
+} from './groupSchema.utils';
 
 // Styles and Assets
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
+
+/** Renders the menu in the document body so `menuPlacement="auto"` matches the control when inside scroll/overflow containers (e.g. InfiniteScrollTable). */
+const CONTENT_MAPPER_SELECT_MENU_PORTAL =
+  typeof document !== 'undefined' ? document.body : undefined;
+
+const contentMapperSelectMenuStyles = {
+  menuPortal: (base: Record<string, unknown>) => ({ ...base, zIndex: 10001 }),
+};
 
 const rowHistoryObj: FieldHistoryObj = {}
 
@@ -1515,6 +1534,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             isClearable={false}
             options={option}
             menuPlacement="auto"
+            menuPortalTarget={CONTENT_MAPPER_SELECT_MENU_PORTAL}
+            styles={contentMapperSelectMenuStyles}
             isDisabled={
               !(data?.contentstackFieldType === 'single_line_text' ||
               data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
@@ -1987,16 +2008,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               }
             
               // Only process fields if current block matches the mapped block
-              if (mappedChildBlockTitle === blockTitle) {
+              if (mappedChildBlockTitle === blockTitle && existingChildBlockMapping?.label === blockDisplayName) {
                 const parentDepth = dataParentChildBlockUid?.split('.')?.length ?? 0;
                 const isDataInsideGroupField = (data?.uid?.split('.')?.length ?? 0) > parentDepth + 1;
-               
                 for (const blockField of block?.schema ?? []) {
                   const fieldTypeToMatch = Fields[data?.backupFieldType as keyof Mapping]?.type;
                   if (!isDataInsideGroupField && checkConditions(fieldTypeToMatch, blockField, data) && blockField?.data_type !== 'group' && blockField?.data_type !== 'blocks') {
                     const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
                     const fieldUid = `${blockUid}.${blockField?.uid}`;
-                   
+               
                     OptionsForRow.push(getMatchingOption(
                       blockField,
                       true,
@@ -2021,8 +2041,17 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
                   // Recursively process nested groups within block fields — group options are added inside processSchema's group handler
                   if (blockField?.data_type === 'group' && blockField?.schema) {
+            
                     const dataChildBlockUid = dataParentChildBlockUid;
-                    const dataGroupUid = data?.uid?.split('.')?.slice(0, parentDepth + 1)?.join('.');
+                    // Parent source group uid for nestedList lookup:
+                    // - Group rows map the group itself (full data.uid).
+                    // - Leaf fields (e.g. paragraph under details) must use the immediate
+                    //   parent uid. slice(0, parentDepth + 1) breaks when multiple groups
+                    //   sit between the child block and the leaf (quote → details → paragraph).
+                    const dataGroupUid =
+                      data?.backupFieldType === 'group' && data?.contentstackFieldType === 'group'
+                        ? data?.uid ?? ''
+                        : data?.uid?.split('.')?.slice(0, -1)?.join('.') ?? '';
 
                     const modularBlock = nestedList?.find(item =>
                       item?.contentstackFieldType === 'modular_blocks' &&
@@ -2031,13 +2060,12 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                     const childBlock = modularBlock?.child?.find(
                       (c: FieldMapType) => c?.uid === dataChildBlockUid
                     );
-                    const groupField = childBlock?.child?.find(
-                      (c: FieldMapType) => c?.uid === dataGroupUid && c?.contentstackFieldType === 'group'
-                    );
+                    const groupField = findGroupFieldInChildren(childBlock?.child, dataGroupUid);
 
                     const groupChildren = groupField?.child || [];
                     const groupArr = groupField ? [groupField] : [];
-
+                   
+                    
                     processSchema(
                       blockField,
                       data,
@@ -2074,7 +2102,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       return OptionsForRow;
     }
     else if (value?.data_type === 'group') {
-
+     
         if (data?.backupFieldType === 'group' && checkConditions('Group', value, data) ) {
           if (shouldAddGroupOption(data?.uid ?? '', parentUid)) {
             const newOption = getMatchingOption(value, true, updatedDisplayName, uid ?? '');
@@ -2086,7 +2114,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             }
           }
         }
-      
+         
           const existingLabel = existingField[groupArray?.[0]?.backupFieldUid]?.label ?? '';
          
           const lastLabelSegment = existingLabel?.includes('>')
@@ -2094,6 +2122,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             : existingLabel;
           
           if (value?.display_name === lastLabelSegment) {
+            
             const groupUid = groupArray?.[0]?.uid ?? '';
             const groupDepth = groupUid?.split('.')?.length ?? 0;
 
@@ -2101,7 +2130,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               const fieldTypeToMatch = Fields[item?.backupFieldType as keyof Mapping]?.type;
               const itemDepth = item?.uid?.split('.')?.length ?? 0;
               const isRootLevelChild = itemDepth === groupDepth + 1;
-
               if (item?.id === data?.id && isRootLevelChild) {
                 for (const key of existingField[groupArray?.[0]?.backupFieldUid]?.value?.schema || []) {
                   if (checkConditions(fieldTypeToMatch, key, item)) {
@@ -2118,7 +2146,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
             for (const key of existingField[groupArray?.[0]?.backupFieldUid]?.value?.schema || []) {
               if (key?.data_type === 'group') {
-           
+                
                 const nestedGroupUid = data?.uid?.split('.')?.slice(0, groupDepth + 1)?.join('.');
        
                 const nestedGroupField = groupArray?.[0]?.child?.find(
@@ -2133,6 +2161,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
           }
           else {
+            
             if (shouldRecurseIntoNestedDestGroup(data?.uid ?? '', updatedDisplayName, nestedList ?? [], existingField)) {
               for (const key of value?.schema || []) {
                 if (key?.data_type === 'group') {
@@ -2169,6 +2198,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
                 // Recursively process nested groups
                 if (key?.data_type === 'group') {
+                 
                   processSchema(key, data, array, groupArray, OptionsForRow, fieldsOfContentstack, updatedDisplayName, uid);
                 }
               }
@@ -2392,28 +2422,41 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
    
     const isTypeMatch = checkConditions(Fields[data?.contentstackFieldType]?.type, existingField[data?.backupFieldUid]?.value, data);
 
+    const selectValueIsExistingField =
+      OptionsForRow?.length !== 0 &&
+      isTypeMatch &&
+      existingField?.[data?.backupFieldUid]?.label !== undefined;
+
     return (
       <div className="table-row">
         <div className="select">
-          <Select
-            value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : 
+          <Tooltip
+            content={existingField[data?.backupFieldUid]?.label ?? ''}
+            position="top"
+            disabled={!selectValueIsExistingField}
+          >
+            <Select
+              value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue :
 
-            existingField[data?.backupFieldUid]}
-            onChange={(selectedOption: FieldTypes) => {
-              if (OptionsForRow?.length === 0) {
-                handleValueChange(selectedOption, data?.uid, data?.backupFieldUid)
-              } else {
-                handleFieldChange(selectedOption, data?.uid, data?.contentstackFieldUid, data?.backupFieldUid)
-              }
-            }}
-            placeholder="Select Field"
-            version={'v2'}
-            maxWidth="290px"
-            isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
-            options={adjustedOptions}
-            isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
-            menuPlacement="auto"
-          />
+                existingField[data?.backupFieldUid]}
+              onChange={(selectedOption: FieldTypes) => {
+                if (OptionsForRow?.length === 0) {
+                  handleValueChange(selectedOption, data?.uid, data?.backupFieldUid)
+                } else {
+                  handleFieldChange(selectedOption, data?.uid, data?.contentstackFieldUid, data?.backupFieldUid)
+                }
+              }}
+              placeholder="Select Field"
+              version={'v2'}
+              maxWidth="290px"
+              isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
+              options={adjustedOptions}
+              isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
+              menuPlacement="auto"
+              menuPortalTarget={CONTENT_MAPPER_SELECT_MENU_PORTAL}
+              styles={contentMapperSelectMenuStyles}
+            />
+          </Tooltip>
         </div>
         {(!OptionValue?.isDisabled || OptionValue?.label === 'Dropdown' ||
           (data?.backupFieldType !== 'extension' &&

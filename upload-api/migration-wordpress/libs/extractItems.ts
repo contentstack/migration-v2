@@ -5,7 +5,7 @@ import * as cheerio from 'cheerio';
 
 
 import { setupWordPressBlocks } from "../utils/parseUtil";
-import { getFieldName, getFieldUid, schemaMapper } from "./schemaMapper";
+import { clientIdForUid, getFieldName, getFieldUid, schemaMapper } from "./schemaMapper";
 import helper from "../utils/helper";
 import config from '../config/index.json';
 import extractTaxonomy from './extractTaxonomy';
@@ -25,6 +25,15 @@ function resolveBlockName(field: any): string {
 const { contentTypes: contentTypesConfig } = config?.modules;
 
 const contentTypeFolderPath = path.resolve(config?.data, contentTypesConfig?.dirName);
+const blocksJsonOutputDir = path.resolve(config?.data, 'wordpress_blocks');
+
+function sanitizeBlocksJsonFileName(title: string, maxLen = 80): string {
+  return String(title || 'untitled')
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .trim()
+    .replace(/\s+/g, '_')
+    .slice(0, maxLen);
+}
 
 function findSimilarBlocks(data: any[][], targetId: string) {
   for (const group of data) {
@@ -276,7 +285,8 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             },
     };
 
-    for (const data of item) {
+    for (let itemIndex = 0; itemIndex < item?.length; itemIndex++) {
+      const data = item[itemIndex];
       const processedSimilarBlocks = new Set();
         const targetItem = items?.filter((i, el) => {
             return $(el)?.find("title")?.text() === data?.title;
@@ -306,7 +316,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
 
         const contentEncoded = targetItem?.find("content\\:encoded")?.text() || '';
         const blocksJson = await setupWordPressBlocks(contentEncoded);
-      
+       
 
   
         // Example usage
@@ -317,7 +327,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         // Track processed similar blocks to avoid duplicates
         
         for (const field of blocksJson) {
-            const fieldUid = getFieldUid(`${field?.name}_${field?.clientId}`|| '', affix || '');
+            const fieldUid = getFieldUid(`${field?.name}_${clientIdForUid(field?.clientId)}`|| '', affix || '');
             const contentstackFieldName = getFieldName(resolveBlockName(field));
 
             const similarBlocks = findSimilarBlocks(result, field?.clientId);
@@ -380,7 +390,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 // No duplicate found - add the modular block child
                 if(Schema?.length > 0){
                   CT?.push?.({
-                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${field?.clientId}`, affix)}`,
+                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${clientIdForUid(field?.clientId)}`, affix)}`,
                   "backupFieldUid": `modular_blocks.${fieldUid}`,
                   "contentstackFieldUid": `modular_blocks.${fieldUid}`,
                   "otherCmsField": contentstackFieldName,
@@ -436,7 +446,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 // No duplicate found - add the modular block child
                 if(Schema?.length > 0){ 
                   CT?.push?.({
-                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${field?.clientId}`, affix)}`,
+                  "uid": `modular_blocks.${getFieldUid(`${field?.name}_${clientIdForUid(field?.clientId)}`, affix)}`,
                   "backupFieldUid": `modular_blocks.${fieldUid}`,
                   "contentstackFieldUid": `modular_blocks.${fieldUid}`,
                   "otherCmsField": contentstackFieldName,

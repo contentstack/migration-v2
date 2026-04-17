@@ -43,6 +43,13 @@ const getFieldUid = (key: string, affix: string) => {
   
     return isPresent ? `${affix}_${uid}` : uid;
   };
+
+/** First 4 chars of clientId (hyphens stripped) — short UIDs; tiny collision risk on huge pages. */
+export function clientIdForUid(clientId: string | undefined): string {
+    if (!clientId) return '0';
+    const compact = clientId?.replace?.(/-/g, '')?.toLowerCase();
+    return compact?.slice?.(0, 4) || '0';
+}
   
 
 async function processInnerBlocks(key: WordPressBlock, parentUid: string | null = null, parentFieldName: string | null = null, affix: string | null = null): Promise<any[]> {
@@ -201,8 +208,8 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/verse':
         case 'core/code': {
             const rteUid = parentUid ?
-            `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}`
-            : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`
+            : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
             return {
                 uid: rteUid,
                 otherCmsField: getFieldName(key?.name),
@@ -217,8 +224,8 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         }
         case 'core/missing':
             const rteUid = parentUid ?
-                `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}`
-                : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+                `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`
+                : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
             if(key?.attributes?.originalName === 'jetpack/markdown'){
                 return {
                     uid: rteUid,
@@ -248,7 +255,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/audio':
         case 'core/video':
         case 'core/file': {
-            const fileUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            const fileUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
             
             return {
                 uid: fileUid,
@@ -266,7 +273,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/heading':
         case 'core/accordion-heading':
         case 'core/list-item': {
-            const textUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            const textUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
             return {
                 uid: textUid,
                 otherCmsField: getFieldName(key?.name),
@@ -283,7 +290,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/social-link':
         case 'core/navigation-link': {
            
-            const LinkUid = parentUid ? `${parentUid}.${getFieldUid(key?.name, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            const LinkUid = parentUid ? `${parentUid}.${getFieldUid(key?.name, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
             return {
                 uid: LinkUid,
                 otherCmsField: getFieldName(key?.name),
@@ -307,7 +314,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/accordion-panel':
         case 'core/navigation': {
             const groupSchema: Field[] = [];
-            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
 
             const innerBlocks = await processInnerBlocks(
                 key, 
@@ -346,7 +353,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         }
         
         case 'core/search': {
-            const searchEleUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            const searchEleUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
             const searchEle = await processAttributes(key, searchEleUid,fieldName, affix);
             const groupSchema: Field[] = [];
             searchEle?.length > 0 && groupSchema?.push({
@@ -374,7 +381,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
            
         case 'core/button': {
             const fieldName = parentFieldName ? `${parentFieldName} > ${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` :  `${getFieldName(key?.attributes?.metadata?.name ?? key?.name)}` ;
-            const buttonUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            const buttonUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
 
             return { 
                 uid: buttonUid,
@@ -392,7 +399,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         
         case 'core/buttons': { 
             const groupSchema: Field[] = [];
-            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}` : getFieldUid(`${key?.name}_${key?.clientId}`, affix);
+            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
 
             const innerBlocks = await processInnerBlocks(
                 key, 
@@ -402,11 +409,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             );
             if (innerBlocks?.length === 1) {
                 const items = Array.isArray(innerBlocks[0]) ? innerBlocks[0] : [innerBlocks[0]];
-                items.forEach((item: Field) => {
-                    item.uid = `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}`,
+                items?.forEach((item: Field) => {
+                    item.uid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
                     item.contentstackField = `${parentFieldName} > ${getFieldName(resolveBlockName(key))}`;
-                    item.contentstackFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}`,
-                    item.backupFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${key?.clientId}`, affix)}`
+                    item.contentstackFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
+                    item.backupFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
                 });
                 return items;
             }
@@ -444,4 +451,4 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
     return [];
 }
 
-export { getFieldName, getFieldUid ,schemaMapper, handleAttributesSchema};
+export { getFieldName, getFieldUid, schemaMapper, handleAttributesSchema };

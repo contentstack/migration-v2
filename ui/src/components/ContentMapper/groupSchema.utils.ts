@@ -1,6 +1,26 @@
 import { FieldMapType, ExistingFieldType } from './contentMapper.interface';
 
 /**
+ * Finds a source group field anywhere under a modular block child's `child` tree
+ * by uid. Direct `.find` on immediate children fails when groups are nested
+ * (e.g. quote → details → paragraph).
+ */
+export function findGroupFieldInChildren(
+  children: FieldMapType[] | undefined,
+  uid: string,
+): FieldMapType | undefined {
+  if (!children?.length || !uid) return undefined;
+  for (const c of children) {
+    if (c?.uid === uid && c?.contentstackFieldType === 'group') {
+      return c;
+    }
+    const found = findGroupFieldInChildren(c?.child, uid);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/**
  * Determines whether a destination group field should be offered as a mapping
  * option for a source group field, by enforcing equal nesting depths.
  *
@@ -44,7 +64,9 @@ export function shouldRecurseIntoNestedDestGroup(
   }
 
   const parentSourceUid = sourceUidParts?.slice(0, -1)?.join('.');
+ 
   const parentSourceNode = nestedList?.find((item: FieldMapType) => item?.uid === parentSourceUid);
+
   const parentMappedLabel = parentSourceNode?.backupFieldUid
     ? (existingField[parentSourceNode.backupFieldUid] as { label?: string })?.label
     : undefined;
