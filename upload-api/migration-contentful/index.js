@@ -6,6 +6,7 @@ const extractLocale = require('./libs/extractLocale');
 const extractTaxonomy = require('./libs/extractTaxonomy');
 const extractEntries = require('./libs/extractEntries');
 
+const extractEntries = require('./libs/extractEntries');
 module.exports = {
   extractContentTypes,
   createInitialMapper,
