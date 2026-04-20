@@ -764,10 +764,11 @@ export const convertToSchemaFormate = ({ field, advanced = false, marketPlacePat
 
 
     case 'global_field': {
+      const globalFieldRefs = remapReferenceUids(field?.refrenceTo ?? [], keyMapper);
       return {
         "data_type": "global_field",
         "display_name": field?.title,
-        "reference_to": remapReferenceUids(field?.refrenceTo ?? [], keyMapper),
+        "reference_to": globalFieldRefs?.length === 1 ? globalFieldRefs?.[0] : globalFieldRefs,
         "uid": cleanedUid,
         "mandatory": field?.advanced?.mandatory ?? false,
         "multiple": field?.advanced?.multiple ?? false,
