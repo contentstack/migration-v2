@@ -58,6 +58,7 @@ const buildContentfulTaxonomyFields = (metadata) => {
     }
   ];
 };
+const extractEntries = require('./extractEntries');
 
 /**
  * Internal module dependencies.
@@ -122,6 +123,7 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
         ctMetaById[ct.sys.id] = ct.metadata || {};
       }
     }
+    const entriesByContentType = extractEntries(cleanLocalPath);
 
     const entriesByContentType = extractEntries(cleanLocalPath);
 

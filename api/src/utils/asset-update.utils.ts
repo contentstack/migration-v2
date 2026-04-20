@@ -192,7 +192,6 @@ export const removeExistingAssets = async (projectId: string, loggerPath?: strin
         MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
     );
     const indexPath = path.join(assetsDir, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
-    console.info('Index path:', indexPath);
     if (!fs.existsSync(indexPath)) {
         writeLogEntry(`Assets index.json not found at ${indexPath}, skipping.`, "removeExistingAssets", loggerPath);
         return;
