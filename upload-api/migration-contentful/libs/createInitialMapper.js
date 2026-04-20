@@ -8,7 +8,7 @@ const fs = require('fs/promises');
 const path = require('path');
 // const contentTypeMapper = require('./contentTypeMapper');
 const contentTypeMapper = require('./contentTypeMapper');
-
+const extractEntries = require('./extractEntries');
 
 /**
  * Internal module dependencies.
@@ -66,6 +66,7 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
   try {
     const alldata = readFile(cleanLocalPath);
     const { entries } = alldata;
+    const entriesByContentType = extractEntries(cleanLocalPath);
 
     const initialMapper = [];
     const files = await fs.readdir(
@@ -77,6 +78,7 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
         path.resolve(process.cwd(), `${config.data}/${config.contentful.contentful}/${file}`)
       );
       const title = file.split('.')[0];
+      const contentfulID = data?.[0]?.contentfulID;
 
       const contentTypeObject = {
         status: 1,
@@ -87,7 +89,8 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
         contentstackTitle: title.charAt(0).toUpperCase() + title.slice(1),
         contentstackUid: uidCorrector(data?.[0]?.contentUid, affix),
         type: 'content_type',
-        fieldMapping: []
+        fieldMapping: [],
+        entryMapping: entriesByContentType[contentfulID] || []
       };
       const uidTitle = [
         {

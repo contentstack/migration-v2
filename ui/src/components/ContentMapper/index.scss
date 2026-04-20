@@ -140,56 +140,58 @@
 .table-container {
   flex: 1 0 auto;
 }
-.table-wrapper {
-  flex: 1;
-  .TablePanel {
-    border-left: 0 none;
-    .TablePanel__list-count {
-      display: none;
+.content-mapper-container {
+  .table-wrapper {
+    flex: 1;
+    .TablePanel {
+      border-left: 0 none;
+      .TablePanel__list-count {
+        display: none;
+      }
     }
-  }
-  .Table {
-    border-left: 0 none;
-    min-height: 24.25rem;
-    .Table__body__row {
+    .Table {
+      border-left: 0 none;
+      min-height: 24.25rem;
+      .Table__body__row {
         .Table-select-body {
-         >.checkbox-wrapper {
-          align-items: flex-start;
+          > .checkbox-wrapper {
+            align-items: flex-start;
+          }
         }
       }
-    }
-    .Table__body__column {
-      padding: 0 1.25rem;
-      &:not(:last-of-type) {
-        display: block;
+      .Table__body__column {
+        padding: 0 1.25rem;
+        &:not(:last-of-type) {
+          display: block;
+        }
+      }
+      .Table-select-body {
+        width: 68px;
+      }
+      .cms-field {
+        // text-transform: capitalize;
+        // overflow: hidden;
+        // text-overflow: ellipsis;
+        // white-space: nowrap;
+        // width: 445px;
+
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .InstructionText {
+        font-size: $size-font-small;
+        margin: 0;
+      }
+      .EmptyStateWrapper {
+        margin-top: $px-20;
       }
     }
-    .Table-select-body {
-      width: 68px;
-    }
-    .cms-field {
-      // text-transform: capitalize;
-      // overflow: hidden;
-      // text-overflow: ellipsis;
-      // white-space: nowrap;
-      // width: 445px;
-
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .InstructionText {
-      font-size: $size-font-small;
+    .import-cta {
       margin: 0;
     }
-    .EmptyStateWrapper {
-      margin-top: $px-20;
-    }
-  }
-  .import-cta {
-    margin: 0;
   }
 }
 .disabled-field {

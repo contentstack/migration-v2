@@ -209,4 +209,37 @@ function deleteFolderSync(folderPath: string): void {
   }
 }
 
-export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson };
+async function updateConfigFile(filePath?: string) {
+  try {
+    const configFilePath = path.join(process.cwd(), 'src', 'config', 'index.json');
+    const config:any = JSON.parse(await fs.promises.readFile(configFilePath, 'utf8'));
+    
+    
+    // If filePath is provided and not empty, update the config file
+    if (filePath && typeof filePath === 'string' && filePath.trim() !== '') {
+      const resolvedFilePath = path.resolve(filePath.trim());
+      
+      // Read current config
+      const updatedConfig = {
+        ...config,
+        localPath: resolvedFilePath
+      };
+      
+      // Write updated config back to file
+      const configContent = JSON.stringify(updatedConfig, null, 2);
+      await fs.promises.writeFile(configFilePath, configContent, 'utf8');
+      
+      // Return updated config
+      return updatedConfig;
+    }
+    
+    // If no filePath provided, just return current config
+    return config;
+  } catch (error) {
+    console.error('Error updating config file:', error);
+    // Return current config as fallback
+    
+  }
+}
+
+export { getFileName, saveZip, saveJson, fileOperationLimiter, deleteFolderSync, parseXmlToJson, updateConfigFile };

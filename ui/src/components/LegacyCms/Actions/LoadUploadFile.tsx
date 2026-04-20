@@ -5,7 +5,7 @@ import { fileValidation } from '../../../services/api/upload.service';
 import { getMigrationData } from '../../../services/api/migration.service';
 import { RootState } from '../../../store';
 import { updateNewMigrationData } from '../../../store/slice/migrationDataSlice';
-import { Button, Paragraph } from '@contentstack/venus-components';
+import { Button, Icon, Paragraph, TextInput } from '@contentstack/venus-components';
 import { isEmptyString } from '../../../utilities/functions';
 import { useParams } from 'react-router';
 import { ICardType } from '../../../components/Common/Card/card.interface';
@@ -52,6 +52,44 @@ interface UploadState
 const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
 {
   const isSQL = fileFormatId?.toLowerCase() === 'sql';
+  const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
+  const [isEditing, setIsEditing] = useState((newMigrationData?.iteration > 1 && !newMigrationData?.legacy_cms?.uploadedFile?.isValidated) ? true : false);
+  const [localPath, setLocalPath] = useState(fileDetails?.localPath || '');
+  const dispatch = useDispatch();
+  const currentPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || fileDetails?.localPath || '';
+
+
+  const handleEditFile = async () => {
+    setIsEditing(true);
+    setLocalPath(currentPath);
+  };
+    
+    const handleBlur = async () => {
+      setIsEditing(false);
+
+      // Update Redux state with new path
+      const updatedMigrationData = {
+        ...newMigrationData,
+        legacy_cms: {
+          ...newMigrationData?.legacy_cms,
+          uploadedFile: {
+            ...newMigrationData?.legacy_cms?.uploadedFile,
+            name: localPath,
+            url: localPath,
+            file_details: {
+              ...newMigrationData?.legacy_cms?.uploadedFile?.file_details,
+              localPath: localPath
+            }
+          }
+        }
+      };  
+      
+      dispatch(updateNewMigrationData(updatedMigrationData));
+      const fileFormatData = {
+        "file_path": localPath,
+      }
+    };
+  
 
   return (
     <div>
@@ -67,8 +105,28 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
       ) : fileDetails?.isLocalPath ? (
         // ✅ Local path (file or directory — format driven by legacyCms.json)
         <div className="file-container">
-          <Paragraph tagName="p" variant="p1" text={ `Local Path: ${fileDetails?.localPath}` } />
+        <div className="file-path-text">
+          {isEditing ? (
+            <TextInput
+              value={localPath}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocalPath(e.target.value)}
+              onBlur={handleBlur}
+              width="full"
+              version="v2"
+              placeholder="Enter local path"
+              aria-label="local path"
+              autoFocus
+            />
+          ) : (
+            <Paragraph tagName="p" variant="p1" text={`Local Path: ${currentPath}`} />
+          )}
         </div>
+        {(
+          <div className="edit-icon">
+            <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
+          </div>
+        )}
+      </div>
       ) : (
         // ✅ AWS S3 details (isLocalPath is false)
         <div>

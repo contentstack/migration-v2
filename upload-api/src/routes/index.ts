@@ -10,9 +10,8 @@ import {
   UploadPartCommand
 } from '@aws-sdk/client-s3';
 import { client } from '../services/aws/client';
-import { fileOperationLimiter } from '../helper';
+import { fileOperationLimiter, updateConfigFile } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
-import config from '../config/index';
 import createMapper from '../services/createMapper';
 import { sanitizeId, sanitizeFilename, isPathWithinBase } from '../utils/sanitize-path.utils';
 
@@ -98,6 +97,7 @@ router.get(
       const projectId: string = sanitizeId(req?.headers?.projectid ?? '');
       const app_token: string | string[] = req?.headers?.app_token ?? '';
       const affix: string = sanitizeId(req?.headers?.affix ?? 'csm');
+      const config = await updateConfigFile();
       const cmsType = config?.cmsType?.toLowerCase();
 
       if (config?.isLocalPath) {
@@ -417,6 +417,7 @@ router.get(
 
 router.get('/config', async function (req: Request, res: Response) {
   // Strip mysql password before sending config to the client
+  const config = await updateConfigFile();
   const { password, ...safeMysql } = config?.mysql || {};
   const safeConfig = {
     ...config,

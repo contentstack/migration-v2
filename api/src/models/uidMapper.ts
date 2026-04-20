@@ -23,44 +23,29 @@ export interface Advanced {
 }
 
 /**
- * Represents a field mapper object.
+ * Represents an entry mapper object.
  */
-interface FieldMapper {
-  field_mapper: {
-    id: string;
-    projectId: string;
-    contentTypeId: string;
-    uid: string;
-    otherCmsField: string;
-    otherCmsType: string;
-    contentstackField: string;
-    contentstackFieldUid: string;
-    contentstackFieldType: string;
-    isDeleted: boolean;
-    backupFieldType: string;
-    backupFieldUid: string
-    refrenceTo: { uid: string; title: string };
-    advanced: Advanced;
-  }[];
+interface EntryMapper {
+  entry: Record<string, any>;
+  assets: Record<string, any>;
 }
 
-const defaultData: FieldMapper = { field_mapper: [] };
+const defaultData: EntryMapper = { entry: {}, assets: {} };
 
 /**
  * Creates and returns a database instance for the field mapper for a specific project.
  * @param projectId - The unique identifier of the project
  * @returns The database instance for the field mapper
  */
-const getFieldMapperDb = (projectId: string, iteration: number) => {
+const getUidMapperDb = (projectId: string, iteration: number) => {
   fs.mkdirSync(path.join(process.cwd(), "database", projectId, iteration.toString()), { recursive: true });
   const db = new LowWithLodash(
-    new JSONFile<FieldMapper>(
-      path.join(process.cwd(), "database", projectId, iteration.toString(), 'field-mapper.json')
+    new JSONFile<EntryMapper>(
+      path.join(process.cwd(), "database", projectId, iteration.toString(), 'uid-mapper.json')
     ),
     defaultData
   );
   return db;
 };
 
-export default getFieldMapperDb;
-
+export default getUidMapperDb;

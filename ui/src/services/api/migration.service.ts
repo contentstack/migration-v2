@@ -367,3 +367,53 @@ export const getMigrationLogs = async (orgId: string, projectId: string, stackId
     }
   }
 }
+
+export const restartMigration = async (orgId: string, projectId: string) => {
+  try {
+    return await postCall(
+      `${API_VERSION}/migration/restart/${orgId}/${projectId}`, {}, options());
+  } catch (error) {
+    return error;
+  }
+}
+
+export const getEntryMapping = async (
+  contentTypeId: string,
+  skip: number,
+  limit: number,
+  searchText: string,
+  projectId: string
+) => {
+  try {
+    const encodedSearchText = encodeURIComponent(searchText);
+    return await getCall(
+      `${API_VERSION}/mapper/entryMapping/${projectId}/${contentTypeId}/${skip}/${limit}/${encodedSearchText}?`,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
+export const updateEntryMapper = async (
+  projectId: string,
+  data: ObjectType
+) => {
+  try {
+    return await putCall(
+      `${API_VERSION}/mapper/updateEntryStatus/${projectId}`,
+      data,
+      options()
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${error.message}`);
+    } else {
+      throw new Error('Unknown error');
+    }
+  }
+};
+

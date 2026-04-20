@@ -96,9 +96,27 @@ router.get(
 
 /**
  * Update content mapper
- * @route GET /:orgId/:projectId
+ * @route PATCH /:orgId/:projectId/mapper_keys
  */
 router.patch("/:orgId/:projectId/mapper_keys", asyncRouter(contentMapperController.updateContentMapper));
+
+/**
+ * Get Entry Mapping List
+ * @route GET /entryMapping/:projectId/:contentTypeId/:skip/:limit/:searchText?
+ */
+router.get(
+  "/entryMapping/:projectId/:contentTypeId/:skip/:limit/:searchText?",
+  asyncRouter(contentMapperController.getEntryMapping)
+);
+
+/**
+ * Update Entry Status
+ * @route PUT /entryStatus/:projectId
+ */
+router.put(
+  "/updateEntryStatus/:projectId",
+  asyncRouter(contentMapperController.updateEntryStatus)
+);
 
 /**
  * Get Single Global Field data

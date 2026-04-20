@@ -93,5 +93,18 @@ router.post(
   asyncRouter(migrationController.saveMappedLocales)
 )
 
+/**
+ * Route for restarting the migration.
+ * @route POST /restart/:orgId/:projectId
+ * @group Migration
+ * @param {string} orgId - The ID of the organization.
+ * @param {string} projectId - The ID of the project.
+ * @returns {Promise<void>} - A promise that resolves when the migration is restarted.
+ */
+router.post(
+  "/restart/:orgId/:projectId",
+  asyncRouter(migrationController.restartMigration)
+)
+
 
 export default router;

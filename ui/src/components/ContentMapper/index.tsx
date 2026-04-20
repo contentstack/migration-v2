@@ -84,6 +84,7 @@ import {
 // Styles and Assets
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
+import EntryMapper from './entryMapper';
 
 /** Renders the menu in the document body so `menuPlacement="auto"` matches the control when inside scroll/overflow containers (e.g. InfiniteScrollTable). */
 const CONTENT_MAPPER_SELECT_MENU_PORTAL =
@@ -300,7 +301,9 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const migrationData = useSelector((state: RootState) => state?.migration?.migrationData);
   const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
   const selectedOrganisation = useSelector((state: RootState) => state?.authentication?.selectedOrganisation);
-
+  const iteration = useSelector(
+    (state: RootState) => state?.migration?.newMigrationData?.iteration
+  );
   // When setting contentModels from Redux, ensure it's cloned
   const reduxContentTypes = newMigrationData?.content_mapping?.existingCT; // Assume this gets your Redux state
   const reduxGlobalFields = newMigrationData?.content_mapping?.existingGlobal
@@ -368,6 +371,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const [activeFilter, setActiveFilter] = useState<string>('');
   const [isAllCheck, setIsAllCheck] = useState<boolean>(false);
   const [isResetFetch, setIsResetFetch] = useState<boolean>(false);
+  const [iterationCount, setIterationCount] = useState<number>(newMigrationData?.iteration);
 
 
   /** ALL HOOKS Here */
@@ -397,6 +401,14 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
     fetchContentTypes(searchText || '');
   }, []);
+
+  useEffect(() => {
+    const currentIteration = newMigrationData?.iteration || 1;
+    if (currentIteration !== iterationCount) {
+      setIterationCount(currentIteration);
+      fetchContentTypes(searchText || '');
+    }
+  }, [newMigrationData?.iteration, iterationCount, searchText]);
 
   // Make title and url field non editable
   useEffect(() => {
@@ -3265,6 +3277,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             {/* Content Type Fields */}
             <div className="content-types-fields-wrapper">
               <div className="table-wrapper" ref={tableWrapperRef}>
+                {iteration > 1 ? (
+                  <div>
+                  <EntryMapper
+                    tableHeight={tableHeight}
+                    selectedContentTypeId={selectedContentType ?? null}
+                  />
+                </div>
+                ): (
+                  <div>
                 <InfiniteScrollTable
                   loading={loading}
                   canSearch={true}
@@ -3342,6 +3363,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
                   </Button>
                 </div>
               </div>
+                )}
+            </div>
             </div>
           </div> :
           <EmptyState

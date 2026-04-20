@@ -23,7 +23,8 @@ import {
   getExistingGlobalFields,
   startMigration,
   updateMigrationKey,
-  updateLocaleMapper
+  updateLocaleMapper,
+  restartMigration
 } from '../../services/api/migration.service';
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
 
@@ -808,6 +809,7 @@ const Migration = () => {
   const handleOnClickMigrationExecution = async () => {
     setIsLoading(true);
 
+    if (newMigrationData?.stepValue !== 'Restart Migration') {
     try {
       const migrationRes = await startMigration(
         newMigrationData?.destination_stack?.selectedOrg?.value,
@@ -838,9 +840,48 @@ const Migration = () => {
     } catch (error) {
       // return error;
       console.error(error);
+    }}
+    else{
+      setIsLoading(false);
+      handleRestartMigration();
     }
   };
 
+  const handleRestartMigration = async () => {
+    const newMigrationDataObj: INewMigration = {
+      ...newMigrationData,
+      legacy_cms: {
+        ...newMigrationData?.legacy_cms,
+        projectStatus: 0,
+        currentStep: 1,
+        uploadedFile: {
+          ...newMigrationData?.legacy_cms?.uploadedFile,
+          isValidated: false
+        }
+      },
+      migration_execution: {
+        ...newMigrationData?.migration_execution,
+        migrationStarted: false
+      },
+      project_current_step: 1,
+      iteration: newMigrationData?.iteration ? newMigrationData?.iteration + 1 : 1
+    };
+    dispatch(updateNewMigrationData(newMigrationDataObj));
+    const res = await restartMigration(selectedOrganisation?.value, projectId);
+    if (res?.status === 200) {
+      Notification({
+        notificationContent: { text: 'Migration restarted successfully' },
+        type: 'success'
+      });
+      navigate(`/projects/${projectId}/migration/steps/1`);
+    } else {
+      Notification({
+        notificationContent: { text: 'Failed to restart migration' },
+        type: 'error'
+      });
+    }
+  };
+  
   /**
    * Once Save Changes Modal is shown, Change the dropdown state to false and store in rdux
    */
