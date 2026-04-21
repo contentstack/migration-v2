@@ -17,4 +17,12 @@ describe("contentstack-oauth-url.utils", () => {
       "https://eu-app.contentstack.com/apps/x/authorize?response_type=code&client_id=c";
     expect(normalizeContentstackAuthorizeUrl(u)).toBe(u);
   });
+
+  it("returns empty or non-string input unchanged", () => {
+    expect(normalizeContentstackAuthorizeUrl("")).toBe("");
+    expect(normalizeContentstackAuthorizeUrl(undefined as unknown as string)).toBe(
+      undefined
+    );
+    expect(normalizeContentstackAuthorizeUrl(null as unknown as string)).toBe(null);
+  });
 });
