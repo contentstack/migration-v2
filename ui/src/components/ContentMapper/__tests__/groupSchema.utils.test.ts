@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   shouldAddGroupOption,
   shouldRecurseIntoNestedDestGroup,
+  findGroupFieldInChildren,
 } from '../groupSchema.utils';
 import type { FieldMapType, ExistingFieldType, ContentTypesSchema } from '../contentMapper.interface';
 
@@ -331,5 +332,48 @@ describe('shouldRecurseIntoNestedDestGroup', () => {
         ),
       ).toBe(false);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findGroupFieldInChildren
+// ---------------------------------------------------------------------------
+
+describe('findGroupFieldInChildren', () => {
+  it('returns a group at the first level of children', () => {
+    const inner: FieldMapType = {
+      ...makeField('mb.quote.details', 'd_b'),
+      contentstackFieldType: 'group',
+    };
+    const children: FieldMapType[] = [inner];
+    expect(findGroupFieldInChildren(children, 'mb.quote.details')).toBe(inner);
+  });
+
+  it('finds a nested group when it is not a direct child', () => {
+    const details: FieldMapType = {
+      ...makeField('mb.quote.details', 'd_b'),
+      contentstackFieldType: 'group',
+      child: [],
+    };
+    const quoteWrap: FieldMapType = {
+      ...makeField('mb.quote', 'q_b'),
+      contentstackFieldType: 'group',
+      child: [details],
+    };
+    const children = [quoteWrap];
+    expect(findGroupFieldInChildren(children, 'mb.quote.details')).toBe(details);
+  });
+
+  it('returns undefined when uid does not exist', () => {
+    expect(findGroupFieldInChildren([], 'x')).toBeUndefined();
+    expect(findGroupFieldInChildren(undefined, 'x')).toBeUndefined();
+  });
+
+  it('does not match non-group fields with the same uid', () => {
+    const leaf: FieldMapType = {
+      ...makeField('mb.quote.paragraph', 'p_b'),
+      contentstackFieldType: 'json',
+    };
+    expect(findGroupFieldInChildren([leaf], 'mb.quote.paragraph')).toBeUndefined();
   });
 });

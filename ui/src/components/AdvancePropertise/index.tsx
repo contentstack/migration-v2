@@ -40,6 +40,26 @@ interface Taxonomy {
   source?: string;
 }
 
+/** From `advanced.taxonomies` + saved uids → rows with uid + label; deduped by uid. */
+function taxonomyRows(
+  oldList: Array<{ taxonomy_uid?: string; taxonomy_name?: string; name?: string } | string>,
+  extraUids: string[]
+): { taxonomy_uid: string; taxonomy_name: string }[] {
+  const m = new Map<string, { taxonomy_uid: string; taxonomy_name: string }>();
+  for (const t of oldList) {
+    const id = typeof t === 'string' ? t : t.taxonomy_uid || '';
+    if (!id) continue;
+    m?.set(id, {
+      taxonomy_uid: id,
+      taxonomy_name: typeof t === 'string' ? t : t?.taxonomy_name || t?.name || id
+    });
+  }
+  for (const id of extraUids) {
+    if (id && !m?.has(id)) m?.set(id, { taxonomy_uid: id, taxonomy_name: id });
+  }
+  return [...m.values()];
+}
+
 /**
  * Component for displaying advanced properties.
  * @param props - The schema properties.
@@ -158,22 +178,9 @@ const AdvancePropertise = (props: SchemaProps) => {
     if (props?.fieldtype === 'Taxonomy') {
       fetchTaxonomies();
 
-      // Initialize referencedTaxonomies from existing data if available
-      const oldTaxonomies = props?.data?.advanced?.taxonomies || [];
-      const newTaxonomies = getMappedTaxonomyUids();
-      const allTaxonomyUIDs = Array.from(
-        new Set([
-          ...oldTaxonomies.map((t: { taxonomy_uid?: string } | string) =>
-            typeof t === 'string' ? t : t.taxonomy_uid || ''
-          ),
-          ...newTaxonomies,
-        ])
-      ).filter(Boolean);
-
-      if (allTaxonomyUIDs.length > 0) {
-        setReferencedTaxonomies(
-          allTaxonomyUIDs.map((uid: string) => ({ label: uid, value: uid }))
-        );
+      const rows = taxonomyRows(props?.data?.advanced?.taxonomies || [], getMappedTaxonomyUids());
+      if (rows?.length > 0) {
+        setReferencedTaxonomies(rows?.map((r) => ({ label: r?.taxonomy_name, value: r?.taxonomy_uid })));
       }
     }
   }, [props?.projectId, props?.fieldtype]);
@@ -209,37 +216,24 @@ const AdvancePropertise = (props: SchemaProps) => {
       
       // Only proceed if we have taxonomies loaded OR if we have existing taxonomy data to match
       if (allTaxonomies.length > 0 || props?.data?.advanced?.taxonomies || getMappedTaxonomyUids().length > 0) {
-        // Merge old (upload-api) and new (UI) selections
-        const oldTaxonomies = (props?.data?.advanced?.taxonomies || []).map((t: { taxonomy_uid?: string } | string) => (typeof t === 'string' ? t : t.taxonomy_uid || ''));
-        const newTaxonomies = getMappedTaxonomyUids();
-        const allTaxonomyUIDs = Array.from(new Set([...oldTaxonomies, ...newTaxonomies]));
-        
-        if (allTaxonomyUIDs.length > 0 && allTaxonomies.length > 0) {
-          // Match UIDs with loaded taxonomies
+        const rows = taxonomyRows(props?.data?.advanced?.taxonomies || [], getMappedTaxonomyUids());
+        const allTaxonomyUIDs = rows?.map((r) => r?.taxonomy_uid);
+
+        if (allTaxonomyUIDs?.length > 0 && allTaxonomies?.length > 0) {
           const matchedTaxonomies = allTaxonomyUIDs
             .map((uid: string) => {
-              const taxonomy = allTaxonomies.find((t: Taxonomy) => t.uid === uid);
-              return taxonomy ? { label: taxonomy.name || taxonomy.uid, value: taxonomy.uid } : null;
+              const taxonomy = allTaxonomies?.find((t: Taxonomy) => t?.uid === uid);
+              return taxonomy ? { label: taxonomy.name || taxonomy?.uid, value: taxonomy?.uid } : null;
             })
             .filter(Boolean) as ContentTypeOption[];
-          
-          if (matchedTaxonomies.length > 0) {
+
+          if (matchedTaxonomies?.length > 0) {
             setReferencedTaxonomies(matchedTaxonomies);
           } else {
-            // If no matches found but we have UIDs, create options from UIDs (fallback)
-            const fallbackOptions = allTaxonomyUIDs.map((uid: string) => ({
-              label: uid,
-              value: uid
-            }));
-            setReferencedTaxonomies(fallbackOptions);
+            setReferencedTaxonomies(rows?.map((r) => ({ label: r?.taxonomy_name, value: r?.taxonomy_uid })));
           }
-        } else if (allTaxonomyUIDs.length > 0 && allTaxonomies.length === 0) {
-          // Taxonomies not loaded yet, but we have UIDs - create fallback options
-          const fallbackOptions = allTaxonomyUIDs.map((uid: string) => ({
-            label: uid,
-            value: uid
-          }));
-          setReferencedTaxonomies(fallbackOptions);
+        } else if (allTaxonomyUIDs?.length > 0 && allTaxonomies?.length === 0) {
+          setReferencedTaxonomies(rows?.map((r) => ({ label: r?.taxonomy_name, value: r?.taxonomy_uid })));
         } else {
           // No existing taxonomies, clear the selection
           setReferencedTaxonomies(null);
