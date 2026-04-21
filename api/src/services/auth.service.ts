@@ -6,6 +6,7 @@ import { LoginServiceType, AppTokenPayload, RefreshTokenResponse } from "../mode
 import { HTTP_CODES, HTTP_TEXTS, CSAUTHHOST, regionalApiHosts } from "../constants/index.js";
 import { generateToken } from "../utils/jwt.utils.js";
 import {
+  AppError,
   BadRequestError,
   InternalServerError,
   ExceptionFunction,
@@ -15,8 +16,9 @@ import logger from "../utils/logger.js";
 import path from "path";
 import fs from "fs";
 import axios from "axios";
-import { getAppOrganizationUID } from "../utils/auth.utils.js";
+import { getAppOrganization, getAppOrganizationUID } from "../utils/auth.utils.js";
 import { decryptAppConfig } from "../utils/crypto.utils.js";
+import { normalizeContentstackAuthorizeUrl } from "../utils/contentstack-oauth-url.utils.js";
 
 /**
  * Logs in a user with the provided request data. (No changes needed here)
@@ -278,6 +280,24 @@ const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
 
     const { access_token, refresh_token, organization_uid } = tokenResponse.data;
 
+    const expectedOrgUid = getAppOrganizationUID();
+    if (!organization_uid) {
+      throw new BadRequestError(
+        "No organization was linked to this authorization. When you install or authorize the app in Contentstack, choose the organization that matches your Migration Tool SSO setup, then try again."
+      );
+    }
+    if (organization_uid !== expectedOrgUid) {
+      let orgLabel = expectedOrgUid;
+      try {
+        orgLabel = getAppOrganization().name;
+      } catch {
+        /* keep UID if app.json incomplete */
+      }
+      throw new BadRequestError(
+        `Organization mismatch: authorize this app in Contentstack for "${orgLabel}" (the organization from your SSO setup). You signed in under a different organization—select the correct one and try SSO again.`
+      );
+    }
+
     const apiHost = regionalApiHosts[region as keyof typeof regionalApiHosts];
     const [userErr, userRes] = await safePromise(
       https({
@@ -332,6 +352,9 @@ const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
     } 
 
   } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
     logger.error("An error occurred during token exchange and save:", error);
     throw new InternalServerError("Failed to process OAuth callback.");
   }
@@ -430,6 +453,10 @@ export const getAppData = async () => {
       throw new Error('SSO is not configured. Please run the setup script first.');
     }
 
+    if (typeof appConfig?.authUrl === "string" && appConfig.authUrl.includes("/#!/apps/")) {
+      appConfig.authUrl = normalizeContentstackAuthorizeUrl(appConfig.authUrl);
+    }
+
     return appConfig;
 
   } catch (error: any) {
@@ -475,9 +502,17 @@ export const checkSSOAuthStatus = async (userId: string) => {
     const appOrgUID = getAppOrganizationUID();
 
     if (userRecord.organization_uid !== appOrgUID) {
+      let detail =
+        'Organization mismatch: the authorized org does not match the Migration Tool SSO configuration.';
+      try {
+        const { name } = getAppOrganization();
+        detail = `Organization mismatch: authorize "${name}" in Contentstack (same org as SSO setup), then try again.`;
+      } catch {
+        /* use generic message */
+      }
       return {
         authenticated: false,
-        message: 'Organization mismatch'
+        message: detail,
       };
     }
 
