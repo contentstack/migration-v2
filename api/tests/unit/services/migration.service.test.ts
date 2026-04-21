@@ -105,6 +105,7 @@ vi.mock('../../../src/services/contentful.service.js', () => ({
     createRefrence: vi.fn().mockResolvedValue(undefined),
     createWebhooks: vi.fn().mockResolvedValue(undefined),
     createEnvironment: vi.fn().mockResolvedValue(undefined),
+    createTaxonomy: vi.fn().mockResolvedValue(undefined),
     createAssets: vi.fn().mockResolvedValue(undefined),
     createEntry: vi.fn().mockResolvedValue(undefined),
     createVersionFile: vi.fn().mockResolvedValue(undefined),

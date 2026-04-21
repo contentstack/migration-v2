@@ -10,6 +10,7 @@ const handleTaxonomySchema = async(categories: any, allCategories : Categories[]
             taxonomyArray?.push(
             {
                 "taxonomy_uid":  `${categoryData?.["wp:category_nicename"]}_${categoryData?.["wp:term_id"]}`,
+                "taxonomy_name": categoryData?.["wp:cat_name"],
                 "mandatory": false,
                 "multiple": true,
                 "non_localizable": false
@@ -20,6 +21,7 @@ const handleTaxonomySchema = async(categories: any, allCategories : Categories[]
             const parentCategory = allCategories?.find((category: any) => category?.["wp:category_nicename"] === categoryData?.['wp:category_parent']);
             taxonomyArray?.push({
                 "taxonomy_uid": `${parentCategory?.["wp:category_nicename"]}_${parentCategory?.["wp:term_id"]}`,
+                "taxonomy_name": parentCategory?.["wp:cat_name"],
                 "mandatory": false,
                 "multiple": true,
                 "non_localizable": false
