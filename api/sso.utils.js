@@ -324,8 +324,9 @@ module.exports = async ({
       ?.replace(/\//g, "_")
       ?.replace(/=+$/, "");
 
-    // Generates the authorization URL for the app
-    const authUrl = `${regionConfig.app}/#!/apps/${
+    // Path-style /apps/.../authorize (see Contentstack OAuth docs). Avoids #! hash URLs,
+    // which are often lost on login redirect so users land on the stacks home instead of org authorize.
+    const authUrl = `${regionConfig.app}/apps/${
       existingApp?.uid
     }/authorize?response_type=code&client_id=${
       oauthData?.client_id
