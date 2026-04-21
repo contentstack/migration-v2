@@ -23,5 +23,5 @@ export default {
     base_url: process.env.DRUPAL_ASSETS_BASE_URL || 'drupal_assets_base_url',
     public_path: process.env.DRUPAL_ASSETS_PUBLIC_PATH || 'drupal_assets_public_path'
   },
-  localPath: process.env.CMS_LOCAL_PATH || process.env.CONTAINER_PATH || 'localPath',
+  localPath: process.env.CMS_LOCAL_PATH || process.env.CONTAINER_PATH || 'your_local_cms_data_path',
 };

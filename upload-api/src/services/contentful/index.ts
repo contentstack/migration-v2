@@ -1,11 +1,18 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 
 import logger from '../../utils/logger';
 import { HTTP_CODES, HTTP_TEXTS } from '../../constants';
 import { Config } from '../../models/types';
 
-const { extractContentTypes, createInitialMapper, extractLocale } = require('migration-contentful');
+const {
+  extractContentTypes,
+  createInitialMapper,
+  extractLocale,
+  extractTaxonomy
+} = require('migration-contentful');
 
 const createContentfulMapper = async (
   projectId: string | string[],
@@ -20,6 +27,25 @@ const createContentfulMapper = async (
 
     await extractContentTypes(cleanLocalPath, affix);
     const initialMapper = await createInitialMapper(cleanLocalPath, affix);
+    // Must run after createInitialMapper: that step deletes contentfulMigrationData (contentfulSchema) and would remove taxonomy files written earlier.
+    await extractTaxonomy(cleanLocalPath);
+
+    let taxonomies: any[] = [];
+    try {
+      const taxonomyPath = path.join(
+        process.cwd(),
+        'contentfulMigrationData',
+        'taxonomySchema',
+        'taxonomySchema.json'
+      );
+      if (fs.existsSync(taxonomyPath)) {
+        const taxonomyData = await fs.promises.readFile(taxonomyPath, 'utf8');
+        taxonomies = JSON.parse(taxonomyData);
+        logger.info(`Loaded ${taxonomies.length} Contentful taxonomies to send to API`);
+      }
+    } catch (error: any) {
+      logger.warn(`Could not read Contentful taxonomies: ${error.message}`);
+    }
     const req = {
       method: 'post',
       maxBodyLength: Infinity,
@@ -28,7 +54,10 @@ const createContentfulMapper = async (
         app_token,
         'Content-Type': 'application/json'
       },
-      data: JSON.stringify(initialMapper)
+      data: JSON.stringify({
+        ...initialMapper,
+        taxonomies
+      })
     };
     const { data} = await axios.request(req);
     if (data?.data?.content_mapper?.length) {
