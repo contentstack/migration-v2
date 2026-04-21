@@ -8,6 +8,55 @@ const fs = require('fs/promises');
 const path = require('path');
 // const contentTypeMapper = require('./contentTypeMapper');
 const contentTypeMapper = require('./contentTypeMapper');
+
+/** Contentstack taxonomy_uid: lowercase, a-z0-9_ only  */
+function contentfulSchemeIdToStackTaxonomyUid(contentfulSchemeId) {
+  if (!contentfulSchemeId || typeof contentfulSchemeId !== 'string') return '';
+  return contentfulSchemeId
+    .replace(/([A-Z])/g, '_$1')
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+/**
+ * Maps Contentful content-type metadata.taxonomy (TaxonomyConceptScheme links) to a Contentstack taxonomy field.
+ * Field uid must be `taxonomies` Taxonomy fields must be localizable.
+ * @param {object|undefined} metadata - Content type `metadata` from export JSON.
+ * @returns {object[]} Field mapping rows (empty if no taxonomy).
+ */
+const buildContentfulTaxonomyFields = (metadata) => {
+  const links = metadata?.taxonomy;
+  if (!Array.isArray(links) || !links.length) return [];
+  const schemes = links
+    .map((t) => contentfulSchemeIdToStackTaxonomyUid(t?.sys?.id))
+    .filter(Boolean);
+  if (!schemes.length) return [];
+  return [
+    {
+      uid: 'taxonomies',
+      otherCmsField: 'Contentful taxonomy (metadata)',
+      otherCmsType: 'TaxonomyMetadata',
+      contentstackField: 'Taxonomies',
+      contentstackFieldUid: 'taxonomies',
+      contentstackFieldType: 'taxonomy',
+      backupFieldType: 'taxonomy',
+      backupFieldUid: 'taxonomies',
+      advanced: {
+        taxonomies: schemes.map((schemeUid) => ({
+          taxonomy_uid: schemeUid,
+          mandatory: false,
+          multiple: true,
+          non_localizable: false
+        })),
+        mandatory: false,
+        multiple: true,
+        nonLocalizable: false
+      }
+    }
+  ];
+};
 const extractEntries = require('./extractEntries');
 
 /**
@@ -65,7 +114,14 @@ const uidCorrector = (uid, prefix) => {
 const createInitialMapper = async (cleanLocalPath, affix) => {
   try {
     const alldata = readFile(cleanLocalPath);
-    const { entries } = alldata;
+    const { entries, contentTypes: exportContentTypes = [] } = alldata;
+
+    const ctMetaById = {};
+    for (const ct of exportContentTypes) {
+      if (ct?.sys?.id) {
+        ctMetaById[ct.sys.id] = ct.metadata || {};
+      }
+    }
     const entriesByContentType = extractEntries(cleanLocalPath);
 
     const initialMapper = [];
@@ -116,7 +172,10 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
           advanced: { mandatory: true }
         }
       ];
-      const contentstackFields = [...uidTitle, ...contentTypeMapper(data, entries)]?.filter?.(
+      const ctId = data?.[0]?.contentfulID;
+      const ctMetadata = ctMetaById[ctId] || {};
+      const taxonomyRows = buildContentfulTaxonomyFields(ctMetadata);
+      const contentstackFields = [...uidTitle, ...contentTypeMapper(data, entries), ...taxonomyRows]?.filter?.(
         Boolean
       );
 

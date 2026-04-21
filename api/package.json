@@ -34,6 +34,9 @@
     "@contentstack/cli-utilities": "^1.18.1",
     "@contentstack/json-rte-serializer": "^3.0.5",
     "@contentstack/marketplace-sdk": "^1.5.0",
+    "@emnapi/core": "1.9.1",
+    "@emnapi/runtime": "1.9.1",
+    "@emnapi/wasi-threads": "1.2.0",
     "@wordpress/block-serialization-default-parser": "^5.39.0",
     "axios": "^1.15.2",
     "cheerio": "^1.2.0",
@@ -59,10 +62,7 @@
     "php-serialize": "^5.1.3",
     "socket.io": "^4.7.5",
     "uuid": "^14.0.0",
-    "winston": "^3.11.0",
-    "@emnapi/core": "1.9.1",
-    "@emnapi/runtime" : "1.9.1",
-    "@emnapi/wasi-threads": "1.2.0"
+    "winston": "^3.11.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

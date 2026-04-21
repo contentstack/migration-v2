@@ -1674,6 +1674,54 @@ const getExistingTaxonomies = async (req: Request) => {
           );
         }
       }
+
+      // Path 3: Contentful export validation (upload-api contentfulMigrationData)
+      if (sourceTaxonomies.length === 0) {
+        try {
+          const contentfulTaxonomyPath = path.join(
+            process.cwd(),
+            '..',
+            'upload-api',
+            'contentfulMigrationData',
+            'taxonomySchema',
+            'taxonomySchema.json',
+          );
+          const resolvedCf = path.resolve(contentfulTaxonomyPath);
+          if (
+            resolvedCf.includes('upload-api') &&
+            resolvedCf.includes('contentfulMigrationData')
+          ) {
+            const stats = await fs.promises
+              .lstat(resolvedCf)
+              .catch(() => null);
+            if (stats && stats.isFile() && !stats.isSymbolicLink()) {
+              const taxonomyData = await fs.promises.readFile(
+                resolvedCf,
+                'utf8',
+              );
+              const taxonomiesArray = JSON.parse(taxonomyData);
+              const cfTaxonomies = (
+                Array.isArray(taxonomiesArray)
+                  ? taxonomiesArray
+                  : Object.values(taxonomiesArray)
+              ).map((taxonomy: any) => ({
+                uid: taxonomy.uid || '',
+                name: taxonomy.name || taxonomy.uid || '',
+                description: taxonomy.description || '',
+                source: 'source_cms',
+              }));
+              sourceTaxonomies.push(...cfTaxonomies);
+              logger.info(
+                `Found ${cfTaxonomies.length} taxonomies from upload-api contentfulMigrationData`,
+              );
+            }
+          }
+        } catch (cfTaxError: any) {
+          logger.warn(
+            `Could not read Contentful taxonomies from upload-api: ${cfTaxError.message}`,
+          );
+        }
+      }
     }
 
     // Step 2: Get destination taxonomies from Contentstack (if stack exists and token_payload is available)
