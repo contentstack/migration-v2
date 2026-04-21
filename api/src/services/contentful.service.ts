@@ -215,6 +215,7 @@ function inferContentfulDefaultWidgetId(fieldType: string | undefined): string |
       return undefined;
   }
 }
+
 function getContentfulFieldFromPackage(
   contentTypesFromPackage: any[] | undefined,
   ctId: string,
@@ -223,6 +224,7 @@ function getContentfulFieldFromPackage(
   const ct = contentTypesFromPackage?.find((c: any) => c?.sys?.id === ctId);
   return ct?.fields?.find((f: any) => f?.id === fieldId);
 }
+
 /**
  * Picks one fieldMapping row when several share the same `uid` (e.g. bootstrap `title`/`url` rows
  * from createInitialMapper plus the real Contentful field). Mapper `otherCmsType` is Contentful
