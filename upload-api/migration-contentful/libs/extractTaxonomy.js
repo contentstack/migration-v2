@@ -39,7 +39,9 @@ const extractTaxonomy = async (filePath) => {
     if (!Array.isArray(links)) continue;
     for (const link of links) {
       const sid = link?.sys?.id;
-      if (sid) schemeIds.add(contentfulSchemeIdToStackTaxonomyUid(sid));
+      if (!sid) continue;
+      const uid = contentfulSchemeIdToStackTaxonomyUid(sid);
+      if (uid) schemeIds.add(uid);
     }
   }
 

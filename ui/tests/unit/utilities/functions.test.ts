@@ -8,7 +8,6 @@ import {
   validateLink,
   imageWithSiteDomainUrl,
   addDomainInPath,
-  failtureNotification,
   clearMarks,
   clearMeasures,
   extractWindowObj,
@@ -23,7 +22,8 @@ import {
   returnFileSize,
   isValidPrefix,
   getFileExtension,
-  getSafeRouterPath
+  getSafeRouterPath,
+  failureNotification
 } from '../../../src/utilities/functions';
 
 vi.mock('../../../src/utilities/constants', () => ({
@@ -135,10 +135,10 @@ describe('utilities/functions', () => {
     });
   });
 
-  describe('failtureNotification', () => {
+  describe('failureNotification', () => {
     it('should call Notification with error type and message', async () => {
       const { Notification } = await import('@contentstack/venus-components');
-      failtureNotification('Something went wrong');
+      failureNotification('Something went wrong');
 
       expect(Notification).toHaveBeenCalledWith(
         expect.objectContaining({
