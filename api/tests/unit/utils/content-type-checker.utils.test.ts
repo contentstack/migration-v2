@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockRead = vi.fn();
 const mockExistsSync = vi.fn();
+const mockContentTypesData = vi.hoisted(() => ({
+  value: { ContentTypesMappers: [{ otherCmsUid: 'ct-uid' }] } as any,
+}));
 
 vi.mock('fs', () => ({
   default: { existsSync: mockExistsSync },
@@ -11,7 +14,7 @@ vi.mock('fs', () => ({
 vi.mock('../../../src/models/contentTypesMapper-lowdb.js', () => ({
   default: vi.fn(() => ({
     read: mockRead,
-    data: { ContentTypesMappers: [{ otherCmsUid: 'ct-uid' }] },
+    data: mockContentTypesData.value,
   })),
 }));
 
@@ -20,6 +23,7 @@ describe('content-type-checker.utils', () => {
     vi.clearAllMocks();
     mockRead.mockResolvedValue(undefined);
     mockExistsSync.mockReturnValue(true);
+    mockContentTypesData.value = { ContentTypesMappers: [{ otherCmsUid: 'ct-uid' }] };
   });
 
   it('isContentTypeAlreadyCreated returns false when currentIteration <= 1', async () => {
@@ -81,5 +85,30 @@ describe('content-type-checker.utils', () => {
       '../../../src/utils/content-type-checker.utils.js'
     );
     await expect(getPreviouslyCreatedContentTypes('p1', 2)).resolves.toEqual([]);
+  });
+
+  it('getPreviouslyCreatedContentTypes skips iterations with missing directories', async () => {
+    mockExistsSync.mockReturnValue(false);
+    const { getPreviouslyCreatedContentTypes } = await import(
+      '../../../src/utils/content-type-checker.utils.js'
+    );
+    await expect(getPreviouslyCreatedContentTypes('p1', 3)).resolves.toEqual([]);
+    expect(mockRead).not.toHaveBeenCalled();
+  });
+
+  it('getPreviouslyCreatedContentTypes returns empty when mapper data is missing', async () => {
+    mockContentTypesData.value = undefined;
+    const { getPreviouslyCreatedContentTypes } = await import(
+      '../../../src/utils/content-type-checker.utils.js'
+    );
+    await expect(getPreviouslyCreatedContentTypes('p1', 2)).resolves.toEqual([]);
+  });
+
+  it('getPreviouslyCreatedContentTypes ignores entries without otherCmsUid', async () => {
+    mockContentTypesData.value = { ContentTypesMappers: [{}, { otherCmsUid: 'ct-uid-2' }] };
+    const { getPreviouslyCreatedContentTypes } = await import(
+      '../../../src/utils/content-type-checker.utils.js'
+    );
+    await expect(getPreviouslyCreatedContentTypes('p1', 2)).resolves.toEqual(['ct-uid-2']);
   });
 });

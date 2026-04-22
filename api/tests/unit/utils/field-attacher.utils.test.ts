@@ -8,6 +8,7 @@ const {
   mockContentTypesChain,
   mockFieldMapperChain,
   mockContenTypeMaker,
+  mockShouldSkipContentTypeCreation,
 } = vi.hoisted(() => {
   const mockProjectChain = {
     get: vi.fn().mockReturnThis(),
@@ -32,6 +33,7 @@ const {
     mockContentTypesChain,
     mockFieldMapperChain,
     mockContenTypeMaker: vi.fn(),
+    mockShouldSkipContentTypeCreation: vi.fn(),
   };
 });
 
@@ -43,21 +45,25 @@ vi.mock('../../../src/models/project-lowdb.js', () => ({
 }));
 
 vi.mock('../../../src/models/contentTypesMapper-lowdb.js', () => ({
-  default: {
+  default: () => ({
     read: mockContentTypesRead,
     chain: mockContentTypesChain,
-  },
+  }),
 }));
 
 vi.mock('../../../src/models/FieldMapper.js', () => ({
-  default: {
+  default: () => ({
     read: mockFieldMapperRead,
     chain: mockFieldMapperChain,
-  },
+  }),
 }));
 
 vi.mock('../../../src/utils/content-type-creator.utils.js', () => ({
   contenTypeMaker: (...args: any[]) => mockContenTypeMaker(...args),
+}));
+
+vi.mock('../../../src/utils/content-type-checker.utils.js', () => ({
+  shouldSkipContentTypeCreation: (...args: any[]) => mockShouldSkipContentTypeCreation(...args),
 }));
 
 import { fieldAttacher } from '../../../src/utils/field-attacher.utils.js';
@@ -69,6 +75,7 @@ describe('field-attacher.utils', () => {
     mockContentTypesRead.mockResolvedValue(undefined);
     mockFieldMapperRead.mockResolvedValue(undefined);
     mockContenTypeMaker.mockResolvedValue(undefined);
+    mockShouldSkipContentTypeCreation.mockResolvedValue(false);
   });
 
   it('should return empty array when project has no content_mapper', async () => {
@@ -220,5 +227,59 @@ describe('field-attacher.utils', () => {
 
     expect(mockContenTypeMaker).toHaveBeenCalledTimes(2);
     expect(result).toHaveLength(2);
+  });
+
+  it('should create content type in later iterations when skip check returns false', async () => {
+    const contentType = { id: 'ct-1', otherCmsUid: 'blog', fieldMapping: [] };
+
+    mockProjectChain.value.mockReturnValue({
+      id: 'proj-1',
+      org_id: 'org-1',
+      iteration: 2,
+      content_mapper: ['ct-1'],
+      stackDetails: { isNewStack: false },
+      mapperKeys: {},
+    });
+    mockContentTypesChain.value.mockReturnValue(contentType);
+    mockShouldSkipContentTypeCreation.mockResolvedValue(false);
+
+    const result = await fieldAttacher({
+      projectId: 'proj-1',
+      orgId: 'org-1',
+      destinationStackId: 'stack-1',
+      region: 'NA',
+      user_id: 'user-1',
+      is_sso: true,
+    });
+
+    expect(mockShouldSkipContentTypeCreation).toHaveBeenCalledWith('proj-1', 'blog', 2);
+    expect(mockContenTypeMaker).toHaveBeenCalledTimes(1);
+    expect(mockContenTypeMaker).toHaveBeenCalledWith(expect.objectContaining({ is_sso: true }));
+    expect(result).toHaveLength(1);
+  });
+
+  it('should skip content type creation in later iterations when skip check returns true', async () => {
+    mockProjectChain.value.mockReturnValue({
+      id: 'proj-1',
+      org_id: 'org-1',
+      iteration: 2,
+      content_mapper: ['ct-1'],
+      stackDetails: { isNewStack: false },
+      mapperKeys: {},
+    });
+    mockContentTypesChain.value.mockReturnValue({ id: 'ct-1', otherCmsUid: 'blog', fieldMapping: [] });
+    mockShouldSkipContentTypeCreation.mockResolvedValue(true);
+
+    const result = await fieldAttacher({
+      projectId: 'proj-1',
+      orgId: 'org-1',
+      destinationStackId: 'stack-1',
+      region: 'NA',
+      user_id: 'user-1',
+    });
+
+    expect(mockShouldSkipContentTypeCreation).toHaveBeenCalledWith('proj-1', 'blog', 2);
+    expect(mockContenTypeMaker).not.toHaveBeenCalled();
+    expect(result).toHaveLength(1);
   });
 });

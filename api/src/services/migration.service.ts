@@ -836,8 +836,8 @@ const startMigration = async (req: Request): Promise<any> => {
 
     const contentTypes = await fieldAttacher({
       orgId,
-      projectId,
-      destinationStackId: project?.destination_stack_id,
+      projectId: safeFinalProjectId,
+      destinationStackId: safeFinalStackId,
       region,
       user_id,
       is_sso,

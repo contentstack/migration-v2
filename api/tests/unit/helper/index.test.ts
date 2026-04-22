@@ -127,6 +127,20 @@ describe('helper createDbConnection', () => {
     expect(mockDestroy).toHaveBeenCalled();
   });
 
+  it('destroys connection if callback arrives after timeout', async () => {
+    vi.useFakeTimers();
+    let cbRef: ((err: Error | null) => void) | undefined;
+    mockConnect.mockImplementation((cb: (err: Error | null) => void) => {
+      cbRef = cb;
+    });
+    const p = createDbConnection(config, 'proj', 'stack', 50);
+    vi.advanceTimersByTime(50);
+    await expect(p).rejects.toThrow('timed out');
+
+    cbRef?.(null);
+    expect(mockDestroy).toHaveBeenCalledTimes(2);
+  });
+
   it('getDbConnection throws when connection is null', async () => {
     mockCreateConnection.mockImplementation(() => {
       throw new Error('fail');

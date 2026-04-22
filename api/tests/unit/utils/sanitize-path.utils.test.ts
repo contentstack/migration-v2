@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { sanitizeStackId, getSafePath } from '../../../src/utils/sanitize-path.utils.js';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  sanitizeStackId,
+  getSafePath,
+  assertResolvedPathUnderBase,
+} from '../../../src/utils/sanitize-path.utils.js';
 import path from 'path';
 
 describe('sanitize-path.utils', () => {
@@ -85,6 +89,33 @@ describe('sanitize-path.utils', () => {
       const result = getSafePath('subdir/file.log', '/tmp/logs');
       expect(result).toContain('file.log');
       expect(path.isAbsolute(result)).toBe(true);
+    });
+
+    it('should return fallback when path resolution throws', () => {
+      const resolveSpy = vi.spyOn(path, 'resolve').mockImplementationOnce(() => {
+        throw new Error('resolve failed');
+      });
+
+      const result = getSafePath('file.log', '/tmp/logs');
+
+      expect(result).toBe(path.join('/tmp/logs', 'default.log'));
+      resolveSpy.mockRestore();
+    });
+  });
+
+  describe('assertResolvedPathUnderBase', () => {
+    it('should not throw for paths inside base directory', () => {
+      expect(() =>
+        assertResolvedPathUnderBase('/tmp/logs', '/tmp/logs/subdir/file.log')
+      ).not.toThrow();
+    });
+
+    it('should throw for paths outside base directory', () => {
+      expect(() =>
+        assertResolvedPathUnderBase('/tmp/logs', '/tmp/other/file.log')
+      ).toThrow(
+        'Invalid path: resolved location is outside the allowed base directory'
+      );
     });
   });
 });
