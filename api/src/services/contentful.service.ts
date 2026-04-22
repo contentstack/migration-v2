@@ -215,7 +215,6 @@ function inferContentfulDefaultWidgetId(fieldType: string | undefined): string |
       return undefined;
   }
 }
-
 function getContentfulFieldFromPackage(
   contentTypesFromPackage: any[] | undefined,
   ctId: string,
@@ -224,7 +223,6 @@ function getContentfulFieldFromPackage(
   const ct = contentTypesFromPackage?.find((c: any) => c?.sys?.id === ctId);
   return ct?.fields?.find((f: any) => f?.id === fieldId);
 }
-
 /**
  * Picks one fieldMapping row when several share the same `uid` (e.g. bootstrap `title`/`url` rows
  * from createInitialMapper plus the real Contentful field). Mapper `otherCmsType` is Contentful
@@ -239,14 +237,12 @@ function resolveFieldMappingRow(
   const candidates = fieldMapping?.filter((item: any) => item?.uid === fieldId) ?? [];
   if (candidates?.length === 0) return undefined;
   if (candidates?.length === 1) return candidates?.[0];
-
   const cfField = getContentfulFieldFromPackage(contentTypesFromPackage, ctId, fieldId);
   const widgetId = cfField?.widgetId ?? inferContentfulDefaultWidgetId(cfField?.type);
   if (widgetId) {
     const byWidget = candidates?.filter((c: any) => c?.otherCmsType === widgetId);
     if (byWidget?.length >= 1) return byWidget?.[0];
   }
-
   const typeToCs: Record<string, string> = {
     RichText: "json",
     Boolean: "boolean",
@@ -257,7 +253,6 @@ function resolveFieldMappingRow(
     const byCs = candidates?.filter((c: any) => c?.contentstackFieldType === expectCs);
     if (byCs?.length >= 1) return byCs?.[0];
   }
-
   if (cfField?.type === "Boolean") {
     const byBool = candidates?.filter((c: any) => c?.contentstackFieldType === "boolean");
     if (byBool?.length >= 1) return byBool?.[0];
