@@ -48,7 +48,7 @@ export type FailureNotificationOptions = {
   persist?: boolean;
 };
 
-export const failtureNotification = (
+export const failureNotification = (
   errorMessage: string,
   options?: FailureNotificationOptions
 ) => {

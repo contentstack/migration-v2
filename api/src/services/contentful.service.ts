@@ -112,7 +112,7 @@ function pickContentfulLocaleFromMasterLocaleMap(master: unknown): string | unde
   if (!master || typeof master !== 'object' || Array.isArray(master)) return undefined;
   const m = master as Record<string, string>;
   const keys = Object.keys(m);
-  if (!keys.length) return undefined;
+  if (!keys?.length) return undefined;
   for (const k of keys) {
     if (k.includes('-')) return k;
   }
@@ -129,14 +129,14 @@ function resolveLocalesForTaxonomyMetadata(
   entrySysLocale?: string,
 ): string[] {
   const fromFields = [...entryLocaleKeys];
-  if (fromFields.length) return fromFields;
+  if (fromFields?.length) return fromFields;
 
   if (entrySysLocale && typeof entrySysLocale === 'string') {
     return [entrySysLocale];
   }
 
   const fromExisting = Object.keys(entryDataBranch || {});
-  if (fromExisting.length) return fromExisting;
+  if (fromExisting?.length) return fromExisting;
 
   const fromProjectMaster = pickContentfulLocaleFromMasterLocaleMap(localeMapper?.masterLocale);
   if (fromProjectMaster) return [fromProjectMaster];
@@ -145,7 +145,7 @@ function resolveLocalesForTaxonomyMetadata(
   if (fromDefaultMaster) return [fromDefaultMaster];
 
   const otherKeys = Object.keys(localeMapper || {}).filter((k) => k !== 'masterLocale');
-  if (otherKeys.length) return [otherKeys[0]];
+  if (otherKeys?.length) return [otherKeys[0]];
 
   return ['en-US'];
 }
@@ -1097,14 +1097,14 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
             name,
           );
           const allowedSchemes =
-            allowedFromMapper.length > 0 ? allowedFromMapper : allowedFromExport;
+            allowedFromMapper?.length > 0 ? allowedFromMapper : allowedFromExport;
 
           if (metadata?.concepts?.length) {
             const taxValue = buildContentfulTaxonomyAssignments(
               metadata.concepts,
               allowedSchemes,
             );
-            if (taxValue.length) {
+            if (taxValue?.length) {
               const fieldKey = metaTaxField?.contentstackFieldUid || 'taxonomies';
               const localesForTax = resolveLocalesForTaxonomyMetadata(
                 entryLocaleKeys,

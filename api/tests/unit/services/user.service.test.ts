@@ -139,9 +139,9 @@ describe('user.service', () => {
         },
       } as any);
 
-      expect(result.status).toBe(200);
-      expect(result.data.user.email).toBe('sso@example.com');
-      expect(result.data.user.orgs).toEqual([
+      expect(result?.status).toBe(200);
+      expect(result?.data?.user?.email).toBe('sso@example.com');
+      expect(result?.data?.user?.orgs).toEqual([
         { org_id: 'org-1', org_name: 'Test Org' },
       ]);
     });
@@ -151,7 +151,7 @@ describe('user.service', () => {
       const user = AuthenticationModel.data.users[0] as {
         access_token?: string;
       };
-      const prev = user.access_token;
+      const prev = user?.access_token;
       delete user.access_token;
 
       await expect(
@@ -178,8 +178,8 @@ describe('user.service', () => {
         },
       } as any);
 
-      expect(result.status).toBe(403);
-      expect(result.data).toEqual({ error: 'bad' });
+      expect(result?.status).toBe(403);
+      expect(result?.data).toEqual({ error: 'bad' });
     });
 
     it('should throw when SSO user org list does not include app org', async () => {
