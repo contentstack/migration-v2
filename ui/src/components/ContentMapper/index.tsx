@@ -7,6 +7,7 @@ import {
   useImperativeHandle,
   forwardRef,
 } from 'react';
+import { flushSync } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
