@@ -23,7 +23,7 @@ import {
   TFA_VIA_SMS_MESSAGE,
   CS_ENTRIES
 } from '../../utilities/constants';
-import { clearLocalStorage, failtureNotification, setDataInLocalStorage } from '../../utilities/functions';
+import { clearLocalStorage, failureNotification, setDataInLocalStorage } from '../../utilities/functions';
 
 // API Service
 import { getCMSDataFromFile } from '../../cmsData/cmsSelector';
@@ -107,7 +107,7 @@ const Login: FC<IProps> = () => {
         } catch {
           /* ignore */
         }
-        failtureNotification(message, { persist: isOrgMismatchSsoMessage(message) });
+        failureNotification(message, { persist: isOrgMismatchSsoMessage(message) });
       }
     };
     window.addEventListener('message', onSsoOAuthMessage);
@@ -157,7 +157,7 @@ const Login: FC<IProps> = () => {
         }
 
         if (res?.status === 422) {
-          failtureNotification(res?.data?.error_message as string);
+          failureNotification(res?.data?.error_message as string);
         }
       })
       .catch((err: string) => console.error(err));
@@ -207,7 +207,7 @@ const Login: FC<IProps> = () => {
 
     if (response?.status === 104 || response?.status === 400 || response?.status === 422) {
       setIsLoading(false);
-      failtureNotification(response?.data?.error_message || response?.data?.error?.message);
+      failureNotification(response?.data?.error_message || response?.data?.error?.message);
     }
     dispatch(clearAuthToken());
     localStorage?.removeItem('app_token');
@@ -300,19 +300,19 @@ const Login: FC<IProps> = () => {
       await getAppConfig()
         .then((res: any) => {
           if (res?.status === 404) {
-            failtureNotification('Kindly setup the SSO first');
+            failureNotification('Kindly setup the SSO first');
             setIsLoading(false);
             return;
           }
           
           if (res?.status === 400) {
-            failtureNotification('Invalid SSO configuration. Please try again.');
+            failureNotification('Invalid SSO configuration. Please try again.');
             setIsLoading(false);
             return;
           }
           
           if (res?.status === 500) {
-            failtureNotification('Kindly setup the SSO first');
+            failureNotification('Kindly setup the SSO first');
             setIsLoading(false);
             return;
           }
@@ -322,20 +322,20 @@ const Login: FC<IProps> = () => {
           console.info('appConfig', appConfig);
           
           if (appConfig?.isDefault) {
-            failtureNotification('SSO is not configured. Please run the setup script first.');
+            failureNotification('SSO is not configured. Please run the setup script first.');
             setIsLoading(false);
             return;
           }
           // Check if authUrl exists
           if (!appConfig?.authUrl) {
-            failtureNotification('Invalid Auth URL. Please try again.');
+            failureNotification('Invalid Auth URL. Please try again.');
             setIsLoading(false);
             return;
           }
   
           // Checks if region matches
           if (appConfig?.region?.key && appConfig?.region?.key !== currentRegion) {
-            failtureNotification('Kindly choose correct region as the SSO region');
+            failureNotification('Kindly choose correct region as the SSO region');
             setIsLoading(false);
             return;
           }
@@ -361,18 +361,18 @@ const Login: FC<IProps> = () => {
           if (appConfig?.user?.uid) {
             startSSOPolling(appConfig?.user?.uid, ssoWindow);
           } else {
-            failtureNotification('Missing user information in SSO configuration');
+            failureNotification('Missing user information in SSO configuration');
             setIsLoading(false);
           }
           
         })
         .catch((err: any) => {
-          failtureNotification('Something went wrong please try normal login method');
+          failureNotification('Something went wrong please try normal login method');
           setIsLoading(false);
         });
         
     } catch (error) {
-      failtureNotification('Something went wrong please try normal login method');
+      failureNotification('Something went wrong please try normal login method');
       setIsLoading(false);
     }
   };
@@ -402,7 +402,7 @@ const Login: FC<IProps> = () => {
       try {
         if (ssoWindow?.closed) {
           cancelSsoPoll();
-          failtureNotification('SSO login was cancelled');
+          failureNotification('SSO login was cancelled');
           setIsLoading(false);
           return;
         }
@@ -425,7 +425,7 @@ const Login: FC<IProps> = () => {
 
             if (message && fatalErrors.some((err) => message.includes(err))) {
               cancelSsoPoll();
-              failtureNotification(message, {
+              failureNotification(message, {
                 persist: isOrgMismatchSsoMessage(message),
               });
               setIsLoading(false);
@@ -439,7 +439,7 @@ const Login: FC<IProps> = () => {
               scheduleNext(poll);
             } else {
               cancelSsoPoll();
-              failtureNotification('SSO authentication timed out. Please try again.');
+              failureNotification('SSO authentication timed out. Please try again.');
               setIsLoading(false);
               if (ssoWindow && !ssoWindow.closed) {
                 ssoWindow.close();
@@ -452,7 +452,7 @@ const Login: FC<IProps> = () => {
               scheduleNext(poll);
             } else {
               cancelSsoPoll();
-              failtureNotification('Something went wrong please try normal login method');
+              failureNotification('Something went wrong please try normal login method');
               setIsLoading(false);
               if (ssoWindow && !ssoWindow.closed) {
                 ssoWindow.close();
@@ -461,7 +461,7 @@ const Login: FC<IProps> = () => {
           });
       } catch {
         cancelSsoPoll();
-        failtureNotification('Something went wrong please try normal login method');
+        failureNotification('Something went wrong please try normal login method');
         setIsLoading(false);
         if (ssoWindow && !ssoWindow.closed) {
           ssoWindow.close();
@@ -515,7 +515,7 @@ const Login: FC<IProps> = () => {
   
     } catch (error) {
       console.error('Error processing SSO login success:', error);
-      failtureNotification(
+      failureNotification(
         'Login successful but setup failed. Please refresh.'
       );
     }

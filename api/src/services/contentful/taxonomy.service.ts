@@ -105,7 +105,7 @@ const saveTaxonomyFiles = async (
     await fs.promises.writeFile(filePath, JSON.stringify(taxonomy, null, 2), 'utf8');
     const message = getLogMessage(
       'saveTaxonomyFiles',
-      `Saved taxonomy file: ${schemeUid}.json with ${taxonomy.terms.length} terms.`,
+      `Saved taxonomy file: ${schemeUid}.json with ${taxonomy?.terms?.length} terms.`,
       {},
     );
     await customLogger(projectId, destination_stack_id, 'info', message);
@@ -114,9 +114,9 @@ const saveTaxonomyFiles = async (
   const taxonomiesDataObject: Record<string, any> = {};
   for (const [schemeUid, taxonomy] of Object.entries(taxonomies)) {
     taxonomiesDataObject[schemeUid] = {
-      uid: taxonomy.taxonomy.uid,
-      name: taxonomy.taxonomy.name,
-      description: taxonomy.taxonomy.description,
+      uid: taxonomy?.taxonomy?.uid,
+      name: taxonomy?.taxonomy?.name,
+      description: taxonomy?.taxonomy?.description,
     };
   }
 
@@ -132,7 +132,7 @@ const saveTaxonomyFiles = async (
     'info',
     getLogMessage(
       'saveTaxonomyFiles',
-      `Saved consolidated ${TAXONOMIES_FILE_NAME} with ${Object.keys(taxonomiesDataObject).length} taxonomies.`,
+      `Saved consolidated ${TAXONOMIES_FILE_NAME} with ${Object.keys(taxonomiesDataObject)?.length} taxonomies.`,
       {},
     ),
   );
@@ -160,7 +160,9 @@ export const createTaxonomy = async (
     for (const ct of contentTypes) {
       for (const link of ct?.metadata?.taxonomy || []) {
         const sid = link?.sys?.id;
-        if (sid) schemeIds.add(contentfulSchemeIdToStackTaxonomyUid(sid));
+        if (!sid) continue;
+        const schemeUid = contentfulSchemeIdToStackTaxonomyUid(sid);
+        if (schemeUid) schemeIds.add(schemeUid);
       }
     }
 
@@ -206,7 +208,7 @@ export const createTaxonomy = async (
       };
     }
 
-    if (Object.keys(taxonomies).length === 0) {
+    if (Object.keys(taxonomies)?.length === 0) {
       const message = getLogMessage(
         'createTaxonomy',
         'No Contentful taxonomy schemes found on content types (metadata.taxonomy). Skipping taxonomy files.',
@@ -220,7 +222,7 @@ export const createTaxonomy = async (
 
     const successMessage = getLogMessage(
       'createTaxonomy',
-      `Exported ${Object.keys(taxonomies).length} Contentful taxonomies.`,
+      `Exported ${Object.keys(taxonomies)?.length} Contentful taxonomies.`,
       {},
     );
     await customLogger(projectId, destination_stack_id, 'info', successMessage);
