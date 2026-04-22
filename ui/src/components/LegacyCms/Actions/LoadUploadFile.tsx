@@ -57,7 +57,7 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
   const [localPath, setLocalPath] = useState(fileDetails?.localPath || '');
   const dispatch = useDispatch();
   const currentPath = newMigrationData?.legacy_cms?.uploadedFile?.file_details?.localPath || fileDetails?.localPath || '';
-
+  const iteration = newMigrationData?.iteration || 1;
 
   const handleEditFile = async () => {
     setIsEditing(true);
@@ -83,11 +83,7 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
           }
         }
       };  
-      
       dispatch(updateNewMigrationData(updatedMigrationData));
-      const fileFormatData = {
-        "file_path": localPath,
-      }
     };
   
 
@@ -121,7 +117,7 @@ const FileComponent = ( { fileDetails, fileFormatId }: Props ) =>
             <Paragraph tagName="p" variant="p1" text={`Local Path: ${currentPath}`} />
           )}
         </div>
-        {(
+        { iteration > 1 && (
           <div className="edit-icon">
             <Icon icon="EditSmallActive" size="small" onClick={handleEditFile} />
           </div>

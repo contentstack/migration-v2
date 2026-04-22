@@ -41,8 +41,8 @@ const replaceAssetRefsInObject = (
         const value = obj[key];
         if (!value || typeof value !== "object") continue;
 
-        if (value.uid && assetUidMap.has(value.uid)) {
-            obj[key] = assetUidMap.get(value.uid);
+        if (value?.uid && assetUidMap?.has(value?.uid)) {
+            obj[key] = assetUidMap?.get(value?.uid);
             modified = true;
         } else {
             const childModified = replaceAssetRefsInObject(value, assetUidMap);
@@ -77,7 +77,7 @@ const saveAssetMetadata = (
     fs.mkdirSync(metadataDir, { recursive: true });
     const metadataPath = path.join(metadataDir, "asset-metadata.json");
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
-    writeLogEntry(`Asset metadata saved: ${Object.keys(metadata).length} assets → ${metadataPath}`, "saveAssetMetadata", loggerPath);
+    writeLogEntry(`Asset metadata saved: ${Object?.keys(metadata)?.length} assets → ${metadataPath}`, "saveAssetMetadata", loggerPath);
 };
 
 /**
@@ -225,7 +225,7 @@ export const removeExistingAssets = async (projectId: string, loggerPath?: strin
     writeLogEntry(`Previous asset uid map loaded from ${prevIteration} iteration.`, "removeExistingAssets", loggerPath);
     const prevMetadata = loadPreviousAssetMetadata(projectId, prevIteration);
 
-    if (!Object.keys(prevAssetUidMap).length) {
+    if (!Object?.keys(prevAssetUidMap)?.length) {
         writeLogEntry("No previous asset uid mapping found, skipping dedup.", "removeExistingAssets", loggerPath);
         return;
     }
@@ -247,7 +247,7 @@ export const removeExistingAssets = async (projectId: string, loggerPath?: strin
         }
     }
 
-    if (!assetsToReuse.size) {
+    if (!assetsToReuse?.size) {
         writeLogEntry("No unchanged assets to deduplicate.", "removeExistingAssets", loggerPath);
         return;
     }
@@ -260,10 +260,10 @@ export const removeExistingAssets = async (projectId: string, loggerPath?: strin
 
     if (fs.existsSync(entriesDir)) {
         const contentTypeDirs = fs.readdirSync(entriesDir, { withFileTypes: true })
-            .filter((d) => d.isDirectory());
+            ?.filter((d) => d?.isDirectory());
 
         for (const ctDir of contentTypeDirs) {
-            const ctPath = path.join(entriesDir, ctDir.name);
+            const ctPath = path.join(entriesDir, ctDir?.name);
             
             if (!fs.existsSync(ctPath)) {
                 console.warn(`Content type directory not found: ${ctPath}`);
@@ -271,10 +271,10 @@ export const removeExistingAssets = async (projectId: string, loggerPath?: strin
             }
             
             const localeDirs = fs.readdirSync(ctPath, { withFileTypes: true })
-                .filter((d) => d.isDirectory());
+                ?.filter((d) => d?.isDirectory());
 
             for (const localeDir of localeDirs) {
-                const localePath = path.join(ctPath, localeDir.name);
+                const localePath = path.join(ctPath, localeDir?.name);
                 
                 if (!fs.existsSync(localePath)) {
                     console.warn(`Locale directory not found: ${localePath}`);
@@ -319,7 +319,7 @@ export const removeExistingAssets = async (projectId: string, loggerPath?: strin
         writeLogEntry(`Asset "${assetId}" has been removed from migration data (already exists in Contentstack)`, "removeExistingAssets", loggerPath);
     }
     fs.writeFileSync(indexPath, JSON.stringify(indexData, null, 4), "utf-8");
-    writeLogEntry(`Removed ${assetsToRemoveFromIndex.length} assets from index.json`, "removeExistingAssets", loggerPath);
+    writeLogEntry(`Removed ${assetsToRemoveFromIndex?.length} assets from index.json`, "removeExistingAssets", loggerPath);
 
     // 3. Remove asset file folders
     const filesDir = path.join(assetsDir, "files");
@@ -336,7 +336,7 @@ export const removeExistingAssets = async (projectId: string, loggerPath?: strin
 
     writeLogEntry(
         `Asset dedup complete: ${assetsToReuse.size} reused, ` +
-        `${Object.keys(indexData).length} remaining for import.`,
+        `${Object?.keys(indexData)?.length} remaining for import.`,
         "removeExistingAssets",
         loggerPath
     );

@@ -29,9 +29,6 @@ const extractEntries = (cleanLocalPath) => {
         let entryTitle = entry?.fields?.title?.[locale];
         entryTitle = !entryTitle ? entry?.fields?.name?.[locale] : entryTitle;
         if (!entryTitle) continue;
-        console.info(`entryTitle: ${entryTitle}`);
-        console.info(`contentTypeId: ${contentTypeId}`);
-        // if (!entryTitle) continue;
         if (!entriesByContentType[contentTypeId]) {
           entriesByContentType[contentTypeId] = [];
         }

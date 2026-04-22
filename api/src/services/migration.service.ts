@@ -39,7 +39,12 @@ import fsPromises from 'fs/promises';
 import { matchesSearchText } from '../utils/search.util.js';
 import { taxonomyService } from './taxonomy.service.js';
 import { globalFieldServie } from './globalField.service.js';
-import { getSafePath, sanitizeStackId } from '../utils/sanitize-path.utils.js';
+import {
+  assertResolvedPathUnderBase,
+  getSafePath,
+  sanitizeProjectId,
+  sanitizeStackId,
+} from '../utils/sanitize-path.utils.js';
 import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
@@ -301,12 +306,20 @@ const startTestMigration = async (req: Request): Promise<any> => {
     const {
       legacy_cms: { cms, file_path },
     } = project;
+    const logsBase = path.resolve(process.cwd(), 'logs');
+    const safeTestProjectId = sanitizeProjectId(projectId);
+    const safeTestStackId = sanitizeStackId(project?.current_test_stack_id);
+    if (!safeTestProjectId || !safeTestStackId) {
+      throw new BadRequestError(
+        'Invalid project or test stack identifier; cannot create log file path.'
+      );
+    }
     const loggerPath = path.join(
-      process.cwd(),
-      'logs',
-      projectId,
-      `${project?.current_test_stack_id}.log`
+      logsBase,
+      safeTestProjectId,
+      `${safeTestStackId}.log`
     );
+    assertResolvedPathUnderBase(logsBase, loggerPath);
     const message = getLogMessage(
       'startTestMigration',
       'Starting Test Migration...',
@@ -414,8 +427,8 @@ const startTestMigration = async (req: Request): Promise<any> => {
     await copyLogsToTestStack(project?.current_test_stack_id, loggerPath);
     const contentTypes = await fieldAttacher({
       orgId,
-      projectId,
-      destinationStackId: project?.current_test_stack_id,
+      projectId: safeTestProjectId,
+      destinationStackId: safeTestStackId,
       region,
       user_id,
       is_sso,
@@ -700,12 +713,20 @@ const startMigration = async (req: Request): Promise<any> => {
     const {
       legacy_cms: { cms, file_path },
     } = project;
+    const logsBase = path.resolve(process.cwd(), 'logs');
+    const safeFinalProjectId = sanitizeProjectId(projectId);
+    const safeFinalStackId = sanitizeStackId(project?.destination_stack_id);
+    if (!safeFinalProjectId || !safeFinalStackId) {
+      throw new BadRequestError(
+        'Invalid project or destination stack identifier; cannot create log file path.'
+      );
+    }
     const loggerPath = path.join(
-      process.cwd(),
-      'logs',
-      projectId,
-      `${project?.destination_stack_id}.log`
+      logsBase,
+      safeFinalProjectId,
+      `${safeFinalStackId}.log`
     );
+    assertResolvedPathUnderBase(logsBase, loggerPath);
     const message = getLogMessage(
       'start Migration',
       'Starting Migration...',
@@ -1062,13 +1083,28 @@ const startMigration = async (req: Request): Promise<any> => {
       .value();
     const iteration = projectData?.iteration || 1;
     let configFilePath: string | null = null;
+    let safeDeltaMigrationLogPath: string | undefined;
 
     if (iteration > 1) {
-      await removeExistingAssets(projectId, loggerPath);
-
-    configFilePath = await removeEntriesFromDatabase(projectId, loggerPath);
-    console.info("Config file written to:", configFilePath);
-    }
+      const logsBase = path.resolve(process.cwd(), 'logs');
+      const safePid = sanitizeProjectId(projectId);
+      const safeStack = sanitizeStackId(project?.destination_stack_id);
+      if (safePid && safeStack) {
+        const candidate = path.join(logsBase, safePid, `${safeStack}.log`);
+        try {
+          assertResolvedPathUnderBase(logsBase, candidate);
+          safeDeltaMigrationLogPath = candidate;
+        } catch {
+          safeDeltaMigrationLogPath = undefined;
+        }
+      }
+      await removeExistingAssets(projectId, safeDeltaMigrationLogPath);
+      configFilePath = await removeEntriesFromDatabase(
+        projectId,
+        safeDeltaMigrationLogPath
+      );
+      console.info('Config file written to:', configFilePath);
+      }
 
     await utilsCli?.runCli(
       region,
@@ -1080,15 +1116,18 @@ const startMigration = async (req: Request): Promise<any> => {
     );
 
     if (configFilePath) {
-      console.info("Config file path:", configFilePath);
-      enrichConfigWithAssetMapping(configFilePath, projectId, iteration, loggerPath);
-      console.info("Asset mapping enriched into config");
+      console.info('Config file path:', configFilePath);
+      enrichConfigWithAssetMapping(
+        configFilePath,
+        projectId,
+        iteration,
+        safeDeltaMigrationLogPath
+      );
       await utilsUpdateCli?.updateEntryCli(
-        //
-        region, 
+        region,
         user_id,
         project?.destination_stack_id,
-        loggerPath,
+        safeDeltaMigrationLogPath,
         configFilePath
       );
     }
@@ -1551,9 +1590,6 @@ const restartMigration = async (req: Request): Promise<any> => {
       data.projects[projectIndex].isMigrationStarted = false;
       data.projects[projectIndex].current_step = 1;
       data.projects[projectIndex].status = 0;
-      data.projects[projectIndex].isMigrationStarted = false;
-      data.projects[projectIndex].isMigrationCompleted = false;
-      data.projects[projectIndex].migration_execution = false;
       data.projects[projectIndex].legacy_cms = {
         ...data.projects[projectIndex].legacy_cms,
         is_fileValid: false,

@@ -143,8 +143,6 @@ const MigrationFlowHeader = ({
             isFileValidated :
             isStep4AndNotMigrated || 
             isStepInvalid
-            // isExecutionStarted || 
-            // destinationStackMigrated
         }
       >
         {newMigrationData?.stepValue || 'Save and Continue'}

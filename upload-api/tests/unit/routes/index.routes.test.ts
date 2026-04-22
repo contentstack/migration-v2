@@ -45,6 +45,7 @@ vi.mock('../../../src/services/aws/client', () => ({
 vi.mock('../../../src/helper', () => ({
   fileOperationLimiter: (_req: any, _res: any, next: any) => next(),
   deleteFolderSync: vi.fn(),
+  updateConfigFile: vi.fn().mockImplementation(() => Promise.resolve(mockConfig)),
 }));
 
 vi.mock('../../../src/services/fileProcessing', () => ({
@@ -55,7 +56,7 @@ vi.mock('../../../src/services/createMapper', () => ({
   default: (...args: any[]) => mockCreateMapper(...args),
 }));
 
-vi.mock('../../../src/config/index', () => ({ default: mockConfig }));
+vi.mock('../../../src/config/index.json', () => ({ default: mockConfig }));
 
 vi.mock('@aws-sdk/client-s3', () => ({
   GetObjectCommand: vi.fn().mockImplementation(function (this: any, p: any) { Object.assign(this, p); }),

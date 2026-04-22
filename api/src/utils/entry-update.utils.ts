@@ -19,19 +19,6 @@ const writeLogEntry = (message: string, methodName: string, loggerPath?: string)
     }
 };
 
-// export const getEntriesToUpdate = async (projectId: string) => {
-//     await ProjectModelLowdb.read();
-//     const projectData = ProjectModelLowdb.chain
-//         .get("projects")
-//         .find({ id: projectId })
-//         .value();
-//     const iteration = projectData?.iteration || 1;
-//     const updateEntryDataDb = getEntryMapperDb(projectId, iteration);
-//     await updateEntryDataDb.read();
-//     const entriesToUpdate = updateEntryDataDb.chain.get("entry_mapper").filter({ isUpdate: true }).value();
-//     return entriesToUpdate;
-// };
-
 export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: string): Promise<string | null> => {
     const entriesToUpdate: Record<string, Record<string, any>> = {};
 
@@ -52,13 +39,13 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
     }
 
     const sitecoreUids = new Set(
-        entryMapperItems.map((item: { otherCmsEntryUid: string }) => item.otherCmsEntryUid)
+        entryMapperItems.map((item: { otherCmsEntryUid: string }) => item?.otherCmsEntryUid)
     );
 
     const updateUidMap = new Map<string, string>();
     for (const item of entryMapperItems) {
         if (item.isUpdate) {
-            updateUidMap.set(item.otherCmsEntryUid, item.contentstackEntryUid);
+            updateUidMap.set(item?.otherCmsEntryUid, item?.contentstackEntryUid);
         }
     }
 
@@ -81,12 +68,12 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
         const contentTypeName = ctDir.name;
         const ctPath = path.join(entriesDir, contentTypeName);
         const localeDirs = fs.readdirSync(ctPath, { withFileTypes: true })
-            .filter((dirent) => dirent.isDirectory());
+            ?.filter((dirent) => dirent?.isDirectory());
 
         for (const localeDir of localeDirs) {
             const localePath = path.join(ctPath, localeDir.name);
             const jsonFiles = fs.readdirSync(localePath)
-                .filter((file) => file.endsWith(".json") && file !== "index.json");
+                ?.filter((file) => file?.endsWith(".json") && file !== "index.json");
 
             for (const jsonFile of jsonFiles) {
                 const filePath = path.join(localePath, jsonFile);
@@ -94,12 +81,12 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
                 const data = JSON.parse(raw);
 
                 let modified = false;
-                for (const key of Object.keys(data)) {
+                for (const key of Object?.keys(data)) {
                     if (sitecoreUids.has(key)) {
                         const csEntryUid = updateUidMap.get(key);
                         if (csEntryUid) {
                             const entryData = { ...data[key] };
-                            delete entryData.uid;
+                            delete entryData?.uid;
 
                             if (!entriesToUpdate[contentTypeName]) {
                                 entriesToUpdate[contentTypeName] = {};
@@ -130,7 +117,7 @@ export const removeEntriesFromDatabase = async (projectId: string, loggerPath?: 
 
     writeLogEntry("Finished removing entries from cmsMigrationData.", "removeEntriesFromDatabase", loggerPath);
     writeLogEntry(`Config written to: ${configPath}`, "removeEntriesFromDatabase", loggerPath);
-    writeLogEntry(`Total entries prepared for update: ${Object.keys(entriesToUpdate).reduce((total, ct) => total + Object.keys(entriesToUpdate[ct]).length, 0)}`, "removeEntriesFromDatabase", loggerPath);
+    writeLogEntry(`Total entries prepared for update: ${Object?.keys(entriesToUpdate)?.reduce((total, ct) => total + Object?.keys(entriesToUpdate[ct])?.length, 0)}`, "removeEntriesFromDatabase", loggerPath);
     return configPath;
 };
 
@@ -155,7 +142,7 @@ export const enrichConfigWithAssetMapping = (
         if (fs.existsSync(oldPath)) {
             try {
                 const data = JSON.parse(fs.readFileSync(oldPath, "utf-8"));
-                oldAssetMapping = data.assets || {};
+                oldAssetMapping = data?.assets || {};
                 writeLogEntry(`Loaded ${Object.keys(oldAssetMapping).length} old asset mappings from iteration ${iteration - 1}`, "enrichConfigWithAssetMapping", loggerPath);
             } catch (err) {
                 console.error("Failed to read old uid-mapper:", err);
@@ -170,7 +157,7 @@ export const enrichConfigWithAssetMapping = (
     if (fs.existsSync(newPath)) {
         try {
             const data = JSON.parse(fs.readFileSync(newPath, "utf-8"));
-            newAssetMapping = data.assets || {};
+            newAssetMapping = data?.assets || {};
             writeLogEntry(`Loaded ${Object.keys(newAssetMapping).length} new asset mappings from iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
         } catch (err) {
             console.error("Failed to read new uid-mapper:", err);
@@ -179,14 +166,7 @@ export const enrichConfigWithAssetMapping = (
         writeLogEntry(`No new asset mapping found for iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
     }
 
-    // const config = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
-    // config.__assetMapping__ = {
-    //     old: oldAssetMapping,
-    //     new: newAssetMapping,
-    // };
-    // fs.writeFileSync(configFilePath, JSON.stringify(config), "utf-8");
-
-    writeLogEntry(`Asset mapping enriched into config: old=${Object.keys(oldAssetMapping).length} keys, new=${Object.keys(newAssetMapping).length} keys`, "enrichConfigWithAssetMapping", loggerPath);
+    writeLogEntry(`Asset mapping enriched into config: old=${Object?.keys(oldAssetMapping)?.length} keys, new=${Object?.keys(newAssetMapping)?.length} keys`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset mapping configuration has been enriched for iteration ${iteration}`, "enrichConfigWithAssetMapping", loggerPath);
     writeLogEntry(`Asset references will be resolved using combined old and new mappings`, "enrichConfigWithAssetMapping", loggerPath);
 };

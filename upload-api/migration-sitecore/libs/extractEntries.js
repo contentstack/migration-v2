@@ -13,12 +13,12 @@ const idToString = (id) => {
   if (Array.isArray(id)) return idToString(id[0]);
 
   if (typeof id === 'object') {
-    const candidate = id.id ?? id.guid ?? id.value ?? id.$id ?? id._id;
+    const candidate = id?.id ?? id?.guid ?? id?.value ?? id?.$id ?? id?._id;
     if (typeof candidate === 'string' || typeof candidate === 'number' || typeof candidate === 'bigint') {
       return String(candidate);
     }
 
-    if (typeof id.toString === 'function' && id.toString !== Object.prototype.toString) {
+    if (typeof id?.toString === 'function' && id?.toString !== Object?.prototype?.toString) {
       const str = id.toString();
       if (typeof str === 'string' && str && str !== '[object Object]') return str;
     }
@@ -143,7 +143,7 @@ const extractEntries = async (newPath) => {
         const AllentryArray = Array.isArray(entryPresent) ? entryPresent : [entryPresent];
         const entriesArray = [];
 
-        if (AllentryArray && AllentryArray.length > 0) {
+        if (AllentryArray && AllentryArray?.length > 0) {
             //console.info(`🚀 ~ extractEntries ~ AllentryArray:`, AllentryArray);
             for(const entry of AllentryArray){
                 const locales = entry?.locale && Object?.keys(entry?.locale);

@@ -14,6 +14,7 @@ import { fileOperationLimiter, updateConfigFile } from '../helper';
 import handleFileProcessing from '../services/fileProcessing';
 import createMapper from '../services/createMapper';
 import { sanitizeId, sanitizeFilename, isPathWithinBase } from '../utils/sanitize-path.utils';
+import logger from '../utils/logger';
 
 const router: Router = express.Router();
 // Use memory storage to avoid saving the file locally
@@ -98,9 +99,16 @@ router.get(
       const app_token: string | string[] = req?.headers?.app_token ?? '';
       const affix: string = sanitizeId(req?.headers?.affix ?? 'csm');
       const config = await updateConfigFile();
-      const cmsType = config?.cmsType?.toLowerCase();
+      if (!config) {
+        logger.error('Failed to load application config');
+        return res.status(500).json({
+          status: 500,
+          message: 'Failed to load application configuration'
+        });
+      }
+      const cmsType = config.cmsType?.toLowerCase();
 
-      if (config?.isLocalPath) {
+      if (config.isLocalPath) {
         const localPath = config?.localPath || '';
 
         // Check if localPath indicates a SQL/MySQL connection (case-insensitive)
@@ -416,9 +424,15 @@ router.get(
 );
 
 router.get('/config', async function (req: Request, res: Response) {
-  // Strip mysql password before sending config to the client
   const config = await updateConfigFile();
-  const { password, ...safeMysql } = config?.mysql || {};
+  if (!config) {
+    logger.error('Failed to load application config');
+    return res.status(500).json({
+      status: 500,
+      message: 'Failed to load application configuration'
+    });
+  }
+  const { password, ...safeMysql } = config.mysql || {};
   const safeConfig = {
     ...config,
     mysql: safeMysql

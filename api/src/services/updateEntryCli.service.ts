@@ -93,7 +93,7 @@ const runCommand = (
             console.error('Error writing close event to log file:', err);
           }
         }
-        // reject(new Error(`Command failed with exit code ${code}`));
+        reject(new Error(`Command failed with exit code ${code}`));
       }
     });
   });
@@ -161,7 +161,7 @@ export const updateEntryCli = async (
     
     const directLogEntry3 = {
       level: 'info',
-      message: `Authentication configured for user: ${userData.email}`,
+      message: `Authentication configured for user: ${userData?.email}`,
       methodName: 'updateEntryCli',
       timestamp: new Date().toISOString(),
     };

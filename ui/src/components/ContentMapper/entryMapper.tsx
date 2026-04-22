@@ -126,15 +126,11 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
     try {
       const { data } = await getContentTypes(projectId || '', 0, 5000, ''); //org id will always present
 
-      //setIsLoading(false);
+
       setContentTypes(data?.contentTypes);
-      //setCount(data?.contentTypes?.length);
-      //setFilteredContentTypes(data?.contentTypes);
       setSelectedContentType(data?.contentTypes?.[0]);
-      //setTotalCounts(data?.contentTypes?.[0]?.fieldMapping?.length);
       setOtherCmsTitle(data?.contentTypes?.[0]?.otherCmsTitle);
       setContentTypeUid(data?.contentTypes?.[0]?.id);
-    //   fetchFields(data?.contentTypes?.[0]?.id, searchText || '');
       fetchEntries(data?.contentTypes?.[0]?.id, searchText ?? '');
       setOtherCmsUid(data?.contentTypes?.[0]?.otherCmsUid);
       setIsContentType(data?.contentTypes?.[0]?.type === "content_type");
@@ -387,20 +383,17 @@ const EntryMapper = ({selectedContentTypeId, tableHeight}: {selectedContentTypeI
         loading={loading}
         canSearch={true}
         totalCounts={Math.max(0, tableData?.length)}
-        // data={tableData?.length > 0 ? [...tableData] : []}
         data={[...tableData]}
         columns={columns}
         uniqueKey={'id'}
         isRowSelect={true}
         fullRowSelect={true}
         itemStatusMap={itemStatusMap}
-        //searchPlaceholder={tableSearchPlaceholder}
         fetchTableData={fetchData}
         loadMoreItems={loadMoreItems}
         tableHeight={tableHeight}
         equalWidthColumns={true}
         columnSelector={false}
-    //   initialRowSelectedData={initialRowSelectedData}
         initialSelectedRowIds={rowIds}
         itemSize={80}
         getSelectedRow={handleSelectedEntries}

@@ -67,15 +67,15 @@ async function extractEntries(connection, prefix) {
     const [rows] = await connection.promise().query(query);
 
     for (const row of rows) {
-      const bundle = row.type;
+      const bundle = row?.type;
       if (!bundle) {
         continue;
       }
       const otherCmsEntryUid = entrySourceUidCorrector({
-        id: `content_type_entries_title_${row.nid}`,
+        id: `content_type_entries_title_${row?.nid}`,
         prefix,
       });
-      const entryName = row.title ? String(row.title) : `Node ${row.nid}`;
+      const entryName = row?.title ? String(row?.title) : `Node ${row?.nid}`;
 
       if (!byBundle[bundle]) {
         byBundle[bundle] = [];
@@ -83,14 +83,14 @@ async function extractEntries(connection, prefix) {
       byBundle[bundle].push({
         contentTypeUid: bundle,
         entryName,
-        language: row.langcode || '',
+        language: row?.langcode || '',
         otherCmsEntryUid,
         otherCmsCTName: bundle,
         isUpdate: false,
       });
     }
 
-    const total = Object.values(byBundle).reduce((n, arr) => n + arr.length, 0);
+    const total = Object?.values(byBundle)?.reduce((n, arr) => n + arr?.length, 0);
     console.info(
       `extractEntries (Drupal): ${total} entries across ${Object.keys(byBundle).length} bundle(s)`
     );

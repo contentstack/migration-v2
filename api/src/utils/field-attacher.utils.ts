@@ -31,13 +31,13 @@ export const fieldAttacher = async ({ projectId, orgId, destinationStackId, regi
           return field;
         })
       }
-      // await contenTypeMaker({ contentType, destinationStackId, projectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
+
       if (iteration === 1) {
         await contenTypeMaker({ contentType, destinationStackId, projectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })
 
       }
       else {
-        const shouldSkip = await shouldSkipContentTypeCreation(projectId, contentType.otherCmsUid, iteration);
+        const shouldSkip = await shouldSkipContentTypeCreation(projectId, contentType?.otherCmsUid, iteration);
         if (!shouldSkip) {
           console.info(`Creating new content type: ${contentType.otherCmsUid}`);
           await contenTypeMaker({ contentType, destinationStackId, projectId, newStack: projectData?.stackDetails?.isNewStack, keyMapper: projectData?.mapperKeys, region, user_id, is_sso })

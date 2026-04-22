@@ -127,7 +127,7 @@ const HorizontalStepper = forwardRef(
         !newMigrationData?.migration_execution?.migrationCompleted &&
         !newMigrationData?.migration_execution?.migrationStarted;
 
-      if (isRestarted && stepsCompleted.length > 0) {
+      if (isRestarted && stepsCompleted?.length > 0) {
         setStepsCompleted([]);
         setShowStep(0);
       }
@@ -137,7 +137,7 @@ const HorizontalStepper = forwardRef(
       newMigrationData?.legacy_cms?.currentStep,
       newMigrationData?.migration_execution?.migrationCompleted, 
       newMigrationData?.migration_execution?.migrationStarted,
-      stepsCompleted.length
+      stepsCompleted?.length
     ]);
 
     useEffect(() => {

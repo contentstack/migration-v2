@@ -15,7 +15,7 @@ export const isDuplicateEntry = async (projectId: string) => {
 
     await entryMapper.update((data: any) => {
         data?.entry_mapper?.forEach((item: any, index: number) => {
-        const key = `${item.contentTypeId}_${item.language}_${item.entryName}`;
+        const key = `${item?.contentTypeId}_${item?.language}_${item?.entryName}`;
 
         if (seen.has(key)) {
             const firstIndex = seen.get(key);

@@ -90,8 +90,8 @@ export const getPreviouslyCreatedContentTypes = async (
             // Collect all content type UIDs from this iteration
             const contentTypes = contentTypesMapperDb.data?.ContentTypesMappers || [];
             contentTypes.forEach((ct: any) => {
-                if (ct.otherCmsUid) {
-                    existingContentTypes.add(ct.otherCmsUid);
+                if (ct?.otherCmsUid) {
+                    existingContentTypes.add(ct?.otherCmsUid);
                 }
             });
         } catch (error) {

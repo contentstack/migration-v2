@@ -209,36 +209,30 @@ function deleteFolderSync(folderPath: string): void {
   }
 }
 
-async function updateConfigFile(filePath?: string) {
+async function updateConfigFile(filePath?: string): Promise<any | undefined> {
   try {
     const configFilePath = path.join(process.cwd(), 'src', 'config', 'index.json');
-    const config:any = JSON.parse(await fs.promises.readFile(configFilePath, 'utf8'));
-    
-    
+    const config: any = JSON.parse(await fs.promises.readFile(configFilePath, 'utf8'));
+
     // If filePath is provided and not empty, update the config file
     if (filePath && typeof filePath === 'string' && filePath.trim() !== '') {
       const resolvedFilePath = path.resolve(filePath.trim());
-      
-      // Read current config
+
       const updatedConfig = {
         ...config,
         localPath: resolvedFilePath
       };
-      
-      // Write updated config back to file
+
       const configContent = JSON.stringify(updatedConfig, null, 2);
       await fs.promises.writeFile(configFilePath, configContent, 'utf8');
-      
-      // Return updated config
+
       return updatedConfig;
     }
-    
-    // If no filePath provided, just return current config
+
     return config;
   } catch (error) {
-    console.error('Error updating config file:', error);
-    // Return current config as fallback
-    
+    logger.error('Error updating config file', { err: error });
+    return undefined;
   }
 }
 

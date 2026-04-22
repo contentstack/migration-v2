@@ -75,7 +75,7 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
 
     for (const file of files) {
       const data = readFile(
-        path.resolve(process.cwd(), `${config.data}/${config.contentful.contentful}/${file}`)
+        path.resolve(process.cwd(), `${config?.data}/${config?.contentful?.contentful}/${file}`)
       );
       const title = file.split('.')[0];
       const contentfulID = data?.[0]?.contentfulID;

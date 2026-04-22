@@ -11,6 +11,14 @@ const handleFileProcessing = async (
   name: string
 ) => {
   const config = await updateConfigFile();
+  if (!config) {
+    logger.error('Failed to load application config');
+    return {
+      status: HTTP_CODES.SERVER_ERROR,
+      message: HTTP_TEXTS.INTERNAL_ERROR,
+      file_details: undefined
+    };
+  }
   if (fileExt === 'zip') {
     const zip = new JSZip();
     await zip.loadAsync(zipBuffer);

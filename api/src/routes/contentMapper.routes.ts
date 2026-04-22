@@ -111,7 +111,7 @@ router.get(
 
 /**
  * Update Entry Status
- * @route PUT /entryStatus/:projectId
+ * @route PUT /updateEntryStatus/:projectId
  */
 router.put(
   "/updateEntryStatus/:projectId",

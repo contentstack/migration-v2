@@ -72,8 +72,8 @@ const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping
             continue;
         }
         if (field === 'title') {
-            if (updateData.title !== undefined && updateData.title !== null) {
-                entry.title = updateData.title;
+            if (updateData?.title !== undefined && updateData?.title !== null) {
+                entry.title = updateData?.title;
             }
             continue;
         }
@@ -83,7 +83,7 @@ const mergeFlatPayloadIntoEntry = async (entry, entryUid, updateData, oldMapping
                 field,
                 entryUid,
                 nextVal,
-                entry.content[field],
+                entry?.content[field],
                 oldMapping,
                 newMapping
             );
@@ -125,26 +125,26 @@ module.exports = async ({
                                 .entry(entryUid);
 
 
-                            const entry = await entryRef.fetch();
+                            const entry = await entryRef?.fetch();
                             const updateData = JSON.parse(JSON.stringify(config[contentType][entryUid]));
 
-                            const hasStackContent = entry.content && typeof entry.content === 'object';
-                            const hasNestedUpdate = updateData.content && typeof updateData.content === 'object';
+                            const hasStackContent = entry?.content && typeof entry?.content === 'object';
+                            const hasNestedUpdate = updateData?.content && typeof updateData?.content === 'object';
 
                             if (hasStackContent && hasNestedUpdate) {
-                                for (const field of Object.keys(updateData.content)) {
-                                    if (isAssetField(updateData.content[field])) {
+                                for (const field of Object.keys(updateData?.content)) {
+                                    if (isAssetField(updateData?.content[field])) {
                                         updateData.content[field] = resolveAssetField(
                                             field,
                                             entryUid,
-                                            updateData.content[field],
-                                            entry.content[field],
+                                            updateData?.content[field],
+                                            entry?.content[field],
                                             oldMapping,
                                             newMapping
                                         );
                                     }
                                 }
-                                Object.assign(entry.content, updateData.content);
+                                Object.assign(entry?.content, updateData?.content);
                                 await entry.update();
                             } else if (hasStackContent) {
                                 console.info(`[${entryUid}] Merging flat migration payload into entry.content (e.g. WordPress export)`);

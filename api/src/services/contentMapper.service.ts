@@ -53,8 +53,8 @@ const idCorrector = ({ id }: { id: string }) => {
  * @returns The updated project data.
  */
 const putTestData = async (req: Request) => {
-  const projectId = req.params.projectId;
-  const contentTypes = req.body.contentTypes;
+  const projectId = req?.params?.projectId;
+  const contentTypes = req?.body?.contentTypes;
 
   try {
     // Get project data to extract iteration
@@ -122,7 +122,7 @@ const putTestData = async (req: Request) => {
     // Collect all fields from all content types first
     const allFields: any[] = [];
     
-    for (let index = 0; index < contentTypes.length; index++) {
+    for (let index = 0; index < contentType?.length; index++) {
       const type: any = contentTypes[index];
       const fieldIds: string[] = [];
 
@@ -205,7 +205,7 @@ const putTestData = async (req: Request) => {
     // Collect all entries from all content types first
     const allEntries: any[] = [];
 
-    for (let index = 0; index < contentTypes.length; index++) {
+    for (let index = 0; index < contentTypes?.length; index++) {
       const type: any = contentTypes[index];
       const entryIds: string[] = [];
 
@@ -355,7 +355,7 @@ const getContentTypes = async (req: Request) => {
       );
       throw new BadRequestError(HTTP_TEXTS.PROJECT_NOT_FOUND);
     }
-    const contentMapperId = projectDetails.content_mapper;
+    const contentMapperId = projectDetails?.content_mapper;
     const iteration = projectDetails?.iteration || 0;
     const ContentTypesMapperModelLowdb = getContentTypesMapperDb(projectId, iteration);
     const FieldMapperModel = getFieldMapperDb(projectId, iteration);
@@ -1805,8 +1805,8 @@ const getExistingExtensions = async ({existingStackId, token_payload}: any) => {
 }
 
 const updateEntryStatus = async (req: Request) => {
-  const { projectId } = req.params;
-  const { ids } = req.body;
+  const { projectId } = req?.params;
+  const { ids } = req?.body;
   const validatedUids: string[] = Array.isArray(ids) ? ids : [];
   const srcFunc = "updateEntryMapping";
   if (isEmpty(validatedUids)) {
@@ -1924,7 +1924,7 @@ const getEntryMapping = async (req: Request) => {
     });
 
     // Fallback: If no entry mappings found in current iteration and we have previous iteration
-    if ((!entryMapping || entryMapping.length === 0 || entryMapping.every((e: any) => !e)) && iteration > 1) {
+    if ((!entryMapping || entryMapping?.length === 0 || entryMapping?.every((e: any) => !e)) && iteration > 1) {
       const PrevEntryMapperModel = getEntryMapperDb(projectId, iteration - 1);
       await PrevEntryMapperModel.read();
       entryMapping = contentType?.entryMapping?.map?.((mapperUId: any) => {
@@ -1948,11 +1948,11 @@ const getEntryMapping = async (req: Request) => {
         filteredResult = enrichedMapping?.filter?.((item: any) =>
           item?.entryName?.toLowerCase().includes(search)
         );
-        totalCount = filteredResult.length;
-        result = filteredResult.slice(skip, Number(skip) + Number(limit));
+        totalCount = filteredResult?.length;
+        result = filteredResult?.slice(skip, Number(skip) + Number(limit));
       } else {
-        totalCount = enrichedMapping.length;
-        result = enrichedMapping.slice(skip, Number(skip) + Number(limit));
+        totalCount = enrichedMapping?.length;
+        result = enrichedMapping?.slice(skip, Number(skip) + Number(limit));
       }
     }
     return {
@@ -2029,8 +2029,8 @@ const getEntryUidMap = (uidMapperModel: any): Record<string, any> => {
   };
   const fromEntryUid = flattenNestedUidMap(pick(d.entryUid));
   const fromEntry = flattenNestedUidMap(pick(d.entry));
-  const nUid = Object.keys(fromEntryUid).length;
-  const nEnt = Object.keys(fromEntry).length;
+  const nUid = Object?.keys(fromEntryUid).length;
+  const nEnt = Object?.keys(fromEntry).length;
   if (nUid > 0 && nEnt > 0) {
     return { ...fromEntry, ...fromEntryUid };
   }
@@ -2040,9 +2040,9 @@ const getEntryUidMap = (uidMapperModel: any): Record<string, any> => {
 };
 
 const flattenNestedUidMap = (raw: Record<string, any>): Record<string, any> => {
-  const keys = Object.keys(raw ?? {});
-  if (keys.length === 0) return {};
-  const nested = keys.every((k) => {
+  const keys = Object?.keys(raw ?? {});
+  if (keys?.length === 0) return {};
+  const nested = keys?.every((k) => {
     const v = raw[k];
     return v != null && typeof v === 'object' && !Array.isArray(v);
   });
@@ -2060,7 +2060,7 @@ const enrichEntriesWithUidMapper = async (
   iteration: number,
   entries: any[],
 ): Promise<any[]> => {
-  if (!Array.isArray(entries) || entries.length === 0) return entries;
+  if (!Array.isArray(entries) || entries?.length === 0) return entries;
 
   const currentModel = getUidMapperDb(projectId, iteration);
   await currentModel.read();
@@ -2071,15 +2071,15 @@ const enrichEntriesWithUidMapper = async (
     await prevModel.read();
   }
 
-  return entries.map((item: any) => {
+  return entries?.map((item: any) => {
     if (!item) return item;
-    const existing = item.contentstackEntryUid;
+    const existing = item?.contentstackEntryUid;
     if (existing != null && String(existing).trim() !== '' && existing !== ' ') {
       return item;
     }
     const resolved = resolveContentstackEntryUidAcrossIterations(
-      item.otherCmsEntryUid,
-      item.id,
+      item?.otherCmsEntryUid,
+      item?.id,
       currentModel,
       prevModel,
     );
