@@ -129,6 +129,78 @@ function buildContentfulFieldLocalizedByContentType(
   return byCt;
 }
 
+/**
+ * When the export omits `widgetId`, infer defaults aligned with
+ * upload-api/migration-contentful/libs/contentTypeMapper.js.
+ */
+function inferContentfulDefaultWidgetId(fieldType: string | undefined): string | undefined {
+  switch (fieldType) {
+    case "Symbol":
+      return "singleLine";
+    case "Text":
+      return "multipleLine";
+    case "Integer":
+    case "Number":
+      return "numberEditor";
+    case "RichText":
+      return "richTextEditor";
+    case "Boolean":
+      return "boolean";
+    default:
+      return undefined;
+  }
+}
+function getContentfulFieldFromPackage(
+  contentTypesFromPackage: any[] | undefined,
+  ctId: string,
+  fieldId: string
+): any | undefined {
+  const ct = contentTypesFromPackage?.find((c: any) => c?.sys?.id === ctId);
+  return ct?.fields?.find((f: any) => f?.id === fieldId);
+}
+/**
+ * Picks one fieldMapping row when several share the same `uid` (e.g. bootstrap `title`/`url` rows
+ * from createInitialMapper plus the real Contentful field). Mapper `otherCmsType` is Contentful
+ * `widgetId` from the migration pipeline.
+ */
+function resolveFieldMappingRow(
+  fieldMapping: any[] | undefined,
+  contentTypesFromPackage: any[] | undefined,
+  ctId: string,
+  fieldId: string
+): any | undefined {
+  const candidates = fieldMapping?.filter((item: any) => item?.uid === fieldId) ?? [];
+  if (candidates?.length === 0) return undefined;
+  if (candidates?.length === 1) return candidates?.[0];
+  const cfField = getContentfulFieldFromPackage(contentTypesFromPackage, ctId, fieldId);
+  const widgetId = cfField?.widgetId ?? inferContentfulDefaultWidgetId(cfField?.type);
+  if (widgetId) {
+    const byWidget = candidates?.filter((c: any) => c?.otherCmsType === widgetId);
+    if (byWidget?.length >= 1) return byWidget?.[0];
+  }
+  const typeToCs: Record<string, string> = {
+    RichText: "json",
+    Boolean: "boolean",
+    Date: "isodate",
+  };
+  const expectCs = cfField?.type ? typeToCs[cfField.type as string] : undefined;
+  if (expectCs) {
+    const byCs = candidates?.filter((c: any) => c?.contentstackFieldType === expectCs);
+    if (byCs?.length >= 1) return byCs?.[0];
+  }
+  if (cfField?.type === "Boolean") {
+    const byBool = candidates?.filter((c: any) => c?.contentstackFieldType === "boolean");
+    if (byBool?.length >= 1) return byBool?.[0];
+  }
+  // Legacy bootstrap rows use otherCmsType "text" while real Symbol/Text fields use widget ids
+  // (e.g. singleLine). Prefer non-"text" otherCmsType when the schema is Symbol/Text.
+  if (cfField && ["Symbol", "Text"]?.includes(cfField?.type)) {
+    const nonBootstrap = candidates?.filter((c: any) => c?.otherCmsType !== "text");
+    if (nonBootstrap?.length >= 1) return nonBootstrap?.[0];
+  }
+  return candidates?.[0];
+}
+
 const transformCloudinaryObject = (input: any) => {
   const result: any = [];
   if (!Array.isArray(input)) {
@@ -845,7 +917,13 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
               entryData[name][lang] ??= {};
               entryData[name][lang][id] ??= {};
               locales.push(lang);
-              const fieldData = currentCT?.fieldMapping?.find?.((item: any) => key === item?.uid);
+              const fieldData = resolveFieldMappingRow(
+                currentCT?.fieldMapping,
+                content,
+                name,
+                key
+              );
+
               const newId = fieldData?.contentstackFieldUid ?? `${key}`?.replace?.(/[^a-zA-Z0-9]+/g, "_");
               entryData[name][lang][id][newId] = processField(
                 langValue,
@@ -906,7 +984,7 @@ const createEntry = async (packagePath: any, destination_stack_id: string, proje
           for (const [key, value] of Object?.entries?.(fields)) {
             const langs = Object?.keys(value as object);
             if (langs?.length !== 1) continue;
-            const fd = ct?.fieldMapping?.find?.((item: any) => key === item?.uid);
+            const fd = resolveFieldMappingRow(ct?.fieldMapping, content, name, key);
             const localizedInCf = cfFieldLocalizedByCt.get(name)?.get(key);
             const explicitlyNonLocalized =
               localizedInCf === false ||
