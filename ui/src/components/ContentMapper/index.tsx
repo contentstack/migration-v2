@@ -7,7 +7,6 @@ import {
   useImperativeHandle,
   forwardRef,
 } from 'react';
-import { flushSync } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -96,6 +95,8 @@ const FIELD_MAP_MENU_LIST_CHROME = 28;
 const FIELD_MAP_MENU_MIN = 52;
 const FIELD_MAP_MENU_MAX_ROWS = 24;
 const FIELD_MAP_MENU_CAP = 283;
+/** When the viewport is shorter than the ideal menu, still allow a scrollable list (react-select minMenuHeight ~140). */
+const FIELD_MAP_MENU_MIN_CLAMPED = 120;
 
 function estimateFieldMapMenuHeight(
   options: ISelectProps['options'],
@@ -110,7 +111,7 @@ function estimateFieldMapMenuHeight(
   return Math.min(cap, Math.max(FIELD_MAP_MENU_MIN, rows * FIELD_MAP_MENU_ROW_PX + FIELD_MAP_MENU_LIST_CHROME));
 }
 
-/** Venus Select for mapping rows: menu opens up when space below (vs `.mapper-footer`) is tight. */
+/** Venus Select for mapping rows: prefers bottom; else top if it fits the list; if neither fits, picks the roomier side and clamps maxMenuHeight so the list scrolls. */
 function FieldMappingSelect(props: ISelectProps) {
   const { onMenuOpen, onMenuClose, maxMenuHeight, options, ...rest } = props;
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -119,6 +120,7 @@ function FieldMappingSelect(props: ISelectProps) {
   optionsRef.current = options;
   maxMenuHeightRef.current = maxMenuHeight;
   const [menuPlacement, setMenuPlacement] = useState<'top' | 'bottom'>('bottom');
+  const [menuMaxHeightOverride, setMenuMaxHeightOverride] = useState<number | null>(null);
 
   const handleMenuOpen = useCallback(() => {
     const el = wrapRef.current;
@@ -136,18 +138,39 @@ function FieldMappingSelect(props: ISelectProps) {
       );
     }
     const spaceAbove = rect.top - FIELD_MAP_MENU_VIEW_MARGIN;
+    const slackBelow = spaceBelow + FIELD_MAP_MENU_BOTTOM_SLACK;
     const need = estimateFieldMapMenuHeight(optionsRef.current, maxMenuHeightRef.current);
-    const openTop =
-      spaceBelow + FIELD_MAP_MENU_BOTTOM_SLACK < need &&
-      spaceAbove >= need &&
-      spaceAbove > spaceBelow + FIELD_MAP_MENU_HYSTERESIS;
+    const propCap =
+      typeof maxMenuHeightRef.current === 'number' && maxMenuHeightRef.current > 0
+        ? maxMenuHeightRef.current
+        : FIELD_MAP_MENU_CAP;
+    const idealMax = Math.min(propCap, need);
 
-    flushSync(() => setMenuPlacement(openTop ? 'top' : 'bottom'));
+    let placement: 'top' | 'bottom' = 'bottom';
+    let maxOverride: number | null = null;
+
+    if (slackBelow >= need) {
+      placement = 'bottom';
+    } else if (spaceAbove >= need) {
+      placement = 'top';
+    } else {
+      const preferTop = spaceAbove > spaceBelow + FIELD_MAP_MENU_HYSTERESIS;
+      placement = preferTop ? 'top' : 'bottom';
+      const rawRoom = preferTop ? spaceAbove - 12 : slackBelow - 8;
+      maxOverride = Math.max(
+        FIELD_MAP_MENU_MIN_CLAMPED,
+        Math.min(idealMax, Math.floor(Math.max(0, rawRoom)))
+      );
+    }
+
+    setMenuPlacement(placement);
+    setMenuMaxHeightOverride(maxOverride);
     onMenuOpen?.();
   }, [onMenuOpen]);
 
   const handleMenuClose = useCallback(() => {
     setMenuPlacement('bottom');
+    setMenuMaxHeightOverride(null);
     onMenuClose?.();
   }, [onMenuClose]);
 
@@ -156,7 +179,7 @@ function FieldMappingSelect(props: ISelectProps) {
       <Select
         {...rest}
         options={options}
-        maxMenuHeight={maxMenuHeight}
+        maxMenuHeight={menuMaxHeightOverride ?? maxMenuHeight}
         menuPlacement={menuPlacement}
         onMenuOpen={handleMenuOpen}
         onMenuClose={handleMenuClose}
