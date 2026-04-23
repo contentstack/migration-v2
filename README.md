@@ -19,6 +19,19 @@ Check for readme.md files and install dependencies for folders
 
 This is the migration V2's node server.
 
+### Installation
+
+1. Navigate to the project directory:
+
+   ```sh
+   cd api
+   ```
+
+2. Install the dependencies:
+   ```sh
+   npm install
+   ```
+
 ### Environment Variables
 
 The following environment variables are used in this project:
@@ -105,7 +118,7 @@ The migration-v2 upload-api project is designed to facilitate the migration of d
 Navigate to the project directory:
 
 ```
-cd migration-v2/upload-api
+cd upload-api
 ```
 
 Install dependencies:
@@ -154,6 +167,14 @@ The following configuration is used in this project:
 - `npm run env`: Starts the main server by running npm start.
 - `npm run postinstall`: Installs dependencies for the api, ui, and upload-api directories.
 - `npm test`: Displays an error message indicating that no tests are specified.
+
+### Usage
+
+Start the development server:
+
+```sh
+npm start
+```
 
 ## Repository
 
