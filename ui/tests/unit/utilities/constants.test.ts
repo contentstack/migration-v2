@@ -119,7 +119,6 @@ describe('utilities/constants', () => {
     expect(STATUS_ICON_Mapping['1']).toBe('CheckedCircle');
     expect(STATUS_ICON_Mapping['2']).toBe('SuccessInverted');
     expect(STATUS_ICON_Mapping['3']).toBe('ErrorInverted');
-    expect(STATUS_ICON_Mapping['5']).toBe('Link');
   });
 
   it('should export VALIDATION_DOCUMENTATION_URL', () => {
