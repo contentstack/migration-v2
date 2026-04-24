@@ -106,7 +106,10 @@ const getFieldName = (key: string   ) => {
 }
 
 const RteJsonConverter = (html: string) => {
-  const dom = new JSDOM(html);
+  const cleanedHtml = html
+    ?.replace(/<figure[^>]*>/g, "")
+    ?.replace(/<\/figure>/g, "");
+  const dom = new JSDOM(cleanedHtml);
   const htmlDoc = dom.window.document.querySelector("body");
   return htmlToJson(htmlDoc);
 
@@ -127,13 +130,30 @@ function getLastUid(uid : string) {
 
 
 const resolvedBlockName = (block: any) => {
-  if (block?.attrs?.metadata?.name)  return block?.attrs?.metadata?.name;
-  if (block?.blockName === WORDPRESS_MISSSING_BLOCKS) {
-    return block?.attrs?.originalName || 'body';
+  // 1. If metadata name exists, use it first
+  if (block?.attrs?.metadata?.name) {
+    return block.attrs.metadata.name;
   }
-  if (MEDIA_BLOCK_NAMES?.includes?.(block?.blockName)) return 'media';
+
+  // 2. Handle missing/invalid WordPress blocks
+  const isMissingBlock =
+    block?.blockName === WORDPRESS_MISSSING_BLOCKS ||
+    (block?.blockName === null &&
+      block?.innerHTML !== ' ');
+  if (isMissingBlock) {
+    // fallback to originalName, otherwise use body
+   
+    return block?.attrs?.originalName ?? "body";
+  }
+
+  // 3. Handle media-related blocks
+  if (MEDIA_BLOCK_NAMES?.includes?.(block?.blockName)) {
+    return "media";
+  }
+
+  // 4. Default fallback
   return block?.blockName;
-}
+};
 
 async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>) {
   const schema : any = {
@@ -360,7 +380,7 @@ function processNestedGroup(child: any, childField: any, allFields: any[]): Reco
             nestedChildrenObject[nestedChildKey] = [formattedNestedChild];
           }
         } else {
-          nestedChildrenObject[nestedChildKey] = formattedNestedChild;
+          formattedNestedChild && (nestedChildrenObject[nestedChildKey] = formattedNestedChild);
         }
       }
     } catch (nestedError) {
@@ -438,9 +458,12 @@ function formatChildByType(child: any, field: any, assetData: any) {
                 htmlContent = collectHtmlFromInnerBlocks(child);
               }
               if (!htmlContent) {
-                htmlContent = child?.blockName ? child?.innerHTML : child;
+                htmlContent = (child?.blockName || child?.innerHTML)
+                  ? child?.innerHTML
+                  : child;
               }
-              formatted = RteJsonConverter(htmlContent);
+              const hasMeaningfulHtml = stripHtmlTags(htmlContent)?.trim()?.length > 0;
+              formatted = hasMeaningfulHtml && RteJsonConverter(htmlContent);
               break;
             }
 
@@ -601,7 +624,6 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
 
           customLogger(project?.id, destinationStackId,'info', `Processed blocks for entry ${uid}`);
 
-          
 
           // Pass individual content to createSchema
           entryData[uid] = await createSchema(fields, blocksJson, item?.title, uid, assetData, duplicateBlockMappings);
