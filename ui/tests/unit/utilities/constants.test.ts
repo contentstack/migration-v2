@@ -111,6 +111,7 @@ describe('utilities/constants', () => {
     expect(CONTENT_MAPPING_STATUS['1']).toBe('Mapped');
     expect(CONTENT_MAPPING_STATUS['2']).toBe('Updated');
     expect(CONTENT_MAPPING_STATUS['3']).toBe('Failed');
+    expect(CONTENT_MAPPING_STATUS['5']).toBe('Auto-mapped');
     expect(CONTENT_MAPPING_STATUS['4']).toBe('All');
   });
 
