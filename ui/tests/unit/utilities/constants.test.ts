@@ -111,6 +111,7 @@ describe('utilities/constants', () => {
     expect(CONTENT_MAPPING_STATUS['1']).toBe('Mapped');
     expect(CONTENT_MAPPING_STATUS['2']).toBe('Updated');
     expect(CONTENT_MAPPING_STATUS['3']).toBe('Failed');
+    expect(CONTENT_MAPPING_STATUS['5']).toBe('Auto-mapped');
     expect(CONTENT_MAPPING_STATUS['4']).toBe('All');
   });
 
@@ -118,6 +119,7 @@ describe('utilities/constants', () => {
     expect(STATUS_ICON_Mapping['1']).toBe('CheckedCircle');
     expect(STATUS_ICON_Mapping['2']).toBe('SuccessInverted');
     expect(STATUS_ICON_Mapping['3']).toBe('ErrorInverted');
+    expect(STATUS_ICON_Mapping['5']).toBe('Link');
   });
 
   it('should export VALIDATION_DOCUMENTATION_URL', () => {

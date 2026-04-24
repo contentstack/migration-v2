@@ -191,6 +191,8 @@ export interface ContentTypeMap {
 
 export interface ContentTypeSaveHandles {
   handleSaveContentType: () => void;
+  handleUpdateAutoMappedContentMapping: () => Promise<void>;
+  shouldPromptShowAutoMappedMerge: () => boolean;
 }
 export type MouseOrKeyboardEvent =
   | React.MouseEvent<HTMLElement, MouseEvent>
