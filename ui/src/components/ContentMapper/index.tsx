@@ -1,11 +1,11 @@
 // Libraries
 import {
+  useCallback,
   useEffect,
   useState,
   useRef,
   useImperativeHandle,
   forwardRef,
-  type ComponentProps,
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -66,6 +66,7 @@ import {
   FieldHistoryObj
 } from './contentMapper.interface';
 import { ItemStatusMapProp } from '@contentstack/venus-components/build/components/Table/types';
+import type { ISelectProps } from '@contentstack/venus-components/build/components/Select/Select.d';
 import { ModalObj } from '../Modal/modal.interface';
 import { UpdatedSettings } from '../AdvancePropertise/advanceProperties.interface';
 
@@ -85,13 +86,106 @@ import {
 import './index.scss';
 import { NoDataFound, SCHEMA_PREVIEW } from '../../common/assets';
 
-/** Renders the menu in the document body so `menuPlacement="auto"` matches the control when inside scroll/overflow containers (e.g. InfiniteScrollTable). */
-const CONTENT_MAPPER_SELECT_MENU_PORTAL =
-  typeof document !== 'undefined' ? document.body : undefined;
+const FIELD_MAP_MENU_VIEW_MARGIN = 8;
+const FIELD_MAP_MENU_HYSTERESIS = 36;
+const FIELD_MAP_MENU_BOTTOM_SLACK = 16;
+const FIELD_MAP_MENU_ROW_PX = 34;
+const FIELD_MAP_MENU_LIST_CHROME = 28;
+const FIELD_MAP_MENU_MIN = 52;
+const FIELD_MAP_MENU_MAX_ROWS = 24;
+const FIELD_MAP_MENU_CAP = 283;
+/** When the viewport is shorter than the ideal menu, still allow a scrollable list (react-select minMenuHeight ~140). */
+const FIELD_MAP_MENU_MIN_CLAMPED = 120;
 
-const contentMapperSelectMenuStyles = {
-  menuPortal: (base: Record<string, unknown>) => ({ ...base, zIndex: 10001 }),
-};
+function estimateFieldMapMenuHeight(
+  options: ISelectProps['options'],
+  maxMenuHeight: number | undefined
+): number {
+  const cap =
+    typeof maxMenuHeight === 'number' && maxMenuHeight > 0
+      ? maxMenuHeight
+      : FIELD_MAP_MENU_CAP;
+  const n = Array.isArray(options) ? options.length : 0;
+  const rows = Math.min(Math.max(n, 1), FIELD_MAP_MENU_MAX_ROWS);
+  return Math.min(cap, Math.max(FIELD_MAP_MENU_MIN, rows * FIELD_MAP_MENU_ROW_PX + FIELD_MAP_MENU_LIST_CHROME));
+}
+
+/** Venus Select for mapping rows: prefers bottom; else top if it fits the list; if neither fits, picks the roomier side and clamps maxMenuHeight so the list scrolls. */
+function FieldMappingSelect(props: ISelectProps) {
+  const { onMenuOpen, onMenuClose, maxMenuHeight, options, ...rest } = props;
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const optionsRef = useRef(options);
+  const maxMenuHeightRef = useRef(maxMenuHeight);
+  optionsRef.current = options;
+  maxMenuHeightRef.current = maxMenuHeight;
+  const [menuPlacement, setMenuPlacement] = useState<'top' | 'bottom'>('bottom');
+  const [menuMaxHeightOverride, setMenuMaxHeightOverride] = useState<number | null>(null);
+
+  const handleMenuOpen = useCallback(() => {
+    const el = wrapRef.current;
+    if (!el) {
+      onMenuOpen?.();
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    let spaceBelow = window.innerHeight - rect.bottom - FIELD_MAP_MENU_VIEW_MARGIN;
+    const footer = document.querySelector('.mapper-footer');
+    if (footer instanceof HTMLElement) {
+      spaceBelow = Math.min(
+        spaceBelow,
+        Math.max(0, footer.getBoundingClientRect().top - rect.bottom - FIELD_MAP_MENU_VIEW_MARGIN)
+      );
+    }
+    const spaceAbove = rect.top - FIELD_MAP_MENU_VIEW_MARGIN;
+    const slackBelow = spaceBelow + FIELD_MAP_MENU_BOTTOM_SLACK;
+    const need = estimateFieldMapMenuHeight(optionsRef.current, maxMenuHeightRef.current);
+    const propCap =
+      typeof maxMenuHeightRef.current === 'number' && maxMenuHeightRef.current > 0
+        ? maxMenuHeightRef.current
+        : FIELD_MAP_MENU_CAP;
+    const idealMax = Math.min(propCap, need);
+
+    let placement: 'top' | 'bottom' = 'bottom';
+    let maxOverride: number | null = null;
+
+    if (slackBelow >= need) {
+      placement = 'bottom';
+    } else if (spaceAbove >= need) {
+      placement = 'top';
+    } else {
+      const preferTop = spaceAbove > spaceBelow + FIELD_MAP_MENU_HYSTERESIS;
+      placement = preferTop ? 'top' : 'bottom';
+      const rawRoom = preferTop ? spaceAbove - 12 : slackBelow - 8;
+      maxOverride = Math.max(
+        FIELD_MAP_MENU_MIN_CLAMPED,
+        Math.min(idealMax, Math.floor(Math.max(0, rawRoom)))
+      );
+    }
+
+    setMenuPlacement(placement);
+    setMenuMaxHeightOverride(maxOverride);
+    onMenuOpen?.();
+  }, [onMenuOpen]);
+
+  const handleMenuClose = useCallback(() => {
+    setMenuPlacement('bottom');
+    setMenuMaxHeightOverride(null);
+    onMenuClose?.();
+  }, [onMenuClose]);
+
+  return (
+    <div ref={wrapRef}>
+      <Select
+        {...rest}
+        options={options}
+        maxMenuHeight={menuMaxHeightOverride ?? maxMenuHeight}
+        menuPlacement={menuPlacement}
+        onMenuOpen={handleMenuOpen}
+        onMenuClose={handleMenuClose}
+      />
+    </div>
+  );
+}
 
 const rowHistoryObj: FieldHistoryObj = {}
 
@@ -1524,19 +1618,16 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
     return (
       <div className="table-row">
         <div className="select">
-          <Select
-            id={data?.uid}
-            value={initialOption || fieldValue}
-            onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid, data?.contentstackFieldUid)}
-            placeholder="Select Field"
-            version={'v2'}
-            maxWidth="290px"
-            isClearable={false}
-            options={option}
-            menuPlacement="auto"
-            menuPortalTarget={CONTENT_MAPPER_SELECT_MENU_PORTAL}
-            styles={contentMapperSelectMenuStyles}
-            isDisabled={
+          <FieldMappingSelect
+          id={data?.uid}
+          value={initialOption || fieldValue}
+          onChange={(selectedOption: FieldTypes) => handleValueChange(selectedOption, data?.uid, data?.contentstackFieldUid)}
+          placeholder="Select Field"
+          version={'v2'}
+          maxWidth="290px"
+          isClearable={false}
+          options={option}
+          isDisabled={
               !(data?.contentstackFieldType === 'single_line_text' ||
               data?.contentstackFieldType === 'multi_line_text' || data?.contentstackFieldType === 'html' || data?.contentstackFieldType === 'json') ||
               data?.otherCmsType === undefined ||
@@ -2435,10 +2526,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             position="top"
             disabled={!selectValueIsExistingField}
           >
-            <Select
-              value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue :
-
-                existingField[data?.backupFieldUid]}
+            <FieldMappingSelect
+              value={(OptionsForRow?.length === 0 || (!isTypeMatch || existingField?.[data?.backupFieldUid]?.label === undefined)) ? OptionValue : existingField[data?.backupFieldUid]}
               onChange={(selectedOption: FieldTypes) => {
                 if (OptionsForRow?.length === 0) {
                   handleValueChange(selectedOption, data?.uid, data?.backupFieldUid)
@@ -2452,9 +2541,6 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
               isClearable={isTypeMatch && selectedOptions?.includes?.(existingField?.[data?.backupFieldUid]?.label ?? '')}
               options={adjustedOptions}
               isDisabled={OptionValue?.isDisabled || newMigrationData?.project_current_step > 4}
-              menuPlacement="auto"
-              menuPortalTarget={CONTENT_MAPPER_SELECT_MENU_PORTAL}
-              styles={contentMapperSelectMenuStyles}
             />
           </Tooltip>
         </div>
