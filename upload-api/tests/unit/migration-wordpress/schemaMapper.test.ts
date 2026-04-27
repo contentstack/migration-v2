@@ -241,14 +241,26 @@ describe('schemaMapper', () => {
   });
 
   describe('group blocks (core/group, core/list, etc.)', () => {
-    it('returns group wrapper + inner block fields when inner blocks exist', async () => {
+    it('unwraps single-child core/group (no wrapper row; parent uid only)', async () => {
       const innerParagraph = makeBlock({ name: 'core/paragraph', clientId: 'p1' });
       const block = makeBlock({ name: 'core/group', clientId: 'g1', innerBlocks: [innerParagraph] });
       const result = await schemaMapper(block, null, null, affix);
 
       expect(Array.isArray(result)).toBe(true);
-      expect(result[0].contentstackFieldType).toBe('group');
-      expect(result.length).toBeGreaterThan(1);
+      expect(result.every((f: any) => f.contentstackFieldType !== 'group')).toBe(true);
+      expect(result[0].contentstackFieldType).toBe('json');
+      expect(result[0].uid).not.toContain('group_');
+    });
+
+    it('single-child core/group inherits parentUid (no group segment in uid)', async () => {
+      const innerParagraph = makeBlock({ name: 'core/paragraph', clientId: 'p1' });
+      const block = makeBlock({ name: 'core/group', clientId: 'g1', innerBlocks: [innerParagraph] });
+      const result = await schemaMapper(block, 'panel_uid', 'Panel', affix);
+
+      expect(Array.isArray(result)).toBe(true);
+      const p = result[0] as any;
+      expect(p.uid).toMatch(/^panel_uid\.paragraph_/);
+      expect(p.contentstackField).toBe('Panel > paragraph');
     });
 
     it('marks duplicate inner blocks as multiple', async () => {
@@ -321,6 +333,39 @@ describe('schemaMapper', () => {
       const result = await schemaMapper(block, null, null, affix);
       expect(result.otherCmsType).toBe('intro_text');
       expect(result.contentstackField).toBe('intro_text');
+    });
+  });
+
+  describe('jetpack/story (core/missing)', () => {
+    it('maps to a repeatable group with title, alt, caption, and image', async () => {
+      const block = makeBlock({
+        name: 'core/missing',
+        clientId: '63bf87d2-bc77-4517-a491-e30e3e39646d',
+        attributes: {
+          originalName: 'jetpack/story',
+          mediaFiles: [
+            {
+              id: 31,
+              title: 'image2',
+              url: 'https://example.com/wp-content/uploads/2025/08/image2.jpeg',
+              alt: '',
+              caption: '',
+            },
+          ],
+        },
+      });
+      const result = await schemaMapper(block, 'modular_blocks.mb_uid', 'Modular Blocks > story', affix);
+      expect(Array.isArray(result)).toBe(true);
+      const group = result.find((f: any) => f.contentstackFieldType === 'group');
+      expect(group).toMatchObject({
+        contentstackFieldType: 'group',
+        advanced: { multiple: true },
+        otherCmsField: 'story',
+      });
+      const textFields = result.filter((f: any) => f.contentstackFieldType === 'single_line_text');
+      expect(textFields.map((f: any) => f.otherCmsField).sort()).toEqual(['alt', 'caption', 'title']);
+      const imageField = result.find((f: any) => f.otherCmsField === 'image');
+      expect(imageField?.contentstackFieldType).toBe('file');
     });
   });
 });
