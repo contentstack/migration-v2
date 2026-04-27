@@ -238,7 +238,49 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                     backupFieldUid: rteUid,
                     advanced: {}
                 };
-            }else{
+            }
+            else if (key?.attributes?.originalName === 'jetpack/story') {
+                const storyGroupUid = rteUid;
+                const storyFieldBase = fieldName;
+                const groupSchema: Field[] = [
+                    {
+                        uid: storyGroupUid,
+                        otherCmsField: getFieldName(resolveBlockName(key)),
+                        otherCmsType: getFieldName(resolveBlockName(key)),
+                        contentstackField: storyFieldBase,
+                        contentstackFieldUid: storyGroupUid,
+                        contentstackFieldType: 'group',
+                        backupFieldType: 'group',
+                        backupFieldUid: storyGroupUid,
+                        advanced: { multiple: true },
+                    },
+                ];
+                const storyChildren: Array<{
+                    key: string;
+                    contentstackFieldType: 'single_line_text' | 'file';
+                }> = [
+                    { key: 'title', contentstackFieldType: 'single_line_text' },
+                    { key: 'alt', contentstackFieldType: 'single_line_text' },
+                    { key: 'caption', contentstackFieldType: 'single_line_text' },
+                    { key: 'image', contentstackFieldType: 'file' },
+                ];
+                for (const { key: childKey, contentstackFieldType: csType } of storyChildren) {
+                    const childUid = `${storyGroupUid}.${getFieldUid(childKey, affix)}`;
+                    groupSchema.push({
+                        uid: childUid,
+                        otherCmsField: childKey,
+                        otherCmsType: childKey,
+                        contentstackField: `${storyFieldBase} > ${getFieldName(childKey)}`,
+                        contentstackFieldUid: childUid,
+                        contentstackFieldType: csType,
+                        backupFieldType: csType,
+                        backupFieldUid: childUid,
+                        advanced: {},
+                    });
+                }
+                return groupSchema;
+            }
+            else{
                 return {
                     uid: rteUid,
                     otherCmsField: getFieldName(resolveBlockName(key)),
@@ -250,7 +292,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                     backupFieldUid: rteUid,
                     advanced: {}
                 };
-            }
+        }
         case 'core/image':
         case 'core/audio':
         case 'core/video':
@@ -304,12 +346,80 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             };
         }
         
+        case 'core/group': {
+            const inner = key?.innerBlocks;
+            if (!inner?.length) {
+                break;
+            }
+
+            // Single inner block: skip wrapper group uid; inner fields use parentFieldName only
+            // (no "… > group" segment in labels).
+            if (inner.length === 1) {
+                const unwrapped = await processInnerBlocks(
+                    { ...key, innerBlocks: [inner[0]] },
+                    parentUid,
+                    parentFieldName,
+                    affix
+                );
+                if (!unwrapped?.length) {
+                    break;
+                }
+                const flat: Field[] = [];
+                unwrapped.forEach((schemaObj) => {
+                    if (schemaObj) {
+                        if (Array.isArray(schemaObj)) {
+                            flat.push(...schemaObj);
+                        } else {
+                            flat.push(schemaObj);
+                        }
+                    }
+                });
+                return flat;
+            }
+
+            const groupSchema: Field[] = [];
+            const groupUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+
+            const innerBlocks = await processInnerBlocks(
+                key,
+                groupUid,
+                fieldName,
+                affix
+            );
+            innerBlocks?.length > 0 && groupSchema.push({
+                uid: groupUid,
+                otherCmsField: getFieldName(key?.name),
+                otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+                contentstackField: fieldName,
+                contentstackFieldUid: groupUid,
+                contentstackFieldType: 'group',
+                backupFieldType: 'group',
+                backupFieldUid: groupUid,
+                advanced: {}
+            });
+
+            if (innerBlocks?.length > 0) {
+                innerBlocks?.forEach((schemaObj) => {
+                    if (schemaObj) {
+                        if (Array.isArray(schemaObj)) {
+                            groupSchema.push(...schemaObj);
+                        } else {
+                            groupSchema.push(schemaObj);
+                        }
+                    }
+                });
+
+                return groupSchema;
+            }
+            break;
+        }
+                
+            
+         
         case 'core/list':
         case 'core/quote':
-        case 'core/cover':
         case 'core/social-links':
         case 'core/details':
-        case 'core/group':
         case 'core/accordion-item':
         case 'core/accordion-panel':
         case 'core/navigation': {
@@ -351,6 +461,52 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             break;
             
         }
+
+        case 'core/cover':
+        const coverSchema = []
+          if(key?.attributes?.url){
+            coverSchema.push({
+              uid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+              otherCmsField: 'media',
+              otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+              contentstackField: 'media',
+              contentstackFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+              contentstackFieldType: 'file',
+              backupFieldType: 'file',
+              backupFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+              advanced: {}
+            });
+          }
+        
+            const innerBlocks = await processInnerBlocks(
+              key, 
+              `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` ,
+              fieldName,
+              affix
+            );
+            innerBlocks?.length > 0 && coverSchema.push({
+              uid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+              otherCmsField: getFieldName(key?.name),
+              otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+              contentstackField: fieldName,
+              contentstackFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+              contentstackFieldType: 'group',
+              backupFieldType: 'group',
+              backupFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+              advanced: {}
+            });
+            innerBlocks?.forEach(schemaObj => {
+              if (schemaObj) {
+                if (Array.isArray(schemaObj)) {
+                  coverSchema.push(...schemaObj);
+                } else {
+                  coverSchema.push(schemaObj);
+                }
+              }
+            });
+            return coverSchema;
+          
+          
         
         case 'core/search': {
             const searchEleUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
@@ -410,7 +566,10 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             if (innerBlocks?.length === 1) {
                 const items = Array.isArray(innerBlocks[0]) ? innerBlocks[0] : [innerBlocks[0]];
                 items?.forEach((item: Field) => {
+                    
                     item.uid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
+                    item.otherCmsField = getFieldName(resolveBlockName(key));
+                    item.otherCmsType = getFieldName(resolveBlockName(key));
                     item.contentstackField = `${parentFieldName} > ${getFieldName(resolveBlockName(key))}`;
                     item.contentstackFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
                     item.backupFieldUid = `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`;
