@@ -184,7 +184,7 @@ const LoadStacks = (props: LoadFileFormatProps) => {
         return true;
       }
       else {
-        const errorMessage = formatErrorMessage(resp?.data?.data);
+        const errorMessage = formatErrorMessage(resp?.data);
         return errorMessage;
       }
     } catch (error: any) {
