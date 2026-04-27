@@ -44,7 +44,6 @@ export type stepperProps = {
   stepTitleClassName?: string;
   testId?: string;
   handleSaveCT?: () => void;
-  handleUpdateAutoMappedContentMapping?: () => Promise<void>;
   changeDropdownState: () => void;
   projectData: MigrationResponse;
   isProjectMapped: boolean;
@@ -83,7 +82,7 @@ const HorizontalStepper = forwardRef(
 
     const newMigrationData = useSelector((state: RootState) => state?.migration?.newMigrationData);
 
-    const { steps, className, emptyStateMsg, hideTabView, testId, handleUpdateAutoMappedContentMapping } = props;
+    const { steps, className, emptyStateMsg, hideTabView, testId } = props;
     const [showStep, setShowStep] = useState(stepIndex);
     const [stepsCompleted, setStepsCompleted] = useState<number[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -145,26 +144,13 @@ const HorizontalStepper = forwardRef(
       if (newMigrationData?.content_mapping?.isDropDownChanged) {
         setIsModalOpen(true);
         return cbModal({
-          component: (modalProps: ModalObj) => (
+          component: (props: ModalObj) => (
             <SaveChangesModal
-              {...modalProps}
+              {...props}
               isopen={setIsModalOpen}
               otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
               saveContentType={handleSaveCT}
-              changeStep={async () => {
-                try {
-                  await handleUpdateAutoMappedContentMapping?.();
-                } catch {
-                  Notification({
-                    notificationContent: {
-                      text: 'Could not save content type mapping. Please try again.'
-                    },
-                    type: 'error'
-                  });
-                  return;
-                }
-                setTabStep(idx);
-              }}
+              changeStep={() => setTabStep(idx)}
               dropdownStateChange={handleDropdownChange}
             />
           ),

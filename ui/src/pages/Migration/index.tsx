@@ -60,7 +60,6 @@ import ContentMapper from '../../components/ContentMapper';
 import TestMigration from '../../components/TestMigration';
 import MigrationExecution from '../../components/MigrationExecution';
 import SaveChangesModal from '../../components/Common/SaveChangesModal';
-import AutoMappedMergeConfirmModal from '../../components/Common/AutoMappedMergeConfirmModal';
 import { getMigratedStacks } from '../../services/api/project.service';
 import { getConfig } from '../../services/api/upload.service';
 import { useWarnOnRefresh } from '../../hooks/useWarnOnrefresh';
@@ -750,22 +749,6 @@ const Migration = () => {
    * Calls when click Continue button on Content Mapper step and handles to proceed to Test Migration
    */
   const handleOnClickContentMapper = async (event: MouseEvent) => {
-    const persistAutoMappedContentMapper = async (): Promise<boolean> => {
-      try {
-        await saveRef?.current?.handleUpdateAutoMappedContentMapping?.();
-        return true;
-      } catch {
-        Notification({
-          notificationContent: {
-            text: 'Could not save content type mapping. Please try again.'
-          },
-          notificationProps: { position: 'bottom-center', hideProgressBar: true },
-          type: 'error'
-        });
-        return false;
-      }
-    };
-
     if (newMigrationData?.content_mapping?.isDropDownChanged) {
       setIsModalOpen(true);
 
@@ -777,7 +760,6 @@ const Migration = () => {
             otherCmsTitle={newMigrationData?.content_mapping?.otherCmsTitle}
             saveContentType={saveRef?.current?.handleSaveContentType}
             changeStep={async () => {
-              if (!(await persistAutoMappedContentMapper())) return;
               const url = `/projects/${projectId}/migration/steps/4`;
               navigate(url, { replace: true });
 
@@ -793,35 +775,14 @@ const Migration = () => {
         }
       });
     } else {
-      const finishContentMapperNavigation = async () => {
-        if (!(await persistAutoMappedContentMapper())) return;
-        await updateCurrentStepData(selectedOrganisation.value, projectId);
+
+      const res = await updateCurrentStepData(selectedOrganisation.value, projectId);
         setIsLoading(false);
-        event?.preventDefault?.();
+        event.preventDefault();
         handleStepChange(3);
         const url = `/projects/${projectId}/migration/steps/4`;
         navigate(url, { replace: true });
-      };
 
-      if (saveRef?.current?.shouldPromptShowAutoMappedMerge?.()) {
-        return cbModal({
-          component: (props: ModalObj) => (
-            <AutoMappedMergeConfirmModal
-              {...props}
-              onContinue={async () => {
-                props.closeModal();
-                await finishContentMapperNavigation();
-              }}
-            />
-          ),
-          modalProps: {
-            size: 'xsmall',
-            shouldCloseOnOverlayClick: false
-          }
-        });
-      }
-
-      await finishContentMapperNavigation();
     }
   };
 
@@ -917,9 +878,6 @@ const Migration = () => {
           ref={stepperRef}
           steps={createStepper(projectData ?? defaultMigrationResponse, handleStepChange)}
           handleSaveCT={saveRef?.current?.handleSaveContentType}
-          handleUpdateAutoMappedContentMapping={() =>
-            saveRef?.current?.handleUpdateAutoMappedContentMapping?.() ?? Promise.resolve()
-          }
           changeDropdownState={changeDropdownState}
           projectData={projectData || defaultMigrationResponse}
           isProjectMapped={isProjectMapper}
