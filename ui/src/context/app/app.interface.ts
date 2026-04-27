@@ -191,8 +191,8 @@ export interface IDestinationStack {
   csLocale: string[];
 }
 export interface IContentMapper {
-  existingGlobal: ContentTypeList[];
-  existingCT: ContentTypeList[];
+  existingGlobal: ContentTypeList[] | (() => ContentTypeList[]);
+  existingCT: ContentTypeList[] | (() => ContentTypeList[]);
   content_type_mapping: ContentTypeMap;
   isDropDownChanged?: boolean;
   otherCmsTitle?: string;
