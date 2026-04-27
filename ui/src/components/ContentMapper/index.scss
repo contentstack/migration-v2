@@ -67,27 +67,9 @@
     justify-content: space-between;
     min-height: 42px;
     padding: $px-8 $px-10 $px-8 $px-12;
-
-    > .ct-options {
-      align-items: center;
-      display: flex;
-      flex-shrink: 0;
-      gap: $space-10;
-
-      .ct-schema-preview-wrap {
-        align-items: center;
-        display: inline-flex;
-      }
-    }
-
     .ct-names {
-      align-items: center;
-      display: flex;
       font-size: $size-font-xl;
       line-height: normal;
-      min-height: 0;
-      min-width: 0;
-      text-align: left;
       width: calc(100% - 50px);
       .cms-title {
         align-items: center;
@@ -95,7 +77,6 @@
         max-height: 24px;
         white-space: nowrap;
         .tippy-wrapper {
-          align-items: center;
           display: flex;
         }
         span {
@@ -104,6 +85,9 @@
           overflow: hidden;
           text-overflow: ellipsis;
         }
+      }
+      .ct-options {
+        justify-content: flex-end;
       }
     }
     .schema-preview {
@@ -128,64 +112,6 @@
   circle {
     fill: $color-brand-draft-base;
   }
-}
-
-.ct-status-cluster {
-  align-items: center;
-  column-gap: $space-6;
-  display: flex;
-  flex-shrink: 0;
-
-  .tippy-wrapper {
-    align-items: center;
-    display: inline-flex;
-    line-height: 1;
-  }
-}
-
-/* Venus Pills wrapper: Contentstack draft accent, align with list row */
-.ct-auto-map-pill-wrap {
-  align-items: center;
-  cursor: default;
-  display: inline-flex;
-  max-width: 11rem;
-  background-color: $color-brand-draft-light;
-  stroke: $color-placeholder;
-
-  /*no focus ring or Venus pill click/focus styling */
-  .ct-auto-map-pill.Pill,
-  .ct-auto-map-pill .PillItem {
-    box-shadow: none !important;
-    outline: none !important;
-    pointer-events: none;
-  }
-
-  .ct-auto-map-pill.Pill:focus,
-  .ct-auto-map-pill.Pill:focus-visible,
-  .ct-auto-map-pill .PillItem:focus,
-  .ct-auto-map-pill .PillItem:focus-visible {
-    box-shadow: none !important;
-    outline: none !important;
-  }
-
-  .ct-auto-map-pill.Pill {
-    cursor: default;
-    min-height: 0;
-    padding: 0;
-  }
-
-  .ct-auto-map-pill .PillItem {
-    max-width: 100%;
-  }
-
-  .ct-auto-map-pill .PillItem__text-content {
-    color: $color-brand-draft-base;
-    font-weight: $font-weight-medium;
-  }
-}
-
-.auto-mapped-filter-icon {
-  color: $color-brand-draft-base;
 }
 .dropdown-align {
   .Dropdown__menu--primary {
