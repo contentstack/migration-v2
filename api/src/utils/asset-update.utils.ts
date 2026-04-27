@@ -57,7 +57,7 @@ const replaceAssetRefsInObject = (
  * Saves asset metadata from index.json to database/{projectId}/{iteration}/asset-metadata.json.
  * Used for validation in subsequent iterations.
  */
-const saveAssetMetadata = (
+export const saveAssetMetadata = (
     indexData: Record<string, any>,
     projectId: string,
     iteration: number,
@@ -192,7 +192,7 @@ export const removeExistingAssets = async (projectId: string, loggerPath?: strin
         MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
     );
     const indexPath = path.join(assetsDir, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
-
+    console.info('Index path:', indexPath);
     if (!fs.existsSync(indexPath)) {
         writeLogEntry(`Assets index.json not found at ${indexPath}, skipping.`, "removeExistingAssets", loggerPath);
         return;

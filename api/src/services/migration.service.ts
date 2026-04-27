@@ -17,6 +17,7 @@ import {
   STEPPER_STEPS,
   CMS,
   GET_AUDIT_DATA,
+  MIGRATION_DATA_CONFIG,
 } from '../constants/index.js';
 import {
   BadRequestError,
@@ -49,7 +50,7 @@ import { aemService } from './aem.service.js';
 import { requestWithSsoTokenRefresh } from '../utils/sso-request.utils.js';
 import { utilsUpdateCli } from './updateEntryCli.service.js';
 import { enrichConfigWithAssetMapping, removeEntriesFromDatabase } from '../utils/entry-update.utils.js';
-import { removeExistingAssets } from '../utils/asset-update.utils.js';
+import { removeExistingAssets, saveAssetMetadata } from '../utils/asset-update.utils.js';
 
 /**
  * Creates a test stack.  
@@ -1084,6 +1085,26 @@ const startMigration = async (req: Request): Promise<any> => {
     const iteration = projectData?.iteration || 1;
     let configFilePath: string | null = null;
     let safeDeltaMigrationLogPath: string | undefined;
+
+    const assetsDir = path.join(
+        process.cwd(), MIGRATION_DATA_CONFIG.DATA, project?.destination_stack_id,
+        MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
+    );
+    const indexPath = path.join(assetsDir, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
+    let indexData: Record<string, any>;
+    try {
+        const raw = fs.readFileSync(indexPath, "utf-8");
+        if (!raw?.trim()){
+            console.error(`Assets index.json is empty at ${indexPath}`);
+            return;
+        }
+        indexData = JSON.parse(raw);
+    } catch (error) {
+        console.error(`Failed to parse assets index.json at ${indexPath}:`, error instanceof Error ? error.message : String(error));
+        return;
+    }
+
+    saveAssetMetadata(indexData, projectId, iteration, safeDeltaMigrationLogPath);
 
     if (iteration > 1) {
       const logsBase = path.resolve(process.cwd(), 'logs');
