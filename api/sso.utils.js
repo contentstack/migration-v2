@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const rawManifest = require("./manifest.json");
 const { default: axios } = require("axios");
 const dotenv = require("dotenv");
+const { REGION_CONFIG } = require("./src/constants/index");
 dotenv.config();
 
 const ENCRYPT_KEY = process.env?.MANIFEST_ENCRYPT_KEY;
@@ -49,72 +50,6 @@ function decryptManifest(m) {
 
 const manifest = decryptManifest(rawManifest);
 
-// Region configuration
-const REGION_CONFIG = {
-  NA: {
-    name: "North America",
-    cma: "https://api.contentstack.io",
-    cda: "https://cdn.contentstack.io",
-    app: "https://app.contentstack.com",
-    developerHub: "https://developerhub-api.contentstack.com",
-    personalize: "https://personalize-api.contentstack.com",
-    launch: "https://launch-api.contentstack.com",
-  },
-  EU: {
-    name: "Europe",
-    cma: "https://eu-api.contentstack.com",
-    cda: "https://eu-cdn.contentstack.com",
-    app: "https://eu-app.contentstack.com",
-    developerHub: "https://eu-developerhub-api.contentstack.com",
-    personalize: "https://eu-personalize-api.contentstack.com",
-    launch: "https://eu-launch-api.contentstack.com",
-  },
-  "AZURE-NA": {
-    name: "Azure North America",
-    cma: "https://azure-na-api.contentstack.com",
-    cda: "https://azure-na-cdn.contentstack.com",
-    app: "https://azure-na-app.contentstack.com",
-    developerHub: "https://azure-na-developerhub-api.contentstack.com",
-    personalize: "https://azure-na-personalize-api.contentstack.com",
-    launch: "https://azure-na-launch-api.contentstack.com",
-  },
-  "AZURE-EU": {
-    name: "Azure Europe",
-    cma: "https://azure-eu-api.contentstack.com",
-    cda: "https://azure-eu-cdn.contentstack.com",
-    app: "https://azure-eu-app.contentstack.com",
-    developerHub: "https://azure-eu-developerhub-api.contentstack.com",
-    personalize: "https://azure-eu-personalize-api.contentstack.com",
-    launch: "https://azure-eu-launch-api.contentstack.com",
-  },
-  "GCP-NA": {
-    name: "GCP North America",
-    cma: "https://gcp-na-api.contentstack.com",
-    cda: "https://gcp-na-cdn.contentstack.com",
-    app: "https://gcp-na-app.contentstack.com",
-    developerHub: "https://gcp-na-developerhub-api.contentstack.com",
-    personalize: "https://gcp-na-personalize-api.contentstack.com",
-    launch: "https://gcp-na-launch-api.contentstack.com",
-  },
-  "GCP-EU": {
-    name: "GCP Europe",
-    cma: "https://gcp-eu-api.contentstack.com",
-    cda: "https://gcp-eu-cdn.contentstack.com",
-    app: "https://gcp-eu-app.contentstack.com",
-    developerHub: "https://gcp-eu-developerhub-api.contentstack.com",
-    personalize: "https://gcp-eu-personalize-api.contentstack.com",
-    launch: "https://gcp-eu-launch-api.contentstack.com",
-  },
-  "AU": {
-    name: "Australia",
-    cma: "https://au-api.contentstack.com",
-    cda: "https://au-cdn.contentstack.com",
-    app: "https://au-app.contentstack.com",
-    developerHub: "https://au-developerhub-api.contentstack.com",
-    personalize: "https://au-personalize-api.contentstack.com",
-    launch: "https://au-launch-api.contentstack.com",
-  },
-};
 
 
 /**
@@ -161,7 +96,7 @@ module.exports = async ({
 
 
   const regionKey = getCurrentRegion();
-  const regionConfig = REGION_CONFIG[regionKey];
+  const regionConfig = REGION_CONFIG?.[regionKey];
 
   console.log(`\n=== USING REGION: ${regionConfig.name} (${regionKey}) ===`);
   console.log(`CMA: ${regionConfig.cma}`);
@@ -324,8 +259,9 @@ module.exports = async ({
       ?.replace(/\//g, "_")
       ?.replace(/=+$/, "");
 
-    // Generates the authorization URL for the app
-    const authUrl = `${regionConfig.app}/#!/apps/${
+    // Path-style /apps/.../authorize (see Contentstack OAuth docs). Avoids #! hash URLs,
+    // which are often lost on login redirect so users land on the stacks home instead of org authorize.
+    const authUrl = `${regionConfig.app}/apps/${
       existingApp?.uid
     }/authorize?response_type=code&client_id=${
       oauthData?.client_id

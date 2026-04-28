@@ -1383,9 +1383,9 @@ const getExistingTaxonomies = async (req: Request) => {
     // Step 1: Get source taxonomies from project database (sent by upload-api)
     let sourceTaxonomies: any[] = [];
 
-    if (project?.taxonomies && Array.isArray(project.taxonomies)) {
+    if (project?.taxonomies && Array.isArray(project?.taxonomies)) {
       // Taxonomies stored in project database (sent from upload-api during validation)
-      sourceTaxonomies = project.taxonomies.map((taxonomy: any) => ({
+      sourceTaxonomies = project?.taxonomies?.map((taxonomy: any) => ({
         uid: taxonomy.uid,
         name: taxonomy.name || taxonomy.uid,
         description: taxonomy.description || '',
@@ -1469,7 +1469,7 @@ const getExistingTaxonomies = async (req: Request) => {
       }
 
       // Path 2: Fallback to upload-api drupalMigrationData (if api/migration-data not found)
-      if (sourceTaxonomies.length === 0) {
+      if (sourceTaxonomies?.length === 0) {
         try {
           // Try to find upload-api directory relative to api directory
           const uploadApiPath = path.join(
@@ -1518,6 +1518,54 @@ const getExistingTaxonomies = async (req: Request) => {
         } catch (uploadApiError: any) {
           logger.warn(
             `Could not read taxonomies from upload-api: ${uploadApiError.message}`,
+          );
+        }
+      }
+
+      // Path 3: Contentful export validation (upload-api contentfulMigrationData)
+      if (sourceTaxonomies?.length === 0) {
+        try {
+          const contentfulTaxonomyPath = path.join(
+            process.cwd(),
+            '..',
+            'upload-api',
+            'contentfulMigrationData',
+            'taxonomySchema',
+            'taxonomySchema.json',
+          );
+          const resolvedCf = path.resolve(contentfulTaxonomyPath);
+          if (
+            resolvedCf.includes('upload-api') &&
+            resolvedCf.includes('contentfulMigrationData')
+          ) {
+            const stats = await fs.promises
+              .lstat(resolvedCf)
+              .catch(() => null);
+            if (stats && stats.isFile() && !stats.isSymbolicLink()) {
+              const taxonomyData = await fs.promises.readFile(
+                resolvedCf,
+                'utf8',
+              );
+              const taxonomiesArray = JSON.parse(taxonomyData);
+              const cfTaxonomies = (
+                Array.isArray(taxonomiesArray)
+                  ? taxonomiesArray
+                  : Object.values(taxonomiesArray)
+              ).map((taxonomy: any) => ({
+                uid: taxonomy?.uid || '',
+                name: taxonomy?.name || taxonomy?.uid || '',
+                description: taxonomy?.description || '',
+                source: 'source_cms',
+              }));
+              sourceTaxonomies.push(...cfTaxonomies);
+              logger.info(
+                `Found ${cfTaxonomies?.length} taxonomies from upload-api contentfulMigrationData`,
+              );
+            }
+          }
+        } catch (cfTaxError: any) {
+          logger.warn(
+            `Could not read Contentful taxonomies from upload-api: ${cfTaxError.message}`,
           );
         }
       }

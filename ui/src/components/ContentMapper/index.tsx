@@ -388,6 +388,74 @@ const flattenSchemaToUidMap = (
   return result;
 };
 
+/** Match saved `contentstackField` labels against a modular-blocks subtree (block + fields + nested). */
+const matchRowAgainstModularBlocks = (
+  row: FieldMapType,
+  mbFieldPath: string,
+  blocks: ContentTypesSchema[],
+  isFieldDeleted: boolean,
+  addMatch: (backupFieldUid: string, label: string, value: ContentTypesSchema) => void
+) => {
+  if (!blocks?.length) return;
+
+  for (const block of blocks) {
+    const blockTitle = block?.uid || block?.display_name;
+    const blockDisplayName = `${mbFieldPath} > ${blockTitle}`;
+
+    if (row?.contentstackField === blockDisplayName && !isFieldDeleted) {
+      addMatch(row?.backupFieldUid, blockDisplayName, block as unknown as ContentTypesSchema);
+    }
+
+    if (block?.schema) {
+      for (const blockField of block.schema) {
+        const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
+
+        if (row?.contentstackField === fieldDisplayName && !isFieldDeleted) {
+          addMatch(row?.backupFieldUid, fieldDisplayName, blockField);
+        }
+
+        if (blockField?.schema) {
+          for (const nestedField of blockField.schema) {
+            const nestedDisplayName = `${fieldDisplayName} > ${nestedField?.display_name}`;
+            if (row?.contentstackField === nestedDisplayName && !isFieldDeleted) {
+              addMatch(row?.backupFieldUid, nestedDisplayName, nestedField);
+            }
+          }
+        }
+
+        if (blockField?.data_type === 'blocks' && blockField?.blocks) {
+          for (const nestedBlock of blockField.blocks as ContentTypesSchema[]) {
+            const nestedBlockTitle = nestedBlock?.uid || nestedBlock?.display_name;
+            const nestedBlockDisplayName = `${fieldDisplayName} > ${nestedBlockTitle}`;
+
+            if (row?.contentstackField === nestedBlockDisplayName && !isFieldDeleted) {
+              addMatch(row?.backupFieldUid, nestedBlockDisplayName, nestedBlock as ContentTypesSchema);
+            }
+
+            if (nestedBlock?.schema) {
+              for (const nestedBlockField of nestedBlock.schema) {
+                const nestedFieldDisplayName = `${nestedBlockDisplayName} > ${nestedBlockField?.display_name}`;
+                if (row?.contentstackField === nestedFieldDisplayName && !isFieldDeleted) {
+                  addMatch(row?.backupFieldUid, nestedFieldDisplayName, nestedBlockField);
+                }
+
+                if (nestedBlockField?.schema) {
+                  for (const deepField of nestedBlockField.schema) {
+                    const deepDisplayName = `${nestedFieldDisplayName} > ${deepField?.display_name}`;
+                    if (row?.contentstackField === deepDisplayName && !isFieldDeleted) {
+                      addMatch(row?.backupFieldUid, deepDisplayName, deepField);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
 const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref: React.ForwardedRef<ContentTypeSaveHandles>) => {
   /** ALL CONTEXT HERE */
 
@@ -471,6 +539,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
   const filterRef = useRef<HTMLDivElement | null>(null);
   const tableWrapperRef = useRef<HTMLDivElement | null>(null);
   const clearedFieldsRef = useRef<Set<string>>(new Set());
+  const prevOtherContentTypeIdRef = useRef<string | undefined>(undefined);
 
   /********** ALL USEEFFECT HERE *************/
   useEffect(() => {
@@ -548,195 +617,109 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
   // useEffect for rendering mapped fields with existing stack
   useEffect(() => {
+    if (!contentTypeSchema || contentTypeSchema.length === 0) return;
+    if (newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || ''] !== otherContentType?.id) return;
 
+    const nextExistingField: ExistingFieldType = { ...existingField };
+    const nextSelectedOptions: string[] = [...selectedOptions];
+    let anyMatch = false;
 
-    if (newMigrationData?.content_mapping?.content_type_mapping?.[selectedContentType?.contentstackUid || ''] === otherContentType?.id) {
-      setIsAllCheck(false);
+    const addMatch = (backupFieldUid: string, label: string, value: ContentTypesSchema) => {
+      if (!nextSelectedOptions.includes(label)) {
+        nextSelectedOptions.push(label);
+      }
+      nextExistingField[backupFieldUid] = { label, value };
+      anyMatch = true;
+    };
 
-      tableData?.forEach((row) => {
-        contentTypeSchema?.forEach((schema) => {
+    setIsAllCheck(false);
 
-          if (row?.contentstackField === schema?.display_name) {
-            if (!updatedSelectedOptions?.includes?.(schema?.display_name)) {
-              updatedSelectedOptions.push(schema?.display_name);
+    tableData?.forEach((row) => {
+      if (!row?.contentstackField || row?.contentstackField === row?.otherCmsField) return;
+
+      contentTypeSchema?.forEach((schema) => {
+        if (row?.contentstackField === schema?.display_name) {
+          addMatch(row?.backupFieldUid, schema?.display_name, schema);
+        }
+
+        // Root-level modular blocks: Contentstack uses `blocks`, not `schema` — must not be nested under group-only handling
+        if (schema?.data_type === 'blocks' && schema?.blocks) {
+          matchRowAgainstModularBlocks(
+            row,
+            schema?.display_name ?? '',
+            schema.blocks as ContentTypesSchema[],
+            isFieldDeleted,
+            addMatch
+          );
+        }
+
+        // 1st level group nesting
+        if (schema?.schema) {
+          schema?.schema?.forEach((childSchema) => {
+            const label1 = `${schema?.display_name} > ${childSchema?.display_name}`;
+            if (row?.contentstackField === label1 && !isFieldDeleted) {
+              addMatch(row?.backupFieldUid, label1, childSchema);
             }
-            updatedExstingField[row?.backupFieldUid] = {
-              label: schema?.display_name,
-              value: schema
-            };
-          }
 
-          // 1st level group nesting
-          if (schema?.schema) {
-            schema?.schema?.forEach((childSchema) => {
-              if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name}`) {
-                if (!isFieldDeleted) {
-                  if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name}`)) {
-                    updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name}`);
-                  }
-                  updatedExstingField[row?.backupFieldUid] = {
-                    label: `${schema?.display_name} > ${childSchema?.display_name}`,
-                    value: childSchema
-                  }
+            // Modular blocks field nested inside a group
+            if (childSchema?.data_type === 'blocks' && childSchema?.blocks) {
+              matchRowAgainstModularBlocks(
+                row,
+                label1,
+                childSchema.blocks as ContentTypesSchema[],
+                isFieldDeleted,
+                addMatch
+              );
+            }
+
+            // 2nd level group nesting
+            if (childSchema?.schema) {
+              childSchema?.schema?.forEach((nestedSchema) => {
+                const label2 = `${label1} > ${nestedSchema?.display_name}`;
+                if (row?.contentstackField === label2 && !isFieldDeleted) {
+                  addMatch(row?.backupFieldUid, label2, nestedSchema);
                 }
-              }
 
-              // 2nd level group nesting
-              if (childSchema?.schema) {
-                childSchema?.schema?.forEach((nestedSchema) => {
-                  if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`) {
-                    if (!isFieldDeleted) {
-                      if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`)) {
-                        updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`);
-                      }
-                      updatedExstingField[row?.backupFieldUid] = {
-                        label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name}`,
-                        value: nestedSchema
-                      }
+                // 3rd level group nesting
+                if (nestedSchema?.schema) {
+                  nestedSchema?.schema?.forEach((nestedChild) => {
+                    const label3 = `${label2} > ${nestedChild?.display_name}`;
+                    if (row?.contentstackField === label3 && !isFieldDeleted) {
+                      addMatch(row?.backupFieldUid, label3, nestedChild);
                     }
-                  }
 
-                  // 3rd level group nesting
-                  if (nestedSchema?.schema) {
-                    nestedSchema?.schema?.forEach((nestedChild) => {
-                      if (row?.contentstackField === `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`) {
-                        if (!isFieldDeleted) {
-                          if (!updatedSelectedOptions?.includes?.(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`)) {
-                            updatedSelectedOptions.push(`${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`);
-                          }
-                          updatedExstingField[row?.backupFieldUid] = {
-                            label: `${schema?.display_name} > ${childSchema?.display_name} > ${nestedSchema?.display_name} > ${nestedChild?.display_name}`,
-                            value: nestedChild
-                          }
-                        }
-                      }
-                    })
-                  }
-                })
-              }
-
-              // Modular blocks mapping
-              if (schema?.data_type === 'blocks' && schema?.blocks) {
-                schema?.blocks?.forEach((block) => {
-                  const blockTitle = block?.uid || block?.display_name;
-                  const blockDisplayName = `${schema?.display_name} > ${blockTitle}`;
-
-                  // Modular block child
-                  if (row?.contentstackField === blockDisplayName) {
-                    if (!isFieldDeleted) {
-                      if (!updatedSelectedOptions?.includes?.(blockDisplayName)) {
-                        updatedSelectedOptions.push(blockDisplayName);
-                      }
-                      updatedExstingField[row?.backupFieldUid] = {
-                        label: blockDisplayName,
-                        value: block
-                      };
+                    // Deeper nesting: modular blocks inside 3rd-level group field
+                    if (nestedChild?.data_type === 'blocks' && nestedChild?.blocks) {
+                      const mbPath = `${label3}`;
+                      matchRowAgainstModularBlocks(
+                        row,
+                        mbPath,
+                        nestedChild.blocks as ContentTypesSchema[],
+                        isFieldDeleted,
+                        addMatch
+                      );
                     }
-                  }
-
-                  // Fields within modular block child
-                  if (block?.schema) {
-                    block?.schema?.forEach((blockField) => {
-                      const fieldDisplayName = `${blockDisplayName} > ${blockField?.display_name}`;
-
-                      if (row?.contentstackField === fieldDisplayName) {
-                        if (!isFieldDeleted) {
-                          if (!updatedSelectedOptions?.includes?.(fieldDisplayName)) {
-                            updatedSelectedOptions?.push(fieldDisplayName);
-                          }
-                          updatedExstingField[row?.backupFieldUid] = {
-                            label: fieldDisplayName,
-                            value: blockField
-                          };
-                        }
-                      }
-
-                      // Nested group within modular block child field
-                      if (blockField?.schema) {
-                        blockField?.schema?.forEach((nestedField) => {
-                          const nestedDisplayName = `${fieldDisplayName} > ${nestedField?.display_name}`;
-
-                          if (row?.contentstackField === nestedDisplayName) {
-                            if (!isFieldDeleted) {
-                              if (!updatedSelectedOptions?.includes?.(nestedDisplayName)) {
-                                updatedSelectedOptions?.push(nestedDisplayName);
-                              }
-                              updatedExstingField[row?.backupFieldUid] = {
-                                label: nestedDisplayName,
-                                value: nestedField
-                              };
-                            }
-                          }
-                        });
-                      }
-
-                      // Nested modular blocks within child block field
-                      if (blockField?.data_type === 'blocks' && blockField?.blocks) {
-                        blockField?.blocks?.forEach((nestedBlock: any) => {
-                          const nestedBlockTitle = nestedBlock?.uid || nestedBlock?.display_name;
-                          const nestedBlockDisplayName = `${fieldDisplayName} > ${nestedBlockTitle}`;
-
-                          if (row?.contentstackField === nestedBlockDisplayName) {
-                            if (!isFieldDeleted) {
-                              if (!updatedSelectedOptions?.includes?.(nestedBlockDisplayName)) {
-                                updatedSelectedOptions?.push(nestedBlockDisplayName);
-                              }
-                              updatedExstingField[row?.backupFieldUid] = {
-                                label: nestedBlockDisplayName,
-                                value: nestedBlock
-                              };
-                            }
-                          }
-
-                          if (nestedBlock?.schema) {
-                            nestedBlock?.schema?.forEach((nestedBlockField: any) => {
-                              const nestedFieldDisplayName = `${nestedBlockDisplayName} > ${nestedBlockField?.display_name}`;
-
-                              if (row?.contentstackField === nestedFieldDisplayName) {
-                                if (!isFieldDeleted) {
-                                  if (!updatedSelectedOptions?.includes?.(nestedFieldDisplayName)) {
-                                    updatedSelectedOptions?.push(nestedFieldDisplayName);
-                                  }
-                                  updatedExstingField[row?.backupFieldUid] = {
-                                    label: nestedFieldDisplayName,
-                                    value: nestedBlockField
-                                  };
-                                }
-                              }
-
-                              if (nestedBlockField?.schema) {
-                                nestedBlockField?.schema?.forEach((deepField: any) => {
-                                  const deepDisplayName = `${nestedFieldDisplayName} > ${deepField?.display_name}`;
-
-                                  if (row?.contentstackField === deepDisplayName) {
-                                    if (!isFieldDeleted) {
-                                      if (!updatedSelectedOptions?.includes?.(deepDisplayName)) {
-                                        updatedSelectedOptions?.push(deepDisplayName);
-                                      }
-                                      updatedExstingField[row?.backupFieldUid] = {
-                                        label: deepDisplayName,
-                                        value: deepField
-                                      };
-                                    }
-                                  }
-                                });
-                              }
-                            });
-                          }
-                        });
-                      }
-                    });
-                  }
-                });
-              }
-            });
-          }
-        });
+                  });
+                }
+              });
+            }
+          });
+        }
       });
-      setSelectedOptions(updatedSelectedOptions);
-      setExistingField(updatedExstingField);
+    });
+
+    if (anyMatch) {
+      setSelectedOptions(nextSelectedOptions);
+      setExistingField(nextExistingField);
     }
-  }, [tableData, otherContentType]);
+  }, [
+    tableData,
+    otherContentType?.id,
+    contentTypeSchema,
+    newMigrationData,
+    selectedContentType?.contentstackUid,
+    isFieldDeleted,
+  ]);
 
   useEffect(() => {
     if (isUpdated) {
@@ -749,12 +732,15 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       }
       setIsUpdated(false);
     }
-    else {
+    else if (
+      prevOtherContentTypeIdRef.current !== undefined &&
+      prevOtherContentTypeIdRef.current !== otherContentType?.id
+    ) {
       setIsAllCheck(false);
       setExistingField({});
       setSelectedOptions([]);
-
     }
+    prevOtherContentTypeIdRef.current = otherContentType?.id;
   }, [isUpdated, otherContentType]);
 
   // To make all the fields checked
@@ -2010,8 +1996,10 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
             const blockUid = `${uid}.${block?.uid}`;
    
             const parentBlockUid = data?.uid?.split('.')?.slice(0, -1)?.join('.');
+            const parentBlockItem = tableData?.find(item => item?.uid === parentBlockUid);
+            const parentBlockKey = parentBlockItem?.backupFieldUid ?? parentBlockUid;
             
-            if (data?.backupFieldType === 'modular_blocks_child' && existingField[parentBlockUid]?.label === updatedDisplayName) {
+            if (data?.backupFieldType === 'modular_blocks_child' && existingField[parentBlockKey]?.label === updatedDisplayName) {
               const blockOption: ContentTypesSchema = {
                 ...block,
                 data_type: block?.data_type || undefined,
