@@ -41,10 +41,8 @@ router.post(
 );
 
 /**
- * Generates the OAuth token and saves it to the database.
- * @param req - The request object. Sends the code and region.
- * @param res - The response object. Sends the message "Token received successfully."
- * @route POST /v2/auth/save-token
+ * OAuth redirect_uri: exchanges code, saves tokens, responds with HTML success page (or HTML error page).
+ * @route GET /save-token
  */
 router.get(
   "/save-token",

@@ -515,6 +515,11 @@ const startTestMigration = async (req: Request): Promise<any> => {
           projectId,
           true
         );
+        await contentfulService?.createTaxonomy(
+          cleanLocalPath,
+          project?.current_test_stack_id,
+          projectId,
+        );
         await contentfulService?.createEntry(
           cleanLocalPath,
           project?.current_test_stack_id,
@@ -924,6 +929,11 @@ const startMigration = async (req: Request): Promise<any> => {
           cleanLocalPath,
           project?.destination_stack_id,
           projectId
+        );
+        await contentfulService?.createTaxonomy(
+          cleanLocalPath,
+          project?.destination_stack_id,
+          projectId,
         );
         await contentfulService?.createEntry(
           cleanLocalPath,

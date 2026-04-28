@@ -1,6 +1,17 @@
 import { Request, Response } from "express";
 import { authService } from "../services/auth.service.js";
 import { HTTP_CODES } from "../constants/index.js";
+import {
+  buildOAuthErrorPage,
+  buildOAuthSuccessPage,
+} from "../utils/oauth-callback-html.utils.js";
+
+/** Public URL of the Migration Tool UI (Vite default :3000). Override with MIGRATION_UI_ORIGIN in env. */
+const migrationUiOrigin = (): string => {
+  const raw = process.env.MIGRATION_UI_ORIGIN?.trim();
+  if (raw) return raw.replace(/\/$/, "");
+  return "http://localhost:3000";
+};
 
 /**
  * Handles the login request.
@@ -42,11 +53,24 @@ const RequestSms = async (req: Request, res: Response) => {
 /**
  * Generates the OAuth token and saves it to the database.
  * @param req - The request object. Sends the code and region.
- * @param res - The response object. Sends the message "Token received successfully."
+ * @param res - Renders an HTML success page (browser OAuth redirect) or HTML error page on failure.
  */
 const saveOAuthToken = async (req: Request, res: Response) => {
-  await authService.saveOAuthToken(req);
-  res.status(HTTP_CODES.OK).json({ message: "Token received successfully." });
+  const dashboardUrl = `${migrationUiOrigin()}/projects`;
+
+  try {
+    await authService.saveOAuthToken(req);
+
+    const html = buildOAuthSuccessPage({ dashboardUrl });
+    res.status(HTTP_CODES.OK).type("html").send(html);
+  } catch (error: any) {
+    const statusCode =
+      typeof error?.statusCode === "number" ? error.statusCode : HTTP_CODES.SERVER_ERROR;
+    const message =
+      error?.message || "Failed to process OAuth callback.";
+    const html = buildOAuthErrorPage(message, dashboardUrl);
+    res.status(statusCode).type("html").send(html);
+  }
 };
 
 
