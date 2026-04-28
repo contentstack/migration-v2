@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockLogin, mockRequestSms } = vi.hoisted(() => ({
+const { mockLogin, mockRequestSms, mockSaveOAuthToken } = vi.hoisted(() => ({
   mockLogin: vi.fn(),
   mockRequestSms: vi.fn(),
+  mockSaveOAuthToken: vi.fn(),
 }));
 
 vi.mock('../../../src/services/auth.service.js', () => ({
   authService: {
     login: mockLogin,
     requestSms: mockRequestSms,
+    saveOAuthToken: mockSaveOAuthToken,
   },
 }));
 
@@ -24,6 +26,8 @@ describe('auth.controller', () => {
     res = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      send: vi.fn().mockReturnThis(),
     };
   });
 
@@ -79,6 +83,33 @@ describe('auth.controller', () => {
       mockRequestSms.mockRejectedValue({ message: 'Fail' });
       await authController.RequestSms(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('saveOAuthToken', () => {
+    it('should send HTML success page when service resolves', async () => {
+      mockSaveOAuthToken.mockResolvedValue(undefined);
+      req.query = { region: 'NA' };
+      await authController.saveOAuthToken(req, res);
+      expect(mockSaveOAuthToken).toHaveBeenCalledWith(req);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.type).toHaveBeenCalledWith('html');
+      expect(res.send).toHaveBeenCalled();
+      const body = (res.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(body).toContain('Successfully Authorized!');
+    });
+
+    it('should send HTML error page when service throws', async () => {
+      mockSaveOAuthToken.mockRejectedValue({
+        statusCode: 400,
+        message: 'Missing code',
+      });
+      req.query = { region: 'NA' };
+      await authController.saveOAuthToken(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.type).toHaveBeenCalledWith('html');
+      const body = (res.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(body).toContain('Missing code');
     });
   });
 });

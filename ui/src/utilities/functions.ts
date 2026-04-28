@@ -43,16 +43,24 @@ export const addDomainInPath = (path: string) => {
   return `${WEBSITE_BASE_URL}${path}`;
 };
 
-export const failtureNotification = (errorMessage: string) => {
+export type FailureNotificationOptions = {
+  /** If true, toast stays until dismissed (e.g. org mismatch during SSO). */
+  persist?: boolean;
+};
+
+export const failureNotification = (
+  errorMessage: string,
+  options?: FailureNotificationOptions
+) => {
   Notification({
     text: errorMessage,
     notificationContent: { text: errorMessage },
     notificationProps: {
       hideProgressBar: true,
       position: 'bottom-center',
-      autoClose: true
+      ...(options?.persist ? { autoClose: false } : { autoClose: true }),
     },
-    type: 'error'
+    type: 'error',
   });
 };
 

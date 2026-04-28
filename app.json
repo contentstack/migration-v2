@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-23T07:26:46.225Z",
+  "timestamp": "2026-04-08T12:40:32.171Z",
   "region": {
     "key": "NA",
     "name": "North America",
@@ -14,21 +14,21 @@
     }
   },
   "user": {
-    "email": "user@example.com",
-    "uid": "user-uid"
+    "email": "user@contentstack.com",
+    "uid": "user_id"
   },
   "organization": {
-    "name": "Organization Name",
-    "uid": "organization-uid"
+    "name": "organization_name",
+    "uid": "organization_uid"
   },
   "app": {
-    "name": "Migration Tool",
-    "uid": "app-uid",
-    "manifest": "Migration Tool"
+    "name": "app_name",
+    "uid": "app_uid",
+    "manifest": "app_manifest"
   },
   "oauthData": {
-    "client_id": "client-id",
-    "client_secret": "client-secret",
+    "client_id": "user_client_id",
+    "client_secret": "user_client_secret",
     "redirect_uri": "http://localhost:5001/v2/auth/save-token",
     "user_token_config": {
       "enabled": true,
@@ -182,9 +182,9 @@
     }
   },
   "pkce": {
-    "code_verifier": "code-verifier",
-    "code_challenge": "code-challenge"
+    "code_verifier": "code_verifier",
+    "code_challenge": "code_challenge"
   },
-  "authUrl": "auth-url",
-  "isDefault": true
+  "authUrl": "auth_url",
+  "isDefault": false
 }
