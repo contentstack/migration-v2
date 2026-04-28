@@ -245,16 +245,128 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = '', ke
   });
 }
 
-function removeDuplicateFields(fields: any[]): any[] {
-  const seen = new Map();
-  return fields.filter(field => {
-    const key = field.uid || JSON.stringify(field);
-    if (seen.has(key)) return false;
-    seen.set(key, true);
-    return true;
-  });
+/**
+ * When two schema nodes share a uid (merge artifact), prefer the Contentstack custom
+ * extension field so mapped plain fields do not win over the stack's extension
+ * definitions inside modular block schema.
+ */
+function resolveDuplicateFieldsByUid(group: any[]): any {
+  if (!group?.length) return group?.[0];
+  if (group?.length === 1) return group[0];
+
+  const withExtensionUid = group.filter((f) => f?.extension_uid);
+  if (withExtensionUid?.length === 1) return withExtensionUid[0];
+
+  const customJson = group.filter(
+    (f) =>
+      f?.data_type === 'json' &&
+      (f?.field_metadata?.extension === true || f?.extension_uid),
+  );
+  if (customJson?.length === 1) return customJson[0];
+
+  return group[0];
 }
 
+function removeDuplicateFields(fields: any[]): any[] {
+  if (!Array?.isArray(fields)) return [];
+
+  const uidBuckets = new Map<string, any[]>();
+  for (const field of fields) {
+    const uid = field?.uid;
+    if (uid === undefined || uid === null || uid === '') continue;
+    if (!uidBuckets.has(uid)) uidBuckets.set(uid, []);
+    uidBuckets.get(uid)!.push(field);
+  }
+
+  const resolvedUid = new Map<string, any>();
+  for (const [uid, group] of uidBuckets) {
+    resolvedUid.set(uid, group?.length === 1 ? group[0] : resolveDuplicateFieldsByUid(group));
+  }
+
+  const seenUid = new Set<string>();
+  const seenNoUid = new Map<string, boolean>();
+  const result: any[] = [];
+
+  for (const field of fields) {
+    const uid = field?.uid;
+    if (uid === undefined || uid === null || uid === '') {
+      const key = JSON.stringify(field);
+      if (!seenNoUid.has(key)) {
+        seenNoUid.set(key, true);
+        result.push(field);
+      }
+      continue;
+    }
+    if (!seenUid.has(uid)) {
+      seenUid.add(uid);
+      result.push(resolvedUid.get(uid));
+    }
+  }
+
+  return result;
+}
+
+/**
+ * If destination defines a custom extension on the same uid+data_type, copy missing
+ * extension_uid / config / field_metadata onto the migration-built field (modular child
+ * leaves often match as plain json without extension_uid).
+ */
+function mergeCustomFieldMetadataFromDestination(sField: any, tField: any) {
+  if (!sField || !tField) return;
+  if (sField?.uid !== tField?.uid || sField?.data_type !== tField?.data_type) return;
+
+  const targetHasCustom =
+    Boolean(tField?.extension_uid) || tField?.field_metadata?.extension === true;
+
+  if (!targetHasCustom) return;
+
+  if (tField?.extension_uid && !sField?.extension_uid) {
+    sField.extension_uid = tField?.extension_uid;
+  }
+  if (tField?.config !== undefined && sField?.config === undefined) {
+    sField.config = cloneSchemaBranch(tField?.config);
+  }
+  if (tField?.field_metadata?.extension) {
+    sField.field_metadata = {
+      ...(sField?.field_metadata || {}),
+      ...tField?.field_metadata,
+    };
+  }
+}
+
+/** Apply {@link mergeCustomFieldMetadataFromDestination} for all leaves under merged schema. */
+function enrichMergedSchemaWithDestinationCustomFields(
+  sourceSchema: any[],
+  targetSchema: any[],
+): void {
+  if (!Array?.isArray(sourceSchema) || !Array?.isArray(targetSchema)) return;
+
+  for (const sField of sourceSchema) {
+    const tField = targetSchema.find((t: any) => t?.uid === sField?.uid);
+    if (!tField) continue;
+
+    if (sField?.data_type === 'group' && tField?.data_type === 'group') {
+      enrichMergedSchemaWithDestinationCustomFields(
+        sField?.schema ?? [],
+        tField?.schema ?? [],
+      );
+    } else if (sField?.data_type === 'blocks' && tField?.data_type === 'blocks') {
+      const sBlocks = sField?.blocks ?? [];
+      const tBlocks = tField?.blocks ?? [];
+      for (const tBlock of tBlocks) {
+        const sBlock = sBlocks.find((b: any) => b?.uid === tBlock?.uid);
+        if (sBlock) {
+          enrichMergedSchemaWithDestinationCustomFields(
+            sBlock?.schema ?? [],
+            tBlock?.schema ?? [],
+          );
+        }
+      }
+    } else if (sField?.data_type === tField?.data_type) {
+      mergeCustomFieldMetadataFromDestination(sField, tField);
+    }
+  }
+}
 
 
 function getLastSegmentNew(str: string, separator: string): string {
@@ -1271,6 +1383,11 @@ const mergeTwoCts = async (ct: any, mergeCts: any) => {
   }
 
   mergeSchemaFields(ctData?.schema ?? [], mergeCts?.schema ?? []);
+
+  enrichMergedSchemaWithDestinationCustomFields(
+    ctData?.schema ?? [],
+    mergeCts?.schema ?? [],
+  );
 
   ctData.schema = await mergeArrays(ctData?.schema, mergeCts?.schema) ?? [];
   
