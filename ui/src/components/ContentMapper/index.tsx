@@ -3142,12 +3142,20 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
         mappedDestUid === destinationUid && sourceUid !== selectedContentType?.contentstackUid
     );
 
-  const adjustedOption = contentModels?.map?.((item) => ({
-    label: item?.title,
-    value: item?.title,
-    id: item?.uid,
-    isDisabled: isDestinationMappedByAnotherSource(item?.uid)
-  }));
+  const sourceContentTypeUids = new Set(
+    (contentTypes ?? [])
+      .map((ct) => ct?.contentstackUid)
+      .filter((uid): uid is string => Boolean(uid))
+  );
+
+  const adjustedOption = contentModels
+    ?.filter((item) => item?.uid && !sourceContentTypeUids.has(item.uid))
+    ?.map((item) => ({
+      label: item?.title,
+      value: item?.title,
+      id: item?.uid,
+      isDisabled: isDestinationMappedByAnotherSource(item?.uid)
+    }));
 
   // Function to toggle filter panel
   const handleFilter = (e: React.MouseEvent<HTMLElement>) => {
