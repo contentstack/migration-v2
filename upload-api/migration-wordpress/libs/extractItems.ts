@@ -35,6 +35,19 @@ function sanitizeBlocksJsonFileName(title: string, maxLen = 80): string {
     .slice(0, maxLen);
 }
 
+/** Same Fieldschema signature must not merge these WP block types into one modular variant */
+function shouldSkipCrossBlockDedupe(
+  existingOtherCmsField: string | undefined,
+  newOtherCmsField: string | undefined
+): boolean {
+  const a = (existingOtherCmsField || '').toLowerCase();
+  const b = (newOtherCmsField || '').toLowerCase();
+  return (
+    (a === 'cover' && b === 'paragraph') ||
+    (a === 'paragraph' && b === 'cover')
+  );
+}
+
 function findSimilarBlocks(data: any[][], targetId: string) {
   for (const group of data) {
     const found = group?.find((obj: any) => obj?.clientId === targetId);
@@ -55,6 +68,15 @@ function haveSameNamesIgnoreOrder(arr1: any[], arr2: any[]): boolean {
 
 // Utility to compare structure of two objects (including nested arrays/innerBlocks)
 function isSameStructure(obj1: any, obj2: any): boolean {
+  const n1 = obj1?.name;
+  const n2 = obj2?.name;
+  if (
+    (n1 === 'core/cover' && n2 === 'core/paragraph') ||
+    (n1 === 'core/paragraph' && n2 === 'core/cover')
+  ) {
+    return false;
+  }
+
   // If types differ, structure differs
   if (typeof obj1 !== typeof obj2) return false;
 
@@ -169,7 +191,11 @@ function createFieldschemaSignature(fields: Field[]): string {
  * Check if a modular block child with the same Fieldschema already exists in CT
  * Compares only by contentstackFieldType, not by name
  */
-function findDuplicateModularBlockChild(newFieldschema: Field[], CT: CT): Field | null {
+function findDuplicateModularBlockChild(
+  newFieldschema: Field[],
+  CT: CT,
+  newBlockOtherCmsField?: string
+): Field | null {
   // Normalize Fieldschema to array
   const fieldsArray = Array.isArray(newFieldschema) ? newFieldschema : [newFieldschema];
   // Filter out null/undefined fields
@@ -197,15 +223,25 @@ function findDuplicateModularBlockChild(newFieldschema: Field[], CT: CT): Field 
     
     // Compare signatures (only contentstackFieldType, ignoring names)
     if (existingSignature === newSignature) {
+      if (shouldSkipCrossBlockDedupe(existingBlock.otherCmsField, newBlockOtherCmsField)) {
+        continue;
+      }
       return existingBlock;
     }
   }
-  
+
   return null;
 }
 
 function getLastUid(uid : string) {
   return uid?.split?.('.')?.[uid?.split?.('.')?.length - 1];
+}
+
+/** Passed to schemaMapper — must be the block itself when switch cases use processInnerBlocks(inner block). If we only pass innerBlocks, parent cases (e.g. core/cover) never run. */
+function rootBlockForSchemaMapper(field: any) {
+  if (!field?.innerBlocks?.length) return field;
+  if (field?.name === 'core/cover') return field;
+  return field.innerBlocks;
 }
 
 const extractItems = async (item: any, config: DataConfig, type: string, affix: string, categories: any, terms: any) => {
@@ -376,10 +412,10 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 processedSimilarBlocks?.add?.(groupKey);
                 
                 // Generate Fieldschema first to check for duplicates
-                const Fieldschema: Field[] | Field = await schemaMapper(field?.innerBlocks?.length > 0 ? field?.innerBlocks : field, `modular_blocks.${fieldUid}`, groupedContentstackField, affix || '');
+                const Fieldschema: Field[] | Field = await schemaMapper(rootBlockForSchemaMapper(field), `modular_blocks.${fieldUid}`, groupedContentstackField, affix || '');
                 const Schema = Array.isArray(Fieldschema) ? Fieldschema : [Fieldschema];
                 // Check if a modular block child with the same Fieldschema already exists
-                const duplicateBlock = findDuplicateModularBlockChild(Schema, CT);
+                const duplicateBlock = findDuplicateModularBlockChild(Schema, CT, contentstackFieldName);
                 
                 if (duplicateBlock) {
                   console.log(`Skipping duplicate modular block child: "${groupedContentstackField}" (duplicate of "${duplicateBlock.contentstackField}")`);
@@ -432,10 +468,10 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
                 processedSimilarBlocks?.add?.(resolveBlockName(field));
                 
                 // Generate Fieldschema first to check for duplicates
-                const Fieldschema: Field[] | Field = await schemaMapper(field?.innerBlocks?.length > 0 ? field?.innerBlocks : field, `modular_blocks.${fieldUid}`, groupedContentstackField, affix || '');
+                const Fieldschema: Field[] | Field = await schemaMapper(rootBlockForSchemaMapper(field), `modular_blocks.${fieldUid}`, groupedContentstackField, affix || '');
                 const Schema = Array.isArray(Fieldschema) ? Fieldschema : [Fieldschema];
                 // Check if a modular block child with the same Fieldschema already exists
-                const duplicateBlock = findDuplicateModularBlockChild(Schema, CT);
+                const duplicateBlock = findDuplicateModularBlockChild(Schema, CT, contentstackFieldName);
                 
                 if (duplicateBlock) {
                   console.log(`Skipping duplicate modular block child: "Modular Blocks > ${singleBlockName}" (duplicate of "${duplicateBlock.contentstackField}")`);
