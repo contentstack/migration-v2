@@ -19,6 +19,7 @@ import { client as marketplaceClient } from '@contentstack/marketplace-sdk';
 import {
   getAllApps,
   getAppManifestAndAppConfig,
+  fetchMarketplaceInstallationsForStack,
 } from '../../../src/utils/market-app.utils.js';
 
 describe('market-app.utils', () => {
@@ -29,6 +30,9 @@ describe('market-app.utils', () => {
     mockClient.marketplace.mockReturnValue({
       findAllApps: vi.fn(),
       app: vi.fn(),
+      installation: vi.fn(() => ({
+        fetchAll: vi.fn(),
+      })),
     });
   });
 
@@ -126,6 +130,130 @@ describe('market-app.utils', () => {
 
       expect(result).toBeUndefined();
       expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('fetchMarketplaceInstallationsForStack', () => {
+    const baseParams = {
+      organizationUid: 'org-456',
+      stackUid: 'bltStackKey',
+      authtoken: 'auth-token',
+      region: 'NA' as const,
+    };
+
+    it('aggregates pagination and returns installs for matching stack UID (case-insensitive)', async () => {
+      const matching = {
+        uid: 'ins-1',
+        target: { uid: 'bltstackkey', type: 'stack' },
+      };
+      const otherStack = {
+        uid: 'ins-2',
+        target: { uid: 'other', type: 'stack' },
+      };
+      const wrongType = {
+        uid: 'ins-3',
+        target: { uid: 'bltStackKey', type: 'organization' },
+      };
+
+      let call = 0;
+      const fetchAll = vi.fn().mockImplementation(() => {
+        call += 1;
+        if (call === 1) {
+          return Promise.resolve({
+            items: [...Array.from({ length: 100 }, () => ({ filler: true })), otherStack],
+          });
+        }
+        return Promise.resolve({
+          items: [matching, wrongType],
+        });
+      });
+
+      mockClient.marketplace.mockReturnValue({
+        findAllApps: vi.fn(),
+        app: vi.fn(),
+        installation: vi.fn(() => ({ fetchAll })),
+      });
+
+      const result = await fetchMarketplaceInstallationsForStack(baseParams);
+
+      expect(fetchAll).toHaveBeenCalled();
+      expect(result).toEqual([matching]);
+    });
+
+    it('uses fallback fetchAll() when paginated fetchAll rejects', async () => {
+      const item = {
+        uid: 'ins-fb',
+        target: { uid: 'bltStackKey', type: 'stack' },
+      };
+
+      const fetchAll = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('no pagination'))
+        .mockResolvedValueOnce({ items: [item] });
+
+      mockClient.marketplace.mockReturnValue({
+        findAllApps: vi.fn(),
+        app: vi.fn(),
+        installation: vi.fn(() => ({ fetchAll })),
+      });
+
+      const result = await fetchMarketplaceInstallationsForStack(baseParams);
+
+      expect(fetchAll).toHaveBeenCalledTimes(2);
+      expect(result).toEqual([item]);
+    });
+
+    it('returns [] and logs on outer failure', async () => {
+      const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      const brokenClient = {
+        marketplace: vi.fn(() => {
+          throw new Error('SDK init failed');
+        }),
+      };
+
+      vi.mocked(marketplaceClient).mockReturnValueOnce(brokenClient as never);
+
+      const result = await fetchMarketplaceInstallationsForStack(baseParams);
+
+      expect(result).toEqual([]);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it('returns [] when filter matches nothing', async () => {
+      const fetchAll = vi.fn().mockResolvedValue({
+        items: [{ target: { uid: 'nope', type: 'stack' } }],
+      });
+
+      mockClient.marketplace.mockReturnValue({
+        findAllApps: vi.fn(),
+        app: vi.fn(),
+        installation: vi.fn(() => ({ fetchAll })),
+      });
+
+      const result = await fetchMarketplaceInstallationsForStack(baseParams);
+
+      expect(result).toEqual([]);
+    });
+
+    it('logs non-Error throws with String(err) in outer catch', async () => {
+      const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      vi.mocked(marketplaceClient).mockReturnValueOnce({
+        marketplace: vi.fn(() => {
+          throw 'string err';
+        }),
+      } as never);
+
+      const result = await fetchMarketplaceInstallationsForStack(baseParams);
+
+      expect(result).toEqual([]);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error in fetchMarketplaceInstallationsForStack:',
+        'string err',
+      );
       consoleSpy.mockRestore();
     });
   });
