@@ -204,7 +204,6 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
         case 'core/pullquote':
         case 'core/table':
         case 'core/columns':
-
         case 'core/verse':
         case 'core/code': {
             const rteUid = parentUid ?
@@ -462,50 +461,40 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             
         }
 
-        case 'core/cover':
-        const coverSchema = []
-          if(key?.attributes?.url){
-            coverSchema.push({
-              uid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
-              otherCmsField: 'media',
-              otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
-              contentstackField: 'media',
-              contentstackFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
-              contentstackFieldType: 'file',
-              backupFieldType: 'file',
-              backupFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
-              advanced: {}
-            });
-          }
+        case 'core/cover': {
+            const coverSchema: Field[] = []
+            if(key?.attributes?.url){
+                coverSchema.push({
+                uid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+                otherCmsField: 'media',
+                otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+                contentstackField: 'media',
+                contentstackFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+                contentstackFieldType: 'file',
+                backupFieldType: 'file',
+                backupFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
+                advanced: {}
+                });
+            }
         
             const innerBlocks = await processInnerBlocks(
-              key, 
-              `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` ,
-              fieldName,
-              affix
+                key,
+                `${parentUid}` ,
+                fieldName,
+                affix
             );
-            innerBlocks?.length > 0 && coverSchema.push({
-              uid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
-              otherCmsField: getFieldName(key?.name),
-              otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
-              contentstackField: fieldName,
-              contentstackFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
-              contentstackFieldType: 'group',
-              backupFieldType: 'group',
-              backupFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
-              advanced: {}
-            });
+
             innerBlocks?.forEach(schemaObj => {
-              if (schemaObj) {
+                if (schemaObj) {
                 if (Array.isArray(schemaObj)) {
-                  coverSchema.push(...schemaObj);
+                    coverSchema.push(...schemaObj);
                 } else {
-                  coverSchema.push(schemaObj);
+                    coverSchema.push(schemaObj);
                 }
-              }
+                }
             });
             return coverSchema;
-          
+        }
           
         
         case 'core/search': {

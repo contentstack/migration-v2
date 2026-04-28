@@ -78,6 +78,9 @@ const idCorrector = (id: any) => {
   }
 }
 
+const normalizeNicenameForUid = (nicename: unknown) =>
+  String(nicename ?? "").replace(/-/g, "_").replace(/\s+/g, "_");
+
 let failedJSONFilePath = path.join(
   assetMasterFolderPath,
   MIGRATION_DATA_CONFIG.ASSETS_FAILED_FILE
@@ -559,7 +562,8 @@ function formatChildByType(child: any, field: any, assetData: any) {
                 formatted = { title: attrs.service, href: attrs.url };
                 break;
               }
-              const html = getBlockInnerHtmlString(child);
+              const html = getBlockInnerHtmlString(child?.innerBlocks ? child?.innerBlocks[0] : child);
+            
               let href = typeof attrs.url === 'string' && attrs.url ? attrs.url : '';
               let title = '';
               if (html) {
@@ -569,8 +573,10 @@ function formatChildByType(child: any, field: any, assetData: any) {
                   if (a.length) {
                     href = a.attr('href') || href;
                     title = a.text().trim();
+                    
                   } else {
                     title = $('button').first().text().trim();
+                    
                   }
                 } catch (e) {
                   console.warn('Error parsing innerHTML for link:', e);
@@ -652,7 +658,7 @@ function formatChildByType(child: any, field: any, assetData: any) {
               break;
 
             case 'group': {
-              console.info("child 1 ", child)
+             
               const attrs = child?.attrs || child?.attributes;
               if (
                 field?.advanced?.multiple === true &&
@@ -660,6 +666,8 @@ function formatChildByType(child: any, field: any, assetData: any) {
                 Array.isArray(attrs?.mediaFiles)
               ) {
                 formatted = attrs.mediaFiles.map((mf: any) => {
+                  const id = mf?.id;
+
                   const imgUrl = mf?.url || '';
                   let baseName = '';
                   if (imgUrl) {
@@ -669,7 +677,7 @@ function formatChildByType(child: any, field: any, assetData: any) {
                       ? withExt.substring(0, withExt.lastIndexOf('.'))
                       : withExt;
                   }
-                  const asset = assetData[baseName?.replace(/-/g, '_')?.toLowerCase()];
+                  const asset = assetData[`assets_${id}`];
                   return {
                     title: mf?.title ?? '',
                     alt: mf?.alt ?? '',
@@ -744,8 +752,12 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
             const categoryName = cat?.attributes?.nicename;
             
             taxonomies.push({
-              "taxonomy_uid": parentCategoryUid ? `${parentCategoryUid}_${parentCategory}` : `${categoryName}_${parentCategory}`,
-              "term_uid": parentCategoryUid ?   categoryName : `${categoryName}_${parentCategory}`
+              "taxonomy_uid": parentCategoryUid
+                ? `${normalizeNicenameForUid(parentCategoryUid)}_${parentCategory}`
+                : `${normalizeNicenameForUid(categoryName)}_${parentCategory}`,
+              "term_uid": parentCategoryUid
+                ? normalizeNicenameForUid(categoryName)
+                : `${normalizeNicenameForUid(categoryName)}_${parentCategory}`
             });
           } 
 
@@ -965,32 +977,32 @@ async function createTaxonomy(file_path: string, packagePath: string, destinatio
         const childCategories = categoriesJsonData?.filter((child: any) => child?.['wp:category_parent'] === category?.["wp:category_nicename"]);
         for(const childCategory of childCategories){
           terms?.push({
-            "uid": childCategory?.["wp:category_nicename"],
+            "uid": normalizeNicenameForUid(childCategory?.["wp:category_nicename"]),
             "name": childCategory?.["wp:cat_name"],
             "description": childCategory?.["wp:category_description"],
-            "parent_uid": categoryUid,
+            "parent_uid": normalizeNicenameForUid(categoryUid),
           })
         }
         const taxonomy = {
-          "uid": categoryUid,
+          "uid": normalizeNicenameForUid(categoryUid),
           "name": categoryName,
           "description": categoryDescription,
           
         }
         allTaxonomies[categoryUid] = {
-          "uid": categoryUid,
+          "uid": normalizeNicenameForUid(categoryUid),
           "name": categoryName,
           "description": categoryDescription,
           
         }
         terms?.push({
-          "uid": categoryUid,
+          "uid": normalizeNicenameForUid(categoryUid),
           "name": categoryName,
           "description": categoryDescription,
           "parent_uid": null,
         })
         const taxonomyData = {taxonomy, terms};
-        await writeFileAsync(path.join(taxonomiesPath, `${categoryUid}.json`), JSON.stringify(taxonomyData, null, 4), 4);
+        await writeFileAsync(path.join(taxonomiesPath, `${normalizeNicenameForUid(categoryUid)}.json`), JSON.stringify(taxonomyData, null, 4), 4);
         customLogger(projectId, destinationStackId, 'info', `Category ${categoryName} has been successfully extracted`);
     }       
     }
@@ -1327,15 +1339,17 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
 
   const filename = `${customId}${fileExtension}`;
   const assetPath = path.resolve(assetsSave, "files", customId);
+  const filePath = path.join(assetPath, filename);
 
-  if(!existsSync(assetPath)) {
-    await fs.promises.mkdir(assetPath, { recursive: true });
+  // Skip only when the downloaded file already exists (not the empty folder).
+  // Previously we mkdir'd assetPath then tested existsSync(assetPath), which is
+  // always true after mkdir and incorrectly skipped every download.
+  if (existsSync(filePath)) {
+    return assets["wp:post_id"];
   }
 
-
-  if (fs.existsSync(assetPath)) {
-    console.error(`Asset already present: ${customId}`);
-    return assets["wp:post_id"];
+  if (!existsSync(assetPath)) {
+    await fs.promises.mkdir(assetPath, { recursive: true });
   }
 
   try {
