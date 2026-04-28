@@ -438,6 +438,7 @@ const startTestMigration = async (req: Request): Promise<any> => {
     await marketPlaceAppService?.createAppManifest({
       orgId,
       destinationStackId: project?.current_test_stack_id,
+      marketplaceSourceStackId: project?.destination_stack_id,
       region,
       userId: user_id,
     });
