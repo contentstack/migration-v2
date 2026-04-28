@@ -1831,7 +1831,6 @@ const getExistingExtensions = async ({existingStackId, token_payload}: any) => {
     }
 
     const extensions = res?.data?.extensions;
-    console.info('extensions', extensions);
     if (!Array.isArray(extensions)) {
       throw new Error(
         'Error in getExistingExtensions: extensions is not an array',

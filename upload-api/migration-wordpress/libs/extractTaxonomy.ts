@@ -1,5 +1,9 @@
 import { Categories } from "../interface/interface";
 
+/** Nicenames may contain `-` or spaces; taxonomy_uid uses underscores only. */
+const normalizeNicenameForUid = (nicename: unknown) =>
+    String(nicename ?? "").replace(/-/g, "_").replace(/\s+/g, "_");
+
 const handleTaxonomySchema = async(categories: any, allCategories : Categories[]) => {
 
     const taxonomyArray: any[] = [];
@@ -9,7 +13,7 @@ const handleTaxonomySchema = async(categories: any, allCategories : Categories[]
         if(categoryData  && !categoryData?.['wp:category_parent']){
             taxonomyArray?.push(
             {
-                "taxonomy_uid":  `${categoryData?.["wp:category_nicename"]}_${categoryData?.["wp:term_id"]}`,
+                "taxonomy_uid":  `${normalizeNicenameForUid(categoryData?.["wp:category_nicename"])}_${categoryData?.["wp:term_id"]}`,
                 "taxonomy_name": categoryData?.["wp:cat_name"],
                 "mandatory": false,
                 "multiple": true,
@@ -20,7 +24,7 @@ const handleTaxonomySchema = async(categories: any, allCategories : Categories[]
         } else if(categoryData?.['wp:category_parent']) {
             const parentCategory = allCategories?.find((category: any) => category?.["wp:category_nicename"] === categoryData?.['wp:category_parent']);
             taxonomyArray?.push({
-                "taxonomy_uid": `${parentCategory?.["wp:category_nicename"]}_${parentCategory?.["wp:term_id"]}`,
+                "taxonomy_uid": `${normalizeNicenameForUid(parentCategory?.["wp:category_nicename"])}_${parentCategory?.["wp:term_id"]}`,
                 "taxonomy_name": parentCategory?.["wp:cat_name"],
                 "mandatory": false,
                 "multiple": true,
