@@ -407,23 +407,7 @@ function processNestedGroup(child: any, childField: any, allFields: any[]): Reco
           nestedChildrenObject[nestedChildKey] = deeplyNestedObject;
         }
       } else {
-        // Regular field, format it
-      //  if(nestedChild?.innerBlocks?.length === 1 ){
-      //     const formattedNestedChild = formatChildByType(nestedChild[0], nestedChildField, assetData);
-      //     if (nestedChildField?.advanced?.multiple === true) {
-      //       if (Array.isArray(nestedChildrenObject[nestedChildKey])) {
-             
-      //         nestedChildrenObject[nestedChildKey].push(formattedNestedChild);
-      //       } else {
-              
-      //         nestedChildrenObject[nestedChildKey] = [formattedNestedChild];
-      //       }
-      //     } else {
-      //       formattedNestedChild && (nestedChildrenObject[nestedChildKey] = formattedNestedChild);
-      //     }
-      //  }
-      //  else {
-      
+  
           const formattedNestedChild = formatChildByType(nestedEffective, nestedChildField, assetData);
           if (nestedChildField?.advanced?.multiple === true) {
             if (Array.isArray(nestedChildrenObject[nestedChildKey])) {
@@ -570,7 +554,7 @@ function formatChildByType(child: any, field: any, assetData: any) {
                 try {
                   const $ = cheerio.load(html);
                   const a = $('a').first();
-                  if (a.length) {
+                  if (a?.length) {
                     href = a.attr('href') || href;
                     title = a.text().trim();
                     
@@ -609,7 +593,7 @@ function formatChildByType(child: any, field: any, assetData: any) {
                       imgUrl = src;
                       // Extract filename from URL
                       const urlParts = src.split('/');
-                      const fileNameWithExt = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
+                      const fileNameWithExt = urlParts[urlParts?.length - 1]?.split('?')[0]; // Remove query params
                       fileName = fileNameWithExt.includes('.') ? fileNameWithExt.substring(0, fileNameWithExt.lastIndexOf('.')) : fileNameWithExt;
                     }
                   }
@@ -660,9 +644,11 @@ function formatChildByType(child: any, field: any, assetData: any) {
             case 'group': {
              
               const attrs = child?.attrs || child?.attributes;
+              const childBlockName =
+                resolvedBlockName(child) || attrs?.originalName || child?.blockName;
               if (
                 field?.advanced?.multiple === true &&
-                child?.blockName === 'jetpack/story' &&
+                childBlockName === 'jetpack/story' &&
                 Array.isArray(attrs?.mediaFiles)
               ) {
                 formatted = attrs.mediaFiles.map((mf: any) => {
