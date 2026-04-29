@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const {
   mockAuthRead,
   mockGetAppManifestAndAppConfig,
+  mockFetchMarketplaceInstallationsForStack,
   mockFsPromisesAccess,
   mockFsPromisesMkdir,
   mockFsPromisesWriteFile,
@@ -11,6 +12,7 @@ const {
 } = vi.hoisted(() => ({
   mockAuthRead: vi.fn(),
   mockGetAppManifestAndAppConfig: vi.fn(),
+  mockFetchMarketplaceInstallationsForStack: vi.fn(),
   mockFsPromisesAccess: vi.fn(),
   mockFsPromisesMkdir: vi.fn(),
   mockFsPromisesWriteFile: vi.fn(),
@@ -35,6 +37,7 @@ vi.mock('../../../src/models/authentication.js', () => ({
 }));
 vi.mock('../../../src/utils/market-app.utils.js', () => ({
   getAppManifestAndAppConfig: mockGetAppManifestAndAppConfig,
+  fetchMarketplaceInstallationsForStack: mockFetchMarketplaceInstallationsForStack,
 }));
 vi.mock('fs', () => ({
   default: {
@@ -65,6 +68,7 @@ describe('marketplace.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthRead.mockResolvedValue(undefined);
+    mockFetchMarketplaceInstallationsForStack.mockResolvedValue([]);
     mockFsPromisesAccess.mockResolvedValue(undefined);
     mockFsPromisesReadFile.mockResolvedValue(
       JSON.stringify([
@@ -119,8 +123,15 @@ describe('marketplace.service', () => {
       expect(mockFsPromisesMkdir).toHaveBeenCalledWith(expect.any(String), { recursive: true });
     });
 
-    it('should not process when extension mapper file is not found', async () => {
+    it('when extension mapper missing, fetches stack marketplace installs and writes manifest', async () => {
       mockFsPromisesReadFile.mockRejectedValue(new Error('ENOENT'));
+      mockFetchMarketplaceInstallationsForStack.mockResolvedValue([
+        {
+          uid: 'inst-1',
+          target: { type: 'stack', uid: 'stack-789' },
+          manifest: { name: 'Color Picker' },
+        },
+      ]);
 
       await marketPlaceAppService.createAppManifest({
         destinationStackId: 'stack-789',
@@ -130,6 +141,58 @@ describe('marketplace.service', () => {
       });
 
       expect(mockGetAppManifestAndAppConfig).not.toHaveBeenCalled();
+      expect(mockFetchMarketplaceInstallationsForStack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stackUid: 'stack-789',
+          organizationUid: 'org-3',
+          region: 'NA',
+        }),
+      );
+      expect(mockFsPromisesWriteFile).toHaveBeenCalled();
+      const [, json] = mockFsPromisesWriteFile?.mock?.calls[0];
+      const arr = JSON.parse(json);
+      expect(arr).toHaveLength(1);
+      expect(arr[0].manifest?.name).toBe('Color Picker');
+    });
+
+    it('queries marketplaceSourceStackId but writes target.uid as destinationStackId (test stack export)', async () => {
+      mockFsPromisesReadFile.mockRejectedValue(new Error('ENOENT'));
+      mockFetchMarketplaceInstallationsForStack.mockResolvedValue([
+        {
+          uid: 'inst-1',
+          target: { type: 'stack', uid: 'production-stack-id' },
+          manifest: { name: 'Color Picker' },
+        },
+      ]);
+
+      await marketPlaceAppService.createAppManifest({
+        destinationStackId: 'test-stack-export',
+        marketplaceSourceStackId: 'production-stack-id',
+        region: 'NA',
+        userId: 'user-3',
+        orgId: 'org-3',
+      });
+
+      expect(mockFetchMarketplaceInstallationsForStack).toHaveBeenCalledWith(
+        expect.objectContaining({ stackUid: 'production-stack-id' }),
+      );
+      const [, json] = mockFsPromisesWriteFile?.mock?.calls[0];
+      const arr = JSON.parse(json);
+      expect(arr[0]?.target?.uid).toBe('test-stack-export');
+    });
+
+    it('when extension mapper missing and no installations, does not write file', async () => {
+      mockFsPromisesReadFile.mockRejectedValue(new Error('ENOENT'));
+      mockFetchMarketplaceInstallationsForStack.mockResolvedValue([]);
+
+      await marketPlaceAppService.createAppManifest({
+        destinationStackId: 'stack-empty',
+        region: 'NA',
+        userId: 'user-3',
+        orgId: 'org-3',
+      });
+
+      expect(mockFetchMarketplaceInstallationsForStack).toHaveBeenCalled();
       expect(mockFsPromisesWriteFile).not.toHaveBeenCalled();
     });
 
