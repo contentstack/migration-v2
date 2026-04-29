@@ -10,7 +10,6 @@ const path = require('path');
 const contentTypeMapper = require('./contentTypeMapper');
 const extractEntries = require('./extractEntries');
 
-
 /** Contentstack taxonomy_uid: lowercase, a-z0-9_ only  */
 function contentfulSchemeIdToStackTaxonomyUid(contentfulSchemeId) {
   if (!contentfulSchemeId || typeof contentfulSchemeId !== 'string') return '';
@@ -123,7 +122,7 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
         ctMetaById[ct.sys.id] = ct.metadata || {};
       }
     }
-    
+
     const entriesByContentType = extractEntries(cleanLocalPath);
 
     const initialMapper = [];
