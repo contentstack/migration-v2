@@ -388,6 +388,37 @@ const flattenSchemaToUidMap = (
   return result;
 };
 
+// Helper function to flatten a ContentStack schema into a map of full label path - { item, label }
+const flattenSchemaToLabelMap = (
+  schema: ContentTypesSchema[],
+  parentLabel = '',
+  result: Record<string, { item: ContentTypesSchema; label: string }> = {}
+): Record<string, { item: ContentTypesSchema; label: string }> => {
+  for (const item of schema ?? []) {
+    const label = parentLabel ? `${parentLabel} > ${item?.display_name}` : item?.display_name;
+    if (label && !result[label]) {
+      result[label] = { item, label };
+    }
+
+    if (item?.schema && Array.isArray(item?.schema)) {
+      flattenSchemaToLabelMap(item?.schema, label, result);
+    }
+
+    if (item?.data_type === 'blocks' && item?.blocks && Array.isArray(item?.blocks)) {
+      for (const block of item?.blocks) {
+        const blockLabel = `${label} > ${block?.uid || block?.display_name}`;
+        if (blockLabel && !result[blockLabel]) {
+          result[blockLabel] = { item: block as unknown as ContentTypesSchema, label: blockLabel };
+        }
+        if (block?.schema && Array.isArray(block?.schema)) {
+          flattenSchemaToLabelMap(block?.schema, blockLabel, result);
+        }
+      }
+    }
+  }
+  return result;
+};
+
 /** Match saved `contentstackField` labels against a modular-blocks subtree (block + fields + nested). */
 const matchRowAgainstModularBlocks = (
   row: FieldMapType,
@@ -861,6 +892,7 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
 
     // Build a flat map of every field uid present in the new schema
     const schemaUidMap = flattenSchemaToUidMap(contentTypeSchema);
+    const schemaLabelMap = flattenSchemaToLabelMap(contentTypeSchema);
 
     // We need to know if anything actually changed to avoid unnecessary renders
     let anyChange = false;
@@ -876,7 +908,8 @@ const ContentMapper = forwardRef(({ handleStepChange }: contentMapperProps, ref:
       // Skip entries with no uid (shouldn't happen, but be safe)
       if (!mappedItemUid) continue;
 
-      const schemaEntry = schemaUidMap[mappedItemUid];
+      const mappedLabel = mappedValue?.label;
+      const schemaEntry = (mappedLabel && schemaLabelMap[mappedLabel]) || schemaUidMap[mappedItemUid];
 
       if (schemaEntry) {
         // Only update if the label or value reference has actually changed
