@@ -8,6 +8,8 @@ const fs = require('fs/promises');
 const path = require('path');
 // const contentTypeMapper = require('./contentTypeMapper');
 const contentTypeMapper = require('./contentTypeMapper');
+const extractEntries = require('./extractEntries');
+
 
 /** Contentstack taxonomy_uid: lowercase, a-z0-9_ only  */
 function contentfulSchemeIdToStackTaxonomyUid(contentfulSchemeId) {
@@ -57,7 +59,6 @@ const buildContentfulTaxonomyFields = (metadata) => {
     }
   ];
 };
-const extractEntries = require('./extractEntries');
 
 /**
  * Internal module dependencies.
@@ -122,6 +123,7 @@ const createInitialMapper = async (cleanLocalPath, affix) => {
         ctMetaById[ct.sys.id] = ct.metadata || {};
       }
     }
+    
     const entriesByContentType = extractEntries(cleanLocalPath);
 
     const initialMapper = [];

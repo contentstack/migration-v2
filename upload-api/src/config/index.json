@@ -4,7 +4,7 @@
       "optionLimit": 100
     }
   },
-  "cmsType": "",
+  "cmsType": "cmsType",
   "isLocalPath": true,
   "awsData": {
     "awsRegion": "us-east-2",
@@ -25,5 +25,5 @@
     "base_url": "drupal_assets_base_url",
     "public_path": "drupal_assets_public_path"
   },
-  "localPath": ""
+  "localPath": "your_local_cms_data_path"
 }
