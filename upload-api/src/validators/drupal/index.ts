@@ -1,6 +1,30 @@
 import mysql from 'mysql2/promise';
-import axios from 'axios';
+import axios, { AxiosHeaders, type AxiosHeaderValue } from 'axios';
 import logger from '../../utils/logger';
+
+function axiosHeaderToString(v: AxiosHeaderValue | undefined): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) return v[0] ?? '';
+  if (v instanceof AxiosHeaders) {
+    return axiosHeaderToString(v.get('content-type') as AxiosHeaderValue);
+  }
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  return String(v);
+}
+
+/** Resolves header value whether axios returned AxiosHeaders or a plain map (as in tests / some adapters). */
+function getAxiosResponseHeader(headers: unknown, name: string): string {
+  if (headers == null) return '';
+  const lower = name.toLowerCase();
+  if (typeof (headers as { get?: (key: string) => unknown }).get === 'function') {
+    const h = headers as AxiosHeaders;
+    const v = h.get(name) ?? h.get(lower);
+    return axiosHeaderToString(v as AxiosHeaderValue | undefined);
+  }
+  const rec = headers as Record<string, string>;
+  return axiosHeaderToString(rec[lower] ?? rec[name]);
+}
 
 interface ValidatorProps {
   data: {
@@ -159,12 +183,12 @@ async function validateAssetsConfig(
 
         if (response.status === 200) {
           // ✅ CHECK CONTENT-TYPE: Ensure it's an actual asset, not an HTML page
-          const contentType = response.headers['content-type'] || '';
+          const contentType = getAxiosResponseHeader(response.headers, 'content-type');
 
           // Valid asset content types (not HTML)
           const isValidAsset =
-            contentType.includes('image/') || // Images: image/jpeg, image/png, etc.
-            contentType.includes('application/pdf') || // PDFs
+            contentType?.includes('image/') || // Images: image/jpeg, image/png, etc.
+            contentType?.includes('application/pdf') || // PDFs
             contentType.includes('application/zip') || // Archives
             contentType.includes('video/') || // Videos
             contentType.includes('audio/') || // Audio

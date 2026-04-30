@@ -78,6 +78,9 @@ const idCorrector = (id: any) => {
   }
 }
 
+const normalizeNicenameForUid = (nicename: unknown) =>
+  String(nicename ?? "").replace(/-/g, "_").replace(/\s+/g, "_");
+
 let failedJSONFilePath = path.join(
   assetMasterFolderPath,
   MIGRATION_DATA_CONFIG.ASSETS_FAILED_FILE
@@ -155,6 +158,19 @@ const resolvedBlockName = (block: any) => {
   return block?.blockName;
 };
 
+/** WordPress core/group with one inner block is not an extra schema level (matches upload-api schemaMapper). */
+function unwrapSingleChildGroup(block: any): any {
+  let current = block;
+  while (
+    current?.blockName === 'core/group' &&
+    Array.isArray(current?.innerBlocks) &&
+    current.innerBlocks.length === 1
+  ) {
+    current = current.innerBlocks[0];
+  }
+  return current;
+}
+
 async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>) {
   const schema : any = {
     title: title,
@@ -190,7 +206,8 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
         // Process each block in blockJson to see if it matches any modular block child
         for (const block of blockJson) {
           try {
-            const blockName = getFieldName(resolvedBlockName(block));
+            const blockForProcessing = unwrapSingleChildGroup(block);
+            const blockName = getFieldName(resolvedBlockName(blockForProcessing));
             
             // Find which modular block child this block matches
             let matchingChildField = fields.find((childField: any) => {
@@ -228,11 +245,15 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
             
             //if (matchingChildField) {
               // Process innerBlocks (children) if they exist
-              if (block?.innerBlocks?.length > 0 && Array.isArray(block?.innerBlocks) && matchingModularBlockChild?.uid) {
+              if (blockForProcessing?.innerBlocks?.length > 0 && Array.isArray(blockForProcessing?.innerBlocks) && matchingModularBlockChild?.uid) {
                 const childrenObject: Record<string, any> = {};
             
-                block?.innerBlocks?.forEach((child: any, childIndex: number) => {
+                blockForProcessing.innerBlocks.forEach((child: any, childIndex: number) => {
                   try {
+                    const effectiveChild = unwrapSingleChildGroup(child);
+                    const childBlockName =
+                      getFieldName(resolvedBlockName(effectiveChild))?.toLowerCase() ||
+                      getFieldName(resolvedBlockName(effectiveChild)?.toLowerCase());
                     // Find the field that matches this inner block
                     // Look for fields that belong to this modular_blocks_child
                     const childFieldUid = matchingModularBlockChild?.contentstackFieldUid || getLastUid(matchingModularBlockChild?.contentstackUid);
@@ -240,7 +261,6 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                       const fUid = f?.contentstackFieldUid || '';
                       const fOtherCmsType = f?.otherCmsType?.toLowerCase();
                       const fOtherCmsField = f?.otherCmsField?.toLowerCase();
-                      const childBlockName = matchingChildField ? matchingChildField?.otherCmsField?.toLowerCase() :  (getFieldName(resolvedBlockName(child))?.toLowerCase() || getFieldName(resolvedBlockName(child)?.toLowerCase()));
                       const childKey = getLastUid(f?.contentstackFieldUid);
                       const alreadyPopulated = childrenObject[childKey] !== undefined && childrenObject[childKey] !== null;
                       return fUid.startsWith(childFieldUid + '.') &&
@@ -253,7 +273,7 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                       if (childField?.contentstackFieldType === 'group') {
                       
                         // Process group recursively - handles nested structures
-                        const processedGroup = processNestedGroup(child, childField, fields);
+                        const processedGroup = processNestedGroup(effectiveChild, childField, fields);
                         if (childField?.advanced?.multiple === true && processedGroup) {
                           if (Array.isArray(childrenObject[childKey])) {
                             childrenObject[childKey].push(processedGroup);
@@ -263,8 +283,8 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                         } else {
                           processedGroup && (childrenObject[childKey] = processedGroup);
                         }
-                      } else {
-                        const formattedChild = formatChildByType(child, childField, assetData);
+               
+                        const formattedChild = formatChildByType(effectiveChild, childField, assetData);
                         
                         if (childField?.advanced?.multiple === true && formattedChild) {
                           if (Array.isArray(childrenObject[childKey])) {
@@ -273,7 +293,6 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                             childrenObject[childKey] = [formattedChild];
                           }
                         } else {
-                          
                           formattedChild && (childrenObject[childKey] = formattedChild);
                         }
                       }
@@ -288,12 +307,14 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                   modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : childrenObject });
                 } else if (getLastUid(matchingModularBlockChild?.contentstackFieldUid) && matchingChildField) {
                   // Fallback: inner blocks didn't match child fields (e.g., duplicate-mapped block with different inner block types)
-                  const formattedBlock = formatChildByType(block, matchingChildField, assetData);
+                 
+                  const formattedBlock = formatChildByType(blockForProcessing, matchingChildField, assetData);
                   formattedBlock && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : { [getLastUid(matchingChildField?.contentstackFieldUid)]: formattedBlock }});
                 }
               } else if(getLastUid(matchingModularBlockChild?.contentstackFieldUid) && matchingChildField){
                 // Handle blocks with no inner blocks - format the block itself
-                const formattedBlock = formatChildByType(block, matchingChildField, assetData);
+      
+                const formattedBlock = formatChildByType(blockForProcessing, matchingChildField, assetData);
                 
                 formattedBlock && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : { [getLastUid(matchingChildField?.contentstackFieldUid)]: formattedBlock }});
               }
@@ -319,7 +340,8 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
 // Recursive helper function to process nested group structures
 function processNestedGroup(child: any, childField: any, allFields: any[]): Record<string, any> {
   const nestedChildrenObject: Record<string, any> = {};
-  if (!child?.innerBlocks?.length || !Array.isArray(child?.innerBlocks)) {
+  const groupBlock = unwrapSingleChildGroup(child);
+  if (!groupBlock?.innerBlocks?.length || !Array.isArray(groupBlock?.innerBlocks)) {
     // No nested children, return empty object for group type
     return {};
   }
@@ -343,15 +365,28 @@ function processNestedGroup(child: any, childField: any, allFields: any[]): Reco
     return {};
   }
  
-  child?.innerBlocks?.forEach((nestedChild: any, nestedIndex: number) => {
+  groupBlock.innerBlocks.forEach((nestedChild: any, nestedIndex: number) => {
     try {
-     
-      const nestedBlockName = (getFieldName(resolvedBlockName(nestedChild))?.toLowerCase() ?? getFieldName(resolvedBlockName(nestedChild)?.toLowerCase()))?.toLowerCase();
-      const nestedChildField = nestedFields?.find((field: any) => 
-        (field?.otherCmsType?.toLowerCase() === nestedBlockName || field?.otherCmsField?.toLowerCase() === nestedBlockName) && !nestedChildrenObject[getLastUid(field?.contentstackFieldUid)]?.length
-      );
+      const nestedEffective = unwrapSingleChildGroup(nestedChild);
+      const nestedBlockName =
+        getFieldName(resolvedBlockName(nestedEffective))?.toLowerCase() ||
+        getFieldName(resolvedBlockName(nestedEffective)?.toLowerCase());
+      const nestedChildField = nestedFields?.find((field: any) => {
+        const matchesBlock =
+          field?.otherCmsType?.toLowerCase() === nestedBlockName ||
+          field?.otherCmsField?.toLowerCase() === nestedBlockName;
+
+        const uid = getLastUid(field?.contentstackFieldUid);
+        const allowReuse =
+          field?.advanced?.multiple === true ||
+          !nestedChildrenObject[uid]?.length;
+       
+        return matchesBlock && allowReuse;
+      });
+      
       
       if (!nestedChildField) {
+        //console.info("no nested child field found ", nestedChild, nestedChildField, nestedFields, childField)
         return;
       }
       
@@ -359,29 +394,33 @@ function processNestedGroup(child: any, childField: any, allFields: any[]): Reco
       
       if (nestedChildField?.contentstackFieldType === 'group') {
         // Recursively process nested groups
-        const deeplyNestedObject = processNestedGroup(nestedChild, nestedChildField, allFields);
-        
+        const deeplyNestedObject = processNestedGroup(nestedEffective, nestedChildField, allFields);
         if (nestedChildField?.advanced?.multiple === true) {
           if (Array.isArray(nestedChildrenObject[nestedChildKey])) {
+            
             nestedChildrenObject[nestedChildKey].push(deeplyNestedObject);
           } else {
+         
             nestedChildrenObject[nestedChildKey] = [deeplyNestedObject];
           }
         } else {
           nestedChildrenObject[nestedChildKey] = deeplyNestedObject;
         }
       } else {
-        // Regular field, format it
-        const formattedNestedChild = formatChildByType(nestedChild, nestedChildField, assetData);
-        if (nestedChildField?.advanced?.multiple === true) {
-          if (Array.isArray(nestedChildrenObject[nestedChildKey])) {
-            nestedChildrenObject[nestedChildKey].push(formattedNestedChild);
+  
+          const formattedNestedChild = formatChildByType(nestedEffective, nestedChildField, assetData);
+          if (nestedChildField?.advanced?.multiple === true) {
+            if (Array.isArray(nestedChildrenObject[nestedChildKey])) {
+              formattedNestedChild && nestedChildrenObject[nestedChildKey].push(formattedNestedChild);
+            } else {
+              formattedNestedChild && (nestedChildrenObject[nestedChildKey] = [formattedNestedChild]);
+            }
           } else {
-            nestedChildrenObject[nestedChildKey] = [formattedNestedChild];
+            formattedNestedChild && (nestedChildrenObject[nestedChildKey] = formattedNestedChild);
           }
-        } else {
-          formattedNestedChild && (nestedChildrenObject[nestedChildKey] = formattedNestedChild);
-        }
+
+       //}
+        
       }
     } catch (nestedError) {
       console.warn(`Error processing nested child block at index ${nestedIndex}:`, nestedError);
@@ -413,6 +452,32 @@ function extractAllHtmlFromInnerBlocks(block: any): any {
   return html ;
 }
 
+/** Block HTML: top-level innerHTML, optional attrs/attributes, joined innerContent, or nested innerBlocks. */
+function getBlockInnerHtmlString(block: any): string {
+  const nonEmpty = (s: unknown): s is string =>
+    typeof s === 'string' && s.trim().length > 0;
+
+  const direct = [
+    block?.innerHTML,
+    block?.attrs?.innerHTML,
+    block?.attributes?.innerHTML,
+    block?.innerHtml
+  ].find(nonEmpty) as string | undefined;
+  if (direct) {
+    return direct;
+  }
+  if (Array.isArray(block?.innerContent)) {
+    const fromInnerContent = block.innerContent
+      .map((p: any) => (typeof p === 'string' ? p : ''))
+      .join('')
+      .trim();
+    if (fromInnerContent) {
+      return fromInnerContent;
+    }
+  }
+  return collectHtmlFromInnerBlocks(block);
+}
+
 // Helper function to format child blocks based on their type and field configuration
 function formatChildByType(child: any, field: any, assetData: any) {
   let formatted ;
@@ -425,10 +490,6 @@ function formatChildByType(child: any, field: any, assetData: any) {
         try {
           const attrValue = child?.attrs?.innerHTML;
           
-          // Check if otherCmsField is "columns" - get all HTML data
-          if (field?.otherCmsField?.toLowerCase() === 'columns') {
-            formatted = extractAllHtmlFromInnerBlocks(child);
-          }
           
           // Format based on common field types
           switch (field?.contentstackFieldType || 'text') {
@@ -453,7 +514,12 @@ function formatChildByType(child: any, field: any, assetData: any) {
               break;
 
             case 'json': {
-              let htmlContent = formatted;
+              let htmlContent
+                // Check if otherCmsField is "columns" - get all HTML data
+              if (field?.otherCmsField?.toLowerCase() === 'columns') {
+                htmlContent = extractAllHtmlFromInnerBlocks(child);
+              }
+              
               if (!htmlContent && child?.innerBlocks?.length > 0) {
                 htmlContent = collectHtmlFromInnerBlocks(child);
               }
@@ -463,7 +529,10 @@ function formatChildByType(child: any, field: any, assetData: any) {
                   : child;
               }
               const hasMeaningfulHtml = stripHtmlTags(htmlContent)?.trim()?.length > 0;
-              formatted = hasMeaningfulHtml && RteJsonConverter(htmlContent);
+              // Only set when there is text; do not assign `undefined` (avoids false from `a && fn()` in multi-RTE).
+              if (hasMeaningfulHtml) {
+                formatted = RteJsonConverter(htmlContent);
+              }
               break;
             }
 
@@ -471,19 +540,48 @@ function formatChildByType(child: any, field: any, assetData: any) {
               formatted = child?.blockName ? formatted ?? child?.innerHTML : `<p>${child}</p>`;
               break;
 
-            case 'link':
-              formatted= {
-                "title": child?.attrs?.service,
-                "href": child?.attrs?.url
-              };
+            case 'link': {
+              const attrs = child?.attrs ?? child?.attributes ?? {};
+              if (attrs.service) {
+                formatted = { title: attrs.service, href: attrs.url };
+                break;
+              }
+              const html = getBlockInnerHtmlString(child?.innerBlocks ? child?.innerBlocks[0] : child);
+            
+              let href = typeof attrs.url === 'string' && attrs.url ? attrs.url : '';
+              let title = '';
+              if (html) {
+                try {
+                  const $ = cheerio.load(html);
+                  const a = $('a').first();
+                  if (a?.length) {
+                    href = a.attr('href') || href;
+                    title = a.text().trim();
+                    
+                  } else {
+                    title = $('button').first().text().trim();
+                    
+                  }
+                } catch (e) {
+                  console.warn('Error parsing innerHTML for link:', e);
+                }
+              }
+              if (!title) {
+                title =
+                  (typeof attrs.text === 'string' && attrs.text.trim()) ||
+                  (typeof attrs.title === 'string' && attrs.title.trim()) ||
+                  (html ? stripHtmlTags(html).trim() : '') ||
+                  '';
+              }
+              formatted = { title, href: href || '' };
               break;
+            }
 
             case 'file': {
-              // Extract filename from img tag in innerHTML
+              // Extract media URL from innerHTML: img (core/image) or audio/source (core/audio)
               let fileName = '';
               let imgUrl = child?.attrs?.src;
-              
-              // Check innerHTML for img tag
+
               const innerHtml = child?.innerHTML;
               if (innerHtml && typeof innerHtml === 'string') {
                 try {
@@ -495,16 +593,40 @@ function formatChildByType(child: any, field: any, assetData: any) {
                       imgUrl = src;
                       // Extract filename from URL
                       const urlParts = src.split('/');
-                      const fileNameWithExt = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
+                      const fileNameWithExt = urlParts[urlParts?.length - 1]?.split('?')[0]; // Remove query params
                       fileName = fileNameWithExt.includes('.') ? fileNameWithExt.substring(0, fileNameWithExt.lastIndexOf('.')) : fileNameWithExt;
                     }
-                    
+                  }
+                  if (!fileName) {
+                    const audioTag = $('audio').first();
+                    let audioSrc = audioTag.attr('src');
+                    if (!audioSrc) {
+                      audioSrc = audioTag.find('source').first().attr('src') || '';
+                    }
+                    if (audioSrc) {
+                      imgUrl = audioSrc;
+                      const urlParts = audioSrc.split('/');
+                      const fileNameWithExt = urlParts[urlParts.length - 1].split('?')[0];
+                      fileName = fileNameWithExt.includes('.') ? fileNameWithExt.substring(0, fileNameWithExt.lastIndexOf('.')) : fileNameWithExt;
+                    }
                   }
                 } catch (htmlError) {
-                  console.warn('Error parsing innerHTML for img tag:', htmlError);
+                  console.warn('Error parsing innerHTML for img/audio:', htmlError);
                 }
               }
-              
+              // Blocks that store file URL on attrs (e.g. core/file href; some exports typo "herf")
+              if (!fileName && (child?.attrs?.href || child?.attrs?.herf)) {
+                const attrHref = child?.attrs?.href || child?.attrs?.herf;
+                if (typeof attrHref === 'string' && attrHref) {
+                  imgUrl = attrHref;
+                  const urlParts = attrHref.split('/');
+                  const fileNameWithExt = urlParts[urlParts.length - 1].split('?')[0];
+                  fileName = fileNameWithExt.includes('.')
+                    ? fileNameWithExt.substring(0, fileNameWithExt.lastIndexOf('.'))
+                    : fileNameWithExt;
+                }
+              }
+
               // If no filename extracted from innerHTML, try to get it from src URL
               if (!fileName && imgUrl) {
                 const urlParts = imgUrl.split('/');
@@ -518,9 +640,44 @@ function formatChildByType(child: any, field: any, assetData: any) {
             case 'markdown':
               formatted = stripHtmlTags(child?.innerHTML);
               break;
+
+            case 'group': {
+             
+              const attrs = child?.attrs || child?.attributes;
+              const childBlockName =
+                resolvedBlockName(child) || attrs?.originalName || child?.blockName;
+              if (
+                field?.advanced?.multiple === true &&
+                childBlockName === 'jetpack/story' &&
+                Array.isArray(attrs?.mediaFiles)
+              ) {
+                formatted = attrs.mediaFiles.map((mf: any) => {
+                  const id = mf?.id;
+
+                  const imgUrl = mf?.url || '';
+                  let baseName = '';
+                  if (imgUrl) {
+                    const urlParts = imgUrl.split('/');
+                    const withExt = urlParts[urlParts.length - 1].split('?')[0];
+                    baseName = withExt.includes('.')
+                      ? withExt.substring(0, withExt.lastIndexOf('.'))
+                      : withExt;
+                  }
+                  const asset = assetData[`assets_${id}`];
+                  return {
+                    title: mf?.title ?? '',
+                    alt: mf?.alt ?? '',
+                    caption: mf?.caption ?? '',
+                    image: asset,
+                  };
+                });
+              } 
+              break;
+            }
+
             default:
               // Default formatting - preserve original structure with null check
-              formatted = attrValue;
+              formatted = attrValue ?? '';
           }
         } catch (attrError) {
           console.warn(`Error processing attribute ${attrKey}:`, attrError);
@@ -531,7 +688,6 @@ function formatChildByType(child: any, field: any, assetData: any) {
     console.error('Error in formatChildByType:', error);
     formatted = 'Failed to process block attributes';
   }
-  
   
   return formatted;
 }
@@ -582,8 +738,12 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
             const categoryName = cat?.attributes?.nicename;
             
             taxonomies.push({
-              "taxonomy_uid": parentCategoryUid ? `${parentCategoryUid}_${parentCategory}` : `${categoryName}_${parentCategory}`,
-              "term_uid": parentCategoryUid ?   categoryName : `${categoryName}_${parentCategory}`
+              "taxonomy_uid": parentCategoryUid
+                ? `${normalizeNicenameForUid(parentCategoryUid)}_${parentCategory}`
+                : `${normalizeNicenameForUid(categoryName)}_${parentCategory}`,
+              "term_uid": parentCategoryUid
+                ? normalizeNicenameForUid(categoryName)
+                : `${normalizeNicenameForUid(categoryName)}_${parentCategory}`
             });
           } 
 
@@ -621,6 +781,25 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           // Extract individual content encoded for this specific item
           const contentEncoded = $(xmlItem)?.find("content\\:encoded")?.text() || '';
           const blocksJson = await setupWordPressBlocks(contentEncoded);
+
+          try {
+            const blocksDir = path.join(
+              MIGRATION_DATA_CONFIG.DATA,
+              destinationStackId,
+              MIGRATION_DATA_CONFIG.WORDPRESS_BLOCKS_DIR_NAME
+            );
+            await fs.promises.mkdir(blocksDir, { recursive: true });
+            await writeFileAsync(path.join(blocksDir, `${uid}.json`), blocksJson, 4);
+          } catch (writeErr) {
+            customLogger(
+              project?.id,
+              destinationStackId,
+              'warn',
+              `Failed to write wordpress blocks JSON for ${uid}: ${
+                writeErr instanceof Error ? writeErr.message : String(writeErr)
+              }`
+            );
+          }
 
           customLogger(project?.id, destinationStackId,'info', `Processed blocks for entry ${uid}`);
 
@@ -784,32 +963,32 @@ async function createTaxonomy(file_path: string, packagePath: string, destinatio
         const childCategories = categoriesJsonData?.filter((child: any) => child?.['wp:category_parent'] === category?.["wp:category_nicename"]);
         for(const childCategory of childCategories){
           terms?.push({
-            "uid": childCategory?.["wp:category_nicename"],
+            "uid": normalizeNicenameForUid(childCategory?.["wp:category_nicename"]),
             "name": childCategory?.["wp:cat_name"],
             "description": childCategory?.["wp:category_description"],
-            "parent_uid": categoryUid,
+            "parent_uid": normalizeNicenameForUid(categoryUid),
           })
         }
         const taxonomy = {
-          "uid": categoryUid,
+          "uid": normalizeNicenameForUid(categoryUid),
           "name": categoryName,
           "description": categoryDescription,
           
         }
         allTaxonomies[categoryUid] = {
-          "uid": categoryUid,
+          "uid": normalizeNicenameForUid(categoryUid),
           "name": categoryName,
           "description": categoryDescription,
           
         }
         terms?.push({
-          "uid": categoryUid,
+          "uid": normalizeNicenameForUid(categoryUid),
           "name": categoryName,
           "description": categoryDescription,
           "parent_uid": null,
         })
         const taxonomyData = {taxonomy, terms};
-        await writeFileAsync(path.join(taxonomiesPath, `${categoryUid}.json`), JSON.stringify(taxonomyData, null, 4), 4);
+        await writeFileAsync(path.join(taxonomiesPath, `${normalizeNicenameForUid(categoryUid)}.json`), JSON.stringify(taxonomyData, null, 4), 4);
         customLogger(projectId, destinationStackId, 'info', `Category ${categoryName} has been successfully extracted`);
     }       
     }
@@ -1146,15 +1325,17 @@ async function saveAsset(assets: any, retryCount: number, affix: string, destina
 
   const filename = `${customId}${fileExtension}`;
   const assetPath = path.resolve(assetsSave, "files", customId);
+  const filePath = path.join(assetPath, filename);
 
-  if(!existsSync(assetPath)) {
-    await fs.promises.mkdir(assetPath, { recursive: true });
+  // Skip only when the downloaded file already exists (not the empty folder).
+  // Previously we mkdir'd assetPath then tested existsSync(assetPath), which is
+  // always true after mkdir and incorrectly skipped every download.
+  if (existsSync(filePath)) {
+    return assets["wp:post_id"];
   }
 
-
-  if (fs.existsSync(assetPath)) {
-    console.error(`Asset already present: ${customId}`);
-    return assets["wp:post_id"];
+  if (!existsSync(assetPath)) {
+    await fs.promises.mkdir(assetPath, { recursive: true });
   }
 
   try {
@@ -1275,11 +1456,20 @@ function isValidImageUrl(url: string): boolean {
   return true;
 }
 
+/** True if URL path ends with a common image extension (for <a href> image links). */
+function looksLikeImageFileUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+  const pathOnly = url.trim().split('?')[0].split('#')[0];
+  return /\.(jpe?g|png|gif|webp|svg|bmp|ico|avif|heic|heif)$/i.test(pathOnly);
+}
+
 /**
- * Extracts image URLs from HTML content
+ * Extracts image and audio media URLs from HTML content (img, a[href]→image files, audio, CSS backgrounds)
  * @param htmlContent - The HTML content string
  * @param baseSiteUrl - Base site URL for resolving relative URLs
- * @returns Array of unique image URLs
+ * @returns Array of unique image and audio URLs
  */
 function extractImageUrlsFromContent(htmlContent: string, baseSiteUrl: string): string[] {
   if (!htmlContent || typeof htmlContent !== 'string') {
@@ -1324,7 +1514,40 @@ function extractImageUrlsFromContent(htmlContent: string, baseSiteUrl: string): 
         });
       }
     });
-    
+
+    // Image URLs linked via <a href="..."> (skip non-image hrefs)
+    $('a[href]').each((_, element) => {
+      const href = $(element).attr('href');
+      if (href && isValidImageUrl(href) && looksLikeImageFileUrl(href)) {
+        const fullUrl = toCheckUrl(href, baseSiteUrl);
+        if (isValidImageUrl(fullUrl) && looksLikeImageFileUrl(fullUrl)) {
+          imageUrls.add(fullUrl);
+        }
+      }
+    });
+
+    // Extract audio src (e.g. core/audio) and nested <source> elements
+    $('audio').each((_, element) => {
+      const src = $(element).attr('src');
+      if (src && isValidImageUrl(src)) {
+        const fullUrl = toCheckUrl(src, baseSiteUrl);
+        if (isValidImageUrl(fullUrl)) {
+          imageUrls.add(fullUrl);
+        }
+      }
+      $(element)
+        .find('source')
+        .each((_, srcEl) => {
+          const s = $(srcEl).attr('src');
+          if (s && isValidImageUrl(s)) {
+            const fullUrl = toCheckUrl(s, baseSiteUrl);
+            if (isValidImageUrl(fullUrl)) {
+              imageUrls.add(fullUrl);
+            }
+          }
+        });
+    });
+
     // Extract background images from style attributes
     $('[style*="background-image"]').each((_, element) => {
       const style = $(element).attr('style');
@@ -1358,9 +1581,9 @@ function extractImageUrlsFromContent(htmlContent: string, baseSiteUrl: string): 
       }
     });
   } catch (error) {
-    console.error('Error extracting image URLs from content:', error);
+    console.error('Error extracting image/audio URLs from content:', error);
   }
-  
+
   return Array.from(imageUrls);
 }
 
