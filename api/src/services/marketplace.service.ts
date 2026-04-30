@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { MIGRATION_DATA_CONFIG, KEYTOREMOVE } from '../constants/index.js';
-import { getAppManifestAndAppConfig } from '../utils/market-app.utils.js';
+import { getAppManifestAndAppConfig, fetchMarketplaceInstallationsForStack } from '../utils/market-app.utils.js';
 import { v4 as uuidv4 } from "uuid";
 import AuthenticationModel from "../models/authentication.js";
 
@@ -54,7 +54,20 @@ const writeManifestFile = async ({ destinationStackId, appManifest }: any) => {
 
 
 
-const createAppManifest = async ({ destinationStackId, region, userId, orgId }: any) => {
+/**
+ * @param destinationStackId – API key folder under cmsMigrationData.
+ * @param marketplaceSourceStackId – stack whose Marketplace installs we read.
+ *   When migrating to a **new** test stack, pass the real destination stack id so apps
+ *   installed there are still exported
+ */
+const createAppManifest = async ({
+  destinationStackId,
+  marketplaceSourceStackId,
+  region,
+  userId,
+  orgId,
+}: any) => {
+  const stackForMarketplaceQuery = marketplaceSourceStackId ?? destinationStackId;
   let authtoken = "";
   await AuthenticationModel.read();
   const userIndex = AuthenticationModel.chain
@@ -71,7 +84,12 @@ const createAppManifest = async ({ destinationStackId, region, userId, orgId }: 
   }else{
     throw new Error("No authentication token found");
   }
-  const marketPlacePath = path.join(MIGRATION_DATA_CONFIG.DATA, destinationStackId, EXTENSIONS_MAPPER_DIR_NAME);
+  const marketPlacePath = path.join(
+    process.cwd(),
+    MIGRATION_DATA_CONFIG?.DATA,
+    destinationStackId,
+    EXTENSIONS_MAPPER_DIR_NAME,
+  );
   const AppMapper: any = await fs.promises.readFile(marketPlacePath, "utf-8").catch(async () => { });
   if (AppMapper !== undefined) {
     const appManifest: any = [];
@@ -131,6 +149,25 @@ const createAppManifest = async ({ destinationStackId, region, userId, orgId }: 
       appManifest?.push(removeKeys(data, KEYTOREMOVE));
     }
     await writeManifestFile({ destinationStackId, appManifest });
+  } else {
+    try {
+      const installs = await fetchMarketplaceInstallationsForStack({
+        organizationUid: orgId,
+        stackUid: stackForMarketplaceQuery,
+        authtoken,
+        region,
+      });
+      if (Array?.isArray(installs) && installs?.length) {
+        const appManifest = installs.map((row: any) => {
+          const cleaned = removeKeys({ ...row }, KEYTOREMOVE);
+          cleaned.target = { type: 'stack', uid: destinationStackId };
+          return cleaned;
+        });
+        await writeManifestFile({ destinationStackId, appManifest });
+      }
+    } catch (e) {
+      console.error('createAppManifest ~ installed marketplace apps (no extension mapper):', e);
+    }
   }
 };
 
