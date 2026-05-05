@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.985.0",
-    "@contentstack/cli-utilities": "^1.17.1",
+    "@contentstack/cli-utilities": "^1.18.3",
     "@typescript-eslint/parser": "^8.56.1",
     "@wordpress/block-library": "^9.39.0",
     "@wordpress/blocks": "^15.12.0",
