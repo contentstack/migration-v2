@@ -388,12 +388,22 @@ const createEntry = async ({
                           ctUid !== gpData?.contentstackFieldUid &&
                           fsc?.contentstackFieldUid?.includes(ctUid)
                         ) {
-                          const newUid: any =
+                          if (fsc?.contentstackFieldUid?.includes('_changed') && gpData?.contentstackFieldUid?.includes('_changed')) {
+                            const newUid: any =
                             fsc?.contentstackFieldUid?.replace(
-                              ctUid,
+                              ctUid + '_changed',
                               gpData?.contentstackFieldUid
                             );
-                          entryObj[newUid] = content;
+                            entryObj[newUid] = content;
+                          }
+                          else{
+                            const newUid: any =
+                            fsc?.contentstackFieldUid?.replace( 
+                              ctUid, 
+                              gpData?.contentstackFieldUid 
+                            );
+                            entryObj[newUid] = content;
+                          }
                         } else {
                           entryObj[fsc?.contentstackFieldUid] = content;
                         }
