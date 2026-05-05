@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const ORG_MISMATCH_GENERIC =
+  'Organization mismatch: the authorized org does not match the Migration Tool SSO configuration.';
+
 const {
   mockGenerateToken,
   mockAuthRead,
@@ -9,6 +12,7 @@ const {
   mockExistsSync,
   mockReadFileSync,
   mockGetAppOrgUid,
+  mockGetAppOrganization,
   mockChainGet,
 } = vi.hoisted(() => {
   const mockFindIndexInner = vi.fn();
@@ -26,6 +30,9 @@ const {
     mockExistsSync: vi.fn(),
     mockReadFileSync: vi.fn(),
     mockGetAppOrgUid: vi.fn(() => 'org-match'),
+    mockGetAppOrganization: vi.fn(() => {
+      throw new Error('App organization metadata unavailable in test');
+    }),
     mockChainGet,
   };
 });
@@ -63,6 +70,7 @@ vi.mock('../../../src/utils/crypto.utils.js', () => ({
 
 vi.mock('../../../src/utils/auth.utils.js', () => ({
   getAppOrganizationUID: () => mockGetAppOrgUid(),
+  getAppOrganization: () => mockGetAppOrganization(),
 }));
 
 import { getAppData, checkSSOAuthStatus } from '../../../src/services/auth.service.js';
@@ -71,6 +79,9 @@ import { authService } from '../../../src/services/auth.service.js';
 describe('auth.service SSO helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetAppOrganization.mockImplementation(() => {
+      throw new Error('App organization metadata unavailable in test');
+    });
     mockAuthRead.mockResolvedValue(undefined);
     mockAuthUpdate.mockImplementation(async (fn: (d: { users: unknown[] }) => void) => {
       fn({ users: [] });
@@ -133,7 +144,56 @@ describe('auth.service SSO helpers', () => {
       });
       await expect(checkSSOAuthStatus('u1')).resolves.toMatchObject({
         authenticated: false,
-        message: 'Organization mismatch',
+        message: ORG_MISMATCH_GENERIC,
+      });
+    });
+
+    it('returns not authenticated with Contentstack org hint when app org name resolves', async () => {
+      mockGetAppOrgUid.mockReturnValueOnce('org-match');
+      mockGetAppOrganization.mockReturnValueOnce({ name: 'Configured Contentstack Org' });
+      mockFindInner.mockReturnValue({
+        user_id: 'u1',
+        access_token: 'tok',
+        organization_uid: 'other-org',
+        region: 'NA',
+        email: 'a@b.com',
+        updated_at: new Date().toISOString(),
+      });
+      await expect(checkSSOAuthStatus('u1')).resolves.toMatchObject({
+        authenticated: false,
+        message:
+          'Organization mismatch: authorize "Configured Contentstack Org" in Contentstack (same org as SSO setup), then try again.',
+      });
+    });
+
+    it('returns not authenticated when organization_uid is missing', async () => {
+      mockFindInner.mockReturnValue({
+        user_id: 'u1',
+        access_token: 'tok',
+        region: 'NA',
+        email: 'a@b.com',
+        updated_at: new Date().toISOString(),
+      });
+      await expect(checkSSOAuthStatus('u1')).resolves.toEqual({
+        authenticated: false,
+        message: 'Organization not linked to user',
+      });
+    });
+
+    it('returns not authenticated when SSO token is older than 10 minutes', async () => {
+      mockGetAppOrgUid.mockReturnValue('org-match');
+      const stale = new Date(Date.now() - 11 * 60 * 1000).toISOString();
+      mockFindInner.mockReturnValue({
+        user_id: 'u1',
+        access_token: 'tok',
+        organization_uid: 'org-match',
+        region: 'NA',
+        email: 'a@b.com',
+        updated_at: stale,
+      });
+      await expect(checkSSOAuthStatus('u1')).resolves.toEqual({
+        authenticated: false,
+        message: 'SSO authentication expired',
       });
     });
 

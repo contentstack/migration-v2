@@ -1097,22 +1097,68 @@ const startMigration = async (req: Request): Promise<any> => {
     let configFilePath: string | null = null;
     let safeDeltaMigrationLogPath: string | undefined;
 
-    const assetsDir = path.join(
-        process.cwd(), MIGRATION_DATA_CONFIG.DATA, project?.destination_stack_id,
-        MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME
+    const safeStackForAssets = sanitizeStackId(project?.destination_stack_id);
+    if (!safeStackForAssets) {
+      console.error(
+        'Invalid destination stack id; cannot load assets index.',
+      );
+      return;
+    }
+    const migrationDataBase = path.resolve(
+      process.cwd(),
+      MIGRATION_DATA_CONFIG.DATA,
     );
-    const indexPath = path.join(assetsDir, MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE);
+    const assetsDir = path.join(
+      migrationDataBase,
+      safeStackForAssets,
+      MIGRATION_DATA_CONFIG.ASSETS_DIR_NAME,
+    );
+    const indexPath = path.join(
+      assetsDir,
+      MIGRATION_DATA_CONFIG.ASSETS_SCHEMA_FILE,
+    );
+
     let indexData: Record<string, any>;
     try {
-        const raw = fs.readFileSync(indexPath, "utf-8");
-        if (!raw?.trim()){
-            console.error(`Assets index.json is empty at ${indexPath}`);
-            return;
-        }
-        indexData = JSON.parse(raw);
-    } catch (error) {
-        console.error(`Failed to parse assets index.json at ${indexPath}:`, error instanceof Error ? error.message : String(error));
+      assertResolvedPathUnderBase(migrationDataBase, indexPath);
+    } catch {
+      console.error(
+        'Assets index path is outside the allowed migration-data directory.',
+      );
+      return;
+    }
+
+    try {
+      const stats = await fsPromises.lstat(indexPath).catch(() => null);
+      if (!stats || stats.isSymbolicLink() || !stats.isFile()) {
+        console.error(
+          `Assets index not found or not a regular file at ${indexPath}`,
+        );
         return;
+      }
+
+      const canonicalIndexPath = await fsPromises.realpath(indexPath);
+      try {
+        assertResolvedPathUnderBase(migrationDataBase, canonicalIndexPath);
+      } catch {
+        console.error(
+          'Assets index resolves outside the allowed migration-data directory.',
+        );
+        return;
+      }
+
+      const raw = await fsPromises.readFile(canonicalIndexPath, 'utf-8');
+      if (!raw?.trim()) {
+        console.error(`Assets index.json is empty at ${indexPath}`);
+        return;
+      }
+      indexData = JSON.parse(raw);
+    } catch (error) {
+      console.error(
+        `Failed to read or parse assets index.json at ${indexPath}:`,
+        error instanceof Error ? error.message : String(error),
+      );
+      return;
     }
 
     saveAssetMetadata(indexData, projectId, iteration, safeDeltaMigrationLogPath);
@@ -1159,7 +1205,7 @@ const startMigration = async (req: Request): Promise<any> => {
         region,
         user_id,
         project?.destination_stack_id,
-        safeDeltaMigrationLogPath,
+        safeDeltaMigrationLogPath || '',
         configFilePath
       );
     }
