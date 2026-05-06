@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const rawManifest = require("./manifest.json");
 const { default: axios } = require("axios");
 const dotenv = require("dotenv");
-const { REGION_CONFIG } = require("./src/constants/index");
+const REGION_CONFIG = require("./src/constants/region-config.json");
 dotenv.config();
 
 const ENCRYPT_KEY = process.env?.MANIFEST_ENCRYPT_KEY;
@@ -25,7 +25,7 @@ function encrypt(plaintext) {
   const authTag = cipher?.getAuthTag()?.toString("hex");
   return `${ENC_PREFIX}${iv?.toString("hex")}:${authTag}:${encrypted}`;
 }
-
+ 
 function decrypt(encryptedValue) {
   if (!encryptedValue || !encryptedValue?.startsWith(ENC_PREFIX)) return encryptedValue;
   if (!ENCRYPT_KEY) throw new Error("MANIFEST_ENCRYPT_KEY env variable is required to decrypt manifest credentials");
@@ -49,8 +49,6 @@ function decryptManifest(m) {
 }
 
 const manifest = decryptManifest(rawManifest);
-
-
 
 /**
  * Gets the current region from the CSDX config.
