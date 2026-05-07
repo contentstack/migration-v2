@@ -74,6 +74,31 @@ describe('market-app.utils', () => {
       });
     });
 
+    it('routes SSO Bearer tokens to the SDK `authorization` option (not `authtoken`)', async () => {
+      // SSO callers historically forward a `Bearer <access_token>` string in
+      // the `authtoken` arg. Routing that into the SDK's `authtoken` option
+      // puts a Bearer value into the wrong HTTP header and Developer Hub
+      // rejects it, which is what caused marketplace-app custom fields to
+      // silently disappear from SSO migrations.
+      mockClient.marketplace.mockReturnValue({
+        findAllApps: vi.fn().mockResolvedValue({ items: [] }),
+      });
+
+      await getAllApps({
+        organizationUid: 'org-123',
+        authtoken: 'Bearer sso-access-token',
+        region: 'NA',
+      });
+
+      expect(marketplaceClient).toHaveBeenCalledWith({
+        authorization: 'Bearer sso-access-token',
+        host: 'developerhub-api.contentstack.com',
+      });
+      expect(marketplaceClient).not.toHaveBeenCalledWith(
+        expect.objectContaining({ authtoken: 'Bearer sso-access-token' }),
+      );
+    });
+
     it('should return undefined and log when error occurs', async () => {
       const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
       mockClient.marketplace.mockReturnValue({
@@ -132,6 +157,26 @@ describe('market-app.utils', () => {
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
+
+    it('routes SSO Bearer tokens to the SDK `authorization` option (not `authtoken`)', async () => {
+      mockClient.marketplace.mockReturnValue({
+        app: vi.fn().mockReturnValue({
+          fetch: vi.fn().mockResolvedValue({ uid: 'manifest-1' }),
+        }),
+      });
+
+      await getAppManifestAndAppConfig({
+        organizationUid: 'org-123',
+        authtoken: 'Bearer sso-access-token',
+        region: 'NA',
+        manifestUid: 'manifest-1',
+      });
+
+      expect(marketplaceClient).toHaveBeenCalledWith({
+        authorization: 'Bearer sso-access-token',
+        host: 'developerhub-api.contentstack.com',
+      });
+    });
   });
 
   describe('fetchMarketplaceInstallationsForStack', () => {
@@ -179,6 +224,25 @@ describe('market-app.utils', () => {
 
       expect(fetchAll).toHaveBeenCalled();
       expect(result).toEqual([matching]);
+    });
+
+    it('routes SSO Bearer tokens to the SDK `authorization` option (not `authtoken`)', async () => {
+      const fetchAll = vi.fn().mockResolvedValue({ items: [] });
+      mockClient.marketplace.mockReturnValue({
+        findAllApps: vi.fn(),
+        app: vi.fn(),
+        installation: vi.fn(() => ({ fetchAll })),
+      });
+
+      await fetchMarketplaceInstallationsForStack({
+        ...baseParams,
+        authtoken: 'Bearer sso-access-token',
+      });
+
+      expect(marketplaceClient).toHaveBeenCalledWith({
+        authorization: 'Bearer sso-access-token',
+        host: 'developerhub-api.contentstack.com',
+      });
     });
 
     it('uses fallback fetchAll() when paginated fetchAll rejects', async () => {
