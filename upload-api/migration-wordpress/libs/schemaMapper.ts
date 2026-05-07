@@ -610,11 +610,9 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             }
 
             if (hasMediaAttr) {
-                const mediaFileUid = `${mediaTextUid}.${getFieldUid('media', affix)}`;
-                const mediatypeUid = `${mediaTextUid}.${getFieldUid('mediatype', affix)}`;
                 mediaTextSchema.push(
                     {
-                        uid: mediaFileUid,
+                        uid: mediaTextUid,
                         otherCmsField: 'media',
                         otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                         contentstackField: `${parentFieldName} > media`,
@@ -625,7 +623,7 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                         advanced: {},
                     },
                     {
-                        uid: mediatypeUid,
+                        uid: mediaTextUid,
                         otherCmsField: 'mediatype',
                         otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                         contentstackField: `${parentFieldName} > mediatype`,
