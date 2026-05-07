@@ -12,7 +12,7 @@ import { getLogMessage } from "../utils/index.js";
 import { v4 as uuidv4 } from "uuid";
 import { orgService } from "./org.service.js";
 import * as cheerio from 'cheerio';
-import { setupWordPressBlocks, stripHtmlTags } from "../utils/wordpressParseUtil.js";
+import { hasMeaningfulHtmlContent, setupWordPressBlocks, stripHtmlTags } from "../utils/wordpressParseUtil.js";
 import { getMimeTypeFromExtension } from "../utils/mimeTypes.js";
 import { MEDIA_BLOCK_NAMES, WORDPRESS_MISSSING_BLOCKS  } from "../constants/index.js";
 
@@ -171,11 +171,156 @@ function unwrapSingleChildGroup(block: any): any {
   return current;
 }
 
+/** core/cover puts the image in attrs — not in innerBlocks; schema maps it to a file field otherCmsField "media". */
+function attachCoverBackgroundMediaToChildren(
+  coverBlock: any,
+  modularChild: any,
+  fields: any[],
+  assetData: any,
+  out: Record<string, any>,
+): void {
+  const url = String(coverBlock?.attrs?.url ?? '').trim();
+  if (coverBlock?.blockName !== 'core/cover' || !url || !modularChild) return;
+
+  const prefix =
+    modularChild?.contentstackFieldUid || getLastUid(modularChild.contentstackUid);
+  const mediaField = fields?.find(
+    (f: any) =>
+      f?.contentstackFieldType === 'file' &&
+      `${f?.contentstackFieldUid || ''}`?.startsWith(`${prefix}.`) &&
+      ((f?.otherCmsField || '')?.toLowerCase() === 'media' ||
+        (f?.otherCmsType || '')?.toLowerCase() === 'media'),
+  );
+  if (!mediaField) return;
+
+  const key = getLastUid(mediaField?.contentstackFieldUid);
+  if (out[key] != null && out[key] !== '') return;
+
+  const asset = formatChildByType(
+    {
+      blockName: 'core/image',
+      attrs: { ...(coverBlock?.attrs || {}), url, src: url },
+      innerHTML: coverBlock?.innerHTML,
+      innerBlocks: [],
+    },
+    mediaField,
+    assetData,
+  );
+  if (asset != null && asset !== '') out[key] = asset;
+}
+
+function firstImgSrcFromInnerHtml(innerHtml?: string): string {
+  if (!innerHtml || typeof innerHtml !== 'string') return '';
+  try {
+    const $ = cheerio.load(innerHtml);
+    return String($('img')?.first()?.attr('src') || '')?.trim();
+  } catch {
+    return '';
+  }
+}
+
+/** core/media-text keeps mediaId / mediaType in attrs and image URL in innerHTML (not innerBlocks). */
+function attachMediaTextFieldsToChildren(
+  mediaTextBlock: any,
+  modularChild: any,
+  fields: any[],
+  assetData: any,
+  out: Record<string, any>,
+): void {
+  if (mediaTextBlock?.blockName !== 'core/media-text' || !modularChild) return;
+
+  const prefix =
+    modularChild?.contentstackFieldUid || getLastUid(modularChild?.contentstackUid);
+  const attrs = mediaTextBlock?.attrs || {};
+
+  const mediaField = fields?.find(
+    (f: any) =>
+      f?.contentstackFieldType === 'file' &&
+      `${f?.contentstackFieldUid || ''}`.startsWith(`${prefix}.`) &&
+      ((f?.otherCmsField || '').toLowerCase() === 'media' ||
+        (f?.otherCmsType || '').toLowerCase() === 'media'),
+  );
+
+  const rawId = attrs?.mediaId ?? attrs?.media_id;
+  const idNum = Number(rawId);
+  const hasPositiveMediaId =
+    rawId != null && rawId !== '' && !Number.isNaN(idNum) && idNum > 0;
+
+  const urlFromAttrs = String(attrs?.url ?? attrs?.src ?? '')?.trim();
+  const urlFromMarkup = firstImgSrcFromInnerHtml(mediaTextBlock?.innerHTML);
+  const resolvedUrl = urlFromAttrs || urlFromMarkup;
+
+  if (mediaField) {
+    const key = getLastUid(mediaField?.contentstackFieldUid);
+    const slotFree = out[key] == null || out[key] === '';
+    const shouldAttach = slotFree && (hasPositiveMediaId || Boolean(resolvedUrl));
+    if (shouldAttach) {
+      const asset = formatChildByType(
+        {
+          blockName: 'core/image',
+          attrs: {
+            ...attrs,
+            id: hasPositiveMediaId ? idNum : attrs?.id,
+            url: resolvedUrl || urlFromAttrs,
+            src: resolvedUrl || urlFromAttrs,
+          },
+          innerHTML: mediaTextBlock?.innerHTML,
+          innerBlocks: [],
+        },
+        mediaField,
+        assetData,
+      );
+      if (asset != null && asset !== '') out[key] = asset;
+    }
+  }
+
+  const mtRaw = attrs?.mediaType;
+  const mt = typeof mtRaw === 'string' ? mtRaw.trim() : mtRaw != null ? String(mtRaw).trim() : '';
+  if (!mt) return;
+
+  const mediatypeField = fields?.find(
+    (f: any) =>
+      (f?.contentstackFieldType === 'single_line_text' ||
+        f?.contentstackFieldType === 'text') &&
+      `${f?.contentstackFieldUid || ''}`.startsWith(`${prefix}.`) &&
+      (f?.otherCmsField || '')?.toLowerCase() === 'mediatype',
+  );
+  if (!mediatypeField) return;
+
+  const mtk = getLastUid(mediatypeField?.contentstackFieldUid);
+  if (out[mtk] != null && out[mtk] !== '') return;
+
+  const textValue = formatChildByType(
+    { blockName: 'core/paragraph', attrs: {}, innerHTML: `<p>${mt}</p>`, innerBlocks: [] },
+    mediatypeField,
+    assetData,
+  );
+  if (textValue != null && textValue !== '') out[mtk] = textValue;
+}
+
 async function createSchema(fields: any, blockJson : any, title: string, uid: string, assetData: any, duplicateBlockMappings?: Record<string, string>) {
   const schema : any = {
     title: title,
     uid: uid,
     //fields: fields?.fields,
+  };
+
+  const cmsFieldMatchesWpBlockName = (
+    otherCmsType: string | undefined,
+    otherCmsField: string | undefined,
+    wpRawName: string | undefined,
+  ): boolean => {
+    const primary = (wpRawName ?? "").toLowerCase();
+    if (!primary) return false;
+    const mapped =
+      duplicateBlockMappings && typeof duplicateBlockMappings[primary] === "string"
+        ? duplicateBlockMappings[primary]?.toLowerCase()
+        : "";
+    const candidates =
+      mapped && mapped !== primary ? [primary, mapped] : [primary];
+    const t = otherCmsType?.toLowerCase() ?? "";
+    const f = otherCmsField?.toLowerCase() ?? "";
+    return candidates?.some((n) => n === t || n === f);
   };
   
   try {
@@ -221,102 +366,172 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
               return  blockName === fieldName 
             });
 
+            let modularMatchFromDuplicateMap = false;
+
             // Fallback: if no direct match, check duplicate block mappings
             if (!matchingModularBlockChild && duplicateBlockMappings) {
-              const mappedName = duplicateBlockMappings[blockName];
-              
+              const blockKeyLc = blockName?.toLowerCase?.() ?? "";
+              const mappedName =
+                duplicateBlockMappings[blockKeyLc] ?? duplicateBlockMappings[blockName];
+
               if (mappedName) {
-                
                 matchingModularBlockChild = modularBlockChildren.find((childField: any) => {
                   const fieldName = childField?.otherCmsField?.toLowerCase();
                   return mappedName === fieldName;
                 });
-                
-                //if (!matchingChildField) {
-                  matchingChildField = fields.find((childField: any) => {
-                    const fieldName = childField?.otherCmsField?.toLowerCase();
-                    const fieldType = childField?.otherCmsType?.toLowerCase();
-                    return (childField?.contentstackFieldType !== 'modular_blocks_child') && (mappedName === fieldName || mappedName === fieldType);
-                  });
-                 
-               // }
+
+                matchingChildField = fields.find((childField: any) => {
+                  const fieldName = childField?.otherCmsField?.toLowerCase();
+                  const fieldType = childField?.otherCmsType?.toLowerCase();
+                  return (
+                    childField?.contentstackFieldType !== "modular_blocks_child" &&
+                    (mappedName === fieldName || mappedName === fieldType)
+                  );
+                });
+                modularMatchFromDuplicateMap = !!(
+                  matchingModularBlockChild && matchingChildField
+                );
               }
             }
-            
+
+            // Duplicate-map + single inner: new modular row; list item lives in mapped field only (does not merge into prior heading).
+            if (
+              modularMatchFromDuplicateMap &&
+              blockForProcessing?.innerBlocks?.length === 1
+            ) {
+              const piece = formatChildByType(
+                unwrapSingleChildGroup(blockForProcessing.innerBlocks[0]),
+                matchingChildField,
+                assetData,
+              );
+              if (piece != null && piece !== "") {
+                const mk = getLastUid(matchingModularBlockChild!.contentstackFieldUid);
+                const fk = getLastUid(matchingChildField!.contentstackFieldUid);
+                modularBlocksArray.push({ [mk]: { [fk]: piece } });
+                continue;
+              }
+            }
+
             //if (matchingChildField) {
-              // Process innerBlocks (children) if they exist
-              if (blockForProcessing?.innerBlocks?.length > 0 && Array.isArray(blockForProcessing?.innerBlocks) && matchingModularBlockChild?.uid) {
+              if (matchingModularBlockChild?.uid) {
                 const childrenObject: Record<string, any> = {};
-            
-                blockForProcessing.innerBlocks.forEach((child: any, childIndex: number) => {
-                  try {
-                    const effectiveChild = unwrapSingleChildGroup(child);
-                    const childBlockName =
-                      getFieldName(resolvedBlockName(effectiveChild))?.toLowerCase() ||
-                      getFieldName(resolvedBlockName(effectiveChild)?.toLowerCase());
-                    // Find the field that matches this inner block
-                    // Look for fields that belong to this modular_blocks_child
-                    const childFieldUid = matchingModularBlockChild?.contentstackFieldUid || getLastUid(matchingModularBlockChild?.contentstackUid);
-                    const childField = fields.find((f: any) => {
-                      const fUid = f?.contentstackFieldUid || '';
-                      const fOtherCmsType = f?.otherCmsType?.toLowerCase();
-                      const fOtherCmsField = f?.otherCmsField?.toLowerCase();
-                      const childKey = getLastUid(f?.contentstackFieldUid);
-                      const alreadyPopulated = childrenObject[childKey] !== undefined && childrenObject[childKey] !== null;
-                      return fUid.startsWith(childFieldUid + '.') &&
-                        (fOtherCmsType === childBlockName || fOtherCmsField === childBlockName) && (!alreadyPopulated || f?.advanced?.multiple === true);
-                    });
-                   
-                    if (childField) {
-                      const childKey = getLastUid(childField?.contentstackFieldUid);
-                      
-                      if (childField?.contentstackFieldType === 'group') {
-                      
-                        // Process group recursively - handles nested structures
-                        const processedGroup = processNestedGroup(effectiveChild, childField, fields);
-                        if (childField?.advanced?.multiple === true && processedGroup) {
-                          if (Array.isArray(childrenObject[childKey])) {
-                            childrenObject[childKey].push(processedGroup);
+                attachCoverBackgroundMediaToChildren(
+                  blockForProcessing,
+                  matchingModularBlockChild,
+                  fields,
+                  assetData,
+                  childrenObject,
+                );
+                attachMediaTextFieldsToChildren(
+                  blockForProcessing,
+                  matchingModularBlockChild,
+                  fields,
+                  assetData,
+                  childrenObject,
+                );
+
+                const inners = blockForProcessing?.innerBlocks;
+                if (Array.isArray(inners) && inners?.length > 0) {
+                  inners.forEach((child: any, childIndex: number) => {
+                    try {
+                      const effectiveChild = unwrapSingleChildGroup(child);
+
+                      const childBlockName =
+                        getFieldName(resolvedBlockName(effectiveChild))?.toLowerCase() ||
+                        getFieldName(resolvedBlockName(effectiveChild)?.toLowerCase());
+                      const childFieldUid =
+                        matchingModularBlockChild?.contentstackFieldUid ||
+                        getLastUid(matchingModularBlockChild?.contentstackUid);
+                      const childField = fields.find((f: any) => {
+                        const fUid = f?.contentstackFieldUid || '';
+                        const fOtherCmsType = f?.otherCmsType?.toLowerCase();
+                        const fOtherCmsField = f?.otherCmsField?.toLowerCase();
+                        const ck = getLastUid(f?.contentstackFieldUid);
+                        const taken = childrenObject[ck] !== undefined && childrenObject[ck] !== null;
+                        return (
+                          fUid.startsWith(childFieldUid + '.') &&
+                          cmsFieldMatchesWpBlockName(
+                            fOtherCmsType,
+                            fOtherCmsField,
+                            childBlockName,
+                          ) &&
+                          (!taken || f?.advanced?.multiple === true)
+                        );
+                      });
+
+                      if (childField) {
+                        const childKey = getLastUid(childField?.contentstackFieldUid);
+
+                        if (childField?.contentstackFieldType === 'group') {
+                          const processedGroup = processNestedGroup(
+                            effectiveChild,
+                            childField,
+                            fields,
+                          );
+                          if (childField?.advanced?.multiple === true && processedGroup) {
+                            if (Array.isArray(childrenObject[childKey])) {
+                              childrenObject[childKey].push(processedGroup);
+                            } else {
+                              childrenObject[childKey] = [processedGroup];
+                            }
                           } else {
-                            childrenObject[childKey] = [processedGroup];
+                            processedGroup && (childrenObject[childKey] = processedGroup);
+                          }
+
+                          const formattedChild = formatChildByType(
+                            effectiveChild,
+                            childField,
+                            assetData,
+                          );
+
+                          if (childField?.advanced?.multiple === true && formattedChild) {
+                            if (Array.isArray(childrenObject[childKey])) {
+                              childrenObject[childKey]?.push(formattedChild);
+                            } else {
+                              childrenObject[childKey] = [formattedChild];
+                            }
+                          } else {
+                            formattedChild && (childrenObject[childKey] = formattedChild);
                           }
                         } else {
-                          processedGroup && (childrenObject[childKey] = processedGroup);
-                        }
-               
-                        const formattedChild = formatChildByType(effectiveChild, childField, assetData);
-                        
-                        if (childField?.advanced?.multiple === true && formattedChild) {
-                          if (Array.isArray(childrenObject[childKey])) {
-                            childrenObject[childKey].push(formattedChild);
+                          const formattedChild = formatChildByType(
+                            effectiveChild,
+                            childField,
+                            assetData,
+                          );
+                          if (childField?.advanced?.multiple === true && formattedChild) {
+                            if (Array.isArray(childrenObject[childKey])) {
+                              childrenObject[childKey]?.push(formattedChild);
+                            } else {
+                              childrenObject[childKey] = [formattedChild];
+                            }
                           } else {
-                            childrenObject[childKey] = [formattedChild];
+                            formattedChild && (childrenObject[childKey] = formattedChild);
                           }
-                        } else {
-                          formattedChild && (childrenObject[childKey] = formattedChild);
                         }
                       }
+                    } catch (childError) {
+                      console.warn(`Error processing child block at index ${childIndex}:`, childError);
                     }
-                  } catch (childError) {
-                    console.warn(`Error processing child block at index ${childIndex}:`, childError);
-                  }
-                });
-                
-                // Add the block to the modular blocks array with the child field's UID as the key
-                if (Object?.keys(childrenObject)?.length > 0) {
-                  modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : childrenObject });
-                } else if (getLastUid(matchingModularBlockChild?.contentstackFieldUid) && matchingChildField) {
-                  // Fallback: inner blocks didn't match child fields (e.g., duplicate-mapped block with different inner block types)
-                 
-                  const formattedBlock = formatChildByType(blockForProcessing, matchingChildField, assetData);
-                  formattedBlock && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : { [getLastUid(matchingChildField?.contentstackFieldUid)]: formattedBlock }});
+                  });
                 }
-              } else if(getLastUid(matchingModularBlockChild?.contentstackFieldUid) && matchingChildField){
-                // Handle blocks with no inner blocks - format the block itself
-      
-                const formattedBlock = formatChildByType(blockForProcessing, matchingChildField, assetData);
-                
-                formattedBlock && modularBlocksArray.push({[getLastUid(matchingModularBlockChild?.contentstackFieldUid)] : { [getLastUid(matchingChildField?.contentstackFieldUid)]: formattedBlock }});
+
+                const modularKey = getLastUid(matchingModularBlockChild?.contentstackFieldUid);
+                if (Object.keys(childrenObject).length > 0) {
+                  modularBlocksArray.push({ [modularKey]: childrenObject });
+                } else if (modularKey && matchingChildField) {
+                  const formattedBlock = formatChildByType(
+                    blockForProcessing,
+                    matchingChildField,
+                    assetData,
+                  );
+                  formattedBlock &&
+                    modularBlocksArray?.push({
+                      [modularKey]: {
+                        [getLastUid(matchingChildField?.contentstackFieldUid)]: formattedBlock,
+                      },
+                    });
+                }
               }
             //}
           } catch (blockError) {
@@ -528,8 +743,9 @@ function formatChildByType(child: any, field: any, assetData: any) {
                   ? child?.innerHTML
                   : child;
               }
-              const hasMeaningfulHtml = stripHtmlTags(htmlContent)?.trim()?.length > 0;
-              // Only set when there is text; do not assign `undefined` (avoids false from `a && fn()` in multi-RTE).
+              const hasMeaningfulHtml = hasMeaningfulHtmlContent(htmlContent);
+
+              // Only set when there is visible text or media/embeds; do not assign `undefined` (avoids false from `a && fn()` in multi-RTE).
               if (hasMeaningfulHtml) {
                 formatted = RteJsonConverter(htmlContent);
               }
@@ -580,7 +796,8 @@ function formatChildByType(child: any, field: any, assetData: any) {
             case 'file': {
               // Extract media URL from innerHTML: img (core/image) or audio/source (core/audio)
               let fileName = '';
-              let imgUrl = child?.attrs?.src;
+              let imgUrl = child?.attrs?.src ?? child?.attrs?.url;
+              let id = child?.attrs?.id;
 
               const innerHtml = child?.innerHTML;
               if (innerHtml && typeof innerHtml === 'string') {
@@ -632,7 +849,8 @@ function formatChildByType(child: any, field: any, assetData: any) {
                 const urlParts = imgUrl.split('/');
                 fileName = urlParts[urlParts.length - 1].split('?')[0];
               }
-              const asset = assetData[fileName?.replace(/-/g, '_')?.toLowerCase()];
+
+              const asset = assetData[`assets_${id}`] || assetData[fileName?.replace(/-/g, '_')?.toLowerCase()];
               formatted = asset;
               break;
             }
@@ -782,24 +1000,6 @@ async function saveEntry(fields: any, entry: any,  file_path: string, assetData 
           const contentEncoded = $(xmlItem)?.find("content\\:encoded")?.text() || '';
           const blocksJson = await setupWordPressBlocks(contentEncoded);
 
-          try {
-            const blocksDir = path.join(
-              MIGRATION_DATA_CONFIG.DATA,
-              destinationStackId,
-              MIGRATION_DATA_CONFIG.WORDPRESS_BLOCKS_DIR_NAME
-            );
-            await fs.promises.mkdir(blocksDir, { recursive: true });
-            await writeFileAsync(path.join(blocksDir, `${uid}.json`), blocksJson, 4);
-          } catch (writeErr) {
-            customLogger(
-              project?.id,
-              destinationStackId,
-              'warn',
-              `Failed to write wordpress blocks JSON for ${uid}: ${
-                writeErr instanceof Error ? writeErr.message : String(writeErr)
-              }`
-            );
-          }
 
           customLogger(project?.id, destinationStackId,'info', `Processed blocks for entry ${uid}`);
 
@@ -1615,7 +1815,7 @@ async function saveAssetFromUrl(
   // Use customId as filename to ensure uniqueness, preserve extension
   const filename = `${customId}${fileExtension}`;
   
-  const assetPath = path.resolve(assetsSave, "files",customId, filename);
+  const assetPath = path.resolve(assetsSave, "files", customId);
   
   // Check if asset already exists
   if (fs.existsSync(assetPath)) {
@@ -1632,14 +1832,14 @@ async function saveAssetFromUrl(
     });
     
     // Ensure files directory exists
-    fs.mkdirSync(
+    await fs.promises.mkdir(
       path.resolve(assetsSave, "files", customId),
       { recursive: true }
     );
     
-    fs.writeFileSync(assetPath, response.data);
+    await fs.promises.writeFile(path.resolve(assetsSave, "files", customId, filename), response.data);
     
-    const stats = fs.lstatSync(assetPath);
+    const stats = fs.lstatSync(path.resolve(assetsSave, "files", customId, filename));
     const acc: any = {};
     const key = customId;
     
