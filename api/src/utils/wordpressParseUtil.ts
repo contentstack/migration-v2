@@ -152,7 +152,7 @@ export const hasMeaningfulHtmlContent = (
   if (!htmlString || typeof htmlString !== 'string' || !htmlString.trim()) {
     return false;
   }
-  if (stripHtmlTags(htmlString).length > 0) {
+  if (stripHtmlTags(htmlString)?.length > 0) {
     return true;
   }
   try {

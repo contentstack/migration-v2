@@ -1837,7 +1837,7 @@ async function saveAssetFromUrl(
       { recursive: true }
     );
     
-    await fs.promises.writeFile(path.resolve(assetsSave, "files", customId, filename), response.data);
+    await fs.promises.writeFile(path.resolve(assetsSave, "files", customId, filename), response?.data);
     
     const stats = fs.lstatSync(path.resolve(assetsSave, "files", customId, filename));
     const acc: any = {};
