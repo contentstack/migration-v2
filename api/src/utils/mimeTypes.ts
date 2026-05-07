@@ -37,7 +37,7 @@ export const EXT_TO_MIME_MAP: Record<string, string> = {
  * Return the MIME type for a given file extension, or `undefined` if unknown.
  */
 export function getMimeTypeFromExtension(ext: string): string | undefined {
-  return EXT_TO_MIME_MAP[ext.toLowerCase()];
+  return EXT_TO_MIME_MAP[ext?.toLowerCase()];
 }
 
 export default EXT_TO_MIME_MAP;
