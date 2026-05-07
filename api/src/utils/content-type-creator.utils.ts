@@ -179,7 +179,14 @@ function buildFieldSchema(item: any, marketPlacePath: string, parentUid = '', ke
       if (blockItem?.contentstackFieldType !== 'modular_blocks_child') continue;
 
       const blockRawUid = getCleanUid(blockItem?.contentstackField);
-      const blockUid = toSnakeCase(getCleanUid(blockItem?.contentstackFieldUid || blockItem?.uid));  // Apply snake_case
+      // Use `uidCorrector` (not `toSnakeCase`) for child block UIDs so we preserve
+      // digit-prefixed UIDs that may already exist on the destination
+      // content type. `toSnakeCase` strips leading non-letters
+      // which causes the merge step to miss the destination block and produce a
+      // duplicate child block instead of merging schemas into the existing one.
+      const blockUid = uidCorrector({
+        uid: getCleanUid(blockItem?.contentstackFieldUid || blockItem?.uid),
+      });
       const blockSchema: any[] = [];
 
       const blockElements = blockItem?.schema || [];
@@ -1297,6 +1304,26 @@ function findTargetModularBlocksField(field: any, targetSchema: any[]): any | un
 }
 
 /**
+ * Find a source modular-blocks child that should merge with the destination block.
+ * Primary match is by uid; falls back to title (case-insensitive) so blocks whose
+ * uids diverged due to sanitization still merge instead of
+ * producing a duplicate child block.
+ */
+function findMatchingSourceBlock(sourceBlocks: any[], targetBlock: any): any | undefined {
+  if (!Array?.isArray(sourceBlocks) || !targetBlock) return undefined;
+
+  const byUid = sourceBlocks.find((b: any) => b?.uid && b?.uid === targetBlock?.uid);
+  if (byUid) return byUid;
+
+  const targetTitle = (targetBlock?.title ?? '').toString().trim().toLowerCase();
+  if (!targetTitle) return undefined;
+
+  return sourceBlocks.find(
+    (b: any) => (b?.title ?? '').toString().trim().toLowerCase() === targetTitle,
+  );
+}
+
+/**
  * Merge modular blocks preserving destination block order and UIDs:
  * 1. Walk destination blocks — merge matching source blocks, clone unmapped ones.
  * 2. Append source-only blocks (uids not on destination) at the end.
@@ -1307,10 +1334,10 @@ function mergeModularBlocksFieldFromDestination(field: any, targetMB: any) {
   if (!targetBlocks.length) return;
 
   const resultBlocks: any[] = [];
-  const matchedSourceUids = new Set<string>();
+  const matchedSourceIdentifiers = new Set<string>();
 
   for (const tb of targetBlocks) {
-    const sb = sourceBlocks.find((b: any) => b?.uid === tb?.uid);
+    const sb = findMatchingSourceBlock(sourceBlocks, tb);
     if (sb) {
       const tSch = tb?.schema ?? [];
       const additional = tSch.filter(
@@ -1325,15 +1352,30 @@ function mergeModularBlocksFieldFromDestination(field: any, targetMB: any) {
         ...additional.map((f: any) => cloneSchemaBranch(f)),
       ]);
       mergeSchemaFields(sb?.schema ?? [], tSch);
+
+      // Align uid/title with destination so the merged block updates the existing
+      // destination block instead of creating a divergent one when uids differ.
+      if (tb?.uid) sb.uid = tb?.uid;
+      if (tb?.title) sb.title = tb?.title;
+
       resultBlocks.push(sb);
-      if (sb?.uid) matchedSourceUids.add(sb?.uid);
+      if (sb?.uid) matchedSourceIdentifiers.add(`uid:${sb?.uid}`);
+      const matchedTitle = (sb?.title ?? '').toString().trim().toLowerCase();
+      if (matchedTitle) matchedSourceIdentifiers.add(`title:${matchedTitle}`);
     } else {
       resultBlocks.push(cloneSchemaBranch(tb));
     }
   }
 
   for (const sb of sourceBlocks) {
-    if (sb?.uid && !matchedSourceUids.has(sb?.uid)) {
+    const sbUidKey = sb?.uid ? `uid:${sb?.uid}` : '';
+    const sbTitleKey = sb?.title
+      ? `title:${(sb?.title as string).toString().trim().toLowerCase()}`
+      : '';
+    const alreadyMatched =
+      (sbUidKey && matchedSourceIdentifiers.has(sbUidKey)) ||
+      (sbTitleKey && matchedSourceIdentifiers.has(sbTitleKey));
+    if (!alreadyMatched && sb?.uid && sb?.title) {
       resultBlocks.push(sb);
     }
   }
