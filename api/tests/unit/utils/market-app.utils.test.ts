@@ -369,6 +369,25 @@ describe('market-app.utils', () => {
       expect(result).toEqual([matching]);
     });
 
+    it('routes SSO Bearer tokens to the SDK `authorization` option (not `authtoken`)', async () => {
+      const fetchAll = vi.fn().mockResolvedValue({ items: [] });
+      mockClient.marketplace.mockReturnValue({
+        findAllApps: vi.fn(),
+        app: vi.fn(),
+        installation: vi.fn(() => ({ fetchAll })),
+      });
+
+      await fetchMarketplaceInstallationsForStack({
+        ...baseParams,
+        authtoken: 'Bearer sso-access-token',
+      });
+
+      expect(marketplaceClient).toHaveBeenCalledWith({
+        authorization: 'Bearer sso-access-token',
+        host: 'developerhub-api.contentstack.com',
+      });
+    });
+
     it('uses fallback fetchAll() when paginated fetchAll rejects', async () => {
       const item = {
         uid: 'ins-fb',
