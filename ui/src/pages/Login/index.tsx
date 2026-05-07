@@ -15,6 +15,7 @@ import {
   Icon
 } from '@contentstack/venus-components';
 import { Field as FinalField, Form as FinalForm } from 'react-final-form';
+import { toast as toastify } from 'react-toastify';
 
 // Utilities
 import {
@@ -45,6 +46,24 @@ const SSO_SUCCESS_REDIRECT_MS = 2800;
 /** Must match oauth-callback-html `OAUTH_CALLBACK_POSTMESSAGE_SOURCE` in the API. */
 const SSO_OAUTH_POSTMESSAGE_SOURCE = 'cs-migration-oauth-callback';
 
+/**
+ * Stable id for the SSO "select this organization" warning toast so we can
+ * dismiss it explicitly when the SSO flow ends (success / cancel / error /
+ * unmount) instead of leaving it stuck on screen.
+ */
+const SSO_ORG_INSTRUCTION_NOTIFICATION_ID = 'sso-org-instruction';
+
+/** Safety auto-close for the SSO org instruction toast (ms). */
+const SSO_ORG_INSTRUCTION_AUTO_CLOSE_MS = 5000;
+
+const dismissSsoOrgInstruction = () => {
+  try {
+    toastify.dismiss(SSO_ORG_INSTRUCTION_NOTIFICATION_ID);
+  } catch {
+    /* no-op: dismissing a missing/already-closed toast must not throw */
+  }
+};
+
 const isOrgMismatchSsoMessage = (message: string) =>
   message.includes('Organization mismatch');
 
@@ -64,6 +83,10 @@ const Login: FC<IProps> = () => {
       clearTimeout(ssoPollTimerRef.current);
       ssoPollTimerRef.current = null;
     }
+    // The org-instruction toast is only relevant while the SSO flow is in
+    // progress. Whenever the flow ends (success, cancel, error, timeout) we
+    // funnel through cancelSsoPoll, so dismiss the toast here too.
+    dismissSsoOrgInstruction();
   };
 
   const fetchData = async () => {
@@ -84,6 +107,9 @@ const Login: FC<IProps> = () => {
       if (ssoSuccessRedirectTimerRef.current) {
         clearTimeout(ssoSuccessRedirectTimerRef.current);
       }
+      // Don't leave the SSO org-instruction toast stranded if the user
+      // navigates away mid-flow.
+      dismissSsoOrgInstruction();
     };
   }, []);
 
@@ -341,15 +367,17 @@ const Login: FC<IProps> = () => {
           }
 
           if (appConfig?.organization?.name) {
+            dismissSsoOrgInstruction();
             Notification({
+              notificationId: SSO_ORG_INSTRUCTION_NOTIFICATION_ID,
               notificationContent: {
-                text: `In Contentstack, select organization "${appConfig.organization.name}" when you install or authorize this app. Choosing a different organization will cause SSO to fail.`,
+                text: `In Contentstack, select organization "${appConfig?.organization?.name}" when you install or authorize this app. Choosing a different organization will cause SSO to fail.`,
               },
               type: 'warning',
               notificationProps: {
                 hideProgressBar: true,
                 position: 'bottom-center',
-                autoClose: false,
+                autoClose: SSO_ORG_INSTRUCTION_AUTO_CLOSE_MS,
               },
             });
           }
@@ -361,6 +389,7 @@ const Login: FC<IProps> = () => {
           if (appConfig?.user?.uid) {
             startSSOPolling(appConfig?.user?.uid, ssoWindow);
           } else {
+            dismissSsoOrgInstruction();
             failureNotification('Missing user information in SSO configuration');
             setIsLoading(false);
           }
