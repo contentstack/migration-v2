@@ -26,9 +26,10 @@ describe('createWordpressMapper', () => {
   it('should extract content types and send mapper to API', async () => {
     mockExtractLocale.mockResolvedValue(['en']);
     mockExtractContentTypes.mockResolvedValue([{ uid: 'post', title: 'Post' }]);
+    // localeMapper runs first; createDummyData second—order must match controller
     mockAxiosRequest
-      .mockResolvedValueOnce({ data: { data: { content_mapper: [1] } } })
-      .mockResolvedValueOnce({ status: 200 });
+      .mockResolvedValueOnce({ status: 200, data: {} })
+      .mockResolvedValueOnce({ data: { data: { content_mapper: [1] } } });
 
     await createWordpressMapper('/path', 'proj-1', 'token', 'csm', {});
 
@@ -42,7 +43,9 @@ describe('createWordpressMapper', () => {
     mockExtractContentTypes.mockResolvedValue(null);
 
     await createWordpressMapper('/path', 'proj-1', 'token', 'csm', {});
-    expect(mockAxiosRequest).not.toHaveBeenCalled();
+    // Locale mapper is always POSTed; content-type mapper is skipped when extract returns falsy
+    expect(mockAxiosRequest).toHaveBeenCalledTimes(1);
+    expect(mockAxiosRequest.mock.calls[0][0].url).toContain('localeMapper');
   });
 
   it('should handle error gracefully', async () => {
@@ -61,12 +64,14 @@ describe('createWordpressMapper', () => {
     mockExtractLocale.mockResolvedValue(['en']);
     mockExtractContentTypes.mockResolvedValue([{ uid: 'post' }, { uid: 'page' }]);
     mockAxiosRequest
-      .mockResolvedValueOnce({ data: { data: { content_mapper: [1] } } })
-      .mockResolvedValueOnce({ status: 200 });
+      .mockResolvedValueOnce({ status: 200, data: {} })
+      .mockResolvedValueOnce({ data: { data: { content_mapper: [1] } } });
 
     await createWordpressMapper('/path', 'proj-1', 'token', 'csm', {});
 
-    const payload = JSON.parse(mockAxiosRequest.mock.calls[0][0].data);
+    const contentTypeRequest = mockAxiosRequest.mock.calls[1][0];
+    expect(contentTypeRequest.url).toContain('createDummyData');
+    const payload = JSON.parse(contentTypeRequest.data as string);
     expect(payload.contentTypes[0].type).toBe('content_type');
     expect(payload.contentTypes[1].type).toBe('content_type');
   });
