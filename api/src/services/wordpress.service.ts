@@ -1125,8 +1125,11 @@ async function createEntry(file_path: string, packagePath: string, destinationSt
       await fs.promises.mkdir(postFolderPath, { recursive: true });
     }
     const contentTypeUid = contentType?.contentstackTitle?.toLowerCase();
-    const entry = entries?.filter((entry: any) => {
-      return entry?.['wp:post_type']?.toLowerCase() === contentTypeUid;
+    const statusArray = ["publish", "inherit"];
+    const entry = entries?.filter((data: any) => {
+      const matchesType = data?.["wp:post_type"]?.toLowerCase() === contentTypeUid;
+      const matchesStatus = statusArray.includes(data?.["wp:status"]);
+      return matchesType && matchesStatus;
     });
 
       const content = await saveEntry(contentType?.fieldMapping, entry,file_path, assetData, allCategories, master_locale, destinationStackId, project, allTerms, contentType?.duplicateBlockMappings) || {};
