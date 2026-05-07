@@ -25,6 +25,27 @@ const createContentfulMapper = async (
     const cleanLocalPath = localPath?.replace?.(/\/$/, '');
     const fetchedLocales: [] = await extractLocale(cleanLocalPath);
 
+    const mapperConfig = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
+      headers: {
+        app_token,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        locale: Array.from(fetchedLocales)
+      }
+    };
+
+    const mapRes = await axios.request(mapperConfig);
+    if (mapRes?.status == 200) {
+      logger.info('Legacy CMS', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.LOCALE_SAVED
+      });
+    }
+    
     await extractContentTypes(cleanLocalPath, affix);
     const initialMapper = await createInitialMapper(cleanLocalPath, affix);
     // Must run after createInitialMapper: that step deletes contentfulMigrationData (contentfulSchema) and would remove taxonomy files written earlier.
@@ -67,26 +88,6 @@ const createContentfulMapper = async (
       });
     }
 
-    const mapperConfig = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
-      headers: {
-        app_token,
-        'Content-Type': 'application/json'
-      },
-      data: {
-        locale: Array.from(fetchedLocales)
-      }
-    };
-
-    const mapRes = await axios.request(mapperConfig);
-    if (mapRes?.status == 200) {
-      logger.info('Legacy CMS', {
-        status: HTTP_CODES?.OK,
-        message: HTTP_TEXTS?.LOCALE_SAVED
-      });
-    }
   } catch (err: any) {
     console.error('🚀 ~ createContentfulMapper ~ err:', err?.response?.data ?? err);
     logger.warn('Validation error:', {
