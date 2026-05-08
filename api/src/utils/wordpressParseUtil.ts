@@ -126,3 +126,44 @@ export const stripHtmlTags = (htmlString: string | null | undefined): string => 
     return htmlString.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
   }
 };
+
+const MEDIA_AND_EMBED_SELECTOR = [
+  'img[src]',
+  'img[data-src]',
+  'img[srcset]',
+  'picture',
+  'video',
+  'audio',
+  'iframe[src]',
+  'iframe[srcdoc]',
+  'embed[src]',
+  'object[data]',
+  'canvas',
+  'svg',
+].join(', ');
+
+/**
+ * True when HTML has visible text, or substantive non-text markup (media, embeds, etc.).
+ * Pure whitespace / empty paragraphs / br-only crumbs are treated as empty.
+ */
+export const hasMeaningfulHtmlContent = (
+  htmlString: string | null | undefined,
+): boolean => {
+  if (!htmlString || typeof htmlString !== 'string' || !htmlString.trim()) {
+    return false;
+  }
+  if (stripHtmlTags(htmlString)?.length > 0) {
+    return true;
+  }
+  try {
+    ensureDomGlobals();
+    const doc = (global as any).document;
+    const tempDiv = doc.createElement('div');
+    tempDiv.innerHTML = htmlString;
+    return tempDiv.querySelector(MEDIA_AND_EMBED_SELECTOR) !== null;
+  } catch {
+    return /<(img|picture|video|audio|iframe|embed|object|canvas|svg)\b/i.test(
+      htmlString,
+    );
+  }
+};

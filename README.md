@@ -19,6 +19,19 @@ Check for readme.md files and install dependencies for folders
 
 This is the migration V2's node server.
 
+### Installation
+
+1. Navigate to the project directory:
+
+   ```sh
+   cd api
+   ```
+
+2. Install the dependencies:
+   ```sh
+   npm install
+   ```
+
 ### Environment Variables
 
 The following environment variables are used in this project:
@@ -26,14 +39,18 @@ The following environment variables are used in this project:
 - `APP_TOKEN_KEY`: The token key for the application. Default is `MIGRATION_V2`.
 - `PORT`: The port number on which the application runs. Default is `5001`.
 
-Make sure to set these variables in a `.env` file at the root of your project.
+Make sure to set these variables in a `.env` file at the root of your api project.
 
 1. To run the development server, create a `./development.env` file and add environment variables as per `./example.env`
 2. To run the production server, create a `./production.env` file and add environment variables as per `./example.env`
 
 ### To start the server
 
-Run `npm run dev`
+Run :
+
+```sh
+`npm run dev`
+```
 
 ## Migration UI
 
@@ -105,7 +122,7 @@ The migration-v2 upload-api project is designed to facilitate the migration of d
 Navigate to the project directory:
 
 ```
-cd migration-v2/upload-api
+cd upload-api
 ```
 
 Install dependencies:
@@ -121,7 +138,7 @@ The following environment variables are used in this project:
 - `PORT`: The port number on which the application runs. Default is `4002`.
 - `NODE_BACKEND_API`: The backend API endpoint. Default is `http://localhost:5001`.
 
-Make sure to set these variables in a `.env` file at the root of your project.
+Make sure to set these variables in a `.env` file at the root of your upload-api project.
 
 ### Configuration
 
@@ -154,6 +171,14 @@ The following configuration is used in this project:
 - `npm run env`: Starts the main server by running npm start.
 - `npm run postinstall`: Installs dependencies for the api, ui, and upload-api directories.
 - `npm test`: Displays an error message indicating that no tests are specified.
+
+### Usage
+
+Start the development server:
+
+```sh
+npm start
+```
 
 ## Repository
 

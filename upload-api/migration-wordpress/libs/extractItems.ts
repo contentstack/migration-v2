@@ -44,7 +44,9 @@ function shouldSkipCrossBlockDedupe(
   const b = (newOtherCmsField || '').toLowerCase();
   return (
     (a === 'cover' && b === 'paragraph') ||
-    (a === 'paragraph' && b === 'cover')
+    (a === 'paragraph' && b === 'cover') ||
+    (a === 'media-text' && b === 'paragraph') ||
+    (a === 'paragraph' && b === 'media-text')
   );
 }
 
@@ -71,8 +73,8 @@ function isSameStructure(obj1: any, obj2: any): boolean {
   const n1 = obj1?.name;
   const n2 = obj2?.name;
   if (
-    (n1 === 'core/cover' && n2 === 'core/paragraph') ||
-    (n1 === 'core/paragraph' && n2 === 'core/cover')
+    ((n1 === 'core/cover' || n1 === 'core/media-text') && n2 === 'core/paragraph') ||
+    (n1 === 'core/paragraph' && (n2 === 'core/cover' || n2 === 'core/media-text'))
   ) {
     return false;
   }
@@ -237,10 +239,10 @@ function getLastUid(uid : string) {
   return uid?.split?.('.')?.[uid?.split?.('.')?.length - 1];
 }
 
-/** Passed to schemaMapper — must be the block itself when switch cases use processInnerBlocks(inner block). If we only pass innerBlocks, parent cases (e.g. core/cover) never run. */
+/** Passed to schemaMapper — must be the block itself when switch cases use processInnerBlocks(inner block). If we only pass innerBlocks, parent cases (e.g. core/cover, core/media-text) never run. */
 function rootBlockForSchemaMapper(field: any) {
   if (!field?.innerBlocks?.length) return field;
-  if (field?.name === 'core/cover') return field;
+  if (field?.name === 'core/cover' || field?.name === 'core/media-text') return field;
   return field.innerBlocks;
 }
 
