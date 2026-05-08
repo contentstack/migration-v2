@@ -38,7 +38,7 @@ describe('createWordpressMapper', () => {
     expect(mockDeleteFolderSync).toHaveBeenCalled();
   });
 
-  it('should not send mapper when contentTypeData is falsy', async () => {
+  it('should only send localeMapper when contentTypeData is falsy', async () => {
     mockExtractLocale.mockResolvedValue([]);
     mockExtractContentTypes.mockResolvedValue(null);
 
