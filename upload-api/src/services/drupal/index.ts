@@ -24,8 +24,35 @@ const createDrupalMapper = async (
 
     const localeData = await extractLocale(config);
 
+     // 🔧 CRITICAL: Always normalize to lowercase before saving
+     const localeArray = Array.from(localeData).map((locale: any) => {
+      const localeValue = typeof locale === 'string' ? locale : (locale?.code || locale?.value || locale);
+      return (localeValue || '').toLowerCase();
+    }).filter((locale: string) => locale && locale.length > 0);
+
+    const mapperConfig = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
+      headers: {
+        app_token,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        locale: localeArray
+      }
+    };
+
+    const mapRes = await axios.request(mapperConfig);
+    if (mapRes?.status == 200) {
+      logger.info('Legacy CMS', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.LOCALE_SAVED
+      });
+    }
+
     // Extract taxonomy vocabularies and save to drupalMigrationData
-    await extractTaxonomy(config.mysql);
+    await extractTaxonomy(config?.mysql);
 
     const initialMapper = await createInitialMapper(config, affix);
 
@@ -79,32 +106,6 @@ const createDrupalMapper = async (
       });
     }
 
-    // 🔧 CRITICAL: Always normalize to lowercase before saving
-    const localeArray = Array.from(localeData).map((locale: any) => {
-      const localeValue = typeof locale === 'string' ? locale : (locale?.code || locale?.value || locale);
-      return (localeValue || '').toLowerCase();
-    }).filter((locale: string) => locale && locale.length > 0);
-
-    const mapperConfig = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
-      headers: {
-        app_token,
-        'Content-Type': 'application/json'
-      },
-      data: {
-        locale: localeArray
-      }
-    };
-
-    const mapRes = await axios.request(mapperConfig);
-    if (mapRes?.status == 200) {
-      logger.info('Legacy CMS', {
-        status: HTTP_CODES?.OK,
-        message: HTTP_TEXTS?.LOCALE_SAVED
-      });
-    }
   } catch (err: any) {
     logger.warn('Validation error:', {
       status: HTTP_CODES?.UNAUTHORIZED,
