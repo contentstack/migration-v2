@@ -52,7 +52,7 @@ const createDrupalMapper = async (
     }
 
     // Extract taxonomy vocabularies and save to drupalMigrationData
-    await extractTaxonomy(config.mysql);
+    await extractTaxonomy(config?.mysql);
 
     const initialMapper = await createInitialMapper(config, affix);
 
