@@ -46,8 +46,10 @@ Make sure to set these variables in a `.env` file at the root of your api projec
 
 ### To start the server
 
+Run :
+
 ```sh
-Run `npm run dev`
+`npm run dev`
 ```
 
 ## Migration UI
