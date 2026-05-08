@@ -753,7 +753,13 @@ function formatChildByType(child: any, field: any, assetData: any) {
             }
 
             case 'html':
-              formatted = child?.blockName ? formatted ?? child?.innerHTML : `<p>${child}</p>`;
+              const htmlContent = child?.blockName ? (formatted ?? child?.innerHTML) : `<p>${child?.innerHTML}</p>`;
+              const hasMeaningfulHtml = hasMeaningfulHtmlContent(htmlContent);
+         
+              if(hasMeaningfulHtml){
+                formatted = htmlContent
+              }
+              
               break;
 
             case 'link': {
