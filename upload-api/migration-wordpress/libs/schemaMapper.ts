@@ -593,7 +593,59 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             }
            
         }
-        
+
+        case 'core/media-text': {
+            const mediaTextSchema: Field[] = [];
+            const mediaTextUid = parentUid ? `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}` : getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix);
+            const innerBlocks =
+                key?.innerBlocks && key?.innerBlocks?.length > 0
+                    ? await processInnerBlocks(key, parentUid, parentFieldName, affix)
+                    : [];
+            const mediaId = key?.attributes?.mediaId;
+            const hasMediaAttr =
+                mediaId != null && mediaId !== '' && Number(mediaId) > 0;
+
+            if (!hasMediaAttr && innerBlocks?.length === 0) {
+                return [];
+            }
+
+            if (hasMediaAttr) {
+                mediaTextSchema.push(
+                    {
+                        uid: mediaTextUid,
+                        otherCmsField: 'media',
+                        otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+                        contentstackField: `${parentFieldName} > media`,
+                        contentstackFieldUid: mediaTextUid,
+                        contentstackFieldType: 'file',
+                        backupFieldType: 'file',
+                        backupFieldUid: mediaTextUid,
+                        advanced: {},
+                    },
+                    {
+                        uid: mediaTextUid,
+                        otherCmsField: 'mediatype',
+                        otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
+                        contentstackField: `${parentFieldName} > mediatype`,
+                        contentstackFieldUid: mediaTextUid,
+                        contentstackFieldType: 'single_line_text',
+                        backupFieldType: 'single_line_text',
+                        backupFieldUid: mediaTextUid,
+                        advanced: {},
+                    }
+                );
+            }
+            innerBlocks?.forEach((schemaObj) => {
+                if (schemaObj) {
+                    if (Array.isArray(schemaObj)) {
+                        mediaTextSchema.push(...schemaObj);
+                    } else {
+                        mediaTextSchema.push(schemaObj);
+                    }
+                }
+            });
+            return mediaTextSchema;
+        }
 
     }
     return [];

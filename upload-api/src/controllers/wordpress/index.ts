@@ -12,9 +12,30 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
   try {
     const localeData = await extractLocale(filePath);
 
+    const mapperConfig = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
+      headers: {
+        app_token,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        locale:Array.from(localeData)
+      },
+    };
+
+    const mapRes = await axios.request(mapperConfig)
+    if(mapRes?.status==200){
+      logger.info('Legacy CMS', {
+        status: HTTP_CODES?.OK,
+        message: HTTP_TEXTS?.LOCALE_SAVED,
+      });
+    }
+
     const contentTypeData : any = await extractContentTypes(affix as string, filePath, config);
     //const contentTypeData = await contentTypeMaker(affix, filePath)
-    
+
     if(contentTypeData){
       const fieldMapping: any = { contentTypes: [], extractPath: filePath };
       contentTypeData.forEach((contentType: any) => {
@@ -22,7 +43,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
         jsonfileContent.type = "content_type";
         fieldMapping?.contentTypes?.push(jsonfileContent);
       })
-    
+
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
@@ -40,29 +61,7 @@ const createWordpressMapper = async (filePath: string = "", projectId: string | 
           status: HTTP_CODES?.OK,
           message: HTTP_TEXTS?.MAPPER_SAVED
         });
-       
-      }
 
-
-      const mapperConfig = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${process.env.NODE_BACKEND_API}/v2/migration/localeMapper/${projectId}`,
-        headers: {
-          app_token,
-          'Content-Type': 'application/json'
-        },
-        data: {
-          locale:Array.from(localeData)
-        },
-      };
-
-      const mapRes = await axios.request(mapperConfig)
-      if(mapRes?.status==200){
-        logger.info('Legacy CMS', {
-          status: HTTP_CODES?.OK,
-          message: HTTP_TEXTS?.LOCALE_SAVED,
-        });
       }
     }
   } catch (err: any) {
