@@ -612,25 +612,25 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
             if (hasMediaAttr) {
                 mediaTextSchema.push(
                     {
-                        uid: mediaTextUid,
+                        uid: parentUid ? `${parentUid}.media` : 'media',
                         otherCmsField: 'media',
                         otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                         contentstackField: `${parentFieldName} > media`,
-                        contentstackFieldUid: mediaTextUid,
+                        contentstackFieldUid: parentUid ? `${parentUid}.media` : 'media',
                         contentstackFieldType: 'file',
                         backupFieldType: 'file',
-                        backupFieldUid: mediaTextUid,
+                        backupFieldUid: parentUid ? `${parentUid}.media` : 'media',
                         advanced: {},
                     },
                     {
-                        uid: mediaTextUid,
+                        uid: parentUid ? `${parentUid}.mediatype` : 'mediatype',
                         otherCmsField: 'mediatype',
                         otherCmsType: getFieldName(key?.attributes?.metadata?.name ?? key?.name),
                         contentstackField: `${parentFieldName} > mediatype`,
-                        contentstackFieldUid: mediaTextUid,
+                        contentstackFieldUid: parentUid ? `${parentUid}.mediatype` : 'mediatype',
                         contentstackFieldType: 'single_line_text',
                         backupFieldType: 'single_line_text',
-                        backupFieldUid: mediaTextUid,
+                        backupFieldUid: parentUid ? `${parentUid}.mediatype` : 'mediatype',
                         advanced: {},
                     }
                 );
