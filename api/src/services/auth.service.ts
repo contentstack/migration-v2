@@ -278,7 +278,7 @@ const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
-    const { access_token, refresh_token, organization_uid } = tokenResponse.data;
+    const { access_token, refresh_token, organization_uid } = tokenResponse?.data;
 
     if (!organization_uid) {
       throw new BadRequestError(
