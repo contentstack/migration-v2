@@ -13,10 +13,10 @@ import {
 } from "../utils/custom-errors.utils.js";
 import AuthenticationModel from "../models/authentication.js";
 import logger from "../utils/logger.js";
-import path from "path";
 import fs from "fs";
 import axios from "axios";
 import { getAppOrganization, getAppOrganizationUID } from "../utils/auth.utils.js";
+import { getAppJsonPath } from "../utils/app-config-path.utils.js";
 import { decryptAppConfig } from "../utils/crypto.utils.js";
 import { normalizeContentstackAuthorizeUrl } from "../utils/contentstack-oauth-url.utils.js";
 
@@ -232,7 +232,7 @@ const requestSms = async (req: Request): Promise<LoginServiceType> => {
 };
 
 const getAppConfig = () => {
-  const configPath = path.resolve(process.cwd(), '..', 'app.json');
+  const configPath = getAppJsonPath();
   if (!fs.existsSync(configPath)) {
     throw new InternalServerError("SSO is not configured. Please run the setup script first.");
   }
@@ -253,7 +253,6 @@ const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
   }
 
   try {
-    // Exchange the code for access token
     const appConfig = getAppConfig();
     const { client_id, client_secret, redirect_uri } = appConfig?.oauthData;
     const { code_verifier } = appConfig?.pkce;
@@ -271,44 +270,32 @@ const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
     formData.append('redirect_uri', redirect_uri);
     formData.append('code', code as string);
     formData.append('code_verifier', code_verifier);
+
     const tokenResponse = await https({
-        method: "POST",
-        url: tokenUrl,
-        data: formData,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      method: "POST",
+      url: tokenUrl,
+      data: formData,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
     const { access_token, refresh_token, organization_uid } = tokenResponse.data;
 
-    const expectedOrgUid = getAppOrganizationUID();
     if (!organization_uid) {
       throw new BadRequestError(
         "No organization was linked to this authorization. When you install or authorize the app in Contentstack, choose the organization that matches your Migration Tool SSO setup, then try again."
       );
     }
-    if (organization_uid !== expectedOrgUid) {
-      let orgLabel = expectedOrgUid;
-      try {
-        orgLabel = getAppOrganization().name;
-      } catch {
-        /* keep UID if app.json incomplete */
-      }
-      throw new BadRequestError(
-        `Organization mismatch: authorize this app in Contentstack for "${orgLabel}" (the organization from your SSO setup). You signed in under a different organization—select the correct one and try SSO again.`
-      );
-    }
 
+    // ── Fetch user FIRST so we have csUser.uid before the org check ──────────
     const apiHost = regionalApiHosts[region as keyof typeof regionalApiHosts];
     const [userErr, userRes] = await safePromise(
       https({
         method: "GET",
         url: `https://${apiHost}/v3/user`,
-        headers: { 
-          'authorization': `Bearer ${access_token}`,
-        },
+        headers: { 'authorization': `Bearer ${access_token}` },
       })
     );
-      
+
     if (userErr) {
       logger.error("Error fetching user details with new token", userErr?.response?.data);
       throw new InternalServerError(userErr);
@@ -316,23 +303,71 @@ const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
 
     const csUser = userRes?.data?.user;
 
+    // ── Org mismatch check — write failure to DB before throwing ─────────────
+    const expectedOrgUid = getAppOrganizationUID();
+    if (organization_uid !== expectedOrgUid) {
+      let orgLabel = expectedOrgUid;
+      try {
+        orgLabel = getAppOrganization().name;
+      } catch {
+        /* keep UID if app.json incomplete */
+      }
+
+      // Write terminal failure so the poller can stop immediately
+      try {
+        await AuthenticationModel.read();
+        const userIndex = AuthenticationModel.chain
+          .get("users")
+          .findIndex({ user_id: csUser?.uid })
+          .value();
+
+        AuthenticationModel.update((data: any) => {
+          const failureRecord = {
+            user_id: csUser?.uid,
+            email: csUser?.email,
+            region: region as string,
+            sso_failed: true,
+            sso_error: `Organization mismatch: authorize this app in Contentstack for "${orgLabel}" (the organization from your SSO setup). You signed in under a different organization—select the correct one and try SSO again.`,
+            updated_at: new Date().toISOString(),
+          };
+          if (userIndex >= 0) {
+            data.users[userIndex] = { ...data.users[userIndex], ...failureRecord };
+          } else {
+            data.users.push({ ...failureRecord, created_at: new Date().toISOString() });
+          }
+        });
+      } catch (dbErr) {
+        logger.error('Failed to write SSO org-mismatch failure to DB', dbErr);
+      }
+
+      throw new BadRequestError(
+        `Organization mismatch: authorize this app in Contentstack for "${orgLabel}" (the organization from your SSO setup). You signed in under a different organization—select the correct one and try SSO again.`
+      );
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const appTokenPayload = {
       region: region as string,
-      user_id: csUser?.uid, 
+      user_id: csUser?.uid,
       is_sso: true,
     };
-      
+
     const appToken = generateToken(appTokenPayload);
     await AuthenticationModel.read();
-    const userIndex = AuthenticationModel.chain.get("users").findIndex({ user_id: csUser?.uid }).value();
+    const userIndex = AuthenticationModel.chain
+      .get("users")
+      .findIndex({ user_id: csUser?.uid })
+      .value();
 
     AuthenticationModel.update((data: any) => {
       const userRecord = {
         ...appTokenPayload,
         email: csUser?.email,
-        access_token: access_token, 
+        access_token: access_token,
         refresh_token: refresh_token,
         organization_uid: organization_uid,
+        sso_failed: false,   // clear any previous failure
+        sso_error: null,
         updated_at: new Date().toISOString(),
       };
       if (userIndex < 0) {
@@ -344,17 +379,12 @@ const saveOAuthToken = async (req: Request): Promise<LoginServiceType> => {
 
     logger.info(`Token and user data for ${csUser.email} (Region: ${region}) saved successfully.`);
     return {
-      data: {
-        message: HTTP_TEXTS.SUCCESS_LOGIN,
-        app_token: appToken,
-      },
+      data: { message: HTTP_TEXTS.SUCCESS_LOGIN, app_token: appToken },
       status: HTTP_CODES.OK,
-    } 
+    };
 
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
+    if (error instanceof AppError) throw error;
     logger.error("An error occurred during token exchange and save:", error);
     throw new InternalServerError("Failed to process OAuth callback.");
   }
@@ -379,7 +409,7 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
       throw new Error(`No refresh token available for user: ${userId}`);
     }
 
-    const appConfigPath = path.join(process.cwd(), "..", 'app.json');
+    const appConfigPath = getAppJsonPath();
     if (!fs.existsSync(appConfigPath)) {
       throw new Error('app.json file not found - OAuth configuration required');
     }
@@ -440,8 +470,8 @@ export const refreshOAuthToken = async (userId: string): Promise<string> => {
  */
 export const getAppData = async () => {
   try {
-    const appConfigPath = path.join(process.cwd(), '..','app.json');
-    
+    const appConfigPath = getAppJsonPath();
+
     if (!fs.existsSync(appConfigPath)) {
       throw new Error('app.json file not found - SSO configuration required');
     }
@@ -485,9 +515,28 @@ export const checkSSOAuthStatus = async (userId: string) => {
       .find({ user_id: userId })
       .value();
 
-    if (!userRecord || !userRecord?.access_token) {
+    if (!userRecord) {
       return {
         authenticated: false,
+        terminal: false,
+        message: 'SSO authentication not completed'
+      };
+    }
+
+    // ── Check for terminal failure written by the OAuth callback ─────────────
+    if (userRecord?.sso_failed) {
+      return {
+        authenticated: false,
+        terminal: true,
+        message: userRecord.sso_error ?? 'Organization mismatch: please select the correct organization and try SSO again.',
+      };
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    if (!userRecord?.access_token) {
+      return {
+        authenticated: false,
+        terminal: false,
         message: 'SSO authentication not completed'
       };
     }
@@ -495,15 +544,14 @@ export const checkSSOAuthStatus = async (userId: string) => {
     if (!userRecord?.organization_uid) {
       return {
         authenticated: false,
+        terminal: false,
         message: 'Organization not linked to user'
       };
     }
 
     const appOrgUID = getAppOrganizationUID();
-
     if (userRecord.organization_uid !== appOrgUID) {
-      let detail =
-        'Organization mismatch: the authorized org does not match the Migration Tool SSO configuration.';
+      let detail = 'Organization mismatch: the authorized org does not match the Migration Tool SSO configuration.';
       try {
         const { name } = getAppOrganization();
         detail = `Organization mismatch: authorize "${name}" in Contentstack (same org as SSO setup), then try again.`;
@@ -512,16 +560,16 @@ export const checkSSOAuthStatus = async (userId: string) => {
       }
       return {
         authenticated: false,
+        terminal: true,   // ← terminal, not just pending
         message: detail,
       };
     }
 
-    const tokenAge =
-      Date.now() - new Date(userRecord.updated_at).getTime();
-
+    const tokenAge = Date.now() - new Date(userRecord.updated_at).getTime();
     if (tokenAge > 10 * 60 * 1000) {
       return {
         authenticated: false,
+        terminal: true,   // ← terminal, not just pending
         message: 'SSO authentication expired'
       };
     }
@@ -534,6 +582,7 @@ export const checkSSOAuthStatus = async (userId: string) => {
 
     return {
       authenticated: true,
+      terminal: false,
       message: 'SSO authentication successful',
       app_token: appToken,
       user: {
@@ -546,9 +595,7 @@ export const checkSSOAuthStatus = async (userId: string) => {
 
   } catch (error: any) {
     logger.error('SSO status check failed', error);
-    throw new Error(
-      `Failed to check SSO authentication status: ${error?.message}`
-    );
+    throw new Error(`Failed to check SSO authentication status: ${error?.message}`);
   }
 };
 

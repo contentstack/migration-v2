@@ -1,11 +1,11 @@
 import fs from "fs";
-import path from "path";
 import AuthenticationModel from "../models/authentication.js";
 import { UnauthorizedError } from "../utils/custom-errors.utils.js";
 import { decryptAppConfig } from "./crypto.utils.js";
+import { getAppJsonPath } from "./app-config-path.utils.js";
 
 function loadAppConfig() {
-  const configPath = path.join(process.cwd(), "..", "app.json");
+  const configPath = getAppJsonPath();
   if (!fs.existsSync(configPath)) {
     throw new Error("app.json file not found");
   }
