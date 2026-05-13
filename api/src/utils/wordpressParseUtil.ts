@@ -143,6 +143,25 @@ const MEDIA_AND_EMBED_SELECTOR = [
 ].join(', ');
 
 /**
+ * Trims outer whitespace/newlines, removes BOM and zero-width characters, and drops
+ * whitespace-only gaps between tags (e.g. "\n<p>…</p>\n" → "<p>…</p>").
+ */
+export const normalizeHtmlFragment = (
+  htmlString: string | null | undefined,
+): string => {
+  if (htmlString == null || typeof htmlString !== 'string') {
+    return '';
+  }
+  return htmlString
+    .replace(/^\uFEFF/, '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .trim()
+    .replace(/>\s+</g, '><');
+};
+
+/**
  * True when HTML has visible text, or substantive non-text markup (media, embeds, etc.).
  * Pure whitespace / empty paragraphs / br-only crumbs are treated as empty.
  */
