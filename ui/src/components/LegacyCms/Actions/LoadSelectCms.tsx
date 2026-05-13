@@ -150,7 +150,7 @@ const LoadSelectCms = (props: LoadSelectCmsProps) => {
             ...newMigrationData?.legacy_cms?.uploadedFile,
             file_details: {
               ...existingFileDetails,
-              mySQLDetails: data?.mysql || existingFileDetails?.mySQLDetails, // Preserve existing if config is empty
+              mysql: data?.mysql || existingFileDetails?.mysql,
               assetsConfig: data?.assetsConfig || existingFileDetails?.assetsConfig,
               cmsType: data?.cmsType || existingFileDetails?.cmsType,
               localPath: data?.localPath || existingFileDetails?.localPath,
