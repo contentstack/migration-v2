@@ -81,6 +81,7 @@ describe('user.service', () => {
       expect(result.status).toBe(200);
       expect(result.data.user.email).toBe('test@example.com');
       expect(result.data.user.orgs).toHaveLength(2);
+      expect(getAppOrganization).not.toHaveBeenCalled();
     });
 
     it('should throw when user not found in AuthenticationModel', async () => {
@@ -205,14 +206,18 @@ describe('user.service', () => {
       ).rejects.toMatchObject({ message: 'Organization access revoked' });
     });
 
-    it('should wrap unexpected errors in ExceptionFunction', async () => {
+    it('should wrap unexpected errors in ExceptionFunction (SSO path reads app org)', async () => {
       mockChainValue.mockReturnValue(0);
       vi.mocked(getAppOrganization).mockImplementationOnce(() => {
         throw new Error('unexpected');
       });
 
       await expect(
-        userService.getUserProfile(createReq() as any)
+        userService.getUserProfile({
+          body: {
+            token_payload: { region: 'NA', user_id: 'user-123', is_sso: true },
+          },
+        } as any)
       ).rejects.toMatchObject({ message: 'unexpected' });
     });
   });
