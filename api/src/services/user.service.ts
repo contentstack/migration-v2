@@ -36,9 +36,9 @@ const getUserProfile = async (req: Request): Promise<LoginServiceType> => {
       .value();
 
     if (userIndex < 0) throw new BadRequestError(HTTP_TEXTS.NO_CS_USER);
-    const { uid: org_uid, name: org_name } = getAppOrganization();
     const userRecord = AuthenticationModel.data?.users?.[userIndex];
     if (appTokenPayload?.is_sso === true) {
+      const { uid: org_uid, name: org_name } = getAppOrganization();
       if (!userRecord?.access_token) {
         throw new BadRequestError("SSO authentication not completed");
       }

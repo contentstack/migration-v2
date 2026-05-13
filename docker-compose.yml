@@ -11,6 +11,7 @@ services:
     volumes:
       - ${DOCKER_MOUNT_PATH:-${CMS_DATA_PATH}}:${CONTAINER_PATH}:ro
       - shared_data:/app/extracted_files
+      - ./app.json:/usr/src/app/app.json:ro
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - CMS_TYPE=${CMS_TYPE}

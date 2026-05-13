@@ -55,7 +55,8 @@ if [[ "$CMS_TYPE" == "drupal" ]]; then
   echo "Drupal uses a MySQL database connection. Please provide your database details:"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-  read -rp "MySQL Host (e.g. host.docker.internal for host DB): " MYSQL_HOST
+  read -rp "MySQL Host [host.docker.internal] (use this when MySQL runs on your Mac/PC, not inside Docker): " MYSQL_HOST
+  MYSQL_HOST="${MYSQL_HOST:-host.docker.internal}"
   read -rp "MySQL User: " MYSQL_USER
   read -rsp "MySQL Password: " MYSQL_PASSWORD
   echo ""
@@ -180,6 +181,13 @@ else
     set_env_var "AEM_TEMPLATES_DIR" "templates"
     echo "ℹ️  Set AEM_TEMPLATES_DIR to: templates"
   fi
+fi
+
+# Check for app.json (required by API for org + OAuth; mounted into the API container)
+if [ ! -f "app.json" ]; then
+  echo "❌ app.json not found in the repository root."
+  echo "   Run your Contentstack / OAuth setup so app.json exists, then retry Docker."
+  exit 1
 fi
 
 # Check if docker-compose.yml exists before running
