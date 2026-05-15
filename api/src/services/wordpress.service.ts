@@ -789,14 +789,14 @@ function processNestedGroup(
           allFields,
           nestedChildKey,
         );
-        if (Object.keys(hoisted).length > 0) {
+        if (Object.keys(hoisted)?.length > 0) {
           Object.assign(nestedChildrenObject, hoisted);
         }
         const nestedPayload =
-          Object.keys(remainder).length > 0
+          Object.keys(remainder)?.length > 0
             ? remainder
-            : Object.keys(hoisted).length > 0 &&
-                Object.keys(deeplyNestedObject || {}).length > 0
+            : Object.keys(hoisted)?.length > 0 &&
+                Object.keys(deeplyNestedObject || {})?.length > 0
               ? {}
               : deeplyNestedObject || {};
         if (fieldIsMultipleInContentstack(nestedChildField)) {
