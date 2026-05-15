@@ -233,7 +233,7 @@ const Login: FC<IProps> = () => {
 
     if (response?.status === 104 || response?.status === 400 || response?.status === 422) {
       setIsLoading(false);
-      failureNotification(response?.data?.error_message || response?.data?.error?.message);
+      failureNotification(response?.data?.error_message || response?.data?.error?.message || response?.data?.message);
     }
     dispatch(clearAuthToken());
     localStorage?.removeItem('app_token');
