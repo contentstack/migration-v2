@@ -615,7 +615,6 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                           if (Object.keys(hoisted)?.length) {
                             Object.assign(childrenObject, hoisted);
                           }
-
                           if (
                             fieldIsMultipleInContentstack(childField) &&
                             remainder &&
@@ -630,7 +629,7 @@ async function createSchema(fields: any, blockJson : any, title: string, uid: st
                             remainder &&
                             Object.keys(remainder)?.length > 0
                           ) {
-                            childrenObject.[childKey] = remainder;
+                            childrenObject[childKey] = remainder;
                           }
 
                           const formattedChild = formatChildByType(
@@ -778,23 +777,36 @@ function processNestedGroup(
       const nestedChildKey = getLastUid(nestedChildField?.contentstackFieldUid);
       
       if (nestedChildField?.contentstackFieldType === 'group') {
-        // Recursively process nested groups
         const deeplyNestedObject = processNestedGroup(
           nestedEffective,
           nestedChildField,
           allFields,
           modularBlockChild,
         );
+        const { remainder, hoisted } = partitionModularDirectSiblings(
+          deeplyNestedObject || {},
+          modularBlockChild,
+          allFields,
+          nestedChildKey,
+        );
+        if (Object.keys(hoisted).length > 0) {
+          Object.assign(nestedChildrenObject, hoisted);
+        }
+        const nestedPayload =
+          Object.keys(remainder).length > 0
+            ? remainder
+            : Object.keys(hoisted).length > 0 &&
+                Object.keys(deeplyNestedObject || {}).length > 0
+              ? {}
+              : deeplyNestedObject || {};
         if (fieldIsMultipleInContentstack(nestedChildField)) {
           if (Array.isArray(nestedChildrenObject[nestedChildKey])) {
-            
-            nestedChildrenObject[nestedChildKey].push(deeplyNestedObject);
+            nestedChildrenObject[nestedChildKey].push(nestedPayload);
           } else {
-         
-            nestedChildrenObject[nestedChildKey] = [deeplyNestedObject];
+            nestedChildrenObject[nestedChildKey] = [nestedPayload];
           }
         } else {
-          nestedChildrenObject[nestedChildKey] = deeplyNestedObject;
+          nestedChildrenObject[nestedChildKey] = nestedPayload;
         }
       } else {
   
