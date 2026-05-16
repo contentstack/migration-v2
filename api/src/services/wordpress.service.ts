@@ -952,7 +952,7 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
               if (hasMeaningfulHtml ) {
                 formatted = RteJsonConverter(htmlContent);
               }
-              else if (value) {
+              else if (value !== undefined) {
                 formatted = RteJsonConverter(value);
                 
               }
@@ -962,7 +962,7 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
             case 'html': {
               const rawHtml = child?.blockName
                 ? (formatted ?? child?.innerHTML)
-                : `<p>${child?.innerHTML}</p>`;
+                : value ? `<p>${value}</p>` : `<p>${child?.innerHTML}</p>`;
               const htmlContent =
                 typeof rawHtml === 'string'
                   ? normalizeHtmlFragment(rawHtml)
@@ -971,8 +971,8 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
 
               if (hasMeaningfulHtml) {
                 formatted = htmlContent;
-              }else if (value) {
-                formatted = `<p>${value}</p>`;
+              } else if (value !== undefined) {
+                formatted = rawHtml;
               
               }
               break;
