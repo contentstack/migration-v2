@@ -1111,32 +1111,47 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
                       : withExt;
                   }
                   const asset = assetData[`assets_${id}`];
-                  
-                  const titleField = fields?.find((field: any) => field?.otherCmsField?.toLowerCase() === 'title' && field?.contentstackField?.includes(getFieldName(childBlockName)));
-                  const altField = fields?.find((field: any) => field?.otherCmsField?.toLowerCase() === 'alt' && field?.contentstackField?.includes(getFieldName(childBlockName)));
-                  const captionField = fields?.find((field: any) => field?.otherCmsField?.toLowerCase() === 'caption' && field?.contentstackField?.includes(getFieldName(childBlockName)));
 
-                  return {
-                    ...(titleField?.contentstackFieldUid
-                      ? {
-                          [getLastUid(titleField.contentstackFieldUid)]:
-                            formatChildByType(mf?.title, titleField, assetData, fields, mf?.title),
-                        }
-                      : {}),
-                    ...(altField?.contentstackFieldUid
-                      ? {
-                          [getLastUid(altField.contentstackFieldUid)]:
-                            formatChildByType(mf?.alt, altField, assetData, fields, mf?.alt),
-                        }
-                      : {}),
-                    ...(captionField?.contentstackFieldUid
-                      ? {
-                          [getLastUid(captionField.contentstackFieldUid)]:
-                            formatChildByType(mf?.caption, captionField, assetData, fields, mf?.caption),
-                        }
-                      : {}),
-                    image: asset,
+                  const groupCsUid = field?.contentstackFieldUid || '';
+                  const isDirectChildOfThisGroup = (f: any) => {
+                    const uid = f?.contentstackFieldUid || '';
+                    if (groupCsUid && uid.startsWith(`${groupCsUid}.`)) {
+                      const rest = uid.slice(groupCsUid.length + 1);
+                      return Boolean(rest && !rest.includes('.'));
+                    }
+                    const slug = getFieldName(childBlockName);
+                    return Boolean(slug && f?.contentstackField?.includes(slug));
                   };
+                  const titleField = fields?.find(
+                    (f: any) =>
+                      f?.otherCmsField?.toLowerCase() === 'title' &&
+                      isDirectChildOfThisGroup(f),
+                  );
+                  const altField = fields?.find(
+                    (f: any) =>
+                      f?.otherCmsField?.toLowerCase() === 'alt' &&
+                      isDirectChildOfThisGroup(f),
+                  );
+                  const captionField = fields?.find(
+                    (f: any) =>
+                      f?.otherCmsField?.toLowerCase() === 'caption' &&
+                      isDirectChildOfThisGroup(f),
+                  );
+
+                  const slide: Record<string, any> = { image: asset };
+                  if (titleField?.contentstackFieldUid) {
+                    slide[getLastUid(titleField.contentstackFieldUid)] =
+                      formatChildByType(mf?.title, titleField, assetData, fields, mf?.title);
+                  }
+                  if (altField?.contentstackFieldUid) {
+                    slide[getLastUid(altField.contentstackFieldUid)] =
+                      formatChildByType(mf?.alt, altField, assetData, fields, mf?.alt);
+                  }
+                  if (captionField?.contentstackFieldUid) {
+                    slide[getLastUid(captionField.contentstackFieldUid)] =
+                      formatChildByType(mf?.caption, captionField, assetData, fields, mf?.caption);
+                  }
+                  return slide;
                 });
                 // Non-multiple CS groups expect one object; Jetpack mediaFiles is always an array.
                 formatted =
