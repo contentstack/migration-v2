@@ -155,8 +155,15 @@ function fieldIsMultipleInContentstack(field: any): boolean {
   return field?.advanced?.multiple === true;
 }
 
-/** Repeatable sibling leaves inside groups (mapper often uses advanced.initial.multiple for list-items). */
+/**
+ * Repeatable sibling leaves inside groups.
+ * When the mapper has a Contentstack UID, cardinality must match Contentstack (`advanced.multiple` only);
+ * `advanced.initial.multiple` is WP/list hints and must not force arrays for single CS fields.
+ */
 function fieldAllowsRepeatedLeaves(field: any): boolean {
+  if (field?.contentstackFieldUid !== field?.backupFieldUid) {
+    return fieldIsMultipleInContentstack(field);
+  }
   return (
     fieldIsMultipleInContentstack(field) ||
     field?.advanced?.initial?.multiple === true
@@ -1108,11 +1115,26 @@ function formatChildByType(child: any, field: any, assetData: any, fields?: any[
                   const titleField = fields?.find((field: any) => field?.otherCmsField?.toLowerCase() === 'title' && field?.contentstackField?.includes(getFieldName(childBlockName)));
                   const altField = fields?.find((field: any) => field?.otherCmsField?.toLowerCase() === 'alt' && field?.contentstackField?.includes(getFieldName(childBlockName)));
                   const captionField = fields?.find((field: any) => field?.otherCmsField?.toLowerCase() === 'caption' && field?.contentstackField?.includes(getFieldName(childBlockName)));
-                 
+
                   return {
-                    title: formatChildByType(mf?.title, titleField, assetData, fields, mf?.title),
-                    alt: formatChildByType(mf?.alt, altField, assetData, fields, mf?.alt),
-                    caption: formatChildByType(mf?.caption, captionField, assetData, fields, mf?.caption),
+                    ...(titleField?.contentstackFieldUid
+                      ? {
+                          [getLastUid(titleField.contentstackFieldUid)]:
+                            formatChildByType(mf?.title, titleField, assetData, fields, mf?.title),
+                        }
+                      : {}),
+                    ...(altField?.contentstackFieldUid
+                      ? {
+                          [getLastUid(altField.contentstackFieldUid)]:
+                            formatChildByType(mf?.alt, altField, assetData, fields, mf?.alt),
+                        }
+                      : {}),
+                    ...(captionField?.contentstackFieldUid
+                      ? {
+                          [getLastUid(captionField.contentstackFieldUid)]:
+                            formatChildByType(mf?.caption, captionField, assetData, fields, mf?.caption),
+                        }
+                      : {}),
                     image: asset,
                   };
                 });
