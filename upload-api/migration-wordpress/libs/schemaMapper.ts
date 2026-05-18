@@ -218,7 +218,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 contentstackFieldType: 'json',
                 backupFieldType: 'json',
                 backupFieldUid: rteUid,
-                advanced: {}
+                advanced: {},
+                css:{
+                    classNames: key?.attributes?.className,
+                    id:key?.attributes?.anchor
+                }
             };
         }
         case 'core/missing':
@@ -235,7 +239,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                     contentstackFieldType: 'markdown',
                     backupFieldType: 'markdown',
                     backupFieldUid: rteUid,
-                    advanced: {}
+                    advanced: {},
+                    css:{
+                        classNames: key?.attributes?.className,
+                        id:key?.attributes?.anchor
+                    }
                 };
             }
             else if (key?.attributes?.originalName === 'jetpack/story') {
@@ -252,6 +260,10 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                         backupFieldType: 'group',
                         backupFieldUid: storyGroupUid,
                         advanced: { multiple: true },
+                        css:{
+                            classNames: key?.attributes?.className,
+                            id:key?.attributes?.anchor
+                        }
                     },
                 ];
                 const storyChildren: Array<{
@@ -275,6 +287,10 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                         backupFieldType: csType,
                         backupFieldUid: childUid,
                         advanced: {},
+                        css:{
+                            classNames: key?.attributes?.className,
+                            id:key?.attributes?.anchor
+                        }
                     });
                 }
                 return groupSchema;
@@ -289,7 +305,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                     contentstackFieldType: 'json',
                     backupFieldType: 'json',
                     backupFieldUid: rteUid,
-                    advanced: {}
+                    advanced: {},
+                    css:{
+                        classNames: key?.attributes?.className,
+                        id:key?.attributes?.anchor
+                    }
                 };
         }
         case 'core/image':
@@ -307,7 +327,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 contentstackFieldType: 'file',
                 backupFieldType: 'file',
                 backupFieldUid: fileUid,
-                advanced: {}
+                advanced: {},
+                css:{
+                    classNames: key?.attributes?.className,
+                    id:key?.attributes?.anchor
+                }
             };
         }
 
@@ -324,7 +348,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 contentstackFieldType: 'single_line_text',
                 backupFieldType: 'single_line_text',
                 backupFieldUid: textUid,
-                advanced: {}
+                advanced: {},
+                css:{
+                    classNames: key?.attributes?.className,
+                    id:key?.attributes?.anchor
+                }
             };
         }
 
@@ -341,7 +369,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 contentstackFieldType: 'link',
                 backupFieldType: 'link',
                 backupFieldUid: LinkUid,
-                advanced: {}
+                advanced: {},
+                css:{
+                    classNames: key?.attributes?.className,
+                    id:key?.attributes?.anchor
+                }
             };
         }
         
@@ -394,7 +426,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 contentstackFieldType: 'group',
                 backupFieldType: 'group',
                 backupFieldUid: groupUid,
-                advanced: {}
+                advanced: {},
+                css:{
+                    classNames: key?.attributes?.className,
+                    id:key?.attributes?.anchor
+                }
             });
 
             if (innerBlocks?.length > 0) {
@@ -440,7 +476,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 contentstackFieldType: 'group',
                 backupFieldType: 'group',
                 backupFieldUid: groupUid,
-                advanced: {}
+                advanced: {},
+                css:{
+                    classNames: key?.attributes?.className,
+                    id:key?.attributes?.anchor
+                }
             });
            
             if(innerBlocks?.length > 0 ){
@@ -473,7 +513,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 contentstackFieldType: 'file',
                 backupFieldType: 'file',
                 backupFieldUid: `${parentUid}.${getFieldUid(`${key?.name}_${clientIdForUid(key?.clientId)}`, affix)}`,
-                advanced: {}
+                advanced: {},
+                css:{
+                    classNames: key?.attributes?.className,
+                    id:key?.attributes?.anchor
+                }
                 });
             }
         
@@ -510,6 +554,10 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 contentstackFieldType: 'group',
                 backupFieldType: 'group',
                 backupFieldUid: searchEleUid,
+                css:{
+                    classNames: key?.attributes?.className,
+                    id:key?.attributes?.anchor
+                }
             });
             searchEle?.length > 0 && searchEle?.forEach(schemaObj => {
                 if (schemaObj) {
@@ -537,7 +585,10 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                 contentstackFieldType: 'link',
                 backupFieldType: 'link',
                 backupFieldUid: buttonUid,
-
+                css:{
+                    classNames: key?.attributes?.className,
+                    id:key?.attributes?.anchor
+                }
             };
             
         }
@@ -576,7 +627,11 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                     contentstackFieldType: 'group',
                     backupFieldType: 'group',
                     backupFieldUid: groupUid,
-                    advanced: {}
+                    advanced: {},
+                    css:{
+                        classNames: key?.attributes?.className,
+                        id:key?.attributes?.anchor
+                    }
                 });
 
                 innerBlocks.forEach(schemaObj => {
@@ -621,6 +676,10 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                         backupFieldType: 'file',
                         backupFieldUid: parentUid ? `${parentUid}.media` : 'media',
                         advanced: {},
+                        css:{
+                            classNames: key?.attributes?.className,
+                            id:key?.attributes?.anchor
+                        }
                     },
                     {
                         uid: parentUid ? `${parentUid}.mediatype` : 'mediatype',
@@ -632,6 +691,10 @@ async function schemaMapper (key: WordPressBlock | WordPressBlock[], parentUid: 
                         backupFieldType: 'single_line_text',
                         backupFieldUid: parentUid ? `${parentUid}.mediatype` : 'mediatype',
                         advanced: {},
+                        css:{
+                            classNames: key?.attributes?.className,
+                            id:key?.attributes?.anchor
+                        }
                     }
                 );
             }

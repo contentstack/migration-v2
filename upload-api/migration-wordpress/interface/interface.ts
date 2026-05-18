@@ -16,6 +16,10 @@ export interface Field {
   advanced?: FieldAdvanced;
   isDeleted?: boolean;
   refrenceTo?: string[];
+  css?: {
+    classNames?: string;
+    id?: string;
+  };
 }
 
 export interface DataConfig {
