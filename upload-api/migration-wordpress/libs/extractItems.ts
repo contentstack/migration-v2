@@ -10,6 +10,7 @@ import helper from "../utils/helper";
 import config from '../config/index.json';
 import extractTaxonomy from './extractTaxonomy';
 import { DataConfig, Field, CT } from '../interface/interface';
+import { handleAcfData, acfMpapperGenerator } from './extractAcfData';
 
 const MEDIA_BLOCK_NAMES = ['core/image', 'core/video', 'core/audio', 'core/file'];
 
@@ -257,6 +258,24 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     let isCategories : boolean = false;
     let isTermReffered : boolean = false;
 
+    const postAcfData = await helper.fetchPostData(type, config);
+
+    const acfContentData = await handleAcfData(postAcfData);
+    const acfContentMapper = await acfMpapperGenerator(acfContentData);
+    console.log(acfContentMapper);
+
+    const typeDir = path.join(contentTypeFolderPath);
+    await mkdirp(typeDir);
+    const postAcfOutPath = path.join(
+      typeDir,
+      `acf-${type}.json`
+    );
+    await fs.promises.writeFile(
+      postAcfOutPath,
+      JSON.stringify(acfContentData, null, 2),
+      'utf8'
+    );
+
     const isAllContentEmpty = item.every((data: any) =>
       !data?.['content:encoded'] || data?.['content:encoded']?.trim() === ''
     );
@@ -304,9 +323,9 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
     );
       
     }
-    
-     // Create the content type directory if it doesn't exist
-     mkdirp(contentTypeFolderPath);
+   
+    // Create the content type directory if it doesn't exist
+    mkdirp(contentTypeFolderPath);
 
     //const category = await extractTaxonomy(categories, 'categories');
     const categoryArray: Field = 
@@ -329,6 +348,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         const targetItem = items?.filter((i, el) => {
             return $(el)?.find("title")?.text() === data?.title;
         })?.first();
+
         if(data?.category){
           const categoryData = Array?.isArray(data?.category) ? data?.category : [data?.category];
           const domain = categoryData?.some((item: any) => item?.attributes?.domain === 'category');
@@ -354,9 +374,20 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
 
         const contentEncoded = targetItem?.find("content\\:encoded")?.text() || '';
         const blocksJson = await setupWordPressBlocks(contentEncoded);
-       
 
-  
+        const typeSlug = sanitizeBlocksJsonFileName(type || 'unknown', 40);
+        const typeDir = path.join(blocksJsonOutputDir, typeSlug);
+        await mkdirp(typeDir);
+        const blocksOutPath = path.join(
+          typeDir,
+          `${itemIndex}_${sanitizeBlocksJsonFileName(data?.title)}.json`
+        );
+        await fs.promises.writeFile(
+          blocksOutPath,
+          JSON.stringify(blocksJson, null, 2),
+          'utf8'
+        );
+
         // Example usage
         const result = findSameStructureBlocks(blocksJson);
         // fs?.writeFileSync('result.json', JSON?.stringify(result, null, 4));
@@ -532,6 +563,7 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
             CT?.push?.(categoryArray);
         }
     }
+    CT.push(...(Object.values(acfContentMapper) as Field[]));
     if(isTermReffered && !isAllContentEmpty){
         CT?.push?.({
           "uid": 'terms',

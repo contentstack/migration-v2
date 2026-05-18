@@ -29,7 +29,7 @@ export default {
     dropdown: { optionLimit: 100 }
   },
   // CMS type configuration
-  cmsType: process.env.CMS_TYPE || 'cmsType',
+  cmsType: process.env.CMS_TYPE || 'cmstype',
   isLocalPath: true,
 
   // AWS data configuration
@@ -57,6 +57,12 @@ export default {
     public_path: process.env.DRUPAL_ASSETS_PUBLIC_PATH || 'drupal_assets_public_path'
   },
 
+  siteConfig:{
+    baseUrl: process.env. WORDPRESS_BASE_URL || 'wordpress_base_url',
+    restApiPath: process.env.WORDPRESS_REST_API_PATH || 'wordpress_rest_api_path'
+  },
+
   // Local path for the CMS data
-  localPath: process.env.CMS_LOCAL_PATH || process.env.CONTAINER_PATH || 'your_local_cms_data_path',
+  //localPath: process.env.CMS_LOCAL_PATH || process.env.CONTAINER_PATH || '/Users/aishwarya.dani/Downloads/sitetitle.WordPress.2026-05-07 (2).xml',
+  localPath: process.env.CMS_LOCAL_PATH || 'cms_local_path'
 };
