@@ -594,8 +594,43 @@ const extractItems = async (item: any, config: DataConfig, type: string, affix: 
         "advanced": {
           "mandatory": false}
       });
-   
-      
+    }
+
+    for (const data of item) {
+      if(data?.['wp:postmeta']){
+        const postmetaData = Array?.isArray(data?.['wp:postmeta']) ? data?.['wp:postmeta'] : [data?.['wp:postmeta']];
+        for(const postmeta of postmetaData){
+          const metaKey = postmeta?.['wp:meta_key'];
+          if(metaKey === '_yoast_wpseo_title' && ! CT?.find((item: Field) => item?.uid === 'yoast_wpseo_title')){
+              CT?.push({
+                "uid": 'yoast_wpseo_title',
+                "contentstackFieldUid": 'yoast_wpseo_title',
+                "contentstackField": 'Yoast SEO Title',
+                "contentstackFieldType": 'single_line_text',
+                "backupFieldType": 'single_line_text',
+                "otherCmsField": 'Yoast SEO Title',
+                "otherCmsType": 'text',
+                "backupFieldUid": 'yoast_wpseo_title',
+                "advanced": {
+                  "mandatory": false}
+              });
+          }
+          if(metaKey === '_yoast_wpseo_metadesc' && ! CT?.find((item: Field) => item?.uid === 'yoast_wpseo_metadesc')){
+              CT?.push({
+                "uid": 'yoast_wpseo_metadesc',
+                "contentstackFieldUid": 'description',
+                "contentstackField": 'Description',
+                "contentstackFieldType": 'multi_line_text',
+                "backupFieldType": 'multi_line_text',
+                "otherCmsField": 'Description',
+                "otherCmsType": 'text',
+                "backupFieldUid": 'description',
+                "advanced": {
+                  "mandatory": false}
+              });
+          }
+        }
+      }
     }
 
     const filePath = path.join(contentTypeFolderPath, `${type?.toLowerCase()}.json`);
